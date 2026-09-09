@@ -1231,6 +1231,16 @@ class Smart2RideEngine:
                 at=now,
             )
             await broadcast_order_event(EVENT_ORDER_OUT_FOR_DELIVERY, updated)
+            await broadcast_order_event(
+                "order.dispatch_verified",
+                updated,
+                extra_data={"status": "out_for_delivery", "dispatchOtpVerified": True, "dispatchedToRider": assigned_rider_id},
+            )
+            await broadcast_order_event(
+                "order.status_changed",
+                updated,
+                extra_data={"status": "out_for_delivery", "dispatchOtpVerified": True},
+            )
 
             from app.services.partner_activity_logger import log_partner_activity
             import asyncio
@@ -1253,6 +1263,8 @@ class Smart2RideEngine:
             "status": lifecycle.OUT_FOR_DELIVERY,
             "orderId": canonical_id,
             "dispatchedTo": assigned_rider_id,
+            "custody": "rider",
+            "dispatchOtpVerified": True,
             "message": "Dispatch OTP verified. Package custody transferred to Delivery Captain.",
         }
 

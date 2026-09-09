@@ -243,6 +243,9 @@ export async function fetchDispatchOtp(orderId: string) {
     partnerPhone?: string;
     custody?: string;
     status?: string;
+    processingEstimateMinutes?: number;
+    estimatedReadyAt?: string;
+    processingStartedAt?: string;
   }>(`/api/rider/orders/${orderId}/dispatch-otp`);
 }
 

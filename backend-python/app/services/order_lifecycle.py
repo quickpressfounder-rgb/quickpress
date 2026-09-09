@@ -864,6 +864,9 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
         "pickupOtpVerified": pickup_verified,
         "dispatchOtpVerified": dispatch_verified,
         "deliveryOtpVerified": delivery_verified,
+        "processingEstimateMinutes": order.get("processingEstimateMinutes") or 120,
+        "estimatedReadyAt": order.get("estimatedReadyAt"),
+        "processingStartedAt": order.get("processingStartedAt"),
         "timeline": _timeline(order, _RIDER_STAGES),
     }
 

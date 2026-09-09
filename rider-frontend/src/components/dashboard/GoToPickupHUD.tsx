@@ -36,6 +36,12 @@ import {
   speakArrival,
   speakTripComplete,
   speakText,
+  speakStoreProcessingStarted,
+  speakLaundryReadyForDelivery,
+  speakDispatchOtpPrompt,
+  speakDispatchOtpVerified,
+  speakCustomerDeliveryOtpPrompt,
+  speakPickupOtpPrompt,
   triggerHaptic,
   unlockAudioContext,
 } from "../../lib/captain-audio";
@@ -89,6 +95,9 @@ export interface ActiveOrderData {
   amount?: number;
   placedAt?: string;
   items?: any[];
+  processingEstimateMinutes?: number;
+  estimatedReadyAt?: string;
+  processingStartedAt?: string;
 }
 
 interface GoToPickupHUDProps {
@@ -203,6 +212,40 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showCaptainReviewModal, setShowCaptainReviewModal] = useState(false);
   const [hasRatedTrip, setHasRatedTrip] = useState(false);
 
+  // SLA Processing Timer for Leg 1 store processing
+  const [processingRemainingSecs, setProcessingRemainingSecs] = useState<number>(() => {
+    if (order.estimatedReadyAt) {
+      const diff = Math.floor((new Date(order.estimatedReadyAt).getTime() - Date.now()) / 1000);
+      return Math.max(0, diff);
+    }
+    const mins = order.processingEstimateMinutes || 120;
+    return mins * 60;
+  });
+  const [processingTotalSecs, setProcessingTotalSecs] = useState<number>(() => {
+    const mins = order.processingEstimateMinutes || 120;
+    return mins * 60;
+  });
+
+  // Ticking countdown timer when stage === "store_processing"
+  useEffect(() => {
+    if (stage !== "store_processing") return;
+    const interval = setInterval(() => {
+      setProcessingRemainingSecs((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [stage]);
+
+  // Format HH:MM:SS for countdown timer
+  const formatCountdown = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    if (hrs > 0) {
+      return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
   // Load dispatch OTP for Rider 2
   useEffect(() => {
     if (order.orderId) {
@@ -211,13 +254,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           if (res?.dispatchOtp) setCaptainDispatchOtp(res.dispatchOtp);
           if (res?.partnerName) setPartnerStoreName(res.partnerName);
           if (res?.partnerAddress) setPartnerStoreAddress(res.partnerAddress);
+          if (res?.processingEstimateMinutes && !order.processingEstimateMinutes) {
+            setProcessingTotalSecs(res.processingEstimateMinutes * 60);
+          }
           if (res?.isVerified || res?.status === "out_for_delivery" || res?.status === "OUT_FOR_DELIVERY") {
             if (stage === "arrived_pickup") {
               unlockAudioContext();
               playSuccessChime();
-              speakText("पार्टनर द्वारा डिस्पैच कोड सत्यापित। डिलीवरी शुरू करें।");
+              speakDispatchOtpVerified();
               toast.success("✓ Dispatch OTP verified by Partner! Navigating to customer.");
               setStage("in_trip");
+              setCurrentLeg("store_to_customer");
+              setIsInAppNavActive(true);
               setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
             }
           }
@@ -232,16 +280,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     const interval = setInterval(async () => {
       try {
         const res = await fetchDispatchOtp(order.orderId);
+        if (res?.dispatchOtp) setCaptainDispatchOtp(res.dispatchOtp);
         if (res?.isVerified || res?.status === "out_for_delivery" || res?.status === "OUT_FOR_DELIVERY") {
           unlockAudioContext();
           playSuccessChime();
-          speakText("पार्टनर द्वारा डिस्पैच कोड सत्यापित। डिलीवरी शुरू करें।");
+          speakDispatchOtpVerified();
           toast.success("✓ Dispatch OTP verified by Partner! Navigating to customer.");
           setStage("in_trip");
+          setCurrentLeg("store_to_customer");
+          setIsInAppNavActive(true);
           setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         }
       } catch {}
-    }, 3500);
+    }, 2500);
     return () => clearInterval(interval);
   }, [stage, isHandoverRide, isStorePickupForDelivery, order.orderId]);
 
@@ -251,6 +302,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     const interval = setInterval(async () => {
       try {
         const res = await fetchDispatchOtp(order.orderId);
+        if (res?.dispatchOtp) setCaptainDispatchOtp(res.dispatchOtp);
+        if (res?.processingEstimateMinutes && !order.processingEstimateMinutes) {
+          setProcessingTotalSecs(res.processingEstimateMinutes * 60);
+        }
         if (
           res?.status === "ready_for_delivery" ||
           res?.status === "READY_FOR_DELIVERY" ||
@@ -261,41 +316,74 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         ) {
           unlockAudioContext();
           playSuccessChime();
-          speakText("ऑर्डर पैक हो गया है। स्टोर से कपड़े लेकर ग्राहक को डिलीवर करें।");
-          toast.success("🎉 Order Packed & Ready! Collect from Store & Deliver to Customer");
+          speakLaundryReadyForDelivery();
+          toast.success("🎉 Order Packed & Ready! Go to Store to collect package.");
           setStage("ready_pickup_store");
         }
       } catch {}
-    }, 3000);
+    }, 2500);
     return () => clearInterval(interval);
   }, [stage, order.orderId]);
 
-  // Real-time socket listener for order ready event
+  // Real-time socket listener for order ready, processing & dispatch verification events
   useEffect(() => {
     if (!order.orderId) return;
     const handleOrderEvent = (data: any) => {
       const oid = data?.orderId || data?.id || data?._id;
       if (oid === order.orderId) {
         const stat = String(data?.status || "").toLowerCase();
-        if (stat === "ready_for_delivery" || stat === "ready" || stat === "out_for_delivery") {
+
+        // 1. Store processing started -> update timer and alert
+        if (stat === "processing") {
+          if (data.processingEstimateMinutes) {
+            setProcessingTotalSecs(data.processingEstimateMinutes * 60);
+            setProcessingRemainingSecs(data.processingEstimateMinutes * 60);
+          }
+          if (stage !== "store_processing") {
+            setStage("store_processing");
+            speakStoreProcessingStarted(data.processingEstimateMinutes || 120);
+          }
+        }
+
+        // 2. Partner marked ready -> instantly remove timer, play chime & speak voice alert
+        if (stat === "ready_for_delivery" || stat === "ready") {
+          if (data?.dispatchOtp) setCaptainDispatchOtp(data.dispatchOtp);
           unlockAudioContext();
           playSuccessChime();
-          speakText("ऑर्डर पैक हो गया है। स्टोर से कपड़े लेकर ग्राहक को डिलीवर करें।");
-          toast.success("🎉 Order Packed & Ready! Collect from Store & Deliver to Customer");
+          speakLaundryReadyForDelivery();
+          toast.success("🎉 Order Packed & Ready! Go to Partner Store to collect package.");
           setStage("ready_pickup_store");
+        }
+
+        // 3. Dispatch OTP verified by Partner -> auto-advance to in_trip with voice
+        if (stat === "out_for_delivery" || data?.dispatchOtpVerified || data?.dispatchVerified) {
+          unlockAudioContext();
+          playSuccessChime();
+          speakDispatchOtpVerified();
+          toast.success("✓ Dispatch OTP verified by Partner! Navigating to customer.");
+          setCurrentLeg("store_to_customer");
+          setStage("in_trip");
+          setIsInAppNavActive(true);
+          setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         }
       }
     };
     try {
       const socket = initRiderSocket();
+      socket?.on("order.processing", handleOrderEvent);
       socket?.on("order.ready", handleOrderEvent);
       socket?.on("order.status_changed", handleOrderEvent);
+      socket?.on("order.out_for_delivery", handleOrderEvent);
+      socket?.on("order.dispatch_verified", handleOrderEvent);
       return () => {
+        socket?.off("order.processing", handleOrderEvent);
         socket?.off("order.ready", handleOrderEvent);
         socket?.off("order.status_changed", handleOrderEvent);
+        socket?.off("order.out_for_delivery", handleOrderEvent);
+        socket?.off("order.dispatch_verified", handleOrderEvent);
       };
     } catch {}
-  }, [order.orderId]);
+  }, [order.orderId, stage]);
 
 
   const handleVerifyHandoverTransfer = async () => {
@@ -383,21 +471,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       ? stage === "in_trip"
         ? storeCoords
         : customerCoords
-      : customerCoords;
+      : stage === "ready_pickup_store" || (stage === "arrived_pickup" && isStorePickupForDelivery)
+        ? storeCoords
+        : customerCoords;
 
   const activeDestTitle =
     currentLeg === "pickup_to_store"
       ? stage === "in_trip"
         ? (partnerStoreName || "Partner Store")
         : (order.pickupTitle || order.customerName || "Customer Pickup")
-      : (order.customerName || "Customer Delivery");
+      : stage === "ready_pickup_store" || (stage === "arrived_pickup" && isStorePickupForDelivery)
+        ? (partnerStoreName || "Partner Store")
+        : (order.customerName || "Customer Delivery");
 
   const activeDestAddress =
     currentLeg === "pickup_to_store"
       ? stage === "in_trip"
         ? (partnerStoreAddress || "Partner Store Kasganj")
         : (order.pickupAddress || "Customer Pickup Address")
-      : (order.dropAddress || order.pickupAddress || "Customer Delivery Address");
+      : stage === "ready_pickup_store" || (stage === "arrived_pickup" && isStorePickupForDelivery)
+        ? (partnerStoreAddress || "Partner Store Kasganj")
+        : (order.dropAddress || order.pickupAddress || "Customer Delivery Address");
 
   const pickupCoords = customerCoords;
   const dropCoords = storeCoords;
@@ -591,7 +685,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     unlockAudioContext();
     triggerHaptic();
     playArrivalChime();
-    speakArrival(order.pickupTitle || "पिकअप स्थान");
+    speakPickupOtpPrompt();
     setStage("arrived_pickup");
     setIsWaitingTimerActive(true);
     setArrivedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
@@ -638,6 +732,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     toast.success("Pickup Done! 🛵 In-App Navigation active to Partner Store...");
   };
 
+  const handleMarkArrivedAtStore = () => {
+    unlockAudioContext();
+    triggerHaptic();
+    playArrivalChime();
+    speakArrival(partnerStoreName || "पार्टनर स्टोर");
+    setStage("arrived_pickup");
+    setArrivedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    setTimeout(() => {
+      speakDispatchOtpPrompt(captainDispatchOtp);
+    }, 1200);
+    toast.info("Arrived at Partner Store! Tell 4-digit Dispatch OTP to Partner 🏪");
+  };
+
+  const handleMarkArrivedAtCustomer = () => {
+    unlockAudioContext();
+    triggerHaptic();
+    playArrivalChime();
+    speakCustomerDeliveryOtpPrompt();
+    toast.info("Arrived at Customer Doorstep! Ask customer for 4-digit Delivery OTP 📦");
+  };
+
   const handleCompleteTrip = async () => {
     unlockAudioContext();
     triggerHaptic();
@@ -645,12 +760,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
     if (currentLeg === "pickup_to_store" && stage === "in_trip") {
       // --- LEG 1 COMPLETE: Dropped at Partner Store ---
-      speakText("कपड़े स्टोर पर सौंप दिए गए हैं। वाशिंग और प्रेस के बाद डिलीवरी शुरू होगी।");
+      const mins = order.processingEstimateMinutes || Math.round(processingTotalSecs / 60) || 120;
+      speakStoreProcessingStarted(mins);
       setCurrentLeg("store_to_customer");
       setStage("store_processing");
       setIsInAppNavActive(false);
       toast.success(
-        `🎉 Clothes Dropped at Store! Pickup payout ₹${(order.pickupLegPayout || order.fare / 2 || 35).toFixed(2)} credited. Continuous ride active!`
+        `🎉 Clothes Dropped at Store! Pickup payout ₹${(order.pickupLegPayout || order.fare / 2 || 35).toFixed(2)} credited. Turnaround timer active!`
       );
 
       // Persist transitioned Leg 2 state in localStorage
@@ -1288,6 +1404,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               </>
             ) : (
               <>
+                {/* Arrived at Customer Doorstep Action Button (Voice Prompt) */}
+                <button
+                  type="button"
+                  onClick={handleMarkArrivedAtCustomer}
+                  className="w-full py-2.5 px-3 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-blue-950 font-black text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
+                >
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <span>ARRIVED AT CUSTOMER DOORSTEP 📍</span>
+                </button>
+
                 {/* 4-Digit Customer Delivery OTP Input */}
                 <div className="p-3 bg-blue-50/90 border border-blue-200 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
@@ -1365,6 +1491,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         {stage === "store_processing" && (
           <div className="space-y-3 animate-in fade-in duration-200">
             <div className="p-4 bg-white rounded-2xl border-2 border-emerald-500/40 shadow-sm space-y-3">
+              {/* Header with animated sparkles */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
@@ -1382,6 +1509,60 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-[10px] font-black text-emerald-800 animate-pulse">
                   IN CLEANING
                 </span>
+              </div>
+
+              {/* ⏱️ LIVE SERVICE SLA COUNTDOWN TIMER */}
+              <div className="p-3.5 bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100/50 rounded-2xl border-2 border-emerald-400/60 shadow-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-emerald-950">
+                    <Timer className="w-4 h-4 text-emerald-600 animate-pulse" />
+                    <span>Service Turnaround Countdown</span>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-700 bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                    SLA Timer
+                  </span>
+                </div>
+
+                <div className="flex items-baseline justify-between py-1">
+                  <div>
+                    <div className="text-3xl font-black font-mono tracking-tight text-emerald-950">
+                      {formatCountdown(processingRemainingSecs)}
+                    </div>
+                    <p className="text-[11px] font-bold text-emerald-700 mt-0.5">
+                      {processingRemainingSecs > 0 ? "अनुमानित सर्विस समय बाकी है" : "कपड़े जल्द ही तैयार होने वाले हैं"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-emerald-800">
+                      {Math.round(processingTotalSecs / 60)} min cycle
+                    </span>
+                    <p className="text-[10px] text-emerald-600 font-medium">Standard SLA</p>
+                  </div>
+                </div>
+
+                {/* Animated Progress Bar */}
+                <div className="w-full bg-emerald-200/60 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-1000"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(
+                          5,
+                          Math.round(
+                            ((processingTotalSecs - processingRemainingSecs) /
+                              Math.max(1, processingTotalSecs)) *
+                              100
+                          )
+                        )
+                      )}%`,
+                    }}
+                  />
+                </div>
+
+                <p className="text-[10px] font-semibold text-emerald-800 bg-white/70 p-2 rounded-xl border border-emerald-200/60 leading-tight">
+                  ℹ️ जैसे ही पार्टनर कपड़े तैयार ("Mark Ready") करेगा, यह टाइमर तुरंत हट जाएगा और आपको कलेक्ट करने का वॉइस सायरन अलर्ट मिलेगा।
+                </p>
               </div>
 
               {/* Partner Store Info */}
@@ -1409,26 +1590,6 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 </div>
               </div>
 
-              {/* QuickPress Zero-Commission Captain Guarantee Badge */}
-              <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-white p-2.5 border border-emerald-500/30">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white font-black text-[10px] shadow-xs">
-                    0%
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[11px] font-black text-neutral-900 leading-none">
-                      Zero Commission Guarantee
-                    </p>
-                    <p className="text-[9px] font-bold text-emerald-700 mt-0.5">
-                      100% Net Trip Fare Credited Directly to Wallet
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md">
-                  ₹0 Cut
-                </span>
-              </div>
-
               {/* Real Earnings Settlement Badge */}
               <div className="grid grid-cols-2 gap-2 text-center pt-1">
                 <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
@@ -1451,13 +1612,35 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 </div>
               </div>
 
-              {/* Informational Guidance */}
-              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-950">
-                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <p className="text-[11px] font-bold leading-tight">
-                  Aapko naya order accept karne ki zaroorat nahi hai. Kapde pack hote hi delivery navigation automatically start ho jayegi!
-                </p>
-              </div>
+              {/* Quick Check / Refresh Button */}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await fetchDispatchOtp(order.orderId);
+                    if (
+                      res?.status === "ready_for_delivery" ||
+                      res?.status === "ready" ||
+                      res?.status === "out_for_delivery" ||
+                      res?.isVerified
+                    ) {
+                      unlockAudioContext();
+                      playSuccessChime();
+                      speakLaundryReadyForDelivery();
+                      toast.success("🎉 Order Ready! Collect from Store.");
+                      setStage("ready_pickup_store");
+                    } else {
+                      toast.info("Partner is currently processing clothes. Timer ticking...");
+                    }
+                  } catch {
+                    toast.info("Checking partner status...");
+                  }
+                }}
+                className="w-full py-2.5 px-3 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all"
+              >
+                <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Check If Clothes Are Ready Early 🔄</span>
+              </button>
 
               {/* Exit Gate Action: Unable to Deliver / Leave Trip at Store */}
               <button
@@ -1472,54 +1655,69 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         )}
 
-        {/* STAGE: Ready for Store Pickup & Delivery to Customer */}
+        {/* STAGE: Ready for Store Pickup -> Captain goes to Store & shows Dispatch OTP */}
         {stage === "ready_pickup_store" && (
           <div className="space-y-3 animate-in zoom-in-95 duration-200">
             <div className="p-4 bg-white rounded-2xl border-2 border-[#00C853] shadow-lg space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-[#00C853]">
-                    <Package className="w-4 h-4 stroke-[2.5]" />
+                  <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-[#00C853] shadow-xs">
+                    <Package className="w-5 h-5 stroke-[2.5]" />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-black tracking-tight">
-                      Order Packed & Ready!
+                      Clothes Ready at Store! (कपड़े तैयार हैं)
                     </h3>
                     <p className="text-[11px] font-bold text-emerald-700">
-                      Collect clean garments & deliver to customer
+                      Go to Partner Store & Collect Package
                     </p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black">
-                  PACKED
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black animate-pulse">
+                  READY FOR PICKUP
                 </span>
               </div>
 
-              {/* Customer Drop Location Card */}
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1">
-                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-                  Deliver To Customer
-                </span>
-                <p className="text-xs font-black text-black">
-                  {order.customerName}
+              {/* Partner Store Collection Card */}
+              <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">
+                    Collect From Partner Store
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600">
+                    Step 1 of 2
+                  </span>
+                </div>
+                <p className="text-xs font-black text-neutral-900">
+                  {partnerStoreName}
                 </p>
                 <p className="text-[11px] font-semibold text-neutral-600 line-clamp-1">
-                  {order.dropAddress || "Customer Address, Kasganj"}
+                  {partnerStoreAddress}
                 </p>
               </div>
 
-              {/* Action Button: Start Customer Delivery */}
+              {/* Action Button: Arrived at Store */}
               <button
                 type="button"
-                onClick={handleStartCustomerDelivery}
+                onClick={handleMarkArrivedAtStore}
                 className="w-full h-14 flex items-center bg-[#00C853] hover:bg-[#00B248] text-white font-black text-sm sm:text-base tracking-wider rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-[0.99] transition-all overflow-hidden"
               >
                 <div className="flex items-center justify-center w-14 h-full bg-emerald-600/50 border-r border-emerald-400/30">
                   <ArrowRight className="w-6 h-6 stroke-[3]" />
                 </div>
                 <div className="flex-1 text-center pr-14">
-                  <span>START CUSTOMER DELIVERY 🛵</span>
+                  <span>ARRIVED AT STORE 🏪</span>
                 </div>
+              </button>
+
+              {/* In-App Turn-by-Turn GPS to Store */}
+              <button
+                type="button"
+                onClick={handleStartInAppNavigation}
+                className="w-full py-2.5 px-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
+              >
+                <Navigation className="w-4 h-4 text-emerald-600" />
+                <span>Turn-by-Turn GPS to Store 🧭</span>
               </button>
 
               {/* Emergency Exit Gate if still needed */}

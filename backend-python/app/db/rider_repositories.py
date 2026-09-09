@@ -640,12 +640,12 @@ class RiderWalletRepository:
             "message": f"Withdrawal request for ₹{amount:.2f} to {target_upi} received. Settled within 72 hours.",
         }
 
-    async def credit(self, rider_id: str, amount: float, title: str = "Bonus Incentive Credit", kind: str = "incentive", order_code: str = "") -> Dict[str, Any]:
+    async def credit(self, rider_id: str, amount: float, title: str = "Bonus Incentive Credit", kind: str = "incentive", order_code: str = "", order_id: str = "", **kwargs) -> Dict[str, Any]:
         wallet = await database.find_one(WALLETS, {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]})
         if wallet is None:
             wallet = await self.get(rider_id)
         if wallet is None:
-            raise LookupError("Wallet not found")
+            wallet = {"_id": rider_id, "riderId": rider_id, "balance": 0.0, "lifetimeEarnings": 0.0, "todayEarned": 0.0}
         
         curr_balance = float(wallet.get("balance", 0.0))
         curr_lifetime = float(wallet.get("lifetimeEarnings", 0.0))
@@ -668,17 +668,22 @@ class RiderWalletRepository:
             upsert=True,
         )
         
+        ord_id = order_id or kwargs.get("orderId") or ""
+        txn_type = kwargs.get("type") or ("ORDER_PAYOUT" if kind == "payout" or ord_id else "CREDIT")
         txn_doc = {
             "_id": f"rwtx-{rider_id}-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
             "rider_id": rider_id,
             "riderId": rider_id,
-            "title": title,
+            "title": title or kwargs.get("reason") or "Wallet Credit",
             "date": now_iso,
             "amount": amount,
             "direction": "credit",
             "status": "success",
             "kind": kind,
+            "type": txn_type,
             "orderCode": order_code,
+            "orderId": ord_id,
+            "reason": kwargs.get("reason") or title,
         }
         await database.insert(WALLET_TXNS, txn_doc)
         return {"ok": True, "amount": amount, "balance": new_balance}
@@ -836,6 +841,22 @@ class RiderNotificationRepository:
         }
         await database.insert(NOTIFICATIONS, doc)
         return _public(doc)
+
+    async def push(
+        self,
+        rider_id: str,
+        title: str,
+        message: str,
+        kind: str = "system",
+        order_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return await self.create(
+            rider_id=rider_id,
+            title=title,
+            message=message,
+            kind=kind,
+            order_id=order_id,
+        )
 
 
 class RiderAnalyticsRepository:

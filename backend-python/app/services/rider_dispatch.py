@@ -614,24 +614,104 @@ class RiderDispatchEngine:
         return updated
 
     async def partner_start_processing(self, order_id: str, partner_id: str) -> Dict[str, Any]:
-        """Partner starts cleaning/washing/dry cleaning."""
+        """Partner starts cleaning/washing/dry cleaning. Completes Captain 1 Handover & starts service SLA timer."""
         order = await lifecycle.get_order(order_id)
         lifecycle.assert_partner(order, partner_id)
 
         now = lifecycle.now_iso()
+
+        # 1. Determine service turnaround duration from items / services
+        duration_minutes = 120  # Standard default: 2 hours (120 min)
+        items = order.get("items") or []
+        for it in items:
+            th = it.get("turnaroundHours") or it.get("turnaround_hours")
+            if th and isinstance(th, (int, float)) and th > 0:
+                duration_minutes = max(15, int(th * 60))
+                break
+            turn_str = str(it.get("turnaround") or it.get("processingTime") or "").lower()
+            if "min" in turn_str:
+                num = ''.join(filter(str.isdigit, turn_str))
+                if num:
+                    duration_minutes = max(15, int(num))
+                    break
+            elif "hr" in turn_str or "hour" in turn_str:
+                num = ''.join(filter(str.isdigit, turn_str))
+                if num:
+                    duration_minutes = max(15, int(num) * 60)
+                    break
+
+        now_dt = datetime.now(timezone.utc)
+        estimated_ready_dt = now_dt + timedelta(minutes=duration_minutes)
+        estimated_ready_iso = estimated_ready_dt.isoformat()
+
+        # 2. Settle Captain 1 pickup leg payout upon store handover / processing start
+        rider_id = order.get("assignedRiderId") or (order.get("rider") or {}).get("id") or order.get("riderId")
+        if rider_id:
+            try:
+                from app.db.rider_repositories import rider_wallet_repository, rider_notification_repository
+                existing_txns = await database.find_many(
+                    "rider_wallet_transactions",
+                    {"riderId": str(rider_id), "orderId": order_id, "type": "ORDER_PAYOUT"}
+                )
+                if not existing_txns:
+                    pickup_leg_payout = float(order.get("pickupLegPayout") or 35.0)
+                    await rider_wallet_repository.credit(
+                        str(rider_id),
+                        pickup_leg_payout,
+                        title=f"Pickup leg payout for order #{order.get('code') or order_id[:8]}",
+                        kind="payout",
+                        order_code=str(order.get("code") or ""),
+                        order_id=order_id,
+                        reason=f"Pickup leg payout for order #{order.get('code') or order_id[:8]}",
+                        reference_id=f"payout_pk_{order_id}_{rider_id}",
+                    )
+                    await rider_notification_repository.push(
+                        str(rider_id),
+                        title="🎉 Handover Complete & Pickup Payout Credited",
+                        message=f"Order #{order.get('code') or order_id[:8]} handed over to store. ₹{pickup_leg_payout:.2f} credited to your wallet!",
+                        kind="payout",
+                        order_id=order_id,
+                    )
+            except Exception as e:
+                logger.warning(f"[RiderDispatch] Pickup payout credit note: {e}")
+
         updated = await lifecycle.transition(
             order_id,
             lifecycle.PROCESSING,
             actor_id=partner_id,
             actor_role="partner",
-            metadata={"processingStartedAt": now},
-            changes={"processingStartedAt": now},
+            metadata={
+                "processingStartedAt": now,
+                "processingEstimateMinutes": duration_minutes,
+                "estimatedReadyAt": estimated_ready_iso,
+                "pickupLegSettled": True,
+            },
+            changes={
+                "processingStartedAt": now,
+                "processingEstimateMinutes": duration_minutes,
+                "estimatedReadyAt": estimated_ready_iso,
+                "pickupLegSettled": True,
+            },
         )
 
         await broadcast_order_event(
             EVENT_ORDER_PROCESSING,
             updated,
-            extra_data={"processingStartedAt": now},
+            extra_data={
+                "processingStartedAt": now,
+                "processingEstimateMinutes": duration_minutes,
+                "estimatedReadyAt": estimated_ready_iso,
+            },
+        )
+        await broadcast_order_event(
+            "order.status_changed",
+            updated,
+            extra_data={
+                "status": "processing",
+                "processingStartedAt": now,
+                "processingEstimateMinutes": duration_minutes,
+                "estimatedReadyAt": estimated_ready_iso,
+            },
         )
 
         return updated
@@ -653,18 +733,24 @@ class RiderDispatchEngine:
             changes={
                 "readyAt": now,
                 "otp.dispatch": dispatch_otp_record,
+                "dispatchOtp": dispatch_otp_record["code"],
             },
         )
 
         await broadcast_order_event(
             EVENT_ORDER_READY,
             updated,
-            extra_data={"readyAt": now},
+            extra_data={"readyAt": now, "status": "ready_for_delivery", "dispatchOtp": dispatch_otp_record["code"]},
         )
         await broadcast_order_event(
             EVENT_ORDER_DISPATCH_OTP_PENDING,
             updated,
-            extra_data={"dispatchOtpPending": True},
+            extra_data={"dispatchOtpPending": True, "dispatchOtp": dispatch_otp_record["code"]},
+        )
+        await broadcast_order_event(
+            "order.status_changed",
+            updated,
+            extra_data={"status": "ready_for_delivery", "dispatchOtp": dispatch_otp_record["code"]},
         )
 
         return updated

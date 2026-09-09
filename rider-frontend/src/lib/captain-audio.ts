@@ -363,3 +363,69 @@ export function speakTripComplete(earnings?: number) {
     : `Delivery completed! ${earnings ? earnings + " rupees added to wallet." : "Great job Captain!"}`;
   speakText(text);
 }
+
+/**
+ * Spoken alert when clothes dropped at store and partner starts processing.
+ */
+export function speakStoreProcessingStarted(minutes: number = 120) {
+  const isHi = getAudioLanguage().startsWith("hi");
+  const text = isHi
+    ? `कपड़े पार्टनर स्टोर में जमा हो गए हैं। कपड़े धुलने का अनुमानित समय लगभग ${minutes} मिनट है।`
+    : `Laundry dropped at store. Cleaning cycle started, estimated ${minutes} minutes.`;
+  speakText(text, true);
+}
+
+/**
+ * Spoken alert when partner completes processing: Laundry is ready for delivery pickup!
+ */
+export function speakLaundryReadyForDelivery() {
+  const isHi = getAudioLanguage().startsWith("hi");
+  const text = isHi
+    ? "अलर्ट! कपड़े तैयार हैं! पार्टनर स्टोर पहुंचकर पार्सल कलेक्ट करें।"
+    : "Alert! Laundry is ready at store. Head to partner store to collect package.";
+  speakText(text, true);
+}
+
+/**
+ * Spoken reminder to tell Dispatch OTP to partner.
+ */
+export function speakDispatchOtpPrompt(otp?: string) {
+  const isHi = getAudioLanguage().startsWith("hi");
+  const text = isHi
+    ? `पार्टनर को अपना 4-अंकीय डिस्पैच कोड ${otp ? otp.split("").join(" ") : ""} बताएं।`
+    : `Tell your 4-digit Dispatch code ${otp || ""} to the Partner.`;
+  speakText(text, true);
+}
+
+/**
+ * Spoken alert when partner verifies dispatch OTP.
+ */
+export function speakDispatchOtpVerified() {
+  const isHi = getAudioLanguage().startsWith("hi");
+  const text = isHi
+    ? "डिस्पैच कोड सत्यापित हो गया है! कस्टमर के घर डिलीवरी शुरू करें।"
+    : "Dispatch OTP verified! Start trip to customer doorstep.";
+  speakText(text, true);
+}
+
+/**
+ * Spoken reminder to collect Customer Delivery OTP at doorstep.
+ */
+export function speakCustomerDeliveryOtpPrompt() {
+  const isHi = getAudioLanguage().startsWith("hi");
+  const text = isHi
+    ? "आप कस्टमर के घर पहुँच गए हैं। कस्टमर से 4-अंकीय डिलीवरी कोड लें।"
+    : "You have arrived at customer doorstep. Ask customer for 4-digit delivery OTP.";
+  speakText(text, true);
+}
+
+/**
+ * Spoken reminder to collect Pickup OTP from customer.
+ */
+export function speakPickupOtpPrompt() {
+  const isHi = getAudioLanguage().startsWith("hi");
+  const text = isHi
+    ? "आप कस्टमर के घर पहुँच गए हैं। कपड़े लेकर 4-अंकीय पिकअप कोड लें।"
+    : "Arrived at customer pickup. Collect garments and ask for 4-digit pickup code.";
+  speakText(text, true);
+}

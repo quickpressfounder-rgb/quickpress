@@ -2350,6 +2350,9 @@ async def get_dispatch_otp(
         "partnerPhone": partner_doc.get("phone") or order.get("partnerPhone") or "",
         "custody": order.get("custody", "partner"),
         "status": order.get("status"),
+        "processingEstimateMinutes": order.get("processingEstimateMinutes") or 120,
+        "estimatedReadyAt": order.get("estimatedReadyAt"),
+        "processingStartedAt": order.get("processingStartedAt"),
     }
 
 
