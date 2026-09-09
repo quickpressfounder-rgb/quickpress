@@ -711,12 +711,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       try {
         await confirmPickup(order.orderId, otpToVerify);
       } catch (err: any) {
-        try {
-          await startDelivery(order.orderId, otpToVerify);
-        } catch {
-          const msg = err?.message || "Invalid Pickup OTP. Please ask customer for correct 4-digit code.";
-          toast.error(msg);
-          return;
+        const msg = (err?.message || "").toLowerCase();
+        if (msg.includes("already") || msg.includes("picked") || msg.includes("completed")) {
+          console.log("Order already picked up, proceeding to in_trip");
+        } else {
+          try {
+            await startDelivery(order.orderId, otpToVerify);
+          } catch {
+            const displayMsg = err?.message || "Invalid Pickup OTP. Please ask customer for correct 4-digit code.";
+            toast.error(displayMsg);
+            return;
+          }
         }
       }
     }

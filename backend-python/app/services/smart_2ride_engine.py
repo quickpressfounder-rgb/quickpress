@@ -975,20 +975,22 @@ class Smart2RideEngine:
         if otp_record.get("verified"):
             raise ValueError(f"{label} has already been verified and used.")
 
+        actual_code = str(otp_record.get("code", "")).strip()
+        user_code = code.strip()
+        if user_code == actual_code:
+            otp_record["verified"] = True
+            otp_record["attempts"] = 0
+            otp_record["verifiedAt"] = lifecycle.now_iso()
+            return
+
         attempts = int(otp_record.get("attempts", 0))
         max_attempts = int(otp_record.get("maxAttempts", 5))
         if attempts >= max_attempts:
             raise PermissionError(f"Maximum verification attempts exceeded for {label}.")
 
-        actual_code = str(otp_record.get("code", "")).strip()
-        user_code = code.strip()
-        if user_code != actual_code:
-            otp_record["attempts"] = attempts + 1
-            remaining = max(0, max_attempts - otp_record["attempts"])
-            raise PermissionError(f"Invalid {label}. {remaining} attempt(s) remaining.")
-
-        otp_record["verified"] = True
-        otp_record["verifiedAt"] = lifecycle.now_iso()
+        otp_record["attempts"] = attempts + 1
+        remaining = max(0, max_attempts - otp_record["attempts"])
+        raise PermissionError(f"Invalid {label}. {remaining} attempt(s) remaining.")
 
     async def verify_pickup_otp(self, order_id: str, otp: str, rider_id: str) -> Dict[str, Any]:
         """Phase 1.5 OTP: Customer gives Pickup OTP to Rider upon clothes pickup."""
@@ -997,6 +999,18 @@ class Smart2RideEngine:
             raise LookupError(f"Order {order_id} not found")
 
         canonical_id = lifecycle.order_id_of(order)
+        current_status = lifecycle.order_status(order)
+        if current_status in (
+            lifecycle.PICKED_UP,
+            lifecycle.AT_PARTNER,
+            lifecycle.PROCESSING,
+            lifecycle.READY_FOR_DELIVERY,
+            lifecycle.READY,
+            lifecycle.OUT_FOR_DELIVERY,
+            lifecycle.DELIVERED,
+            lifecycle.COMPLETED,
+        ):
+            return {"ok": True, "status": "PICKED_UP", "orderId": canonical_id, "alreadyPickedUp": True}
         otp_dict = order.get("otp") or {}
         pickup_record = otp_dict.get("pickup")
         if not pickup_record:

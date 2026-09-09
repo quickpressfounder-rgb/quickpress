@@ -83,7 +83,13 @@ def _validate_otp_attempt(otp_obj: Any, submitted_code: Optional[str], otp_name:
         raise PermissionError(f"{otp_name} has not been generated for this order yet")
 
     if otp_obj.get("verified"):
-        raise ValueError(f"{otp_name} has already been verified and used")
+        return
+
+    expected_code = str(otp_obj.get("code", "")).strip()
+    if code_str == expected_code:
+        otp_obj["verified"] = True
+        otp_obj["attempts"] = 0
+        return
 
     attempts = int(otp_obj.get("attempts", 0))
     max_attempts = int(otp_obj.get("maxAttempts", 5))
@@ -100,12 +106,10 @@ def _validate_otp_attempt(otp_obj: Any, submitted_code: Optional[str], otp_name:
         except Exception:
             pass
 
-    expected_code = str(otp_obj.get("code", "")).strip()
-    if code_str != expected_code:
-        # Increment attempts
-        otp_obj["attempts"] = attempts + 1
-        remaining = max(0, max_attempts - otp_obj["attempts"])
-        raise PermissionError(f"Invalid {otp_name}. {remaining} attempt(s) remaining.")
+    # Increment attempts
+    otp_obj["attempts"] = attempts + 1
+    remaining = max(0, max_attempts - otp_obj["attempts"])
+    raise PermissionError(f"Invalid {otp_name}. {remaining} attempt(s) remaining.")
 
 
 class RiderDispatchEngine:
@@ -536,6 +540,17 @@ class RiderDispatchEngine:
         lifecycle.assert_rider(order, rider_id)
 
         current_status = lifecycle.order_status(order)
+        if current_status in (
+            lifecycle.PICKED_UP,
+            lifecycle.AT_PARTNER,
+            lifecycle.PROCESSING,
+            lifecycle.READY_FOR_DELIVERY,
+            lifecycle.READY,
+            lifecycle.OUT_FOR_DELIVERY,
+            lifecycle.DELIVERED,
+            lifecycle.COMPLETED,
+        ):
+            return order
         if current_status not in (
             lifecycle.RIDER_ASSIGNED,
             lifecycle.RIDER_ACCEPTED,
