@@ -1284,8 +1284,14 @@ class Smart2RideEngine:
             raise PermissionError("Cannot complete delivery: Order has not been handed over from partner store with Dispatch OTP.")
 
         canonical_id = lifecycle.order_id_of(order)
+        if current_status in (lifecycle.DELIVERED, lifecycle.COMPLETED):
+            return {"ok": True, "status": "DELIVERED", "orderId": canonical_id, "alreadyDelivered": True}
+
         otp_dict = order.get("otp") or {}
         delivery_record = otp_dict.get("delivery")
+        if delivery_record and delivery_record.get("verified"):
+            return {"ok": True, "status": "DELIVERED", "orderId": canonical_id, "alreadyDelivered": True}
+
         if not delivery_record:
             delivery_code = order.get("deliveryOtp")
             if not delivery_code:

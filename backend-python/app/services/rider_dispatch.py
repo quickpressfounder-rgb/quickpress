@@ -824,6 +824,8 @@ class RiderDispatchEngine:
         lifecycle.assert_rider(order, rider_id)
 
         current_status = lifecycle.order_status(order)
+        if current_status in (lifecycle.DELIVERED, lifecycle.COMPLETED):
+            return order
         if current_status not in (lifecycle.OUT_FOR_DELIVERY, "delivery_otp_pending"):
             raise ValueError(f"Delivery OTP has already been verified (Order is {current_status}).")
 

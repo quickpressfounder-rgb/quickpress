@@ -11,9 +11,12 @@ pickup and delivery estimates the Order Success screen renders.
 
 from __future__ import annotations
 
+import logging
 import random
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from app.db.cart_repositories import cart_repository, compute_totals
 from app.db.client import database

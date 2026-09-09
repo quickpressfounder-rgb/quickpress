@@ -807,8 +807,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         try {
           await confirmDelivery(order.orderId, enteredOtp);
         } catch (e: any) {
-          toast.error(e?.message || "Invalid Delivery OTP. Please verify with customer.");
-          return;
+          const msg = (e?.message || "").toLowerCase();
+          if (msg.includes("already") || msg.includes("delivered") || msg.includes("completed")) {
+            console.log("Order already verified/delivered, completing trip HUD");
+          } else {
+            toast.error(e?.message || "Invalid Delivery OTP. Please verify with customer.");
+            return;
+          }
         }
       }
 

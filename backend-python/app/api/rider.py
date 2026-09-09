@@ -8,11 +8,14 @@ account exists.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+logger = logging.getLogger(__name__)
 
 from app.core.deps import current_user, optional_user, require_roles
 from app.core.identifiers import generate_rider_id
@@ -2199,8 +2202,10 @@ async def deliver_order(
     try:
         return await smart_2ride_engine.verify_delivery_otp(order_id, str(otp or ""), rider_id)
     except (PermissionError, ValueError) as err:
+        logger.warning(f"smart_2ride_engine.verify_delivery_otp failed for {order_id} otp={otp}: {err}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
-    except LookupError:
+    except LookupError as lkp_err:
+        logger.info(f"Order {order_id} not in 2ride engine, falling back to delivery repository: {lkp_err}")
         # Fallback to standard delivery repository transition if not tracked by 2ride engine
         try:
             res = await _rider_action(rider_delivery_repository.deliver, order_id, user, otp=str(otp or ""))
@@ -2214,6 +2219,7 @@ async def deliver_order(
                 logger.warning(f"Settlement failed on deliver fallback: {set_err}")
             return res
         except Exception as err:
+            logger.warning(f"rider_delivery_repository.deliver failed for {order_id}: {err}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
 
 
