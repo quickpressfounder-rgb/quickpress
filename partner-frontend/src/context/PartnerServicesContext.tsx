@@ -136,6 +136,10 @@ function toManagedService(rate: PartnerServiceRate): ManagedService {
     ordersThisMonth: 0,
     updatedMinutesAgo: 0,
     imageLabel: rate.image || (rate as any).image || null,
+    pendingApproval: Boolean(rate.pendingApproval),
+    approvalStatus: rate.approvalStatus || (rate.pendingApproval ? "pending" : "approved"),
+    rejectionReason: rate.rejectionReason,
+    pendingChanges: rate.pendingChanges,
   };
 }
 

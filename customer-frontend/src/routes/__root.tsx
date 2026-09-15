@@ -18,6 +18,7 @@ import { NamePromptModal } from "@/components/profile/NamePromptModal";
 import { reportLovableError } from "@/shared/lib/lovable-error-reporting";
 import { initTheme } from "@/lib/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
+import { Toaster } from "@/shared/ui/sonner";
 
 
 function NotFoundComponent() {
@@ -180,10 +181,26 @@ function RootComponent() {
 
   // Sabse zyada use hone wale pages ko idle time me pre-load — navigation instant lage.
   useEffect(() => {
-    const paths = ["/home", "/history", "/cart", "/search", "/profile", "/offers", "/notifications"];
+    const paths = [
+      "/home",
+      "/history",
+      "/cart",
+      "/search",
+      "/profile",
+      "/offers",
+      "/notifications",
+      "/wallet",
+      "/addresses",
+      "/payment-methods",
+      "/invoices",
+      "/help",
+      "/membership",
+      "/referral",
+      "/checkout",
+    ];
     const idle =
       (window as unknown as { requestIdleCallback?: (cb: () => void) => number })
-        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 800));
+        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 400));
     idle(() => {
       paths.forEach((to) => void router.preloadRoute({ to }).catch(() => undefined));
     });
@@ -202,6 +219,7 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
       </PageTransition>
+      <Toaster />
     </QueryClientProvider>
   );
 }

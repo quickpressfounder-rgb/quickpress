@@ -1,45 +1,48 @@
-import { CheckCircle2, IndianRupee, ShoppingBag, Star, Users } from "lucide-react";
+import { CheckCircle2, IndianRupee, ShoppingBag, Star, TrendingUp, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import type { ShopStatistics } from "../../data/partner-shop-mock";
 
-function StatTile({
+function StatCard({
   icon: Icon,
   label,
   value,
   hint,
-  delay,
-  tone = "primary",
+  iconBg,
+  iconColor,
 }: {
   icon: LucideIcon;
   label: string;
-  value: string;
+  value: string | number;
   hint: string;
-  delay: number;
-  tone?: "primary" | "green";
+  iconBg: string;
+  iconColor: string;
 }) {
   return (
-    <div
-      style={{ animationDelay: `${delay}ms` }}
-      className="animate-rise card-soft border border-border p-4 transition-all duration-300 hover:border-primary/60"
-    >
-      <span
-        className={`flex size-9 items-center justify-center rounded-2xl ${
-          tone === "green" ? "bg-secondary/15 text-brand-green-dark" : "bg-primary/15 text-brand-dark"
-        }`}
-      >
-        <Icon className="size-4" strokeWidth={2.2} />
-      </span>
-      <p className="mt-3 text-lg font-black tracking-tight text-foreground">{value}</p>
-      <p className="text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-[0.66rem] font-medium text-brand-green">{hint}</p>
+    <div className="flex flex-col justify-between rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-xs transition-all hover:shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+          {label}
+        </span>
+        <span className={`flex size-9 items-center justify-center rounded-2xl ${iconBg} ${iconColor}`}>
+          <Icon className="size-4.5 stroke-[2.4]" />
+        </span>
+      </div>
+
+      <div className="mt-3">
+        <p className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900">
+          {value}
+        </p>
+        <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+          <TrendingUp className="size-3 shrink-0" />
+          <span>{hint}</span>
+        </p>
+      </div>
     </div>
   );
 }
 
-/** Premium statistics grid — 2 columns on mobile, 3 on tablet, 5 on desktop. */
+/** Real database metrics grid — 2 columns on mobile, 4 on desktop. */
 export function ShopStatsGrid({ stats }: { stats: ShopStatistics }) {
   const completionRate =
     stats.totalOrders > 0
@@ -47,44 +50,40 @@ export function ShopStatsGrid({ stats }: { stats: ShopStatistics }) {
       : 100;
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-      <StatTile
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <StatCard
         icon={ShoppingBag}
         label="Total Orders"
         value={stats.totalOrders.toLocaleString("en-IN")}
-        hint="Lifetime Orders"
-        delay={0}
+        hint="Lifetime orders recorded"
+        iconBg="bg-blue-50"
+        iconColor="text-blue-600"
       />
-      <StatTile
+      <StatCard
         icon={CheckCircle2}
-        label="Completed"
+        label="Delivered"
         value={stats.completedOrders.toLocaleString("en-IN")}
         hint={`${completionRate}% completion rate`}
-        delay={60}
-        tone="green"
+        iconBg="bg-emerald-50"
+        iconColor="text-emerald-600"
       />
-      <StatTile
-        icon={Users}
-        label="Active Customers"
-        value={stats.activeCustomers.toLocaleString("en-IN")}
-        hint="Verified Customers"
-        delay={120}
-      />
-      <StatTile
-        icon={Star}
-        label="Average Rating"
-        value={stats.averageRating.toFixed(1)}
-        hint="Customer Feedback"
-        delay={180}
-        tone="green"
-      />
-      <StatTile
+      <StatCard
         icon={IndianRupee}
-        label="Revenue"
+        label="Total Revenue"
         value={`₹${stats.revenue.toLocaleString("en-IN")}`}
-        hint="Total Settled Revenue"
-        delay={240}
+        hint="Settled store earnings"
+        iconBg="bg-purple-50"
+        iconColor="text-purple-600"
+      />
+      <StatCard
+        icon={Users}
+        label="Customers"
+        value={stats.activeCustomers.toLocaleString("en-IN")}
+        hint="Unique customer phone"
+        iconBg="bg-amber-50"
+        iconColor="text-amber-600"
       />
     </div>
   );
 }
+

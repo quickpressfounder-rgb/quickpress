@@ -629,26 +629,6 @@ function PaymentMethodsScreen() {
               </div>
             </section>
 
-            {/* 4. Live Gateway & Instant Checkout */}
-            <section className="card-soft border border-border p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex size-2.5">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
-                  </span>
-                  <span className="text-xs font-black text-foreground">
-                    Razorpay Gateway Rails Active
-                  </span>
-                </div>
-                <span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[9px] font-black text-brand-green">
-                  Live &amp; Secure
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
-                All online transactions and wallet payments are processed with bank-grade 256-bit encryption, HMAC SHA-256 signatures, and instant webhook reconciliation.
-              </p>
-            </section>
 
             {/* 5. Security & Trust Guarantee */}
             <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-brand-dark to-brand-green p-5 shadow-soft">

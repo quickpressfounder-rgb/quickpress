@@ -173,10 +173,52 @@ class PartnerRepository:
                 "tier": "Silver",
                 "isOnline": True,
                 "isVerified": True,
+                "gallery": [],
                 "createdAt": _now(),
                 "updatedAt": _now(),
             }
             await database.insert(PROFILES, doc)
+
+        if doc is not None:
+            # Sync verified status from admin_partners or partner_verifications
+            admin_doc = (
+                await database.find_one("admin_partners", {"_id": partner_id})
+                or await database.find_one("admin_partners", {"partnerId": partner_id})
+                or {}
+            )
+            pv_doc = (
+                await database.find_one("partner_verifications", {"partnerId": partner_id})
+                or await database.find_one("partner_verifications", {"_id": partner_id})
+                or {}
+            )
+
+            is_verified = bool(
+                doc.get("isVerified")
+                or admin_doc.get("isVerified")
+                or str(admin_doc.get("status") or "").lower() in ("active", "approved")
+                or str(pv_doc.get("status") or "").lower() in ("active", "approved")
+                or str(doc.get("status") or "").lower() in ("active", "approved")
+            )
+            if is_verified:
+                doc["isVerified"] = True
+                doc["status"] = "active"
+                doc["isOnboarded"] = True
+
+            if "gallery" not in doc or not isinstance(doc["gallery"], list):
+                doc["gallery"] = []
+            if not doc.get("logo") and not doc.get("image"):
+                if admin_doc.get("logo") or admin_doc.get("image"):
+                    doc["logo"] = admin_doc.get("logo") or admin_doc.get("image")
+            if not doc.get("banner") and not doc.get("cover"):
+                if admin_doc.get("banner") or admin_doc.get("cover"):
+                    doc["banner"] = admin_doc.get("banner") or admin_doc.get("cover")
+            try:
+                orders = await partner_order_repository._orders_for(partner_id)
+                real_orders_count = len(orders)
+                doc["totalOrders"] = max(real_orders_count, int(doc.get("totalOrders") or 0))
+            except Exception:
+                pass
+
         return doc
 
     async def update_profile(self, partner_id: str, changes: Dict[str, Any]) -> Dict[str, Any]:
@@ -187,6 +229,15 @@ class PartnerRepository:
         if doc is None:
             current = await self.profile(partner_id)
             doc = await database.update(PROFILES, {"_id": partner_id}, {**current, **changes}, upsert=True)
+        # Sync logo/banner/businessName to admin_partners
+        sync_keys = {"logo", "banner", "businessName", "ownerName", "phone", "city", "image", "cover"}
+        admin_sync = {k: v for k, v in changes.items() if k in sync_keys}
+        if admin_sync:
+            try:
+                await database.update("admin_partners", {"_id": partner_id}, admin_sync)
+                await database.update("admin_partners", {"partnerId": partner_id}, admin_sync)
+            except Exception:
+                pass
         return doc
 
     async def settings(self, partner_id: str) -> Dict[str, Any]:
@@ -296,6 +347,10 @@ class PartnerServiceRepository:
             doc["id"] = str(doc.get("_id") or doc.get("id"))
             doc["enabled"] = bool(doc.get("enabled", doc.get("isActive", True)))
             doc["turnaroundHours"] = int(doc.get("turnaroundHours") or 24)
+            doc["pendingApproval"] = bool(doc.get("pendingApproval", False))
+            doc["approvalStatus"] = str(doc.get("approvalStatus", "approved"))
+            doc["rejectionReason"] = doc.get("rejectionReason")
+            doc["pendingChanges"] = doc.get("pendingChanges")
             result.append(doc)
         return result
 
@@ -316,6 +371,10 @@ class PartnerServiceRepository:
         result["image"] = str(result.get("image") or "")
         result["minQuantity"] = int(result.get("minQuantity") or 1)
         result["expressAvailable"] = bool(result.get("expressAvailable", False))
+        result["pendingApproval"] = bool(result.get("pendingApproval", False))
+        result["approvalStatus"] = str(result.get("approvalStatus", "approved"))
+        result["rejectionReason"] = result.get("rejectionReason")
+        result["pendingChanges"] = result.get("pendingChanges")
         return result
 
     async def create(self, partner_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -332,6 +391,11 @@ class PartnerServiceRepository:
             "turnaroundHours": int(payload.get("turnaroundHours") or 24),
             "enabled": enabled,
             "isActive": enabled,
+            "pendingApproval": bool(payload.get("pendingApproval", False)),
+            "approvalStatus": str(payload.get("approvalStatus", "approved")),
+            "isApproved": bool(payload.get("isApproved", False)),
+            "rejectionReason": payload.get("rejectionReason"),
+            "pendingChanges": payload.get("pendingChanges"),
             "description": str(payload.get("description") or ""),
             "image": str(payload.get("image") or ""),
             "minQuantity": int(payload.get("minQuantity") or 1),

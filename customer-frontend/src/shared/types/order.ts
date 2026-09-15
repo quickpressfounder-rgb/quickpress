@@ -176,4 +176,6 @@ export type PlaceOrderPayload = {
   payment: { mode: "online" | "cod" | "wallet"; label: string; note?: string };
   totals?: Partial<OrderTotals>;
   serviceLabel?: string;
+  isExpress?: boolean;
+  expressFee?: number;
 };

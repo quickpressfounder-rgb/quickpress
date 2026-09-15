@@ -96,6 +96,7 @@ export async function openRazorpayCheckout(
     profile?: CheckoutProfile;
     themeColor?: string;
     appName?: string;
+    preferredMethod?: "upi" | "card" | "netbanking" | "wallet";
   } = {},
 ): Promise<CheckoutOutcome> {
   if (!order.keyId) {
@@ -125,6 +126,7 @@ export async function openRazorpayCheckout(
         name: options.profile?.name ?? "",
         email: options.profile?.email ?? "",
         contact: options.profile?.contact ?? "",
+        ...(options.preferredMethod ? { method: options.preferredMethod } : {}),
       },
       notes: order.notes,
       theme: { color: options.themeColor ?? "#0f766e" },

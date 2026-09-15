@@ -133,12 +133,15 @@ export function LiveDeliveryMap({
       if (riderLocation && riderLocation.lat && riderLocation.lng) {
         bounds.push([riderLocation.lat, riderLocation.lng]);
 
+        const heading = (riderLocation as any)?.heading;
+        const rotateTransform = heading ? `transform: rotate(${heading}deg);` : "";
+
         const riderIcon = L.divIcon({
           className: "custom-rider-icon",
           html: `
             <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
               <span style="position: absolute; width: 42px; height: 42px; border-radius: 9999px; background-color: #34d399; opacity: 0.6; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
-              <div style="position: relative; display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #065f46; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); border: 2.5px solid white;">
+              <div class="custom-rider-icon-inner" style="position: relative; display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #065f46; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); border: 2.5px solid white; ${rotateTransform}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/>
                   <path d="M12 17.5V14l-3-3 4-3 2 3h2"/>
@@ -151,6 +154,7 @@ export function LiveDeliveryMap({
         });
 
         if (markersRef.current.rider) {
+          markersRef.current.rider.setIcon(riderIcon);
           markersRef.current.rider.setLatLng([riderLocation.lat, riderLocation.lng]);
         } else {
           markersRef.current.rider = L.marker([riderLocation.lat, riderLocation.lng], {

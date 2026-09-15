@@ -67,6 +67,10 @@ export type ShopProfile = {
   contactNumber: string;
   email: string;
   gstNumber: string;
+  address?: string;
+  area?: string;
+  city?: string;
+  gallery?: string[];
   logo?: string;
   logoUrl?: string;
   banner?: string;
@@ -85,6 +89,7 @@ export type GalleryImage = {
   /** Placeholder gradient until real uploads are wired. */
   tint: string;
   uploadedOn: string;
+  url?: string;
 };
 
 export type BusinessHours = {

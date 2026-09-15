@@ -70,7 +70,7 @@ export function EditServiceScreen({ serviceId }: { serviceId: string }) {
         enabled: form.enabled,
         imageLabel: form.imageLabel || null,
       });
-      setSuccess("Service updated");
+      setSuccess("✓ Service update submitted for Admin approval! Admin verification ke baad live hogi.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update service");
     } finally {
@@ -101,6 +101,17 @@ export function EditServiceScreen({ serviceId }: { serviceId: string }) {
         ) : (
           <>
             <div className="animate-slide-up px-5 pb-36 pt-4">
+              {(service.pendingApproval || service.approvalStatus === "pending") && (
+                <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-amber-900 font-medium">
+                  ⏳ <strong>Admin Review Pending:</strong> This service has changes currently under review. Further edits will update your pending request.
+                </div>
+              )}
+              {service.approvalStatus === "rejected" && (
+                <div className="mb-4 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-rose-900 font-medium">
+                  ❌ <strong>Admin Rejected:</strong> {service.rejectionReason || "Verification failed. Please update the details and resubmit."}
+                </div>
+              )}
+
               <ServiceForm mode="edit" values={form} errors={errors} onChange={change} />
 
               <button
@@ -121,7 +132,7 @@ export function EditServiceScreen({ serviceId }: { serviceId: string }) {
                 className="ripple flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black tracking-tight text-primary-foreground transition-all duration-300 active:scale-[0.98] disabled:opacity-60"
               >
                 <Save className="size-4" />
-                {isSaving ? "Saving..." : "Save Changes"}
+                {isSaving ? "Submitting..." : "Submit Changes for Admin Approval"}
               </button>
             </div>
           </>

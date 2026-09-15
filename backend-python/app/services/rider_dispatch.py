@@ -15,7 +15,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from pymongo import ReturnDocument
+class ReturnDocument:
+    BEFORE = False
+    AFTER = True
 
 from app.db.client import database
 from app.services import order_lifecycle as lifecycle
@@ -286,7 +288,7 @@ class RiderDispatchEngine:
                 "riderId": r_id,
                 "orderId": canonical_id,
                 "type": "new_order_offer",
-                "title": "New Laundry Pickup Available! ⚡",
+                "title": "New Laundry Pickup Task",
                 "message": f"Order #{order.get('code')} at {partner_name}. Est. earning: ₹{est_earning}",
                 "createdAt": now,
                 "read": False,
@@ -481,7 +483,7 @@ class RiderDispatchEngine:
         if updated_doc is None:
             current_order = await lifecycle.get_order(canonical_id)
             current_status = lifecycle.order_status(current_order)
-            if current_status == lifecycle.PENDING:
+            if current_status in (lifecycle.PENDING, lifecycle.PLACED, "pending_partner_acceptance"):
                 raise lifecycle.OrderAuthorizationError("Cannot claim an order before store acceptance.")
             current_rider = (current_order.get("rider") or {}).get("id")
             if current_rider and current_rider != rider_id and not is_delivery_phase:

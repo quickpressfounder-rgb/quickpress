@@ -5,7 +5,6 @@ import {
   BedDouble,
   Blinds,
   CalendarCheck,
-  Check,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -363,7 +362,7 @@ function HomeScreen() {
                   type="button"
                   aria-label="Wallet"
                   onClick={() => navigate({ to: "/wallet" })}
-                  className="flex size-10 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+                  className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
                 >
                   <Wallet className="size-5" />
                 </button>
@@ -371,7 +370,7 @@ function HomeScreen() {
                   type="button"
                   aria-label="Notifications"
                   onClick={() => navigate({ to: "/notifications" })}
-                  className="relative flex size-10 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+                  className="relative flex size-10 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
                 >
                   <Bell className="size-5" />
                   {unreadNotifications > 0 ? (
@@ -763,72 +762,45 @@ function HomeScreen() {
                       </button>
                     </div>
                   ) : (
-                    /* 2. Non-Member Upgrade Banner (Full Theme Green - Simple & Clean Design) */
-                    <div className="relative overflow-hidden rounded-[2rem] border border-brand-green/20 bg-gradient-to-br from-brand-green/[0.08] via-background to-background p-6 shadow-soft dark:border-brand-green/25 dark:from-brand-green/[0.12] dark:via-card dark:to-card">
+                    /* 2. Non-Member Upgrade Banner (Compact & Clean Design) */
+                    <div className="relative overflow-hidden rounded-2xl border border-brand-green/20 bg-gradient-to-br from-brand-green/[0.08] via-background to-background p-4 shadow-xs dark:border-brand-green/25 dark:from-brand-green/[0.12] dark:via-card dark:to-card">
                       {/* Ambient soft glow accents */}
-                      <div className="pointer-events-none absolute -right-10 -top-10 size-44 rounded-full bg-brand-green/10 blur-3xl" />
-                      <div className="pointer-events-none absolute -left-10 -bottom-10 size-36 rounded-full bg-brand-green/10 blur-3xl" />
+                      <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-brand-green/10 blur-2xl" />
 
-                      {/* Header Row */}
+                      {/* Header Row: Title & Price Tag */}
                       <div className="relative flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex size-9 items-center justify-center rounded-full bg-secondary/15 text-brand-green">
-                            <Crown className="size-4.5 stroke-[2.2]" />
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-7 items-center justify-center rounded-full bg-secondary/20 text-brand-green">
+                            <Crown className="size-3.5 stroke-[2.2]" />
                           </span>
-                          <span className="text-xs font-black uppercase tracking-wider text-brand-green">
-                            QUICKPRESS VIP MEMBERSHIP
+                          <span className="text-[11px] font-black uppercase tracking-wider text-black dark:text-white">
+                            QUICKPRESS VIP
                           </span>
                         </div>
-                        <span className="rounded-full bg-secondary/15 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-brand-green">
-                          SAVE ₹500+/MO
+                        <span className="rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[11px] font-black text-brand-green">
+                          From ₹99/mo
                         </span>
                       </div>
 
-                      {/* Headline */}
-                      <div className="relative mt-4">
-                        <h3 className="text-lg font-black tracking-tight text-foreground sm:text-xl">
-                          Unlimited ₹0 Delivery &amp; 15% OFF Every Order
+                      {/* Headline & Concise Benefit */}
+                      <div className="relative mt-2">
+                        <h3 className="text-sm font-black tracking-tight text-foreground sm:text-base">
+                          Unlimited ₹0 Delivery &amp; 15% OFF
                         </h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Free doorstep pickup, delivery &amp; priority turnaround
+                        </p>
                       </div>
 
-                      {/* Clean Benefit Items with Green Check Circles */}
-                      <div className="relative mt-4 space-y-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-brand-green">
-                            <Check className="size-3.5 stroke-[3]" />
-                          </span>
-                          <span className="text-xs font-medium text-foreground sm:text-[13px]">
-                            Unlimited free doorstep pickup &amp; delivery
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-brand-green">
-                            <Check className="size-3.5 stroke-[3]" />
-                          </span>
-                          <span className="text-xs font-medium text-foreground sm:text-[13px]">
-                            Extra 10% to 20% member discounts on all services
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-brand-green">
-                            <Check className="size-3.5 stroke-[3]" />
-                          </span>
-                          <span className="text-xs font-medium text-foreground sm:text-[13px]">
-                            Priority queue &amp; 2-hour superfast turnaround
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Full Theme Green Action Button */}
+                      {/* Compact Action Button */}
                       <button
                         type="button"
                         onClick={() => void navigate({ to: "/membership" })}
-                        className="ripple relative mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-green px-4 text-sm font-black text-white shadow-cta transition-transform hover:bg-brand-green-dark hover:scale-[1.01] active:scale-[0.985] cursor-pointer"
+                        className="ripple relative mt-3 flex h-9.5 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-green px-4 text-xs font-black text-white shadow-cta transition-transform hover:bg-brand-green-dark hover:scale-[1.005] active:scale-[0.985] cursor-pointer"
                       >
-                        <Crown className="size-4.5" />
-                        <span>Join VIP Membership • From ₹99/mo</span>
+                        <Crown className="size-3.5" />
+                        <span>Join VIP Membership</span>
+                        <ArrowRight className="size-3.5 ml-0.5" />
                       </button>
                     </div>
                   )}
@@ -859,7 +831,7 @@ function HomeScreen() {
                           type="button"
                           onClick={() => {
                             void navigator.clipboard?.writeText(offer.code);
-                            toast.success(`Coupon code "${offer.code}" copied!`);
+                            toast.success(`Coupon code "${offer.code}" copied!`, { duration: 500 });
                           }}
                           className="card-soft w-64 shrink-0 border border-dashed border-primary/50 p-4 text-left transition-all duration-300 active:scale-[0.97]"
                         >

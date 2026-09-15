@@ -16,7 +16,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
 
 
-from app.core.deps import current_user, require_roles
+from fastapi.security import HTTPAuthorizationCredentials
+
+from app.core.deps import bearer_scheme, current_user, require_roles
 
 
 def now_iso() -> str:
@@ -137,6 +139,63 @@ async def dashboard_system_health(user: User = Depends(current_user)):
     return await admin_dashboard_repository.system_health()
 
 
+# -------------------------------------------------------------------- automations
+@router.get("/automations/activity")
+async def get_automation_activity(
+    type: Optional[str] = Query(default=None, description="Automation engine type (dispatch, otp, sla, finance, surge, guard, notification)"),
+    severity: Optional[str] = Query(default=None, description="Event severity (info, success, warning, danger)"),
+    order_id: Optional[str] = Query(default=None, description="Filter by order id"),
+    limit: int = Query(default=50, ge=1, le=100),
+    user: User = Depends(current_user),
+):
+    """Retrieve real-time automation audit logs for the Admin Surveillance Console."""
+    from app.db.automation_repositories import automation_repository
+    return await automation_repository.list_events(
+        automation_type=type, severity=severity, order_id=order_id, limit=limit
+    )
+
+
+@router.get("/automations/stats")
+async def get_automation_stats(user: User = Depends(current_user)):
+    """Retrieve 24h health, execution counts, and success rates for all 7 automation engines."""
+    from app.db.automation_repositories import automation_repository
+    return await automation_repository.get_stats()
+
+
+@router.post("/automations/trigger")
+async def trigger_automation_engine(
+    payload: Dict[str, Any],
+    user: User = Depends(current_user),
+):
+    """Manually invoke an automation engine for simulation, testing, or operations intervention."""
+    from app.services.automation_service import automation_service
+    engine = str(payload.get("engine", "")).lower().strip()
+    order_id = str(payload.get("orderId", "")).strip()
+
+    if engine == "otp" and order_id:
+        res = await automation_service.generate_order_otps(order_id)
+        return {"success": True, "engine": "otp", "result": res}
+    elif engine == "dispatch" and order_id:
+        leg = str(payload.get("leg", "pickup"))
+        res = await automation_service.dispatch_order_automatically(order_id, leg)
+        return {"success": True, "engine": "dispatch", "result": res}
+    elif engine == "sla" and order_id:
+        res = await automation_service.schedule_laundry_sla(order_id)
+        return {"success": True, "engine": "sla", "result": res}
+    elif engine == "finance" and order_id:
+        res = await automation_service.execute_financial_settlement(order_id)
+        return {"success": True, "engine": "finance", "result": res}
+    elif engine == "surge":
+        city = str(payload.get("city", "Kasganj"))
+        res = await automation_service.evaluate_zone_surge(city)
+        return {"success": True, "engine": "surge", "result": res}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown or unsupported automation engine: {engine}",
+        )
+
+
 
 # -------------------------------------------------------------------- orders
 @router.get("/orders")
@@ -254,16 +313,14 @@ async def get_order(order_id: str, user: User = Depends(current_user)):
 
     from app.services import order_lifecycle as lifecycle
     _ADMIN_STAGES = [
-        ("placed", "Order Placed", (lifecycle.PLACED, lifecycle.PENDING, "new", "ORDER_CREATED")),
-        ("partner_accepted", "Partner Store Accepted", (lifecycle.PARTNER_ACCEPTED,)),
-        ("rider_assigned", "Delivery Captain Dispatched", (lifecycle.PICKUP_RIDER_ASSIGNED, lifecycle.RIDER_ASSIGNED, lifecycle.RIDER_SEARCHING)),
-        ("rider_accepted", "Captain Accepted Ride", (lifecycle.PICKUP_RIDER_ACCEPTED, lifecycle.RIDER_ACCEPTED, lifecycle.PICKUP_OTP_PENDING)),
-        ("picked_up", "Picked Up from Customer", (lifecycle.PICKED_UP,)),
-        ("at_partner", "Delivered to Partner Store", (lifecycle.AT_PARTNER,)),
-        ("processing", "Laundry Processing / Ironing", (lifecycle.PROCESSING, lifecycle.IRONING)),
-        ("ready", "Processed & Ready for Delivery", (lifecycle.READY_FOR_DELIVERY, lifecycle.READY, lifecycle.COMPLETED)),
-        ("out_for_delivery", "Out for Doorstep Delivery", (lifecycle.OUT_FOR_DELIVERY, lifecycle.DELIVERY_OTP_PENDING)),
-        ("delivered", "Delivered to Customer", (lifecycle.DELIVERED,)),
+        ("placed", "Order Placed", (lifecycle.PLACED, lifecycle.PENDING, "placed", "pending_partner_acceptance", "new", "ORDER_CREATED")),
+        ("partner_accepted", "Partner Store Accepted", (lifecycle.PARTNER_ACCEPTED, "partner_accepted", "accepted")),
+        ("rider_assigned", "Delivery Captain Dispatched", (lifecycle.PICKUP_RIDER_ASSIGNED, lifecycle.RIDER_ASSIGNED, lifecycle.RIDER_SEARCHING, lifecycle.PICKUP_RIDER_ACCEPTED, lifecycle.RIDER_ACCEPTED, "pickup_rider_assigned", "rider_assigned")),
+        ("picked_up", "Picked Up from Customer", (lifecycle.PICKED_UP, lifecycle.AT_PARTNER, "picked_up", "at_partner", "dropped_at_partner")),
+        ("processing", "Laundry Processing / Ironing", (lifecycle.PROCESSING, lifecycle.IRONING, "processing", "washing", "dry_cleaning")),
+        ("ready", "Processed & Ready for Delivery", (lifecycle.READY_FOR_DELIVERY, lifecycle.READY, lifecycle.COMPLETED, "ready_for_delivery", "ready", "completed")),
+        ("out_for_delivery", "Out for Doorstep Delivery", (lifecycle.OUT_FOR_DELIVERY, lifecycle.DELIVERY_RIDER_ASSIGNED, lifecycle.DELIVERY_RIDER_ACCEPTED, lifecycle.DELIVERY_OTP_PENDING, "out_for_delivery")),
+        ("delivered", "Delivered to Customer", (lifecycle.DELIVERED, "delivered")),
     ]
     admin_timeline = lifecycle._timeline(order, _ADMIN_STAGES)
 
@@ -288,6 +345,46 @@ async def get_order(order_id: str, user: User = Depends(current_user)):
         "rider2": rider2_info,
         "reviews360": reviews_360,
     }
+
+
+@router.get("/orders/{order_id}/invoice")
+async def get_admin_order_invoice(
+    order_id: str,
+    user: User = Depends(current_user),
+):
+    """Retrieve full GST Tax Invoice JSON breakdown for an order in admin panel."""
+    from app.db.invoice_repositories import InvoiceError, invoice_repository
+    try:
+        return await invoice_repository.for_order(user, order_id)
+    except InvoiceError as err:
+        raise HTTPException(status_code=err.status_code, detail=err.message)
+
+
+@router.get("/orders/{order_id}/invoice/pdf")
+async def get_admin_order_invoice_pdf(
+    order_id: str,
+    token: Optional[str] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+) -> Response:
+    """Stream 3-page Tax Invoice & Payment Summary PDF matching Rapido enterprise design for Admin."""
+    from app.db.invoice_repositories import InvoiceError, invoice_repository
+    auth_user: Optional[User] = None
+    tok = credentials.credentials if credentials and credentials.credentials else token
+    if tok:
+        try:
+            auth_user = await current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=tok))
+        except Exception:
+            pass
+    try:
+        invoice = await invoice_repository.for_order(auth_user, order_id)
+        pdf_bytes, file_name = await invoice_repository.get_pdf_bytes(auth_user, invoice.id)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{file_name}"'},
+        )
+    except InvoiceError as err:
+        raise HTTPException(status_code=err.status_code, detail=err.message)
 
 
 @router.get("/orders/{order_id}/events")
@@ -1885,7 +1982,13 @@ async def list_notifications(user: User = Depends(current_user)):
 
 @router.post("/notifications/broadcast")
 async def broadcast_notification(payload: BroadcastPayload, user: User = Depends(current_user)):
-    result = await notification_repository.broadcast(payload.audience or "All", payload.title or "Announcement", payload.message or "")
+    result = await notification_repository.broadcast(
+        payload.audience or "All",
+        payload.title or "Announcement",
+        payload.message or "",
+        category=payload.category,
+        channel=payload.channel,
+    )
     await audit_repository.log(await _actor(user), "notifications.broadcast", payload.audience or "All", {"title": payload.title})
     return result
 

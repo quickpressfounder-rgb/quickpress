@@ -197,7 +197,7 @@ export function ShopEditSheet({
             type="button"
             disabled={isSaving || uploadingBanner || uploadingLogo}
             onClick={submit}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-2xl bg-amber-400 py-3 text-xs font-black text-zinc-950 shadow-sm transition-all hover:bg-amber-300 active:scale-[0.97] disabled:opacity-50"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.97] disabled:opacity-50 cursor-pointer"
           >
             {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
             <span>{isSaving ? "Saving..." : "Save Changes"}</span>

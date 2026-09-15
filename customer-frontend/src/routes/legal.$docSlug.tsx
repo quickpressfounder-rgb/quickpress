@@ -20,8 +20,11 @@ export const Route = createFileRoute("/legal/$docSlug")({
   head: ({ params }) => {
     const slugTitles: Record<string, string> = {
       "privacy-policy": "Privacy Policy — QuickPress",
-      "terms-of-service": "Terms of Service — QuickPress",
+      "terms-of-service": "Terms & Conditions — QuickPress",
       "cancellation-refund-policy": "Cancellation & Refund Policy — QuickPress",
+      "partner-agreement": "Partner Merchant Agreement & SLA — QuickPress",
+      "rider-agreement": "Captain Delivery Agreement — QuickPress",
+      "grievance-redressal": "Grievance Redressal & Nodal Officer — QuickPress",
     };
     const title = slugTitles[params.docSlug] || "Legal Documentation — QuickPress";
     return {
@@ -61,12 +64,12 @@ function LegalDocScreen() {
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-900 pb-20">
       {/* Top sticky brand bar */}
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-none bg-white/90 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 sm:px-6">
           <div className="flex items-center gap-3">
             <Link
               to="/home"
-              className="inline-flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex size-9 items-center justify-center rounded-full border border-slate-200/60 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50"
               aria-label="Back to home"
             >
               <ArrowLeft className="size-4" />
@@ -188,6 +191,42 @@ function LegalDocScreen() {
                   }`}
                 >
                   <span>Cancellation & Refunds</span>
+                  <ChevronRight className="size-3 text-slate-400" />
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "grievance-redressal" }}
+                  className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
+                    docSlug === "grievance-redressal"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <span>Grievance & Nodal Desk</span>
+                  <ChevronRight className="size-3 text-slate-400" />
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "partner-agreement" }}
+                  className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
+                    docSlug === "partner-agreement"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <span>Partner Agreement & SLA</span>
+                  <ChevronRight className="size-3 text-slate-400" />
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "rider-agreement" }}
+                  className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${
+                    docSlug === "rider-agreement"
+                      ? "bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <span>Captain Delivery Agreement</span>
                   <ChevronRight className="size-3 text-slate-400" />
                 </Link>
               </nav>

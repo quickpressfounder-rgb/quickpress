@@ -10,7 +10,6 @@ import {
   speakOrderAlert,
   triggerHaptic,
 } from "../../lib/captain-audio";
-import { supabase } from "../../integrations/supabase/client";
 
 export const GlobalOrderDispatchListener: React.FC = () => {
   const navigate = useNavigate();
@@ -38,6 +37,9 @@ export const GlobalOrderDispatchListener: React.FC = () => {
       }
       lastDispatchedOfferIdRef.current = offerId;
 
+      const isExpress = Boolean(offer.isExpress || offer.express || (offer.rideDoc && offer.rideDoc.isExpress));
+      const riderBonus = Number(offer.riderExpressBonus || (offer.rideDoc && offer.rideDoc.riderExpressBonus) || 32);
+
       // Play high-priority alert sound, siren & speech prompt
       try {
         unlockAudioContext();
@@ -49,6 +51,12 @@ export const GlobalOrderDispatchListener: React.FC = () => {
         speakOrderAlert(fare, pickup, drop);
       } catch (err) {
         console.warn("[GlobalOrderListener] Audio playback alert failed:", err);
+      }
+
+      if (isExpress) {
+        toast.warning(`⚡ EXPRESS PICKUP ALERT! +₹${riderBonus} Captain Bonus (80%) Shamil Hai!`, {
+          duration: 5000,
+        });
       }
 
       // If already on /orders or /deliveries, don't interrupt active navigation
@@ -78,7 +86,7 @@ export const GlobalOrderDispatchListener: React.FC = () => {
       })
       .catch(() => {});
 
-    // 3. Robust polling backup every 3 seconds
+    // 3. Robust polling backup (gentle 8-second safety heartbeat)
     const pollInterval = setInterval(async () => {
       try {
         const offers = await fetchRiderOffers();
@@ -91,52 +99,11 @@ export const GlobalOrderDispatchListener: React.FC = () => {
       } catch {
         // Quiet fallback
       }
-    }, 3000);
-
-    // 4. Supabase Realtime postgres_changes subscription for instant order alerts
-    let supabaseChannel: any = null;
-    try {
-      supabaseChannel = supabase
-        .channel("rider-supabase-dispatch-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_offers",
-          },
-          (payload) => {
-            if (payload.new && (payload.new as any).data) {
-              try {
-                const doc =
-                  typeof (payload.new as any).data === "string"
-                    ? JSON.parse((payload.new as any).data)
-                    : (payload.new as any).data;
-                if (doc && (doc.status === "pending" || !doc.status)) {
-                  // Only alert if this offer is targeted to me
-                  const myRiderId = session?.riderId;
-                  const targetRiderId = doc.riderId || doc.rider_id;
-                  if (targetRiderId && myRiderId && targetRiderId !== myRiderId) {
-                    return;
-                  }
-                  handleIncomingOffer(doc);
-                }
-              } catch {}
-            }
-          }
-        )
-        .subscribe();
-    } catch {}
+    }, 8000);
 
     return () => {
       unsubscribe();
       clearInterval(pollInterval);
-      if (supabaseChannel) {
-        try {
-          supabase.removeChannel(supabaseChannel);
-        } catch {}
-      }
     };
   }, [session?.token, isOnline, pathname, navigate]);
 

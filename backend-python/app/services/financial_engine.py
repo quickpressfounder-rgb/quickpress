@@ -117,12 +117,67 @@ class FinancialEngine:
     """Core financial computation engine orchestrating all pricing and payouts."""
 
     def __init__(self, custom_config: Optional[Dict[str, Any]] = None):
-        self.config = {**DEFAULT_FINANCIAL_CONFIG, **(custom_config or {})}
+        self._raw_config = {**DEFAULT_FINANCIAL_CONFIG, **(custom_config or {})}
 
-    def get_commission_rate(self, monthly_order_count: int = 50) -> float:
-        if monthly_order_count >= 300:
+    @property
+    def config(self) -> Dict[str, Any]:
+        cfg = dict(self._raw_config)
+        try:
+            from app.services.unified_finance_service import DEFAULT_UNIFIED_RULES, unified_finance_service
+            rules = getattr(unified_finance_service, "_rules_cache", None) or DEFAULT_UNIFIED_RULES
+            if rules:
+                p = rules.get("pricing", {})
+                d = rules.get("delivery", {})
+                g = rules.get("gst", {})
+                c = rules.get("commission", {})
+                rp = rules.get("riderPayout", {})
+                inc = rules.get("incentives", {})
+                if "baseFee" in d: cfg["baseDeliveryFee"] = float(d["baseFee"])
+                if "freeDeliveryThreshold" in d: cfg["freeDeliveryThreshold"] = float(d["freeDeliveryThreshold"])
+                if "perKmRate" in d: cfg["extraKmRate"] = float(d["perKmRate"])
+                if "handlingFee" in p: cfg["handlingFee"] = float(p["handlingFee"])
+                if "platformFee" in p: cfg["platformFee"] = float(p["platformFee"])
+                if "minimumOrderValue" in p: cfg["minimumOrderValue"] = float(p["minimumOrderValue"])
+                if "expressMultiplier" in p: cfg["expressTurnaroundMultiplier"] = float(p["expressMultiplier"])
+                if "laundryGstRate" in g: cfg["laundryGstRate"] = float(g["laundryGstRate"])
+                if "platformGstRate" in g: cfg["serviceGstRate"] = float(g["platformGstRate"])
+                if "standardRate" in c: cfg["standardCommissionRate"] = float(c["standardRate"])
+                if "silverRate" in c: cfg["silverCommissionRate"] = float(c["silverRate"])
+                if "goldRate" in c: cfg["goldCommissionRate"] = float(c["goldRate"])
+                if "silverThreshold" in c: cfg["silverCommissionThreshold"] = int(c["silverThreshold"])
+                if "goldThreshold" in c: cfg["goldCommissionThreshold"] = int(c["goldThreshold"])
+                if "basePay" in rp: cfg["riderBaseFare"] = float(rp["basePay"])
+                if "perKmRate" in rp: cfg["riderPerKmRate"] = float(rp["perKmRate"])
+                if "nightSurge" in rp: cfg["riderNightSurge"] = float(rp["nightSurge"])
+                if "rainSurge" in rp: cfg["riderRainSurge"] = float(rp["rainSurge"])
+                rider_daily = inc.get("riderDaily") or []
+                if len(rider_daily) >= 1:
+                    cfg["incentiveTier1Trips"] = int(rider_daily[0]["trips"])
+                    cfg["incentiveTier1Reward"] = float(rider_daily[0]["reward"])
+                if len(rider_daily) >= 2:
+                    cfg["incentiveTier2Trips"] = int(rider_daily[1]["trips"])
+                    cfg["incentiveTier2Reward"] = float(rider_daily[1]["reward"])
+                if len(rider_daily) >= 3:
+                    cfg["incentiveTier3Trips"] = int(rider_daily[2]["trips"])
+                    cfg["incentiveTier3Reward"] = float(rider_daily[2]["reward"])
+                if "riderWeeklyStreak" in inc:
+                    cfg["weeklyStreakTrips"] = int(inc["riderWeeklyStreak"].get("trips", 50))
+                    cfg["weeklyStreakReward"] = float(inc["riderWeeklyStreak"].get("reward", 800))
+        except Exception:
+            pass
+        return cfg
+
+    @config.setter
+    def config(self, val: Dict[str, Any]):
+        self._raw_config = val
+
+    def get_commission_rate(self, monthly_order_count: int = 50, order_count: Optional[int] = None) -> float:
+        orders = order_count if order_count is not None else monthly_order_count
+        gold_th = int(self.config.get("goldCommissionThreshold", 300))
+        silver_th = int(self.config.get("silverCommissionThreshold", 100))
+        if orders >= gold_th:
             return float(self.config.get("goldCommissionRate", 0.12))
-        elif monthly_order_count >= 100:
+        elif orders >= silver_th:
             return float(self.config.get("silverCommissionRate", 0.15))
         return float(self.config.get("standardCommissionRate", 0.18))
 

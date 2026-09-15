@@ -32,6 +32,14 @@ export async function updateRiderStatus(isOnline: boolean) {
   return apiPostJson<{ ok: true; isOnline: boolean }>("/api/rider/online", { isOnline });
 }
 
-export async function pushRiderLocation(lat: number, lng: number) {
-  return apiPostJson<{ ok: true; lat: number; lng: number }>("/api/rider/location", { lat, lng });
+export async function pushRiderLocation(
+  lat: number,
+  lng: number,
+  extra?: { isMock?: boolean; heading?: number | null; speed?: number | null; accuracy?: number | null }
+) {
+  return apiPostJson<{ ok: true; lat: number; lng: number }>("/api/rider/location", {
+    lat,
+    lng,
+    ...extra,
+  });
 }

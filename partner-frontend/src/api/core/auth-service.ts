@@ -10,10 +10,13 @@ import { ApiError } from "./errors";
 import { activeSessionRole, clearSession, readSession, writeSession } from "./session-store";
 import { apiGetJson, apiPostJson } from "./transport";
 import { onesignalLogin, onesignalLogout } from "./onesignal";
+import { signInWithGoogleIdToken } from "./firebase-auth";
 
 export const AUTH_ENDPOINTS = {
   sendOtp: "/api/auth/phone/send-otp",
   verifyOtp: "/api/auth/phone/verify",
+  google: "/api/auth/google",
+  apple: "/api/auth/apple",
   me: "/api/auth/me",
   logout: "/api/auth/logout",
   refresh: "/api/auth/refresh",
@@ -83,7 +86,17 @@ export async function signInWithGoogle(
   explicitRole?: AccountRole,
   referralCode?: string,
 ): Promise<AuthSession> {
-  throw new ApiError("unconfigured", "Please use Phone OTP authentication");
+  const idToken = await signInWithGoogleIdToken();
+  const session = await apiPostJson<AuthSession>(
+    AUTH_ENDPOINTS.google,
+    {
+      id_token: idToken,
+      role: role(explicitRole),
+      referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
+    },
+    { anonymous: true },
+  );
+  return persist(session);
 }
 
 export async function signInWithApple(

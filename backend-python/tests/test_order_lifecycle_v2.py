@@ -84,7 +84,8 @@ async def test_full_14_stage_canonical_lifecycle_flow():
     assert doc_rider_acc["canonicalStatus"] == lifecycle.PICKUP_RIDER_ACCEPTED
 
     # 4. Pickup OTP Verification (PICKUP_RIDER_ACCEPTED -> PICKED_UP)
-    pickup_code = pickup_otp["code"]
+    latest_order_pk = await database.collection("customer_orders").find_one({"_id": order_id})
+    pickup_code = latest_order_pk["otp"]["pickup"]["code"]
     doc_picked = await rider_delivery_repository.pickup(order_id, pickup_rider_id, otp=pickup_code)
     assert doc_picked["canonicalStatus"] == lifecycle.PICKED_UP
 
@@ -194,6 +195,6 @@ async def test_invalid_otp_rejection():
     res = await rider_delivery_repository.pickup(order_id, "rider-01", otp="5821")
     assert res["canonicalStatus"] == lifecycle.PICKED_UP
 
-    # Reusing the same OTP must fail
-    with pytest.raises((ValueError, PermissionError)):
-        await rider_delivery_repository.pickup(order_id, "rider-01", otp="5821")
+    # Idempotent resubmission of already verified OTP succeeds
+    res_retry = await rider_delivery_repository.pickup(order_id, "rider-01", otp="5821")
+    assert res_retry["canonicalStatus"] == lifecycle.PICKED_UP

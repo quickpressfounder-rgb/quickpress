@@ -149,7 +149,10 @@ class CatalogRepository:
         partner_services_docs = await database.find_many("partner_services")
         active_partner_services = [
             s for s in partner_services_docs
-            if s.get("isActive", True) is not False and s.get("enabled", True) is not False
+            if s.get("isActive", True) is not False
+            and s.get("enabled", True) is not False
+            and not s.get("pendingApproval", False)
+            and s.get("approvalStatus", "approved") == "approved"
         ]
 
         # Prioritize services offered by partners in this city
@@ -321,7 +324,13 @@ class CatalogRepository:
         for p in profiles:
             pid = str(p["_id"])
             services_docs = await database.find_many("partner_services", {"partnerId": pid})
-            active_services = [s for s in services_docs if s.get("isActive", True) is not False]
+            active_services = [
+                s for s in services_docs
+                if s.get("isActive", True) is not False
+                and s.get("enabled", True) is not False
+                and not s.get("pendingApproval", False)
+                and s.get("approvalStatus", "approved") == "approved"
+            ]
             settings = await database.find_one("partner_settings", {"_id": pid}) or {}
 
             reviews_count = int(
@@ -474,6 +483,8 @@ class CatalogRepository:
         active_services = [
             s for s in services_docs
             if bool(s.get("enabled", s.get("isActive", True))) is True
+            and not s.get("pendingApproval", False)
+            and s.get("approvalStatus", "approved") == "approved"
         ]
         services: List[PartnerServiceResponse] = []
         for s in active_services:
@@ -510,7 +521,7 @@ class CatalogRepository:
             c_init = d.get("initials") or (c_name[0].upper() if c_name else "C")
             c_text = d.get("text") or d.get("comment") or "Great laundry service!"
             c_photo = d.get("photo") or d.get("avatar") or ""
-            c_date = str(d.get("date") or d.get("createdAt") or "Recently")[:10]
+            c_date = str(d.get("createdAt") or d.get("date") or "Recently")
             res.append(
                 PartnerReviewResponse(
                     id=str(d.get("_id") or d.get("id")),
@@ -835,14 +846,25 @@ class CatalogRepository:
 
     async def offers_page(self, user_id: Optional[str] = None) -> OffersPageResponse:
         """Complete dynamic payload for /offers screen."""
-        reward_points = 250
+        reward_points = 0
+        scratch_cards: list[ScratchCard] = []
+
         if user_id:
             try:
-                wallet_doc = await database.collection("wallets").find_one({"user_id": user_id})
-                if wallet_doc:
-                    reward_points = int(wallet_doc.get("reward_balance", 0) * 10) or 250
-            except Exception:
-                pass
+                from app.db.loyalty_repositories import loyalty_repository
+                account = await loyalty_repository.get_or_create_account(user_id)
+                reward_points = int(account.get("pointsBalance") or 0)
+                cards = await loyalty_repository.get_user_cards(user_id)
+                for c in cards:
+                    scratch_cards.append(
+                        ScratchCard(
+                            id=c["id"],
+                            reward=c["reward"],
+                            caption=c["caption"],
+                        )
+                    )
+            except Exception as err:
+                logger.warning(f"Error fetching real user loyalty cards in offers_page: {err}")
 
         banners = [
             OfferBanner(
@@ -896,24 +918,6 @@ class CatalogRepository:
                 title="Monsoon Care Package",
                 description="Special anti-bacterial wash & steam iron for heavy jackets, quilts and blankets.",
                 highlight="Seasonal",
-            ),
-        ]
-
-        scratch_cards = [
-            ScratchCard(
-                id="scratch-1",
-                reward="₹50 Wallet Cash",
-                caption="Won on your recent laundry order",
-            ),
-            ScratchCard(
-                id="scratch-2",
-                reward="20% OFF Voucher",
-                caption="Weekly laundry streak reward",
-            ),
-            ScratchCard(
-                id="scratch-3",
-                reward="Free Steam Ironing",
-                caption="Milestone loyalty achievement",
             ),
         ]
 

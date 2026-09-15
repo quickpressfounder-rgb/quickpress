@@ -1,12 +1,15 @@
 /**
- * `<MapPicker />` — Google Maps Address Picker.
+ * `<MapPicker />` — Google Maps Delivery Address Picker.
  *
- * Modern delivery-app location selection modal:
- *   • Google Map view with movable center marker & click-to-pin
+ * Modern Blinkit / Zepto style location selection modal:
+ *   • Google Roadmap tiles with movable center marker & click-to-pin
+ *   • Interactive lifting pin animation while dragging
  *   • Real-time Places autocomplete search (area, street, locality, pincode)
- *   • Browser GPS "My Location" button with permission handling
+ *   • Browser GPS "Use Current Location" button with permission handling
+ *   • Zoom In / Zoom Out controls
  *   • Real-time reverse geocoding address preview
- *   • Confirm location button returning structured address components
+ *   • Elevated, unblocked Confirm Location CTA button
+ *   • Portaled directly to document.body with z-[99999] so nothing overlaps it
  */
 
 import {
@@ -16,11 +19,14 @@ import {
   Crosshair,
   Loader2,
   MapPin,
+  Minus,
   Navigation,
+  Plus,
   Search,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { GoogleMapView } from "@/shared/ui/google-map";
 import {
@@ -43,7 +49,7 @@ export type PickedLocation = {
   pincode: string;
 };
 
-const DEFAULT_COORDS = { latitude: 12.9352, longitude: 77.6245 }; // Bengaluru center fallback
+const DEFAULT_COORDS = { latitude: 27.8118, longitude: 78.6477 }; // Kasganj / UP center fallback
 
 export function MapPicker({
   initial,
@@ -57,18 +63,31 @@ export function MapPicker({
   const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(
     initial ?? null,
   );
+  const [zoomLevel, setZoomLevel] = useState(16);
   const [details, setDetails] = useState<GeocodeResult | null>(null);
   const [resolving, setResolving] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reverseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Lock background scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   // Debounced reverse geocoding whenever the selected point changes
   useEffect(() => {
@@ -121,6 +140,7 @@ export function MapPicker({
     try {
       const fix = await getCurrentDeviceLocation({ timeoutMs: 10000, enableHighAccuracy: true });
       setPoint({ latitude: fix.latitude, longitude: fix.longitude });
+      setZoomLevel(17);
     } catch (cause) {
       setError(
         cause instanceof GeoError
@@ -167,45 +187,38 @@ export function MapPicker({
     }, 300);
   };
 
-  // Select place from suggestions
   const handleSelectSuggestion = async (suggestion: PlaceSuggestion) => {
-    setSearchQuery("");
-    setSuggestions([]);
     setIsSearchFocused(false);
+    setSearchQuery(suggestion.primaryText || suggestion.description);
+    setSuggestions([]);
     setResolving(true);
+    setError(null);
 
     try {
-      if (suggestion.placeId.startsWith("geo:")) {
-        const parts = suggestion.placeId.split(":");
-        if (parts.length >= 3 && parts[1] && parts[2]) {
-          const lat = parseFloat(parts[1]);
-          const lng = parseFloat(parts[2]);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            setPoint({ latitude: lat, longitude: lng });
-            return;
-          }
-        }
-      }
-
-      // Try place details or geocoding
-      try {
-        const detailsResult = await fetchPlaceDetails(suggestion.placeId);
-        if (detailsResult.latitude && detailsResult.longitude) {
-          setPoint({ latitude: detailsResult.latitude, longitude: detailsResult.longitude });
+      if (suggestion.placeId) {
+        const place = await fetchPlaceDetails(suggestion.placeId);
+        if (place.latitude && place.longitude) {
+          setPoint({ latitude: place.latitude, longitude: place.longitude });
+          setZoomLevel(17);
           setDetails({
-            ...detailsResult,
+            formattedAddress: place.formattedAddress,
+            placeId: place.placeId,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            area: place.area || place.city,
+            city: place.city,
+            state: place.state,
+            pincode: place.pincode,
             country: "India",
           });
-          setResolving(false);
           return;
         }
-      } catch {
-        /* fallback to geocode address */
       }
 
       const geo = await geocodeAddress(suggestion.description || suggestion.primaryText);
       if (geo.latitude && geo.longitude) {
         setPoint({ latitude: geo.latitude, longitude: geo.longitude });
+        setZoomLevel(17);
         setDetails(geo);
       }
     } catch {
@@ -213,6 +226,15 @@ export function MapPicker({
     } finally {
       setResolving(false);
     }
+  };
+
+  const handleCenterChange = (next: { latitude: number; longitude: number }) => {
+    setPoint(next);
+    setIsDragging(true);
+    if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+    dragTimeoutRef.current = setTimeout(() => {
+      setIsDragging(false);
+    }, 350);
   };
 
   const handleConfirm = () => {
@@ -233,25 +255,25 @@ export function MapPicker({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background animate-fade-in select-none">
-      {/* Header */}
-      <header className="relative z-20 flex items-center justify-between border-b border-border bg-card/95 px-4 py-3.5 backdrop-blur-md">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex flex-col bg-background select-none overflow-hidden animate-fade-in">
+      {/* 1. Header Bar */}
+      <header className="relative z-30 flex items-center justify-between border-none bg-card/90 px-4 py-3.5 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
         <div className="flex items-center gap-3">
           <button
             type="button"
             aria-label="Back"
             onClick={onClose}
-            className="flex size-10 items-center justify-center rounded-2xl bg-muted text-foreground transition-transform active:scale-95 hover:bg-accent"
+            className="flex size-10 items-center justify-center rounded-full bg-muted/80 text-foreground transition-all active:scale-90 hover:bg-muted"
           >
             <ArrowLeft className="size-5" />
           </button>
           <div>
             <h2 className="text-base font-black tracking-tight text-foreground">
-              Select Pickup Location
+              Select Delivery Location
             </h2>
             <p className="text-[11px] font-medium text-muted-foreground">
-              Tap map or search to choose location
+              Drag map or search to place pin accurately
             </p>
           </div>
         </div>
@@ -260,19 +282,19 @@ export function MapPicker({
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="flex size-9 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-muted"
+          className="flex size-9 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-all active:scale-90 hover:bg-muted hover:text-foreground"
         >
           <X className="size-4" />
         </button>
       </header>
 
-      {/* Floating Search Bar */}
-      <div className="relative z-20 px-4 pt-3 pb-2 bg-gradient-to-b from-background via-background/90 to-transparent">
+      {/* 2. Floating Search Bar & Dropdown */}
+      <div className="relative z-30 px-4 pt-3 pb-2">
         <div className="relative">
           <div className="relative flex items-center">
             <span className="pointer-events-none absolute left-3.5 flex items-center text-muted-foreground">
               {searching ? (
-                <Loader2 className="size-4 animate-spin text-primary" />
+                <Loader2 className="size-4 animate-spin text-emerald-600" />
               ) : (
                 <Search className="size-4" />
               )}
@@ -283,8 +305,8 @@ export function MapPicker({
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
-              placeholder="Search area, landmark, street, city..."
-              className="h-11 w-full rounded-2xl border border-border/80 bg-card pl-10 pr-10 text-sm font-semibold text-foreground shadow-sm outline-none transition-all placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/20"
+              placeholder="Search area, landmark, street, colony..."
+              className="h-12 w-full rounded-2xl border border-border bg-card/95 pl-10 pr-10 text-sm font-semibold text-foreground shadow-md outline-none transition-all placeholder:text-muted-foreground/60 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 backdrop-blur-md"
             />
 
             {searchQuery ? (
@@ -295,7 +317,7 @@ export function MapPicker({
                   setSearchQuery("");
                   setSuggestions([]);
                 }}
-                className="absolute right-3 flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground"
+                className="absolute right-3.5 flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground"
               >
                 <X className="size-3.5" />
               </button>
@@ -304,15 +326,15 @@ export function MapPicker({
 
           {/* Autocomplete suggestions dropdown */}
           {suggestions.length > 0 && isSearchFocused ? (
-            <div className="absolute left-0 right-0 top-13 z-30 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-pop">
+            <div className="absolute left-0 right-0 top-14 z-40 max-h-72 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-2xl animate-pop">
               {suggestions.map((item) => (
                 <button
                   key={item.placeId}
                   type="button"
                   onClick={() => void handleSelectSuggestion(item)}
-                  className="flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-accent active:bg-accent/80"
+                  className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-accent active:bg-accent/80"
                 >
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
                     <MapPin className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -320,7 +342,7 @@ export function MapPicker({
                       {item.primaryText || item.description}
                     </p>
                     {item.secondaryText ? (
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <p className="truncate text-[11px] text-muted-foreground mt-0.5">
                         {item.secondaryText}
                       </p>
                     ) : null}
@@ -332,30 +354,19 @@ export function MapPicker({
         </div>
       </div>
 
-      {/* Map Container */}
+      {/* 3. Map Viewport */}
       <div className="relative flex-1 overflow-hidden">
         <GoogleMapView
           className="size-full h-full"
           center={point ?? DEFAULT_COORDS}
-          markers={
-            point
-              ? [
-                  {
-                    latitude: point.latitude,
-                    longitude: point.longitude,
-                    tone: "primary",
-                    label: "Selected Pickup Location",
-                  },
-                ]
-              : []
-          }
-          zoom={16}
+          zoom={zoomLevel}
           interactive={true}
+          preferLeaflet={true}
           onPick={(next) => setPoint(next)}
-          onCenterChange={(next) => setPoint(next)}
+          onCenterChange={handleCenterChange}
           fallback={
             <div className="flex size-full flex-col items-center justify-center gap-3 bg-muted/40 px-6 text-center">
-              <div className="flex size-14 items-center justify-center rounded-3xl bg-primary/10 text-primary animate-pulse">
+              <div className="flex size-14 items-center justify-center rounded-3xl bg-emerald-600/10 text-emerald-600 animate-pulse">
                 <Compass className="size-7" />
               </div>
               <div>
@@ -368,37 +379,77 @@ export function MapPicker({
           }
         />
 
-        {/* Center Pin Overlay (for precision visual location selection) */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-10 -translate-y-4">
-          <div className="flex flex-col items-center animate-bounce-subtle">
-            <div className="flex size-10 items-center justify-center rounded-full bg-brand-dark text-white shadow-xl border-2 border-white ring-4 ring-brand-dark/20">
-              <MapPin className="size-5 text-primary fill-primary" />
+        {/* Center Animated Delivery Pin */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-20">
+          <div
+            className={`flex flex-col items-center transition-all duration-200 ease-out ${
+              isDragging ? "-translate-y-9 scale-110" : "-translate-y-5 scale-100"
+            }`}
+          >
+            {/* Pin Head */}
+            <div className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-white shadow-2xl border-2 border-white ring-4 ring-emerald-600/20">
+              <MapPin className="size-4 fill-white" />
+              <span className="text-[11px] font-black tracking-tight uppercase">
+                {isDragging ? "Moving..." : "Order here"}
+              </span>
             </div>
-            <div className="size-2 rounded-full bg-brand-dark/40 blur-[1px] mt-1" />
+            {/* Pointer Stem */}
+            <div className="h-2 w-0.5 bg-emerald-600" />
+            {/* Ground Target Dot & Shadow */}
+            <div
+              className={`rounded-full transition-all duration-200 ${
+                isDragging
+                  ? "size-2.5 bg-black/20 blur-[2px] mt-2 scale-75"
+                  : "size-3 bg-black/40 blur-[1px] mt-0.5 scale-100"
+              }`}
+            />
           </div>
         </div>
 
-        {/* Floating Controls */}
-        <div className="absolute bottom-5 right-4 z-20 flex flex-col gap-2.5">
+        {/* Floating Controls (GPS & Zoom) */}
+        <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-2.5">
+          {/* Zoom In */}
+          <button
+            type="button"
+            onClick={() => setZoomLevel((z) => Math.min(z + 1, 19))}
+            aria-label="Zoom In"
+            className="flex size-11 items-center justify-center rounded-2xl bg-card text-foreground shadow-lg border border-border/80 transition-all hover:bg-accent active:scale-90"
+          >
+            <Plus className="size-5" />
+          </button>
+
+          {/* Zoom Out */}
+          <button
+            type="button"
+            onClick={() => setZoomLevel((z) => Math.max(z - 1, 10))}
+            aria-label="Zoom Out"
+            className="flex size-11 items-center justify-center rounded-2xl bg-card text-foreground shadow-lg border border-border/80 transition-all hover:bg-accent active:scale-90"
+          >
+            <Minus className="size-5" />
+          </button>
+
+          {/* GPS Current Location */}
           <button
             type="button"
             onClick={() => void useCurrentLocation()}
             disabled={locating}
-            className="flex size-12 items-center justify-center rounded-2xl bg-card text-foreground shadow-lg border border-border/80 transition-all hover:bg-accent active:scale-90 disabled:opacity-75"
             aria-label="Use Current Location"
-            title="Use Current Location"
+            className="flex size-12 items-center justify-center rounded-2xl bg-card text-emerald-600 shadow-xl border border-border/80 transition-all hover:bg-accent active:scale-90 disabled:opacity-75"
           >
             {locating ? (
-              <Loader2 className="size-5 animate-spin text-primary" />
+              <Loader2 className="size-5 animate-spin text-emerald-600" />
             ) : (
-              <Crosshair className="size-5 text-brand-green" />
+              <Crosshair className="size-5 text-emerald-600" />
             )}
           </button>
         </div>
       </div>
 
-      {/* Selected Location Bottom Card */}
-      <footer className="relative z-20 border-t border-border bg-card px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-2xl">
+      {/* 4. Bottom Location Card & Confirm Button */}
+      <footer className="relative z-30 rounded-t-[28px] border-t border-border bg-card/98 px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom)+0.5rem)] shadow-2xl backdrop-blur-2xl">
+        {/* Drag handle decoration */}
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/30" />
+
         {error ? (
           <div className="mb-3 flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive">
             <X className="size-3.5 shrink-0" />
@@ -406,39 +457,39 @@ export function MapPicker({
           </div>
         ) : null}
 
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/15 text-brand-green mt-0.5">
+        <div className="flex items-start gap-3.5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-600 mt-0.5">
             <Navigation className="size-5" />
           </span>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 Selected Location
               </span>
               {resolving ? (
-                <span className="flex items-center gap-1 text-[10px] font-medium text-primary">
-                  <Loader2 className="size-2.5 animate-spin" /> Resolving…
+                <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                  <Loader2 className="size-2.5 animate-spin" /> Detecting address…
                 </span>
               ) : (
-                <span className="flex items-center gap-1 rounded-full bg-secondary/10 px-1.5 py-0.2 text-[9px] font-bold text-brand-green">
-                  <Check className="size-2.5" /> Pinned
+                <span className="flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
+                  <Check className="size-2.5 stroke-[3]" /> PINNED
                 </span>
               )}
             </div>
 
-            <h3 className="truncate text-sm font-bold text-foreground mt-0.5">
+            <h3 className="truncate text-base font-black text-foreground mt-0.5">
               {resolving
                 ? "Locating address details…"
-                : details?.area || details?.city || details?.formattedAddress || "Selected point on map"}
+                : details?.area || details?.city || details?.formattedAddress || "Selected Location"}
             </h3>
 
-            <p className="truncate text-xs text-muted-foreground mt-0.5">
+            <p className="line-clamp-2 text-xs text-muted-foreground mt-0.5 leading-relaxed">
               {details
-                ? [details.city, details.state, details.pincode].filter(Boolean).join(", ") ||
+                ? [details.area, details.city, details.state, details.pincode].filter(Boolean).join(", ") ||
                   details.formattedAddress
                 : point
-                  ? `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`
+                  ? `Lat: ${point.latitude.toFixed(5)}, Lng: ${point.longitude.toFixed(5)}`
                   : "Tap map or search to choose"}
             </p>
           </div>
@@ -449,12 +500,18 @@ export function MapPicker({
           type="button"
           disabled={!point || resolving}
           onClick={handleConfirm}
-          className="ripple mt-4 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-primary-foreground shadow-cta transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+          className="mt-4 flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 text-base font-extrabold text-white shadow-lg shadow-emerald-600/30 transition-all duration-200 active:scale-[0.98] hover:bg-emerald-500 disabled:opacity-50 disabled:shadow-none cursor-pointer"
         >
-          {resolving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-          Confirm Location
+          {resolving ? (
+            <Loader2 className="size-5 animate-spin" />
+          ) : (
+            <Check className="size-5 stroke-[2.5]" />
+          )}
+          <span>{resolving ? "Locating Address…" : "Confirm Location"}</span>
         </button>
       </footer>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 }

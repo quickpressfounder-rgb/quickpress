@@ -1,4 +1,4 @@
-import { Bell, Check, Clock, MapPin, Package, Phone, User, Volume2, X, ArrowLeft } from "lucide-react";
+import { Bell, Check, Clock, MapPin, Package, Phone, ShieldCheck, User, Volume2, X, ArrowLeft, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ManagedOrder } from "../../data/partner-orders-mock";
 import { stopOrderAlarm } from "../../lib/order-alarm";
@@ -160,6 +160,33 @@ export function IncomingOrderModal({
         {/* Order Details Body */}
         <div className="max-h-[60vh] overflow-y-auto px-6 py-5 space-y-4">
           
+          {/* Express Priority Banner */}
+          {(order.isExpress || order.services?.some(s => s.toLowerCase().includes("express"))) && (
+            <div className="rounded-2xl border-2 border-amber-500/80 bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-amber-500/15 p-4 shadow-lg animate-pulse">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="size-10 rounded-2xl bg-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 border border-amber-500/40">
+                    <Zap className="size-6 fill-amber-500" />
+                  </span>
+                  <div>
+                    <span className="text-xs sm:text-sm font-black text-amber-700 dark:text-amber-300 uppercase tracking-wide block">
+                      ⚡ EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 20}% BONUS
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Customer requested express priority. Extra laundry bonus credited.
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] font-bold text-muted-foreground block uppercase">Store Bonus</span>
+                  <span className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400">
+                    +₹{order.partnerExpressBonus || Math.round((order.expressFee || 40) * 0.2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Customer & Location */}
           <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -168,13 +195,13 @@ export function IncomingOrderModal({
                 <span className="text-sm font-bold text-foreground">{order.customerName}</span>
               </div>
               {order.customerPhone ? (
-                <a
-                  href={`tel:${order.customerPhone}`}
-                  className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
-                >
-                  <Phone className="size-3.5" />
-                  {order.customerPhone}
-                </a>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-xs font-semibold text-muted-foreground">{order.customerPhone}</span>
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                    <ShieldCheck className="size-3 text-emerald-600" />
+                    <span>Protected</span>
+                  </span>
+                </div>
               ) : null}
             </div>
 

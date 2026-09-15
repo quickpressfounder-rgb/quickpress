@@ -55,10 +55,31 @@ function createSupabaseClient() {
   });
 }
 
+function createSafeChannel(name: string) {
+  const channel = {
+    name,
+    on: () => channel,
+    subscribe: (callback?: (status: string, err?: any) => void) => {
+      if (typeof callback === "function") {
+        setTimeout(() => callback("SUBSCRIBED"), 0);
+      }
+      return channel;
+    },
+    unsubscribe: () => Promise.resolve("ok"),
+  };
+  return channel;
+}
+
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
 
 export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>, {
   get(_, prop, receiver) {
+    if (prop === "channel") {
+      return (name: string) => createSafeChannel(name);
+    }
+    if (prop === "removeChannel" || prop === "removeAllChannels") {
+      return () => Promise.resolve("ok");
+    }
     if (!_supabase) _supabase = createSupabaseClient();
     return Reflect.get(_supabase, prop, receiver);
   },

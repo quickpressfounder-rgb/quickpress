@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Clock,
   CreditCard,
   Home,
   Loader2,
@@ -38,6 +39,11 @@ import { fetchProfile } from "@/api/customer/services/profile-service";
 import { updateProfile } from "@/api/customer/profile-api";
 import type { CartLine } from "@/api/customer/cart-store";
 import {
+  fetchFinanceRules,
+  type FinancialRules,
+  DEFAULT_FINANCIAL_RULES,
+} from "@/api/customer/finance-api";
+import {
   createRazorpayOrder,
   verifyRazorpayPayment,
 } from "@/api/payments/razorpay-api";
@@ -54,8 +60,6 @@ export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
 
-type PaymentType = "wallet" | "upi" | "card" | "cod";
-
 export function CheckoutPage() {
   const navigate = useNavigate();
   const cart = useCart();
@@ -65,6 +69,7 @@ export function CheckoutPage() {
   const [pickupAddressId, setPickupAddressId] = useState<string>("");
   const [deliveryAddressId, setDeliveryAddressId] = useState<string>("");
   const [sameAsPickup, setSameAsPickup] = useState<boolean>(true);
+  const [isExpress, setIsExpress] = useState<boolean>(false);
 
   // Address picker modals
   const [showPickupPicker, setShowPickupPicker] = useState<boolean>(false);
@@ -74,8 +79,8 @@ export function CheckoutPage() {
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
 
-  // Payment method & Wallet
-  const [selectedPayment, setSelectedPayment] = useState<PaymentType>("upi");
+  // Payment mode: Online (Razorpay) vs Cash on Delivery
+  const [paymentMode, setPaymentMode] = useState<"online" | "cod">("online");
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
   // Status
@@ -86,6 +91,8 @@ export function CheckoutPage() {
   const couponDiscount = getCartState().couponDiscount || 0;
   const couponCode = getCartState().couponCode || null;
 
+  const [financeRules, setFinanceRules] = useState<FinancialRules>(DEFAULT_FINANCIAL_RULES);
+
   // Load backend data and preload Razorpay on mount
   useEffect(() => {
     let alive = true;
@@ -95,13 +102,18 @@ export function CheckoutPage() {
 
     async function loadData() {
       try {
-        const [addrList, walletData, profileData] = await Promise.all([
+        const [addrList, walletData, profileData, rulesData] = await Promise.all([
           fetchAddresses().catch(() => []),
           fetchWallet().catch(() => null),
           fetchProfile().catch(() => null),
+          fetchFinanceRules().catch(() => DEFAULT_FINANCIAL_RULES),
         ]);
 
         if (!alive) return;
+
+        if (rulesData) {
+          setFinanceRules(rulesData);
+        }
 
         // Populate addresses
         if (addrList.length > 0 && addrList[0]) {
@@ -149,25 +161,48 @@ export function CheckoutPage() {
     }
   }, [pickupAddressId, sameAsPickup]);
 
-  // Pricing calculations
+  // Pricing calculations driven dynamically by Unified Finance Engine
   const itemsSubtotal = cart.lines.reduce((sum, item) => sum + item.price * item.qty, 0);
   const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round(item.price * 1.25) * item.qty, 0);
-  const deliveryFee = 0; // FREE Delivery
-  const handlingFee = itemsSubtotal > 0 ? 5 : 0;
-  const gst = Math.round(itemsSubtotal * 0.18);
-  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + gst - couponDiscount);
-  const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount;
+
+  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
+  const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold;
+  const baseDeliveryFee = financeRules?.delivery?.slabs?.[0]?.fee ?? (financeRules?.delivery?.baseFee ?? 30);
+  const deliveryFee = itemsSubtotal > 0 ? (isFreeDelivery ? 0 : baseDeliveryFee) : 0;
+  const handlingFee = itemsSubtotal > 0 ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
+  const platformFee = itemsSubtotal > 0 ? (financeRules?.pricing?.platformFee ?? 10) : 0;
+
+  const expressFee = financeRules?.expressPickup?.fee ?? 40;
+  const isExpressEnabled = financeRules?.expressPickup?.enabled !== false;
+  const isExpressActive = isExpress && isExpressEnabled;
+  const currentExpressFee = isExpressActive ? expressFee : 0;
+
+  // 5% fabric laundry GST + 18% services GST
+  const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
+  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + currentExpressFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
+  const gst = laundryGst + serviceGst;
+
+  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + gst - couponDiscount);
+  const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + (isFreeDelivery && itemsSubtotal > 0 ? baseDeliveryFee : 0);
 
   const selectedPickup = addresses.find((a) => a.id === pickupAddressId) || addresses[0];
   const selectedDelivery = sameAsPickup
     ? selectedPickup
     : addresses.find((a) => a.id === deliveryAddressId) || addresses[0];
 
-  // Place Order Action with Ultra-Fast Processing & Razorpay Gateway Integration
-  const handlePlaceOrder = async () => {
+  // Direct Action: Triggers Razorpay Checkout directly for Online, or places COD
+  const handleProceedToPayOrOrder = async () => {
     if (cart.lines.length === 0) {
       toast.error("Your cart is empty.");
       navigate({ to: "/home" });
+      return;
+    }
+
+    const minOrderVal = financeRules?.pricing?.minimumOrderValue ?? 0;
+    if (minOrderVal > 0 && itemsSubtotal < minOrderVal) {
+      toast.error(
+        `Minimum order amount is ₹${minOrderVal}. Your current items total is ₹${itemsSubtotal}. Please add more items.`
+      );
       return;
     }
 
@@ -188,64 +223,71 @@ export function CheckoutPage() {
       return;
     }
 
+    // 1. CASH ON DELIVERY FLOW
+    if (paymentMode === "cod") {
+      if (grandTotal < 50) {
+        toast.error("Cash on delivery is not available for orders below ₹50.");
+        return;
+      }
+      await handleSelectCod();
+      return;
+    }
+
+    // 2. DIRECT ONLINE PAYMENT VIA RAZORPAY
+    if (placingOrder) return;
+    setPlacingOrder(true);
+
+    try {
+      toast.info("Opening Razorpay Secure Gateway...");
+      const rzpOrder = await createRazorpayOrder({
+        amount: grandTotal,
+        purpose: "QuickPress Laundry Order",
+      });
+
+      const outcome = await openRazorpayCheckout(rzpOrder, {
+        description: `QuickPress Laundry Payment (₹${grandTotal})`,
+        profile: {
+          name: customerName.trim(),
+          contact: cleanPhone,
+        },
+        themeColor: "#0c831f",
+        appName: "QuickPress",
+      });
+
+      if (outcome.status === "success") {
+        toast.info("Verifying payment security with bank...");
+        const verification = await verifyRazorpayPayment({
+          paymentId: rzpOrder.paymentId,
+          razorpayOrderId: outcome.payload.razorpay_order_id,
+          razorpayPaymentId: outcome.payload.razorpay_payment_id,
+          razorpaySignature: outcome.payload.razorpay_signature,
+        });
+
+        const verifiedPaymentId =
+          verification.payment?.id ||
+          outcome.payload.razorpay_payment_id ||
+          `rzp-${Date.now()}`;
+
+        toast.success("Payment Successful! 💳 Placing your order...");
+        await handlePaymentSuccess("razorpay", verifiedPaymentId);
+      } else if (outcome.status === "dismissed") {
+        toast.error("Payment cancelled. Order has NOT been placed.");
+      } else {
+        toast.error(outcome.reason || "Payment rejected. Order has NOT been placed.");
+      }
+    } catch (err: any) {
+      console.error("[Checkout] Razorpay error:", err);
+      toast.error(err?.message || "Payment could not be processed. Order has NOT been placed.");
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
+  // Called ONLY when Online Payment (UPI / Card / Netbanking / Wallet) is 100% verified
+  const handlePaymentSuccess = async (method: string, paymentId: string) => {
     setPlacingOrder(true);
     try {
-      let paidPaymentId: string = selectedPayment;
-
-      // Online Payment via Razorpay (UPI, Credit/Debit Cards, NetBanking)
-      if (selectedPayment === "upi" || selectedPayment === "card") {
-        try {
-          const rzpOrder = await createRazorpayOrder({
-            amount: grandTotal,
-            purpose: "QuickPress Laundry Order",
-          });
-
-          const outcome = await openRazorpayCheckout(rzpOrder, {
-            description: "QuickPress Laundry Order",
-            profile: {
-              name: customerName.trim(),
-              contact: cleanPhone,
-            },
-            themeColor: "#0c831f",
-            appName: "QuickPress",
-          });
-
-          if (outcome.status === "success") {
-            const verification = await verifyRazorpayPayment({
-              paymentId: rzpOrder.paymentId,
-              razorpayOrderId: outcome.payload.razorpay_order_id,
-              razorpayPaymentId: outcome.payload.razorpay_payment_id,
-              razorpaySignature: outcome.payload.razorpay_signature,
-            });
-
-            paidPaymentId =
-              verification.payment?.id ||
-              outcome.payload.razorpay_payment_id ||
-              "razorpay";
-            toast.success("Online Payment Successful! 💳");
-          } else if (outcome.status === "dismissed") {
-            toast.info("Payment cancelled. You can retry or choose Pay on Delivery.");
-            setPlacingOrder(false);
-            return;
-          } else {
-            toast.error(outcome.reason || "Payment failed. Please try again.");
-            setPlacingOrder(false);
-            return;
-          }
-        } catch (rzpErr) {
-          console.warn("Razorpay flow note:", rzpErr);
-          toast.info("Processing order confirmation...");
-        }
-      } else if (selectedPayment === "wallet") {
-        if (walletBalance < grandTotal) {
-          toast.error(
-            `Insufficient wallet balance: ₹${walletBalance} available, ₹${grandTotal} required. Please choose UPI, Card, or Pay on Delivery.`
-          );
-          setPlacingOrder(false);
-          return;
-        }
-      }
-
+      const cleanPhone = customerPhone.replace(/\D/g, "");
       const result = await postOrder({
         items: cart.lines.map((l) => ({
           id: l.id,
@@ -259,9 +301,15 @@ export function CheckoutPage() {
         addressId: selectedPickup.id,
         address: selectedPickup,
         deliveryAddress: selectedDelivery,
-        pickup: { day: "Today", slot: "15-30 mins", express: true },
-        paymentId: paidPaymentId,
-        paymentMethod: selectedPayment,
+        pickup: {
+          day: "Today",
+          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "15-30 mins",
+          express: isExpressActive,
+        },
+        isExpress: isExpressActive,
+        expressFee: currentExpressFee,
+        paymentId,
+        paymentMethod: method,
         total: grandTotal,
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
@@ -282,6 +330,59 @@ export function CheckoutPage() {
       });
     } catch (err: any) {
       toast.error(err?.message || "Failed to place order. Please try again.");
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
+  // Called when Customer explicitly selects Pay on Delivery (COD)
+  const handleSelectCod = async () => {
+    setPlacingOrder(true);
+    try {
+      const cleanPhone = customerPhone.replace(/\D/g, "");
+      const result = await postOrder({
+        items: cart.lines.map((l) => ({
+          id: l.id,
+          name: l.name,
+          price: l.price,
+          unit: l.unit,
+          qty: l.qty,
+          image: l.image || "",
+          description: l.description || "",
+        })),
+        addressId: selectedPickup.id,
+        address: selectedPickup,
+        deliveryAddress: selectedDelivery,
+        pickup: {
+          day: "Today",
+          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "15-30 mins",
+          express: isExpressActive,
+        },
+        isExpress: isExpressActive,
+        expressFee: currentExpressFee,
+        paymentId: "cod",
+        paymentMethod: "cod",
+        total: grandTotal,
+        customerName: customerName.trim(),
+        customerPhone: cleanPhone,
+      });
+
+      // Play Rapido-style ascending celebration sound + tactile haptics
+      playOrderPlacedSonicChime();
+
+      toast.success("Order Placed with Pay on Delivery! 📦");
+      cart.clear();
+
+      // Persist customer name and phone into profile
+      void updateProfile({ name: customerName.trim(), phone: cleanPhone }).catch(() => {});
+
+      void navigate({
+        to: "/order-success/$orderId",
+        params: { orderId: result.orderId || `ord-${Date.now()}` },
+      });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to place COD order. Please try again.");
+    } finally {
       setPlacingOrder(false);
     }
   };
@@ -299,14 +400,20 @@ export function CheckoutPage() {
 
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-900 font-sans pb-36">
-      <div className="mx-auto max-w-md px-4 pt-3 space-y-3">
-        {/* Top Header */}
-        <header className="flex items-center gap-3 bg-white rounded-2xl p-3 border border-zinc-200/80 shadow-xs">
+      {/* Top Header */}
+      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             aria-label="Go back to cart"
-            onClick={() => navigate({ to: "/cart" })}
-            className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 active:scale-95 cursor-pointer"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate({ to: "/cart" });
+              }
+            }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
           >
             <ArrowLeft className="size-5" />
           </button>
@@ -316,7 +423,10 @@ export function CheckoutPage() {
               QuickPress • Express Delivery
             </p>
           </div>
-        </header>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-md px-4 pt-3 space-y-3">
 
         {/* SECTION 1: PICKUP ADDRESS (Top Location #1) */}
         <section aria-label="Pickup Address" className="bg-white rounded-2xl p-4 border border-emerald-500/40 shadow-xs space-y-2.5">
@@ -417,6 +527,142 @@ export function CheckoutPage() {
           ) : null}
         </section>
 
+        {/* SECTION 2.5: PICKUP SPEED & PRIORITY SELECTION */}
+        <section aria-label="Pickup Speed" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+                Pickup Speed & Turnaround
+              </span>
+              <h3 className="text-xs font-black text-zinc-900 mt-0.5">Choose Pickup Speed</h3>
+            </div>
+            <span className="text-[10.5px] text-amber-700 bg-gradient-to-r from-amber-500/15 to-orange-500/10 px-2.5 py-1 rounded-full font-bold border border-amber-300/60 flex items-center gap-1.5 shadow-2xs">
+              <Zap className="size-3 text-amber-600 fill-amber-500" />
+              <span>15-Min Express Ready</span>
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {/* 1. Standard Pickup Option */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsExpress(false)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsExpress(false); }}
+              className={`relative p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none flex items-center justify-between gap-3 ${
+                !isExpressActive
+                  ? "border-[#0c831f] bg-emerald-50/40 shadow-xs ring-2 ring-emerald-500/10"
+                  : "border-zinc-200 hover:border-zinc-300 bg-white"
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`size-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                    !isExpressActive
+                      ? "bg-[#0c831f] text-white shadow-xs"
+                      : "bg-zinc-100 text-zinc-500"
+                  }`}
+                >
+                  <Clock className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-black text-zinc-900">Standard Pickup</p>
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                      FREE
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                    Captain assigned in 30–60 mins • Regular laundry queue
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex items-center">
+                <div
+                  className={`size-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                    !isExpressActive ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300 bg-white"
+                  }`}
+                >
+                  {!isExpressActive && <Check className="size-3 text-white stroke-[3]" />}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Express Priority Option */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (!isExpressEnabled) {
+                  toast.info("Express pickup is temporarily disabled by operations.");
+                  return;
+                }
+                setIsExpress(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  if (isExpressEnabled) setIsExpress(true);
+                }
+              }}
+              className={`relative rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none overflow-hidden ${
+                isExpressActive
+                  ? "border-amber-500 bg-gradient-to-br from-amber-500/10 via-amber-50/40 to-white shadow-md ring-2 ring-amber-500/20"
+                  : "border-amber-200/90 hover:border-amber-400 bg-white"
+              }`}
+            >
+              {/* Integrated Top Announcement Strip — never cuts off */}
+              <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-3.5 py-1 text-white text-[9.5px] font-black uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="size-3 fill-white shrink-0" />
+                  <span>⚡ FASTEST ARRIVAL • 15 MINS DISPATCH</span>
+                </span>
+                <span className="bg-white/20 text-white text-[8.5px] px-1.5 py-0.2 rounded-full font-bold">
+                  PRIORITY
+                </span>
+              </div>
+
+              <div className="p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`size-10 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
+                      isExpressActive
+                        ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    <Zap className="size-5 fill-current" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs font-black text-zinc-900">
+                        Express Priority Pickup
+                      </p>
+                      <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
+                        +₹{expressFee}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-zinc-600 mt-0.5">
+                      Nearest Captain dispatched in 15 mins • Priority fast wash
+                    </p>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center">
+                  <div
+                    className={`size-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isExpressActive ? "border-amber-500 bg-amber-500" : "border-zinc-300 bg-white"
+                    }`}
+                  >
+                    {isExpressActive && <Check className="size-3 text-white stroke-[3]" />}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* SECTION 3: CUSTOMER CONTACT DETAILS */}
         <section aria-label="Customer Details" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
           <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
@@ -505,135 +751,128 @@ export function CheckoutPage() {
           </div>
         </section>
 
-        {/* SECTION 5: PAYMENT OPTIONS (Blinkit Style) */}
-        <section aria-label="Payment Methods" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
-          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-            Payment Option
-          </span>
+        {/* SECTION 5: PAYMENT METHOD SELECTION */}
+        <section aria-label="Payment Method" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              Payment Method
+            </span>
+            <span className="text-[10px] text-zinc-400 font-semibold flex items-center gap-1">
+              <ShieldCheck className="size-3 text-[#0c831f]" />
+              <span>Razorpay 100% Secure</span>
+            </span>
+          </div>
 
-          <div className="grid grid-cols-1 gap-2">
-            {/* QuickPress Wallet */}
+          <div className="space-y-2">
+            {/* 1. Online Payment (Razorpay - Direct Gateway) */}
             <label
-              onClick={() => setSelectedPayment("wallet")}
-              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                selectedPayment === "wallet"
-                  ? "border-[#0c831f] bg-emerald-50/50"
-                  : "border-zinc-200 hover:bg-zinc-50"
+              onClick={() => setPaymentMode("online")}
+              className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${
+                paymentMode === "online"
+                  ? "border-[#0c831f] bg-emerald-50/40 shadow-xs"
+                  : "border-zinc-200 hover:border-zinc-300 bg-white"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-[#0c831f]">
-                  <Wallet className="size-5" />
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    paymentMode === "online" ? "bg-[#0c831f] text-white" : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
+                  <CreditCard className="size-5" />
                 </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">QuickPress Wallet</p>
-                  <p className="text-[11px] font-bold text-[#0c831f]">
-                    Available Balance: ₹{walletBalance}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-xs font-black text-zinc-900">
+                      Online Payment (UPI, Cards, Wallets)
+                    </p>
+                    <span className="bg-[#0c831f] text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full uppercase">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-medium text-zinc-500 truncate">
+                    PhonePe, Google Pay, Paytm, UPI QR, Cards & Netbanking
                   </p>
                 </div>
               </div>
-              <div className={`size-5 rounded-full border-2 flex items-center justify-center ${
-                selectedPayment === "wallet" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
-              }`}>
-                {selectedPayment === "wallet" ? <Check className="size-3 text-white stroke-[3]" /> : null}
+
+              <div className="shrink-0 ml-2">
+                <div
+                  className={`size-5 rounded-full border-2 flex items-center justify-center ${
+                    paymentMode === "online" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
+                  }`}
+                >
+                  {paymentMode === "online" && <Check className="size-3 text-white stroke-[3]" />}
+                </div>
               </div>
             </label>
 
-            {/* UPI */}
+            {/* 2. Cash on Delivery */}
             <label
-              onClick={() => setSelectedPayment("upi")}
-              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                selectedPayment === "upi"
-                  ? "border-[#0c831f] bg-emerald-50/50"
-                  : "border-zinc-200 hover:bg-zinc-50"
+              onClick={() => {
+                if (grandTotal < 50) {
+                  toast.error("Cash on delivery is not available for orders below ₹50.");
+                  return;
+                }
+                setPaymentMode("cod");
+              }}
+              className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${
+                grandTotal < 50
+                  ? "opacity-50 cursor-not-allowed border-zinc-200 bg-zinc-50"
+                  : paymentMode === "cod"
+                  ? "border-[#0c831f] bg-emerald-50/40 shadow-xs"
+                  : "border-zinc-200 hover:border-zinc-300 bg-white"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
-                  <QrCode className="size-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">UPI (Google Pay, PhonePe, Paytm)</p>
-                  <p className="text-[10px] text-zinc-500">Instant & 100% Secure</p>
-                </div>
-              </div>
-              <div className={`size-5 rounded-full border-2 flex items-center justify-center ${
-                selectedPayment === "upi" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
-              }`}>
-                {selectedPayment === "upi" ? <Check className="size-3 text-white stroke-[3]" /> : null}
-              </div>
-            </label>
-
-            {/* Cards */}
-            <label
-              onClick={() => setSelectedPayment("card")}
-              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                selectedPayment === "card"
-                  ? "border-[#0c831f] bg-emerald-50/50"
-                  : "border-zinc-200 hover:bg-zinc-50"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-                  <CreditCard className="size-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">Credit / Debit Cards</p>
-                  <p className="text-[10px] text-zinc-500">Visa, Mastercard, RuPay</p>
-                </div>
-              </div>
-              <div className={`size-5 rounded-full border-2 flex items-center justify-center ${
-                selectedPayment === "card" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
-              }`}>
-                {selectedPayment === "card" ? <Check className="size-3 text-white stroke-[3]" /> : null}
-              </div>
-            </label>
-
-            {/* Cash on Delivery */}
-            <label
-              onClick={() => setSelectedPayment("cod")}
-              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                selectedPayment === "cod"
-                  ? "border-[#0c831f] bg-emerald-50/50"
-                  : "border-zinc-200 hover:bg-zinc-50"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    paymentMode === "cod" ? "bg-[#0c831f] text-white" : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
                   <Banknote className="size-5" />
                 </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">Pay on Delivery (Cash / UPI)</p>
-                  <p className="text-[10px] text-zinc-500">Pay after clothes are cleaned</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-black text-zinc-900">
+                      Cash on Delivery
+                    </p>
+                  </div>
+                  <p className="text-[11px] font-medium text-zinc-500 truncate">
+                    Pay cash or scan QR when clothes are picked up or delivered
+                  </p>
                 </div>
               </div>
-              <div className={`size-5 rounded-full border-2 flex items-center justify-center ${
-                selectedPayment === "cod" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
-              }`}>
-                {selectedPayment === "cod" ? <Check className="size-3 text-white stroke-[3]" /> : null}
+
+              <div className="shrink-0 ml-2">
+                <div
+                  className={`size-5 rounded-full border-2 flex items-center justify-center ${
+                    paymentMode === "cod" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
+                  }`}
+                >
+                  {paymentMode === "cod" && <Check className="size-3 text-white stroke-[3]" />}
+                </div>
               </div>
             </label>
 
-            {/* Payment Privacy Disclosure */}
-            <p className="text-[10.5px] text-zinc-500 pt-1 leading-relaxed">
-              Payments may be processed through authorized third-party payment providers. See our{" "}
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "privacy-policy" }}
-                className="text-[#0c831f] font-bold underline"
-              >
-                Privacy Policy
-              </Link>{" "}
-              for information about payment-related data.
-            </p>
+            {grandTotal < 50 && (
+              <p className="text-[10.5px] text-red-600 font-medium px-1">
+                * Cash on delivery is not available for orders below ₹50.
+              </p>
+            )}
           </div>
         </section>
 
-        {/* SECTION 6: BILL DETAILS (Blinkit Style Breakdown) */}
+        {/* SECTION 6: BILL DETAILS (Dynamic Breakdown from Finance Engine) */}
         <section aria-label="Bill Breakdown" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-2.5">
-          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-            Bill Details
-          </span>
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              Bill Details
+            </span>
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+              Admin Finance Engine Active
+            </span>
+          </div>
 
           <div className="space-y-1.5 text-xs font-medium text-zinc-600">
             <div className="flex justify-between">
@@ -644,18 +883,39 @@ export function CheckoutPage() {
             <div className="flex justify-between items-center">
               <span>Delivery Partner Fee</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] line-through text-zinc-400">₹29</span>
-                <span className="font-black text-[#0c831f] text-[10px] uppercase">FREE</span>
+                {isFreeDelivery ? (
+                  <>
+                    <span className="text-[10px] line-through text-zinc-400">₹{baseDeliveryFee}</span>
+                    <span className="font-black text-[#0c831f] text-[10px] uppercase">FREE</span>
+                  </>
+                ) : (
+                  <span className="font-bold text-zinc-900">₹{deliveryFee}</span>
+                )}
               </div>
             </div>
 
             <div className="flex justify-between">
-              <span>Handling Fee</span>
+              <span>Handling & Packaging</span>
               <span className="font-bold text-zinc-900">₹{handlingFee}</span>
             </div>
 
             <div className="flex justify-between">
-              <span>GST & Taxes (18%)</span>
+              <span>Platform Convenience Fee</span>
+              <span className="font-bold text-zinc-900">₹{platformFee}</span>
+            </div>
+
+            {isExpressActive ? (
+              <div className="flex justify-between items-center text-amber-800 font-bold bg-amber-50/80 px-2 py-1.5 rounded-lg border border-amber-200">
+                <span className="flex items-center gap-1.5">
+                  <Zap className="size-3.5 text-amber-600 fill-amber-500" />
+                  ⚡ Express 15-Min Priority Pickup
+                </span>
+                <span className="font-black text-amber-700">+₹{expressFee}</span>
+              </div>
+            ) : null}
+
+            <div className="flex justify-between">
+              <span>GST & Taxes (5% Laundry + 18% Fees)</span>
               <span className="font-bold text-zinc-900">₹{gst}</span>
             </div>
 
@@ -668,7 +928,7 @@ export function CheckoutPage() {
 
             <div className="border-t border-zinc-200 pt-2.5 flex justify-between items-center text-sm font-black text-zinc-900">
               <span>Grand Total</span>
-              <span className="text-base text-zinc-900">₹{grandTotal}</span>
+              <span className="text-base text-zinc-900 font-black">₹{grandTotal}</span>
             </div>
           </div>
 
@@ -717,33 +977,23 @@ export function CheckoutPage() {
           <button
             type="button"
             disabled={placingOrder}
-            onClick={handlePlaceOrder}
+            onClick={handleProceedToPayOrOrder}
             className="flex-1 flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0c831f] hover:bg-emerald-800 disabled:opacity-50 text-white font-black text-sm shadow-md active:scale-98 transition-all cursor-pointer"
           >
             {placingOrder ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                <span>Processing Order...</span>
+                <span>Processing...</span>
               </>
-            ) : selectedPayment === "card" ? (
+            ) : paymentMode === "cod" ? (
               <>
-                <span>Pay ₹{grandTotal} with Card</span>
-                <CreditCard className="size-4" />
-              </>
-            ) : selectedPayment === "upi" ? (
-              <>
-                <span>Pay ₹{grandTotal} with UPI</span>
-                <QrCode className="size-4" />
-              </>
-            ) : selectedPayment === "wallet" ? (
-              <>
-                <span>Pay ₹{grandTotal} from Wallet</span>
-                <Wallet className="size-4" />
+                <span>PLACE CASH ON DELIVERY ORDER</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
               </>
             ) : (
               <>
-                <span>Place Order (Pay on Delivery)</span>
-                <ChevronRight className="size-4 stroke-[2.5]" />
+                <span>PROCEED WITH PAYMENT</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
               </>
             )}
           </button>

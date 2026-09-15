@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.db.catalog_repositories import catalog
 from app.db.client import database
-from app.db.cms_repositories import cms_repo
+from app.db.cms_repositories import cms_repo, LEGAL_DOCS_SEED
 from app.db.membership_repositories import membership_repository
 
 router = APIRouter(prefix="/public", tags=["public-website"])
@@ -39,18 +39,33 @@ async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
         "privacy": "privacy-policy",
         "privacy-policy": "privacy-policy",
         "refund-cancellation": "refund-policy",
+        "cancellation-refund-policy": "refund-policy",
         "refund-policy": "refund-policy",
         "refund": "refund-policy",
+        "partner-agreement": "partner-agreement",
+        "partner-terms": "partner-agreement",
+        "merchant-agreement": "partner-agreement",
+        "rider-agreement": "rider-agreement",
+        "rider-terms": "rider-agreement",
+        "captain-agreement": "rider-agreement",
+        "grievance-redressal": "grievance-redressal",
+        "grievance": "grievance-redressal",
+        "compliance": "grievance-redressal",
     }
-    target_slug = alias_map.get(doc_slug.lower(), doc_slug)
+    normalized_slug = doc_slug.lower().strip()
+    target_slug = alias_map.get(normalized_slug, normalized_slug)
     doc = await cms_repo.get_legal_doc(target_slug)
     if not doc:
-        doc = await cms_repo.get_legal_doc(doc_slug)
+        doc = await cms_repo.get_legal_doc(normalized_slug)
+    if not doc and target_slug in LEGAL_DOCS_SEED:
+        doc = LEGAL_DOCS_SEED[target_slug]
+    if not doc and normalized_slug in LEGAL_DOCS_SEED:
+        doc = LEGAL_DOCS_SEED[normalized_slug]
     if not doc:
         raise HTTPException(status_code=404, detail="Legal document not found or unpublished.")
     return {
-        "slug": doc.get("slug"),
-        "title": doc.get("title"),
+        "slug": doc.get("slug", target_slug),
+        "title": doc.get("title", "Legal Document"),
         "currentVersion": doc.get("currentVersion", "1.0"),
         "effectiveDate": doc.get("effectiveDate", "2026-08-25"),
         "summary": doc.get("summary", ""),

@@ -69,21 +69,21 @@
 
 /* ---------- Page transitions ---------- */
 @keyframes qpc-page-in {
-  from { opacity: 0; transform: translate3d(0, 14px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { opacity: 0.96; }
+  to { opacity: 1; }
 }
 
 @keyframes qpc-page-out {
-  from { opacity: 1; transform: translate3d(0, 0, 0); }
-  to { opacity: 0; transform: translate3d(0, -6px, 0); }
+  from { opacity: 1; }
+  to { opacity: 0.96; }
 }
 
 @utility page-enter {
-  animation: qpc-page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: qpc-page-in 0.12s ease-out both;
 }
 
 @utility page-exit {
-  animation: qpc-page-out 0.18s ease-in both;
+  animation: qpc-page-out 0.1s ease-in both;
 }
 
 /* ---------- Card / list entrance ---------- */
@@ -797,4 +797,17 @@ font[style] {
   color: inherit !important;
   background: inherit !important;
 }
+
+/* =====================================================================
+ * Live GPS Tracking: Smooth Moving Rider Bike Animation
+ * ===================================================================== */
+.custom-rider-icon {
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  will-change: transform;
+}
+.custom-rider-icon-inner {
+  transition: transform 0.4s ease-out;
+  will-change: transform;
+}
+
 

@@ -17,7 +17,11 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { partnerRoutes, partnerSidebarLinks } from "../../navigation/partner-routes";
+import {
+  partnerRoutes,
+  partnerOperationsLinks,
+  partnerManagementLinks,
+} from "../../navigation/partner-routes";
 import { useLanguage } from "../../lib/i18n";
 
 export function PartnerSidebar({
@@ -102,8 +106,8 @@ export function PartnerSidebar({
         <div className="px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground/70">
           Operations
         </div>
-        {partnerSidebarLinks.slice(0, 6).map((link) => {
-          const isActive = pathname === link.to || pathname.startsWith(`${link.to}/`);
+        {partnerOperationsLinks.map((link) => {
+          const isActive = pathname === link.to || (link.to !== "/dashboard" && pathname.startsWith(`${link.to}/`));
           const Icon = link.icon;
           return (
             <Link
@@ -128,8 +132,8 @@ export function PartnerSidebar({
         <div className="pt-3 px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground/70">
           Management
         </div>
-        {partnerSidebarLinks.slice(6).map((link) => {
-          const isActive = pathname === link.to || pathname.startsWith(`${link.to}/`);
+        {partnerManagementLinks.map((link) => {
+          const isActive = pathname === link.to || (link.to !== "/dashboard" && pathname.startsWith(`${link.to}/`));
           const Icon = link.icon;
           return (
             <Link

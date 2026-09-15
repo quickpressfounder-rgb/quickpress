@@ -88,7 +88,8 @@ async def test_full_partner_accept_timer_dispatch_flow():
 
     # Step 3: Rider accepts offer and performs pickup with OTP
     await smart_2ride_engine.handle_rider_accept(ride_1["_id"], rider_id)
-    picked_up_order = await rider_dispatch_engine.verify_pickup_otp(order_id, rider_id, "1122")
+    pickup_code = ride_1["otp"]["pickup"]["code"]
+    picked_up_order = await rider_dispatch_engine.verify_pickup_otp(order_id, rider_id, pickup_code)
     assert picked_up_order["status"] == lifecycle.PICKED_UP
 
     # Step 4: Rider arrives at store with garments

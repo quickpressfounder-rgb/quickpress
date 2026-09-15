@@ -161,8 +161,14 @@ function LocationSearchScreen() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate({ to: "/home" })}
-            className="flex size-10 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.95]"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate({ to: "/home" });
+              }
+            }}
+            className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.95]"
           >
             <ArrowLeft className="size-5" />
           </button>

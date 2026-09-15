@@ -28,6 +28,12 @@ import {
   Database,
   Radio,
   HardDrive,
+  Zap,
+  KeyRound,
+  Coins,
+  Flame,
+  ShieldAlert,
+  Cpu,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,6 +49,9 @@ import {
   fetchRecentActivity,
   fetchRevenueSeries,
   fetchSystemHealth,
+  fetchAutomationActivity,
+  fetchAutomationStats,
+  triggerAutomation,
 } from "../api/dashboard";
 import { adminRoutes } from "../navigation/admin-routes";
 import { adminHead } from "../lib/head";
@@ -102,9 +111,22 @@ export function DashboardPage() {
 
   const health = useQuery({ queryKey: ["admin", "dashboard", "health"], queryFn: fetchSystemHealth, staleTime: 60000 });
   const revenue = useQuery({ queryKey: ["admin", "dashboard", "revenue", chartPeriod], queryFn: fetchRevenueSeries, staleTime: 45000 });
-  const orders = useQuery({ queryKey: ["admin", "dashboard", "orders", chartPeriod], queryFn: fetchOrdersSeries, staleTime: 45000 });
   const activity = useQuery({ queryKey: ["admin", "dashboard", "activity"], queryFn: fetchRecentActivity, staleTime: 15000, refetchInterval: 15000 });
   const latest = useQuery({ queryKey: ["admin", "dashboard", "latest"], queryFn: fetchLatestOrders, staleTime: 20000 });
+
+  const [automationFilter, setAutomationFilter] = useState<string>("all");
+  const automations = useQuery({
+    queryKey: ["admin", "dashboard", "automations", automationFilter],
+    queryFn: () => fetchAutomationActivity(automationFilter),
+    staleTime: 4000,
+    refetchInterval: 4000,
+  });
+  const autoStats = useQuery({
+    queryKey: ["admin", "dashboard", "automation-stats"],
+    queryFn: fetchAutomationStats,
+    staleTime: 8000,
+    refetchInterval: 8000,
+  });
 
   const data = summary.data;
 
@@ -918,22 +940,132 @@ export function DashboardPage() {
             </div>
           </SectionCard>
 
-          {/* Live Activity Stream */}
+          {/* Live Platform Automations & Activity Surveillance */}
           <SectionCard
-            title="Live Operational Activity"
-            description="Real-time audit log of customer orders, rider offers and store handovers"
+            title="Automated Operations Surveillance"
+            description="Live audit logs across Auto-Dispatch, Dynamic OTPs, SLAs, Auto-Finance & Fraud Guard"
             actions={
-              <button
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.orders })}
-                className="text-xs font-bold text-emerald-700 hover:underline"
-              >
-                View All Activity →
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  7/7 Automations Active
+                </span>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: adminRoutes.orders })}
+                  className="text-xs font-bold text-emerald-700 hover:underline"
+                >
+                  All Orders →
+                </button>
+              </div>
             }
           >
+            {/* Automation Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 no-scrollbar">
+              {[
+                { id: "all", label: "All Events" },
+                { id: "dispatch", label: "⚡ Dispatch" },
+                { id: "otp", label: "🔐 Dynamic OTP" },
+                { id: "sla", label: "⏱️ Laundry SLA" },
+                { id: "finance", label: "💰 Auto-Finance" },
+                { id: "surge", label: "📈 Surge" },
+                { id: "guard", label: "🛡️ Fraud Guard" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setAutomationFilter(f.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${
+                    automationFilter === f.id
+                      ? "bg-zinc-900 text-white shadow-xs"
+                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             {(() => {
+              const autoEvents = automations.data || [];
               const displayActivities = [...(activity.data || [])];
+
+              // If we have real automation logs from backend, display them with rich visual badges!
+              if (autoEvents.length > 0) {
+                return (
+                  <ul className="space-y-2">
+                    {autoEvents.slice(0, 8).map((evt) => {
+                      const type = (evt.automationType || "auto").toLowerCase();
+                      const sev = evt.severity || "info";
+
+                      let badgeBg = "bg-zinc-100 text-zinc-700 border-zinc-200";
+                      let typeLabel = "Automation";
+
+                      if (type === "dispatch") {
+                        badgeBg = "bg-blue-50 text-blue-700 border-blue-200";
+                        typeLabel = "Auto-Dispatch";
+                      } else if (type === "otp") {
+                        badgeBg = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                        typeLabel = "Dynamic OTP";
+                      } else if (type === "sla") {
+                        badgeBg = "bg-amber-50 text-amber-700 border-amber-200";
+                        typeLabel = "Laundry SLA";
+                      } else if (type === "finance") {
+                        badgeBg = "bg-indigo-50 text-indigo-700 border-indigo-200";
+                        typeLabel = "Settlement";
+                      } else if (type === "surge") {
+                        badgeBg = "bg-rose-50 text-rose-700 border-rose-200";
+                        typeLabel = "Surge Pricing";
+                      } else if (type === "guard") {
+                        badgeBg = "bg-red-50 text-red-700 border-red-200";
+                        typeLabel = "Fraud Guard";
+                      } else if (type === "notification") {
+                        badgeBg = "bg-sky-50 text-sky-700 border-sky-200";
+                        typeLabel = "Broadcast";
+                      }
+
+                      return (
+                        <li
+                          key={evt.id}
+                          className="group flex items-start justify-between gap-3 rounded-xl p-2.5 -mx-2 hover:bg-zinc-50 border border-transparent hover:border-zinc-200 hover:shadow-2xs transition-all"
+                        >
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <span
+                              className={`mt-0.5 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold border shrink-0 ${badgeBg}`}
+                            >
+                              {typeLabel}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-bold text-xs text-zinc-900 group-hover:text-emerald-700 transition-colors">
+                                  {evt.title}
+                                </p>
+                                {evt.orderCode && (
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-zinc-200 text-zinc-800">
+                                    #{evt.orderCode}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-zinc-500 font-medium line-clamp-2 mt-0.5">
+                                {evt.description}
+                              </p>
+                              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                                <span className="font-semibold text-zinc-600">{formatRelativeTime(evt.timestamp || evt.createdAt)}</span>
+                                {evt.actorId && ` · Actor: ${evt.actorId}`}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`size-2 rounded-full mt-1.5 shrink-0 ${
+                            sev === "danger" ? "bg-red-500 animate-pulse" : sev === "warning" ? "bg-amber-500" : "bg-emerald-500"
+                          }`} />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              }
+
+              // Fallback to operational activities if logs are still warming up
               if (displayActivities.length < 5 && latestRows.length > 0) {
                 for (const order of latestRows) {
                   if (!displayActivities.some((a) => a.id.includes(order.id))) {
@@ -971,10 +1103,10 @@ export function DashboardPage() {
                     </li>
                   ))}
                   {activity.isLoading && displayActivities.length === 0 && (
-                    <li className="text-xs text-zinc-400 py-4 text-center">Loading live audit stream...</li>
+                    <li className="text-xs text-zinc-400 py-4 text-center">Connecting to automation streams...</li>
                   )}
                   {!activity.isLoading && displayActivities.length === 0 && (
-                    <li className="text-xs text-zinc-400 py-4 text-center">No recent activity logged yet.</li>
+                    <li className="text-xs text-zinc-400 py-4 text-center">No automation events logged yet.</li>
                   )}
                 </ul>
               );

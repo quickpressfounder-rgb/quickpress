@@ -77,23 +77,40 @@ class CartRepository:
     # ------------------------------------------------------------------ config
 
     async def charges(self, user_id: Optional[str] = None) -> CartChargesResponse:
-        # 1. Check live admin_settings
-        admin_doc = await database.collection("admin_settings").find_one({"_id": "platform"})
-        document = await database.collection(SETTINGS_COLLECTION).find_one({"_id": "default"})
-        document = document or DEFAULT_CHARGES
-        if admin_doc:
-            delivery = int(admin_doc.get("deliveryFee") or admin_doc.get("default_delivery_fee") or document.get("delivery", 29))
-            handling = int(admin_doc.get("handlingFee") or admin_doc.get("default_handling_fee") or document.get("handling", 15))
-            gst_pct = float(admin_doc.get("gstPercent") or admin_doc.get("tax_percentage") or 5)
-            gst_rate = gst_pct / 100.0 if gst_pct > 1 else gst_pct
-            pickup = int(admin_doc.get("pickupFee") or document.get("pickup", 0))
-            discount = int(admin_doc.get("defaultDiscount") or document.get("discount", 0))
-        else:
-            delivery = int(document.get("delivery") or 29)
-            handling = int(document.get("handling") or 15)
-            gst_rate = float(document.get("gstRate") or 0.05)
-            pickup = int(document.get("pickup") or 0)
-            discount = int(document.get("discount") or 0)
+        # 1. Primary: Live Unified Financial Rules (Admin Governed)
+        delivery = 29
+        handling = 15
+        gst_rate = 0.05
+        pickup = 0
+        discount = 0
+
+        try:
+            from app.services.unified_finance_service import unified_finance_service
+            rules = await unified_finance_service.get_active_rules()
+            d = rules.get("delivery", {})
+            p = rules.get("pricing", {})
+            g = rules.get("gst", {})
+            delivery = int(round(float(d.get("baseFee", 30.0))))
+            handling = int(round(float(p.get("handlingFee", 15.0))))
+            gst_rate = float(g.get("laundryGstRate", 0.05))
+        except Exception:
+            # Fallback to admin_settings / cart_settings
+            admin_doc = await database.collection("admin_settings").find_one({"_id": "platform"})
+            document = await database.collection(SETTINGS_COLLECTION).find_one({"_id": "default"})
+            document = document or DEFAULT_CHARGES
+            if admin_doc:
+                delivery = int(admin_doc.get("deliveryFee") or admin_doc.get("default_delivery_fee") or document.get("delivery", 29))
+                handling = int(admin_doc.get("handlingFee") or admin_doc.get("default_handling_fee") or document.get("handling", 15))
+                gst_pct = float(admin_doc.get("gstPercent") or admin_doc.get("tax_percentage") or 5)
+                gst_rate = gst_pct / 100.0 if gst_pct > 1 else gst_pct
+                pickup = int(admin_doc.get("pickupFee") or document.get("pickup", 0))
+                discount = int(admin_doc.get("defaultDiscount") or document.get("discount", 0))
+            else:
+                delivery = int(document.get("delivery") or 29)
+                handling = int(document.get("handling") or 15)
+                gst_rate = float(document.get("gstRate") or 0.05)
+                pickup = int(document.get("pickup") or 0)
+                discount = int(document.get("discount") or 0)
 
         # Check active membership perks
         if user_id:
@@ -313,7 +330,7 @@ class CartRepository:
                 break
         if not svc:
             svc = await database.find_one("partner_services", {"name": {"$regex": f"^{item_id}$", "$options": "i"}})
-        if svc:
+        if svc and not svc.get("pendingApproval", False) and svc.get("approvalStatus", "approved") == "approved" and bool(svc.get("enabled", svc.get("isActive", True))):
             turnaround = svc.get("turnaroundHours") or 24
             return {
                 "partnerId": svc.get("partnerId") or payload.partnerId or "",

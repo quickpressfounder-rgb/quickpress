@@ -13,11 +13,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DeliveriesRouteImport } from './routes/deliveries'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IncentivesRouteImport } from './routes/incentives'
 import { Route as InstructionRouteImport } from './routes/instruction'
 import { Route as InstructionsRouteImport } from './routes/instructions'
 import { Route as LanguageRouteImport } from './routes/language'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OtpRouteImport } from './routes/otp'
@@ -46,6 +48,11 @@ const DeliveriesRoute = DeliveriesRouteImport.update({
   path: '/deliveries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IncentivesRoute = IncentivesRouteImport.update({
   id: '/incentives',
   path: '/incentives',
@@ -69,6 +76,11 @@ const LanguageRoute = LanguageRouteImport.update({
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -112,11 +124,13 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/deliveries': typeof DeliveriesRoute
+  '/history': typeof HistoryRoute
   '/incentives': typeof IncentivesRoute
   '/instruction': typeof InstructionRoute
   '/instructions': typeof InstructionsRoute
   '/language': typeof LanguageRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/otp': typeof OtpRoute
@@ -130,11 +144,13 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/deliveries': typeof DeliveriesRoute
+  '/history': typeof HistoryRoute
   '/incentives': typeof IncentivesRoute
   '/instruction': typeof InstructionRoute
   '/instructions': typeof InstructionsRoute
   '/language': typeof LanguageRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/otp': typeof OtpRoute
@@ -149,11 +165,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/deliveries': typeof DeliveriesRoute
+  '/history': typeof HistoryRoute
   '/incentives': typeof IncentivesRoute
   '/instruction': typeof InstructionRoute
   '/instructions': typeof InstructionsRoute
   '/language': typeof LanguageRoute
   '/leaderboard': typeof LeaderboardRoute
+  '/notifications': typeof NotificationsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/otp': typeof OtpRoute
@@ -169,11 +187,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/deliveries'
+    | '/history'
     | '/incentives'
     | '/instruction'
     | '/instructions'
     | '/language'
     | '/leaderboard'
+    | '/notifications'
     | '/onboarding'
     | '/orders'
     | '/otp'
@@ -187,11 +207,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/deliveries'
+    | '/history'
     | '/incentives'
     | '/instruction'
     | '/instructions'
     | '/language'
     | '/leaderboard'
+    | '/notifications'
     | '/onboarding'
     | '/orders'
     | '/otp'
@@ -205,11 +227,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/deliveries'
+    | '/history'
     | '/incentives'
     | '/instruction'
     | '/instructions'
     | '/language'
     | '/leaderboard'
+    | '/notifications'
     | '/onboarding'
     | '/orders'
     | '/otp'
@@ -224,11 +248,13 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   DeliveriesRoute: typeof DeliveriesRoute
+  HistoryRoute: typeof HistoryRoute
   IncentivesRoute: typeof IncentivesRoute
   InstructionRoute: typeof InstructionRoute
   InstructionsRoute: typeof InstructionsRoute
   LanguageRoute: typeof LanguageRoute
   LeaderboardRoute: typeof LeaderboardRoute
+  NotificationsRoute: typeof NotificationsRoute
   OnboardingRoute: typeof OnboardingRoute
   OrdersRoute: typeof OrdersRoute
   OtpRoute: typeof OtpRoute
@@ -268,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeliveriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/incentives': {
       id: '/incentives'
       path: '/incentives'
@@ -301,6 +334,13 @@ declare module '@tanstack/react-router' {
       path: '/leaderboard'
       fullPath: '/leaderboard'
       preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -360,11 +400,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   DeliveriesRoute: DeliveriesRoute,
+  HistoryRoute: HistoryRoute,
   IncentivesRoute: IncentivesRoute,
   InstructionRoute: InstructionRoute,
   InstructionsRoute: InstructionsRoute,
   LanguageRoute: LanguageRoute,
   LeaderboardRoute: LeaderboardRoute,
+  NotificationsRoute: NotificationsRoute,
   OnboardingRoute: OnboardingRoute,
   OrdersRoute: OrdersRoute,
   OtpRoute: OtpRoute,

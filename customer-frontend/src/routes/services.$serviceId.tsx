@@ -181,38 +181,42 @@ function ServiceListingScreen() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950 pb-32">
       <div className="relative mx-auto w-full max-w-md">
-        <header className="sticky top-0 z-30 mx-auto w-full max-w-md">
-          <div className="glass-panel flex items-center gap-2 px-4 py-3">
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => navigate({ to: "/home" })}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">
-                {data?.service.title ?? "Laundry partners"}
-              </h1>
-              <p className="truncate text-[11px] text-muted-foreground">
-                {data ? `Starting at ₹${data.service.startingPrice}` : "Loading nearby stores…"}
-              </p>
-            </div>
-            <button
-              type="button"
-              aria-label={saved ? "Remove from saved services" : "Save service to favourites"}
-              aria-pressed={saved}
-              onClick={() => void handleToggleSaved()}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted transition-all duration-300 hover:bg-accent active:scale-[0.9]"
-            >
-              <Heart
-                className={`size-5 transition-all duration-300 ${
-                  saved ? "scale-110 fill-current text-destructive" : "text-foreground"
-                }`}
-              />
-            </button>
+        <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+          <button
+            type="button"
+            aria-label="Go back"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate({ to: "/home" });
+              }
+            }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">
+              {data?.service.title ?? "Laundry partners"}
+            </h1>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {data ? `Starting at ₹${data.service.startingPrice}` : "Loading nearby stores…"}
+            </p>
           </div>
+          <button
+            type="button"
+            aria-label={saved ? "Remove from saved services" : "Save service to favourites"}
+            aria-pressed={saved}
+            onClick={() => void handleToggleSaved()}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted transition-all duration-300 hover:bg-accent active:scale-[0.9]"
+          >
+            <Heart
+              className={`size-5 transition-all duration-300 ${
+                saved ? "scale-110 fill-current text-destructive" : "text-foreground"
+              }`}
+            />
+          </button>
         </header>
 
         <div className="px-5">

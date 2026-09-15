@@ -15,6 +15,10 @@ export type RawService = {
   image?: string;
   minQuantity?: number;
   expressAvailable?: boolean;
+  pendingApproval?: boolean;
+  approvalStatus?: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+  pendingChanges?: Record<string, any>;
 };
 
 export type ServiceWritePayload = {
@@ -42,6 +46,10 @@ function toServiceRate(raw: RawService): PartnerServiceRate {
     category: (raw.category as BusinessCategory) || "laundry",
     description: raw.description || "",
     image: raw.image || "",
+    pendingApproval: Boolean(raw.pendingApproval),
+    approvalStatus: raw.approvalStatus || (raw.pendingApproval ? "pending" : "approved"),
+    rejectionReason: raw.rejectionReason,
+    pendingChanges: raw.pendingChanges,
   };
 }
 

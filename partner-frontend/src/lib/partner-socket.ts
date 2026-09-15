@@ -82,7 +82,12 @@ export function initPartnerSocket(): Socket | null {
       socket.on("order.created", handleOrder);
       socket.on("order.rider_assigned", handleOrder);
       socket.on("order.picked_up", handleOrder);
+      socket.on("order.ready", handleOrder);
+      socket.on("order.at_partner", handleOrder);
+      socket.on("order.out_for_delivery", handleOrder);
       socket.on("order.delivered", handleOrder);
+      socket.on("order.cancelled", handleOrder);
+      socket.on("order.status_changed", handleOrder);
 
       socket.on("partner.status_changed", handleStatus);
       socket.on("partner.online_status", handleStatus);

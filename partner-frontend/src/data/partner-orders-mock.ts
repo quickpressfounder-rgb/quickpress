@@ -77,6 +77,10 @@ export type ManagedOrder = {
   cancelReason: string | null;
   assignedRider: any;
   rider?: any;
+  isExpress?: boolean;
+  expressFee?: number;
+  partnerExpressBonus?: number;
+  expressPartnerSharePercent?: number;
 };
 
 /* ------------------------------------------------------------------ */

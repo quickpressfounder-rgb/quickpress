@@ -48,6 +48,7 @@ class ProfileUpdatePayload(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     city: Optional[str] = None
+    phone: Optional[str] = None
 
     @field_validator("name")
     @classmethod
@@ -78,6 +79,23 @@ class ProfileUpdatePayload(BaseModel):
         if len(cleaned) > 60:
             raise ValueError("City must be 60 characters or less")
         return cleaned
+
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        cleaned = value.strip().replace(" ", "").replace("-", "")
+        if not cleaned:
+            return None
+        digits = re.sub(r"\D", "", cleaned)
+        if len(digits) == 10 and digits[0] in "6789":
+            return f"+91{digits}"
+        elif len(digits) == 12 and digits.startswith("91") and digits[2] in "6789":
+            return f"+{digits}"
+        elif cleaned.startswith("+") and len(digits) >= 10:
+            return cleaned
+        raise ValueError("Enter a valid 10-digit mobile number")
 
 
 class ProfilePhotoPayload(BaseModel):

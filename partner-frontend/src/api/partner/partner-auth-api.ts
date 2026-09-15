@@ -114,39 +114,62 @@ export async function registerBusiness(
   return updatedSession;
 }
 
-/** Check if Admin has approved the partner in backend/MongoDB. */
+/** Check if Admin has approved the partner in Supabase backend. */
 export async function checkPartnerVerificationStatus(): Promise<{
   isVerified: boolean;
   status: string;
   businessName: string;
   partnerId: string;
 }> {
-  if (authMode() === "mock") {
-    return {
-      isVerified: false,
-      status: "pending",
-      businessName: "QuickPress Partner Store",
-      partnerId: "PRT-10482",
-    };
-  }
+  const currentSession = readSession(ROLE);
+  const storedPhone = currentSession?.account?.phone || "";
+  const storedPid = currentSession?.account?.linkedId || "";
+
   try {
-    const profile = await apiGetJson<{
-      partnerId: string;
-      businessName: string;
+    let res: {
       isVerified?: boolean;
       status?: string;
-    }>("/api/partner/profile");
+      businessName?: string;
+      partnerId?: string;
+      isOnboarded?: boolean;
+    } | null = null;
 
-    const isVerified = Boolean(profile.isVerified || profile.status === "active");
-    const currentSession = readSession(ROLE);
+    // 1. Try dedicated verification-status endpoint
+    try {
+      const qParams: Record<string, string> = {};
+      if (storedPid) qParams.partner_id = storedPid;
+      if (storedPhone) qParams.phone = storedPhone;
+      res = await apiGetJson<typeof res>("/api/partner/verification-status", {
+        params: qParams,
+      });
+    } catch {
+      // 2. Fallback to /api/partner/profile
+      res = await apiGetJson<typeof res>("/api/partner/profile");
+    }
+
+    const isVerified = Boolean(
+      res?.isVerified === true ||
+      res?.status === "active" ||
+      res?.status === "approved"
+    );
+
+    const bName = res?.businessName || currentSession?.account?.name || "";
+    const pId = res?.partnerId || currentSession?.account?.linkedId || "";
+    const activeStatus = isVerified ? "active" : (res?.status || "pending_verification");
+
     if (currentSession && currentSession.account) {
-      const updatedSession = {
+      const updatedSession: AuthSession = {
         ...currentSession,
+        status: activeStatus,
+        isVerified,
+        isOnboarded: true,
         account: {
           ...currentSession.account,
+          status: activeStatus,
           isVerified,
           isOnboarded: true,
-          name: profile.businessName || currentSession.account.name,
+          linkedId: pId || currentSession.account.linkedId,
+          name: bName || currentSession.account.name,
         },
       };
       writeSession(updatedSession, ROLE);
@@ -154,16 +177,22 @@ export async function checkPartnerVerificationStatus(): Promise<{
 
     return {
       isVerified,
-      status: profile.status || (isVerified ? "active" : "pending"),
-      businessName: profile.businessName,
-      partnerId: profile.partnerId,
+      status: activeStatus,
+      businessName: bName,
+      partnerId: pId,
     };
   } catch {
+    const isAlreadyVerified = Boolean(
+      currentSession?.isVerified ||
+      currentSession?.account?.isVerified ||
+      currentSession?.status === "active" ||
+      currentSession?.account?.status === "active"
+    );
     return {
-      isVerified: false,
-      status: "pending",
-      businessName: "",
-      partnerId: "",
+      isVerified: isAlreadyVerified,
+      status: isAlreadyVerified ? "active" : "pending_verification",
+      businessName: currentSession?.account?.name || "",
+      partnerId: currentSession?.account?.linkedId || "",
     };
   }
 }

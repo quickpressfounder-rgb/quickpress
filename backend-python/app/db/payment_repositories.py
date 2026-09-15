@@ -768,35 +768,43 @@ async def earnings_for(user: User, orders: int, gross: float) -> Dict[str, Any]:
 
 def rider_incentives() -> Dict[str, Any]:
     expires = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
+    from app.services.financial_engine import financial_engine
+    cfg = financial_engine.config
+    t1 = int(cfg.get("incentiveTier1Trips", 5))
+    r1 = int(cfg.get("incentiveTier1Reward", 100))
+    t2 = int(cfg.get("incentiveTier2Trips", 10))
+    r2 = int(cfg.get("incentiveTier2Reward", 250))
+    streak_trips = int(cfg.get("weeklyStreakTrips", 50))
+    streak_reward = int(cfg.get("weeklyStreakReward", 800))
     return {
         "items": [
             {
                 "id": "inc-daily",
-                "title": "Complete 12 deliveries today",
-                "description": "Finish 12 deliveries before midnight to unlock the daily bonus.",
-                "target": 12,
-                "progress": 7,
-                "reward": 150,
+                "title": f"Complete {t1} deliveries today",
+                "description": f"Finish {t1} deliveries before midnight to unlock ₹{r1} daily bonus.",
+                "target": t1,
+                "progress": min(t1, 3),
+                "reward": r1,
+                "status": "active",
+                "expiresAt": expires,
+            },
+            {
+                "id": "inc-daily-champ",
+                "title": f"Complete {t2} deliveries milestone",
+                "description": f"Finish {t2} deliveries to unlock ₹{r2} bonus.",
+                "target": t2,
+                "progress": min(t2, 3),
+                "reward": r2,
                 "status": "active",
                 "expiresAt": expires,
             },
             {
                 "id": "inc-weekend",
-                "title": "Weekend surge streak",
-                "description": "Stay online for 6 hours on Saturday and Sunday.",
-                "target": 12,
-                "progress": 12,
-                "reward": 400,
-                "status": "completed",
-                "expiresAt": expires,
-            },
-            {
-                "id": "inc-rating",
-                "title": "Keep a 4.8+ rating",
-                "description": "Maintain a 4.8 rating across 40 deliveries this week.",
-                "target": 40,
-                "progress": 26,
-                "reward": 250,
+                "title": f"Weekly streak ({streak_trips} deliveries)",
+                "description": f"Complete {streak_trips} deliveries this week to unlock ₹{streak_reward}.",
+                "target": streak_trips,
+                "progress": min(streak_trips, 15),
+                "reward": streak_reward,
                 "status": "active",
                 "expiresAt": expires,
             },

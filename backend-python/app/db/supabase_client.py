@@ -433,19 +433,30 @@ class SupabaseDatabase:
                 self._pool = await asyncpg.create_pool(
                     self.database_url,
                     min_size=1,
-                    max_size=3,
-                    command_timeout=10,
-                    timeout=5.0,
+                    max_size=5,
+                    statement_cache_size=0,
+                    command_timeout=30,
+                    timeout=25.0,
                 )
                 self._loop = current_loop
             return self._pool
 
     async def preload_cache(self) -> None:
         """Preload all documents from Supabase PostgreSQL in a single fast query."""
-        for attempt in range(3):
+        for attempt in range(4):
             try:
                 pool = await self.get_pool()
                 async with pool.acquire() as conn:
+                    # Ensure table exists
+                    await conn.execute("""
+                        CREATE TABLE IF NOT EXISTS quickpress_documents (
+                            id TEXT PRIMARY KEY,
+                            collection TEXT NOT NULL,
+                            data JSONB NOT NULL,
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        CREATE INDEX IF NOT EXISTS idx_qp_docs_collection ON quickpress_documents(collection);
+                    """)
                     rows = await conn.fetch("SELECT collection, data FROM quickpress_documents")
                     coll_map: Dict[str, List[Dict[str, Any]]] = {}
                     for r in rows:
@@ -456,15 +467,16 @@ class SupabaseDatabase:
                         coll._cache = doc_list
                         coll._cache_ts = time.time()
                     self._is_preloaded = True
-                    logger.info("Successfully cached %d documents across %d collections.", len(rows), len(coll_map))
+                    logger.info("Successfully cached %d documents across %d collections from Supabase.", len(rows), len(coll_map))
                     return
             except Exception as e:
-                if attempt == 2:
-                    logger.warning("Cache preload warning: %s", repr(e))
-                await asyncio.sleep(0.5 * (attempt + 1))
+                logger.warning("Cache preload attempt %d warning: %s", attempt + 1, repr(e))
+                if attempt == 3:
+                    raise e
+                await asyncio.sleep(1.0 * (attempt + 1))
 
     async def connect(self) -> None:
-        logger.info("Connecting to Supabase PostgreSQL...")
+        logger.info("Connecting to Supabase PostgreSQL database...")
         await self.preload_cache()
         logger.info("Connected to Supabase PostgreSQL and cache preloaded successfully.")
 

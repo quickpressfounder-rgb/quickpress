@@ -139,21 +139,25 @@ function HistoryScreen() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md">
-        <header className="sticky top-0 z-30 mx-auto w-full max-w-md">
-          <div className="glass-panel flex items-center gap-2 px-4 py-3">
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => navigate({ to: "/home" })}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <h1 className="min-w-0 flex-1 truncate text-center text-sm font-bold tracking-tight text-foreground">
-              Order History
-            </h1>
-            <span className="size-10 shrink-0" />
-          </div>
+        <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+          <button
+            type="button"
+            aria-label="Go back"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                window.history.back();
+              } else {
+                void navigate({ to: "/profile" });
+              }
+            }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <h1 className="min-w-0 flex-1 truncate text-center text-sm font-bold tracking-tight text-foreground">
+            Order History
+          </h1>
+          <span className="size-10 shrink-0" />
         </header>
 
         <div className="px-5 pb-32 pt-4">

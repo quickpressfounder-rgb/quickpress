@@ -15,7 +15,7 @@ import {
   startRiderAutoRefresh,
 } from "@/api/rider/rider-auth-api";
 import { updateRiderStatus } from "@/api/rider/rider-dashboard-api";
-import { clearSession, readSession } from "@/api/core/session-store";
+import { clearSession, readSession, writeSession } from "@/api/core/session-store";
 import { apiGetJson } from "@/api/core/transport";
 import { initRiderSocket, subscribeRiderStatus } from "@/lib/rider-socket";
 import { onesignalLogin, onesignalLogout } from "@/api/core/onesignal";
@@ -44,13 +44,14 @@ export function RiderProvider({ children }: { children: ReactNode }) {
     try {
       const stored = readSession("rider") || readSession();
       if (stored) {
+        const acc = (stored as any).account || stored;
         return {
-          riderId: stored.account.linkedId ?? stored.account.id,
-          phone: stored.account.phone,
-          fullName: stored.account.name,
-          isVerified: stored.account.isVerified,
-          isOnboarded: stored.account.isOnboarded,
-          isNewRider: !stored.account.isOnboarded,
+          riderId: acc.linkedId ?? acc.id ?? (stored as any).riderId ?? (stored as any).id ?? "CP-9821",
+          phone: acc.phone ?? (stored as any).phone ?? "",
+          fullName: acc.name ?? acc.fullName ?? (stored as any).fullName ?? "Delivery Captain",
+          isVerified: Boolean(acc.isVerified ?? acc.is_verified ?? (stored as any).isVerified ?? (stored as any).is_verified),
+          isOnboarded: Boolean(acc.isOnboarded ?? acc.is_onboarded ?? (stored as any).isOnboarded ?? (stored as any).is_onboarded ?? true),
+          isNewRider: !Boolean(acc.isOnboarded ?? acc.is_onboarded ?? (stored as any).isOnboarded ?? (stored as any).is_onboarded ?? true),
           token: stored.token,
           refreshToken: stored.refreshToken,
         };
@@ -180,6 +181,31 @@ export function RiderProvider({ children }: { children: ReactNode }) {
       if (next.phone) setPhone(next.phone);
       if (next.riderId) {
         void onesignalLogin(next.riderId);
+      }
+      if (typeof window !== "undefined" && next.token) {
+        writeSession(
+          {
+            token: next.token,
+            refreshToken: next.refreshToken,
+            isVerified: next.isVerified,
+            isOnboarded: next.isOnboarded,
+            status: next.isVerified ? "active" : "pending",
+            kycStatus: next.isVerified ? "verified" : "pending",
+            riderId: next.riderId,
+            phone: next.phone,
+            account: {
+              id: next.riderId,
+              linkedId: next.riderId,
+              phone: next.phone,
+              name: next.fullName,
+              isVerified: next.isVerified,
+              isOnboarded: next.isOnboarded,
+              status: next.isVerified ? "active" : "pending",
+              kycStatus: next.isVerified ? "verified" : "pending",
+            },
+          },
+          "rider"
+        );
       }
     },
     [setPhone],

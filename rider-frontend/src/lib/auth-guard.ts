@@ -17,17 +17,6 @@ export function isRiderApproved(sess: any): boolean {
     return false;
   }
 
-  // Pending / under review states are strictly NOT approved
-  if (
-    status === "pending" ||
-    status === "pending_approval" ||
-    status === "under_verification" ||
-    status === "not_registered" ||
-    kycStatus === "pending"
-  ) {
-    return false;
-  }
-
   // 1. Direct verified flags (check root & account, camelCase & snake_case)
   if (
     sess.isVerified === true ||
@@ -39,9 +28,27 @@ export function isRiderApproved(sess: any): boolean {
     return true;
   }
 
-  // 2. Explicit approved status or active with verified KYC
-  if (status === "approved" || (status === "active" && kycStatus === "verified")) {
+  // 2. Explicit approved or active status
+  if (
+    status === "approved" ||
+    status === "active" ||
+    sess.status === "active" ||
+    sess.account?.status === "active" ||
+    sess.status === "approved" ||
+    sess.account?.status === "approved"
+  ) {
     return true;
+  }
+
+  // 3. Pending / under review states are strictly NOT approved
+  if (
+    status === "pending" ||
+    status === "pending_approval" ||
+    status === "under_verification" ||
+    status === "not_registered" ||
+    kycStatus === "pending"
+  ) {
+    return false;
   }
 
   return false;

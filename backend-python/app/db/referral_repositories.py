@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 from app.db.client import database
 from app.models.referral import (
@@ -576,7 +579,7 @@ class ReferralRepository:
         )
 
     async def apply_login_referral(
-        self, user: User, raw_code: str
+        self, user: User, raw_code: str, device_id: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Applies referral code upon user login / signup:
@@ -584,6 +587,7 @@ class ReferralRepository:
         - Referee (new user) gets +25 Loyalty Points credited immediately.
         - In-app notification sent to both users.
         - Records in transactions and loyalty_transactions.
+        - Enforces device fingerprint uniqueness (Anti-Fraud).
         """
         if not raw_code:
             return None
@@ -603,6 +607,17 @@ class ReferralRepository:
         existing_tx = await database.collection(TRANSACTIONS).find_one({"referee_id": user.id})
         if existing_tx:
             return None  # Already applied
+
+        # Device Fingerprint Anti-Fraud Check: Prevent multiple referrals on the same physical phone
+        if device_id:
+            from app.core.anti_fraud import is_device_promo_claimed
+            if await is_device_promo_claimed(device_id, promo_type="referral"):
+                logger.warning(
+                    "Device %s attempted multiple referral claims across accounts (User %s). Blocked.",
+                    device_id,
+                    user.id,
+                )
+                raise ValueError(f"Referral reward already claimed on this device ({device_id[:8]}...). Multiple accounts per device are restricted.")
 
         now = utcnow().isoformat()
         transaction_id = f"rtx-{uuid.uuid4().hex[:12]}"
@@ -703,6 +718,13 @@ class ReferralRepository:
             await emit_to_user(user.id, "loyalty.updated", {"points": 25, "reason": "welcome-bonus"})
         except Exception:
             pass
+
+        if device_id:
+            try:
+                from app.core.anti_fraud import record_device_promo_claim
+                await record_device_promo_claim(device_id, user.id, promo_type="referral", reference_code=code)
+            except Exception as err:
+                logger.warning(f"Failed to record device promo claim: {err}")
 
         return {"ok": True, "referrer_id": referrer_id, "code": code}
 

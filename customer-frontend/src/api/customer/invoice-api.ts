@@ -15,6 +15,8 @@
  */
 
 import { apiGetJson, apiPostJson } from "../core/transport";
+import { readToken } from "../core/session-store";
+import { apiBaseUrl } from "./api/config";
 import { ApiError } from "../core/errors";
 import {
   CACHE_KEYS,
@@ -285,11 +287,13 @@ function cachedList(stale: boolean): InvoiceList | null {
     ? readStaleCache<RawInvoiceList>(CACHE_KEYS.invoices)
     : readCache<RawInvoiceList>(CACHE_KEYS.invoices);
   if (!value) return null;
-  const items = (value.items ?? []).map(toInvoice);
+  const items = (value.items ?? [])
+    .filter((raw) => String(raw.status ?? "").toLowerCase() !== "cancelled")
+    .map(toInvoice);
   return {
     items,
-    total: value.total ?? items.length,
-    totalAmount: toNumber(value.totalAmount),
+    total: items.length,
+    totalAmount: items.reduce((sum, item) => sum + (item.totals?.grandTotal || 0), 0),
     fromCache: true,
   };
 }
@@ -336,11 +340,14 @@ export async function fetchInvoices(
       ...(options.signal ? { signal: options.signal } : {}),
     });
     if (cacheable) writeCache(CACHE_KEYS.invoices, raw);
-    const items = (raw.items ?? []).map(toInvoice);
+    const items = (raw.items ?? [])
+      .filter((rawItem) => String(rawItem.status ?? "").toLowerCase() !== "cancelled")
+      .map(toInvoice);
+    const totalAmount = items.reduce((sum, item) => sum + (item.totals?.grandTotal || 0), 0);
     return {
       items,
-      total: raw.total ?? items.length,
-      totalAmount: toNumber(raw.totalAmount),
+      total: items.length,
+      totalAmount,
       fromCache: false,
     };
   } catch (error) {
@@ -357,11 +364,13 @@ function filterCachedList(query: string): InvoiceList | null {
   const needle = query.toLowerCase();
   const items = stale.items.filter(
     (invoice) =>
-      invoice.invoiceNumber.toLowerCase().includes(needle) ||
-      invoice.orderNumber.toLowerCase().includes(needle) ||
-      invoice.partner.name.toLowerCase().includes(needle),
+      invoice.status !== "cancelled" &&
+      (invoice.invoiceNumber.toLowerCase().includes(needle) ||
+        invoice.orderNumber.toLowerCase().includes(needle) ||
+        invoice.partner.name.toLowerCase().includes(needle)),
   );
-  return { items, total: items.length, totalAmount: stale.totalAmount, fromCache: true };
+  const totalAmount = items.reduce((sum, item) => sum + (item.totals?.grandTotal || 0), 0);
+  return { items, total: items.length, totalAmount, fromCache: true };
 }
 
 /** Cache-first single invoice — GET /api/invoices/{invoiceId}. */
@@ -373,7 +382,8 @@ export async function fetchInvoice(
     const raw = stale
       ? readStaleScopedCache<RawInvoice>("invoice-detail", invoiceId)
       : readScopedCache<RawInvoice>("invoice-detail", invoiceId);
-    return raw ? toInvoice(raw) : null;
+    if (!raw || String(raw.status ?? "").toLowerCase() === "cancelled") return null;
+    return toInvoice(raw);
   };
 
   if (!options.forceRefresh) {
@@ -389,8 +399,12 @@ export async function fetchInvoice(
     const raw = await apiGetJson<RawInvoice>(`/api/invoices/${encodeURIComponent(invoiceId)}`, {
       ...(options.signal ? { signal: options.signal } : {}),
     });
+    const invoice = toInvoice(raw);
+    if (invoice.status === "cancelled") {
+      throw new ApiError("cancelled", "Invoice is not available for cancelled orders");
+    }
     writeScopedCache("invoice-detail", invoiceId, raw);
-    return toInvoice(raw);
+    return invoice;
   } catch (error) {
     const stale = cached(true);
     if (stale) return stale;
@@ -407,7 +421,8 @@ export async function fetchInvoiceForOrder(
     const raw = stale
       ? readStaleScopedCache<RawInvoice>("order-invoice", orderId)
       : readScopedCache<RawInvoice>("order-invoice", orderId);
-    return raw ? toInvoice(raw) : null;
+    if (!raw || String(raw.status ?? "").toLowerCase() === "cancelled") return null;
+    return toInvoice(raw);
   };
 
   if (!options.forceRefresh) {
@@ -424,9 +439,13 @@ export async function fetchInvoiceForOrder(
       `/api/orders/${encodeURIComponent(orderId)}/invoice`,
       { ...(options.signal ? { signal: options.signal } : {}) },
     );
+    const invoice = toInvoice(raw);
+    if (invoice.status === "cancelled") {
+      throw new ApiError("cancelled", "Invoice is not available for cancelled orders");
+    }
     writeScopedCache("order-invoice", orderId, raw);
     if (raw.id) writeScopedCache("invoice-detail", raw.id, raw);
-    return toInvoice(raw);
+    return invoice;
   } catch (error) {
     const stale = cached(true);
     if (stale) return stale;
@@ -469,6 +488,47 @@ export async function shareInvoice(
   };
 }
 
+/** Get direct authenticated URL to stream or view invoice PDF. */
+export function getInvoicePdfUrl(invoiceId: string): string {
+  const token = readToken();
+  const base = apiBaseUrl();
+  const cleanId = encodeURIComponent(invoiceId);
+  return `${base}/api/invoices/${cleanId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+}
+
+/** Get direct authenticated URL to stream or view order invoice PDF. */
+export function getOrderInvoicePdfUrl(orderId: string): string {
+  const token = readToken();
+  const base = apiBaseUrl();
+  const cleanId = encodeURIComponent(orderId);
+  return `${base}/api/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+}
+
+/** Directly trigger a native client-side PDF file download via Blob. */
+export async function downloadInvoicePdfBlob(invoiceId: string, customFileName?: string): Promise<string> {
+  const token = readToken();
+  const base = apiBaseUrl();
+  const cleanId = encodeURIComponent(invoiceId);
+  const url = `${base}/api/invoices/${cleanId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download invoice (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const fileName = customFileName || `QuickPress-Invoice-${invoiceId.replace(/\//g, "-")}.pdf`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  return fileName;
+}
+
 /** POST /api/invoices/{invoiceId}/download. */
 export async function downloadInvoice(invoiceId: string): Promise<InvoiceDownloadResult> {
   if (!isOnline()) throw new ApiError("offline", "Reconnect to download this invoice.");
@@ -485,7 +545,7 @@ export async function downloadInvoice(invoiceId: string): Promise<InvoiceDownloa
   return {
     ok: raw.ok !== false,
     message: raw.message ?? "Invoice ready",
-    downloadUrl: raw.downloadUrl ?? "",
+    downloadUrl: getInvoicePdfUrl(invoiceId),
     fileName: raw.fileName ?? `${invoiceId}.pdf`,
     format: raw.format ?? "pdf",
     invoice: raw.invoice ? toInvoice(raw.invoice) : null,

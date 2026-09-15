@@ -144,6 +144,11 @@ class PartnerApprovalEngine:
                 "turnaroundHours": int(changes.get("turnaroundHours") or 24),
                 "enabled": True,
                 "isActive": True,
+                "pendingApproval": False,
+                "approvalStatus": "approved",
+                "isApproved": True,
+                "rejectionReason": None,
+                "pendingChanges": None,
                 "description": str(changes.get("description") or ""),
                 "image": str(changes.get("image") or ""),
                 "minQuantity": int(changes.get("minQuantity") or 1),
@@ -152,6 +157,7 @@ class PartnerApprovalEngine:
                 "updatedAt": now_iso,
             }
             await database.update(SERVICES_COLLECTION, {"_id": svc_id}, new_service, upsert=True)
+            await database.update(SERVICES_COLLECTION, {"id": svc_id}, new_service, upsert=True)
 
         # 5. Service Update / Price Change
         elif req_type == "service_update":
@@ -161,6 +167,13 @@ class PartnerApprovalEngine:
                     k: v for k, v in changes.items()
                     if k in ("name", "price", "unit", "category", "turnaroundHours", "description", "image", "enabled", "isActive", "expressAvailable")
                 }
+                svc_patch["pendingApproval"] = False
+                svc_patch["approvalStatus"] = "approved"
+                svc_patch["isApproved"] = True
+                svc_patch["enabled"] = True
+                svc_patch["isActive"] = True
+                svc_patch["pendingChanges"] = None
+                svc_patch["rejectionReason"] = None
                 svc_patch["updatedAt"] = now_iso
                 await database.update(SERVICES_COLLECTION, {"_id": target_svc_id}, svc_patch, upsert=True)
                 await database.update(SERVICES_COLLECTION, {"id": target_svc_id}, svc_patch, upsert=True)
@@ -201,6 +214,20 @@ class PartnerApprovalEngine:
         now_iso = datetime.now(timezone.utc).isoformat()
         partner_id = str(req["partnerId"])
         req_type = str(req["requestType"])
+
+        # If it's a service request, also update the service in partner_services to reflect rejection
+        if req_type in ("service_create", "service_update") and req.get("targetId"):
+            target_svc_id = req["targetId"]
+            reject_patch = {
+                "pendingApproval": False,
+                "approvalStatus": "rejected",
+                "rejectionReason": reason or "Verification failed.",
+                "enabled": False,
+                "isActive": False,
+                "updatedAt": now_iso,
+            }
+            await database.update(SERVICES_COLLECTION, {"_id": target_svc_id}, reject_patch)
+            await database.update(SERVICES_COLLECTION, {"id": target_svc_id}, reject_patch)
 
         update_result = {
             "status": "rejected",

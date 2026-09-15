@@ -19,12 +19,14 @@ import { BottomNav } from "@/components/home/BottomNav";
 import { FloatingCartBar } from "@/components/cart/FloatingCartBar";
 import { OffersSkeleton } from "@/components/rewards/RewardsSkeletons";
 import { ScratchCard } from "@/components/rewards/ScratchCard";
+import { RedeemPointsModal } from "@/components/rewards/RedeemPointsModal";
 import { NotificationBellAction, ScreenTopBar } from "@/components/rewards/ScreenTopBar";
 import { Toaster } from "@/shared/ui/sonner";
 import {
   applyCoupon,
   fetchCoupons,
   fetchOffers,
+  scratchLoyaltyCard,
   type Coupon,
   type OfferBanner,
   type ScratchCard as ScratchCardData,
@@ -78,7 +80,35 @@ function OffersScreen() {
   const [copied, setCopied] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [isRedeemOpen, setIsRedeemOpen] = useState(false);
   const sliderRef = useRef<HTMLDivElement | null>(null);
+
+  const handleScratch = async (card: ScratchCardData) => {
+    try {
+      const res = await scratchLoyaltyCard(card.id);
+      if (res.ok) {
+        setRewardPoints(res.newTotalPoints);
+        setScratchCards((prev) =>
+          prev.map((c) =>
+            c.id === card.id
+              ? {
+                  ...c,
+                  scratched: true,
+                  reward: `${res.points} Points`,
+                  caption: `Worth ₹${res.rupeeValue.toFixed(2)} cash`,
+                }
+              : c,
+          ),
+        );
+        toast.success(`🎉 You won ${res.points} Loyalty Points (₹${res.rupeeValue.toFixed(2)})!`, {
+          description: "Added to your points balance. Transfer anytime into real wallet money.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Failed to scratch card:", err);
+      toast.error(err?.message || "Failed to reveal scratch card");
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -293,60 +323,90 @@ function OffersScreen() {
             {/* Scratch cards */}
             <section className="mt-7">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black tracking-tight text-foreground">
-                  Scratch &amp; win
-                </h2>
-                <span className="flex items-center gap-1 text-[0.68rem] font-semibold text-muted-foreground">
+                <div>
+                  <h2 className="text-sm font-black tracking-tight text-foreground">
+                    Scratch &amp; Win
+                  </h2>
+                  <p className="text-[0.68rem] text-muted-foreground">
+                    Earned on every delivered laundry order
+                  </p>
+                </div>
+                <span className="flex items-center gap-1 text-[0.68rem] font-semibold text-brand-green bg-brand-green/10 px-2.5 py-0.5 rounded-full">
                   <BadgePercent className="size-3.5" />
-                  {scratchCards.length} available
+                  {scratchCards.filter((c) => !c.scratched).length} available
                 </span>
               </div>
-              <div className="stagger-children mt-4 grid grid-cols-2 gap-3">
-                {scratchCards.map((card) => (
-                  <ScratchCard
-                    key={card.id}
-                    reward={card.reward}
-                    caption={card.caption}
-                    onRevealed={(reward) => toast.success(`You won ${reward}!`)}
-                  />
-                ))}
-              </div>
+
+              {scratchCards.length === 0 ? (
+                <div className="card-soft mt-3 border border-dashed border-border p-5 text-center space-y-2">
+                  <div className="mx-auto flex size-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+                    <Gift className="size-5" />
+                  </div>
+                  <p className="text-xs font-black text-foreground">No scratch cards yet</p>
+                  <p className="text-[0.7rem] text-muted-foreground leading-relaxed">
+                    Complete your laundry order to automatically unlock a scratch card upon delivery!
+                  </p>
+                </div>
+              ) : (
+                <div className="stagger-children mt-4 grid grid-cols-2 gap-3">
+                  {scratchCards.map((card) => (
+                    <ScratchCard
+                      key={card.id}
+                      reward={card.reward}
+                      caption={card.caption}
+                      isScratched={Boolean(card.scratched)}
+                      onRevealed={() => void handleScratch(card)}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
 
             {/* Loyalty rewards */}
-            <section className="card-soft mt-7 border border-border p-5">
+            <section className="card-soft mt-7 border border-border p-5 bg-gradient-to-br from-amber-500/5 via-transparent to-emerald-500/5">
               <div className="flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
                   <Gift className="size-5" />
                 </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-black tracking-tight text-foreground">
-                    Loyalty rewards
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-black tracking-tight text-foreground">
+                      Loyalty Rewards
+                    </p>
+                    <span className="text-[10px] font-black uppercase text-brand-green bg-brand-green/15 px-2 py-0.5 rounded-full">
+                      100 pts = ₹10
+                    </span>
+                  </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    You have {rewardPoints.toLocaleString("en-IN")} points. 100 points = ₹10 wallet
-                    credit.
+                    You have <strong className="text-foreground font-black">{rewardPoints.toLocaleString("en-IN")} points</strong>{" "}
+                    (worth <strong className="text-brand-green font-black">₹{(rewardPoints / 10).toFixed(2)}</strong> real wallet cash).
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  toast.success("Redeem request sent");
-                  navigate({ to: "/wallet" });
-                }}
-                className="ripple mt-4 w-full rounded-full bg-gradient-to-r from-brand-green to-primary py-3.5 text-sm font-black tracking-tight text-background shadow-cta transition-transform duration-300 active:scale-[0.97]"
+                onClick={() => setIsRedeemOpen(true)}
+                className="ripple mt-4 w-full rounded-full bg-gradient-to-r from-brand-green to-primary py-3.5 text-sm font-black tracking-tight text-background shadow-cta transition-transform duration-300 active:scale-[0.97] flex items-center justify-center gap-2 cursor-pointer"
               >
-                Redeem points
+                <Sparkles className="size-4" />
+                <span>Transfer Points to Wallet (Real Money)</span>
               </button>
             </section>
           </div>
         )}
       </div>
 
+      <RedeemPointsModal
+        isOpen={isRedeemOpen}
+        onClose={() => setIsRedeemOpen(false)}
+        currentPoints={rewardPoints}
+        onRedeemSuccess={(_redeemed, _rupees, remaining) => {
+          setRewardPoints(remaining);
+        }}
+      />
+
       <FloatingCartBar />
       <BottomNav active="offers" />
-      <Toaster position="top-center" />
     </main>
   );
 }

@@ -8,7 +8,7 @@ import {
   Search,
   WifiOff,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BottomNav } from "@/components/home/BottomNav";
@@ -16,6 +16,8 @@ import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
 import { Toaster } from "@/shared/ui/sonner";
 import {
   downloadInvoice,
+  downloadInvoicePdfBlob,
+  getInvoicePdfUrl,
   fetchInvoices,
   formatInvoiceAmount,
   readCachedInvoices,
@@ -72,6 +74,11 @@ function InvoicesScreen() {
   const [term, setTerm] = useState("");
   const [downloading, setDownloading] = useState<string | null>(null);
 
+  const visibleInvoices = useMemo(
+    () => (invoices ?? []).filter((inv) => inv.status !== "cancelled"),
+    [invoices],
+  );
+
   // Debounce search so each keystroke doesn't hit the API.
   useEffect(() => {
     const timer = window.setTimeout(() => setTerm(query.trim()), 300);
@@ -116,9 +123,18 @@ function InvoicesScreen() {
   const handleDownload = async (invoice: Invoice) => {
     setDownloading(invoice.id);
     try {
-      const result = await downloadInvoice(invoice.id);
-      toast.success(result.message || `${invoice.invoiceNumber} ready`);
-      if (result.downloadUrl) window.open(result.downloadUrl, "_blank", "noopener");
+      void downloadInvoice(invoice.id).catch(() => {});
+      const fileName = invoice.invoiceNumber
+        ? `QuickPress-${invoice.invoiceNumber.replace(/\//g, "-")}.pdf`
+        : `QuickPress-Invoice-${invoice.id}.pdf`;
+      try {
+        await downloadInvoicePdfBlob(invoice.id, fileName);
+        toast.success(`Downloaded ${invoice.invoiceNumber}`);
+      } catch {
+        const url = getInvoicePdfUrl(invoice.id);
+        window.open(url, "_blank", "noopener");
+        toast.success(`Opening ${invoice.invoiceNumber}...`);
+      }
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Download failed. Try again.");
     } finally {
@@ -152,21 +168,6 @@ function InvoicesScreen() {
             />
           </div>
 
-          {invoices && invoices.length > 0 ? (
-            <section className="mt-4 flex items-center justify-between rounded-3xl bg-gradient-to-br from-brand-dark via-brand-dark to-brand-green px-5 py-4 shadow-soft">
-              <div>
-                <p className="text-[0.68rem] font-semibold uppercase tracking-widest text-background/70">
-                  Billed so far
-                </p>
-                <p className="mt-1 text-2xl font-black tracking-tight text-background">
-                  {formatInvoiceAmount(totalAmount)}
-                </p>
-              </div>
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-background/15 text-background">
-                <Receipt className="size-5" />
-              </span>
-            </section>
-          ) : null}
 
           {error ? (
             <section className="card-soft mt-6 border border-border p-6 text-center">
@@ -185,7 +186,7 @@ function InvoicesScreen() {
                 <div key={row} className="h-24 animate-pulse rounded-3xl bg-muted/70" />
               ))}
             </div>
-          ) : invoices.length === 0 ? (
+          ) : visibleInvoices.length === 0 ? (
             <section className="card-soft mt-6 border border-border p-8 text-center">
               <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
                 <FileText className="size-6" />
@@ -197,7 +198,7 @@ function InvoicesScreen() {
             </section>
           ) : (
             <section className="stagger-children mt-4 space-y-3">
-              {invoices.map((invoice) => (
+              {visibleInvoices.map((invoice) => (
                 <article
                   key={invoice.id}
                   className="card-soft overflow-hidden border border-border transition-all duration-300 hover:border-primary/60"

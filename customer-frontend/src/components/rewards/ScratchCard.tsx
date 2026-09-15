@@ -8,17 +8,26 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function ScratchCard({
   reward,
   caption,
+  isScratched = false,
   onRevealed,
 }: {
   reward: string;
   caption: string;
+  isScratched?: boolean | undefined;
   onRevealed?: (reward: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(isScratched);
+
+  useEffect(() => {
+    if (isScratched) {
+      setRevealed(true);
+    }
+  }, [isScratched]);
 
   const paintFoil = useCallback(() => {
+    if (isScratched || revealed) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -37,7 +46,7 @@ export function ScratchCard({
     ctx.fillStyle = "rgba(255,255,255,0.75)";
     ctx.textAlign = "center";
     ctx.fillText("Scratch to reveal", rect.width / 2, rect.height / 2 + 4);
-  }, []);
+  }, [isScratched, revealed]);
 
   useEffect(() => {
     paintFoil();
@@ -71,37 +80,40 @@ export function ScratchCard({
 
   return (
     <div className="card-soft relative aspect-[4/3] overflow-hidden border border-border">
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-primary/20 via-background to-secondary/15 px-3 text-center">
-        <span className="flex size-10 items-center justify-center rounded-2xl bg-primary/20 text-brand-dark">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-amber-100/40 via-background to-emerald-100/30 px-3 text-center">
+        <span className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-600">
           <Gift className="size-5" />
         </span>
         <p className="text-sm font-black tracking-tight text-foreground">{reward}</p>
         <p className="text-[0.65rem] text-muted-foreground">{caption}</p>
         {revealed ? (
-          <Sparkles className="animate-pop absolute right-3 top-3 size-4 text-brand-green" />
+          <span className="absolute top-2 right-2 flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+            <Sparkles className="size-3 text-emerald-600" />
+            Claimed
+          </span>
         ) : null}
       </div>
 
-      <canvas
-        ref={canvasRef}
-        aria-label={`Scratch card: ${reward}`}
-        className={`absolute inset-0 size-full cursor-pointer touch-none transition-opacity duration-500 ${
-          revealed ? "pointer-events-none opacity-0" : "opacity-100"
-        }`}
-        onPointerDown={(event) => {
-          drawing.current = true;
-          scratchAt(event.clientX, event.clientY);
-        }}
-        onPointerMove={(event) => {
-          if (drawing.current) scratchAt(event.clientX, event.clientY);
-        }}
-        onPointerUp={() => {
-          drawing.current = false;
-        }}
-        onPointerLeave={() => {
-          drawing.current = false;
-        }}
-      />
+      {!revealed && (
+        <canvas
+          ref={canvasRef}
+          aria-label={`Scratch card: ${reward}`}
+          className="absolute inset-0 size-full cursor-pointer touch-none transition-opacity duration-500 opacity-100"
+          onPointerDown={(event) => {
+            drawing.current = true;
+            scratchAt(event.clientX, event.clientY);
+          }}
+          onPointerMove={(event) => {
+            if (drawing.current) scratchAt(event.clientX, event.clientY);
+          }}
+          onPointerUp={() => {
+            drawing.current = false;
+          }}
+          onPointerLeave={() => {
+            drawing.current = false;
+          }}
+        />
+      )}
     </div>
   );
 }

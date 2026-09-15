@@ -33,7 +33,7 @@ import {
 } from "../api/rider/rider-verification-api";
 import { clearSession, readSession, writeSession } from "../api/core/session-store";
 import { triggerHaptic } from "../lib/captain-audio";
-import { supabase } from "../integrations/supabase/client";
+import { subscribeRiderStatus } from "../lib/rider-socket";
 
 export function RiderVerificationScreen() {
   const navigate = useNavigate();
@@ -110,33 +110,15 @@ export function RiderVerificationScreen() {
     return () => clearInterval(interval);
   }, [loadStatus]);
 
-  // Realtime Supabase subscription for instant Admin Approval event
+  // Real-time Socket.IO subscription for instant Admin Approval event
   useEffect(() => {
-    let channel: any = null;
-    try {
-      channel = supabase
-        .channel("rider-verification-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_profiles",
-          },
-          () => {
-            loadStatus(true);
-          }
-        )
-        .subscribe();
-    } catch {}
+    const unsub = subscribeRiderStatus((statusData) => {
+      console.log("[RiderVerificationScreen] ⚡ Realtime rider status:", statusData);
+      loadStatus(true);
+    });
 
     return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch {}
-      }
+      unsub();
     };
   }, [loadStatus]);
 

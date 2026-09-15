@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Crosshair, ExternalLink, Flame, Layers, Moon, Navigation, Sun, Zap, ZoomIn, ZoomOut } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
+import { fetchStreetRoute } from "../../lib/voice-navigation-engine";
 
 export type MapCoordinate = {
   lat: number;
@@ -17,6 +18,17 @@ export type SurgeHotspot = {
   bonus: number;
   multiplier: string;
   label: string;
+  radiusMeters?: number;
+  color?: string;
+  demandLevel?: string;
+  tag?: string;
+  description?: string;
+  ordersWaiting?: number;
+  ridersOnline?: number;
+  distanceKm?: number;
+  distanceMeters?: number;
+  etaMinutes?: number;
+  isCurrentRiderInside?: boolean;
 };
 
 export const KASGANJ_SURGE_HOTSPOTS: SurgeHotspot[] = [
@@ -67,6 +79,7 @@ export type LiveDeliveryMapProps = {
   heightClassName?: string;
   showControls?: boolean;
   showSurgePins?: boolean;
+  surgeHotspots?: SurgeHotspot[];
   isRapidoTheme?: boolean;
   onOpenNavigation?: () => void;
   onSurgeClick?: (surge: SurgeHotspot) => void;
@@ -119,6 +132,7 @@ export function LiveDeliveryMap({
   heightClassName = "h-72",
   showControls = true,
   showSurgePins = true,
+  surgeHotspots,
   isRapidoTheme = true,
   onOpenNavigation,
   onSurgeClick,
@@ -130,7 +144,10 @@ export function LiveDeliveryMap({
   const tileLayerRef = useRef<any>(null);
   const markersRef = useRef<{ [key: string]: any }>({});
   const surgeMarkersRef = useRef<{ [key: string]: any }>({});
+  const surgeCirclesRef = useRef<{ [key: string]: any }>({});
   const polylineRef = useRef<any>(null);
+  const lastRouteCoordsRef = useRef<{ rLat: number; rLng: number; tLat: number; tLng: number } | null>(null);
+  const lastFittedPhaseRef = useRef<string | null>(null);
 
   const [mapReady, setMapReady] = useState(false);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
@@ -192,6 +209,26 @@ export function LiveDeliveryMap({
         tileLayerRef.current = tile;
         mapInstanceRef.current = map;
         setMapReady(true);
+
+        setTimeout(() => {
+          if (isMounted && map) {
+            map.invalidateSize();
+          }
+        }, 150);
+        setTimeout(() => {
+          if (isMounted && map) {
+            map.invalidateSize();
+          }
+        }, 500);
+
+        if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+          const ro = new ResizeObserver(() => {
+            if (isMounted && map) {
+              map.invalidateSize();
+            }
+          });
+          ro.observe(mapContainerRef.current);
+        }
       }
     }
 
@@ -262,8 +299,13 @@ export function LiveDeliveryMap({
 
           if (markersRef.current["rider"]) {
             markersRef.current["rider"].setLatLng([riderLocation.lat, riderLocation.lng]);
-            markersRef.current["rider"].setIcon(riderIcon);
           } else {
+            const riderIcon = L.divIcon({
+              className: "rapido-rider-marker",
+              html: riderHtml,
+              iconSize: [64, 64],
+              iconAnchor: [32, 32],
+            });
             markersRef.current["rider"] = L.marker([riderLocation.lat, riderLocation.lng], {
               icon: riderIcon,
               zIndexOffset: 1000,
@@ -332,19 +374,45 @@ export function LiveDeliveryMap({
           }
         }
 
-        // 4. Interactive Rapido Surge Hotspot Badges
+        // 4. Interactive Dynamic Surge Heat Circles & Hotspot Badges
+        const activeSurgeList =
+          surgeHotspots && surgeHotspots.length > 0 ? surgeHotspots : KASGANJ_SURGE_HOTSPOTS;
+
+        // Clean up stale markers/circles when hotspots update
+        const currentActiveIds = new Set(activeSurgeList.map((s) => s.id));
+        Object.keys(surgeMarkersRef.current).forEach((k) => {
+          if (!currentActiveIds.has(k)) {
+            try {
+              map.removeLayer(surgeMarkersRef.current[k]);
+            } catch {}
+            delete surgeMarkersRef.current[k];
+          }
+        });
+        // Clean up any surge circles completely (removes big radius circles)
+        Object.keys(surgeCirclesRef.current).forEach((k) => {
+          try {
+            map.removeLayer(surgeCirclesRef.current[k]);
+          } catch {}
+          delete surgeCirclesRef.current[k];
+        });
+
         if (showSurgePins && phase === "online") {
-          KASGANJ_SURGE_HOTSPOTS.forEach((surge) => {
+          activeSurgeList.forEach((surge) => {
+            const circleColor =
+              surge.color ||
+              (surge.bonus >= 25 ? "#EF4444" : surge.bonus >= 20 ? "#F59E0B" : "#10B981");
+
+            // Dynamic Surge Pin Badge with Pulse (Clean hotspot badge without big radius circle)
             if (!surgeMarkersRef.current[surge.id]) {
               const surgeIcon = L.divIcon({
                 className: "rapido-surge-badge",
                 html: `
                   <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 12px; background: #FFFFFF; color: #00873D; font-weight: 900; font-size: 11px; box-shadow: 0 4px 12px rgba(0, 200, 83, 0.25); border: 2px solid #00C853; white-space: nowrap;">
+                    <div style="display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 9999px; background: #FFFFFF; color: ${circleColor}; font-weight: 900; font-size: 11px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16); border: 2px solid ${circleColor}; white-space: nowrap;">
                       <span>${surge.label}</span>
                     </div>
-                    <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #00C853;"></div>
-                    <span style="position: absolute; bottom: -4px; width: 10px; height: 10px; border-radius: 9999px; background: rgba(0, 200, 83, 0.45); animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+                    <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${circleColor};"></div>
+                    <span style="position: absolute; bottom: -4px; width: 10px; height: 10px; border-radius: 9999px; background: ${circleColor}; opacity: 0.55; animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
                   </div>
                 `,
                 iconSize: [110, 36],
@@ -357,55 +425,93 @@ export function LiveDeliveryMap({
                 if (onSurgeClick) onSurgeClick(surge);
                 map.flyTo([surge.lat, surge.lng], 16, { animate: true, duration: 0.8 });
               });
-              marker.bindPopup(
-                `<b>${surge.name}</b><br/><span style="color:#00C853;font-weight:bold;">${surge.multiplier} Surge Active</span> · +₹${surge.bonus} Extra per Ride`
-              );
+              marker.bindPopup(`
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 190px; padding: 2px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom: 4px;">
+                    <strong style="font-size:12px; color:#09090b;">${surge.name}</strong>
+                    <span style="background:${circleColor}; color:#ffffff; font-size:9px; font-weight:800; padding:1px 6px; border-radius:9999px;">${surge.demandLevel || "HOT 🔥"}</span>
+                  </div>
+                  <div style="font-size:11px; color:#00873D; font-weight:700; margin-bottom:4px;">
+                    ${surge.multiplier} Surge Active · +₹${surge.bonus} Extra per Ride
+                  </div>
+                  <div style="font-size:10px; color:#71717a; border-top:1px solid #f4f4f5; padding-top:4px; display:flex; justify-content:space-between;">
+                    <span>${surge.ordersWaiting !== undefined ? `📦 ${surge.ordersWaiting} Orders` : "High Orders"}</span>
+                    <span>${surge.distanceKm !== undefined ? `📍 ${surge.distanceKm} km away` : ""}</span>
+                  </div>
+                </div>
+              `);
               surgeMarkersRef.current[surge.id] = marker;
+            } else {
+              surgeMarkersRef.current[surge.id].setLatLng([surge.lat, surge.lng]);
             }
           });
         }
 
-        // 5. Draw Polyline Route
+        // 5. Draw Polyline Route with Real Street Geometry (Throttled & Cached)
         const targetPoint = destinationLocation || storeLocation;
         if (riderLocation && targetPoint) {
-          const polylineCoords: [number, number][] = [
-            [riderLocation.lat, riderLocation.lng],
-            [
-              (riderLocation.lat + targetPoint.lat) / 2 + 0.0006,
-              (riderLocation.lng + targetPoint.lng) / 2 - 0.0004,
-            ],
-            [targetPoint.lat, targetPoint.lng],
-          ];
+          const lastR = lastRouteCoordsRef.current;
+          const shouldRefetchRoute =
+            !lastR ||
+            !polylineRef.current ||
+            Math.abs(lastR.rLat - riderLocation.lat) > 0.0008 ||
+            Math.abs(lastR.rLng - riderLocation.lng) > 0.0008 ||
+            Math.abs(lastR.tLat - targetPoint.lat) > 0.0001 ||
+            Math.abs(lastR.tLng - targetPoint.lng) > 0.0001;
 
-          if (polylineRef.current) {
-            polylineRef.current.setLatLngs(polylineCoords);
-          } else {
-            polylineRef.current = L.polyline(polylineCoords, {
-              color: "#00C853",
-              weight: 5,
-              opacity: 0.95,
-              dashArray: "6, 8",
-              lineJoin: "round",
-              lineCap: "round",
-            }).addTo(map);
+          if (shouldRefetchRoute) {
+            lastRouteCoordsRef.current = {
+              rLat: riderLocation.lat,
+              rLng: riderLocation.lng,
+              tLat: targetPoint.lat,
+              tLng: targetPoint.lng,
+            };
+            const routeData = await fetchStreetRoute(
+              { lat: riderLocation.lat, lng: riderLocation.lng },
+              { lat: targetPoint.lat, lng: targetPoint.lng },
+              targetAddressName || "Target"
+            );
+            const polylineCoords: [number, number][] =
+              routeData.coordinates.length >= 2
+                ? routeData.coordinates
+                : [
+                    [riderLocation.lat, riderLocation.lng],
+                    [targetPoint.lat, targetPoint.lng],
+                  ];
+
+            if (polylineRef.current) {
+              polylineRef.current.setLatLngs(polylineCoords);
+            } else {
+              polylineRef.current = L.polyline(polylineCoords, {
+                color: "#00C853",
+                weight: 5.5,
+                opacity: 1,
+                lineJoin: "round",
+                lineCap: "round",
+              }).addTo(map);
+            }
           }
         } else if (polylineRef.current) {
           map.removeLayer(polylineRef.current);
           polylineRef.current = null;
+          lastRouteCoordsRef.current = null;
         }
 
-        // Auto-Fit Bounds if multiple points exist
-        if (bounds.length > 1) {
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-        } else if (bounds.length === 1 && !markersRef.current["hasCentered"]) {
-          map.setView(bounds[0], 15);
-          markersRef.current["hasCentered"] = true;
+        // Auto-Fit Bounds ONLY on phase change or initial load (Zero camera jitter while driving!)
+        if (lastFittedPhaseRef.current !== (phase || "default")) {
+          lastFittedPhaseRef.current = phase || "default";
+          if (bounds.length > 1) {
+            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+          } else if (bounds.length === 1 && !markersRef.current["hasCentered"]) {
+            map.setView(bounds[0], 15);
+            markersRef.current["hasCentered"] = true;
+          }
         }
       } catch (err) {
         // Suppress unmounted map transitions
       }
     })();
-  }, [mapReady, riderLocation, destinationLocation, storeLocation, isRapidoTheme, showSurgePins, phase]);
+  }, [mapReady, riderLocation?.lat, riderLocation?.lng, destinationLocation?.lat, destinationLocation?.lng, storeLocation?.lat, storeLocation?.lng, isRapidoTheme, showSurgePins, surgeHotspots, phase]);
 
   // Recenter on Rider
   const handleRecenter = () => {
@@ -435,8 +541,21 @@ export function LiveDeliveryMap({
     mapInstanceRef.current?.zoomOut();
   };
 
-  // Trigger In-App GPS Navigation Mode (No External Google Maps redirect)
-  const handleOpenGoogleMapsApp = () => {
+  // Trigger In-App GPS Navigation Mode (100% In-App, Zero External App Redirect)
+  // Open Turn-by-Turn Road Navigation in Google Maps (Bike/Two-Wheeler Mode)
+  const handleOpenGoogleMaps = () => {
+    triggerHaptic(40);
+    const target = destinationLocation || storeLocation;
+    if (!target) return;
+    const origin = riderLocation ? `${riderLocation.lat},${riderLocation.lng}` : "";
+    const dest = `${target.lat},${target.lng}`;
+    const url = origin
+      ? `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=two_wheeler`
+      : `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=two_wheeler`;
+    window.open(url, "_blank");
+  };
+
+  const handleStartNavigation = () => {
     triggerHaptic(50);
     if (onOpenNavigation) {
       onOpenNavigation();
@@ -523,31 +642,29 @@ export function LiveDeliveryMap({
         </div>
       ) : null}
 
-      {/* Action Buttons (Bottom Right) */}
+      {/* Action Buttons: Direct Google Maps & In-App Navigation */}
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
-        {/* External Google Maps App Button */}
-        {(destinationLocation || storeLocation) ? (
+        {destinationLocation || storeLocation ? (
           <button
             type="button"
-            onClick={handleOpenGoogleMapsApp}
-            className="flex items-center gap-1.5 rounded-2xl bg-white/95 text-zinc-800 border border-zinc-200 px-3 py-2 text-xs font-black shadow-md hover:bg-zinc-50 active:scale-95 transition-transform cursor-pointer"
-            title="Open Google Maps App in Bike Navigation Mode"
+            onClick={handleOpenGoogleMaps}
+            className="flex items-center gap-1.5 rounded-2xl bg-white/95 backdrop-blur-md px-3.5 py-2.5 text-xs font-black text-zinc-900 shadow-xl border border-zinc-300 hover:bg-zinc-50 active:scale-95 transition-transform cursor-pointer"
+            title="Open Turn-by-Turn Road Navigation in Google Maps"
           >
-            <span className="text-sm leading-none">🗺️</span>
-            <span>Google Maps</span>
-            <ExternalLink className="size-3 text-zinc-400" />
+            <ExternalLink className="size-4 text-blue-600" />
+            <span>Google Maps 🗺️</span>
           </button>
         ) : null}
 
-        {/* Turn-by-Turn HUD Navigation Button */}
         {onOpenNavigation ? (
           <button
             type="button"
-            onClick={onOpenNavigation}
-            className="flex items-center gap-1.5 rounded-2xl bg-[#00C853] px-3.5 py-2 text-xs font-black text-white shadow-lg shadow-emerald-500/20 hover:bg-[#00B248] active:scale-95 transition-transform cursor-pointer"
+            onClick={handleStartNavigation}
+            className="flex items-center gap-2 rounded-2xl bg-[#00C853] px-4 py-2.5 text-xs font-black text-white shadow-xl shadow-emerald-500/25 hover:bg-[#00B248] active:scale-95 transition-transform cursor-pointer border border-emerald-400"
+            title="Start In-App Voice Turn-by-Turn GPS Navigation"
           >
-            <Navigation className="size-4 fill-white" />
-            <span>Turn-by-Turn</span>
+            <Navigation className="size-4 fill-white stroke-none" />
+            <span>Turn-by-Turn GPS 🧭</span>
           </button>
         ) : null}
       </div>

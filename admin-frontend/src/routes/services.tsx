@@ -69,18 +69,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { AdminShell } from "../components/AdminShell";
 import { DataTable, DetailRow, SectionCard, StatusPill, KpiCard } from "../components/AdminUI";
 import {
+  approvePartnerRequest,
   createCategory,
   createService,
   deleteService,
+  fetchPartnerApprovalRequests,
   fetchPartnerServices,
   fetchServiceCategories,
   fetchServicesIntelligence,
   fetchServiceStats,
+  rejectPartnerRequest,
   syncMasterServiceToPartners,
   togglePartnerServiceStatus,
   updatePartnerServiceRate,
   updateService,
   type LaundryService,
+  type PartnerApprovalRequest,
   type PartnerServiceRow,
   type ServiceCategory,
   type ServiceIntelligence,
@@ -103,8 +107,12 @@ export function ServicesPage() {
   const categoriesQuery = useQuery({ queryKey: ["admin", "service-categories"], queryFn: fetchServiceCategories });
   const partnerServicesQuery = useQuery({ queryKey: ["admin", "partner-services"], queryFn: () => fetchPartnerServices() });
   const partnersQuery = useQuery({ queryKey: ["admin", "partners"], queryFn: () => fetchPartners() });
+  const approvalsQuery = useQuery({
+    queryKey: ["admin", "partner-approvals"],
+    queryFn: () => fetchPartnerApprovalRequests("pending"),
+  });
 
-  const [activeTab, setActiveTab] = useState<"services" | "riders_matrix" | "partner_rates" | "categories">("services");
+  const [activeTab, setActiveTab] = useState<"services" | "riders_matrix" | "partner_rates" | "service_approvals" | "categories">("services");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [unitFilter, setUnitFilter] = useState("all");
@@ -118,11 +126,59 @@ export function ServicesPage() {
   const [editingPartnerService, setEditingPartnerService] = useState<PartnerServiceRow | null>(null);
   const [syncingServiceId, setSyncingServiceId] = useState<string | null>(null);
 
+  // Approvals tab states
+  const [approvalSearch, setApprovalSearch] = useState("");
+  const [rejectingRequest, setRejectingRequest] = useState<PartnerApprovalRequest | null>(null);
+  const [rejectReasonInput, setRejectReasonInput] = useState("");
+
   const allIntelligence = intelQuery.data ?? [];
   const stats = statsQuery.data;
   const allCategories = categoriesQuery.data ?? [];
   const allPartnerServices = partnerServicesQuery.data ?? [];
   const allPartners = Array.isArray(partnersQuery.data) ? partnersQuery.data : [];
+  const allApprovals = approvalsQuery.data ?? [];
+  const serviceApprovals = useMemo(
+    () => allApprovals.filter((r) => r.requestType === "service_create" || r.requestType === "service_update"),
+    [allApprovals]
+  );
+
+  const filteredServiceApprovals = useMemo(() => {
+    return serviceApprovals.filter((r) => {
+      if (!approvalSearch) return true;
+      const q = approvalSearch.toLowerCase();
+      const bName = (r.businessName || "").toLowerCase();
+      const sName = (r.requestedChanges?.name || "").toLowerCase();
+      return bName.includes(q) || sName.includes(q) || (r.partnerId || "").toLowerCase().includes(q);
+    });
+  }, [serviceApprovals, approvalSearch]);
+
+  const approveApprovalMutation = useMutation({
+    mutationFn: (requestId: string) => approvePartnerRequest(requestId),
+    onSuccess: () => {
+      toast.success("Service approved and made LIVE!");
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-services"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to approve service request.");
+    },
+  });
+
+  const rejectApprovalMutation = useMutation({
+    mutationFn: ({ requestId, reason }: { requestId: string; reason: string }) =>
+      rejectPartnerRequest(requestId, reason),
+    onSuccess: () => {
+      toast.success("Service request rejected.");
+      setRejectingRequest(null);
+      setRejectReasonInput("");
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-services"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to reject service request.");
+    },
+  });
 
   // Calculate Market Average Price per Master Service from Partner Rate Cards
   const marketPriceMap = useMemo(() => {
@@ -440,6 +496,14 @@ export function ServicesPage() {
                 <TabsTrigger value="partner_rates" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
                   🏪 Partner Store Rate Cards ({allPartnerServices.length})
                 </TabsTrigger>
+                <TabsTrigger value="service_approvals" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs flex items-center gap-1.5">
+                  <span>⏳ Pending Approvals</span>
+                  {serviceApprovals.length > 0 && (
+                    <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.5 text-[10px] font-black leading-none">
+                      {serviceApprovals.length}
+                    </span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="categories" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
                   🏷️ Categories ({allCategories.length})
                 </TabsTrigger>
@@ -453,6 +517,8 @@ export function ServicesPage() {
                   ? `Showing ${filteredServices.length} Services`
                   : activeTab === "partner_rates"
                   ? `Showing ${filteredPartnerRates.length} Store Rates`
+                  : activeTab === "service_approvals"
+                  ? `${filteredServiceApprovals.length} Pending Approval`
                   : `${allCategories.length} Categories`}
               </span>
             </div>
@@ -466,7 +532,7 @@ export function ServicesPage() {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search service name, category, or assigned rider..."
+                  placeholder="Search master service or keywords..."
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
@@ -489,24 +555,25 @@ export function ServicesPage() {
               {/* Unit Filter */}
               <Select value={unitFilter} onValueChange={setUnitFilter}>
                 <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="All Units" />
+                  <SelectValue placeholder="Pricing Unit" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Pricing Units</SelectItem>
-                  <SelectItem value="kg">⚖️ per kg (Weight)</SelectItem>
-                  <SelectItem value="item">👕 per item / piece</SelectItem>
-                  <SelectItem value="pair">👟 per pair (Shoes)</SelectItem>
-                  <SelectItem value="meter">📏 per meter (Curtains)</SelectItem>
+                  <SelectItem value="all">All Billing Units</SelectItem>
+                  <SelectItem value="kg">⚖️ Per KG</SelectItem>
+                  <SelectItem value="piece">👔 Per Piece</SelectItem>
+                  <SelectItem value="pair">👟 Per Pair</SelectItem>
+                  <SelectItem value="sqft">📐 Per Sq. Ft</SelectItem>
+                  <SelectItem value="fixed">🏷️ Flat / Fixed</SelectItem>
                 </SelectContent>
               </Select>
 
               {/* Sort By */}
               <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
                 <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="Sort By" />
+                  <SelectValue placeholder="Sort Catalog" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="revenue">💰 Highest Revenue First</SelectItem>
+                  <SelectItem value="revenue">💰 Top Revenue (Gross)</SelectItem>
                   <SelectItem value="orders">📦 Most Orders Volume</SelectItem>
                   <SelectItem value="price">🏷️ Base Unit Price</SelectItem>
                   <SelectItem value="name">🔤 Service Name (A-Z)</SelectItem>
@@ -543,6 +610,26 @@ export function ServicesPage() {
 
               <div className="flex items-center justify-end text-xs text-zinc-500 font-semibold">
                 <span>Total Store Offerings: <b>{filteredPartnerRates.length}</b></span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "service_approvals" && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="relative flex-1 min-w-[260px] max-w-lg">
+                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                <input
+                  value={approvalSearch}
+                  onChange={(e) => setApprovalSearch(e.target.value)}
+                  placeholder="Search store name, city, or service name..."
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-zinc-600">
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-800 border border-amber-200">
+                  ⏳ {filteredServiceApprovals.length} Requests Pending Admin Verification
+                </span>
               </div>
             </div>
           )}
@@ -864,7 +951,23 @@ export function ServicesPage() {
                 {
                   key: "status",
                   label: "Store Status",
-                  render: (p) => <StatusPill value={p.status} />,
+                  render: (p) => {
+                    if (p.status === "Pending Approval" || p.pendingApproval || p.approvalStatus === "pending") {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-black text-amber-800 border border-amber-300">
+                          ⏳ Pending Approval
+                        </span>
+                      );
+                    }
+                    if (p.status === "Rejected" || p.approvalStatus === "rejected") {
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-black text-rose-800 border border-rose-300" title={p.rejectionReason}>
+                          ❌ Rejected
+                        </span>
+                      );
+                    }
+                    return <StatusPill value={p.status} />;
+                  },
                 },
                 {
                   key: "actions",
@@ -872,33 +975,162 @@ export function ServicesPage() {
                   className: "text-right",
                   render: (p) => (
                     <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {p.status === "Pending Approval" || p.pendingApproval || p.approvalStatus === "pending" ? (
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold"
+                          onClick={() => setActiveTab("service_approvals")}
+                        >
+                          Review Approval
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 rounded-xl border-zinc-200 text-zinc-700 text-xs font-bold hover:bg-zinc-100"
+                            onClick={() => setEditingPartnerService(p)}
+                          >
+                            <Pencil className="size-3 mr-1" /> Edit Rate
+                          </Button>
+                          {p.status === "Active" ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 rounded-xl text-zinc-500 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold"
+                              onClick={() => partnerStatusMutation.mutate({ serviceId: p.id, action: "disable" })}
+                            >
+                              <PauseCircle className="size-3.5 mr-1" /> Disable
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold"
+                              onClick={() => partnerStatusMutation.mutate({ serviceId: p.id, action: "enable" })}
+                            >
+                              <PlayCircle className="size-3.5 mr-1" /> Enable
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </SectionCard>
+        )}
+
+        {/* TAB 3.5: PARTNER SERVICE APPROVALS */}
+        {activeTab === "service_approvals" && (
+          <SectionCard
+            title="Partner Service Additions & Rate Change Approvals"
+            description="Review proposed services and pricing updates submitted by partners. Once approved, services become immediately LIVE in the customer app."
+          >
+            <DataTable
+              loading={approvalsQuery.isLoading}
+              rows={filteredServiceApprovals}
+              emptyMessage="No pending service approval requests right now. All partner rate cards are verified."
+              columns={[
+                {
+                  key: "store",
+                  label: "Partner Store",
+                  render: (r) => (
+                    <div>
+                      <p className="font-bold text-zinc-900 text-xs flex items-center gap-1">
+                        <Store className="size-3 text-emerald-600" /> {r.businessName || "Partner Store"}
+                      </p>
+                      <p className="text-[10px] text-zinc-400">Partner ID: {r.partnerId}</p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "type",
+                  label: "Request Type",
+                  render: (r) => (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black ${
+                        r.requestType === "service_create"
+                          ? "bg-blue-50 text-blue-800 border border-blue-200"
+                          : "bg-purple-50 text-purple-800 border border-purple-200"
+                      }`}
+                    >
+                      {r.requestType === "service_create" ? "✨ New Service" : "✏️ Rate Change"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "serviceName",
+                  label: "Service Offering",
+                  render: (r) => {
+                    const c = r.requestedChanges || {};
+                    return (
+                      <div>
+                        <p className="font-bold text-zinc-900 text-xs">{c.name || "Custom Service"}</p>
+                        <p className="text-[10px] text-zinc-500 font-medium capitalize">{c.category || "laundry"}</p>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "proposedPrice",
+                  label: "Proposed Rate & SLA",
+                  render: (r) => {
+                    const c = r.requestedChanges || {};
+                    return (
+                      <div>
+                        <div className="flex items-center gap-1 font-black text-xs text-zinc-900">
+                          <span>₹{c.price ?? 0}</span>
+                          <span className="text-[10px] font-normal text-zinc-500">/{c.unit || "kg"}</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 flex items-center gap-1">
+                          <Clock className="size-3 text-zinc-400" /> {c.turnaroundHours ?? 24}h turnaround
+                        </p>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "submittedAt",
+                  label: "Submitted Date",
+                  render: (r) => (
+                    <span className="text-xs text-zinc-500 font-medium">
+                      {new Date(r.submittedAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  ),
+                },
+                {
+                  key: "actions",
+                  label: "Review Decision",
+                  className: "text-right",
+                  render: (r) => (
+                    <div className="flex justify-end items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        disabled={approveApprovalMutation.isPending || rejectApprovalMutation.isPending}
+                        className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1"
+                        onClick={() => approveApprovalMutation.mutate(r.requestId || r.id)}
+                      >
+                        <CheckCircle2 className="size-3.5" /> Approve & Make Live
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 rounded-xl border-zinc-200 text-zinc-700 text-xs font-bold hover:bg-zinc-100"
-                        onClick={() => setEditingPartnerService(p)}
+                        disabled={approveApprovalMutation.isPending || rejectApprovalMutation.isPending}
+                        className="h-8 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold flex items-center gap-1"
+                        onClick={() => {
+                          setRejectingRequest(r);
+                          setRejectReasonInput("");
+                        }}
                       >
-                        <Pencil className="size-3 mr-1" /> Edit Rate
+                        <XCircle className="size-3.5" /> Reject
                       </Button>
-                      {p.status === "Active" ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 rounded-xl text-zinc-500 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold"
-                          onClick={() => partnerStatusMutation.mutate({ serviceId: p.id, action: "disable" })}
-                        >
-                          <PauseCircle className="size-3.5 mr-1" /> Disable
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs font-bold"
-                          onClick={() => partnerStatusMutation.mutate({ serviceId: p.id, action: "enable" })}
-                        >
-                          <PlayCircle className="size-3.5 mr-1" /> Enable
-                        </Button>
-                      )}
                     </div>
                   ),
                 },
@@ -966,6 +1198,59 @@ export function ServicesPage() {
           isSaving={partnerRateEditMutation.isPending}
         />
       )}
+
+      {/* =========================================================================
+          5.5 REJECT SERVICE APPROVAL DIALOG
+      ========================================================================= */}
+      <Dialog open={Boolean(rejectingRequest)} onOpenChange={(open) => !open && setRejectingRequest(null)}>
+        <DialogContent className="max-w-md bg-white text-zinc-900 border-zinc-200">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black flex items-center gap-1.5 text-rose-700">
+              <XCircle className="size-4" /> Reject Service Request
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Provide feedback for the partner explaining why this service addition or price change cannot be approved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-xl bg-zinc-50 p-3 border border-zinc-200 text-xs">
+              <p className="font-bold text-zinc-900">{rejectingRequest?.businessName}</p>
+              <p className="text-zinc-500 mt-0.5">
+                Service: <strong>{rejectingRequest?.requestedChanges?.name || "Service"}</strong> (₹{rejectingRequest?.requestedChanges?.price})
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs font-bold text-zinc-700">Rejection Reason / Feedback</Label>
+              <Input
+                value={rejectReasonInput}
+                onChange={(e) => setRejectReasonInput(e.target.value)}
+                placeholder="e.g. Price does not comply with platform rate standards..."
+                className="mt-1.5 h-10 rounded-xl text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setRejectingRequest(null)} className="text-xs">
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
+              disabled={rejectApprovalMutation.isPending}
+              onClick={() => {
+                if (rejectingRequest) {
+                  rejectApprovalMutation.mutate({
+                    requestId: rejectingRequest.requestId || rejectingRequest.id,
+                    reason: rejectReasonInput.trim() || "Verification failed / Invalid details.",
+                  });
+                }
+              }}
+            >
+              {rejectApprovalMutation.isPending ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminShell>
   );
 }

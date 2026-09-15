@@ -21,11 +21,13 @@ from app.api.checkout import router as checkout_router
 from app.api.commission import router as commission_router
 from app.api.earnings import router as earnings_router
 from app.api.financial import router as financial_router
+from app.api.finance_engine import router as finance_engine_router
 from app.api.help import router as help_router
 from app.api.home import router as home_router
 from app.api.invoices import router as invoices_router
 from app.api.maps import router as maps_router
 from app.api.membership import router as membership_router
+from app.api.loyalty import router as loyalty_router
 from app.api.notifications import router as notifications_router
 from app.api.orders import router as orders_router
 # Sprint 5.2: partner domain (orders, profile, services, wallet, reviews).
@@ -103,14 +105,47 @@ def create_app() -> FastAPI:
     app.add_middleware(GlobalRateLimiterMiddleware)
     app.add_middleware(InputSanitizerMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=500)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"^https?://.*$",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
-    )
+    is_prod = (settings.app_env or "development").strip().lower() == "production"
+
+    if is_prod:
+        # Strict Production CORS: Whitelist only verified QuickPress frontends
+        prod_origins = list(settings.cors_origin_list)
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=prod_origins,
+            allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)?(quickpress\.online|quickpress\.in|vercel\.app)$",
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["*"],
+            expose_headers=["*"],
+        )
+    else:
+        # Development: Allow verified origins and local development hosts
+        dev_origins = [
+            "http://localhost:8080",
+            "http://localhost:8081",
+            "http://localhost:8082",
+            "http://localhost:8083",
+            "http://localhost:8084",
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:8080",
+            "http://127.0.0.1:8081",
+            "http://127.0.0.1:8082",
+            "http://127.0.0.1:8083",
+            "http://127.0.0.1:8084",
+            "http://127.0.0.1:5173",
+        ]
+        allowed_origins = list(set(settings.cors_origin_list + dev_origins))
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=allowed_origins,
+            allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+            expose_headers=["*"],
+        )
     app.include_router(auth_router, prefix=settings.api_prefix)
     # Sprint 2.6: profile / photo / settings. Registered before the home router
     # so its richer GET /api/profile wins over the Home header projection.
@@ -135,6 +170,8 @@ def create_app() -> FastAPI:
     app.include_router(membership_router, prefix=settings.api_prefix)
     # Sprint 2.10: wallet, add funds, payment methods, payments and refunds.
     app.include_router(wallet_router, prefix=settings.api_prefix)
+    # Sprint 2.15: Loyalty program (Scratch cards & points to wallet conversion)
+    app.include_router(loyalty_router, prefix=settings.api_prefix)
     # Production integration: Cloudinary-backed media uploads.
     app.include_router(maps_router, prefix=settings.api_prefix)
     app.include_router(uploads_router, prefix=settings.api_prefix)
@@ -160,6 +197,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_payments_router, prefix=settings.api_prefix)
     app.include_router(earnings_router, prefix=settings.api_prefix)
     app.include_router(financial_router, prefix=settings.api_prefix)
+    app.include_router(finance_engine_router, prefix=settings.api_prefix)
     # Razorpay server-to-server webhooks (HMAC verified, unauthenticated by design).
     app.include_router(webhooks_router, prefix=settings.api_prefix)
 

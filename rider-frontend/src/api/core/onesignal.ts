@@ -9,7 +9,9 @@
 
 import { startOrderAlertRing } from "@/lib/order-alert-sound";
 
-export const ONESIGNAL_APP_ID = "184bda82-7c5b-4319-a977-4fcffbcca270";
+export const ONESIGNAL_APP_ID =
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_ONESIGNAL_APP_ID) ||
+  "";
 
 declare global {
   interface Window {
@@ -25,6 +27,11 @@ let isInitialized = false;
  */
 export function initOneSignal(): void {
   if (typeof window === "undefined" || isInitialized) return;
+  if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.includes("184bda82")) {
+    // OneSignal App ID is not configured for Web Push in this environment.
+    // Skip to prevent "App not configured for web push" warnings.
+    return;
+  }
   isInitialized = true;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -39,7 +46,7 @@ export function initOneSignal(): void {
       });
 
       // When a new ride/order is assigned in foreground, ring high-pitch siren alarm
-      OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+      OneSignal.Notifications?.addEventListener("foregroundWillDisplay", (event: any) => {
         try {
           const notif = event?.notification;
           const data = notif?.additionalData || {};
@@ -53,18 +60,24 @@ export function initOneSignal(): void {
             startOrderAlertRing();
           }
         } catch (err) {
-          console.warn("[OneSignal-Rider] Foreground alert trigger error:", err);
+          // Quiet
         }
       });
 
       // Listen for subscription changes and sync with backend
-      OneSignal.User.PushSubscription.addEventListener("change", async (event: any) => {
+      OneSignal.User?.PushSubscription?.addEventListener("change", async (event: any) => {
         const subscriptionId = event?.current?.id;
         if (subscriptionId) {
           await syncPlayerIdWithBackend(subscriptionId);
         }
       });
-    } catch (err) {
+    } catch (err: any) {
+      if (
+        err?.message?.includes?.("not configured for web push") ||
+        String(err).includes("not configured for web push")
+      ) {
+        return;
+      }
       console.warn("[OneSignal-Rider] Init warning:", err);
     }
   });

@@ -148,6 +148,41 @@ async def upload_partner_service_image(
     return MediaResponse(url=url, field="image")
 
 
+@router.post("/partner/gallery", response_model=MediaResponse)
+async def upload_partner_gallery_image(
+    payload: ImageUploadPayload, user: User = Depends(require_roles(Role.partner))
+) -> MediaResponse:
+    photo_uid = uuid.uuid4().hex[:8]
+    url = await upload_image(payload.image, kind="partner_gallery", public_id=f"{user.id}-gallery-{photo_uid}")
+
+    partner_id = getattr(user, "linked_partner_id", None) or getattr(user, "linked_id", None)
+    if not partner_id:
+        account = await database.find_one("partners", {"user_id": user.id}) or {}
+        partner_id = account.get("partner_id") or account.get("partnerId")
+    if not partner_id:
+        pdoc = await database.find_one("partner_profiles", {"userId": user.id})
+        if pdoc:
+            partner_id = pdoc.get("_id") or pdoc.get("partnerId")
+
+    filter_query = {
+        "$or": [
+            {"userId": user.id},
+            {"user_id": user.id},
+            *([{"_id": str(partner_id)}] if partner_id else []),
+            *([{"partnerId": str(partner_id)}] if partner_id else []),
+        ]
+    }
+    try:
+        await database.collection("partner_profiles").update_many(
+            filter_query,
+            {"$push": {"gallery": url}, "$set": {"updatedAt": utcnow().isoformat()}}
+        )
+    except Exception:
+        pass
+
+    return MediaResponse(url=url, field="gallery")
+
+
 @router.get("/health")
 async def uploads_health(user: User = Depends(current_user)) -> dict:
     from app.core.cloudinary import is_cloudinary_configured

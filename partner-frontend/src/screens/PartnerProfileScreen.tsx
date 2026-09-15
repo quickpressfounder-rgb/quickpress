@@ -10,6 +10,7 @@ import {
   Bike,
   Building2,
   Calendar,
+  Camera,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -25,6 +26,7 @@ import {
   Hourglass,
   Info,
   Layers,
+  Loader2,
   Lock,
   LogOut,
   MapPin,
@@ -59,7 +61,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Toaster } from "@/shared/ui/sonner";
@@ -67,7 +69,8 @@ import { PartnerLayout } from "../components/layout/PartnerLayout";
 import { usePartnerContext } from "../context/PartnerContext";
 import { usePartnerResource } from "../hooks/use-partner-resource";
 import { partnerRoutes } from "../navigation/partner-routes";
-import { fetchPartnerProfile, toggleStoreStatus } from "@/api/partner/partner-profile-api";
+import { fetchPartnerProfile, toggleStoreStatus, updatePartnerProfile } from "@/api/partner/partner-profile-api";
+import { compressImage } from "../lib/image-compression";
 import {
   fetchOperationsConfig,
   updateOperationsConfig,
@@ -164,6 +167,33 @@ export function PartnerProfileScreen() {
   const city = profile?.city || "Kasganj";
   const partnerId = profile?.partnerId || (profile as any)?.id || "PRT-390624";
   const phone = normalizeDisplayPhone(profile?.phone || profile?.ownerPhone) || "+91 92587 30561";
+  const logoImg = profile?.logo || profile?.logoUrl || profile?.image;
+  const [logoFailed, setLogoFailed] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const dataUrl = await compressImage(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.85,
+      });
+      await updatePartnerProfile({ logo: dataUrl });
+      await reloadProfile();
+      setLogoFailed(false);
+      toast.success("Shop logo updated successfully!");
+    } catch (err) {
+      console.error("Logo upload error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to update shop logo.");
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
 
   // Toggle Rush Hour in DB
   const handleToggleRushHour = async () => {
@@ -363,9 +393,48 @@ export function PartnerProfileScreen() {
           {/* 1. Rich Partner Profile Hero Card */}
           <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
+              {/* Hidden file input for fast logo update */}
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoSelect}
+              />
+
               <div className="flex items-center gap-3 min-w-0">
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-zinc-950 font-black text-xl shadow-xs">
-                  {storeName.slice(0, 2).toUpperCase()}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: partnerRoutes.shop })}
+                    className="group relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200/90 bg-amber-400 text-zinc-950 font-black text-xl shadow-xs active:scale-95 transition-transform"
+                    title="Tap to manage Shop Profile & Photos"
+                  >
+                    {logoImg && !logoFailed ? (
+                      <img
+                        src={logoImg}
+                        alt={`${storeName} logo`}
+                        onError={() => setLogoFailed(true)}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      storeName.slice(0, 2).toUpperCase()
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    title="Change Store Logo"
+                    className="absolute -bottom-1 -right-1 flex size-5.5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md ring-2 ring-white transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Camera className="size-3" />
+                    )}
+                  </button>
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -464,33 +533,6 @@ export function PartnerProfileScreen() {
                 <div
                   className={`size-5 rounded-full bg-white shadow-md transition-transform ${
                     opsConfig.rushHour ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Sound Chimes */}
-            <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
-              <div className="flex items-center gap-2.5">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-blue-100 text-blue-800">
-                  <Volume2 className="size-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">Audio Order Chime</p>
-                  <p className="text-[10px] font-medium text-zinc-400">Plays bell sound when orders arrive</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleToggleSound}
-                className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${
-                  opsConfig.soundAlerts ? "bg-emerald-500" : "bg-zinc-200"
-                }`}
-              >
-                <div
-                  className={`size-5 rounded-full bg-white shadow-md transition-transform ${
-                    opsConfig.soundAlerts ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -640,65 +682,6 @@ export function PartnerProfileScreen() {
             </div>
           </div>
 
-          {/* 5. Section: Catalog, Reviews & Analytics */}
-          <div>
-            <h3 className="px-1 text-xs font-black uppercase tracking-wider text-zinc-600">
-              Catalog & Growth
-            </h3>
-            <div className="mt-2 grid grid-cols-4 gap-2.5">
-              <button
-                type="button"
-                onClick={() => navigate({ to: partnerRoutes.services })}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
-              >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-                  <Utensils className="size-5" />
-                </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Rate Card
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: partnerRoutes.analytics })}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
-              >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-                  <BarChart3 className="size-5" />
-                </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Growth Analytics
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate({ to: partnerRoutes.customers })}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
-              >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-                  <MessageSquare className="size-5" />
-                </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Customer Reviews
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenOffers}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
-              >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">
-                  <Percent className="size-5" />
-                </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Special Offers
-                </p>
-              </button>
-            </div>
-          </div>
 
           {/* 6. Section: Store Branding & Standee QR */}
           <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
@@ -859,16 +842,21 @@ export function PartnerProfileScreen() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl bg-zinc-50 p-3 border border-zinc-100 mt-2">
+                <div className="flex items-center justify-between rounded-xl bg-zinc-50 p-3 border border-zinc-100 mt-2 opacity-80">
                   <div>
-                    <p className="font-black text-zinc-900">Auto-Accept Orders</p>
-                    <p className="text-[10px] text-zinc-500">Automatically accept orders within radius</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-black text-zinc-900">Auto-Accept Orders</p>
+                      <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-800">
+                        Coming Soon
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500">Coming Soon: Automatically accept incoming orders within radius</p>
                   </div>
                   <input
                     type="checkbox"
-                    checked={opsConfig.autoAccept}
-                    onChange={(e) => setOpsConfig({ ...opsConfig, autoAccept: e.target.checked })}
-                    className="size-4 accent-emerald-600"
+                    disabled
+                    checked={false}
+                    className="size-4 accent-emerald-600 opacity-40 cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -1360,9 +1348,39 @@ export function PartnerProfileScreen() {
       <div className="hidden mx-auto w-full max-w-5xl px-4 py-4 md:block md:px-8 md:py-6">
         <div className="space-y-6">
           <section className="flex items-center gap-4 rounded-3xl border border-border/80 bg-card p-6 shadow-sm">
-            <span className="flex size-16 shrink-0 items-center justify-center rounded-3xl bg-primary/20 text-brand-dark font-black text-2xl">
-              {storeName.slice(0, 2).toUpperCase()}
-            </span>
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.shop })}
+                className="group relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-border/90 bg-primary/20 text-brand-dark font-black text-2xl shadow-xs active:scale-95 transition-transform"
+                title="Tap to manage Shop Profile & Photos"
+              >
+                {logoImg && !logoFailed ? (
+                  <img
+                    src={logoImg}
+                    alt={`${storeName} logo`}
+                    onError={() => setLogoFailed(true)}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  storeName.slice(0, 2).toUpperCase()
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={uploadingLogo}
+                title="Change Store Logo"
+                className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md ring-2 ring-white transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
+              >
+                {uploadingLogo ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Camera className="size-3.5" />
+                )}
+              </button>
+            </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="truncate text-xl font-black text-foreground">{storeName}</p>

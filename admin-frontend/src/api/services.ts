@@ -108,11 +108,30 @@ export type PartnerServiceRow = {
   turnaroundHours: number;
   expressAvailable: boolean;
   minQuantity: number;
-  status: "Active" | "Disabled" | "Suspended";
+  status: "Active" | "Disabled" | "Suspended" | "Pending Approval" | "Rejected";
   enabled: boolean;
   ordersCount: number;
   revenue: number;
   updatedAt: string;
+  pendingApproval?: boolean;
+  approvalStatus?: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+};
+
+export type PartnerApprovalRequest = {
+  id: string;
+  requestId: string;
+  partnerId: string;
+  businessName: string;
+  requestType: "profile_update" | "bank_update" | "pan_update" | "service_create" | "service_update";
+  targetId: string;
+  requestedChanges: Record<string, any>;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  submittedAt: string;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  rejectionReason?: string | null;
 };
 
 type BackendService = {
@@ -289,4 +308,25 @@ export async function deleteService(id: string): Promise<{ ok: boolean }> {
 
 export async function createCategory(payload: { name: string; description?: string }) {
   return await apiPostJson<BackendCategory>("/api/admin/services/categories", payload);
+}
+
+export async function fetchPartnerApprovalRequests(status: string = "pending"): Promise<PartnerApprovalRequest[]> {
+  const res = await apiGetJson<{ ok: boolean; count: number; requests: PartnerApprovalRequest[] }>(
+    `/api/admin/partner-approvals?status=${encodeURIComponent(status)}`
+  );
+  return res?.requests || [];
+}
+
+export async function approvePartnerRequest(requestId: string): Promise<{ ok: boolean; message: string }> {
+  return await apiPostJson<{ ok: boolean; message: string }>(
+    `/api/admin/partner-approvals/${encodeURIComponent(requestId)}/approve`,
+    {}
+  );
+}
+
+export async function rejectPartnerRequest(requestId: string, reason: string): Promise<{ ok: boolean; message: string }> {
+  return await apiPostJson<{ ok: boolean; message: string }>(
+    `/api/admin/partner-approvals/${encodeURIComponent(requestId)}/reject`,
+    { reason }
+  );
 }

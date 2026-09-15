@@ -13,7 +13,6 @@ import { fetchRiderProfile } from "../api/rider/rider-profile-api";
 
 import { CaptainTopBar } from "../components/layout/CaptainTopBar";
 import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer";
-import { CaptainNotificationsModal } from "../components/notifications/CaptainNotificationsModal";
 import { fetchUnreadCount } from "../api/rider/rider-notifications-api";
 import { CaptainHomeOfflineScreen } from "../components/home/CaptainHomeOfflineScreen";
 import { CaptainOnlineMapView } from "../components/map/CaptainOnlineMapView";
@@ -27,8 +26,11 @@ import {
   triggerHaptic,
   unlockAudioContext,
 } from "../lib/captain-audio";
-import { subscribeRiderOffers } from "../lib/rider-socket";
-import { supabase } from "../integrations/supabase/client";
+import {
+  subscribeRiderOffers,
+  subscribeRiderStatus,
+  subscribeRiderWallet,
+} from "../lib/rider-socket";
 
 export function RiderDashboardScreen() {
   const navigate = useNavigate();
@@ -45,7 +47,6 @@ export function RiderDashboardScreen() {
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [savedActiveOrder, setSavedActiveOrder] = useState<any>(null);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
-  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
 
   const geoWatchIdRef = useRef<number | null>(null);
 
@@ -75,6 +76,10 @@ export function RiderDashboardScreen() {
 
       if (Array.isArray(offersRes)) {
         setPendingOrdersCount(offersRes.length);
+        if (offersRes.length > 0) {
+          navigate({ to: "/orders" });
+          return;
+        }
       }
 
       if (typeof unreadRes === "number") {
@@ -82,9 +87,9 @@ export function RiderDashboardScreen() {
       }
 
       if (dashRes) {
-        setTodayEarnings(Number(dashRes.todayEarnings ?? dashRes.metrics?.earningsToday ?? 0));
+        setTodayEarnings(Number(dashRes.todayEarnings ?? (dashRes as any).metrics?.earningsToday ?? 0));
         setTodayDeliveries(
-          Number(dashRes.todayDeliveries ?? dashRes.metrics?.deliveriesCompletedToday ?? 0)
+          Number(dashRes.todayDeliveries ?? (dashRes as any).metrics?.deliveriesCompletedToday ?? 0)
         );
       }
     } catch {
@@ -96,59 +101,25 @@ export function RiderDashboardScreen() {
     loadRealData();
   }, [loadRealData]);
 
-  // Supabase Realtime subscription for instant dashboard metrics & profile sync
+  // Real-time Socket.IO subscription for instant dashboard metrics & profile sync
   useEffect(() => {
-    let channel: any = null;
-    try {
-      channel = supabase
-        .channel("rider-dashboard-screen-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_profiles",
-          },
-          () => {
-            loadRealData();
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_wallets",
-          },
-          () => {
-            loadRealData();
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_offers",
-          },
-          () => {
-            loadRealData();
-          }
-        )
-        .subscribe();
-    } catch {}
+    const unsubStatus = subscribeRiderStatus(() => {
+      loadRealData();
+    });
+    const unsubOffers = subscribeRiderOffers(() => {
+      loadRealData();
+      navigate({ to: "/orders" });
+    });
+    const unsubWallet = subscribeRiderWallet(() => {
+      loadRealData();
+    });
 
     return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch {}
-      }
+      unsubStatus();
+      unsubOffers();
+      unsubWallet();
     };
-  }, [loadRealData]);
+  }, [loadRealData, navigate]);
 
   // Periodic polling for real-time notification badge updates
   useEffect(() => {
@@ -167,7 +138,18 @@ export function RiderDashboardScreen() {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCurrentCoords(coords);
         if (isOnline) {
-          pushRiderLocation(coords.lat, coords.lng).catch(() => {});
+          const isMock = Boolean(
+            (pos.coords as any).isMock ||
+            (pos as any).isMock ||
+            (pos.coords as any).isFromMockProvider ||
+            (pos.coords as any).mocked
+          );
+          pushRiderLocation(coords.lat, coords.lng, {
+            isMock,
+            heading: pos.coords.heading ?? undefined,
+            speed: pos.coords.speed ?? undefined,
+            accuracy: pos.coords.accuracy ?? undefined,
+          }).catch(() => {});
         }
       },
       () => {
@@ -262,7 +244,7 @@ export function RiderDashboardScreen() {
         isOnline={isOnline}
         onToggleDuty={handleToggleDuty}
         onOpenDrawer={() => setIsDrawerOpen(true)}
-        onOpenNotifications={() => setIsNotifModalOpen(true)}
+        onOpenNotifications={() => navigate({ to: "/notifications" })}
         notificationCount={unreadNotifCount}
         loading={dutyLoading}
       />
@@ -300,24 +282,23 @@ export function RiderDashboardScreen() {
       )}
 
       {/* Active Trip Floating Pill (if order is active) */}
-      {/* Active Trip Floating Pill (if order is active - White & Emerald Green) */}
       {savedActiveOrder && (
         <div className="absolute bottom-20 left-4 right-4 z-40 animate-in slide-in-from-bottom-2 duration-200">
           <button
             type="button"
             onClick={() => navigate({ to: "/orders" })}
-            className="w-full flex items-center justify-between p-3.5 bg-white text-zinc-900 rounded-2xl shadow-xl border-2 border-[#00C853] active:scale-98 transition-all"
+            className="w-full flex items-center justify-between p-3.5 bg-white/95 backdrop-blur-md text-zinc-900 rounded-2xl shadow-lg border border-emerald-300 active:scale-98 transition-all"
           >
             <div className="flex items-center gap-2.5 text-left">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#00C853] text-white">
+              <div className="flex items-center justify-center size-8 rounded-xl bg-emerald-600 text-white font-black text-xs shadow-xs">
                 🛵
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-black text-zinc-900">Active Trip: {savedActiveOrder.customerName || "Customer"}</p>
-                <p className="text-[10px] text-zinc-500 truncate max-w-[200px]">{savedActiveOrder.pickupTitle || savedActiveOrder.pickupAddress}</p>
+                <p className="text-[10px] text-zinc-500 truncate max-w-[180px] sm:max-w-[220px]">{savedActiveOrder.pickupTitle || savedActiveOrder.pickupAddress}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs font-black text-[#00C853] bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+            <div className="flex items-center gap-1 text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
               <span>Resume HUD</span>
               <span>➔</span>
             </div>
@@ -325,16 +306,7 @@ export function RiderDashboardScreen() {
         </div>
       )}
 
-      {/* 4. Captain Real-Time Notification Center Modal */}
-      <CaptainNotificationsModal
-        isOpen={isNotifModalOpen}
-        onClose={() => setIsNotifModalOpen(false)}
-        onNotificationChange={() => {
-          fetchUnreadCount().then(setUnreadNotifCount).catch(() => {});
-        }}
-      />
-
-      {/* 5. Strictly 2-Tab Bottom Navigation with live badge count on Orders */}
+      {/* 4. Strictly 2-Tab Bottom Navigation with live badge count on Orders */}
       <RiderBottomNav active="dashboard" ordersBadgeCount={pendingOrdersCount} />
     </div>
   );

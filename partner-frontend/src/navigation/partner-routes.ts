@@ -31,6 +31,7 @@ export const partnerRoutes = {
   services: "/services",
   serviceNew: "/services/new",
   serviceEdit: "/services/$serviceId/edit",
+  customers: "/customers",
   earnings: "/earnings",
   payouts: "/earnings",
   analytics: "/analytics",
@@ -53,20 +54,33 @@ export const partnerTabs = [
 ] as const;
 
 /**
- * Desktop Left Sidebar navigation structure (Full Business Console).
+ * Desktop Left Sidebar Operations navigation links (Live Business Ops).
  */
-export const partnerSidebarLinks = [
+export const partnerOperationsLinks = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: partnerRoutes.dashboard },
   { id: "orders", label: "Orders", icon: ListOrdered, to: partnerRoutes.orders },
   { id: "services", label: "Services", icon: Sparkles, to: partnerRoutes.services },
   { id: "customers", label: "Customers", icon: Users, to: partnerRoutes.customers },
-  { id: "earnings", label: "Payouts", icon: BarChart3, to: partnerRoutes.earnings },
+  { id: "payouts", label: "Payouts", icon: BarChart3, to: partnerRoutes.earnings },
   { id: "analytics", label: "Analytics", icon: TrendingUp, to: partnerRoutes.analytics },
-  { id: "wallet", label: "Wallet", icon: Wallet, to: partnerRoutes.wallet },
+] as const;
+
+/**
+ * Desktop Left Sidebar Management navigation links (Store Settings & KYC).
+ */
+export const partnerManagementLinks = [
   { id: "shop", label: "Store", icon: Store, to: partnerRoutes.shop },
-  { id: "registration", label: "KYC & Documents", icon: ShieldCheck, to: partnerRoutes.registration },
+  { id: "profile", label: "KYC & Documents", icon: ShieldCheck, to: partnerRoutes.profile },
   { id: "notifications", label: "Notifications", icon: Bell, to: partnerRoutes.notifications },
   { id: "settings", label: "Settings", icon: Settings2, to: partnerRoutes.settings },
+] as const;
+
+/**
+ * Combined sidebar links for backwards compatibility.
+ */
+export const partnerSidebarLinks = [
+  ...partnerOperationsLinks,
+  ...partnerManagementLinks,
 ] as const;
 
 export const partnerMenuLinks = [

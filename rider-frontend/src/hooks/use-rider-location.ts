@@ -60,7 +60,18 @@ export function useRiderLocation(isOnline: boolean): RiderLocationState {
 
       // Push real GPS ping to Supabase
       try {
-        await pushRiderLocation(latitude, longitude);
+        const isMock = Boolean(
+          (pos.coords as any).isMock ||
+          (pos as any).isMock ||
+          (pos.coords as any).isFromMockProvider ||
+          (pos.coords as any).mocked
+        );
+        await pushRiderLocation(latitude, longitude, {
+          isMock,
+          heading,
+          speed,
+          accuracy,
+        });
       } catch {
         /* ignore network jitter */
       }

@@ -12,6 +12,8 @@ import {
   Shirt,
   X,
   XCircle,
+  Route,
+  Zap,
 } from "lucide-react";
 import { RiderBottomNav } from "../components/RiderBottomNav";
 import {
@@ -19,9 +21,11 @@ import {
   fetchRiderOffers,
   rejectRiderOrder,
 } from "../api/rider/rider-orders-api";
+import { fetchRouteBookingState, type RouteBookingState } from "../api/rider/rider-route-booking-api";
+import { CaptainRouteBookingModal } from "../components/navigation/CaptainRouteBookingModal";
 import { useRiderContext } from "../context/RiderContext";
 import { useLanguage } from "../lib/i18n";
-import { subscribeRiderOffers } from "../lib/rider-socket";
+import { subscribeRiderOffers, subscribeRiderOrders } from "../lib/rider-socket";
 import {
   playOrderAlertSound,
   playSuccessChime,
@@ -34,7 +38,6 @@ import {
 import { toast } from "sonner";
 import { GoToPickupHUD, type ActiveOrderData } from "../components/dashboard/GoToPickupHUD";
 import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer";
-import { supabase } from "../integrations/supabase/client";
 
 export interface OrderOfferItem {
   id: string;
@@ -71,6 +74,12 @@ export interface OrderOfferItem {
   items?: any[];
   placedAt?: string;
   expiresInSeconds?: number;
+  isRouteMatch?: boolean;
+  routeBadge?: string;
+  isExpress?: boolean;
+  expressFee?: number;
+  riderExpressBonus?: number;
+  expressRiderSharePercent?: number;
 }
 
 const ACTIVE_ORDER_STORAGE_KEY = "qp_active_rider_order";
@@ -82,6 +91,21 @@ export function RiderOrdersScreen() {
 
   const [activeOrder, setActiveOrder] = useState<ActiveOrderData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [routeBooking, setRouteBooking] = useState<RouteBookingState | null>(null);
+  const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+
+  const loadRouteState = async () => {
+    try {
+      const res = await fetchRouteBookingState();
+      if (res && res.riderId) {
+        setRouteBooking(res);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadRouteState();
+  }, []);
 
   // Restore saved active order on client mount safely without hydration mismatch
   useEffect(() => {
@@ -150,6 +174,12 @@ export function RiderOrdersScreen() {
             items: r.items || [],
             placedAt: r.placedAt || r.createdAt,
             expiresInSeconds: 120, // 2 minutes SLA
+            isRouteMatch: Boolean(r.isRouteMatch),
+            routeBadge: r.routeBadge || undefined,
+            isExpress: Boolean(r.isExpress || r.express || (r.rideDoc && r.rideDoc.isExpress)),
+            expressFee: Number(r.expressFee || (r.rideDoc && r.rideDoc.expressFee) || 40),
+            riderExpressBonus: Number(r.riderExpressBonus || (r.rideDoc && r.rideDoc.riderExpressBonus) || 32),
+            expressRiderSharePercent: Number(r.expressRiderSharePercent || 80),
           };
         });
         setOffers((prev) => {
@@ -201,45 +231,14 @@ export function RiderOrdersScreen() {
     return () => clearInterval(timer);
   }, [offers.length, activeOrder]);
 
-  // Supabase Realtime subscription for instant offer pushes
+  // Real-time Socket.IO subscription for order lifecycle updates
   useEffect(() => {
-    let channel: any = null;
-    try {
-      channel = supabase
-        .channel("rider-orders-screen-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_offers",
-          },
-          () => {
-            loadOffers(true);
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.customer_orders",
-          },
-          () => {
-            loadOffers(true);
-          }
-        )
-        .subscribe();
-    } catch {}
-
+    const unsub = subscribeRiderOrders((eventData) => {
+      console.log("[RiderOrdersScreen] ⚡ Realtime order update:", eventData);
+      loadOffers(true);
+    });
     return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch {}
-      }
+      unsub();
     };
   }, []);
 
@@ -284,6 +283,10 @@ export function RiderOrdersScreen() {
         items: rawOffer.items || [],
         placedAt: rawOffer.placedAt || rawOffer.createdAt,
         expiresInSeconds: 120,
+        isExpress: Boolean(rawOffer.isExpress || rawOffer.express || (rawOffer.rideDoc && rawOffer.rideDoc.isExpress)),
+        expressFee: Number(rawOffer.expressFee || (rawOffer.rideDoc && rawOffer.rideDoc.expressFee) || 40),
+        riderExpressBonus: Number(rawOffer.riderExpressBonus || (rawOffer.rideDoc && rawOffer.rideDoc.riderExpressBonus) || 32),
+        expressRiderSharePercent: Number(rawOffer.expressRiderSharePercent || 80),
       };
 
       unlockAudioContext();
@@ -425,6 +428,24 @@ export function RiderOrdersScreen() {
     await rejectRiderOrder(targetId).catch(() => {});
   };
 
+  // Open Google Maps Road Turn-by-Turn Navigation for Offer
+  const handleOpenGoogleMaps = (offer: OrderOfferItem) => {
+    triggerHaptic(40);
+    const target = offer.pickupCoords || offer.customerCoords || offer.partnerCoords;
+    if (target && target.lat && target.lng) {
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=two_wheeler`,
+        "_blank"
+      );
+    } else {
+      const dest = encodeURIComponent(offer.pickupAddress || offer.pickupTitle || "Kasganj");
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=two_wheeler`,
+        "_blank"
+      );
+    }
+  };
+
   const handleTripEnd = () => {
     try {
       localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
@@ -456,319 +477,344 @@ export function RiderOrdersScreen() {
   const totalOrders = offers.length;
 
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-white shadow-2xl overflow-y-auto text-neutral-900 select-none pb-20">
-      {/* 1. Header with Live Orders Title */}
+    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-zinc-50/50 shadow-2xl overflow-y-auto text-zinc-900 select-none pb-24">
+      {/* 1. Sticky Header with Live Orders Title */}
       <div
-        className="sticky top-0 z-30 px-4 pb-3 bg-white border-b border-neutral-100 shadow-2xs"
+        className="sticky top-0 z-30 px-4 pb-3 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-2xs"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 12px, 16px)" }}
       >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-black text-neutral-950 tracking-tight flex items-center gap-2">
+            <h1 className="text-lg font-black text-zinc-900 tracking-tight flex items-center gap-2">
               <span>{t("orders.liveQueue", "Live Order Queue")}</span>
-              {totalOrders > 0 && (
-                <span className="flex h-2.5 w-2.5 rounded-full bg-[#00C853] animate-pulse" />
+              {totalOrders > 0 ? (
+                <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+              ) : (
+                <span className="flex size-2 rounded-full bg-zinc-300" />
               )}
             </h1>
-            <p className="text-[11px] font-medium text-neutral-500">
+            <p className="text-[11px] font-medium text-zinc-500">
               {totalOrders > 0
-                ? `${totalOrders} ${t("orders.pendingDispatches", "active order(s) available")}`
+                ? `${totalOrders} active order${totalOrders > 1 ? "s" : ""} available for dispatch`
                 : t("orders.waitingNotice", "Stay in your Work Zone to receive instant dispatches")}
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            {totalOrders > 0 && (
+              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-black text-emerald-800">
+                {totalOrders}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => loadOffers()}
               disabled={isLoading}
-              className="p-2 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 rounded-full active:scale-95 transition-all"
+              className="flex size-8.5 items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
               title="Refresh Queue"
             >
               <RotateCw
-                className={`w-4 h-4 ${isLoading ? "animate-spin text-[#00C853]" : ""}`}
+                className={`size-4 ${isLoading ? "animate-spin text-emerald-600" : ""}`}
               />
             </button>
           </div>
         </div>
       </div>
 
-      {totalOrders > 0 ? (
-        <div className="flex flex-1 px-3.5 py-3 gap-3">
-            {/* Left Vertical Queue Rail with Circular Progress Ring Timer */}
-            <div className="flex flex-col items-center py-3 w-10 space-y-12 shrink-0">
-              {offers.map((_, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-6">
-                  {idx === 0 ? (
-                    // Active Countdown Ring (Top order)
-                    <div className="relative flex items-center justify-center w-8 h-8">
-                      <svg className="w-8 h-8 -rotate-90" viewBox="0 0 36 36">
-                        <path
-                          className="text-neutral-200"
-                          strokeWidth="3.5"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        <path
-                          className={`${
-                            offers[0]?.rideType === "delivery" ||
-                            offers[0]?.type === "delivery" ||
-                            offers[0]?.isTransfer
-                              ? "text-blue-600"
-                              : "text-[#00C853]"
-                          } transition-all duration-1000 ease-linear`}
-                          strokeDasharray={`${(countdown / 120) * 100}, 100`}
-                          strokeWidth="3.5"
-                          strokeLinecap="round"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                    </div>
-                  ) : (
-                    // Inactive Dot (Upcoming queued order)
-                    <div className="w-2.5 h-2.5 rounded-full bg-neutral-300" />
-                  )}
-                  {idx < offers.length - 1 && (
-                    <div className="w-0.5 h-36 bg-neutral-200 border-dashed" />
-                  )}
-                </div>
-              ))}
+      {/* My Route Active Indicator Strip */}
+      {routeBooking?.isActive && (
+        <div
+          onClick={() => setIsRouteModalOpen(true)}
+          className="mx-3.5 mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shadow-md cursor-pointer active:scale-98 transition-all"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="size-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 border border-white/25">
+              <Route className="size-4 text-white animate-pulse" />
             </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-xs text-white truncate">
+                  My Route: {routeBooking.destinationName}
+                </span>
+                <span className="text-[10px] bg-white/25 px-1.5 py-0.5 rounded font-black">
+                  ±{routeBooking.maxDetourKm}km
+                </span>
+              </div>
+              <p className="text-[10px] text-emerald-100 font-medium truncate">
+                Prioritizing orders on your way · {routeBooking.remainingPassesToday ?? 3} passes left
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] bg-white text-emerald-900 px-2.5 py-1 rounded-lg font-black shrink-0 ml-2 shadow-xs">
+            Manage
+          </span>
+        </div>
+      )}
 
-            {/* Right Order Offer Cards List */}
-            <div className="flex-1 space-y-3.5 pb-8">
-              {offers.map((offer, idx) => {
-                const isTop = idx === 0;
-                const isDelivery =
-                  offer.rideType === "delivery" ||
-                  offer.type === "delivery" ||
-                  offer.isTransfer ||
-                  offer.type === "handover_delivery" ||
-                  offer.dropTitle?.toLowerCase().includes("customer") ||
-                  offer.pickupTitle?.toLowerCase().includes("store") ||
-                  offer.pickupTitle?.toLowerCase().includes("partner") ||
-                  offer.pickupTitle?.toLowerCase().includes("hub");
+      {totalOrders > 0 ? (
+        <div className="flex-1 px-3.5 py-3 space-y-3.5">
+          {offers.map((offer, idx) => {
+            const isTop = idx === 0;
+            const isDelivery =
+              offer.rideType === "delivery" ||
+              offer.type === "delivery" ||
+              offer.isTransfer ||
+              offer.type === "handover_delivery" ||
+              offer.dropTitle?.toLowerCase().includes("customer") ||
+              offer.pickupTitle?.toLowerCase().includes("store") ||
+              offer.pickupTitle?.toLowerCase().includes("partner") ||
+              offer.pickupTitle?.toLowerCase().includes("hub");
 
-                return (
-                  <div
-                    key={offer.id}
-                    className={`rounded-3xl p-4 transition-all duration-200 border ${
-                      isDelivery
-                        ? isTop
-                          ? "bg-gradient-to-br from-blue-50/95 via-white to-blue-50/50 border-blue-400 shadow-lg shadow-blue-500/15 ring-2 ring-blue-500/30"
-                          : "bg-blue-50/40 border-blue-200/70 opacity-85"
-                        : isTop
-                        ? "bg-white border-neutral-200/90 shadow-md shadow-neutral-100 ring-2 ring-[#00C853]/10"
-                        : "bg-neutral-50/80 border-neutral-200/60 opacity-80"
-                    }`}
-                  >
-                    {/* 2-Minute SLA Banner */}
-                    {isTop && (
-                      <div className="mb-3 flex items-center justify-between rounded-xl bg-amber-50 px-3 py-1.5 text-[11px] font-black text-amber-900 border border-amber-300">
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="size-3.5 text-amber-600 animate-pulse" />
-                          <span>2-Minute Captain SLA</span>
-                        </span>
-                        <span className="font-mono text-xs font-black text-amber-800">
-                          ⏱️ {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")} remaining
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Header: Service Type + Cash / Fare Badge */}
-                    <div
-                      className={`flex items-center justify-between pb-3 border-b ${
-                        isDelivery ? "border-blue-200/70" : "border-neutral-100"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`flex items-center justify-center w-7 h-7 rounded-xl font-bold text-xs ${
-                            isDelivery
-                              ? "bg-blue-600 text-white shadow-xs"
-                              : "bg-amber-100 text-amber-900"
-                          }`}
-                        >
-                          {isDelivery ? (
-                            <Package className="w-4 h-4" />
-                          ) : offer.type === "laundry" ? (
-                            <Shirt className="w-4 h-4" />
-                          ) : (
-                            <Bike className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div className="flex flex-col">
-                          <span
-                            className={`text-xs font-black uppercase tracking-wider ${
-                              isDelivery ? "text-blue-950" : "text-neutral-600"
-                            }`}
-                          >
-                            {isDelivery
-                              ? "QuickPress Delivery"
-                              : offer.type === "laundry"
-                              ? "QuickPress Laundry"
-                              : "Captain Courier"}
-                          </span>
-                          {isDelivery && (
-                            <span className="text-[10px] font-bold text-blue-700">
-                              📦 स्टोर से डिलीवरी (Doorstep)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        {/* 20% Reassignment Extra Bonus Tag */}
-                        {(offer.isReassignedBonus || (offer.extraBonusPercent && offer.extraBonusPercent > 0)) && (
-                          <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white rounded-full text-[10px] font-black shadow-xs animate-pulse">
-                            <span>🔥 +20% BONUS</span>
-                          </div>
-                        )}
-
-                        {/* Cash Fare Payout */}
-                        <div
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${
-                            isDelivery
-                              ? "bg-blue-100/90 text-blue-950 border-blue-300"
-                              : "bg-[#E6F8EE] text-[#00C853] border-[#00C853]/30"
-                          }`}
-                        >
-                          <span>💵 Cash</span>
-                          <span>₹{offer.fare?.toFixed(0) || "45"}</span>
-                        </div>
-                      </div>
+            return (
+              <div
+                key={offer.id}
+                className="rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm transition-all space-y-3.5"
+              >
+                {/* 2-Minute SLA Countdown (Top incoming offer) */}
+                {isTop && (
+                  <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-2.5 text-xs">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="size-3.5 text-amber-600 animate-pulse" />
+                        <span>Captain Response SLA</span>
+                      </span>
+                      <span className="font-mono text-xs font-black text-amber-800">
+                        ⏱️ {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
+                      </span>
                     </div>
-
-                    {/* Route Details: Pickup & Drop Points */}
-                    <div className="py-3.5 space-y-3">
-                      {/* Pickup Point */}
-                      <div className="flex items-start gap-2.5 text-xs">
-                        <div
-                          className={`flex items-center justify-center w-4 h-4 rounded-full font-black text-[9px] shrink-0 mt-0.5 ${
-                            isDelivery
-                              ? "bg-blue-200 text-blue-900"
-                              : "bg-emerald-100 text-[#00C853]"
-                          }`}
-                        >
-                          P
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-black text-neutral-900 truncate">
-                            {offer.pickupTitle || "Pickup Hub"}
-                          </p>
-                          <p className="text-[11px] text-neutral-500 font-medium truncate">
-                            {offer.pickupAddress}
-                          </p>
-                        </div>
-                        <span className="text-[11px] font-bold text-neutral-400 shrink-0">
-                          {offer.pickupDistanceKm || 0.5} km
-                        </span>
-                      </div>
-
-                      {/* Dashed Connecting Line */}
-                      <div className="ml-2 w-0.5 h-3 bg-neutral-200" />
-
-                      {/* Drop Point */}
-                      <div className="flex items-start gap-2.5 text-xs">
-                        <div
-                          className={`flex items-center justify-center w-4 h-4 rounded-full font-black text-[9px] shrink-0 mt-0.5 ${
-                            isDelivery
-                              ? "bg-blue-600 text-white"
-                              : "bg-rose-100 text-rose-600"
-                          }`}
-                        >
-                          D
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-black text-neutral-900 truncate">
-                            {offer.dropTitle || "Customer Drop Location"}
-                          </p>
-                          <p className="text-[11px] text-neutral-500 font-medium truncate">
-                            {offer.dropAddress}
-                          </p>
-                        </div>
-                        <span className="text-[11px] font-bold text-neutral-400 shrink-0">
-                          {offer.dropDistanceKm || 2.5} km
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons: [ Reject ] [ Accept ] */}
-                    <div className="flex items-center gap-2.5 pt-1">
-                      {/* Reject Button (X) */}
-                      <button
-                        type="button"
-                        onClick={() => handleReject(offer)}
-                        className="flex items-center justify-center w-12.5 h-12.5 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 active:scale-95 transition-all"
-                        aria-label="Reject order"
-                      >
-                        <X className="w-5 h-5 stroke-[2.5]" />
-                      </button>
-
-                      {/* Attention Accept Button: Blue for delivery, Yellow for pickup */}
-                      <button
-                        type="button"
-                        onClick={() => handleAccept(offer)}
-                        className={`flex-1 flex items-center justify-center gap-2 h-12.5 font-black text-base rounded-2xl shadow-md active:scale-98 transition-all ${
-                          isDelivery
-                            ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-blue-500/25"
-                            : "bg-[#FFC400] hover:bg-[#FBBF24] active:bg-[#F59E0B] text-neutral-950 shadow-amber-500/25"
-                        }`}
-                      >
-                        <span>{isDelivery ? "Accept Delivery 📦" : "Accept"}</span>
-                        {isTop && (
-                          <span
-                            className={`flex items-center justify-center min-w-[28px] h-6.5 px-1.5 text-xs font-black rounded-full border shadow-xs ${
-                              isDelivery
-                                ? "bg-white text-blue-700 border-blue-300"
-                                : "bg-white text-neutral-950 border-neutral-300"
-                            }`}
-                          >
-                            {countdown}
-                          </span>
-                        )}
-                      </button>
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 bg-amber-200/60 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 rounded-full transition-all duration-1000 ease-linear"
+                        style={{ width: `${(countdown / 120) * 100}%` }}
+                      />
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                )}
+
+                {/* Header: Service Type Pill + Order Code + Fare */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-wider ${
+                        isDelivery
+                          ? "bg-blue-50 text-blue-800 border border-blue-200"
+                          : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      }`}
+                    >
+                      {isDelivery ? (
+                        <>
+                          <Package className="size-3" />
+                          <span>Delivery Leg</span>
+                        </>
+                      ) : (
+                        <>
+                          <Shirt className="size-3" />
+                          <span>Pickup Leg</span>
+                        </>
+                      )}
+                    </span>
+
+                    {offer.orderCode && (
+                      <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-mono font-bold text-zinc-700">
+                        #{offer.orderCode}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Guaranteed Payout Badge */}
+                  <div className="flex items-center gap-1 rounded-xl bg-zinc-950 px-3 py-1 text-white shadow-xs">
+                    <span className="text-[10px] font-medium text-zinc-400">Payout</span>
+                    <span className="text-xs font-black text-white">
+                      ₹{offer.fare?.toFixed(0) || "45"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ⚡ Express Priority Bonus Callout */}
+                {offer.isExpress && (
+                  <div className="flex items-center justify-between gap-2 px-3.5 py-3 bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-amber-500/15 border-2 border-amber-500/70 rounded-2xl shadow-md animate-pulse">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="flex size-8 rounded-xl bg-amber-500/40 items-center justify-center text-amber-900 dark:text-amber-200 shrink-0 border border-amber-500/60">
+                        <Zap className="size-4.5 fill-amber-500" />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="block text-xs font-black text-amber-950 dark:text-amber-200 uppercase tracking-wide truncate">
+                          ⚡ EXPRESS PICKUP + EXPRESS CHARGES KA {offer.expressRiderSharePercent || 80}% BONUS
+                        </span>
+                        <span className="block text-[10.5px] text-amber-900/90 dark:text-amber-300 font-medium">
+                          Priority pickup! Surge bonus credited directly into your trip fare.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[9px] font-bold text-amber-900/80 dark:text-amber-300 block uppercase">Bonus</span>
+                      <span className="text-base font-black text-amber-900 dark:text-amber-200">
+                        +₹{offer.riderExpressBonus || Math.round((offer.expressFee || 40) * 0.8)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* On-Route Match Priority Badge */}
+                {offer.routeBadge && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-300 rounded-2xl text-xs font-black text-emerald-800">
+                    <span className="flex size-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                    <span className="truncate">🎯 {offer.routeBadge}</span>
+                  </div>
+                )}
+
+                {/* Route Timeline: Pickup & Drop Points */}
+                <div className="rounded-2xl bg-zinc-50/70 border border-zinc-100 p-3 space-y-2.5">
+                  {/* Point 1: Pickup */}
+                  <div className="flex items-start gap-2.5 text-xs">
+                    <div className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-white font-black text-[9px] shrink-0 mt-0.5 shadow-2xs">
+                      P
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-black text-zinc-900 truncate">
+                          {offer.pickupTitle || "Pickup Hub"}
+                        </p>
+                        <span className="text-[10px] font-bold text-zinc-400">
+                          {offer.pickupDistanceKm || 0.8} km
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 font-medium truncate">
+                        {offer.pickupAddress}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dashed Connecting Line */}
+                  <div className="ml-2 w-0.5 h-2 bg-zinc-200 border-dashed" />
+
+                  {/* Point 2: Drop */}
+                  <div className="flex items-start gap-2.5 text-xs">
+                    <div className="flex size-4 items-center justify-center rounded-full bg-rose-500 text-white font-black text-[9px] shrink-0 mt-0.5 shadow-2xs">
+                      D
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-black text-zinc-900 truncate">
+                          {offer.dropTitle || "Delivery Destination"}
+                        </p>
+                        <span className="text-[10px] font-bold text-zinc-400">
+                          {offer.dropDistanceKm || 2.4} km
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 font-medium truncate">
+                        {offer.dropAddress}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Meta details strip */}
+                <div className="flex items-center justify-between text-[11px] font-medium text-zinc-500 px-1">
+                  <span>
+                    Payment: <strong className="text-zinc-800 font-bold uppercase">{offer.paymentMode || "COD"}</strong>
+                  </span>
+                  <span>
+                    Est. Distance: <strong className="text-zinc-800 font-bold">{((offer.pickupDistanceKm || 0.8) + (offer.dropDistanceKm || 2.4)).toFixed(1)} km</strong>
+                  </span>
+                </div>
+
+                {/* Action Buttons: [ Reject ] [ Google Maps 🗺️ ] [ Accept Order ] */}
+                <div className="flex items-center gap-2 pt-0.5">
+                  {/* Reject Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleReject(offer)}
+                    className="flex size-11 items-center justify-center rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 active:scale-95 transition-all shrink-0"
+                    aria-label="Reject order"
+                    title="Pass order"
+                  >
+                    <X className="size-5 stroke-[2.2]" />
+                  </button>
+
+                  {/* Google Maps Road Navigation Preview Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGoogleMaps(offer)}
+                    className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 active:scale-95 transition-all shrink-0 cursor-pointer"
+                    aria-label="Preview road navigation in Google Maps"
+                    title="Open Google Maps Two-Wheeler Turn-by-Turn Navigation"
+                  >
+                    <Navigation className="size-5 stroke-[2.2] text-blue-600" />
+                  </button>
+
+                  {/* Accept CTA Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleAccept(offer)}
+                    className="flex-1 flex items-center justify-center gap-2 h-11 font-black text-xs sm:text-sm rounded-2xl bg-zinc-950 hover:bg-zinc-800 active:bg-zinc-900 text-white shadow-md active:scale-98 transition-all"
+                  >
+                    <span>Accept Order · ₹{offer.fare?.toFixed(0) || "45"}</span>
+                    {isTop && (
+                      <span className="flex items-center justify-center min-w-[24px] h-5 px-1 text-[10px] font-black rounded-full bg-white/20 text-white">
+                        {countdown}s
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Empty State: Queue is clear */
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center my-auto space-y-4">
+          <div className="relative flex size-20 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 shadow-xs">
+            <span className="absolute size-20 rounded-full bg-emerald-500/10 animate-ping" />
+            <Bike className="size-9 text-zinc-800" />
           </div>
-        ) : (
-          // Empty State when all orders accepted or queue empty
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center my-auto space-y-3">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-[#00C853] font-black text-2xl shadow-sm">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-            <h3 className="text-base font-black text-neutral-950">No Pending Orders</h3>
-            <p className="text-xs text-neutral-500 font-medium max-w-xs">
-              Queue is clear. Stay online on the Home Screen to receive instant new dispatches.
+
+          <div className="space-y-1">
+            <h3 className="text-base font-black text-zinc-900">
+              No Pending Orders in Queue
+            </h3>
+            <p className="text-xs text-zinc-500 font-medium max-w-xs leading-relaxed">
+              Your dispatch radar is active. Orders in your service zone will automatically ring here.
             </p>
-            <div className="flex gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => loadOffers()}
-                disabled={isLoading}
-                className="px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs rounded-xl shadow-xs active:scale-95 transition-all"
-              >
-                {isLoading ? "Checking..." : "🔄 Refresh Orders"}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate({ to: "/dashboard" })}
-                className="px-4 py-2.5 bg-[#00C853] hover:bg-[#00B248] text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all"
-              >
-                Go to Home Map
-              </button>
-            </div>
           </div>
-        )}
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => loadOffers()}
+              disabled={isLoading}
+              className="px-4 py-2.5 bg-white hover:bg-zinc-50 text-zinc-800 font-bold text-xs rounded-xl border border-zinc-200 shadow-xs active:scale-95 transition-all"
+            >
+              {isLoading ? "Checking..." : "🔄 Refresh Queue"}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all"
+            >
+              Back to Map
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 3. Strictly 2-Tab Bottom Navigation */}
       <RiderBottomNav active="orders" ordersBadgeCount={totalOrders} />
+
+      {/* Route Booking Modal */}
+      <CaptainRouteBookingModal
+        isOpen={isRouteModalOpen}
+        onClose={() => {
+          setIsRouteModalOpen(false);
+          loadRouteState();
+          loadOffers(true);
+        }}
+        onUpdated={(updated) => {
+          setRouteBooking(updated);
+          loadOffers(true);
+        }}
+      />
     </div>
   );
 }

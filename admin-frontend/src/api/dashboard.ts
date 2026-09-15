@@ -246,3 +246,54 @@ export async function fetchSystemHealth(): Promise<SystemHealthData> {
   return apiGetJson<SystemHealthData>("/api/admin/dashboard/system-health");
 }
 
+export type AutomationActivityItem = {
+  id: string;
+  automationType: string; // dispatch, otp, sla, finance, surge, notification, guard
+  title: string;
+  description: string;
+  orderId?: string;
+  orderCode?: string;
+  actorId?: string;
+  actorType?: string;
+  severity: "info" | "success" | "warning" | "danger";
+  durationMs?: number;
+  metadata?: Record<string, any>;
+  timestamp: string;
+  createdAt: string;
+};
+
+export type AutomationStats = {
+  totalEvents: number;
+  successRate: number;
+  activeEngines: number;
+  status: string;
+  counts: Record<string, number>;
+  breakdown: {
+    success: number;
+    warning: number;
+    danger: number;
+  };
+  timestamp: string;
+};
+
+/** GET /api/admin/automations/activity */
+export async function fetchAutomationActivity(type?: string, severity?: string, limit = 50): Promise<AutomationActivityItem[]> {
+  const params = new URLSearchParams();
+  if (type && type !== "all") params.set("type", type);
+  if (severity && severity !== "all") params.set("severity", severity);
+  if (limit) params.set("limit", String(limit));
+  const qs = params.toString();
+  return apiGetJson<AutomationActivityItem[]>(`/api/admin/automations/activity${qs ? `?${qs}` : ""}`);
+}
+
+/** GET /api/admin/automations/stats */
+export async function fetchAutomationStats(): Promise<AutomationStats> {
+  return apiGetJson<AutomationStats>("/api/admin/automations/stats");
+}
+
+/** POST /api/admin/automations/trigger */
+export async function triggerAutomation(payload: { engine: string; orderId?: string; leg?: string; city?: string }): Promise<any> {
+  return apiPostJson<any>("/api/admin/automations/trigger", payload);
+}
+
+

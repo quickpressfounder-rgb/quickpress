@@ -196,6 +196,16 @@ export const LEGAL_DOCUMENTS = [
       "Account and document issues: write to riders@quickpress.in or call the 24×7 rider helpline on 1800 200 4411.",
     ],
   },
+  {
+    id: "grievance",
+    title: "Grievance Redressal & Safety",
+    updatedOn: "10 Sep 2026",
+    body: [
+      "QuickPress maintains a 24x7 dedicated Captain grievance and emergency assistance desk.",
+      "In case of on-road emergency or harassment, trigger the SOS button in the app or call the Rider Helpline.",
+      "For statutory dispute escalations, write directly to official.quickpress@gmail.com (Nodal Officer, Consumer Protection Rules 2020).",
+    ],
+  },
 ] as const;
 
 export type LegalDocumentId = (typeof LEGAL_DOCUMENTS)[number]["id"];

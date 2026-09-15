@@ -1,4 +1,5 @@
 import { apiGetJson, apiPostJson } from "../core/transport";
+import { readSession } from "../core/session-store";
 
 export interface VerificationStep {
   id: string;
@@ -40,7 +41,16 @@ export interface RiderVerificationStatusResponse {
 
 /** GET /api/rider/verification-status — Fetch real-time verification and admin approval status. */
 export async function fetchRiderVerificationStatus(): Promise<RiderVerificationStatusResponse> {
-  return await apiGetJson<RiderVerificationStatusResponse>("/api/rider/verification-status");
+  const sess = readSession("rider") || readSession();
+  const riderId = (sess as any)?.account?.linkedId ?? (sess as any)?.account?.id ?? (sess as any)?.riderId ?? (sess as any)?.id ?? "";
+  const phone = (sess as any)?.account?.phone ?? (sess as any)?.phone ?? "";
+  const params = new URLSearchParams();
+  if (riderId) params.set("rider_id", riderId);
+  if (phone) params.set("phone", phone);
+  const qStr = params.toString();
+  return await apiGetJson<RiderVerificationStatusResponse>(
+    `/api/rider/verification-status${qStr ? `?${qStr}` : ""}`
+  );
 }
 
 /** POST /api/rider/verification/simulate-admin-approve — Instant approval for testing/demo. */

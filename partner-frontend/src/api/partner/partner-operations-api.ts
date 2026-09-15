@@ -36,13 +36,24 @@ export interface PartnerBankAccount {
 
 export interface PartnerGstReport {
   period: string;
+  partnerId?: string;
+  storeName?: string;
+  gstin?: string;
+  sacCode?: string;
   orderCount: number;
+  deliveredCount?: number;
   grossSales: number;
+  deliveredSales?: number;
   taxableValue: number;
+  gstRate?: number;
   cgst: number;
   sgst: number;
   totalGst: number;
   platformCommission: number;
+  gstOnCommission?: number;
+  itcClaimable?: number;
+  tcsGst?: number;
+  tds194o?: number;
   netPartnerPayout: number;
   generatedAt: string;
 }

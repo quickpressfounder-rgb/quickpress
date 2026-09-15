@@ -305,6 +305,8 @@ class BroadcastPayload(BaseModel):
     audience: Optional[str] = "All"
     title: Optional[str] = None
     message: Optional[str] = None
+    category: Optional[str] = None
+    channel: Optional[str] = None
 
 
 class SettingsUpdatePayload(BaseModel):

@@ -18,6 +18,7 @@ import { PartnerServicesProvider } from "../context/PartnerServicesContext";
 import { PartnerShopProvider } from "../context/PartnerShopContext";
 import { LanguageProvider } from "../lib/i18n";
 import { LanguageSelectionModal } from "../components/common/LanguageSelectionModal";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 configureSessionRole("partner");
 
@@ -137,6 +138,9 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Handles Android hardware back button and swipe back gestures gracefully step-by-step
+  useBackNavigation();
 
   useEffect(() => {
     import("@/api/core/onesignal").then((m) => m.initOneSignal()).catch(() => {});

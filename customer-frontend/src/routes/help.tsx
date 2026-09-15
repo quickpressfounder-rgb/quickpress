@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
   Clock,
@@ -525,6 +525,53 @@ function HelpScreen() {
                   <Headphones className="size-4" />
                   Call {contact?.phoneLabel}
                 </a>
+              </div>
+            </section>
+
+            {/* Legal & Compliance Quick Links */}
+            <section className="mt-6 mb-8 rounded-3xl border border-border bg-card p-5 shadow-soft">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield className="size-4 text-primary" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
+                  Statutory Policies & Grievance
+                </h3>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
+                QuickPress operations comply with the Consumer Protection (E-Commerce) Rules 2020 & IT Act 2000.
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "terms-of-service" }}
+                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
+                >
+                  <FileText className="size-3.5 text-primary shrink-0" />
+                  <span className="truncate">Terms & SLAs</span>
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "privacy-policy" }}
+                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
+                >
+                  <Shield className="size-3.5 text-emerald-600 shrink-0" />
+                  <span className="truncate">Privacy Policy</span>
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "cancellation-refund-policy" }}
+                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
+                >
+                  <RefreshCcw className="size-3.5 text-amber-600 shrink-0" />
+                  <span className="truncate">Refunds & Cancel</span>
+                </Link>
+                <Link
+                  to="/legal/$docSlug"
+                  params={{ docSlug: "grievance-redressal" }}
+                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
+                >
+                  <LifeBuoy className="size-3.5 text-blue-600 shrink-0" />
+                  <span className="truncate">Grievance Officer</span>
+                </Link>
               </div>
             </section>
 

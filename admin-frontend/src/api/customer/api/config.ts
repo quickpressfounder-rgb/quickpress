@@ -33,14 +33,25 @@ function readString(key: string): string {
 
 export function apiBaseUrl(): string {
   const custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-  if (custom) return custom;
 
   if (typeof window !== "undefined") {
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    if (isLocal) {
+      if (custom && !custom.includes("railway.app")) {
+        return custom;
+      }
+      return "http://localhost:8000";
+    }
+
     const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
     if (globalBase && typeof globalBase === "string") {
       return globalBase.trim().replace(/\/+$/, "");
     }
   }
+
+  if (custom) return custom;
 
   return "https://quickpress-api-production-3292.up.railway.app";
 }

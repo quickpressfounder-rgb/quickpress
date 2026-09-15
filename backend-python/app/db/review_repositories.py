@@ -324,9 +324,29 @@ class ReviewRepository:
                 order = await database.find_one("customer_orders", {"_id": order_id})
 
         if not order:
-            raise ValueError("Order not found")
+            now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            review_id = f"rev-rdr-{uuid.uuid4().hex[:10]}"
+            review_doc = {
+                "_id": review_id,
+                "id": review_id,
+                "orderId": order_id,
+                "orderCode": order_id.upper(),
+                "riderId": rider_id,
+                "riderName": "QuickPress Captain",
+                "sourceRole": "rider",
+                "customerRating": payload.customerRating,
+                "customerFeedback": payload.customerFeedback,
+                "customerTags": payload.customerTags,
+                "storeRating": payload.storeRating,
+                "storeFeedback": payload.storeFeedback,
+                "storeTags": payload.storeTags,
+                "createdAt": now_iso,
+            }
+            await database.insert_one(REVIEWS_COLLECTION, review_doc)
+            return review_doc
 
         ord_r_id = str(order.get("assignedRiderId") or order.get("riderId") or order.get("originalRiderId") or (order.get("rider") or {}).get("id") or "")
+
         if ord_r_id and ord_r_id != rider_id:
             # Check rides collection assignment
             ride_match = await database.find_one("rides", {"orderId": order.get("_id"), "riderId": rider_id})

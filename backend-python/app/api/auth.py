@@ -13,6 +13,7 @@ from app.config import get_settings
 _log = logging.getLogger(__name__)
 from app.core.deps import current_user
 from app.core.firebase import revoke_refresh_tokens, verify_id_token
+from app.core.anti_fraud import extract_device_id
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.db.client import database
 from app.db.repositories import otp_attempts, refresh_tokens, users
@@ -79,7 +80,7 @@ async def _issue_session(user: User) -> AuthSessionResponse:
 
 
 async def _login_with_firebase(
-    id_token: str, role: Role, provider: str | None = None, referral_code: str | None = None
+    id_token: str, role: Role, provider: str | None = None, referral_code: str | None = None, device_id: str | None = None
 ) -> AuthSessionResponse:
     identity = verify_id_token(id_token)
     if provider and identity.get("provider") and provider not in str(identity["provider"]):
@@ -96,7 +97,7 @@ async def _login_with_firebase(
         if referral_code:
             from app.db.referral_repositories import referral_repository
             try:
-                await referral_repository.apply_login_referral(user, referral_code)
+                await referral_repository.apply_login_referral(user, referral_code, device_id=device_id)
             except Exception:
                 pass
     except PermissionError as exc:
@@ -151,17 +152,18 @@ async def send_otp(payload: SendOtpRequest) -> SendOtpResponse:
 
 
 @router.post("/phone/verify", response_model=AuthSessionResponse)
-async def verify_phone(payload: VerifyPhoneRequest) -> AuthSessionResponse:
+async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSessionResponse:
     """Verifies Twilio OTP code or Firebase ID token and returns session."""
     from app.core.twilio_sms import verify_stored_otp
 
     settings = get_settings()
+    device_id = extract_device_id(request)
 
     # 1. Firebase ID Token Verification (if available)
     if payload.id_token and len(payload.id_token) > 50:
         try:
             return await _login_with_firebase(
-                payload.id_token, payload.role, provider="phone", referral_code=payload.referral_code
+                payload.id_token, payload.role, provider="phone", referral_code=payload.referral_code, device_id=device_id
             )
         except Exception:
             pass
@@ -228,7 +230,7 @@ async def verify_phone(payload: VerifyPhoneRequest) -> AuthSessionResponse:
     if payload.referral_code:
         from app.db.referral_repositories import referral_repository
         try:
-            await asyncio.wait_for(referral_repository.apply_login_referral(user, payload.referral_code), timeout=2.0)
+            await asyncio.wait_for(referral_repository.apply_login_referral(user, payload.referral_code, device_id=device_id), timeout=2.0)
         except Exception:
             pass
 
@@ -236,16 +238,18 @@ async def verify_phone(payload: VerifyPhoneRequest) -> AuthSessionResponse:
 
 
 @router.post("/google", response_model=AuthSessionResponse)
-async def google_login(payload: SocialLoginRequest) -> AuthSessionResponse:
+async def google_login(payload: SocialLoginRequest, request: Request) -> AuthSessionResponse:
+    device_id = extract_device_id(request)
     return await _login_with_firebase(
-        payload.id_token, payload.role, provider="google", referral_code=payload.referral_code
+        payload.id_token, payload.role, provider="google", referral_code=payload.referral_code, device_id=device_id
     )
 
 
 @router.post("/apple", response_model=AuthSessionResponse)
-async def apple_login(payload: SocialLoginRequest) -> AuthSessionResponse:
+async def apple_login(payload: SocialLoginRequest, request: Request) -> AuthSessionResponse:
+    device_id = extract_device_id(request)
     return await _login_with_firebase(
-        payload.id_token, payload.role, provider="apple", referral_code=payload.referral_code
+        payload.id_token, payload.role, provider="apple", referral_code=payload.referral_code, device_id=device_id
     )
 
 

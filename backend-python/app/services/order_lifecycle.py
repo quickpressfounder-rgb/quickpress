@@ -38,6 +38,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 from app.db.client import database
+from app.core.privacy import mask_phone
 
 ORDERS = "customer_orders"
 EVENTS = "order_events"
@@ -479,6 +480,11 @@ async def transition(
             asyncio.create_task(send_order_completion_email(updated))
         except Exception as err:
             logger.warning(f"Email invoice automation hook error: {err}")
+        try:
+            from app.db.loyalty_repositories import loyalty_repository
+            asyncio.create_task(loyalty_repository.issue_order_scratch_card(updated))
+        except Exception as err:
+            logger.warning(f"Loyalty scratch card delivery hook error: {err}")
 
     # Real Rider Delivery Stats & Earnings increment hook on order delivery / handover
     if target in (DELIVERED, COMPLETED, AT_PARTNER):
@@ -589,29 +595,136 @@ _RIDER_STAGES = [
 ]
 
 
+STATUS_PROGRESSION_RANK: Dict[str, int] = {
+    PLACED: 1,
+    PENDING: 1,
+    "pending": 1,
+    "new": 1,
+    "ORDER_CREATED": 1,
+    "order_created": 1,
+    PARTNER_ACCEPTED: 2,
+    "accepted": 2,
+    RIDER_SEARCHING: 3,
+    PICKUP_RIDER_ASSIGNED: 3,
+    RIDER_ASSIGNED: 3,
+    PICKUP_RIDER_ACCEPTED: 3,
+    RIDER_ACCEPTED: 3,
+    PICKUP_OTP_PENDING: 3,
+    PICKED_UP: 4,
+    AT_PARTNER: 4,
+    "dropped_at_partner": 4,
+    PROCESSING: 5,
+    IRONING: 5,
+    "washing": 5,
+    "dry_cleaning": 5,
+    READY_FOR_DELIVERY: 6,
+    READY: 6,
+    COMPLETED: 6,
+    DELIVERY_RIDER_ASSIGNED: 7,
+    DELIVERY_RIDER_ACCEPTED: 7,
+    DISPATCH_OTP_PENDING: 7,
+    OUT_FOR_DELIVERY: 7,
+    DELIVERY_OTP_PENDING: 7,
+    DELIVERED: 8,
+    CANCELLED: 99,
+}
+
+
 def _event_times(order: Dict[str, Any]) -> Dict[str, str]:
     times: Dict[str, str] = {}
+    created_at = (
+        order.get("createdAt")
+        or order.get("placedAt")
+        or order.get("created_at")
+        or order.get("placedOn")
+        or ""
+    )
+    if created_at:
+        times[PLACED] = created_at
+        times["placed"] = created_at
+        times[PENDING] = created_at
+        times["pending"] = created_at
+        times["pending_partner_acceptance"] = created_at
+        times["ORDER_CREATED"] = created_at
+        times["order_created"] = created_at
+        times["new"] = created_at
+
     for event in order.get("events") or []:
-        status = normalize_status(event.get("status"))
-        times.setdefault(status, event.get("at", ""))
+        raw_status = str(event.get("status") or "")
+        norm_status = normalize_status(raw_status)
+        at = event.get("at") or ""
+        if at:
+            times.setdefault(norm_status, at)
+            times.setdefault(raw_status, at)
+            if norm_status == PLACED or raw_status in ("pending_partner_acceptance", "placed", "ORDER_CREATED", "new"):
+                times["placed"] = at
+                times[PLACED] = at
+                times[PENDING] = at
+                times["pending_partner_acceptance"] = at
+
     return times
 
 
 def _timeline(order: Dict[str, Any], stages) -> List[Dict[str, Any]]:
     times = _event_times(order)
+    current = order_status(order)
+    current_rank = STATUS_PROGRESSION_RANK.get(current, 1)
+
+    created_at = (
+        order.get("createdAt")
+        or order.get("placedAt")
+        or order.get("created_at")
+        or order.get("placedOn")
+        or ""
+    )
+
     rows = []
+    prev_time = created_at
+
     for stage_id, label, statuses in stages:
         hit = next((times[s] for s in statuses if s in times), "")
+
+        stage_ranks = [STATUS_PROGRESSION_RANK.get(s, 0) for s in statuses if s in STATUS_PROGRESSION_RANK]
+        min_stage_rank = min(stage_ranks) if stage_ranks else 0
+
+        is_done = bool(hit)
+        if not is_done and current_rank != 99:
+            if stage_id in ("placed", "pending") or min_stage_rank <= 1:
+                is_done = True
+            elif min_stage_rank > 0 and current_rank >= min_stage_rank:
+                is_done = True
+
+        effective_time = hit
+        if not effective_time and is_done:
+            if stage_id in ("placed", "pending"):
+                effective_time = created_at
+            else:
+                effective_time = prev_time
+
+        if effective_time:
+            prev_time = effective_time
+
         rows.append({
             "id": stage_id,
             "label": label,
-            "time": hit or "",
-            "at": hit or "",
-            "done": bool(hit),
+            "time": effective_time or "",
+            "at": effective_time or "",
+            "done": is_done,
         })
-    if order_status(order) == CANCELLED:
-        cancel_time = times.get(CANCELLED) or order.get("cancelledAt") or order.get("updatedAt") or ""
-        reason = order.get("cancellationReason") or order.get("cancelledReason") or "Order cancelled"
+
+    if current == CANCELLED:
+        cancel_time = (
+            times.get(CANCELLED)
+            or order.get("cancelledAt")
+            or order.get("updatedAt")
+            or ""
+        )
+        reason = (
+            order.get("cancellationReason")
+            or order.get("cancelledReason")
+            or order.get("refundReason")
+            or "Order cancelled"
+        )
         rows.append({
             "id": "cancelled",
             "label": f"Cancelled — {reason}",
@@ -678,7 +791,9 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
         "orderId": order_id_of(order),
         "code": order.get("code") or order.get("order_code") or order_id_of(order),
         "customerName": c_name,
-        "customerPhone": c_phone,
+        "customerPhone": mask_phone(c_phone),
+        "customerPhoneMasked": mask_phone(c_phone),
+        "isNumberMasked": True,
         "status": PARTNER_STATUS.get(status, "new"),
         "canonicalStatus": status,
         "placedAt": order.get("createdAt") or order.get("placedAt") or "",
@@ -807,14 +922,18 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
         or now_iso()
     )
 
-    p_code = pickup_otp.get("code") if isinstance(pickup_otp, dict) else str(pickup_otp or "")
-    d_code = delivery_otp.get("code") if isinstance(delivery_otp, dict) else str(delivery_otp or "")
+    p_code = (
+        (pickup_otp.get("code") if isinstance(pickup_otp, dict) else str(pickup_otp or ""))
+        or str(order.get("pickupOtp") or "")
+    )
+    d_code = (
+        (delivery_otp.get("code") if isinstance(delivery_otp, dict) else str(delivery_otp or ""))
+        or str(order.get("deliveryOtp") or "")
+    )
     disp_code = (
-        dispatch_otp.get("code")
-        if isinstance(dispatch_otp, dict)
-        else str(
-            dispatch_otp
-            or order.get("dispatchOtp")
+        (dispatch_otp.get("code") if isinstance(dispatch_otp, dict) else str(dispatch_otp or ""))
+        or str(
+            order.get("dispatchOtp")
             or (order.get("reassignment") or {}).get("dispatchOtp")
             or (order.get("reassignment") or {}).get("handoverOtp")
             or ""
@@ -831,7 +950,10 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
         "canonicalStatus": status,
         "custody": order.get("custody", "customer"),
         "customerName": customer.get("name", "") or order.get("customerName", "") or "Customer",
-        "customerPhone": customer.get("phone", "") or order.get("customerPhone", "") or "",
+        "customerPhone": mask_phone(customer.get("phone", "") or order.get("customerPhone", "") or ""),
+        "customerPhoneMasked": mask_phone(customer.get("phone", "") or order.get("customerPhone", "") or ""),
+        "isNumberMasked": True,
+        "virtualCallAvailable": True,
         "partnerName": partner.get("name", "") or order.get("partnerName", "") or "QuickPress Laundry Store",
         "partnerPhone": partner.get("phone", "") or order.get("partnerPhone", "") or "",
         "partnerAddress": partner_addr,

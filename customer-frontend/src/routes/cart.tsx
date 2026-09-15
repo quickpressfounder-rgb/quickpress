@@ -18,6 +18,11 @@ import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { getCartState, setCartState } from "@/api/customer/cart-api";
 import type { CartLine } from "@/api/customer/cart-store";
+import {
+  fetchFinanceRules,
+  type FinancialRules,
+  DEFAULT_FINANCIAL_RULES,
+} from "@/api/customer/finance-api";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -139,14 +144,30 @@ function CartPage() {
     toast.info("Coupon removed.");
   };
 
-  // Pricing calculations
+  const [financeRules, setFinanceRules] = useState<FinancialRules>(DEFAULT_FINANCIAL_RULES);
+
+  useEffect(() => {
+    fetchFinanceRules().then(setFinanceRules);
+  }, []);
+
+  // Pricing calculations driven dynamically by Unified Finance Engine
   const itemsSubtotal = cart.lines.reduce((sum, item) => sum + item.price * item.qty, 0);
   const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round(item.price * 1.25) * item.qty, 0);
-  const deliveryFee = 0; // FREE Delivery
-  const handlingFee = itemsSubtotal > 0 ? 5 : 0;
-  const gst = Math.round(itemsSubtotal * 0.18);
-  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + gst - couponDiscount);
-  const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount;
+
+  const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
+  const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold;
+  const baseDeliveryFee = financeRules?.delivery?.slabs?.[0]?.fee ?? (financeRules?.delivery?.baseFee ?? 30);
+  const deliveryFee = itemsSubtotal > 0 ? (isFreeDelivery ? 0 : baseDeliveryFee) : 0;
+  const handlingFee = itemsSubtotal > 0 ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
+  const platformFee = itemsSubtotal > 0 ? (financeRules?.pricing?.platformFee ?? 10) : 0;
+
+  // 5% fabric laundry GST + 18% services GST (handling + platform + customer delivery fee)
+  const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
+  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
+  const gst = laundryGst + serviceGst;
+
+  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + gst - couponDiscount);
+  const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + (isFreeDelivery && itemsSubtotal > 0 ? baseDeliveryFee : 0);
 
   const displayedAddons = (dynamicAddons.length > 0 ? dynamicAddons : SUGGESTED_ADDONS)
     .filter((a) => !cart.lines.some((l) => l.id === (a.id || a._id || a.serviceId)))
@@ -174,20 +195,27 @@ function CartPage() {
   if (cart.lines.length === 0) {
     return (
       <main className="min-h-screen bg-white text-zinc-900 font-sans pb-12">
-        <div className="mx-auto max-w-md px-4">
-          <header className="flex items-center gap-3 py-3 border-b border-zinc-100">
+        <div className="mx-auto max-w-md">
+          <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
             <button
               type="button"
               aria-label="Go to Home"
-              onClick={() => navigate({ to: "/home" })}
-              className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 active:scale-95 cursor-pointer"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate({ to: "/home" });
+                }
+              }}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
             >
               <ArrowLeft className="size-5" />
             </button>
-            <h1 className="text-base font-black tracking-tight text-zinc-900">Your Cart</h1>
+            <h1 className="min-w-0 flex-1 truncate text-center text-sm font-bold tracking-tight text-foreground">Your Cart</h1>
+            <span className="size-10 shrink-0" />
           </header>
 
-          <div className="flex flex-col items-center justify-center pt-24 pb-16 text-center">
+          <div className="flex flex-col items-center justify-center pt-24 pb-16 px-4 text-center">
             <div className="flex size-20 items-center justify-center rounded-3xl bg-emerald-50 text-[#0c831f] shadow-sm mb-4">
               <ShoppingBag className="size-10 stroke-[1.75]" />
             </div>
@@ -210,38 +238,45 @@ function CartPage() {
 
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-900 font-sans pb-32">
-      <div className="mx-auto max-w-md px-4 pt-3 space-y-3">
-        {/* Top Header */}
-        <header className="flex items-center justify-between bg-white rounded-2xl p-3 border border-zinc-200/80 shadow-xs">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => navigate({ to: "/home" })}
-              className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 active:scale-95 cursor-pointer"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <div>
-              <h1 className="text-sm font-black text-zinc-900 tracking-tight">Review Cart</h1>
-              <p className="text-[11px] font-semibold text-[#0c831f] flex items-center gap-1">
-                <Zap className="size-3 fill-[#0c831f]" />
-                <span>Pickup in 15-30 mins</span>
-              </p>
-            </div>
-          </div>
-
+      {/* Top Header */}
+      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+        <div className="flex items-center gap-3">
           <button
             type="button"
+            aria-label="Go back"
             onClick={() => {
-              cart.clear();
-              toast.info("Cart cleared");
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate({ to: "/home" });
+              }
             }}
-            className="text-xs font-bold text-red-600 hover:text-red-700 active:scale-95 px-2 py-1 cursor-pointer"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
           >
-            Clear All
+            <ArrowLeft className="size-5" />
           </button>
-        </header>
+          <div>
+            <h1 className="text-sm font-black text-zinc-900 tracking-tight">Review Cart</h1>
+            <p className="text-[11px] font-semibold text-[#0c831f] flex items-center gap-1">
+              <Zap className="size-3 fill-[#0c831f]" />
+              <span>Pickup in 15-30 mins</span>
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            cart.clear();
+            toast.info("Cart cleared");
+          }}
+          className="text-xs font-bold text-red-600 hover:text-red-700 active:scale-95 px-2 py-1 cursor-pointer"
+        >
+          Clear All
+        </button>
+      </header>
+
+      <div className="mx-auto max-w-md px-4 pt-3 space-y-3">
 
         {/* Selected Items Card */}
         <section aria-label="Cart Items" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
@@ -416,9 +451,14 @@ function CartPage() {
 
         {/* Bill Summary */}
         <section aria-label="Bill Summary" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-2.5">
-          <h2 className="text-xs font-black uppercase tracking-wider text-zinc-500 border-b border-zinc-100 pb-2">
-            Bill Details
-          </h2>
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+            <h2 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+              Bill Details
+            </h2>
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+              Admin Finance Engine Active
+            </span>
+          </div>
 
           <div className="space-y-1.5 text-xs font-medium text-zinc-600">
             <div className="flex justify-between">
@@ -429,18 +469,29 @@ function CartPage() {
             <div className="flex justify-between items-center">
               <span>Delivery Partner Fee</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] line-through text-zinc-400">₹29</span>
-                <span className="font-bold text-[#0c831f] uppercase text-[10px]">FREE</span>
+                {isFreeDelivery ? (
+                  <>
+                    <span className="text-[10px] line-through text-zinc-400">₹{baseDeliveryFee}</span>
+                    <span className="font-black text-[#0c831f] uppercase text-[10px]">FREE</span>
+                  </>
+                ) : (
+                  <span className="font-bold text-zinc-900">₹{deliveryFee}</span>
+                )}
               </div>
             </div>
 
             <div className="flex justify-between">
-              <span>Handling Fee</span>
+              <span>Handling & Packaging</span>
               <span className="font-bold text-zinc-900">₹{handlingFee}</span>
             </div>
 
             <div className="flex justify-between">
-              <span>GST & Taxes (18%)</span>
+              <span>Platform Convenience Fee</span>
+              <span className="font-bold text-zinc-900">₹{platformFee}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>GST & Taxes (5% Laundry + 18% Fees)</span>
               <span className="font-bold text-zinc-900">₹{gst}</span>
             </div>
 
@@ -453,7 +504,7 @@ function CartPage() {
 
             <div className="border-t border-zinc-200 pt-2.5 flex justify-between items-center text-sm font-black text-zinc-900">
               <span>To Pay</span>
-              <span className="text-base text-zinc-900">₹{grandTotal}</span>
+              <span className="text-base text-zinc-900 font-black">₹{grandTotal}</span>
             </div>
           </div>
 

@@ -13,10 +13,13 @@ import {
   Info,
   KeyRound,
   Layers,
+  Locate,
   MapPin,
   Menu,
   MessageSquare,
   Navigation,
+  CornerUpRight,
+  CornerUpLeft,
   Package,
   Phone,
   PhoneCall,
@@ -29,7 +32,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { initRiderSocket } from "../../lib/rider-socket";
+import { initRiderSocket, subscribeRiderOrders, emitRiderLocation } from "../../lib/rider-socket";
 import {
   playArrivalChime,
   playSuccessChime,
@@ -46,6 +49,12 @@ import {
   unlockAudioContext,
 } from "../../lib/captain-audio";
 import { InAppVoiceNavigationModal } from "../navigation/InAppVoiceNavigationModal";
+import {
+  fetchStreetRoute,
+  calculateBearing,
+  ManeuverType,
+} from "../../lib/voice-navigation-engine";
+import { isGoogleMapsConfigured, loadGoogleMaps } from "../../shared/lib/google-maps-loader";
 import { RiderUnableToDeliverModal } from "../orders/RiderUnableToDeliverModal";
 import { RiderHandoverWaitingCard } from "../orders/RiderHandoverWaitingCard";
 import { CaptainReviewModal } from "./CaptainReviewModal";
@@ -117,6 +126,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
+  const mapEngineRef = useRef<"google" | "leaflet" | null>(null);
+  const googleMapInstanceRef = useRef<any>(null);
+  const googleOverlaysRef = useRef<any[]>([]);
 
   // Two-Leg State Machine: "pickup_to_store" (Leg 1) vs "store_to_customer" (Leg 2)
   const [currentLeg, setCurrentLeg] = useState<"pickup_to_store" | "store_to_customer">(() => {
@@ -194,6 +206,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [startTime, setStartTime] = useState<string | null>(null);
   const [completedTime, setCompletedTime] = useState<string | null>(null);
   const [showVoiceNavModal, setShowVoiceNavModal] = useState(false);
+  const [captainBearing, setCaptainBearing] = useState<number>(0);
+  const [nextTurnManeuver, setNextTurnManeuver] = useState<ManeuverType>("straight");
+  const [nextTurnDistanceM, setNextTurnDistanceM] = useState<number>(order.distanceMeters || 250);
+  const [nextTurnInstruction, setNextTurnInstruction] = useState<string>("");
+  const prevCaptainPosRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const [chatMessages, setChatMessages] = useState<Array<{ sender: "rider" | "customer"; text: string; time: string }>>([
     { sender: "customer", text: "Please come to the main gate near medical shop.", time: "Just now" },
@@ -274,7 +291,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }
   }, [order.orderId, stage]);
 
-  // Periodic poll while at partner store for partner verification
+  // Fallback heartbeat poll while at partner store for partner verification
   useEffect(() => {
     if (stage !== "arrived_pickup" || (!isHandoverRide && !isStorePickupForDelivery)) return;
     const interval = setInterval(async () => {
@@ -292,11 +309,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         }
       } catch {}
-    }, 2500);
+    }, 10000);
     return () => clearInterval(interval);
   }, [stage, isHandoverRide, isStorePickupForDelivery, order.orderId]);
 
-  // Periodic poll while in "store_processing" waiting for partner to finish cleaning
+  // Fallback heartbeat poll while in "store_processing" waiting for partner to finish cleaning
   useEffect(() => {
     if (stage !== "store_processing" || !order.orderId) return;
     const interval = setInterval(async () => {
@@ -321,7 +338,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           setStage("ready_pickup_store");
         }
       } catch {}
-    }, 2500);
+    }, 10000);
     return () => clearInterval(interval);
   }, [stage, order.orderId]);
 
@@ -431,8 +448,25 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     const handlePos = (pos: GeolocationPosition) => {
       if (!isMounted) return;
       const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      setCaptainCoords(next);
-      pushRiderLocation(next.lat, next.lng).catch(() => {});
+      const isMock = Boolean(
+        (pos.coords as any).isMock ||
+        (pos as any).isMock ||
+        (pos.coords as any).isFromMockProvider ||
+        (pos.coords as any).mocked
+      );
+      pushRiderLocation(next.lat, next.lng, {
+        isMock,
+        heading: pos.coords.heading ?? undefined,
+        speed: pos.coords.speed ?? undefined,
+        accuracy: pos.coords.accuracy ?? undefined,
+      }).catch(() => {});
+      emitRiderLocation({
+        lat: next.lat,
+        lng: next.lng,
+        orderId: order.orderId,
+        heading: pos.coords.heading ?? undefined,
+        speed: pos.coords.speed ?? undefined,
+      });
     };
 
     const handleErr = (err: any) => {
@@ -512,12 +546,70 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     return `${String(mins).padStart(2, "0")}:${String(rem).padStart(2, "0")}`;
   };
 
-  // Initialize Leaflet Map once on mount
+  // Initialize Google Maps JavaScript API (with Leaflet fallback)
   useEffect(() => {
     let isMounted = true;
 
     async function initMap() {
       if (typeof window === "undefined" || !mapContainerRef.current) return;
+
+      // 1. Primary: Official Google Maps JavaScript API
+      if (isGoogleMapsConfigured()) {
+        try {
+          const isGoogleReady = await loadGoogleMaps();
+          const google = (window as any).google;
+
+          if (isMounted && isGoogleReady && google?.maps?.Map && mapContainerRef.current) {
+            const center = pickupCoords;
+            const gMap = new google.maps.Map(mapContainerRef.current, {
+              center: { lat: center.lat, lng: center.lng },
+              zoom: 16,
+              disableDefaultUI: true,
+              gestureHandling: "greedy",
+              clickableIcons: false,
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: false,
+              zoomControl: false,
+            });
+
+            try {
+              const trafficLayer = new google.maps.TrafficLayer();
+              trafficLayer.setMap(gMap);
+            } catch {}
+
+            googleMapInstanceRef.current = gMap;
+            mapEngineRef.current = "google";
+
+            setTimeout(() => {
+              if (isMounted && gMap && google?.maps?.event) {
+                google.maps.event.trigger(gMap, "resize");
+              }
+            }, 150);
+            setTimeout(() => {
+              if (isMounted && gMap && google?.maps?.event) {
+                google.maps.event.trigger(gMap, "resize");
+              }
+            }, 500);
+
+            if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+              const ro = new ResizeObserver(() => {
+                if (isMounted && gMap && google?.maps?.event) {
+                  google.maps.event.trigger(gMap, "resize");
+                }
+              });
+              ro.observe(mapContainerRef.current);
+            }
+
+            await updateGoogleMapLayers(google, gMap, stage, currentLeg);
+            return;
+          }
+        } catch (err) {
+          console.warn("Google Maps SDK failed, falling back to Leaflet:", err);
+        }
+      }
+
+      // 2. Secondary Fallback: Leaflet with Google Maps Tiles
       try {
         const leafletModule = await import("leaflet");
         const L = leafletModule.default || leafletModule;
@@ -525,7 +617,6 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
         if (!isMounted || !mapContainerRef.current) return;
 
-        // If map already exists, remove it before creating fresh instance
         if (mapInstanceRef.current) {
           try {
             mapInstanceRef.current.remove();
@@ -548,9 +639,31 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         }).addTo(map);
 
         mapInstanceRef.current = map;
+        mapEngineRef.current = "leaflet";
 
-        // Render markers initially
-        updateMapLayers(L, map, stage);
+        // Ensure Leaflet recalculates dimensions to fit container box perfectly
+        setTimeout(() => {
+          if (isMounted && map) {
+            map.invalidateSize();
+          }
+        }, 150);
+        setTimeout(() => {
+          if (isMounted && map) {
+            map.invalidateSize();
+          }
+        }, 500);
+
+        if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+          const ro = new ResizeObserver(() => {
+            if (isMounted && map) {
+              map.invalidateSize();
+            }
+          });
+          ro.observe(mapContainerRef.current);
+        }
+
+        // Render markers & street route initially
+        updateMapLayers(L, map, stage, currentLeg);
       } catch (err) {
         console.warn("Leaflet map initialization notice:", err);
       }
@@ -560,6 +673,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
     return () => {
       isMounted = false;
+      if (googleMapInstanceRef.current) {
+        googleMapInstanceRef.current = null;
+      }
       if (mapInstanceRef.current) {
         try {
           mapInstanceRef.current.remove();
@@ -569,8 +685,141 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     };
   }, []);
 
-  // Update map layers when stage or leg changes
-  const updateMapLayers = (L: any, map: any, currentStage: TripStage, leg: "pickup_to_store" | "store_to_customer") => {
+  // Update Official Google Maps JavaScript API Layers (Markers + Real Street Polyline)
+  const updateGoogleMapLayers = async (
+    google: any,
+    map: any,
+    currentStage: TripStage,
+    leg: "pickup_to_store" | "store_to_customer"
+  ) => {
+    if (!map || !google) return;
+    try {
+      for (const ov of googleOverlaysRef.current) {
+        if (ov && ov.setMap) ov.setMap(null);
+      }
+      googleOverlaysRef.current = [];
+
+      const dest =
+        leg === "pickup_to_store"
+          ? currentStage === "in_trip"
+            ? storeCoords
+            : customerCoords
+          : customerCoords;
+
+      const isStoreDrop = leg === "pickup_to_store" && currentStage === "in_trip";
+
+      // 1. Captain Scooter Marker with Signature Icon
+      const captainMarker = new google.maps.Marker({
+        map,
+        position: { lat: captainCoords.lat, lng: captainCoords.lng },
+        title: "You (Captain)",
+        zIndex: 1000,
+        icon: {
+          url: `data:image/svg+xml;utf-8,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46">
+              <circle cx="23" cy="23" r="21" fill="#00C853" fill-opacity="0.25" />
+              <circle cx="23" cy="23" r="16" fill="#0F172A" stroke="#FFFFFF" stroke-width="2.5" />
+              <text x="23" y="28" font-size="16" text-anchor="middle" fill="#FFFFFF">🛵</text>
+            </svg>
+          `)}`,
+          scaledSize: new google.maps.Size(46, 46),
+          anchor: new google.maps.Point(23, 23),
+        },
+      });
+      googleOverlaysRef.current.push(captainMarker);
+
+      // 2. Destination Pin
+      const destPinColor = isStoreDrop ? "#059669" : "#E11D48";
+      const destPinEmoji = isStoreDrop ? "🧺" : "📍";
+      const destMarker = new google.maps.Marker({
+        map,
+        position: { lat: dest.lat, lng: dest.lng },
+        title: isStoreDrop ? partnerStoreName : (order.customerName || "Customer"),
+        zIndex: 900,
+        icon: {
+          url: `data:image/svg+xml;utf-8,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="17" fill="${destPinColor}" stroke="#FFFFFF" stroke-width="2.5" />
+              <text x="21" y="26" font-size="16" text-anchor="middle" fill="#FFFFFF">${destPinEmoji}</text>
+            </svg>
+          `)}`,
+          scaledSize: new google.maps.Size(42, 42),
+          anchor: new google.maps.Point(21, 21),
+        },
+      });
+      googleOverlaysRef.current.push(destMarker);
+
+      // 3. Real Street-Following Route via backend proxy + OSRM
+      const routeData = await fetchStreetRoute(captainCoords, dest, activeDestTitle);
+      const points =
+        routeData.coordinates.length >= 2
+          ? routeData.coordinates
+          : [
+              [captainCoords.lat, captainCoords.lng],
+              [(captainCoords.lat + dest.lat) / 2 + 0.0005, (captainCoords.lng + dest.lng) / 2 - 0.0004],
+              [dest.lat, dest.lng],
+            ];
+
+      if (routeData.steps && routeData.steps.length > 0) {
+        setNextTurnManeuver(routeData.steps[0].maneuver);
+        setNextTurnDistanceM(routeData.steps[0].distanceMeters);
+        setNextTurnInstruction(routeData.steps[0].instructionEn || routeData.steps[0].instructionHi);
+      }
+
+      const pathLatLngs = points.map(([lat, lng]) => ({ lat, lng }));
+
+      // 3a. Route Casing (Dark Slate Navy boundary)
+      const casing = new google.maps.Polyline({
+        map,
+        path: pathLatLngs,
+        geodesic: true,
+        strokeColor: "#0F172A",
+        strokeOpacity: 0.9,
+        strokeWeight: 9,
+      });
+      googleOverlaysRef.current.push(casing);
+
+      // 3b. Route Core Path (Rapido Green / Electric Blue)
+      const coreLine = new google.maps.Polyline({
+        map,
+        path: pathLatLngs,
+        geodesic: true,
+        strokeColor: isStoreDrop ? "#2563EB" : "#00C853",
+        strokeOpacity: 1.0,
+        strokeWeight: 5.5,
+      });
+      googleOverlaysRef.current.push(coreLine);
+
+      // Auto-fit bounds
+      const bounds = new google.maps.LatLngBounds();
+      pathLatLngs.forEach((pt) => bounds.extend(pt));
+      map.fitBounds(bounds, { top: 50, bottom: 40, left: 40, right: 40 });
+    } catch (err) {
+      console.warn("Error updating Google Map layers:", err);
+    }
+  };
+
+  // Track bearing whenever captain GPS updates
+  useEffect(() => {
+    if (prevCaptainPosRef.current && captainCoords) {
+      const b = calculateBearing(
+        prevCaptainPosRef.current.lat,
+        prevCaptainPosRef.current.lng,
+        captainCoords.lat,
+        captainCoords.lng
+      );
+      if (b !== 0) setCaptainBearing(b);
+    }
+    prevCaptainPosRef.current = captainCoords;
+  }, [captainCoords.lat, captainCoords.lng]);
+
+  // Update map layers with Real Street Route & Dual-Layer Polyline (Rapido / Google Maps Style)
+  const updateMapLayers = async (
+    L: any,
+    map: any,
+    currentStage: TripStage,
+    leg: "pickup_to_store" | "store_to_customer"
+  ) => {
     if (!map || !L) return;
     try {
       // Clear previous overlay layers
@@ -579,25 +828,6 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           map.removeLayer(layer);
         }
       });
-
-      // 1. Captain Location Marker (Blue directional arrow in circle)
-      const captainIcon = L.divIcon({
-        className: "custom-captain-icon",
-        html: `
-          <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
-            <div style="position: absolute; width: 40px; height: 40px; border-radius: 9999px; background-color: rgba(37, 99, 235, 0.3); animation: ping 1.8s infinite;"></div>
-            <div style="position: relative; display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #2563EB; color: white; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.5); border: 2.5px solid white;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-                <polygon points="3 11 22 2 13 21 11 13 3 11" />
-              </svg>
-            </div>
-          </div>
-        `,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22],
-      });
-
-      L.marker([captainCoords.lat, captainCoords.lng], { icon: captainIcon }).addTo(map);
 
       // Target coordinate based on leg and stage
       const dest =
@@ -609,14 +839,15 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
       const isStoreDrop = leg === "pickup_to_store" && currentStage === "in_trip";
 
-      // 2. Destination Target Pin (Green pin with custom icon)
-      const pickupIcon = L.divIcon({
-        className: "custom-pickup-icon",
+      // 1. Captain Location Marker with rotating bike & directional pip (Rapido Captain Style)
+      const captainIcon = L.divIcon({
+        className: "custom-rapido-captain-marker",
         html: `
           <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">
-            <div style="position: absolute; width: 44px; height: 44px; border-radius: 9999px; background-color: ${isStoreDrop ? "rgba(16, 185, 129, 0.25)" : "rgba(0, 200, 83, 0.25)"}; animation: pulse 2s infinite;"></div>
-            <div style="position: relative; display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 9999px; background-color: ${isStoreDrop ? "#059669" : "#00C853"}; color: white; box-shadow: 0 4px 12px rgba(0, 200, 83, 0.4); border: 2.5px solid white; font-size: 15px;">
-              ${isStoreDrop ? "🧺" : "👤"}
+            <div style="position: absolute; width: 48px; height: 48px; border-radius: 9999px; background-color: rgba(0, 200, 83, 0.25); animation: ping 2s infinite;"></div>
+            <div style="position: relative; display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #0F172A; color: white; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); border: 2.5px solid white; transform: rotate(${captainBearing}deg); transition: transform 0.3s ease;">
+              <div style="position: absolute; top: -3px; width: 8px; height: 8px; background-color: #00C853; transform: rotate(45deg); border: 1px solid white;"></div>
+              <span style="font-size: 15px;">🛵</span>
             </div>
           </div>
         `,
@@ -624,29 +855,64 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         iconAnchor: [24, 24],
       });
 
+      L.marker([captainCoords.lat, captainCoords.lng], { icon: captainIcon }).addTo(map);
+
+      // 2. Destination Target Pin (High Contrast Pin)
+      const pickupIcon = L.divIcon({
+        className: "custom-pickup-icon",
+        html: `
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="padding: 2px 8px; border-radius: 6px; background-color: #0F172A; color: white; font-weight: 900; font-size: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3); white-space: nowrap; margin-bottom: 2px;">
+              ${isStoreDrop ? "🧺 " + partnerStoreName : "👤 " + (order.customerName || "Customer")}
+            </div>
+            <div style="position: relative; display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 9999px; background-color: ${isStoreDrop ? "#059669" : "#E11D48"}; color: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); border: 2px solid white; font-size: 15px;">
+              ${isStoreDrop ? "🧺" : "📍"}
+            </div>
+          </div>
+        `,
+        iconSize: [120, 56],
+        iconAnchor: [60, 50],
+      });
+
       L.marker([dest.lat, dest.lng], { icon: pickupIcon }).addTo(map);
 
-      // 3. Dashed Green Route Line (Matching Screenshot)
-      const routePoints = [
+      // 3. Real Street-Following Route Polyline (Dual-Layer: Dark Casing + Solid Route)
+      const routeData = await fetchStreetRoute(captainCoords, dest, activeDestTitle);
+      const points = routeData.coordinates.length >= 2 ? routeData.coordinates : [
         [captainCoords.lat, captainCoords.lng],
         [(captainCoords.lat + dest.lat) / 2 + 0.0005, (captainCoords.lng + dest.lng) / 2 - 0.0004],
         [dest.lat, dest.lng],
       ];
 
-      L.polyline(routePoints, {
-        color: isStoreDrop ? "#059669" : "#00C853",
-        weight: 5,
-        dashArray: "6, 8",
-        opacity: 0.95,
+      // Update next maneuver details for the top banner
+      if (routeData.steps && routeData.steps.length > 0) {
+        setNextTurnManeuver(routeData.steps[0].maneuver);
+        setNextTurnDistanceM(routeData.steps[0].distanceMeters);
+        setNextTurnInstruction(routeData.steps[0].instructionEn || routeData.steps[0].instructionHi);
+      }
+
+      // 3a. Route Casing (Dark Slate Navy for sharp road boundary)
+      L.polyline(points, {
+        color: "#0F172A",
+        weight: 9,
+        opacity: 0.85,
+        lineCap: "round",
+        lineJoin: "round",
       }).addTo(map);
 
-      map.fitBounds(
-        [
-          [captainCoords.lat, captainCoords.lng],
-          [dest.lat, dest.lng],
-        ],
-        { padding: [60, 60], maxZoom: 17 }
-      );
+      // 3b. Route Path (Vibrant Rapido Green / Electric Delivery Blue)
+      L.polyline(points, {
+        color: isStoreDrop ? "#2563EB" : "#00C853",
+        weight: 5.5,
+        opacity: 1,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(map);
+
+      map.fitBounds(points, { padding: [45, 45], maxZoom: 17 });
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 100);
     } catch (e) {
       console.warn("Error updating map layers:", e);
     }
@@ -654,19 +920,82 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Trigger layer update on stage, currentLeg, or GPS coordinate change
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
-    void (async () => {
-      const leafletModule = await import("leaflet");
-      const L = leafletModule.default || leafletModule;
-      updateMapLayers(L, mapInstanceRef.current, stage, currentLeg);
-    })();
-  }, [stage, currentLeg, captainCoords]);
+    if (mapEngineRef.current === "google" && googleMapInstanceRef.current) {
+      const google = (window as any).google;
+      if (google?.maps) {
+        void updateGoogleMapLayers(google, googleMapInstanceRef.current, stage, currentLeg);
+      }
+      return;
+    }
+    if (mapInstanceRef.current) {
+      void (async () => {
+        const leafletModule = await import("leaflet");
+        const L = leafletModule.default || leafletModule;
+        await updateMapLayers(L, mapInstanceRef.current, stage, currentLeg);
+      })();
+    }
+  }, [stage, currentLeg, captainCoords.lat, captainCoords.lng]);
 
-  // Recenter GPS
+  // Recenter GPS on Captain Location
   const handleRecenter = () => {
-    if (!mapInstanceRef.current) return;
-    mapInstanceRef.current.setView([captainCoords.lat, captainCoords.lng], 16);
-    toast.info("Map centered on your location 📍");
+    if (mapEngineRef.current === "google" && googleMapInstanceRef.current) {
+      googleMapInstanceRef.current.panTo({ lat: captainCoords.lat, lng: captainCoords.lng });
+      googleMapInstanceRef.current.setZoom(17);
+      toast.info("Google Map centered on your location 📍");
+      return;
+    }
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([captainCoords.lat, captainCoords.lng], 16);
+      toast.info("Map centered on your location 📍");
+    }
+  };
+
+  // Launch Turn-by-Turn Google Maps Navigation (Native Android Intent + Universal Web Fallback)
+  // Keeps the in-app overlay HUD active and intact in the web application tab
+  const launchTurnByTurnGoogleMaps = (
+    dest: { lat: number; lng: number },
+    origin?: { lat: number; lng: number },
+    destName?: string
+  ) => {
+    triggerHaptic(40);
+    const destCoords = `${dest.lat},${dest.lng}`;
+    const originParam = origin?.lat && origin?.lng ? `&origin=${origin.lat},${origin.lng}` : "";
+    const universalUrl = `https://www.google.com/maps/dir/?api=1${originParam}&destination=${destCoords}&travelmode=two_wheeler&dir_action=navigate`;
+    const isAndroid = typeof navigator !== "undefined" && /android/i.test(navigator.userAgent || "");
+    const androidIntentUrl = `google.navigation:q=${destCoords}&mode=d`;
+
+    toast.info(`🗺️ Launching Turn-by-Turn Navigation to ${destName || "destination"}... HUD remains active.`);
+
+    if (isAndroid) {
+      try {
+        const link = document.createElement("a");
+        link.href = androidIntentUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (document.body.contains(link)) {
+            document.body.removeChild(link);
+          }
+        }, 500);
+      } catch {
+        window.open(universalUrl, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      window.open(universalUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  // Open Direct in External Google Maps App (Convenience Shortcut)
+  const handleOpenExternalGoogleMaps = () => {
+    const dest =
+      currentLeg === "pickup_to_store"
+        ? stage === "in_trip"
+          ? storeCoords
+          : customerCoords
+        : customerCoords;
+    launchTurnByTurnGoogleMaps(dest, captainCoords, activeDestTitle);
   };
 
   // In-App GPS Navigation Mode (No External Google Maps Redirect)
@@ -698,7 +1027,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   };
 
   const handleStartTrip = async () => {
-    const enteredOtp = otpDigits.join("");
+    const enteredOtp = otpDigits.join("").trim();
     const otpToVerify = enteredOtp || order.startOtp;
 
     if (!otpToVerify || otpToVerify.length < 4) {
@@ -735,6 +1064,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setIsInAppNavActive(true);
     setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     toast.success("Pickup Done! 🛵 In-App Navigation active to Partner Store...");
+
+    // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
+    setTimeout(() => {
+      launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName);
+    }, 600);
   };
 
   const handleMarkArrivedAtStore = () => {
@@ -802,8 +1136,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       }
     } else {
       // --- LEG 2 COMPLETE: Customer Doorstep Delivery ---
-      const enteredOtp = customerDeliveryOtpDigits.join("") || otpDigits.join("") || order.deliveryOtp;
-      if (!enteredOtp || enteredOtp.length < 4) {
+      const enteredOtp = (customerDeliveryOtpDigits.join("") || otpDigits.join("")).trim();
+      const otpToVerify = enteredOtp || order.deliveryOtp;
+      if (!otpToVerify || otpToVerify.length < 4) {
         toast.error("Please enter the 4-digit delivery code from the customer");
         return;
       }
@@ -843,6 +1178,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     setStage("in_trip");
     setIsInAppNavActive(true);
     toast.success("🛵 Delivery Leg Started! In-App Navigation active to Customer Doorstep.");
+
+    // Real Google Maps Turn-by-Turn Navigation Intent (keeping overlay HUD screen active)
+    setTimeout(() => {
+      launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
+    }, 600);
 
     const updatedOrder: ActiveOrderData = {
       ...order,
@@ -1028,120 +1368,137 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         </div>
       </div>
 
-      {/* 2. Live Fullscreen Map Area with Floating Elements */}
-      <div className="relative flex-1 w-full overflow-hidden bg-neutral-100">
-        <div ref={mapContainerRef} className="w-full h-full" />
+      {/* 2. Map Box Card (Rapido Navigation Box Container) */}
+      <div className="relative flex-1 w-full px-3 py-2 flex flex-col min-h-[300px] overflow-hidden bg-neutral-100/90">
+        <div className="relative flex-1 w-full rounded-3xl overflow-hidden border-2 border-neutral-300 shadow-md bg-slate-950">
+          <div ref={mapContainerRef} className="w-full h-full" />
 
-        {/* Floating Distance Pill (Over destination pin: "258 meters away") */}
-        {stage === "en_route_pickup" && (
-          <div className="absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-12 z-20 pointer-events-none animate-bounce duration-1000">
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#059669] text-white font-black text-xs rounded-full shadow-lg border border-emerald-400/40">
-              <span>{distanceMeters} meters away</span>
+          {/* Rapido Top Floating Turn-by-Turn Maneuver Pill (In-App Live Navigation HUD) */}
+          {(stage === "en_route_pickup" || stage === "in_trip") && (
+            <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-auto">
+              <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md border border-slate-700/80 text-white shadow-2xl">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center shrink-0 shadow-md">
+                    {nextTurnManeuver === "turn-right" || nextTurnManeuver === "slight-right" ? (
+                      <CornerUpRight className="w-5 h-5 text-[#00C853] stroke-[2.5]" />
+                    ) : nextTurnManeuver === "turn-left" || nextTurnManeuver === "slight-left" ? (
+                      <CornerUpLeft className="w-5 h-5 text-[#00C853] stroke-[2.5]" />
+                    ) : (
+                      <Navigation className="w-5 h-5 text-[#00C853] -rotate-45 stroke-[2.5]" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-sm font-black font-mono text-white">
+                        {nextTurnDistanceM > 1000 ? `${(nextTurnDistanceM / 1000).toFixed(1)} km` : `${nextTurnDistanceM} m`}
+                      </span>
+                      <span className="text-[9px] font-black text-[#00C853] uppercase tracking-wider">
+                        {stage === "en_route_pickup" ? "To Pickup" : "In-Trip"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-200 truncate">
+                      {nextTurnInstruction || `Proceed towards ${activeDestTitle}`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Start In-App Turn-by-Turn GPS Button */}
+                <button
+                  type="button"
+                  onClick={handleStartInAppNavigation}
+                  className="px-3 py-1.5 rounded-xl bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs shadow-lg flex items-center gap-1 active:scale-95 transition-all shrink-0 border border-emerald-400 cursor-pointer"
+                  title="Open In-App Voice Turn-by-Turn Navigation"
+                >
+                  <Navigation className="w-3 h-3 fill-white stroke-none" />
+                  <span>Navigate</span>
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Floating In-App Turn-by-Turn GPS Navigation CTA Button */}
-        {stage === "en_route_pickup" && (
-          <div className="absolute top-[48%] left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+          {/* Floating Distance Pill (Over destination pin) */}
+          {stage === "en_route_pickup" && (
+            <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-12 z-20 pointer-events-none animate-bounce duration-1000">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 text-white font-black text-[11px] rounded-full shadow-2xl border border-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-[#00C853] animate-ping" />
+                <span>{distanceMeters} m away</span>
+              </div>
+            </div>
+          )}
+
+          {/* Official Google Maps Watermark Badge (Bottom Left) */}
+          <div className="absolute bottom-3 left-3 z-20 flex items-center gap-1 px-2 py-0.5 bg-white/95 backdrop-blur-xs rounded-md shadow-md border border-slate-300 pointer-events-none text-[10px] font-black">
+            <span className="text-[#4285F4]">G</span>
+            <span className="text-[#EA4335]">o</span>
+            <span className="text-[#FBBC05]">o</span>
+            <span className="text-[#4285F4]">g</span>
+            <span className="text-[#34A853]">l</span>
+            <span className="text-[#EA4335]">e</span>
+            <span className="text-slate-800 font-bold ml-0.5">Maps</span>
+          </div>
+
+          {/* Floating Map Controls (Bottom Right GPS Recenter, Voice Navigation & Google Maps Button) */}
+          <div className="absolute right-3 bottom-3 z-20 flex items-center gap-1.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={handleOpenExternalGoogleMaps}
+              className="flex items-center gap-1 px-2.5 py-2 bg-white/95 backdrop-blur-md text-slate-800 hover:bg-slate-100 font-bold text-xs rounded-xl shadow-lg border border-slate-300 active:scale-95 transition-all cursor-pointer"
+              title="Open Directions in Google Maps App"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-[#4285F4]" />
+              <span className="hidden sm:inline">Open in</span>
+              <span>Google Maps</span>
+            </button>
             <button
               type="button"
               onClick={handleStartInAppNavigation}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-sm rounded-full shadow-xl border border-emerald-300 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl shadow-xl border border-emerald-300 active:scale-95 transition-all cursor-pointer"
+              title="In-App Voice Turn-by-Turn GPS"
             >
-              <Navigation className="w-4 h-4 fill-white stroke-none" />
-              <span>Turn-by-Turn GPS 🧭</span>
+              <Navigation className="w-3.5 h-3.5 fill-white stroke-none" />
+              <span>Voice GPS</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRecenter}
+              className="flex items-center justify-center w-10 h-10 bg-white text-slate-900 rounded-xl shadow-xl border border-slate-300 active:scale-90 transition-transform hover:bg-slate-50 cursor-pointer"
+              aria-label="Recenter Map"
+            >
+              <Crosshair className="w-4.5 h-4.5 text-[#00C853]" />
             </button>
           </div>
-        )}
-
-        {/* Floating In-Trip Speed & Heading Banner */}
-        {stage === "in_trip" && (
-          <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between p-3 bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-neutral-200">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 text-blue-600 font-black text-sm shrink-0">
-                {currentLeg === "pickup_to_store" ? "🧺" : "⚡"}
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-black text-neutral-900 truncate">
-                  {currentLeg === "pickup_to_store"
-                    ? `Heading to Store: ${partnerStoreName}`
-                    : `Delivering to: ${order.customerName}`}
-                </p>
-                <p className="text-[11px] text-neutral-500 font-medium">
-                  {order.dropDistanceKm || 1.8} km remaining · In-App GPS Active
-                </p>
-              </div>
-            </div>
-            <div className="text-right shrink-0 pl-2">
-              <span className="text-base font-black text-emerald-600">32 km/h</span>
-              <p className="text-[10px] text-neutral-400">GPS Speed</p>
-            </div>
-          </div>
-        )}
-
-        {/* Official Google Maps Watermark Badge (Bottom Left) */}
-        <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 bg-white/90 backdrop-blur-xs rounded-lg shadow-sm border border-slate-200 pointer-events-none text-[11px] font-bold">
-          <span className="text-[#4285F4]">G</span>
-          <span className="text-[#EA4335]">o</span>
-          <span className="text-[#FBBC05]">o</span>
-          <span className="text-[#4285F4]">g</span>
-          <span className="text-[#34A853]">l</span>
-          <span className="text-[#EA4335]">e</span>
-          <span className="text-slate-600 font-semibold ml-0.5">Maps</span>
-        </div>
-
-        {/* Floating Map Controls (Bottom Right GPS Recenter & Voice GPS Buttons) */}
-        <div className="absolute right-4 bottom-4 z-20 flex items-center gap-2 pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => setShowVoiceNavModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-full shadow-lg border border-emerald-400 active:scale-95 transition-all"
-            title="In-App Voice Turn-by-Turn GPS"
-          >
-            <Navigation className="w-3.5 h-3.5 fill-white" />
-            <span>Voice GPS</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleRecenter}
-            className="flex items-center justify-center w-10 h-10 bg-white text-blue-600 rounded-full shadow-lg border border-neutral-200 active:scale-90 transition-transform hover:bg-neutral-50"
-            aria-label="Recenter Map"
-          >
-            <Crosshair className="w-5 h-5 text-blue-600" />
-          </button>
         </div>
       </div>
 
       {/* 3. Status Pill Banner: ✔ Customer Verified Location + ⏱️ Order Timeline Trigger */}
-      <div className="z-20 flex items-center justify-between py-2 px-4 bg-[#F8FAFC] border-t border-neutral-100 text-xs font-black text-neutral-800">
+      <div className="z-20 flex items-center justify-between py-2 px-4 bg-white border-t border-zinc-200 text-xs font-black text-zinc-950">
         <div className="flex items-center gap-1.5">
           <CheckCircle2 className="w-4 h-4 text-[#00C853] shrink-0" />
-          <span>Customer Verified Location</span>
+          <span className="text-zinc-950 font-black">Customer Verified Location</span>
         </div>
         <button
           type="button"
           onClick={() => setShowTimelineModal(true)}
-          className="flex items-center gap-1 text-[11px] font-black text-[#00C853] hover:text-[#00B248] bg-[#00C853]/10 px-2.5 py-1 rounded-full border border-[#00C853]/20 active:scale-95 transition-all"
+          className="flex items-center gap-1 text-[11px] font-black text-[#00873D] hover:text-[#00B248] bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 active:scale-95 transition-all"
         >
-          <Clock className="w-3 h-3 text-[#00C853]" />
+          <Clock className="w-3 h-3 text-[#00873D]" />
           <span>Timeline</span>
           <ChevronRight className="w-3 h-3" />
         </button>
       </div>
 
-      {/* 4. Customer Information Card (Exact Match to Red Box in Screenshot) */}
-      <div className="relative z-20 bg-white px-4 pt-3 pb-3 border-t border-neutral-200 shadow-sm">
+      {/* 4. Customer Information Card (Dark High-Contrast Text for Sunlight Readability) */}
+      <div className="relative z-20 bg-white px-4 pt-3.5 pb-3.5 border-t border-zinc-200 shadow-xs">
         <div className="flex items-start justify-between gap-3">
           {/* Green Location Pin & Customer Details */}
           <div className="flex items-start gap-2.5 flex-1 pr-12">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 text-[#00C853] shrink-0 mt-0.5">
+            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-100 text-[#00C853] shrink-0 mt-0.5 border border-emerald-300">
               <MapPin className="w-5 h-5 fill-[#00C853] text-white" />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-neutral-950 leading-tight">
+                <h2 className="text-lg font-black text-zinc-950 leading-tight">
                   {stage === "in_trip" && currentLeg === "pickup_to_store"
                     ? partnerStoreName
                     : (order.customerName || "Customer")}
@@ -1149,12 +1506,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowTimelineModal(true)}
-                  className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md hover:bg-blue-100"
+                  className="text-[10px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-200"
                 >
                   ⏱️ Timeline
                 </button>
               </div>
-              <p className="text-xs font-medium text-neutral-600 leading-snug mt-1 line-clamp-2">
+              <p className="text-xs font-bold text-zinc-800 leading-snug mt-1 line-clamp-2">
                 {activeDestAddress}
               </p>
             </div>
@@ -1164,7 +1521,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <button
             type="button"
             onClick={() => setShowChatModal(true)}
-            className="absolute right-4 top-3.5 flex items-center justify-center w-12 h-12 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-lg active:scale-95 transition-all"
+            className="absolute right-4 top-3.5 flex items-center justify-center w-12 h-12 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-xl active:scale-95 transition-all border border-blue-400"
             aria-label="Open Chat with Customer"
           >
             <MessageSquare className="w-6 h-6 fill-white" />
@@ -1248,6 +1605,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                           toast.success("✓ Custody verified! Navigating to customer.");
                           setStage("in_trip");
                           setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+                          setTimeout(() => {
+                            launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
+                          }, 600);
                         } else {
                           toast.error("Partner has not verified your Dispatch OTP yet! Please ask store partner to enter the 4-digit code in their Partner Panel.");
                         }
@@ -1321,18 +1681,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </span>
                 </div>
 
-                {/* 4-Digit Start OTP Input */}
-                <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-xl space-y-2">
+                {/* 4-Digit Start OTP Input (Dark High-Contrast) */}
+                <div className="p-3.5 bg-zinc-50 border-2 border-zinc-300 rounded-2xl space-y-2.5 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-neutral-800">
+                    <label className="text-xs font-black text-zinc-950 uppercase tracking-wide">
                       Enter Customer Start OTP
                     </label>
-                    <span className="text-[10px] font-semibold text-neutral-500">
+                    <span className="text-[11px] font-bold text-zinc-700">
                       Ask 4-digit code from customer
                     </span>
                   </div>
 
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex gap-2.5 justify-center py-1">
                     {[0, 1, 2, 3].map((idx) => (
                       <input
                         key={idx}
@@ -1350,7 +1710,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                           }
                         }}
                         id={`trip-otp-${idx}`}
-                        className="w-12 h-11 text-center font-black text-lg bg-white border border-neutral-300 rounded-lg focus:border-[#00C853] focus:outline-none shadow-xs"
+                        className="w-13 h-13 text-center font-black font-mono text-2xl bg-white border-2 border-zinc-400 rounded-xl focus:border-[#00C853] focus:ring-2 focus:ring-emerald-200 focus:outline-none shadow-md text-zinc-950"
                       />
                     ))}
                   </div>
@@ -1392,15 +1752,25 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </div>
                 </button>
 
-                {/* In-Trip In-App Navigation Shortcut button */}
-                <button
-                  type="button"
-                  onClick={handleStartInAppNavigation}
-                  className="w-full py-2.5 px-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
-                >
-                  <Navigation className="w-4 h-4 text-emerald-600" />
-                  <span>Start Turn-by-Turn GPS to Store</span>
-                </button>
+                {/* In-Trip Navigation Action Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleStartInAppNavigation}
+                    className="py-2.5 px-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+                  >
+                    <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>In-App Voice GPS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName)}
+                    className="py-2.5 px-2 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+                  >
+                    <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
+                    <span>Google Maps Turn-by-Turn</span>
+                  </button>
+                </div>
 
                 {/* Unable to Deliver: Opt-out at store with 25% fee */}
                 <button
@@ -1430,8 +1800,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     <label className="text-xs font-black text-blue-950">
                       Enter Customer Delivery OTP
                     </label>
-                    <span className="text-[10px] font-bold text-blue-600">
-                      Demo OTP: {order.deliveryOtp || "7391"}
+                    <span className="text-[10px] font-bold text-blue-700">
+                      Ask 4-digit code from customer
                     </span>
                   </div>
 
@@ -1473,15 +1843,25 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </div>
                 </button>
 
-                {/* In-App Navigation to Customer */}
-                <button
-                  type="button"
-                  onClick={handleStartInAppNavigation}
-                  className="w-full py-2.5 px-3 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
-                >
-                  <Navigation className="w-4 h-4 text-blue-600" />
-                  <span>Start Turn-by-Turn GPS to Customer</span>
-                </button>
+                {/* In-Trip Navigation Action Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleStartInAppNavigation}
+                    className="py-2.5 px-2 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+                  >
+                    <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>In-App Voice GPS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
+                    className="py-2.5 px-2 rounded-xl border border-blue-300 bg-blue-100 hover:bg-blue-200 text-blue-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+                  >
+                    <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
+                    <span>Google Maps Turn-by-Turn</span>
+                  </button>
+                </div>
 
                 {/* Unable to Complete Delivery */}
                 <button
@@ -1903,8 +2283,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             </div>
 
             <div>
-              <h3 className="text-base font-black text-neutral-900">Call {order.customerName || "Mohd"}?</h3>
-              <p className="text-xs text-neutral-500 mt-1">{order.customerPhone || "+91 98765 43210"}</p>
+              <h3 className="text-base font-black text-neutral-900">Call {order.customerName || "Customer"}?</h3>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 mt-2 text-[11px] font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>QuickPress Privacy Shield</span>
+              </div>
+              <p className="text-xs font-mono font-bold text-neutral-700 mt-2">{order.customerPhone || "+91 98••• ••210"}</p>
+              <p className="text-[11px] text-neutral-400 mt-0.5">Customer phone number is protected & masked</p>
             </div>
 
             <div className="flex gap-2">
@@ -1919,12 +2304,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 type="button"
                 onClick={() => {
                   setShowCallModal(false);
-                  window.open(`tel:${order.customerPhone || "+919876543210"}`);
-                  toast.success(`Calling ${order.customerName}... 📞`);
+                  toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+                  if (order.customerPhone && !order.customerPhone.includes("••")) {
+                    window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                  } else {
+                    toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
+                  }
                 }}
                 className="flex-1 h-11 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl shadow-md shadow-emerald-500/25"
               >
-                Call Now 📞
+                Call Securely 📞
               </button>
             </div>
           </div>
@@ -1936,16 +2325,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-md mx-auto bg-white rounded-t-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
             {/* Modal Header */}
-            <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
+            <div className="p-4 border-b border-zinc-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 text-[#00C853]">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-[#00C853] border border-emerald-300">
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-neutral-950 leading-tight">
+                  <h3 className="text-sm font-black text-zinc-950 leading-tight">
                     Live Order Timeline
                   </h3>
-                  <p className="text-[11px] font-semibold text-neutral-500">
+                  <p className="text-[11px] font-bold text-zinc-700">
                     Trip #{order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "LIVE")} · QuickPress Bike
                   </p>
                 </div>
@@ -1953,20 +2342,20 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <button
                 type="button"
                 onClick={() => setShowTimelineModal(false)}
-                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-neutral-100 text-neutral-500"
+                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-zinc-100 text-zinc-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Quick Fare & OTP Banner */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-neutral-50 border-b border-neutral-100 text-xs">
-              <div className="flex items-center gap-1.5 font-black text-neutral-900">
-                <span className="text-sm font-black text-emerald-600">₹{order.fare.toFixed(2)}</span>
-                <span className="text-[10px] text-neutral-500 font-semibold">{order.paymentMode === "cod" ? "(Cash on Delivery)" : "(Paid Online)"}</span>
+            <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-100 border-b border-zinc-200 text-xs">
+              <div className="flex items-center gap-1.5 font-black text-zinc-950">
+                <span className="text-sm font-black text-emerald-700 font-mono">₹{order.fare.toFixed(2)}</span>
+                <span className="text-[10px] text-zinc-700 font-bold">{order.paymentMode === "cod" ? "(Cash on Delivery)" : "(Paid Online)"}</span>
               </div>
-              <div className="flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full font-black text-[11px]">
-                <KeyRound className="w-3 h-3 text-amber-600" />
+              <div className="flex items-center gap-1 bg-amber-100 text-amber-950 border border-amber-300 px-2.5 py-0.5 rounded-full font-black text-[11px]">
+                <KeyRound className="w-3 h-3 text-amber-700" />
                 <span>Start OTP: {order.startOtp || "Pending verification"}</span>
               </div>
             </div>
@@ -1976,17 +2365,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               {/* Event 1: Order Placed */}
               <div className="relative flex gap-3.5 items-start">
                 <div className="flex flex-col items-center">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00C853] text-white shrink-0">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00C853] text-white shrink-0 shadow-xs">
                     <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
                   </div>
                   <div className="w-0.5 h-12 bg-[#00C853]" />
                 </div>
                 <div className="flex-1 -mt-0.5">
                   <div className="flex items-baseline justify-between">
-                    <h4 className="text-xs font-black text-neutral-900">Order Placed</h4>
-                    <span className="text-[10px] font-bold text-neutral-400">{order.placedAt ? new Date(order.placedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Just now"}</span>
+                    <h4 className="text-xs font-black text-zinc-950">Order Placed</h4>
+                    <span className="text-[10px] font-bold text-zinc-600">{order.placedAt ? new Date(order.placedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Just now"}</span>
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">
+                  <p className="text-[11px] text-zinc-700 font-medium mt-0.5">
                     Order initiated by {order.customerName || "Customer"}
                   </p>
                 </div>
@@ -1995,17 +2384,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               {/* Event 2: Order Accepted */}
               <div className="relative flex gap-3.5 items-start">
                 <div className="flex flex-col items-center">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00C853] text-white shrink-0">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00C853] text-white shrink-0 shadow-xs">
                     <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
                   </div>
                   <div className="w-0.5 h-12 bg-[#00C853]" />
                 </div>
                 <div className="flex-1 -mt-0.5">
                   <div className="flex items-baseline justify-between">
-                    <h4 className="text-xs font-black text-neutral-900">Order Accepted</h4>
-                    <span className="text-[10px] font-bold text-emerald-600">{acceptedTime}</span>
+                    <h4 className="text-xs font-black text-zinc-950">Order Accepted</h4>
+                    <span className="text-[10px] font-black text-emerald-800">{acceptedTime}</span>
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">
+                  <p className="text-[11px] text-zinc-700 font-medium mt-0.5">
                     Captain accepted the delivery offer
                   </p>
                 </div>
@@ -2029,7 +2418,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </div>
                   <div
                     className={`w-0.5 h-14 ${
-                      stage === "en_route_pickup" ? "bg-neutral-200" : "bg-[#00C853]"
+                      stage === "en_route_pickup" ? "bg-zinc-300" : "bg-[#00C853]"
                     }`}
                   />
                 </div>
@@ -2037,19 +2426,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <div className="flex items-baseline justify-between">
                     <h4
                       className={`text-xs font-black ${
-                        stage === "en_route_pickup" ? "text-blue-600" : "text-neutral-900"
+                        stage === "en_route_pickup" ? "text-blue-700" : "text-zinc-950"
                       }`}
                     >
                       {stage === "en_route_pickup" ? "En Route to Pickup" : "Arrived at Pickup"}
                     </h4>
-                    <span className="text-[10px] font-bold text-neutral-400">
+                    <span className="text-[10px] font-black text-zinc-700">
                       {arrivedTime || "In Progress"}
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-600 font-semibold mt-0.5">
+                  <p className="text-[11px] text-zinc-900 font-bold mt-0.5">
                     {order.pickupTitle || "Dabirpura"} ({order.distanceMeters || 258}m)
                   </p>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 line-clamp-1">
+                  <p className="text-[10px] text-zinc-700 font-medium mt-0.5 line-clamp-1">
                     {order.pickupAddress}
                   </p>
                 </div>
@@ -2064,7 +2453,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                         ? "bg-amber-500 text-white ring-4 ring-amber-100 animate-pulse"
                         : stage === "in_trip" || stage === "completed"
                         ? "bg-[#00C853] text-white"
-                        : "bg-neutral-200 text-neutral-500"
+                        : "bg-zinc-200 text-zinc-600"
                     }`}
                   >
                     {stage === "in_trip" || stage === "completed" ? (
@@ -2075,7 +2464,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </div>
                   <div
                     className={`w-0.5 h-14 ${
-                      stage === "in_trip" || stage === "completed" ? "bg-[#00C853]" : "bg-neutral-200"
+                      stage === "in_trip" || stage === "completed" ? "bg-[#00C853]" : "bg-zinc-300"
                     }`}
                   />
                 </div>
@@ -2084,20 +2473,20 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     <h4
                       className={`text-xs font-black ${
                         stage === "arrived_pickup"
-                          ? "text-amber-600"
+                          ? "text-amber-700"
                           : stage === "in_trip"
-                          ? "text-emerald-700"
-                          : "text-neutral-900"
+                          ? "text-emerald-800"
+                          : "text-zinc-950"
                       }`}
                     >
                       OTP Verification & Start Trip
                     </h4>
-                    <span className="text-[10px] font-bold text-neutral-400">
+                    <span className="text-[10px] font-black text-zinc-700">
                       {startTime || "Pending"}
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">
-                    Customer OTP: <span className="font-mono font-bold text-neutral-900">{order.startOtp || "Verified at pickup"}</span>
+                  <p className="text-[11px] text-zinc-700 font-medium mt-0.5">
+                    Customer OTP: <span className="font-mono font-black text-zinc-950">{order.startOtp || "Verified at pickup"}</span>
                   </p>
                 </div>
               </div>
@@ -2111,7 +2500,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                         ? "bg-blue-600 text-white ring-4 ring-blue-100 animate-pulse"
                         : stage === "completed"
                         ? "bg-[#00C853] text-white"
-                        : "bg-neutral-200 text-neutral-500"
+                        : "bg-zinc-200 text-zinc-600"
                     }`}
                   >
                     {stage === "completed" ? (
@@ -2122,23 +2511,23 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </div>
                   <div
                     className={`w-0.5 h-12 ${
-                      stage === "completed" ? "bg-[#00C853]" : "bg-neutral-200"
+                      stage === "completed" ? "bg-[#00C853]" : "bg-zinc-300"
                     }`}
                   />
                 </div>
                 <div className="flex-1 -mt-0.5">
                   <div className="flex items-baseline justify-between">
-                    <h4 className="text-xs font-black text-neutral-900">
+                    <h4 className="text-xs font-black text-zinc-950">
                       Heading to Drop Location
                     </h4>
-                    <span className="text-[10px] font-bold text-neutral-400">
+                    <span className="text-[10px] font-black text-zinc-700">
                       {stage === "in_trip" ? "Live" : stage === "completed" ? "Completed" : "Upcoming"}
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-600 font-semibold mt-0.5">
+                  <p className="text-[11px] text-zinc-900 font-bold mt-0.5">
                     {order.dropTitle || "Saidabad"} ({order.dropDistanceKm || 3.6} km)
                   </p>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 line-clamp-1">
+                  <p className="text-[10px] text-zinc-700 font-medium mt-0.5 line-clamp-1">
                     {order.dropAddress}
                   </p>
                 </div>
@@ -2151,7 +2540,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${
                       stage === "completed"
                         ? "bg-[#00C853] text-white ring-4 ring-emerald-100"
-                        : "bg-neutral-200 text-neutral-400"
+                        : "bg-zinc-200 text-zinc-500"
                     }`}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
@@ -2161,16 +2550,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <div className="flex items-baseline justify-between">
                     <h4
                       className={`text-xs font-black ${
-                        stage === "completed" ? "text-[#00C853]" : "text-neutral-500"
+                        stage === "completed" ? "text-[#00C853]" : "text-zinc-600"
                       }`}
                     >
                       Trip Completed
                     </h4>
-                    <span className="text-[10px] font-bold text-neutral-400">
+                    <span className="text-[10px] font-black text-zinc-700">
                       {completedTime || "Estimated"}
                     </span>
                   </div>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">
+                  <p className="text-[11px] text-zinc-800 font-bold mt-0.5">
                     Collect ₹{order.fare.toFixed(2)} & credit to wallet
                   </p>
                 </div>

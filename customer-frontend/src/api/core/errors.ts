@@ -15,7 +15,8 @@ export type ApiErrorKind =
   | "unauthorized"
   | "not-found"
   | "validation"
-  | "conflict";
+  | "conflict"
+  | "cancelled";
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
@@ -45,6 +46,8 @@ export class ApiError extends Error {
         return this.message || "Please check the details and try again.";
       case "conflict":
         return this.message || "That action is no longer possible.";
+      case "cancelled":
+        return this.message || "This operation was cancelled.";
       case "http":
         return this.status && this.status >= 500
           ? "QuickPress is having a moment. Please try again."

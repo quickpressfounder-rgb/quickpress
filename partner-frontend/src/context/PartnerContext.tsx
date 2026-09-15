@@ -17,6 +17,7 @@ import {
 } from "@/api/partner/partner-auth-api";
 import { toggleStoreStatus, fetchPartnerProfile } from "@/api/partner/partner-profile-api";
 import { initPartnerSocket, subscribePartnerStatus } from "@/lib/partner-socket";
+import { readSession, writeSession } from "@/api/core/session-store";
 
 type PartnerContextValue = {
   session: PartnerSession | null;
@@ -148,7 +149,29 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     await setOnline(!isOnline);
   }, [isOnline, setOnline]);
 
-  const signIn = useCallback((next: PartnerSession) => setSession(next), []);
+  const signIn = useCallback((next: PartnerSession) => {
+    setSession(next);
+    const curr = readSession("partner");
+    if (curr && curr.account) {
+      writeSession(
+        {
+          ...curr,
+          status: next.isVerified ? "active" : curr.status,
+          isVerified: Boolean(next.isVerified),
+          isOnboarded: Boolean(next.isOnboarded),
+          account: {
+            ...curr.account,
+            name: next.businessName || curr.account.name,
+            linkedId: next.partnerId || curr.account.linkedId,
+            isVerified: Boolean(next.isVerified),
+            isOnboarded: Boolean(next.isOnboarded),
+            status: next.isVerified ? "active" : curr.account.status,
+          },
+        },
+        "partner",
+      );
+    }
+  }, []);
   const signOut = useCallback(() => {
     setSession(null);
     if (typeof window !== "undefined") {

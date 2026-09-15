@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Gift,
   HelpCircle,
+  History,
   LogOut,
   MapPin,
   Navigation,
@@ -36,6 +37,12 @@ import {
 } from "../../lib/captain-audio";
 import { CaptainSupportModal } from "../support/CaptainSupportModal";
 import { CaptainGuidelinesModal } from "../support/CaptainGuidelinesModal";
+import { CaptainRouteBookingModal } from "../navigation/CaptainRouteBookingModal";
+import {
+  fetchRouteBookingState,
+  toggleRouteBooking,
+  type RouteBookingState,
+} from "../../api/rider/rider-route-booking-api";
 
 interface CaptainSidebarDrawerProps {
   isOpen: boolean;
@@ -64,12 +71,23 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
   const { signOut, session } = useRiderContext();
   const { t, selectedLanguageObj } = useLanguage();
 
-  const [myRouteBooking, setMyRouteBooking] = useState(false);
+  const [routeState, setRouteState] = useState<RouteBookingState | null>(null);
+  const [showRouteModal, setShowRouteModal] = useState(false);
+  const [routeToggleLoading, setRouteToggleLoading] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [isMuted, setIsMutedState] = useState(() => isAudioMuted());
   const [audioLang, setAudioLangState] = useState(() => getAudioLanguage());
+
+  // Load real route booking state on drawer open
+  useEffect(() => {
+    if (isOpen) {
+      void fetchRouteBookingState()
+        .then((res) => setRouteState(res))
+        .catch(() => undefined);
+    }
+  }, [isOpen]);
 
   const effectivePhoto =
     captainPhoto ||
@@ -207,19 +225,41 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
 
           {/* 2. Scrollable Middle Body (Route Booking + Navigation List) */}
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            {/* Route Booking Toggles */}
+            {/* Route Booking Interactive Card */}
             <div className="p-3 border-b border-neutral-100 bg-neutral-50/50">
-              <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-neutral-200/80 shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600">
-                    <Navigation className="w-4 h-4" />
+              <div
+                onClick={() => setShowRouteModal(true)}
+                className="flex items-center justify-between p-3 bg-white rounded-2xl border border-neutral-200/80 shadow-2xs hover:border-blue-300 transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                  <div
+                    className={`flex items-center justify-center size-8.5 rounded-xl shrink-0 transition-colors ${
+                      routeState?.isActive
+                        ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                        : "bg-blue-50 text-blue-600 border border-blue-200"
+                    }`}
+                  >
+                    <Navigation className="size-4.5" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-neutral-900 leading-tight">
-                      My Route Booking
-                    </h4>
-                    <p className="text-[10px] text-neutral-500 font-medium">
-                      Deliveries only on your home route
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-black text-neutral-900 leading-tight">
+                        My Route Booking
+                      </h4>
+                      <span
+                        className={`text-[9px] font-black px-1.5 py-0.2 rounded-full border ${
+                          routeState?.isActive
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                            : "bg-neutral-100 text-neutral-600 border-neutral-200"
+                        }`}
+                      >
+                        {routeState?.isActive ? "ACTIVE 🟢" : "OFF"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-neutral-500 font-medium truncate mt-0.5">
+                      {routeState?.isActive
+                        ? `Heading to ${routeState.destination?.name || "Home"} (±${routeState.maxDetourKm || 2} km)`
+                        : "Deliveries only on your home route"}
                     </p>
                   </div>
                 </div>
@@ -227,21 +267,40 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                 {/* iOS style toggle switch */}
                 <button
                   type="button"
-                  onClick={() => {
+                  disabled={routeToggleLoading}
+                  onClick={async (e) => {
+                    e.stopPropagation();
                     triggerHaptic();
-                    const next = !myRouteBooking;
-                    setMyRouteBooking(next);
-                    toast.success(
-                      next ? "Home Route Booking Enabled 🏠" : "Home Route Booking Disabled"
-                    );
+                    setRouteToggleLoading(true);
+                    try {
+                      const next = !routeState?.isActive;
+                      const res = await toggleRouteBooking(next);
+                      if (res.ok) {
+                        setRouteState(res.state);
+                        toast.success(
+                          next
+                            ? "Home Route Booking Enabled 🏠"
+                            : "Home Route Booking Disabled"
+                        );
+                      } else {
+                        toast.error(res.error || "Failed to toggle route booking");
+                        if (res.error?.includes("configure")) {
+                          setShowRouteModal(true);
+                        }
+                      }
+                    } catch {
+                      toast.error("Could not update Route Booking.");
+                    } finally {
+                      setRouteToggleLoading(false);
+                    }
                   }}
                   className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    myRouteBooking ? "bg-[#00C853]" : "bg-neutral-300"
-                  }`}
+                    routeState?.isActive ? "bg-[#00C853]" : "bg-neutral-300"
+                  } ${routeToggleLoading ? "opacity-60" : ""}`}
                 >
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      myRouteBooking ? "translate-x-5" : "translate-x-0"
+                      routeState?.isActive ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </button>
@@ -258,6 +317,15 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   onClick: () => {
                     onClose();
                     navigate({ to: "/orders" });
+                  },
+                },
+                {
+                  icon: Bell,
+                  title: "Notifications",
+                  sub: "Live alerts, dispatches & payouts",
+                  onClick: () => {
+                    onClose();
+                    navigate({ to: "/notifications" });
                   },
                 },
                 {
@@ -279,6 +347,15 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   },
                 },
                 {
+                  icon: History,
+                  title: "Order & Trip History",
+                  sub: "Delivered trips, OTP logs & payout receipts",
+                  onClick: () => {
+                    onClose();
+                    navigate({ to: "/history" });
+                  },
+                },
+                {
                   icon: TrendingUp,
                   title: t("incentives.title", "Incentives & Targets"),
                   sub: "Daily milestone bonus tracker & quests",
@@ -294,12 +371,6 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   onClick: () => {
                     setShowAudioModal(true);
                   },
-                },
-                {
-                  icon: Gift,
-                  title: "Rewards & Benefits",
-                  sub: "Super Captain fuel discounts",
-                  onClick: () => toast.info("Super Captain rewards active."),
                 },
                 {
                   icon: ShieldCheck,
@@ -506,6 +577,13 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
       <CaptainGuidelinesModal
         isOpen={showGuidelinesModal}
         onClose={() => setShowGuidelinesModal(false)}
+      />
+
+      {/* My Route Booking Engine Modal */}
+      <CaptainRouteBookingModal
+        isOpen={showRouteModal}
+        onClose={() => setShowRouteModal(false)}
+        onStateChange={(st) => setRouteState(st)}
       />
     </>
   );

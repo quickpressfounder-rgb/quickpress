@@ -63,13 +63,10 @@ async def get_invoice_pdf(
 ) -> Response:
     """Stream 3-page Tax Invoice & Payment Summary PDF matching Rapido enterprise design."""
     user: Optional[User] = None
-    tok = credentials.credentials if credentials else token
+    tok = credentials.credentials if credentials and credentials.credentials else token
     if tok:
         try:
-            payload = decode_token(tok, expected_type="access")
-            sub = str(payload.get("sub") or "")
-            if sub:
-                user = await users.by_id(sub)
+            user = await current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=tok))
         except Exception:
             pass
 
@@ -95,8 +92,20 @@ async def invoice_for_order(order_id: str, user: User = Depends(current_user)) -
 
 
 @router.get("/orders/{order_id}/invoice/pdf")
-async def order_invoice_pdf(order_id: str, user: User = Depends(current_user)) -> Response:
-    """Direct PDF download for any order."""
+async def order_invoice_pdf(
+    order_id: str,
+    token: Optional[str] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+) -> Response:
+    """Direct PDF download for any order (Customer or Partner)."""
+    user: Optional[User] = None
+    tok = credentials.credentials if credentials and credentials.credentials else token
+    if tok:
+        try:
+            user = await current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=tok))
+        except Exception:
+            pass
+
     try:
         invoice = await invoice_repository.for_order(user, order_id)
         pdf_bytes, file_name = await invoice_repository.get_pdf_bytes(user, invoice.id)

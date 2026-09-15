@@ -6,8 +6,8 @@ import {
   Wallet,
   UserRound,
   LogOut,
-  ShieldCheck,
-  Power,
+  TrendingUp,
+  Bell,
 } from "lucide-react";
 
 export function RiderSidebar({
@@ -28,8 +28,10 @@ export function RiderSidebar({
   const links = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
     { id: "orders", label: "Assigned Orders", icon: ClipboardList, to: "/orders" },
-    { id: "leaderboard", label: "City Leaderboard", icon: Trophy, to: "/leaderboard" },
     { id: "wallet", label: "Earnings & Payouts", icon: Wallet, to: "/wallet" },
+    { id: "incentives", label: "Incentives & Targets", icon: TrendingUp, to: "/incentives" },
+    { id: "leaderboard", label: "City Leaderboard", icon: Trophy, to: "/leaderboard" },
+    { id: "notifications", label: "Notifications", icon: Bell, to: "/notifications" },
     { id: "profile", label: "Captain Profile", icon: UserRound, to: "/profile" },
   ];
 

@@ -214,7 +214,7 @@ export function PartnerDashboardScreen() {
   const liveOrders = useMemo<LiveOrder[]>(
     () =>
       orders
-        .filter((order) => order.stage !== "completed" && order.stage !== "cancelled")
+        .filter((order) => order.stage !== "completed" && order.stage !== "delivered" && order.stage !== "cancelled")
         .slice(0, 8)
         .map((order) => ({
           id: order.id,
@@ -257,7 +257,19 @@ export function PartnerDashboardScreen() {
           quantity: it.qty || 1,
           unit: "pcs",
         })),
-        expressDelivery: Boolean(incoming.serviceLabel?.toLowerCase().includes("express")),
+        expressDelivery: Boolean(
+          (incoming as any).isExpress ||
+          (incoming as any).pickup?.express ||
+          incoming.serviceLabel?.toLowerCase().includes("express")
+        ),
+        isExpress: Boolean(
+          (incoming as any).isExpress ||
+          (incoming as any).pickup?.express ||
+          incoming.serviceLabel?.toLowerCase().includes("express")
+        ),
+        expressFee: Number((incoming as any).expressFee || (incoming as any).express_fee) || 40,
+        partnerExpressBonus: Number((incoming as any).partnerExpressBonus || (incoming as any).partner_express_bonus) || 8,
+        expressPartnerSharePercent: Number((incoming as any).expressPartnerSharePercent || (incoming as any).express_partner_share_percent) || 20,
       });
     } else {
       setActiveAlertOrder(null);

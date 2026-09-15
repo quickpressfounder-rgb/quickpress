@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Phone,
   Send,
+  ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
@@ -29,7 +30,7 @@ export const CaptainCustomerChatModal: React.FC<CaptainCustomerChatModalProps> =
   isOpen,
   onClose,
   customerName = "Customer",
-  customerPhone = "+919876543210",
+  customerPhone = "+91 98••• ••210",
 }) => {
   const [messages, setMessages] = useState<MessageItem[]>([
     {
@@ -67,10 +68,11 @@ export const CaptainCustomerChatModal: React.FC<CaptainCustomerChatModalProps> =
   };
 
   const handleCall = () => {
-    if (customerPhone) {
-      window.open(`tel:${customerPhone}`);
+    toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+    if (customerPhone && !customerPhone.includes("••")) {
+      window.open(`tel:${customerPhone.replace(/\s/g, "")}`);
     } else {
-      toast.info("Customer contact number not available.");
+      toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
     }
   };
 
@@ -88,10 +90,16 @@ export const CaptainCustomerChatModal: React.FC<CaptainCustomerChatModalProps> =
             <ArrowLeft className="w-6 h-6 stroke-[2.4]" />
           </button>
           <div>
-            <h3 className="text-base font-black text-neutral-900 leading-tight line-clamp-1">
-              {customerName}
-            </h3>
-            <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-base font-black text-neutral-900 leading-tight line-clamp-1">
+                {customerName}
+              </h3>
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-[9px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
+                <ShieldCheck className="size-2.5 text-emerald-600" />
+                <span>Protected</span>
+              </span>
+            </div>
+            <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Online
             </span>

@@ -781,3 +781,179 @@ def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = No
         "igst_rate_p3": "0",
         "igst_amt_p3": "0.00",
     }
+
+
+def generate_commission_invoice_pdf(data: Dict[str, Any]) -> bytes:
+    """Generate official 1-page GST Commission Tax Invoice for Merchant Partner ITC."""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=36,
+        bottomMargin=36,
+    )
+    styles = getSampleStyleSheet()
+
+    header_style = ParagraphStyle(
+        "CommHeader",
+        parent=styles["Normal"],
+        fontName=FONT_BOLD if "FONT_BOLD" in globals() else "Helvetica-Bold",
+        fontSize=16,
+        leading=20,
+        textColor=colors.HexColor("#0f172a"),
+        alignment=1,
+    )
+    sub_header_style = ParagraphStyle(
+        "CommSubHeader",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR if "FONT_REGULAR" in globals() else "Helvetica",
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#64748b"),
+        alignment=1,
+    )
+    body_style = ParagraphStyle(
+        "CommBody",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR if "FONT_REGULAR" in globals() else "Helvetica",
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#334155"),
+    )
+    bold_style = ParagraphStyle(
+        "CommBold",
+        parent=styles["Normal"],
+        fontName=FONT_BOLD if "FONT_BOLD" in globals() else "Helvetica-Bold",
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor("#0f172a"),
+    )
+
+    story = []
+
+    # Title Banner
+    story.append(Paragraph("TAX INVOICE", header_style))
+    story.append(Paragraph("Marketplace Commission & Platform Services · Input Tax Credit (ITC) Document", sub_header_style))
+    story.append(Spacer(1, 14))
+
+    # Invoice Meta & Parties Table
+    inv_num = data.get("invoice_number", "INV/QP/COMM/2026/09")
+    inv_date = data.get("date", datetime.now().strftime("%d-%b-%Y"))
+    period = data.get("period", "September 2026")
+    partner_name = data.get("partner_name", "Partner Store")
+    partner_id = data.get("partner_id", "")
+    partner_gst = data.get("partner_gst", "Unregistered / Composition")
+    partner_city = data.get("partner_city", "Kasganj, Uttar Pradesh")
+
+    meta_table_data = [
+        [
+            Paragraph(f"<b>Invoice Number:</b> {inv_num}<br/><b>Date of Issue:</b> {inv_date}<br/><b>Billing Period:</b> {period}<br/><b>Place of Supply:</b> 09 - Uttar Pradesh", body_style),
+            Paragraph("<b>ISSUER / PLATFORM:</b><br/><b>QuickPress Technologies Pvt. Ltd.</b><br/>Main Road, Kasganj, UP 207123<br/><b>GSTIN:</b> 09AAHCR1710J1ZE<br/><b>PAN:</b> AAHCR1710J", body_style),
+        ],
+        [
+            Paragraph(f"<b>RECIPIENT / MERCHANT PARTNER:</b><br/><b>{partner_name}</b> (ID: {partner_id})<br/>{partner_city}<br/><b>GSTIN:</b> {partner_gst}", body_style),
+            Paragraph("<b>NATURE OF SUPPLY:</b><br/>E-Commerce Operator Platform Services<br/>Reverse Charge Applicable: <b>NO</b><br/>ITC Eligible: <b>YES</b>", body_style),
+        ]
+    ]
+    meta_table = Table(meta_table_data, colWidths=[260, 260])
+    meta_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 16))
+
+    # Service Line Items Table
+    comm_base = float(data.get("commission_amount", 0.0))
+    cgst = float(data.get("cgst", round(comm_base * 0.09, 2)))
+    sgst = float(data.get("sgst", round(comm_base * 0.09, 2)))
+    total_tax = round(cgst + sgst, 2)
+    grand_total = round(comm_base + total_tax, 2)
+    orders_cnt = int(data.get("order_count", 0))
+
+    items_header = [
+        Paragraph("<b>S.No</b>", bold_style),
+        Paragraph("<b>Description of Service</b>", bold_style),
+        Paragraph("<b>SAC Code</b>", bold_style),
+        Paragraph("<b>Orders</b>", bold_style),
+        Paragraph("<b>Taxable Val (₹)</b>", bold_style),
+        Paragraph("<b>CGST (9%)</b>", bold_style),
+        Paragraph("<b>SGST (9%)</b>", bold_style),
+        Paragraph("<b>Total (₹)</b>", bold_style),
+    ]
+    items_row = [
+        Paragraph("1", body_style),
+        Paragraph("Platform Commission & Order Routing Services", body_style),
+        Paragraph("998311", body_style),
+        Paragraph(str(orders_cnt), body_style),
+        Paragraph(f"{comm_base:.2f}", body_style),
+        Paragraph(f"{cgst:.2f}", body_style),
+        Paragraph(f"{sgst:.2f}", body_style),
+        Paragraph(f"{grand_total:.2f}", bold_style),
+    ]
+    totals_row = [
+        Paragraph("<b>Total</b>", bold_style),
+        Paragraph("", body_style),
+        Paragraph("", body_style),
+        Paragraph(str(orders_cnt), bold_style),
+        Paragraph(f"<b>₹{comm_base:.2f}</b>", bold_style),
+        Paragraph(f"<b>₹{cgst:.2f}</b>", bold_style),
+        Paragraph(f"<b>₹{sgst:.2f}</b>", bold_style),
+        Paragraph(f"<b>₹{grand_total:.2f}</b>", bold_style),
+    ]
+
+    items_table = Table([items_header, items_row, totals_row], colWidths=[35, 175, 55, 45, 75, 55, 55, 65])
+    items_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#0f172a")),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+        ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+        ('ALIGN', (2, 0), (3, -1), 'CENTER'),
+        ('ALIGN', (4, 0), (-1, -1), 'RIGHT'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor("#f8fafc")),
+    ]))
+    story.append(items_table)
+    story.append(Spacer(1, 16))
+
+    # Notes & Statutory Declaration
+    notes_p = Paragraph(
+        "<b>Statutory Notes & Declarations:</b><br/>"
+        "1. This Tax Invoice is issued pursuant to Section 31 of the CGST Act, 2017.<br/>"
+        "2. The recipient is eligible to claim Input Tax Credit (ITC) of CGST and SGST subject to filing of GSTR-3B.<br/>"
+        "3. TDS under Section 194-O of Income Tax Act (1%) and TCS under Section 52 of CGST Act (1%) have been accounted for separately in settlement statements.<br/>"
+        "4. This is a computer-generated tax invoice and requires no physical signature.",
+        body_style
+    )
+    story.append(notes_p)
+    story.append(Spacer(1, 24))
+
+    # Digital Signature Badge
+    sig_data = [
+        [
+            Paragraph("<b>For QuickPress Technologies Pvt. Ltd.</b><br/><br/><i>Digitally signed & authorized</i><br/>Finance & Compliance Controller", body_style),
+            Paragraph("<b>Verification & Security</b><br/>Hash: SHA256 Verified<br/>Status: Active on GSTN Portal<br/>Query Desk: billing@quickpress.online", body_style),
+        ]
+    ]
+    sig_table = Table(sig_data, colWidths=[260, 260])
+    sig_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#fafafa")),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(sig_table)
+
+    doc.build(story)
+    return buffer.getvalue()

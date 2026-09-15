@@ -12,7 +12,6 @@ import {
   QrCode,
   RotateCcw,
   Search,
-  ShieldCheck,
   Shirt,
   Sparkles,
   Tag,
@@ -98,22 +97,41 @@ export function ManageServicesScreen() {
     }
   };
 
+  const pendingCount = useMemo(
+    () => services.filter((s) => s.pendingApproval || s.approvalStatus === "pending").length,
+    [services]
+  );
+  const rejectedCount = useMemo(
+    () => services.filter((s) => s.approvalStatus === "rejected").length,
+    [services]
+  );
+  const trueLiveCount = useMemo(
+    () => services.filter((s) => s.enabled && !s.pendingApproval && s.approvalStatus !== "pending" && s.approvalStatus !== "rejected").length,
+    [services]
+  );
+
   const CATEGORY_TABS = [
     { id: "all", label: `All (${services.length})` },
+    ...(pendingCount > 0 ? [{ id: "pending", label: `⏳ Pending (${pendingCount})` }] : []),
     { id: "wash", label: "Wash & Fold" },
     { id: "iron", label: "Steam Iron" },
     { id: "dry", label: "Dry Clean" },
     { id: "shoe", label: "Shoe Clean" },
     { id: "offers", label: `Offers (${offers.length})` },
-    { id: "paused", label: `Paused (${services.length - activeCount})` },
+    { id: "paused", label: `Paused (${services.length - trueLiveCount - pendingCount - rejectedCount})` },
+    ...(rejectedCount > 0 ? [{ id: "rejected", label: `❌ Rejected (${rejectedCount})` }] : []),
   ];
 
   const visible = useMemo(() => {
     let list = services;
     if (categoryFilter === "active") {
-      list = list.filter((s) => s.enabled);
+      list = list.filter((s) => s.enabled && !s.pendingApproval && s.approvalStatus !== "pending");
     } else if (categoryFilter === "paused") {
-      list = list.filter((s) => !s.enabled);
+      list = list.filter((s) => !s.enabled && !s.pendingApproval && s.approvalStatus !== "pending" && s.approvalStatus !== "rejected");
+    } else if (categoryFilter === "pending") {
+      list = list.filter((s) => s.pendingApproval || s.approvalStatus === "pending");
+    } else if (categoryFilter === "rejected") {
+      list = list.filter((s) => s.approvalStatus === "rejected");
     } else if (categoryFilter === "offers") {
       list = list.filter((s) => offersFor(s.id).length > 0);
     } else if (categoryFilter === "wash") {
@@ -147,7 +165,7 @@ export function ManageServicesScreen() {
     <PartnerLayout
       activeTab="services"
       title="Services & Rate Card"
-      subtitle={`${activeCount} of ${services.length} services live in customer catalog`}
+      subtitle={`${trueLiveCount} of ${services.length} services live in customer catalog`}
       searchQuery={query}
       onSearchChange={setQuery}
     >
@@ -251,14 +269,6 @@ export function ManageServicesScreen() {
           </div>
         </header>
 
-        {/* Admin Verification Notice */}
-        <div className="mx-4 mt-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-3 text-[11px] text-amber-900 flex items-start gap-2.5">
-          <ShieldCheck className="size-4 shrink-0 text-amber-700 mt-0.5" />
-          <p className="leading-relaxed">
-            <strong>Admin Approval Required:</strong> Adding new custom services or modifying pricing requires QuickPress Admin verification before going live in customer catalog.
-          </p>
-        </div>
-
         {/* Mobile Services Card List */}
         <div className="space-y-3 p-4">
           {isLoading ? (
@@ -295,14 +305,19 @@ export function ManageServicesScreen() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="flex size-7 items-center justify-center rounded-lg bg-amber-100 text-amber-800 text-xs font-black">
                           {icon}
                         </span>
                         <h3 className="truncate text-sm font-black text-zinc-900">{svc.name}</h3>
-                        {(svc as any).pendingApproval && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-800 shrink-0">
-                            ⏳ Under Review
+                        {(svc.pendingApproval || svc.approvalStatus === "pending") && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-800 shrink-0 border border-amber-300">
+                            ⏳ Pending Approval
+                          </span>
+                        )}
+                        {svc.approvalStatus === "rejected" && (
+                          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-black text-rose-800 shrink-0 border border-rose-300" title={svc.rejectionReason}>
+                            ❌ Rejected
                           </span>
                         )}
                       </div>
@@ -316,7 +331,11 @@ export function ManageServicesScreen() {
                         </span>
                       </div>
 
-                      {svc.description ? (
+                      {svc.rejectionReason && svc.approvalStatus === "rejected" ? (
+                        <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-rose-600 bg-rose-50 rounded-lg px-2 py-1">
+                          Reason: {svc.rejectionReason}
+                        </p>
+                      ) : svc.description ? (
                         <p className="mt-1 line-clamp-2 text-xs text-zinc-500 font-medium">
                           {svc.description}
                         </p>
@@ -333,22 +352,49 @@ export function ManageServicesScreen() {
                     <div className="flex flex-col items-end gap-2.5 shrink-0">
                       <button
                         type="button"
+                        disabled={Boolean(svc.pendingApproval || svc.approvalStatus === "pending" || svc.approvalStatus === "rejected")}
                         onClick={() => {
+                          if (svc.pendingApproval || svc.approvalStatus === "pending") {
+                            toast.error("Yeh service Admin verification ke liye pending hai. Admin approval ke baad hi live hogi!");
+                            return;
+                          }
+                          if (svc.approvalStatus === "rejected") {
+                            toast.error(`Service Admin ne reject kar di: ${svc.rejectionReason || "Please edit and resubmit."}`);
+                            return;
+                          }
                           const wasEnabled = svc.enabled;
                           void toggleService(svc.id)
                             .then(() => {
                               toast.success(`${svc.name} ${wasEnabled ? "paused" : "is now live"}`);
                             })
-                            .catch(() => toast.error("Failed to update status"));
+                            .catch((err) => toast.error(err?.message || "Failed to update status"));
                         }}
                         className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black transition-all ${
-                          svc.enabled
+                          svc.pendingApproval || svc.approvalStatus === "pending"
+                            ? "bg-amber-100 text-amber-900 border border-amber-300 cursor-not-allowed opacity-90"
+                            : svc.approvalStatus === "rejected"
+                            ? "bg-rose-100 text-rose-800 border border-rose-300 cursor-not-allowed opacity-90"
+                            : svc.enabled
                             ? "bg-emerald-500 text-white shadow-xs"
                             : "bg-zinc-200 text-zinc-600"
                         }`}
                       >
-                        <span className="size-2 rounded-full bg-white" />
-                        <span>{svc.enabled ? "LIVE" : "PAUSED"}</span>
+                        <span className={`size-2 rounded-full ${
+                          svc.pendingApproval || svc.approvalStatus === "pending"
+                            ? "bg-amber-500 animate-pulse"
+                            : svc.approvalStatus === "rejected"
+                            ? "bg-rose-500"
+                            : "bg-white"
+                        }`} />
+                        <span>
+                          {svc.pendingApproval || svc.approvalStatus === "pending"
+                            ? "PENDING"
+                            : svc.approvalStatus === "rejected"
+                            ? "REJECTED"
+                            : svc.enabled
+                            ? "LIVE"
+                            : "PAUSED"}
+                        </span>
                       </button>
 
                       <button

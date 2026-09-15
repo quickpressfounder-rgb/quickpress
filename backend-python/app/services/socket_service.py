@@ -122,27 +122,84 @@ async def leave_order(sid: str, data: dict) -> None:
 
 @sio.event
 async def update_location(sid: str, data: dict) -> None:
-    rider_id = (data or {}).get("riderId")
-    order_id = (data or {}).get("orderId")
-    coords = (data or {}).get("coords") or {
-        "lat": (data or {}).get("lat") or (data or {}).get("latitude"),
-        "lng": (data or {}).get("lng") or (data or {}).get("longitude"),
+    await _handle_location_update(sid, data)
+
+
+@sio.on("captain_location_update")
+async def captain_location_update(sid: str, data: dict) -> None:
+    await _handle_location_update(sid, data)
+
+
+@sio.on("location.update")
+async def location_update(sid: str, data: dict) -> None:
+    await _handle_location_update(sid, data)
+
+
+async def _handle_location_update(sid: str, data: dict) -> None:
+    from datetime import datetime, timezone
+    data = data or {}
+    rider_id = data.get("riderId")
+    order_id = data.get("orderId")
+    coords = data.get("coords") or {
+        "lat": data.get("lat") or data.get("latitude"),
+        "lng": data.get("lng") or data.get("longitude"),
     }
+    lat = float(coords.get("lat")) if coords.get("lat") is not None else None
+    lng = float(coords.get("lng")) if coords.get("lng") is not None else None
+    heading = data.get("heading")
+    speed = data.get("speed")
+    now_iso = datetime.now(timezone.utc).isoformat()
+
     payload = {
         "riderId": rider_id,
         "orderId": order_id,
-        "coords": coords,
-        "lat": coords.get("lat") if coords else None,
-        "lng": coords.get("lng") if coords else None,
-        "latitude": coords.get("lat") if coords else None,
-        "longitude": coords.get("lng") if coords else None,
-        "heading": (data or {}).get("heading"),
-        "speed": (data or {}).get("speed"),
+        "coords": {"lat": lat, "lng": lng},
+        "lat": lat,
+        "lng": lng,
+        "latitude": lat,
+        "longitude": lng,
+        "heading": heading,
+        "speed": speed,
+        "at": now_iso,
+        "updatedAt": now_iso,
     }
+
+    # If order_id not explicitly given, try to find active ride for this rider
+    if not order_id and rider_id:
+        try:
+            from app.db.client import database
+            active_ride = await database.find_one(
+                "rides",
+                {"riderId": str(rider_id), "status": {"$in": ["ACCEPTED", "STARTED", "ARRIVED", "IN_PROGRESS", "PICKED_UP", "OUT_FOR_DELIVERY"]}}
+            )
+            if active_ride and active_ride.get("orderId"):
+                order_id = active_ride["orderId"]
+                payload["orderId"] = order_id
+        except Exception:
+            pass
+
     if order_id:
         await sio.emit(EVENT_LOCATION_UPDATED, payload, room=f"order:{order_id}")
+        await sio.emit("captain_location_update", payload, room=f"order:{order_id}")
+
+    if rider_id:
+        await sio.emit(EVENT_LOCATION_UPDATED, payload, room=f"rider:{rider_id}")
+        await sio.emit("captain_location_update", payload, room=f"rider:{rider_id}")
+
     # Also broadcast to admins telemetry room
     await sio.emit(EVENT_LOCATION_UPDATED, payload, room="admins")
+    await sio.emit("captain_location_update", payload, room="admins")
+
+    # Update database location asynchronously
+    if rider_id and lat is not None and lng is not None:
+        try:
+            from app.db.client import database
+            await database.collection("rider_profiles").update_one(
+                {"_id": str(rider_id)},
+                {"$set": {"latitude": lat, "longitude": lng, "lastLocationAt": now_iso}},
+            )
+        except Exception:
+            pass
 
 
 async def broadcast_rider_status(

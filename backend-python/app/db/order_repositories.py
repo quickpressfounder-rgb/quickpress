@@ -272,11 +272,12 @@ class OrderRepository:
 
         totals = compute_totals(items, charges, max(0, payload.couponDiscount) + member_discount_amount)
 
-        # Check live minimum order value rule from admin_settings
-        admin_doc = await database.collection("admin_settings").find_one({"_id": "platform"})
-        min_order = int((admin_doc or {}).get("minimumOrderValue") or (admin_doc or {}).get("min_order_value") or 0)
+        # Check live minimum order value rule from Unified Finance Engine
+        from app.services.unified_finance_service import unified_finance_service
+        active_rules = await unified_finance_service.get_active_rules()
+        min_order = float(active_rules.get("pricing", {}).get("minimumOrderValue", 0.0))
         if min_order > 0 and totals.itemsTotal < min_order:
-            raise ValueError(f"Minimum order amount is ₹{min_order}. Your current items total is ₹{totals.itemsTotal}. Please add more items to checkout.")
+            raise ValueError(f"Minimum order amount is ₹{int(min_order)}. Your current items total is ₹{totals.itemsTotal}. Please add more items to checkout.")
 
         address = payload.address
         if address is None:
@@ -332,10 +333,16 @@ class OrderRepository:
                 }
             )
 
-        from app.services.rider_dispatch import create_otp_record
+        from app.services.rider_dispatch import create_otp_record, generate_secure_4digit_otp
+        from app.db.automation_repositories import automation_repository
 
-        pickup_otp_record = create_otp_record()
-        delivery_otp_record = create_otp_record()
+        pickup_code = generate_secure_4digit_otp()
+        delivery_code = generate_secure_4digit_otp()
+        while delivery_code == pickup_code:
+            delivery_code = generate_secure_4digit_otp()
+
+        pickup_otp_record = create_otp_record(code=pickup_code)
+        delivery_otp_record = create_otp_record(code=delivery_code)
 
         customer_name = (payload.customerName or user.display_name or "").strip() or (payload.customerPhone or user.phone or "")
         customer_phone = (payload.customerPhone or user.phone or "").strip()
@@ -362,30 +369,51 @@ class OrderRepository:
                     {"$set": user_updates}
                 )
 
-        from app.services.financial_engine import financial_engine
+        from app.services.unified_finance_service import unified_finance_service
 
-        fin_calc = financial_engine.compute_checkout_pricing(
-            items=item_snapshots,
+        is_express_order = bool((payload.pickup and payload.pickup.express) or getattr(payload, "isExpress", False))
+
+        fin_calc = await unified_finance_service.calculate_checkout_price(
+            items=[{"price": it.price, "quantity": it.qty, "name": it.name} for it in items],
+            distance_km=2.5,
+            coupon_code=payload.couponCode,
             coupon_discount=float(payload.couponDiscount or 0) + float(member_discount_amount),
-            is_express=bool(payload.pickup.express if payload.pickup else False),
+            is_express=is_express_order,
             is_member=is_member,
-            city=str(getattr(address, "cityLine", None) or getattr(address, "city", None) or "Kasganj"),
+            customer_state=str(getattr(address, "cityLine", None) or getattr(address, "city", None) or "Uttar Pradesh"),
+            partner_state="Uttar Pradesh",
         )
 
+        customer_del_fee = 0.0 if (is_member and membership_perks.get("free_pickup")) else float(fin_calc["customerDeliveryFee"])
+        cust_payable = float(fin_calc["customerPayable"])
+        if is_member and membership_perks.get("free_pickup") and float(fin_calc["customerDeliveryFee"]) > 0:
+            cust_payable = max(0.0, cust_payable - float(fin_calc["customerDeliveryFee"]))
+
         financial_snapshot = {
-            "itemsSubtotal": fin_calc.itemsSubtotal,
-            "couponDiscount": fin_calc.couponDiscount,
-            "membershipDiscount": float(member_discount_amount) or fin_calc.membershipDiscount,
-            "taxableLaundrySubtotal": fin_calc.taxableLaundrySubtotal,
-            "laundryGst": fin_calc.laundryGst,
-            "serviceGst": fin_calc.serviceGst,
-            "deliveryFee": 0.0 if (is_member and membership_perks.get("free_pickup")) else fin_calc.deliveryFee,
-            "handlingFee": fin_calc.handlingFee,
-            "grandTotal": fin_calc.grandTotal,
-            "partnerNetEarnings": fin_calc.partnerEstimatedEarnings,
-            "platformCommission": fin_calc.platformEstimatedCommission,
-            "estimatedRiderPayout": fin_calc.estimatedRiderPayout,
-            "platformNetMargin": fin_calc.platformNetMargin,
+            "itemsSubtotal": fin_calc.get("itemsSubtotal", 0.0),
+            "couponDiscount": fin_calc.get("couponDiscount", 0.0),
+            "membershipDiscount": float(member_discount_amount),
+            "taxableLaundrySubtotal": fin_calc.get("taxableLaundrySubtotal", fin_calc.get("taxableLaundry", 0.0)),
+            "laundryGst": fin_calc.get("laundryGst", 0.0),
+            "serviceGst": fin_calc.get("serviceGst", 0.0),
+            "totalGst": fin_calc.get("totalGst", 0.0),
+            "deliveryFee": customer_del_fee,
+            "actualDeliveryFee": fin_calc.get("actualDeliveryFee", fin_calc.get("deliveryFee", 0.0)),
+            "deliverySubsidy": fin_calc.get("deliverySubsidy", 0.0),
+            "deliverySubsidySource": fin_calc.get("deliverySubsidySource"),
+            "handlingFee": fin_calc.get("handlingFee", 0.0),
+            "platformFee": fin_calc.get("platformFee", 0.0),
+            "isExpress": fin_calc.get("isExpress", is_express_order),
+            "expressFee": fin_calc.get("expressFee", 0.0),
+            "partnerExpressBonus": fin_calc.get("partnerExpressBonus", 0.0),
+            "riderExpressBonus": fin_calc.get("riderExpressBonus", 0.0),
+            "expressPartnerSharePercent": fin_calc.get("expressPartnerSharePercent", 20.0),
+            "expressRiderSharePercent": fin_calc.get("expressRiderSharePercent", 80.0),
+            "grandTotal": cust_payable,
+            "customerPayable": cust_payable,
+            "cgst": fin_calc.get("cgst", 0.0),
+            "sgst": fin_calc.get("sgst", 0.0),
+            "igst": fin_calc.get("igst", 0.0),
         }
 
         document: Dict[str, Any] = {
@@ -396,6 +424,12 @@ class OrderRepository:
             "createdAt": created,
             "updatedAt": created,
             "placedAt": created,
+            "isExpress": fin_calc.get("isExpress", is_express_order),
+            "expressFee": fin_calc.get("expressFee", 0.0),
+            "partnerExpressBonus": fin_calc.get("partnerExpressBonus", 0.0),
+            "riderExpressBonus": fin_calc.get("riderExpressBonus", 0.0),
+            "expressPartnerSharePercent": fin_calc.get("expressPartnerSharePercent", 20.0),
+            "expressRiderSharePercent": fin_calc.get("expressRiderSharePercent", 80.0),
             "partnerAcceptDeadline": (datetime.now(timezone.utc) + timedelta(seconds=lifecycle.PARTNER_ACCEPT_SLA_SECONDS)).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
             "partnerSlaSeconds": lifecycle.PARTNER_ACCEPT_SLA_SECONDS,
             "riderAcceptDeadline": None,
@@ -423,24 +457,26 @@ class OrderRepository:
                 "priorityProcessing": is_member and bool(membership_perks.get("priority_processing")),
             },
             "totals": OrderTotals(
-                itemsTotal=totals.itemsTotal,
-                pickup=totals.pickup,
-                delivery=totals.delivery,
-                handling=totals.handling,
-                gst=totals.gst,
-                discount=totals.discount + totals.couponDiscount,
-                grandTotal=totals.grandTotal,
+                itemsTotal=round(fin_calc.get("itemsSubtotal", 0.0)),
+                pickup=0,
+                delivery=round(customer_del_fee),
+                handling=round(fin_calc.get("handlingFee", 0.0) + fin_calc.get("platformFee", 0.0)),
+                gst=round(fin_calc.get("totalGst", 0.0)),
+                discount=round(fin_calc.get("discount", fin_calc.get("totalDiscount", fin_calc.get("couponDiscount", 0.0)))),
+                grandTotal=round(cust_payable),
             ).model_dump(),
             "address": address.model_dump(),
             "pickup": pickup.model_dump(),
             "delivery": delivery.model_dump(),
             "payment": OrderPayment(
-
                 mode="wallet" if is_wallet_payment else mode,
                 label="QuickPress Wallet" if is_wallet_payment else payload.payment.label,
                 note="Paid from QuickPress wallet balance" if is_wallet_payment else (payload.payment.note or ("Paid online" if mode == "online" else "Pay on delivery")),
                 paid=is_wallet_payment or (mode == "online"),
             ).model_dump(),
+            "pickupOtp": str(pickup_otp_record["code"]),
+            "deliveryOtp": str(delivery_otp_record["code"]),
+            "dispatchOtp": None,
             "otp": {
                 "pickup": pickup_otp_record,
                 "delivery": delivery_otp_record,
@@ -456,17 +492,78 @@ class OrderRepository:
             ],
             "cancelledReason": None,
             "couponCode": payload.couponCode or "",
-            "instructions": payload.instructions or "",
             "idempotencyKey": payload.idempotencyKey,
         }
         await database.collection(COLLECTION).insert_one(document)
+
+        # Log Automations: Fresh Dynamic OTPs & Order Placed
+        try:
+            await automation_repository.log_event(
+                automation_type="otp",
+                title=f"Order #{code} Dynamic OTPs Generated",
+                description=f"Generated fresh unique cryptographic OTPs: Pickup [***{pickup_code[-2:]}], Delivery [***{delivery_code[-2:]}]",
+                order_id=document["_id"],
+                order_code=code,
+                actor_id=user.id,
+                actor_type="customer",
+                severity="success",
+                metadata={"pickupOtpLast2": pickup_code[-2:], "deliveryOtpLast2": delivery_code[-2:]},
+            )
+            await automation_repository.log_event(
+                automation_type="notification",
+                title=f"Order #{code} Placed (₹{cust_payable:.0f})",
+                description=f"Automated partner routing initiated for {partner.name or partner.id}.",
+                order_id=document["_id"],
+                order_code=code,
+                actor_id=user.id,
+                actor_type="customer",
+                severity="info",
+            )
+        except Exception as auto_err:
+            logger.debug(f"[Automation] Order creation log error: {auto_err}")
+        try:
+            await unified_finance_service.initialize_order_financials(
+                order_id=document["_id"],
+                customer_id=user.id,
+                pricing_data={
+                    "itemsSubtotal": fin_calc["itemsSubtotal"],
+                    "taxableLaundry": fin_calc["taxableLaundrySubtotal"],
+                    "customerPayable": cust_payable,
+                    "actualDeliveryFee": fin_calc["deliveryFee"],
+                    "customerDeliveryFee": customer_del_fee,
+                    "deliverySubsidy": fin_calc["deliverySubsidy"],
+                    "platformFee": fin_calc["platformFee"],
+                    "handlingFee": fin_calc["handlingFee"],
+                    "expressFee": fin_calc.get("expressFee", 0.0),
+                    "partnerExpressBonus": fin_calc.get("partnerExpressBonus", 0.0),
+                    "riderExpressBonus": fin_calc.get("riderExpressBonus", 0.0),
+                    "totalGst": fin_calc["totalGst"],
+                    "cgst": fin_calc["cgst"],
+                    "sgst": fin_calc["sgst"],
+                    "igst": fin_calc["igst"],
+                },
+                partner_id=partner.id,
+                rider_id=None,
+            )
+
+            if is_wallet_payment or (mode in ("online", "card", "upi")):
+                await unified_finance_service.record_payment(
+                    order_id=document["_id"],
+                    amount=cust_payable,
+                    payment_method="wallet" if is_wallet_payment else str(mode),
+                    payment_gateway="WALLET" if is_wallet_payment else "RAZORPAY",
+                    transaction_ref=f"pay-{code}",
+                )
+        except Exception as fin_err:
+            logger.error("Failed to initialize unified order financials for %s: %s", code, fin_err)
+
         # Canonical audit trail: every order starts its life with ORDER_CREATED.
         await lifecycle.record_event(
             document,
             "ORDER_CREATED",
             actor_id=user.id,
             actor_role="customer",
-            metadata={"code": code, "grandTotal": totals.grandTotal},
+            metadata={"code": code, "grandTotal": cust_payable},
             at=created,
         )
 
@@ -504,24 +601,36 @@ class OrderRepository:
             changes={"cancelledReason": reason or "Cancelled by customer"},
         )
 
-        # Automatic instant refund to wallet for prepaid/wallet orders
+        # Automatic instant refund according to live cancellation policy in Unified Finance Engine
         if order.payment and (order.payment.paid or order.payment.mode == "wallet"):
             try:
+                from app.services.unified_finance_service import unified_finance_service
                 from app.db.repositories import users
                 from app.db.wallet_repositories import wallet_repository
+
+                canc_calc = await unified_finance_service.calculate_cancellation(order.id, order.status)
+                refund_amt = float(canc_calc.get("refundAmount", order.totals.grandTotal))
+
+                await unified_finance_service.process_refund(
+                    order_id=order.id,
+                    refund_amount=refund_amt,
+                    reason=reason or "Cancelled by customer",
+                    processed_by=user_id,
+                )
+
                 user_obj = await users.by_id(user_id)
-                if user_obj:
+                if user_obj and refund_amt > 0:
                     await wallet_repository.credit(
                         user_obj,
-                        float(order.totals.grandTotal),
+                        refund_amt,
                         kind="refund",
                         title="Order Refund",
-                        description=f"Refund for cancelled Order #{order.code}",
+                        description=f"Refund for cancelled Order #{order.code} (Fee: ₹{canc_calc.get('cancellationFee', 0):.2f})",
                         method="wallet",
                         reference=f"ref-{order.id}",
                     )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Error processing unified cancellation refund for %s: %s", order.id, e)
 
         return await self.by_id(user_id, order_id)
 

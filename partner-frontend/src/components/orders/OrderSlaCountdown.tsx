@@ -41,16 +41,19 @@ export function OrderSlaCountdown({
 
     const timer = setInterval(() => {
       const now = Date.now();
+      let diff = 0;
       if (isNew) {
         const baseTime = placedAt ? new Date(placedAt).getTime() : now;
         const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 5 * 60 * 1000;
-        const diff = Math.max(0, Math.floor((targetTime - now) / 1000));
-        setRemainingSec(diff);
+        diff = Math.max(0, Math.floor((targetTime - now) / 1000));
       } else if (isSearchingRider) {
         const baseTime = acceptedAt ? new Date(acceptedAt).getTime() : now;
         const targetTime = deadline ? new Date(deadline).getTime() : baseTime + 2 * 60 * 1000;
-        const diff = Math.max(0, Math.floor((targetTime - now) / 1000));
-        setRemainingSec(diff);
+        diff = Math.max(0, Math.floor((targetTime - now) / 1000));
+      }
+      setRemainingSec((prev) => (prev === diff ? prev : diff));
+      if (diff === 0) {
+        clearInterval(timer);
       }
     }, 1000);
 

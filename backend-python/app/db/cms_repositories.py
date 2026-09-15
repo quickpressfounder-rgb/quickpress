@@ -333,6 +333,208 @@ If you are unsatisfied with garment cleaning quality or if an item is missing/da
                 "content": "..."
             }
         ]
+    },
+    "partner-agreement": {
+        "_id": "partner-agreement",
+        "title": "Partner Merchant Agreement & SLA",
+        "slug": "partner-agreement",
+        "currentVersion": "1.0",
+        "effectiveDate": "2026-08-25",
+        "status": "published",
+        "publishedAt": "2026-08-25T00:00:00Z",
+        "publishedBy": "QuickPress Legal & Partner Desk",
+        "summary": "Legally binding Merchant Master Service Agreement governing store onboarding, turnaround SLAs, tiered commissions, fabric care liability, weekly bank settlements, and statutory 1% Section 194-O TCS deductions.",
+        "content": """# QuickPress Partner Merchant Master Service Agreement (MSA)
+
+**Effective Date:** 25 August 2026  
+**Last Updated:** 25 August 2026  
+**Version:** 1.0  
+**Statutory Validity:** Legally binding under Section 3A of the Information Technology Act, 2000.
+
+This Partner Merchant Service Agreement ("Agreement") is entered into between **QuickPress Laundry Technologies Private Limited** ("QuickPress", "Platform") and the certified laundry / dry cleaning enterprise ("Partner Store", "Merchant", "You").
+
+---
+
+## 1. Onboarding, KYC & Statutory Compliance
+- The Partner must furnish verified business proofs: GSTIN (or declaration where exempt), PAN Card of authorized signatory, Aadhaar-based identity verification, and verified business current bank account details.
+- Under Section 3A of the IT Act, 2000, electronic execution via Aadhaar E-Sign or in-app digital signature pad constitutes valid, legally enforceable execution.
+
+---
+
+## 2. Processing Standards & Turnaround Service Level Agreement (SLA)
+- **Standard Orders:** Partner must inspect, clean, press, pack, and mark order as READY within **24 hours** of handover from the delivery captain.
+- **Express Orders:** Partner must complete processing within **12 hours** of handover.
+- **Fabric Sorting & Care:** White garments, delicate silks, woolen apparel, and dark colors must be laundered in separate cycles strictly as per care label symbols.
+
+---
+
+## 3. Commercials, Tiered Commission & Section 194-O TCS
+- **Tiered Store Commissions:**
+  - **Standard Tier (0–100 orders/mo):** 18% platform commission.
+  - **Silver Tier (101–300 orders/mo):** 15% platform commission.
+  - **Gold Tier (300+ orders/mo):** 12% platform commission.
+- **Government Tax Deduction (TCS):** Under Section 194-O of the Indian Income Tax Act, 1961, QuickPress deducts 1% Tax Collected at Source (TCS) on gross sales and deposits it with the Government against the Partner's PAN.
+- **Settlement Cycles:** Net store payouts are calculated automatically by the Immutable Financial Ledger and credited weekly via direct NEFT/IMPS/UPI bank transfer.
+
+---
+
+## 4. Garment Inspection, Loss & Damage Liability Policy
+- **Pickup Verification:** When receiving clothes from the captain, the Partner must inspect item count and pre-existing tears or stains.
+- **Negligence Liability:** In the event of garment damage, severe shrinkage, color bleeding, or loss due to Partner processing error:
+  - Liability is capped at up to **₹2,000 per garment** or 5x the service charge (whichever is lower).
+  - QuickPress deducts the approved claim amount from the Partner's next settlement cycle to credit the affected customer.
+
+---
+
+## 5. Non-Circumvention & Customer Data Protection
+- Partner Stores shall NOT solicit QuickPress customers directly for offline transactions or distribute competing promotional flyers.
+- Customer phone numbers and addresses are strictly protected under Indian Digital Personal Data Protection (DPDP) standards and must never be recorded for unauthorized telemarketing.
+
+---
+
+## 6. Grievance & Termination
+- Either party may terminate this agreement with **15 business days** prior written notice.
+- Disputes shall be addressed to [partner.support@quickpress.online](mailto:partner.support@quickpress.online) or the Grievance Desk at Kasganj, UP.
+""",
+        "versions": [
+            {
+                "version": "1.0",
+                "status": "published",
+                "publishedAt": "2026-08-25T00:00:00Z",
+                "publishedBy": "QuickPress Legal Desk",
+                "changeLog": "Initial verified merchant agreement baseline.",
+                "content": "..."
+            }
+        ]
+    },
+    "rider-agreement": {
+        "_id": "rider-agreement",
+        "title": "Captain Delivery Partner Agreement",
+        "slug": "rider-agreement",
+        "currentVersion": "1.0",
+        "effectiveDate": "2026-08-25",
+        "status": "published",
+        "publishedAt": "2026-08-25T00:00:00Z",
+        "publishedBy": "QuickPress Logistics Fleet Desk",
+        "summary": "Independent Delivery Partner agreement establishing zero-commission earnings, transparent base fares & per-km rates, night/rain surge bonuses, traffic safety rules, and customer OTP delivery protocols.",
+        "content": """# QuickPress Captain Delivery Partner Agreement
+
+**Effective Date:** 25 August 2026  
+**Last Updated:** 25 August 2026  
+**Version:** 1.0  
+
+This Agreement sets forth the terms and conditions under which you ("Captain", "Rider", "Delivery Partner") agree to provide pickup and delivery logistics services across the QuickPress platform network.
+
+---
+
+## 1. Independent Contractor Relationship
+- The Captain operates strictly as an independent service provider and micro-entrepreneur. Nothing herein creates an employee-employer or master-servant relationship.
+- You have complete autonomy over your operational hours and zone availability by toggling duty status online or offline.
+
+---
+
+## 2. Payout Structure & Zero Commission Policy
+- **0% Platform Commission:** QuickPress charges **₹0 commission** from delivery captains. You keep 100% of your trip payouts and customer tips.
+- **Base Fare:** Guaranteed ₹30 base payout for pickup or delivery trips up to 2 km.
+- **Distance Pay:** Transparent ₹8/km distance rate beyond 2 km.
+- **Surge & Weather Incentives:** Additional per-trip bonuses during peak night hours or heavy monsoon conditions.
+- **Settlement:** Real-time wallet credits with same-day or weekly auto-settlement to your linked UPI ID or bank account.
+
+---
+
+## 3. Vehicle Roadworthiness, License & Road Safety
+- The Captain must hold a valid Indian Driving License (DL) and operate an active two-wheeler with valid Registration Certificate (RC) and third-party insurance.
+- **Safety First:** Captains must wear an ISI-certified helmet and adhere strictly to Indian Motor Vehicles Act rules and local traffic speed limits.
+- Zero tolerance for riding under the influence of alcohol, drugs, or rash riding.
+
+---
+
+## 4. Garment Handover & Delivery OTP Protocols
+- Garments must be transported securely in QuickPress waterproof protective bags to prevent dust or rain damage.
+- **OTP Verification:** Delivery handover to the customer MUST be confirmed via the 4-digit Customer Delivery OTP entered into the Captain App before marking completed.
+
+---
+
+## 5. Live Location & Telemetry Privacy
+- QuickPress captures live GPS telemetry **only while you are marked ONLINE** on active duty. Live location tracking halts automatically the moment you switch duty OFFLINE.
+- Location coordinates are shared with customers solely during active order transit for accurate live arrival tracking.
+
+---
+
+## 6. Support & Emergency Assistance
+- 24×7 Captain Helpline & SOS Support: **+91 92587 30561**
+- Email: [riders@quickpress.online](mailto:riders@quickpress.online)
+""",
+        "versions": [
+            {
+                "version": "1.0",
+                "status": "published",
+                "publishedAt": "2026-08-25T00:00:00Z",
+                "publishedBy": "QuickPress Legal Desk",
+                "changeLog": "Initial verified rider agreement baseline.",
+                "content": "..."
+            }
+        ]
+    },
+    "grievance-redressal": {
+        "_id": "grievance-redressal",
+        "title": "Grievance Redressal Mechanism & Statutory Nodal Desk",
+        "slug": "grievance-redressal",
+        "currentVersion": "1.0",
+        "effectiveDate": "2026-08-25",
+        "status": "published",
+        "publishedAt": "2026-08-25T00:00:00Z",
+        "publishedBy": "QuickPress Legal & Statutory Compliance Desk",
+        "summary": "Statutory Grievance Redressal framework instituted in compliance with Rule 3(2) of Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021 and Consumer Protection (E-Commerce) Rules, 2020.",
+        "content": """# Statutory Grievance Redressal Mechanism
+
+**Effective Date:** 25 August 2026  
+**Last Updated:** 25 August 2026  
+**Version:** 1.0  
+**Statutory Compliance:** Formulated pursuant to Rule 3(2) of the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021 and Section 5 of the Consumer Protection (E-Commerce) Rules, 2020.
+
+QuickPress is committed to providing prompt, fair, and transparent redressal of consumer, partner merchant, and delivery partner grievances.
+
+---
+
+## 1. Multi-Tier Resolution Framework
+
+### Level 1: Customer & Partner In-App Support
+- **Channels:** Live In-App Chat, Support Tickets, or Email at [support@quickpress.online](mailto:support@quickpress.online).
+- **Turnaround Time (TAT):** First acknowledgment within **2 hours**; ticket resolution within **24 hours**.
+
+### Level 2: Grievance Officer (Statutory Escalation)
+If your complaint is not resolved satisfactorily at Level 1 within 48 hours, you may escalate directly to our designated Grievance Officer:
+
+- **Name:** Mr. Ankit Sharma
+- **Designation:** Grievance Redressal Officer
+- **Address:** QuickPress Laundry Technologies Private Limited, Station Road, Kasganj, Uttar Pradesh 207123, India
+- **Email:** [grievance@quickpress.online](mailto:grievance@quickpress.online)
+- **Helpline:** +91 92587 30561 (Mon–Sat, 9:30 AM – 6:30 PM IST)
+- **Statutory Acknowledgment:** Within **48 hours** with unique Ticket Reference ID.
+- **Resolution SLA:** Mandatory disposal and resolution within **30 days** of filing.
+
+### Level 3: Nodal Officer (Law Enforcement & Regulatory Liaison)
+For government bodies, judicial authorities, and statutory cyber-crime law enforcement agencies:
+- **Nodal Officer:** Legal Director, Regulatory Affairs
+- **Email:** [nodal@quickpress.online](mailto:nodal@quickpress.online)
+- **Response Timeline:** Within 24 hours of official requisition.
+
+---
+
+## 2. Consumer Protection Standards
+QuickPress strictly prohibits unfair trade practices, misleading advertisements, and undisclosed hidden charges. All pricing, pickup fees, and GST breakdowns are shown transparently before order placement.
+""",
+        "versions": [
+            {
+                "version": "1.0",
+                "status": "published",
+                "publishedAt": "2026-08-25T00:00:00Z",
+                "publishedBy": "QuickPress Legal Desk",
+                "changeLog": "Initial verified statutory grievance framework.",
+                "content": "..."
+            }
+        ]
     }
 }
 

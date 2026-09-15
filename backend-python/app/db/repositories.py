@@ -39,13 +39,35 @@ class UserRepository:
         return User.from_document(doc) if doc else None
 
     async def by_phone(self, phone: str, role: Optional[Role] = None) -> Optional[User]:
-        clean = phone.replace("+91", "").replace("+", "").strip()
-        candidates = [phone, clean, f"+91{clean}", f"+91 {clean}"]
+        if not phone:
+            return None
+        digits = "".join(ch for ch in str(phone) if ch.isdigit())
+        ten_digits = digits[-10:] if len(digits) >= 10 else digits
+        candidates = list({
+            str(phone).strip(),
+            ten_digits,
+            f"+91{ten_digits}",
+            f"+91 {ten_digits}",
+            f"91{ten_digits}",
+            f"0{ten_digits}",
+        })
         query: Dict[str, Any] = {"phone": {"$in": candidates}}
         if role is not None:
             query["role"] = role.value
         doc = await self._c.find_one(query)
-        return User.from_document(doc) if doc else None
+        if doc:
+            return User.from_document(doc)
+
+        # Fallback check in customers collection
+        if role in (Role.customer, None):
+            cust = await database.collection("customers").find_one({"phone": {"$in": candidates}})
+            if cust:
+                user_id = cust.get("userId") or cust.get("user_id") or cust.get("_id")
+                if user_id:
+                    user_doc = await self._c.find_one({"_id": user_id})
+                    if user_doc:
+                        return User.from_document(user_doc)
+        return None
 
     async def create(self, user: User) -> User:
         await self._c.insert_one(user.to_document())
@@ -195,6 +217,8 @@ class UserRepository:
         existing = await self.by_firebase_uid(firebase_uid, role=role)
         if not existing and phone:
             existing = await self.by_phone(phone, role=role)
+        if not existing and email:
+            existing = await self.by_email(email, role=role)
 
         if existing:
             changes: Dict[str, Any] = {"role": role.value}

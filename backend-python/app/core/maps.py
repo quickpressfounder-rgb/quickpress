@@ -15,6 +15,7 @@ APIs used (current, non-deprecated surfaces):
 from __future__ import annotations
 
 import json
+import logging
 import math
 import urllib.error
 import urllib.parse
@@ -22,9 +23,12 @@ import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
 import anyio
+import httpx
 from fastapi import HTTPException, status
 
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 PLACES_AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete"
@@ -419,62 +423,112 @@ def _seconds(value: Any) -> int:
     return 0
 
 
+async def _osrm_route(
+    origin: Tuple[float, float],
+    destination: Tuple[float, float],
+) -> Dict[str, Any]:
+    """Real road-to-road street routing via OpenStreetMap OSRM engine."""
+    url = (
+        f"https://router.project-osrm.org/route/v1/driving/"
+        f"{origin[1]},{origin[0]};{destination[1]},{destination[0]}"
+        f"?overview=full&geometries=polyline&steps=true"
+    )
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        resp = await client.get(url)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("code") == "Ok" and data.get("routes"):
+                r = data["routes"][0]
+                dist_m = int(r.get("distance", 0))
+                dur_s = int(r.get("duration", 0))
+                steps: List[Dict[str, Any]] = []
+                for leg in r.get("legs", []):
+                    for st in leg.get("steps", []):
+                        maneuver = st.get("maneuver", {})
+                        m_type = maneuver.get("type", "turn")
+                        modifier = maneuver.get("modifier", "")
+                        instruction = f"{m_type} {modifier}".strip() if modifier else m_type
+                        if st.get("name"):
+                            instruction += f" onto {st['name']}"
+                        steps.append(
+                            {
+                                "instruction": instruction,
+                                "maneuver": f"{m_type}-{modifier}".strip("-"),
+                                "distanceMeters": int(st.get("distance", 0)),
+                            }
+                        )
+                return {
+                    "polyline": r.get("geometry", ""),
+                    "distanceMeters": dist_m,
+                    "distanceKm": round(dist_m / 1000, 2),
+                    "durationSeconds": dur_s,
+                    "etaMinutes": max(1, round(dur_s / 60)),
+                    "trafficDelayMinutes": 0,
+                    "steps": steps[:25],
+                }
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route not available")
+
+
 async def compute_route(
     origin: Tuple[float, float],
     destination: Tuple[float, float],
     travel_mode: str = "TWO_WHEELER",
 ) -> Dict[str, Any]:
-    key = _require_key()
-    body = {
-        "origin": _waypoint(*origin),
-        "destination": _waypoint(*destination),
-        "travelMode": travel_mode,
-        "polylineQuality": "HIGH_QUALITY",
-    }
-    if travel_mode in {"DRIVE", "TWO_WHEELER"}:
-        body["routingPreference"] = "TRAFFIC_AWARE"
-    data = await _call(
-        ROUTES_URL,
-        method="POST",
-        body=body,
-        headers={
-            "X-Goog-Api-Key": key,
-            "X-Goog-FieldMask": (
-                "routes.duration,routes.staticDuration,routes.distanceMeters,"
-                "routes.polyline.encodedPolyline,routes.legs.steps.navigationInstruction,"
-                "routes.legs.steps.distanceMeters"
-            ),
-        },
-    )
-    routes = data.get("routes", [])
-    if not routes:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route not available")
-    route = routes[0]
-    duration = _seconds(route.get("duration"))
-    static_duration = _seconds(route.get("staticDuration")) or duration
-    distance_meters = int(route.get("distanceMeters", 0))
-    steps: List[Dict[str, Any]] = []
-    for leg in route.get("legs", []):
-        for step in leg.get("steps", []):
-            instruction = step.get("navigationInstruction", {})
-            if not instruction:
-                continue
-            steps.append(
-                {
-                    "instruction": instruction.get("instructions", ""),
-                    "maneuver": instruction.get("maneuver", ""),
-                    "distanceMeters": int(step.get("distanceMeters", 0)),
-                }
-            )
-    return {
-        "polyline": route.get("polyline", {}).get("encodedPolyline", ""),
-        "distanceMeters": distance_meters,
-        "distanceKm": round(distance_meters / 1000, 2),
-        "durationSeconds": duration,
-        "etaMinutes": max(1, round(duration / 60)),
-        "trafficDelayMinutes": max(0, round((duration - static_duration) / 60)),
-        "steps": steps[:25],
-    }
+    try:
+        key = _require_key()
+        body = {
+            "origin": _waypoint(*origin),
+            "destination": _waypoint(*destination),
+            "travelMode": travel_mode,
+            "polylineQuality": "HIGH_QUALITY",
+        }
+        if travel_mode in {"DRIVE", "TWO_WHEELER"}:
+            body["routingPreference"] = "TRAFFIC_AWARE"
+        data = await _call(
+            ROUTES_URL,
+            method="POST",
+            body=body,
+            headers={
+                "X-Goog-Api-Key": key,
+                "X-Goog-FieldMask": (
+                    "routes.duration,routes.staticDuration,routes.distanceMeters,"
+                    "routes.polyline.encodedPolyline,routes.legs.steps.navigationInstruction,"
+                    "routes.legs.steps.distanceMeters"
+                ),
+            },
+        )
+        routes = data.get("routes", [])
+        if not routes:
+            return await _osrm_route(origin, destination)
+        route = routes[0]
+        duration = _seconds(route.get("duration"))
+        static_duration = _seconds(route.get("staticDuration")) or duration
+        distance_meters = int(route.get("distanceMeters", 0))
+        steps: List[Dict[str, Any]] = []
+        for leg in route.get("legs", []):
+            for step in leg.get("steps", []):
+                instruction = step.get("navigationInstruction", {})
+                if not instruction:
+                    continue
+                steps.append(
+                    {
+                        "instruction": instruction.get("instructions", ""),
+                        "maneuver": instruction.get("maneuver", ""),
+                        "distanceMeters": int(step.get("distanceMeters", 0)),
+                    }
+                )
+        return {
+            "polyline": route.get("polyline", {}).get("encodedPolyline", ""),
+            "distanceMeters": distance_meters,
+            "distanceKm": round(distance_meters / 1000, 2),
+            "durationSeconds": duration,
+            "etaMinutes": max(1, round(duration / 60)),
+            "trafficDelayMinutes": max(0, round((duration - static_duration) / 60)),
+            "steps": steps[:25],
+        }
+    except Exception as e:
+        logger.warning("Google Routes API failed (%s), falling back to OSRM road-to-road route", e)
+        return await _osrm_route(origin, destination)
 
 
 async def route_matrix(

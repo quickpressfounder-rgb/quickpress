@@ -43,12 +43,12 @@ function PortalHubScreen() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white">
       {/* Top Banner */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-none bg-white/90 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <Link
               to="/home"
-              className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 active:scale-95 transition-all shadow-xs"
+              className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 active:scale-95 transition-all shadow-xs"
               aria-label="Back to Customer Home"
             >
               <ArrowLeft className="size-4" />

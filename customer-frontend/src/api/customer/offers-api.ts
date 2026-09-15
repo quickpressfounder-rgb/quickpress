@@ -45,6 +45,9 @@ export type ScratchCard = {
   id: string;
   reward: string;
   caption: string;
+  scratched?: boolean;
+  points?: number;
+  orderId?: string;
 };
 
 export type OffersPage = {
@@ -52,6 +55,28 @@ export type OffersPage = {
   specialOffers: SpecialOffer[];
   scratchCards: ScratchCard[];
   rewardPoints: number;
+};
+
+export type ScratchResult = {
+  ok: boolean;
+  card: {
+    id: string;
+    points: number;
+    scratched: boolean;
+    scratchedAt?: string;
+    orderId?: string;
+  };
+  points: number;
+  newTotalPoints: number;
+  rupeeValue: number;
+};
+
+export type RedeemResult = {
+  ok: boolean;
+  redeemedPoints: number;
+  creditedRupees: number;
+  remainingPoints: number;
+  walletBalance: number;
 };
 
 /** GET /api/offers/page */
@@ -77,4 +102,14 @@ export async function fetchCoupons(): Promise<Coupon[]> {
 export async function applyCoupon(code: string) {
   await apiPostJson<unknown>(`/api/offers/${encodeURIComponent(code)}/apply`, {});
   return { ok: true as const, code };
+}
+
+/** POST /api/loyalty/scratch/{cardId} — scratch a card to reveal & claim loyalty points */
+export async function scratchLoyaltyCard(cardId: string): Promise<ScratchResult> {
+  return apiPostJson<ScratchResult>(`/api/loyalty/scratch/${encodeURIComponent(cardId)}`, {});
+}
+
+/** POST /api/loyalty/redeem — convert loyalty points into real wallet cash (100 pts = ₹10) */
+export async function redeemLoyaltyPoints(points: number): Promise<RedeemResult> {
+  return apiPostJson<RedeemResult>("/api/loyalty/redeem", { points });
 }

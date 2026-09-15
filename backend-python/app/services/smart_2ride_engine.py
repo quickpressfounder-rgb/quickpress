@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.db.client import database
+from app.core.privacy import mask_phone
 from app.services import order_lifecycle as lifecycle
 from app.services.financial_engine import financial_engine
 from app.services.socket_service import (
@@ -121,6 +122,11 @@ class Smart2RideEngine:
             return None
 
         canonical_id = lifecycle.order_id_of(order)
+        current_st = lifecycle.order_status(order)
+        if current_st in (lifecycle.PENDING, lifecycle.PLACED, "pending_partner_acceptance"):
+            logger.info("Order %s has not been accepted by partner yet (status=%s). Cannot create Ride 1.", canonical_id, current_st)
+            return None
+
         now = lifecycle.now_iso()
 
         # Idempotency check: verify Ride 1 does not already exist
@@ -164,19 +170,26 @@ class Smart2RideEngine:
         city_raw = str(addr.get("city") or order.get("city") or (partner or {}).get("city") or "Kasganj")
         clean_city = normalize_city_name(city_raw) or "kasganj"
         fare_calc = financial_engine.compute_rider_trip_fare(distance_km=distance_km, city=clean_city.title())
-        pickup_earning = max(35, int(round(fare_calc.totalTripEarnings)))
+        base_pickup_earning = max(35, int(round(fare_calc.totalTripEarnings)))
 
-        # Create pickup OTP (preserve existing OTP from customer checkout if present)
-        existing_pickup_otp = (order.get("otp") or {}).get("pickup")
-        if isinstance(existing_pickup_otp, dict) and existing_pickup_otp.get("code"):
-            pickup_otp = existing_pickup_otp
-        elif isinstance(existing_pickup_otp, str) and existing_pickup_otp.strip():
-            pickup_otp = create_otp_record(code=existing_pickup_otp.strip())
-        else:
-            pickup_otp = create_otp_record()
+        # Extract Express Pickup & Bonus allocations from parent order
+        is_express = bool(order.get("isExpress") or (order.get("pickup") or {}).get("express"))
+        express_fee = float(order.get("expressFee") or 0.0)
+        rider_share_pct = float(order.get("expressRiderSharePercent") or 80.0)
+        partner_share_pct = float(order.get("expressPartnerSharePercent") or 20.0)
+        rider_express_bonus = float(order.get("riderExpressBonus") or (round(express_fee * (rider_share_pct / 100.0), 2) if is_express else 0.0))
+        partner_express_bonus = float(order.get("partnerExpressBonus") or (round(express_fee * (partner_share_pct / 100.0), 2) if is_express else 0.0))
 
-        # Create partner handover OTP (Partner provides to Rider or vice-versa)
-        handover_otp = create_otp_record()
+        pickup_earning = base_pickup_earning + int(round(rider_express_bonus))
+
+        # Always generate guaranteed distinct cryptographic 4-digit OTPs for every ride leg
+        p_code = generate_secure_4digit_otp()
+        h_code = generate_secure_4digit_otp()
+        while h_code == p_code:
+            h_code = generate_secure_4digit_otp()
+
+        pickup_otp = create_otp_record(code=p_code)
+        handover_otp = create_otp_record(code=h_code)
 
         ride_doc = {
             "_id": f"ride-pk-{canonical_id}",
@@ -190,6 +203,12 @@ class Smart2RideEngine:
             "dropCity": clean_city.title(),
             "createdAt": now,
             "updatedAt": now,
+            "isExpress": is_express,
+            "expressFee": express_fee,
+            "riderExpressBonus": rider_express_bonus,
+            "partnerExpressBonus": partner_express_bonus,
+            "expressRiderSharePercent": rider_share_pct,
+            "expressPartnerSharePercent": partner_share_pct,
             "pickupLocation": {
                 "address": pickup_addr,
                 "latitude": cust_lat,
@@ -206,6 +225,8 @@ class Smart2RideEngine:
             },
             "distanceKm": distance_km,
             "estimatedEarning": pickup_earning,
+            "fare": pickup_earning,
+            "baseFare": base_pickup_earning,
             "otp": {
                 "pickup": pickup_otp,
                 "handover": handover_otp,
@@ -235,6 +256,8 @@ class Smart2RideEngine:
                     "riderDispatchStartedAt": now,
                     "riderAcceptDeadline": ride_doc["riderAcceptDeadline"],
                     "riderSlaSeconds": lifecycle.RIDER_ACCEPT_SLA_SECONDS,
+                    "pickupOtp": str(pickup_otp.get("code") if isinstance(pickup_otp, dict) else pickup_otp),
+                    "dispatchOtp": str(handover_otp.get("code") if isinstance(handover_otp, dict) else handover_otp),
                     "otp.pickup": pickup_otp,
                     "otp.handover": handover_otp,
                 }
@@ -308,22 +331,14 @@ class Smart2RideEngine:
         fare_calc = financial_engine.compute_rider_trip_fare(distance_km=distance_km, city=clean_city.title())
         delivery_earning = max(35, int(round(fare_calc.totalTripEarnings)))
 
-        # Partner Dispatch OTP & Final Delivery OTP (preserve if already existing on order)
-        existing_dispatch = (order.get("otp") or {}).get("dispatch") or order.get("dispatchOtp")
-        if isinstance(existing_dispatch, dict) and existing_dispatch.get("code"):
-            dispatch_otp = existing_dispatch
-        elif isinstance(existing_dispatch, str) and existing_dispatch.strip():
-            dispatch_otp = create_otp_record(code=existing_dispatch.strip())
-        else:
-            dispatch_otp = create_otp_record()
+        # Always generate guaranteed distinct cryptographic 4-digit OTPs for dispatch and final delivery
+        d_code = generate_secure_4digit_otp()
+        del_code = generate_secure_4digit_otp()
+        while del_code == d_code:
+            del_code = generate_secure_4digit_otp()
 
-        existing_delivery = (order.get("otp") or {}).get("delivery") or (order.get("otp") or {}).get("drop")
-        if isinstance(existing_delivery, dict) and existing_delivery.get("code"):
-            delivery_otp = existing_delivery
-        elif isinstance(existing_delivery, str) and existing_delivery.strip():
-            delivery_otp = create_otp_record(code=existing_delivery.strip())
-        else:
-            delivery_otp = create_otp_record()
+        dispatch_otp = create_otp_record(code=d_code)
+        delivery_otp = create_otp_record(code=del_code)
 
         # Check if original pickup rider opted out or is unable to deliver
         has_opted_out = bool(
@@ -440,6 +455,8 @@ class Smart2RideEngine:
             "ride2Id": ride_doc["_id"],
             "status": lifecycle.READY_FOR_DELIVERY,
             "updatedAt": now,
+            "dispatchOtp": str(dispatch_otp.get("code") if isinstance(dispatch_otp, dict) else dispatch_otp),
+            "deliveryOtp": str(delivery_otp.get("code") if isinstance(delivery_otp, dict) else delivery_otp),
             "otp.dispatch": dispatch_otp,
             "otp.delivery": delivery_otp,
         }
@@ -552,6 +569,18 @@ class Smart2RideEngine:
                 if len(active_rides) >= 1:
                     continue
 
+                # Floating COD Cash Limit Check (Finance Security)
+                floating_cash = float(rider.get("floatingCash") or rider.get("cashInHand") or 0.0)
+                max_cod_limit = float(rider.get("maxCodLimit") or 3000.0)
+                if floating_cash >= max_cod_limit:
+                    logger.info(
+                        "Captain %s floating COD cash (₹%.2f) reached or exceeded limit (₹%.2f). Skipping new dispatch.",
+                        r_id,
+                        floating_cash,
+                        max_cod_limit,
+                    )
+                    continue
+
                 eligible.append((rider, dist))
 
         eligible.sort(key=lambda item: item[1])
@@ -657,6 +686,11 @@ class Smart2RideEngine:
         for best_rider, best_dist in ranked_riders:
             r_id = str(best_rider.get("_id") or best_rider.get("riderId") or best_rider.get("id") or "")
             offer_id = f"off-{ride_id}-{r_id}"
+            is_express = bool(ride.get("isExpress"))
+            rider_express_bonus = float(ride.get("riderExpressBonus") or 0.0)
+            express_share_pct = float(ride.get("expressRiderSharePercent") or 80.0)
+            express_fee = float(ride.get("expressFee") or 0.0)
+
             offer_doc = {
                 "_id": offer_id,
                 "offerId": offer_id,
@@ -670,14 +704,21 @@ class Smart2RideEngine:
                 "distanceKm": round(best_dist, 1),
                 "estimatedEarning": ride.get("estimatedEarning", 45),
                 "fare": ride.get("fare") or ride.get("estimatedEarning", 45),
+                "isExpress": is_express,
+                "expressFee": express_fee,
+                "riderExpressBonus": rider_express_bonus,
+                "expressRiderSharePercent": express_share_pct,
                 "isReassigned": ride.get("isReassigned", False),
                 "isReassignedBonus": ride.get("isReassignedBonus", False),
                 "extraBonusPercent": ride.get("extraBonusPercent", 0),
-                "extraBonusAmount": ride.get("extraBonusAmount", 0),
+                "extraBonusAmount": rider_express_bonus if is_express else ride.get("extraBonusAmount", 0),
                 "pickupAddress": target_loc.get("address"),
                 "dropAddress": (ride.get("dropLocation") or {}).get("address"),
                 "customerName": target_loc.get("contactName") or "Customer",
-                "customerPhone": target_loc.get("contactPhone") or "",
+                "customerPhone": mask_phone(target_loc.get("contactPhone") or ""),
+                "customerPhoneMasked": mask_phone(target_loc.get("contactPhone") or ""),
+                "isNumberMasked": True,
+                "virtualCallAvailable": True,
                 "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
                 "partnerPhone": (ride.get("dropLocation") or {}).get("contactPhone") or "",
                 "createdAt": now,
@@ -696,10 +737,15 @@ class Smart2RideEngine:
                 upsert=True,
             )
 
-            notif_title = (
-                "⚡ New Fast Laundry Pickup Trip!" if ride_type == "pickup" else "⚡ New Fast Delivery Trip!"
-            )
-            notif_msg = f"Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away). Earn ₹{ride.get('estimatedEarning', 45)} — Fastest acceptance wins!"
+            if is_express:
+                notif_title = "⚡ Express Laundry Pickup Trip"
+                notif_msg = f"⚡ EXPRESS Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away)! Earn ₹{ride.get('estimatedEarning', 45)} (+₹{int(round(rider_express_bonus))} Express Bonus)!"
+            else:
+                notif_title = (
+                    "New Laundry Pickup Trip" if ride_type == "pickup" else "New Laundry Delivery Trip"
+                )
+                notif_msg = f"Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away). Earn ₹{ride.get('estimatedEarning', 45)} — Fastest acceptance wins!"
+
             await database.collection(NOTIFICATIONS_COLLECTION).update_one(
                 {"_id": f"notif-{offer_id}"},
                 {
@@ -742,6 +788,26 @@ class Smart2RideEngine:
             },
             room="riders",
         )
+
+        # Log Automation Event: Auto-Dispatch Broadcast
+        try:
+            from app.db.automation_repositories import automation_repository
+            await automation_repository.log_event(
+                automation_type="dispatch",
+                title=f"Auto-Dispatched {ride_type.upper()} Ride ({dispatched_count} Captains)",
+                description=f"Radial search dispatched {ride_type} offer for #{ride.get('orderCode')} to {dispatched_count} eligible captains.",
+                order_id=order_id,
+                order_code=ride.get("orderCode"),
+                severity="info",
+                metadata={
+                    "rideId": ride_id,
+                    "rideType": ride_type,
+                    "dispatchedCount": dispatched_count,
+                    "timeoutSeconds": timeout_sec,
+                },
+            )
+        except Exception as auto_err:
+            logger.debug(f"[Automation] Dispatch log error: {auto_err}")
 
         # Update ride record state only if still searching/unclaimed (do not overwrite if already ACCEPTED)
         await database.collection(RIDES_COLLECTION).update_one(
@@ -1026,6 +1092,7 @@ class Smart2RideEngine:
             {
                 "$set": {
                     "status": lifecycle.PICKED_UP,
+                    "pickupOtpVerified": True,
                     "otp.pickup": pickup_record,
                     "pickedAt": now,
                     "updatedAt": now,
@@ -1048,6 +1115,14 @@ class Smart2RideEngine:
                 at=now,
             )
             await broadcast_order_event(EVENT_ORDER_PICKED_UP, updated)
+
+            # Trigger Automations: Milestone Broadcast & Laundry SLA Calculation
+            try:
+                from app.services.automation_service import automation_service
+                await automation_service.broadcast_lifecycle_milestone(canonical_id, "picked_up")
+                await automation_service.schedule_laundry_sla(canonical_id)
+            except Exception as auto_err:
+                logger.debug(f"[Automation] Pickup hook error: {auto_err}")
         return {"ok": True, "status": "PICKED_UP", "orderId": canonical_id}
 
     async def verify_handover_otp(self, order_id: str, otp: str, partner_id: str) -> Dict[str, Any]:
@@ -1320,6 +1395,7 @@ class Smart2RideEngine:
             {
                 "$set": {
                     "status": lifecycle.DELIVERED,
+                    "deliveryOtpVerified": True,
                     "otp.delivery": delivery_record,
                     "deliveredAt": now,
                     "completedAt": now,
@@ -1340,12 +1416,46 @@ class Smart2RideEngine:
             },
         )
 
-        # Settle partner, rider, and platform financials via settlement_engine
+        # Record COD collected cash in rider's floating custody (Finance Security)
+        pay_mode = str(order.get("paymentMode") or (order.get("payment") or {}).get("mode") or "").lower()
+        if pay_mode in ("cod", "cash", "cash_on_delivery") and rider_id:
+            collected_amount = float(
+                (order.get("totals") or {}).get("grandTotal")
+                or (order.get("pricing") or {}).get("finalTotal")
+                or order.get("total_amount")
+                or order.get("amount")
+                or 0.0
+            )
+            if collected_amount > 0:
+                await database.collection(RIDERS_COLLECTION).update_one(
+                    {"_id": rider_id},
+                    {"$inc": {"floatingCash": collected_amount, "cashInHand": collected_amount}},
+                )
+                logger.info("Captain %s collected COD cash: ₹%.2f (added to floating cash)", rider_id, collected_amount)
+
+        # Settle partner, rider, and platform financials via settlement_engine and unified finance ledger
         try:
             from app.services.settlement_engine import settlement_engine
             await settlement_engine.settle_order_on_completion(order)
         except Exception as err:
             logger.warning(f"Settlement completion hook error: {err}")
+
+        try:
+            from app.services.unified_finance_service import unified_finance_service
+            p_id = str((order.get("partner") or {}).get("id") or order.get("partnerId") or order.get("partner_id") or "")
+            await unified_finance_service.record_ledger_event(
+                order_id=canonical_id,
+                transaction_type="ORDER_COMPLETED",
+                amount=float((order.get("totals") or {}).get("grandTotal") or 0.0),
+                is_credit=True,
+                rider_id=rider_id,
+                partner_id=p_id or None,
+                reference="DELIVERY_OTP_VERIFIED",
+                created_by="RIDER",
+                metadata={"deliveredAt": now, "deliveryOtpVerified": True},
+            )
+        except Exception as fin_err:
+            logger.warning(f"Unified finance completion ledger hook error: {fin_err}")
 
         updated = await lifecycle.find_order(canonical_id)
         if updated:
@@ -1358,6 +1468,15 @@ class Smart2RideEngine:
                 at=now,
             )
             await broadcast_order_event(EVENT_ORDER_DELIVERED, updated)
+
+            # Trigger Automations: Lifecycle Broadcast & Financial P&L Settlement
+            try:
+                from app.services.automation_service import automation_service
+                await automation_service.broadcast_lifecycle_milestone(canonical_id, "delivered")
+                await automation_service.execute_financial_settlement(canonical_id)
+            except Exception as auto_err:
+                logger.debug(f"[Automation] Delivery settlement hook error: {auto_err}")
+
         return {"ok": True, "status": "DELIVERED", "orderId": canonical_id}
 
     # -------------------------------------------------------------------------
@@ -1552,7 +1671,8 @@ class Smart2RideEngine:
                         "address": drop_addr,
                         "lat": drop_lat,
                         "lng": drop_lng,
-                        "phone": order.get("customerPhone") or "",
+                        "phone": mask_phone(order.get("customerPhone") or ""),
+                        "phoneMasked": mask_phone(order.get("customerPhone") or ""),
                     },
                     "fare": new_rider_delivery_payout,
                     "estimatedEarning": new_rider_delivery_payout,

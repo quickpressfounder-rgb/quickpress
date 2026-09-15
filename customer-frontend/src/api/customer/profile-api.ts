@@ -293,15 +293,42 @@ export async function fetchProfileData(
   }
 }
 
-export type ProfileEdit = { name: string; email?: string; city?: string; phone?: string };
+export type ProfileEdit = {
+  name: string;
+  email?: string | undefined;
+  city?: string | undefined;
+  phone?: string | undefined;
+};
 
-/** PUT /api/profile — name, email and city; the phone number is immutable. */
+/** PUT /api/profile — name, email, city and phone. */
 export async function updateProfile(payload: ProfileEdit): Promise<ProfileEdit> {
   const account = await apiRequest<ProfileAccount>("PUT", PROFILE_API_ENDPOINTS.updateProfile, {
     body: payload,
   });
-  const saved = { name: account.name, email: account.email || "", city: account.city ?? "" };
-  patchCachedProfile((data) => ({ ...data, user: { ...data.user, ...saved } }));
+  const saved: ProfileEdit = {
+    name: account.name,
+    email: account.email || "",
+    city: account.city ?? "",
+    phone: account.phone || payload.phone || "",
+  };
+  patchCachedProfile((data) => ({
+    ...data,
+    user: {
+      ...data.user,
+      name: saved.name || data.user.name,
+      email: saved.email || data.user.email,
+      city: saved.city || data.user.city,
+      phone: account.phone
+        ? account.phone.startsWith("+")
+          ? account.phone
+          : `+91 ${account.phone}`
+        : payload.phone
+          ? payload.phone.startsWith("+")
+            ? payload.phone
+            : `+91 ${payload.phone.replace(/\D/g, "").slice(-10)}`
+          : data.user.phone,
+    },
+  }));
   return saved;
 }
 
@@ -323,6 +350,13 @@ export function validateProfile(edit: ProfileEdit): Partial<Record<keyof Profile
     errors.email = "Enter a valid email address";
   }
   if ((edit.city ?? "").trim().length > 60) errors.city = "City must be 60 characters or less";
+  if (edit.phone !== undefined && edit.phone.trim()) {
+    const rawDigits = edit.phone.replace(/\D/g, "");
+    const digits = rawDigits.length === 12 && rawDigits.startsWith("91") ? rawDigits.slice(2) : rawDigits;
+    if (digits.length !== 10 || !/^[6-9]/.test(digits)) {
+      errors.phone = "Enter a valid 10-digit mobile number";
+    }
+  }
   return errors;
 }
 

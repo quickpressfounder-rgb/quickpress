@@ -38,7 +38,7 @@ import {
 import { useRiderContext } from "../context/RiderContext";
 import { RiderBottomNav } from "../components/RiderBottomNav";
 import { triggerHaptic } from "../lib/captain-audio";
-import { supabase } from "../integrations/supabase/client";
+import { subscribeRiderWallet } from "../lib/rider-socket";
 import { useLanguage } from "../lib/i18n";
 
 export function RiderWalletScreen() {
@@ -107,45 +107,15 @@ export function RiderWalletScreen() {
     loadData();
   }, [loadData]);
 
-  // Real-time Supabase subscription for instant wallet balance & transactions updates
+  // Real-time Socket.IO subscription for instant wallet balance & transactions updates
   useEffect(() => {
-    let channel: any = null;
-    try {
-      channel = supabase
-        .channel("rider-wallet-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_wallets",
-          },
-          () => {
-            loadData(false);
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "quickpress_documents",
-            filter: "collection=eq.rider_wallet_transactions",
-          },
-          () => {
-            loadData(false);
-          }
-        )
-        .subscribe();
-    } catch {}
+    const unsub = subscribeRiderWallet((data) => {
+      console.log("[RiderWalletScreen] ⚡ Realtime wallet update:", data);
+      loadData(false);
+    });
 
     return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch {}
-      }
+      unsub();
     };
   }, [loadData]);
 
@@ -854,7 +824,8 @@ export function RiderWalletScreen() {
       )}
 
       {/* 5. 2-TAB BOTTOM NAVIGATION */}
-      <RiderBottomNav active="dashboard" ordersBadgeCount={2} />
+      <RiderBottomNav active="dashboard" />
     </div>
+
   );
 }

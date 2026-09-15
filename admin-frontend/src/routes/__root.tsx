@@ -69,12 +69,20 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           QP
         </div>
         <h1 className="text-xl font-black tracking-tight text-white">
-          Updating QuickPress Admin...
+          {errorMsg.includes("chunk") || errorMsg.includes("dynamically")
+            ? "Updating QuickPress Admin..."
+            : "QuickPress Admin Error"}
         </h1>
-        <p className="mt-2 text-xs text-zinc-400">
-          A new platform version has been deployed. Click below to load the latest application state.
+        <p className="mt-2 text-xs text-zinc-400 break-words">
+          {error?.message || "An unexpected error occurred. Click below to reload the latest application state."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            onClick={() => reset()}
+            className="inline-flex items-center justify-center rounded-xl bg-zinc-800 border border-zinc-700 px-4 py-2 text-xs font-bold text-zinc-200 hover:bg-zinc-700 transition-all"
+          >
+            Try Again
+          </button>
           <button
             onClick={() => {
               if ("caches" in window) {
@@ -83,11 +91,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
                 });
               }
               sessionStorage.clear();
-              window.location.href = window.location.pathname + "?v=" + Date.now();
+              window.location.href = window.location.pathname;
             }}
             className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white transition-all hover:bg-emerald-500 active:scale-95 shadow-lg shadow-emerald-900/30"
           >
-            Reload Latest App
+            Reload App
           </button>
         </div>
       </div>

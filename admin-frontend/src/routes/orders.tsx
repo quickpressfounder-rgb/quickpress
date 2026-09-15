@@ -26,6 +26,9 @@ import {
   ShieldCheck,
   KeyRound,
   Wallet,
+  Eye,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +43,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/shared/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { Separator } from "@/shared/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { AdminShell } from "../components/AdminShell";
@@ -49,6 +53,9 @@ import {
   changeOrderStatus,
   fetchOrder,
   fetchOrders,
+  downloadOrderInvoicePdfBlob,
+  viewOrderInvoicePdf,
+  getOrderInvoicePdfUrl,
   type AdminOrder,
   type OrderStatus,
 } from "../api/orders";
@@ -410,6 +417,44 @@ export function OrdersPage() {
                 className: "text-right",
                 render: (r) => <span className="font-black text-emerald-700 text-xs">{r.total}</span>,
               },
+              {
+                key: "invoice",
+                label: "Tax Invoice",
+                className: "text-right",
+                render: (r) => (
+                  <div
+                    className="flex items-center justify-end gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      title="View Tax Invoice"
+                      onClick={() => {
+                        viewOrderInvoicePdf(r.id);
+                        toast.success(`Opening Invoice for #${r.id}...`);
+                      }}
+                      className="p-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-all active:scale-95 shadow-2xs"
+                    >
+                      <Eye className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Download Invoice PDF"
+                      onClick={async () => {
+                        try {
+                          await downloadOrderInvoicePdfBlob(r.id, `QuickPress_Invoice_${r.id}.pdf`);
+                          toast.success(`Invoice PDF for #${r.id} downloaded!`);
+                        } catch (err: any) {
+                          toast.error(err.message || "Failed to download invoice");
+                        }
+                      }}
+                      className="p-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-all active:scale-95 shadow-2xs"
+                    >
+                      <Download className="size-3.5" />
+                    </button>
+                  </div>
+                ),
+              },
             ]}
           />
         </SectionCard>
@@ -480,6 +525,29 @@ function OrderDetailSheet({
     queryFn: () => (order ? fetchOrder(order.id) : null),
     enabled: Boolean(order),
   });
+
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+
+  const invoicePdfUrl = order ? getOrderInvoicePdfUrl(order.id) : "";
+
+  const handleDownloadInvoice = async () => {
+    if (!order) return;
+    setDownloadingInvoice(true);
+    try {
+      const fileName = await downloadOrderInvoicePdfBlob(order.id, `QuickPress_Invoice_${order.id}.pdf`);
+      toast.success(`Tax Invoice ${fileName} downloaded successfully!`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download Tax Invoice PDF");
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
+  const handleViewInvoice = () => {
+    if (!order) return;
+    setInvoicePreviewOpen(true);
+  };
 
   const riders = useQuery({ queryKey: ["admin", "riders"], queryFn: fetchRiders });
   const availableRiders = riders.data ?? [];
@@ -1025,27 +1093,121 @@ function OrderDetailSheet({
             </div>
           </div>
 
+          {/* =========================================================================
+              TAX INVOICE & CASH BILL CARD
+          ========================================================================= */}
+          <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-sky-50/40 p-4 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs">
+                  <FileText className="size-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-indigo-950 uppercase tracking-wide">
+                    TAX INVOICE &amp; PAYMENT BILL
+                  </h4>
+                  <p className="text-[10px] font-semibold text-zinc-500">
+                    Official 3-page GST Tax Invoice &amp; Payment Summary
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider border ${
+                  order?.payment === "Paid"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : order?.payment === "COD"
+                    ? "bg-amber-50 text-amber-800 border-amber-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200"
+                }`}
+              >
+                {order?.payment || "Paid"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs border-y border-indigo-100/80 py-2.5">
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 block uppercase">Order Reference</span>
+                <span className="font-mono font-black text-zinc-900 text-xs">#{order?.id}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-bold text-zinc-400 block uppercase">Grand Total (Incl. GST)</span>
+                <span className="font-mono font-black text-emerald-700 text-sm">{order?.total}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleViewInvoice}
+                className="h-9 rounded-xl border-indigo-200 bg-white text-indigo-900 hover:bg-indigo-50 hover:text-indigo-950 text-xs font-bold shadow-xs active:scale-[0.98] transition-all"
+              >
+                <Eye className="mr-1.5 size-3.5 text-indigo-600" />
+                <span>View Invoice</span>
+              </Button>
+
+              <Button
+                type="button"
+                disabled={downloadingInvoice}
+                onClick={handleDownloadInvoice}
+                className="h-9 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold shadow-xs active:scale-[0.98] transition-all"
+              >
+                {downloadingInvoice ? (
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                ) : (
+                  <Download className="mr-1.5 size-3.5" />
+                )}
+                <span>Download PDF</span>
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <h4 className="text-xs font-black uppercase tracking-wider text-zinc-500">
-              LIFECYCLE MILESTONE TIMELINE
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+                LIFECYCLE MILESTONE TIMELINE
+              </h4>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                Live Audit Progression
+              </span>
+            </div>
             <div className="rounded-xl border border-zinc-200 bg-white p-4">
               <ol className="relative space-y-4 border-l-2 border-zinc-200 pl-4">
-                {(data?.timeline ?? []).map((step, idx) => (
-                  <li key={idx} className="relative">
-                    <span
-                      className={`absolute -left-[21px] top-1 size-2.5 rounded-full border-2 border-white ${
-                        step.done ? "bg-emerald-600 ring-2 ring-emerald-100" : "bg-zinc-300"
-                      }`}
-                    />
-                    <div className="flex items-center justify-between text-xs">
-                      <p className={`font-bold ${step.done ? "text-zinc-900" : "text-zinc-400"}`}>
-                        {step.label}
-                      </p>
-                      <span className="text-[10px] text-zinc-400 font-mono">{step.at}</span>
-                    </div>
-                  </li>
-                ))}
+                {(data?.timeline ?? []).map((step, idx) => {
+                  const isCancelStep = step.label.toLowerCase().includes("cancelled");
+                  return (
+                    <li key={idx} className="relative">
+                      <span
+                        className={`absolute -left-[21px] top-1 size-2.5 rounded-full border-2 border-white ${
+                          isCancelStep
+                            ? "bg-rose-600 ring-2 ring-rose-100"
+                            : step.done
+                            ? "bg-emerald-600 ring-2 ring-emerald-100"
+                            : "bg-zinc-300"
+                        }`}
+                      />
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <p
+                            className={`font-bold ${
+                              isCancelStep
+                                ? "text-rose-700"
+                                : step.done
+                                ? "text-zinc-900"
+                                : "text-zinc-400"
+                            }`}
+                          >
+                            {step.label}
+                          </p>
+                          {step.done && !isCancelStep && (
+                            <CheckCircle2 className="size-3 text-emerald-600 inline" />
+                          )}
+                        </div>
+                        <span className="text-[10px] text-zinc-500 font-mono font-semibold">{step.at}</span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           </div>
@@ -1173,19 +1335,91 @@ function OrderDetailSheet({
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 grid grid-cols-2 gap-2">
               <Button
+                type="button"
                 variant="outline"
-                className="w-full rounded-xl text-xs font-bold"
-                onClick={() => toast.success(`Order #${order?.id} thermal receipt generated.`)}
+                className="rounded-xl text-xs font-bold border-zinc-200 hover:bg-zinc-50"
+                onClick={handleViewInvoice}
               >
-                <FileText className="mr-1.5 size-3.5" />
-                <span>Print POS Invoice Receipt</span>
+                <Eye className="mr-1.5 size-3.5 text-zinc-700" />
+                <span>View Tax Invoice</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl text-xs font-bold border-zinc-200 hover:bg-zinc-50"
+                onClick={handleDownloadInvoice}
+                disabled={downloadingInvoice}
+              >
+                {downloadingInvoice ? (
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                ) : (
+                  <Download className="mr-1.5 size-3.5 text-zinc-700" />
+                )}
+                <span>Download Invoice PDF</span>
               </Button>
             </div>
           </div>
         </div>
       </SheetContent>
+
+      {/* Invoice Preview Dialog */}
+      <Dialog open={invoicePreviewOpen} onOpenChange={setInvoicePreviewOpen}>
+        <DialogContent className="max-w-4xl h-[85vh] p-0 flex flex-col overflow-hidden rounded-2xl border border-zinc-300 shadow-2xl">
+          <DialogHeader className="p-4 border-b border-zinc-200 bg-zinc-50/80 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                <FileText className="size-4" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-black text-zinc-900">
+                  Tax Invoice Preview — #{order?.id}
+                </DialogTitle>
+                <p className="text-[11px] text-zinc-500 font-medium">
+                  Official 3-page Tax Invoice &amp; Customer/Store Breakdown
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pr-6">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg text-xs font-bold"
+                onClick={handleDownloadInvoice}
+                disabled={downloadingInvoice}
+              >
+                <Download className="mr-1.5 size-3.5" />
+                <span>Download PDF</span>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-lg text-xs font-bold"
+                onClick={() => {
+                  if (order) viewOrderInvoicePdf(order.id);
+                }}
+              >
+                <ExternalLink className="mr-1.5 size-3.5" />
+                <span>Open in Tab</span>
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 w-full bg-zinc-100 relative">
+            {invoicePdfUrl ? (
+              <iframe
+                src={invoicePdfUrl}
+                title={`Tax Invoice ${order?.id}`}
+                className="w-full h-full border-0"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="size-8 animate-spin text-zinc-400" />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }

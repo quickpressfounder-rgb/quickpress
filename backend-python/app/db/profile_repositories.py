@@ -85,6 +85,21 @@ class ProfileRepository:
             changes["email"] = payload.email.strip()
         if payload.city is not None:
             changes["city"] = payload.city.strip()
+        if payload.phone is not None:
+            phone_val = payload.phone.strip()
+            # If user does not have a phone or is linking their mobile number:
+            if phone_val and (not user.phone or not user.phone.strip() or user.phone == "Not linked"):
+                # Check if this mobile number is already linked to another account in the system
+                existing = await users.by_phone(phone_val, role=user.role)
+                if existing and str(existing.id) != str(user.id):
+                    raise ValueError(
+                        "This mobile number is already registered with another account. Please use a different number or log in with this number."
+                    )
+                changes["phone"] = phone_val
+                await database.collection("customers").update_many(
+                    {"$or": [{"_id": user.id}, {"userId": user.id}, {"user_id": user.id}]},
+                    {"$set": {"phone": phone_val}},
+                )
         if changes:
             await users.update(user.id, changes)
         refreshed = await users.by_id(user.id)

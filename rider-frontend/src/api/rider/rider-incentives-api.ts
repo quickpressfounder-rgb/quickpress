@@ -1,4 +1,24 @@
-import { apiGetJson } from "../core/transport";
+import { apiGetJson, apiPostJson } from "../core/transport";
+
+export interface CandyCrushLevel {
+  level: number;
+  title: string;
+  target: number;
+  reward: number;
+  badge: string;
+  flavor: string;
+  description: string;
+  color: string;
+  gradient: string;
+  status: "claimed" | "claimable" | "in_progress" | "locked";
+  isClaimed: boolean;
+  isClaimable: boolean;
+  progress: number;
+  progressPercent: number;
+  ridesRemaining: number;
+  extraPerRide: number;
+  claimedAt?: string | null;
+}
 
 export interface IncentiveMilestone {
   id: string;
@@ -54,9 +74,12 @@ export interface RiderIncentivesResponse {
   riderId: string;
   completedToday: number;
   totalIncentivesEarnedToday: number;
+  totalClaimableIncentives?: number;
+  totalClaimedIncentives?: number;
   weeklyStreakDays: number;
   targetStreakDays: number;
   streakReward: number;
+  candyCrushLevels?: CandyCrushLevel[];
   milestones: IncentiveMilestone[];
   nextMilestone?: {
     title: string;
@@ -64,6 +87,8 @@ export interface RiderIncentivesResponse {
     ridesRemaining: number;
     rewardDifference: number;
     totalReward: number;
+    level?: number;
+    badge?: string;
   } | null;
   specialQuests: SpecialQuest[];
   surgeZones: SurgeZone[];
@@ -74,7 +99,24 @@ export interface RiderIncentivesResponse {
   };
 }
 
+export interface ClaimIncentiveResult {
+  ok: boolean;
+  level: number;
+  reward: number;
+  title: string;
+  badge: string;
+  newBalance: number;
+  claimedAt: string;
+  message: string;
+}
+
 /** GET /api/rider/incentives — Fetch live targets, milestone slabs, special quests & streak data. */
 export async function fetchRiderIncentives(): Promise<RiderIncentivesResponse> {
   return await apiGetJson<RiderIncentivesResponse>("/api/rider/incentives");
 }
+
+/** POST /api/rider/incentives/claim — Claim earned Candy Crush level milestone reward. */
+export async function claimRiderIncentive(level: number): Promise<ClaimIncentiveResult> {
+  return await apiPostJson<ClaimIncentiveResult>("/api/rider/incentives/claim", { level });
+}
+

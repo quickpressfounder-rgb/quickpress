@@ -99,6 +99,10 @@ export type PartnerServiceRate = {
   category: BusinessCategory;
   description?: string;
   image?: string;
+  pendingApproval?: boolean;
+  approvalStatus?: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+  pendingChanges?: Record<string, any>;
 };
 
 export type EarningsPoint = {
@@ -166,6 +170,7 @@ export type PartnerProfile = {
   area?: string;
   isVerified?: boolean;
   status?: string;
+  gallery?: string[];
 };
 
 export type BusinessSettings = {

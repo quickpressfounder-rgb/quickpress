@@ -420,7 +420,8 @@ export function RiderLeaderboardScreen() {
       </div>
 
       {/* 3. 2-TAB BOTTOM NAVIGATION */}
-      <RiderBottomNav active="dashboard" ordersBadgeCount={2} />
+      <RiderBottomNav active="dashboard" />
     </div>
+
   );
 }

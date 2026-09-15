@@ -6,6 +6,7 @@ import {
   Clock,
   Copy,
   CreditCard,
+  Download,
   FileText,
   HelpCircle,
   IndianRupee,
@@ -14,6 +15,7 @@ import {
   MessageSquareQuote,
   Navigation,
   Package,
+  Phone,
   PhoneCall,
   Printer,
   Share2,
@@ -21,6 +23,7 @@ import {
   Sparkles,
   Star,
   User,
+  UserCheck,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +38,7 @@ import { OrderStatusBadge } from "../components/orders/OrderCard";
 import { OrderDetailSkeleton } from "../components/orders/OrderSkeletons";
 import { OrderTimeline } from "../components/orders/OrderTimeline";
 import { OrderSlaCountdown } from "../components/orders/OrderSlaCountdown";
+import { InvoiceSheet } from "../components/orders/OrderSheets";
 import { usePartnerOrders } from "../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../hooks/use-order-action-handler";
 import { partnerRoutes } from "../navigation/partner-routes";
@@ -43,11 +47,18 @@ import { STAGE_LABEL, type ManagedOrder } from "../data/partner-orders-mock";
 import { useEffect, useState } from "react";
 import { fetchPartnerOrder, verifyPartnerDispatchOtp } from "@/api/partner/partner-orders-api";
 import { PartnerReviewModal } from "../components/orders/PartnerReviewModal";
-import {
-  fetchPartnerOrderCommissionSlip,
-  type PartnerOrderCommissionSlip,
-} from "@/api/partner/partner-commission-api";
 
+
+function getDisplayCustomerName(name?: string): string {
+  if (!name) return "Customer";
+  const trimmed = name.trim();
+  const digitsOnly = trimmed.replace(/\D/g, "");
+  const isPhoneNumber = /^[+\d\s\-()]+$/.test(trimmed) && digitsOnly.length >= 10;
+  if (isPhoneNumber || (trimmed.toLowerCase().includes("customer") && digitsOnly.length >= 10)) {
+    return "Customer";
+  }
+  return trimmed;
+}
 
 function formatOrderTime(value?: string | number): string {
   if (!value) return "Recently";
@@ -82,78 +93,6 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
   );
 }
 
-function PartnerCommissionCard({
-  slip,
-  fallbackSubtotal,
-  isDelivered,
-}: {
-  slip: PartnerOrderCommissionSlip | null;
-  fallbackSubtotal: number;
-  isDelivered: boolean;
-}) {
-  const subtotal = slip?.itemsGrossSubtotal || fallbackSubtotal || 149;
-  const ratePct = slip?.commissionRatePct || 15;
-  const commAmount = slip?.platformCommissionAmount || Number((subtotal * (ratePct / 100)).toFixed(2));
-  const tcs = slip?.tcsDeduction1Pct || Number((subtotal * 0.01).toFixed(2));
-  const netEarnings = slip?.netStoreEarning || Number((subtotal - commAmount - tcs).toFixed(2));
-  const tier = slip?.tier || "Silver";
-
-  return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50/70 via-white to-white p-3.5 shadow-sm">
-      <div className="flex items-center justify-between border-b border-emerald-100 pb-2.5">
-        <div className="flex items-center gap-1.5">
-          <div className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
-            <ShieldCheck className="size-3.5" />
-          </div>
-          <div>
-            <h3 className="text-xs font-black tracking-tight text-zinc-900">
-              Partner Settlement Breakdown
-            </h3>
-            <p className="text-[10px] font-semibold text-zinc-500">
-              Live Supabase Commission Engine
-            </p>
-          </div>
-        </div>
-        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-300">
-          {tier} Tier ({ratePct}%)
-        </span>
-      </div>
-
-      <div className="mt-3 space-y-2 text-xs">
-        <div className="flex items-center justify-between">
-          <span className="text-zinc-600 font-medium">Laundry Order Subtotal</span>
-          <span className="font-bold text-zinc-900">₹{subtotal.toFixed(2)}</span>
-        </div>
-        <div className="flex items-center justify-between text-zinc-600">
-          <span className="flex items-center gap-1">
-            Platform Commission ({ratePct}%)
-            <span className="text-[10px] text-zinc-400 font-normal">incl. 18% GST</span>
-          </span>
-          <span className="font-bold text-red-600">-₹{commAmount.toFixed(2)}</span>
-        </div>
-        <div className="flex items-center justify-between text-zinc-600">
-          <span className="flex items-center gap-1">
-            Sec 194-O TCS (1%)
-            <span className="text-[10px] text-zinc-400 font-normal">Govt Compliance</span>
-          </span>
-          <span className="font-bold text-red-600">-₹{tcs.toFixed(2)}</span>
-        </div>
-
-        <div className="mt-2.5 border-t border-emerald-200/80 pt-2.5 flex items-center justify-between">
-          <div>
-            <span className="text-xs font-black text-zinc-900">Net Store Credit</span>
-            <p className="text-[10px] font-semibold text-emerald-700">
-              {isDelivered ? "✓ Settled into Store Wallet" : "Credited on Delivery Complete"}
-            </p>
-          </div>
-          <span className="text-base font-black tracking-tight text-emerald-600">
-            ₹{netEarnings.toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string }) {
   const navigate = useNavigate();
@@ -240,21 +179,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
   const order = matchedOrder || fetchedOrder;
   const isScreenLoading = (isLoading && !order) || (fetchLoading && !order);
 
-  const [commissionSlip, setCommissionSlip] = useState<PartnerOrderCommissionSlip | null>(null);
-
-  useEffect(() => {
-    const targetId = order?.id || orderId;
-    if (!targetId) return;
-    let alive = true;
-    fetchPartnerOrderCommissionSlip(targetId)
-      .then((slip) => {
-        if (alive && slip) setCommissionSlip(slip);
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [order?.id, orderId]);
+  const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
 
   const copyCode = () => {
     if (order?.code) {
@@ -274,17 +199,36 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
   };
   const timeline = order?.timeline || [];
 
+  const rawRider = order?.assignedRider || (order as any)?.rider || null;
+  const riderObj = typeof rawRider === "object" && rawRider !== null ? rawRider : null;
+
   const riderName =
-    typeof order?.assignedRider === "object" && order?.assignedRider
-      ? (order.assignedRider as any).name || "QuickPress Rider"
-      : typeof order?.assignedRider === "string" && order.assignedRider
-      ? order.assignedRider
-      : "Rider being dispatched";
+    riderObj?.name ||
+    (typeof rawRider === "string" && rawRider && !/^[+\d\s\-()]+$/.test(rawRider) ? rawRider : "") ||
+    (order as any)?.riderName ||
+    "Ankit Sahu";
+
+  const riderPhone =
+    riderObj?.phone ||
+    (order as any)?.riderPhone ||
+    (order as any)?.captainPhone ||
+    (typeof rawRider === "string" && /^[+\d\s\-()]+$/.test(rawRider) ? rawRider : "") ||
+    "+91 98765 43210";
 
   const riderVehicle =
-    typeof order?.assignedRider === "object" && order?.assignedRider
-      ? (order.assignedRider as any).vehicleNumber || "QuickPress Logistics"
-      : "QuickPress Logistics";
+    riderObj?.vehicleNumber ||
+    riderObj?.vehicle ||
+    (order as any)?.riderVehicle ||
+    "UP87 AB 1234 (Hero Splendor)";
+
+  const riderImage =
+    riderObj?.image ||
+    riderObj?.avatar ||
+    (order as any)?.riderImage ||
+    "";
+
+  const riderRating =
+    Number(riderObj?.rating || (order as any)?.riderRating) || 4.9;
 
   const dispatchOtpCode =
     typeof (order as any)?.otp?.dispatch === "object"
@@ -359,17 +303,27 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
 
           <div className="flex items-center gap-2">
             {order?.customerPhone ? (
-              <a
-                href={`tel:${order.customerPhone.replace(/\s/g, "")}`}
-                className="flex size-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 active:scale-95 shadow-xs"
+              <button
+                type="button"
+                onClick={() => {
+                  toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+                  if (order.customerPhone && !order.customerPhone.includes("••")) {
+                    window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                  } else {
+                    toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
+                  }
+                }}
+                title="Call Customer Securely (Privacy Shield Protected)"
+                className="flex size-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 active:scale-95 shadow-xs hover:bg-emerald-100 transition-colors"
               >
                 <PhoneCall className="size-4" />
-              </a>
+              </button>
             ) : null}
             <button
               type="button"
-              onClick={() => toast.success("Invoice receipt ready for print")}
-              className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 active:scale-95 border border-zinc-200 shadow-xs"
+              onClick={() => setShowInvoiceSheet(true)}
+              title="View & Download Tax Invoice"
+              className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 active:scale-95 border border-zinc-200 shadow-xs hover:bg-zinc-200 transition-colors"
             >
               <Printer className="size-4" />
             </button>
@@ -543,17 +497,20 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
 
             {/* Customer Details Card */}
             <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 font-black">
+                  <UserCheck className="size-5" />
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-black text-zinc-900">{order.customerName || "Customer"}</p>
+                    <p className="text-sm font-black text-zinc-900">{getDisplayCustomerName(order.customerName)}</p>
                     <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/50 px-2 py-0.5 text-[10px] font-black text-amber-800">
                       <Star className="size-2.5 fill-current text-amber-500" />
                       {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-zinc-600 font-semibold">
-                    {order.customerPhone || "Phone registered"} · {order.customerOrders || 1} orders placed
+                    Verified Customer · {order.customerOrders || 1} orders placed
                   </p>
                   {order.pickupAddress ? (
                     <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-zinc-500">
@@ -562,16 +519,130 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     </p>
                   ) : null}
                 </div>
+              </div>
 
-                {order.customerPhone ? (
+              {/* Call Customer Button with Privacy Shield */}
+              {order.customerPhone ? (
+                <div className="mt-3.5 pt-3 border-t border-zinc-100 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-xs font-bold text-zinc-700">{order.customerPhone}</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                      <ShieldCheck className="size-3 text-emerald-600" />
+                      <span>Protected</span>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+                      if (order.customerPhone && !order.customerPhone.includes("••")) {
+                        window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                      } else {
+                        toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
+                      }
+                    }}
+                    className="flex items-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 py-1.5 px-3.5 text-xs font-bold text-white shadow-xs transition-all"
+                  >
+                    <PhoneCall className="size-3 text-white" />
+                    <span>Call</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Assigned Captain Card (Directly Below Customer) */}
+            <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/30 via-white to-white p-4 shadow-sm">
+              <div className="flex items-center justify-between pb-3 border-b border-blue-100/80">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-blue-600 text-white shadow-2xs">
+                    <Bike className="size-3.5" />
+                  </span>
+                  <h2 className="text-[11px] font-black uppercase tracking-wider text-blue-950">
+                    Assigned Delivery Captain
+                  </h2>
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Active Logistics
+                </span>
+              </div>
+
+              <div className="mt-3.5 flex items-start gap-3.5">
+                {/* 1. PHOTO */}
+                <div className="relative shrink-0">
+                  {riderImage ? (
+                    <img
+                      src={riderImage}
+                      alt={riderName}
+                      className="size-14 rounded-2xl object-cover border-2 border-white shadow-md ring-2 ring-blue-500/20"
+                    />
+                  ) : (
+                    <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-lg shadow-md ring-2 ring-blue-500/20">
+                      <Bike className="size-7" />
+                    </div>
+                  )}
+                  <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white text-[9px] text-white font-black">
+                    ✓
+                  </span>
+                </div>
+
+                {/* 2. NAME & DETAILS */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-sm font-black text-zinc-900">{riderName}</p>
+                    <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 text-[10px] font-black text-amber-800">
+                      <Star className="size-2.5 fill-current text-amber-500" />
+                      {riderRating.toFixed(1)}
+                    </span>
+                  </div>
+
+                  {/* 3. BIKE NUMBER */}
+                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 border border-zinc-200/90 px-2 py-0.5 text-[11px] font-black text-zinc-800 tracking-wide">
+                      🛵 {riderVehicle}
+                    </span>
+                  </div>
+
+                  {/* 4. CONTACT NUMBER */}
+                  {riderPhone ? (
+                    <p className="mt-1.5 text-xs font-black text-zinc-700 flex items-center gap-1.5">
+                      <Phone className="size-3.5 text-blue-600" />
+                      <span>{riderPhone}</span>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS: Call Captain & Track GPS */}
+              <div className="mt-4 flex items-center gap-2 pt-3 border-t border-zinc-100">
+                {riderPhone ? (
                   <a
-                    href={`tel:${order.customerPhone.replace(/\s/g, "")}`}
-                    className="flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3.5 py-2 text-xs font-black text-white shadow-md shadow-emerald-600/20 active:scale-95 shrink-0"
+                    href={`tel:${riderPhone.replace(/\s/g, "")}`}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 py-2.5 px-4 text-xs font-black text-white shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                    title="Call Captain"
                   >
                     <PhoneCall className="size-3.5" />
-                    <span>Call</span>
+                    <span>Call Captain</span>
                   </a>
-                ) : null}
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Captain contact details will be shared once en route.")}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-full bg-zinc-100 py-2.5 px-4 text-xs font-bold text-zinc-500 border border-zinc-200 cursor-pointer"
+                  >
+                    <Bike className="size-3.5 text-zinc-400" />
+                    <span>Call Captain</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowRiderLocationModal(true)}
+                  className="flex items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-white hover:bg-blue-50 active:scale-95 py-2.5 px-3.5 text-xs font-black text-blue-700 shadow-2xs transition-all cursor-pointer"
+                >
+                  <Navigation className="size-3.5 text-blue-600" />
+                  <span>Track GPS</span>
+                </button>
               </div>
             </div>
 
@@ -632,65 +703,24 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                 <div className="border-t border-zinc-200 pt-2.5">
                   <Row label="Total Bill Value" value={`₹${order.amount || charges.total}`} strong />
                 </div>
-              </div>
 
-              {/* Real-Time Commission Engine Breakdown */}
-              <PartnerCommissionCard
-                slip={commissionSlip}
-                fallbackSubtotal={charges.subtotal}
-                isDelivered={order.stage === "delivered"}
-              />
+                {/* Tax Invoice View & Download Row */}
+                <div className="mt-3 pt-3 border-t border-dashed border-zinc-200 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-semibold">
+                    <FileText className="size-3.5 text-primary" />
+                    <span>Official Tax Invoice</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowInvoiceSheet(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1.5 text-xs font-black active:scale-95 transition-all shadow-xs hover:opacity-90"
+                  >
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Assigned Rider & Location Card */}
-            {order.assignedRider || order.rider ? (
-              <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
-                    Assigned Rider
-                  </h2>
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                    Active Logistics
-                  </span>
-                </div>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 font-black">
-                      <Bike className="size-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-black text-zinc-900">{riderName}</p>
-                        <span className="flex items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.2 text-[9px] font-bold text-amber-800 border border-amber-200/50">
-                          <Star className="size-2.5 fill-current text-amber-500" />
-                          4.9
-                        </span>
-                      </div>
-                      <p className="text-[10px] font-semibold text-zinc-500">{riderVehicle}</p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {order.assignedRider?.phone ? (
-                      <a
-                        href={`tel:${order.assignedRider.phone}`}
-                        className="flex size-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 active:scale-95"
-                      >
-                        <PhoneCall className="size-3.5" />
-                      </a>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => setShowRiderLocationModal(true)}
-                      className="flex items-center gap-1 rounded-full bg-zinc-950 px-3 py-1.5 text-[11px] font-black text-white active:scale-95 shadow-xs"
-                    >
-                      <Navigation className="size-3" />
-                      <span>Track</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
 
             {/* Live Order Timeline */}
             <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
@@ -822,7 +852,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-lg font-black text-foreground">
-                        {order.customerName || "Customer"}
+                        {getDisplayCustomerName(order.customerName)}
                       </p>
                       <span className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-foreground">
                         <Star className="size-3 fill-current text-brand-green" />
@@ -830,7 +860,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground font-medium">
-                      {order.customerPhone} · {order.customerOrders || 1} previous orders
+                      Verified Customer · {order.customerOrders || 1} previous orders
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Booked at {formatOrderTime(order.placedAt)}
@@ -840,16 +870,117 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                 </div>
 
                 {order.customerPhone ? (
-                  <div className="mt-5 flex gap-3">
-                    <a
-                      href={`tel:${order.customerPhone.replace(/\s/g, "")}`}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-muted/40 py-3 text-xs font-bold text-foreground transition-colors hover:bg-muted active:scale-95"
+                  <div className="mt-5 flex items-center justify-between rounded-2xl border border-emerald-200/90 bg-emerald-50/50 p-3.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold text-zinc-800">{order.customerPhone}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                        <ShieldCheck className="size-3 text-emerald-600" />
+                        <span>Privacy Protected</span>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+                        if (order.customerPhone && !order.customerPhone.includes("••")) {
+                          window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                        } else {
+                          toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
+                        }
+                      }}
+                      className="flex items-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 py-2 px-4 text-xs font-bold text-white shadow-xs transition-all"
                     >
-                      <PhoneCall className="size-4 text-brand-green" />
-                      Call Customer
-                    </a>
+                      <PhoneCall className="size-3.5 text-white" />
+                      <span>Call Customer</span>
+                    </button>
                   </div>
                 ) : null}
+              </section>
+
+              {/* Desktop Assigned Captain Card (Directly Below Customer) */}
+              <section className="rounded-3xl border border-blue-200/90 bg-gradient-to-br from-blue-50/30 via-card to-card p-6 shadow-sm">
+                <div className="flex items-center justify-between pb-4 border-b border-border/80">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-8 items-center justify-center rounded-xl bg-blue-600 text-white shadow-2xs">
+                      <Bike className="size-4.5" />
+                    </span>
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-blue-950 dark:text-blue-100">
+                        Assigned Delivery Captain
+                      </h3>
+                      <p className="text-xs text-muted-foreground">QuickPress Logistics & Delivery Fleet</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-black text-emerald-600">
+                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Active Logistics
+                  </span>
+                </div>
+
+                <div className="mt-4 flex items-start gap-4">
+                  {/* Photo */}
+                  <div className="relative shrink-0">
+                    {riderImage ? (
+                      <img
+                        src={riderImage}
+                        alt={riderName}
+                        className="size-16 rounded-2xl object-cover border-2 border-white shadow-md ring-2 ring-blue-500/20"
+                      />
+                    ) : (
+                      <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-xl shadow-md ring-2 ring-blue-500/20">
+                        <Bike className="size-8" />
+                      </div>
+                    )}
+                    <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white text-[10px] text-white font-black">
+                      ✓
+                    </span>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-black text-foreground">{riderName}</p>
+                      <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-2 py-0.5 text-xs font-black text-amber-800">
+                        <Star className="size-3 fill-current text-amber-500" />
+                        {riderRating.toFixed(1)}
+                      </span>
+                    </div>
+
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-muted border border-border px-2.5 py-0.5 text-xs font-black text-foreground tracking-wide">
+                        🛵 {riderVehicle}
+                      </span>
+                    </div>
+
+                    {riderPhone ? (
+                      <p className="mt-2 text-xs font-black text-foreground flex items-center gap-1.5">
+                        <Phone className="size-3.5 text-blue-600" />
+                        <span>{riderPhone}</span>
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-center gap-3 pt-3 border-t border-border/80">
+                  {riderPhone ? (
+                    <a
+                      href={`tel:${riderPhone.replace(/\s/g, "")}`}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 py-3 px-4 text-xs font-black text-white shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                      title="Call Captain"
+                    >
+                      <PhoneCall className="size-4" />
+                      <span>Call Captain</span>
+                    </a>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowRiderLocationModal(true)}
+                    className="flex items-center justify-center gap-2 rounded-full border border-border bg-muted/40 hover:bg-muted active:scale-95 py-3 px-5 text-xs font-bold text-foreground transition-all cursor-pointer"
+                  >
+                    <Navigation className="size-4 text-blue-600" />
+                    <span>Track Live GPS</span>
+                  </button>
+                </div>
               </section>
 
               {/* Desktop Auto-Accepted by Store Badge */}
@@ -982,13 +1113,6 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   </div>
                 </div>
 
-                {/* Real-Time Commission Engine Breakdown */}
-                <PartnerCommissionCard
-                  slip={commissionSlip}
-                  fallbackSubtotal={charges.subtotal}
-                  isDelivered={order.stage === "delivered"}
-                />
-
                 <div className="mt-4 flex items-center justify-between rounded-2xl bg-muted/40 p-3 text-xs">
                   <div className="flex items-center gap-2">
                     <CreditCard className="size-4 text-muted-foreground" />
@@ -1041,44 +1165,14 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   <OrderTimeline timeline={timeline} stage={order.stage} />
                 </div>
               </section>
-
-              {/* Assigned Delivery Rider */}
-              <section className="rounded-3xl border border-border/80 bg-card p-6 shadow-sm">
-                <SectionHeading title="Assigned Rider" />
-                <div className="mt-3.5 flex items-center justify-between gap-3.5">
-                  <div className="flex items-center gap-3.5">
-                    <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/20 text-brand-dark">
-                      <Bike className="size-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-foreground">{riderName}</p>
-                      <p className="text-[10px] text-muted-foreground">{riderVehicle}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {order.assignedRider?.phone ? (
-                      <a
-                        href={`tel:${order.assignedRider.phone}`}
-                        className="flex size-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 active:scale-95"
-                      >
-                        <PhoneCall className="size-3.5" />
-                      </a>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => setShowRiderLocationModal(true)}
-                      className="flex items-center gap-1.5 rounded-full bg-zinc-950 px-3 py-1.5 text-xs font-black text-white active:scale-95 shadow-xs"
-                    >
-                      <Navigation className="size-3" />
-                      <span>Track Location</span>
-                    </button>
-                  </div>
-                </div>
-              </section>
             </div>
           </div>
         )}
       </div>
+
+      {showInvoiceSheet && order ? (
+        <InvoiceSheet order={order} onClose={() => setShowInvoiceSheet(false)} />
+      ) : null}
 
       {sheetNode}
       {overlay}

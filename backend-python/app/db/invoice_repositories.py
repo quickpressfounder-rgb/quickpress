@@ -49,14 +49,15 @@ from app.models.invoice import (
     InvoiceShareResponse,
     InvoiceTotals,
 )
-from app.models.user import User, utcnow
+from app.models.user import Role, User, utcnow
+from app.services import order_lifecycle as lifecycle
 
 INVOICES = "invoices"
-ORDERS = "orders"
+ORDERS = "customer_orders"
+LEGACY_ORDERS = "orders"
 COUNTERS = "counters"
 
-#: Billing entity — a single QuickPress GSTIN today; multi-entity billing is a
-#: Sprint 3 concern and only changes this constant plus the partner lookup.
+#: Billing entity — QuickPress GSTIN
 COMPANY_GSTIN = "29AABCQ1234P1ZV"
 TAX_RATE = 18.0
 
@@ -100,16 +101,95 @@ class InvoiceRepository:
         year = utcnow().year
         return f"QP/{year}/{value:06d}"
 
-    async def _order(self, user_id: str, order_id: str) -> Optional[Dict[str, Any]]:
-        collection = database.collection(ORDERS)
-        document = await collection.find_one({"_id": order_id})
-        if document is None:
-            document = await collection.find_one({"code": order_id})
-        if document is None or document.get("userId") != user_id:
+    async def _resolve_order(self, order_id: str) -> Optional[Dict[str, Any]]:
+        """Resolve order from customer_orders or legacy orders with prefix tolerance."""
+        if not order_id:
             return None
-        return document
+        # 1. Try canonical lifecycle resolver
+        order = await lifecycle.find_order(order_id)
+        if order is not None:
+            return order
+        # 2. Try customer_orders directly
+        clean = str(order_id).strip()
+        doc = await database.collection(ORDERS).find_one({"$or": [{"_id": clean}, {"id": clean}, {"code": clean}]})
+        if doc is not None:
+            return doc
+        # 3. Fallback to legacy collection
+        doc = await database.collection(LEGACY_ORDERS).find_one({"$or": [{"_id": clean}, {"id": clean}, {"code": clean}]})
+        return doc
 
-    async def _build(self, user: User, order: Dict[str, Any]) -> Dict[str, Any]:
+    async def _can_access_order(self, user: Optional[User], order: Dict[str, Any]) -> bool:
+        """Verify if the user (customer, partner, rider, or admin) has rights to this order's invoice."""
+        if user is None:
+            return True  # Token or pre-authorized context
+
+        role = getattr(user, "role", None)
+        role_str = str(getattr(role, "value", role) or "").lower()
+
+        # Admins have full access
+        if role_str in ("admin", "super_admin", "superadmin", "operations", "finance", "support"):
+            return True
+
+        user_id = str(getattr(user, "id", "") or "")
+        user_phone = str(getattr(user, "phone", "") or "")
+        raw_phone = user_phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+
+        # Customer matching
+        customer_obj = order.get("customer") or {}
+        order_user_id = str(order.get("userId") or customer_obj.get("id") or "")
+        order_phone = str(customer_obj.get("phone") or "")
+        raw_order_phone = order_phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+
+        if user_id and order_user_id and user_id == order_user_id:
+            return True
+        if raw_phone and raw_order_phone and raw_phone == raw_order_phone:
+            return True
+
+        # Partner matching
+        if role_str in ("partner", "store"):
+            partner_obj = order.get("partner") or {}
+            partner_candidates = {
+                str(partner_obj.get("id") or ""),
+                str(partner_obj.get("partnerId") or ""),
+                str(order.get("partner_id") or ""),
+                str(order.get("partnerId") or ""),
+                str(order.get("store_id") or ""),
+            } - {"", "None"}
+
+            if user_id in partner_candidates:
+                return True
+
+            try:
+                from app.db.partner_repositories import partner_repo
+                p_store_id = await partner_repo.resolve_partner_id(user)
+                if p_store_id and p_store_id in partner_candidates:
+                    return True
+            except Exception:
+                pass
+
+            p_phone = str(partner_obj.get("phone") or "")
+            raw_p_phone = p_phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+            if raw_phone and raw_p_phone and (raw_phone == raw_p_phone or raw_phone in raw_p_phone):
+                return True
+
+            # Incoming or unassigned orders visible to partner
+            if order.get("status") in ("placed", "pending_partner_acceptance", "new"):
+                return True
+
+        # Rider matching
+        if role_str in ("rider", "captain"):
+            rider_obj = order.get("rider") or {}
+            rider_candidates = {
+                str(order.get("riderId") or ""),
+                str(rider_obj.get("id") or ""),
+                str(order.get("captain_id") or ""),
+            } - {"", "None"}
+            if user_id in rider_candidates:
+                return True
+
+        return False
+
+    async def _build(self, user: Optional[User], order: Dict[str, Any]) -> Dict[str, Any]:
         """Derive an invoice document from an order. Called once per order."""
         totals = order.get("totals") or {}
         items_total = _money(totals.get("itemsTotal"))
@@ -122,16 +202,18 @@ class InvoiceRepository:
         taxable = round(max(items_total - discount, 0) + delivery + pickup + handling, 2)
 
         partner = order.get("partner") or {}
+        customer = order.get("customer") or {}
         address = order.get("address") or {}
         payment = order.get("payment") or {}
         method = str(payment.get("method") or payment.get("mode") or "cod")
         status_paid = bool(payment.get("paid"))
-        order_status = str(order.get("status") or "placed")
+        order_status = str(order.get("status") or "placed").lower()
 
+        # Cancelled orders do NOT get tax invoices
         if order_status == "cancelled":
-            invoice_status = "cancelled"
-            payment_status = "refunded" if status_paid else "failed"
-        elif status_paid:
+            return None
+
+        if status_paid:
             invoice_status = "paid"
             payment_status = "paid"
         else:
@@ -139,32 +221,40 @@ class InvoiceRepository:
             payment_status = "cod-pending" if method in ("cod", "cash") else "pending"
 
         now = _iso(utcnow())
+        order_key = str(order.get("_id") or order.get("id") or order.get("code"))
+        order_code = str(order.get("code") or order_key)
+        cust_id = str(order.get("userId") or customer.get("id") or (getattr(user, "id", "") if user else ""))
+        part_id = str(partner.get("id") or order.get("partnerId") or order.get("partner_id") or "")
+
         document: Dict[str, Any] = {
-            "_id": f"inv-{order.get('code') or order.get('_id')}",
-            "user_id": user.id,
+            "_id": f"inv-{order_code}",
+            "user_id": cust_id,
+            "customer_id": cust_id,
+            "partner_id": part_id,
             "invoice_number": await self._next_number(),
-            "order_id": str(order.get("_id")),
-            "order_number": str(order.get("code") or order.get("_id")),
+            "order_id": order_key,
+            "order_number": order_code,
             "status": invoice_status,
             "invoice_date": _iso(order.get("createdAt")) or now,
-            "service_label": order.get("serviceLabel") or "Laundry",
+            "service_label": order.get("serviceLabel") or "Laundry & Dry Cleaning",
             "customer": {
-                "name": (order.get("customer") or {}).get("name") or user.name or "Customer",
-                "phone": (order.get("customer") or {}).get("phone") or user.phone or "",
-                "email": getattr(user, "email", "") or "",
-                "addressLine": address.get("line") or "",
-                "city": address.get("city") or "",
+                "name": customer.get("name") or (getattr(user, "name", "") if user else "") or "Customer",
+                "phone": customer.get("phone") or (getattr(user, "phone", "") if user else "") or "",
+                "email": customer.get("email") or (getattr(user, "email", "") if user else "") or "",
+                "addressLine": address.get("line") or address.get("address") or (order.get("delivery") or {}).get("address") or "",
+                "city": address.get("city") or "Kasganj",
             },
             "partner": {
-                "name": partner.get("name") or "QuickPress Partner",
+                "id": part_id,
+                "name": partner.get("name") or partner.get("businessName") or "QuickPress Partner Hub",
                 "phone": partner.get("phone") or "",
-                "email": "",
-                "addressLine": partner.get("city") or "",
-                "city": partner.get("city") or "",
+                "email": partner.get("email") or "",
+                "addressLine": partner.get("addressLine") or partner.get("city") or "MDR 82W, Kasganj",
+                "city": partner.get("city") or "Kasganj",
             },
             "gst": {
                 "gstin": COMPANY_GSTIN,
-                "placeOfSupply": address.get("city") or partner.get("city") or "Karnataka",
+                "placeOfSupply": address.get("city") or partner.get("city") or "Uttar Pradesh",
                 "hsnCode": "9997",
                 "taxRate": TAX_RATE,
                 "cgst": round(taxes / 2, 2),
@@ -176,10 +266,10 @@ class InvoiceRepository:
                 {
                     "id": str(line.get("id") or f"line-{index + 1}"),
                     "name": line.get("name") or "Service",
-                    "description": "",
-                    "quantity": int(line.get("qty") or 1),
-                    "unitPrice": _money(line.get("price")),
-                    "total": round(_money(line.get("price")) * int(line.get("qty") or 1), 2),
+                    "description": str(line.get("service") or ""),
+                    "quantity": int(line.get("qty") or line.get("quantity") or 1),
+                    "unitPrice": _money(line.get("price") or line.get("unitPrice")),
+                    "total": round(_money(line.get("price") or line.get("unitPrice")) * int(line.get("qty") or line.get("quantity") or 1), 2),
                 }
                 for index, line in enumerate(order.get("items") or [])
             ],
@@ -201,13 +291,17 @@ class InvoiceRepository:
                 "paidAt": _iso(order.get("updatedAt")) if status_paid else None,
                 "transactionId": payment.get("transactionId"),
             },
-            "notes": "This is a computer generated invoice and does not require a signature.",
+            "notes": "This is a computer generated invoice and does not require a physical signature.",
             "download_count": 0,
             "share_count": 0,
             "created_at": now,
             "updated_at": now,
         }
-        await database.collection(INVOICES).insert_one(document)
+        await database.collection(INVOICES).update_one(
+            {"_id": document["_id"]},
+            {"$set": document},
+            upsert=True,
+        )
         return document
 
     def _to_model(self, document: Dict[str, Any]) -> Invoice:
@@ -218,7 +312,7 @@ class InvoiceRepository:
             orderNumber=document.get("order_number") or "",
             status=document.get("status") or "unpaid",
             invoiceDate=_iso(document.get("invoice_date")) or _iso(utcnow()) or "",
-            serviceLabel=document.get("service_label") or "Laundry",
+            serviceLabel=document.get("service_label") or "Laundry & Dry Cleaning",
             customer=InvoiceParty(**(document.get("customer") or {})),
             partner=InvoiceParty(**(document.get("partner") or {})),
             gst=InvoiceGst(**(document.get("gst") or {})),
@@ -232,28 +326,102 @@ class InvoiceRepository:
             updatedAt=_iso(document.get("updated_at")),
         )
 
-    async def for_order(self, user: User, order_id: str) -> Invoice:
-        order = await self._order(user.id, order_id)
+    async def for_order(self, user: Optional[User], order_id: str) -> Invoice:
+        """Get or derive the tax invoice for an order with permission check."""
+        order = await self._resolve_order(order_id)
         if order is None:
             raise InvoiceError("Order not found", 404)
+
+        if str(order.get("status") or "").lower() == "cancelled":
+            raise InvoiceError("Invoice is not available for cancelled orders", 400)
+
+        if not await self._can_access_order(user, order):
+            raise InvoiceError("Order not found", 404)
+
+        order_key = str(order.get("_id") or order.get("id") or order.get("code"))
+        order_code = str(order.get("code") or order_key)
+
         existing = await database.collection(INVOICES).find_one(
-            {"order_id": str(order.get("_id")), "user_id": user.id}
+            {
+                "$or": [
+                    {"_id": f"inv-{order_code}"},
+                    {"order_id": order_key},
+                    {"order_number": order_code},
+                    {"order_number": order_key},
+                ]
+            }
         )
         if existing is None:
             existing = await self._build(user, order)
+        if existing is None:
+            raise InvoiceError("Invoice is not available for this order", 404)
         return self._to_model(existing)
 
     async def list(self, user: User, *, limit: int = 50, q: Optional[str] = None) -> InvoiceListResponse:
-        """Invoice history — every past order of this customer has an invoice."""
+        """Invoice history — past orders of this customer or store partner."""
+        role = getattr(user, "role", None)
+        role_str = str(getattr(role, "value", role) or "").lower()
+
+        if role_str in ("partner", "store"):
+            try:
+                from app.db.partner_repositories import partner_repo
+                partner_id = await partner_repo.resolve_partner_id(user)
+            except Exception:
+                partner_id = user.id
+            return await self.list_for_partner(partner_id, limit=limit, q=q)
+
+        # Customer list
         orders = await database.find_many(ORDERS, {"userId": user.id})
-        for order in orders:
+        if not orders:
+            orders = await database.find_many(LEGACY_ORDERS, {"userId": user.id})
+
+        # Cancelled orders should never have invoices in the list
+        cancelled_order_keys = {
+            str(order.get("_id") or "") for order in orders if str(order.get("status") or "").lower() == "cancelled"
+        } | {
+            str(order.get("id") or "") for order in orders if str(order.get("status") or "").lower() == "cancelled"
+        } | {
+            str(order.get("code") or "") for order in orders if str(order.get("status") or "").lower() == "cancelled"
+        } - {"", "None"}
+
+        if cancelled_order_keys:
+            await database.collection(INVOICES).delete_many({
+                "$or": [
+                    {"order_id": {"$in": list(cancelled_order_keys)}},
+                    {"order_number": {"$in": list(cancelled_order_keys)}},
+                    {"status": "cancelled"},
+                ]
+            })
+
+        active_orders = [
+            order for order in orders
+            if str(order.get("status") or "").lower() != "cancelled"
+        ]
+
+        for order in active_orders:
+            order_key = str(order.get("_id") or order.get("id") or order.get("code"))
+            order_code = str(order.get("code") or order_key)
             existing = await database.collection(INVOICES).find_one(
-                {"order_id": str(order.get("_id")), "user_id": user.id}
+                {"$or": [{"_id": f"inv-{order_code}"}, {"order_id": order_key}, {"order_number": order_code}]}
             )
             if existing is None:
                 await self._build(user, order)
 
-        documents = await database.find_many(INVOICES, {"user_id": user.id})
+        documents = await database.find_many(
+            INVOICES,
+            {
+                "$and": [
+                    {"$or": [{"user_id": user.id}, {"customer_id": user.id}]},
+                    {"status": {"$ne": "cancelled"}},
+                ]
+            },
+        )
+        documents = [
+            doc for doc in documents
+            if str(doc.get("status") or "").lower() != "cancelled"
+            and str(doc.get("order_id") or "") not in cancelled_order_keys
+            and str(doc.get("order_number") or "") not in cancelled_order_keys
+        ]
         documents.sort(key=lambda doc: str(doc.get("invoice_date") or ""), reverse=True)
         invoices = [self._to_model(doc) for doc in documents]
         if q:
@@ -270,13 +438,114 @@ class InvoiceRepository:
             items=invoices[:limit], total=len(invoices), totalAmount=total_amount
         )
 
-    async def get(self, user: User, invoice_id: str) -> Invoice:
+    async def list_for_partner(self, partner_id: str, *, limit: int = 50, q: Optional[str] = None) -> InvoiceListResponse:
+        """Store partner invoice history — all order invoices processed by this partner."""
+        orders = await database.find_many(
+            ORDERS,
+            {"$or": [
+                {"partner.id": partner_id},
+                {"partnerId": partner_id},
+                {"partner_id": partner_id},
+                {"store_id": partner_id},
+            ]}
+        )
+
+        cancelled_order_keys = {
+            str(order.get("_id") or "") for order in orders if str(order.get("status") or "").lower() == "cancelled"
+        } | {
+            str(order.get("id") or "") for order in orders if str(order.get("status") or "").lower() == "cancelled"
+        } | {
+            str(order.get("code") or "") for order in orders if str(order.get("status") or "").lower() == "cancelled"
+        } - {"", "None"}
+
+        if cancelled_order_keys:
+            await database.collection(INVOICES).delete_many({
+                "$or": [
+                    {"order_id": {"$in": list(cancelled_order_keys)}},
+                    {"order_number": {"$in": list(cancelled_order_keys)}},
+                    {"status": "cancelled"},
+                ]
+            })
+
+        active_orders = [
+            order for order in orders
+            if str(order.get("status") or "").lower() != "cancelled"
+        ]
+
+        for order in active_orders:
+            order_key = str(order.get("_id") or order.get("id") or order.get("code"))
+            order_code = str(order.get("code") or order_key)
+            existing = await database.collection(INVOICES).find_one(
+                {"$or": [{"_id": f"inv-{order_code}"}, {"order_id": order_key}, {"order_number": order_code}]}
+            )
+            if existing is None:
+                await self._build(None, order)
+
+        documents = await database.find_many(
+            INVOICES,
+            {
+                "$and": [
+                    {"$or": [{"partner_id": partner_id}, {"partner.id": partner_id}]},
+                    {"status": {"$ne": "cancelled"}},
+                ]
+            },
+        )
+        documents = [
+            doc for doc in documents
+            if str(doc.get("status") or "").lower() != "cancelled"
+            and str(doc.get("order_id") or "") not in cancelled_order_keys
+            and str(doc.get("order_number") or "") not in cancelled_order_keys
+        ]
+        documents.sort(key=lambda doc: str(doc.get("invoice_date") or ""), reverse=True)
+        invoices = [self._to_model(doc) for doc in documents]
+        if q:
+            needle = q.strip().lower()
+            invoices = [
+                invoice
+                for invoice in invoices
+                if needle in invoice.invoiceNumber.lower()
+                or needle in invoice.orderNumber.lower()
+                or needle in invoice.customer.name.lower()
+            ]
+        total_amount = round(sum(invoice.totals.grandTotal for invoice in invoices), 2)
+        return InvoiceListResponse(
+            items=invoices[:limit], total=len(invoices), totalAmount=total_amount
+        )
+
+    async def get(self, user: Optional[User], invoice_id: str) -> Invoice:
         collection = database.collection(INVOICES)
-        document = await collection.find_one({"_id": invoice_id})
+        clean_id = str(invoice_id).strip()
+        document = await collection.find_one(
+            {
+                "$or": [
+                    {"_id": clean_id},
+                    {"_id": f"inv-{clean_id}"},
+                    {"invoice_number": clean_id},
+                    {"order_id": clean_id},
+                    {"order_number": clean_id},
+                ]
+            }
+        )
         if document is None:
-            document = await collection.find_one({"invoice_number": invoice_id})
-        if document is None or document.get("user_id") != user.id:
+            # Check if invoice_id is an order code or id
+            order = await self._resolve_order(clean_id)
+            if order is not None:
+                if str(order.get("status") or "").lower() == "cancelled":
+                    raise InvoiceError("Invoice is not available for cancelled orders", 404)
+                return await self.for_order(user, clean_id)
             raise InvoiceError("Invoice not found", 404)
+
+        if str(document.get("status") or "").lower() == "cancelled":
+            raise InvoiceError("Invoice is not available for cancelled orders", 404)
+
+        # Verify access rights
+        order_doc = await self._resolve_order(document.get("order_id") or document.get("order_number") or "")
+        if order_doc:
+            if str(order_doc.get("status") or "").lower() == "cancelled":
+                raise InvoiceError("Invoice is not available for cancelled orders", 404)
+            if not await self._can_access_order(user, order_doc):
+                raise InvoiceError("Invoice not found", 404)
+
         return self._to_model(document)
 
     async def _bump(self, invoice_id: str, field: str) -> None:
@@ -318,24 +587,13 @@ class InvoiceRepository:
         )
 
     async def get_pdf_bytes(self, user: Optional[User], invoice_id: str) -> tuple[bytes, str]:
-        """Generate PDF bytes for an invoice and return (pdf_bytes, file_name)."""
-        collection = database.collection(INVOICES)
-        document = await collection.find_one({"_id": invoice_id})
-        if document is None:
-            document = await collection.find_one({"invoice_number": invoice_id})
-        if document is None:
-            raise InvoiceError("Invoice not found", 404)
-        if user and document.get("user_id") != user.id:
-            raise InvoiceError("Invoice not found", 404)
+        """Generate ReportLab 3-page Tax Invoice PDF bytes and return (pdf_bytes, file_name)."""
+        invoice_model = await self.get(user, invoice_id)
 
-        order_doc = None
-        if document.get("order_id"):
-            order_doc = await database.collection(ORDERS).find_one({"_id": document["order_id"]})
-        elif document.get("order_number"):
-            order_doc = await database.collection(ORDERS).find_one({"code": document["order_number"]})
+        order_doc = await self._resolve_order(invoice_model.orderId or invoice_model.orderNumber)
 
         from app.services.invoice_pdf_generator import build_invoice_pdf_payload, generate_invoice_pdf
-        invoice_model = self._to_model(document)
+
         payload = build_invoice_pdf_payload(invoice_model, order_doc)
         pdf_bytes = generate_invoice_pdf(payload)
         safe_number = invoice_model.invoiceNumber.replace("/", "-")
@@ -343,3 +601,4 @@ class InvoiceRepository:
 
 
 invoice_repository = InvoiceRepository()
+

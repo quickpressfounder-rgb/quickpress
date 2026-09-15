@@ -1336,27 +1336,69 @@ class AdminPartnerRepository:
 
     async def approve(self, partner_id: str, admin_id: str) -> Dict[str, Any]:
         now = now_iso()
-        await database.update(self.collection, {"_id": partner_id}, {"status": "active", "isVerified": True, "isOnboarded": True, "updatedAt": now}, upsert=True)
-        await database.update("partners", {"_id": partner_id}, {"status": "active", "isVerified": True, "isOnboarded": True, "updatedAt": now}, upsert=True)
-        await database.update("partner_profiles", {"_id": partner_id}, {"status": "active", "isVerified": True, "isOnboarded": True, "updatedAt": now}, upsert=True)
+        pid_clean = str(partner_id).strip()
+        query = {"$or": [{"_id": pid_clean}, {"partnerId": pid_clean}, {"id": pid_clean}]}
 
-        p_doc = await database.find_one("partner_profiles", {"_id": partner_id}) or await database.find_one("partners", {"_id": partner_id}) or await database.find_one(self.collection, {"_id": partner_id}) or {}
+        updates = {
+            "status": "active",
+            "isVerified": True,
+            "isOnboarded": True,
+            "isApproved": True,
+            "approvalStatus": "approved",
+            "updatedAt": now,
+            "updated_at": now,
+        }
+
+        # 1. Update partner_profiles, admin_partners, and partners
+        await database.update(self.collection, {"_id": pid_clean}, updates, upsert=True)
+        await database.update("partner_profiles", {"_id": pid_clean}, updates, upsert=True)
+        await database.update("admin_partners", {"_id": pid_clean}, updates, upsert=True)
+        await database.update("partners", {"_id": pid_clean}, updates, upsert=True)
+
+        # In case documents were keyed by partnerId
+        await database.update("partner_profiles", {"partnerId": pid_clean}, updates)
+        await database.update("admin_partners", {"partnerId": pid_clean}, updates)
+        await database.update("partners", {"partnerId": pid_clean}, updates)
+
+        # 2. Update partner_verifications
+        await database.update(
+            "partner_verifications",
+            {"$or": [{"partnerId": pid_clean}, {"_id": pid_clean}]},
+            {"partnerId": pid_clean, "status": "approved", "isVerified": True, "approvedAt": now, "approvedBy": admin_id},
+            upsert=True,
+        )
+
+        # 3. Find and activate linked user
+        p_doc = (
+            await database.find_one("partner_profiles", query)
+            or await database.find_one("admin_partners", query)
+            or await database.find_one("partners", query)
+            or {}
+        )
         uid = p_doc.get("userId") or p_doc.get("user_id")
+        user_phone = p_doc.get("phone") or p_doc.get("mobile")
+
         if uid:
             await database.update("users", {"_id": uid}, {"status": "active", "is_verified": True, "is_onboarded": True, "updated_at": now})
-
-        await database.update("partner_verifications", {"partnerId": partner_id}, {"status": "approved", "isVerified": True, "approvedAt": now, "approvedBy": admin_id}, upsert=True)
+            await database.update("users", {"id": uid}, {"status": "active", "is_verified": True, "is_onboarded": True, "updated_at": now})
+        if user_phone:
+            clean_ph = str(user_phone).replace(" ", "").replace("-", "")
+            await database.update(
+                "users",
+                {"$or": [{"phone": clean_ph}, {"phone": f"+91{clean_ph}"}, {"phone": clean_ph[-10:]}]},
+                {"status": "active", "is_verified": True, "is_onboarded": True, "updated_at": now},
+            )
 
         await database.insert("admin_audit_logs", {
             "id": new_id("audit"),
             "adminId": admin_id,
             "entityType": "partner",
-            "entityId": partner_id,
+            "entityId": pid_clean,
             "action": "PARTNER_APPROVED",
             "reason": "Admin approval",
             "createdAt": now,
         })
-        return {"ok": True, "status": "ACTIVE", "isVerified": True}
+        return {"ok": True, "status": "ACTIVE", "isVerified": True, "partnerId": pid_clean}
 
     async def suspend(self, partner_id: str, reason: str, start_date: str, end_date: str, internal_note: str, admin_id: str) -> Dict[str, Any]:
         now = now_iso()
@@ -2596,19 +2638,48 @@ class AdminDashboardRepository:
 
 
     async def activity(self) -> List[Dict[str, Any]]:
-        orders = await database.find_sorted("customer_orders", sort=[("updatedAt", -1)], limit=10)
-        results = []
-        for order in orders:
-            partner = order.get("partner") or {}
+        from app.db.automation_repositories import automation_repository
+        auto_logs = await automation_repository.list_events(limit=20)
+        
+        results: List[Dict[str, Any]] = []
+        for log in auto_logs:
+            tone = log.get("severity", "info")
+            if tone == "warning":
+                ui_tone = "warning"
+            elif tone in ("danger", "error"):
+                ui_tone = "danger"
+            elif tone == "success":
+                ui_tone = "success"
+            else:
+                ui_tone = "default"
+
+            atype = (log.get("automationType") or "auto").upper()
             results.append(
                 {
-                    "id": order.get("_id"),
-                    "title": f"Order {order.get('code')}: {status_label(order)}",
-                    "meta": f"{partner.get('city', '')} · {order.get('serviceLabel', '')}",
-                    "time": order.get("updatedAt"),
-                    "tone": "danger" if order.get("status") == "cancelled" else ("success" if order.get("status") == "delivered" else "default"),
+                    "id": str(log.get("id") or log.get("_id")),
+                    "title": f"[{atype}] {log.get('title')}",
+                    "meta": log.get("description", ""),
+                    "time": log.get("timestamp") or log.get("createdAt"),
+                    "tone": ui_tone,
+                    "automationType": log.get("automationType"),
+                    "orderId": log.get("orderId"),
+                    "actorId": log.get("actorId"),
                 }
             )
+
+        if not results:
+            orders = await database.find_sorted("customer_orders", sort=[("updatedAt", -1)], limit=10)
+            for order in orders:
+                partner = order.get("partner") or {}
+                results.append(
+                    {
+                        "id": order.get("_id"),
+                        "title": f"Order {order.get('code')}: {status_label(order)}",
+                        "meta": f"{partner.get('city', '')} · {order.get('serviceLabel', '')}",
+                        "time": order.get("updatedAt"),
+                        "tone": "danger" if order.get("status") == "cancelled" else ("success" if order.get("status") == "delivered" else "default"),
+                    }
+                )
         return results
 
     async def latest_orders(self) -> List[Dict[str, Any]]:
@@ -4789,9 +4860,19 @@ class AdminPartnerServiceRepository:
                 )
             ]
 
+            pending_approval = bool(svc.get("pendingApproval", False))
+            approval_status = str(svc.get("approvalStatus", "approved"))
             is_enabled = bool(svc.get("enabled", svc.get("isActive", True)))
             is_suspended = bool(svc.get("isSuspended", False))
-            status = "Suspended" if is_suspended else ("Active" if is_enabled else "Disabled")
+
+            if pending_approval or approval_status == "pending":
+                status = "Pending Approval"
+            elif approval_status == "rejected":
+                status = "Rejected"
+            elif is_suspended:
+                status = "Suspended"
+            else:
+                status = "Active" if is_enabled else "Disabled"
 
             result.append(
                 {
@@ -4809,6 +4890,9 @@ class AdminPartnerServiceRepository:
                     "minQuantity": int(svc.get("minQuantity") or 1),
                     "status": status,
                     "enabled": is_enabled,
+                    "pendingApproval": pending_approval,
+                    "approvalStatus": approval_status,
+                    "rejectionReason": svc.get("rejectionReason"),
                     "ordersCount": len(matching_orders),
                     "revenue": sum((o.get("totals") or {}).get("grandTotal", 0) for o in matching_orders),
                     "updatedAt": svc.get("updatedAt", ""),
@@ -5452,7 +5536,14 @@ class NotificationRepository:
     async def list(self) -> List[Dict[str, Any]]:
         return await database.find_sorted(self.collection, sort=[("createdAt", -1)])
 
-    async def broadcast(self, audience: str, title: str, message: str) -> Dict[str, Any]:
+    async def broadcast(
+        self,
+        audience: str,
+        title: str,
+        message: str,
+        category: Optional[str] = None,
+        channel: Optional[str] = None,
+    ) -> Dict[str, Any]:
         audience = (audience or "All").strip()
         audience_lower = audience.lower().rstrip("s")
         
@@ -5472,7 +5563,7 @@ class NotificationRepository:
                 target_accounts.append({"id": user_id, "role": role})
             elif audience_lower in ("partner", "all_partner") and role == "partner":
                 target_accounts.append({"id": user_id, "role": role})
-            elif audience_lower in ("rider", "all_rider") and role == "rider":
+            elif audience_lower in ("rider", "all_rider", "riders") and role == "rider":
                 target_accounts.append({"id": user_id, "role": role})
 
         # Also fallback to check partner_profiles & rider_profiles if not in users
@@ -5483,18 +5574,22 @@ class NotificationRepository:
                 if pid and not any(a["id"] == pid for a in target_accounts):
                     target_accounts.append({"id": pid, "role": "partner"})
 
-        if audience_lower in ("all", "everyone", "rider", "all_rider"):
+        all_rider_ids = set()
+        if audience_lower in ("all", "everyone", "rider", "all_rider", "riders"):
             riders = await database.find_many("rider_profiles", {})
             for r in riders:
-                rid = str(r.get("userId") or r.get("_id") or "")
-                if rid and not any(a["id"] == rid for a in target_accounts):
-                    target_accounts.append({"id": rid, "role": "rider"})
+                rid = str(r.get("riderId") or r.get("userId") or r.get("_id") or "")
+                if rid:
+                    all_rider_ids.add(rid)
+                    if not any(a["id"] == rid for a in target_accounts):
+                        target_accounts.append({"id": rid, "role": "rider"})
 
         created_at = now_iso()
         is_promo = any(w in (title + " " + message).lower() for w in ("offer", "off", "discount", "deal", "cashback", "sale", "coupon", "₹", "%"))
         kind = "promotion" if is_promo else "broadcast"
+        effective_category = category or ("payment" if "surge" in (title + " " + message).lower() or "bonus" in (title + " " + message).lower() else "system")
 
-        # 2. Insert into customer-facing `notifications` collection & `admin_notifications`
+        # 2. Insert into customer-facing `notifications`, `rider_notifications` & `admin_notifications`
         for account in target_accounts:
             notif_id = new_id("ntf")
             
@@ -5504,14 +5599,35 @@ class NotificationRepository:
                 "user_id": account["id"],
                 "role": account["role"],
                 "kind": kind,
-                "category": "system",
+                "category": effective_category,
                 "title": title or "QuickPress Announcement",
                 "description": message or "",
+                "message": message or "",
                 "created_at": created_at,
                 "read": False,
                 "read_at": None,
             }
             await database.insert("notifications", user_notif_doc)
+
+            # If this account is a rider, store directly in rider_notifications
+            if account["role"] == "rider":
+                rider_notif_doc = {
+                    "_id": f"rntf-admin-{notif_id}-{account['id']}",
+                    "accountId": account["id"],
+                    "riderId": account["id"],
+                    "user_id": account["id"],
+                    "title": title or "QuickPress Announcement",
+                    "message": message or "",
+                    "description": message or "",
+                    "date": created_at,
+                    "created_at": created_at,
+                    "time": "Just now",
+                    "read": False,
+                    "kind": effective_category,
+                    "category": effective_category,
+                    "audience": audience,
+                }
+                await database.insert("rider_notifications", rider_notif_doc)
 
             # Admin log document
             admin_notif_doc = {
@@ -5519,6 +5635,7 @@ class NotificationRepository:
                 "accountId": account["id"],
                 "role": account["role"],
                 "kind": kind,
+                "category": effective_category,
                 "title": title or "QuickPress Announcement",
                 "description": message or "",
                 "createdAt": created_at,
@@ -5526,14 +5643,55 @@ class NotificationRepository:
             }
             await database.insert(self.collection, admin_notif_doc)
 
-        # 3. Realtime Socket.IO Broadcast to all connected customer & partner devices
+        # 3. If audience includes riders, ensure generic broadcast doc is available in rider_notifications
+        if audience_lower in ("all", "everyone", "rider", "all_rider", "riders"):
+            gen_rider_doc = {
+                "_id": f"rntf-broadcast-{new_id('ntf')}",
+                "accountId": "all",
+                "riderId": "all",
+                "user_id": "all",
+                "title": title or "QuickPress Announcement",
+                "message": message or "",
+                "description": message or "",
+                "date": created_at,
+                "created_at": created_at,
+                "time": "Just now",
+                "read": False,
+                "kind": effective_category,
+                "category": effective_category,
+                "audience": audience,
+                "is_broadcast": True,
+            }
+            await database.insert("rider_notifications", gen_rider_doc)
+
+        # 4. Realtime Socket.IO Broadcast to all connected clients & rider cockpit
         try:
-            from app.services.socket_service import broadcast_admin_notification_event
+            from app.services.socket_service import (
+                sio,
+                broadcast_admin_notification_event,
+                EVENT_ADMIN_BROADCAST,
+                EVENT_NOTIFICATION_CREATED,
+            )
             await broadcast_admin_notification_event(
                 title=title or "QuickPress Announcement",
                 message=message or "",
                 audience=audience,
             )
+            # Send targeted Socket.IO event to riders room
+            rider_event = {
+                "title": title or "QuickPress Announcement",
+                "message": message or "",
+                "description": message or "",
+                "body": message or "",
+                "date": created_at,
+                "time": "Just now",
+                "read": False,
+                "kind": effective_category,
+                "category": effective_category,
+                "audience": audience,
+            }
+            await sio.emit(EVENT_NOTIFICATION_CREATED, rider_event, room="riders")
+            await sio.emit(EVENT_ADMIN_BROADCAST, rider_event, room="riders")
         except Exception as exc:
             pass
 

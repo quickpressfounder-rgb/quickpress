@@ -5,7 +5,9 @@ import {
   Check,
   ChevronRight,
   Clock,
+  Download,
   ExternalLink,
+  FileText,
   Headphones,
   HelpCircle,
   Loader2,
@@ -314,24 +316,28 @@ function TrackOrderScreen() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950 scroll-smooth">
       <div className="relative mx-auto w-full max-w-md">
-        <header className="sticky top-0 z-30 mx-auto w-full max-w-md">
-          <div className="glass-panel flex items-center gap-2 px-4 py-3">
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => navigate({ to: "/home" })}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <div className="min-w-0 flex-1 text-center">
-              <p className="truncate text-sm font-bold tracking-tight text-foreground">
-                Live tracking
-              </p>
-              <p className="truncate text-[10px] text-muted-foreground">Order #{orderId}</p>
-            </div>
-            <span className="size-10 shrink-0" />
+        <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+          <button
+            type="button"
+            aria-label="Go back"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate({ to: "/home" });
+              }
+            }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <div className="min-w-0 flex-1 text-center">
+            <p className="truncate text-sm font-bold tracking-tight text-foreground">
+              Live tracking
+            </p>
+            <p className="truncate text-[10px] text-muted-foreground">Order #{orderId}</p>
           </div>
+          <span className="size-10 shrink-0" />
         </header>
 
         {error || (!loading && !detail) ? (
@@ -801,7 +807,7 @@ function TrackOrderScreen() {
                         Order Cancelled
                       </p>
                       <p className="mt-0.5 text-[11px] font-medium text-rose-800 dark:text-rose-300">
-                        {detail?.cancellationReason || detail?.cancelledReason || "Order was cancelled per platform SLA response guarantee."}
+                        {(detail as any)?.cancellationReason || detail?.cancelledReason || "Order was cancelled per platform SLA response guarantee."}
                       </p>
                       <p className="mt-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
                         💳 Refund status: Complete / Credited to QuickPress Wallet
@@ -936,6 +942,30 @@ function TrackOrderScreen() {
                       >
                         {detail.payment.paid ? "Paid" : "Pay on delivery"}
                       </span>
+                    </div>
+                  ) : null}
+
+                  {/* Tax Invoice View & Download — not available for cancelled orders */}
+                  {detail.status !== "cancelled" ? (
+                    <div className="mt-3 pt-2.5 border-t border-dashed border-border flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <FileText className="size-3.5 text-brand-green" />
+                        <span>Official GST Bill</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const invKey = detail.code || orderId;
+                          void navigate({
+                            to: "/invoices/$invoiceId",
+                            params: { invoiceId: invKey },
+                          });
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green/10 px-3 py-1.5 text-xs font-black text-brand-green hover:bg-brand-green/20 active:scale-95 transition-all shadow-xs"
+                      >
+                        <Download className="size-3.5" />
+                        <span>Download Tax Invoice</span>
+                      </button>
                     </div>
                   ) : null}
                 </div>

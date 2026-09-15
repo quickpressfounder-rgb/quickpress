@@ -21,7 +21,6 @@ import { toast } from "sonner";
 import { Toaster } from "@/shared/ui/sonner";
 
 import { PartnerAuthHeader } from "../components/PartnerAuthHeader";
-import { PartnerDevicePermissionsCard } from "../components/onboarding/PartnerDevicePermissionsCard";
 import { usePartnerContext } from "../context/PartnerContext";
 import { partnerRoutes } from "../navigation/partner-routes";
 import {
@@ -40,8 +39,11 @@ export function RegistrationSubmittedScreen() {
   const [partnerId, setPartnerId] = useState(session?.partnerId || "");
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
+  const [redirecting, setRedirecting] = useState(false);
+
   const checkStatus = useCallback(
     async (manual = false) => {
+      if (redirecting) return;
       setChecking(true);
       try {
         const result = await checkPartnerVerificationStatus();
@@ -51,18 +53,19 @@ export function RegistrationSubmittedScreen() {
 
         if (result.isVerified) {
           setIsApproved(true);
-          if (session) {
-            signIn({
-              ...session,
-              isVerified: true,
-              isOnboarded: true,
-              businessName: result.businessName || session.businessName,
-            });
-          }
+          setRedirecting(true);
+          signIn({
+            partnerId: result.partnerId || session?.partnerId || "",
+            phone: session?.phone || "",
+            email: session?.email,
+            businessName: result.businessName || session?.businessName || "Your Partner Store",
+            isVerified: true,
+            isOnboarded: true,
+          });
           toast.success("Congratulations! Your partner store is approved! Redirecting to Dashboard... 🎉");
           setTimeout(() => {
             navigate({ to: partnerRoutes.dashboard });
-          }, 1000);
+          }, 600);
         } else {
           setIsApproved(false);
           if (manual) {
@@ -77,12 +80,25 @@ export function RegistrationSubmittedScreen() {
         setChecking(false);
       }
     },
-    [session, signIn, navigate],
+    [session, signIn, navigate, redirecting],
   );
 
   useEffect(() => {
+    let mounted = true;
     void checkStatus(false);
-  }, [checkStatus]);
+
+    // Continuous auto-polling every 2.5s: as soon as Admin approves, partner screen automatically transitions!
+    const pollInterval = setInterval(() => {
+      if (mounted && !isApproved && !redirecting) {
+        void checkStatus(false);
+      }
+    }, 2500);
+
+    return () => {
+      mounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [checkStatus, isApproved, redirecting]);
 
   const handleLogout = async () => {
     try {
@@ -254,16 +270,22 @@ export function RegistrationSubmittedScreen() {
           </div>
         </section>
 
-        {/* Real Device Permissions, Push FCM & Loud Siren Setup Card */}
-        <PartnerDevicePermissionsCard className="mt-5" />
-
         {/* Action Buttons Zone */}
         <div className="mt-auto pt-6 space-y-3">
-          {isApproved ? (
+          {redirecting ? (
+            <button
+              type="button"
+              disabled
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 py-4 text-sm font-black tracking-tight text-white shadow-cta"
+            >
+              <Loader2 className="size-4 animate-spin" />
+              Approved! Redirecting to Dashboard...
+            </button>
+          ) : isApproved ? (
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.dashboard })}
-              className="ripple focus-key flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-black tracking-tight text-primary-foreground shadow-cta transition-all duration-300 active:scale-[0.97]"
+              className="ripple focus-key flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-sm font-black tracking-tight text-white shadow-cta transition-all duration-300 active:scale-[0.97]"
             >
               Go to Partner Dashboard
               <ArrowRight className="size-4" strokeWidth={2.6} />

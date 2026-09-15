@@ -358,6 +358,8 @@ export type PostOrderPayload = {
   customerName?: string | undefined;
   customerPhone?: string | undefined;
   pickup?: { day: string; slot: string; express: boolean } | undefined;
+  isExpress?: boolean | undefined;
+  expressFee?: number | undefined;
   paymentId?: string | undefined;
   paymentMethod?: string | undefined;
   cardId?: string | null | undefined;
@@ -392,6 +394,8 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
           ? "Credit / Debit Card"
           : "UPI";
 
+  const isExpressSelected = Boolean(payload.isExpress ?? payload.pickup?.express ?? false);
+
   try {
     const res = await apiPostJson<any>("/api/orders", {
       serviceLabel: payload.items[0]?.name ?? "Laundry",
@@ -410,9 +414,11 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
       },
       pickup: {
         date: payload.pickup?.day || "Today",
-        slot: payload.pickup?.slot || "15-30 mins",
-        express: payload.pickup?.express ?? true,
+        slot: payload.pickup?.slot || (isExpressSelected ? "⚡ 15-Min Express Pickup" : "15-30 mins"),
+        express: isExpressSelected,
       },
+      isExpress: isExpressSelected,
+      expressFee: isExpressSelected ? (payload.expressFee ?? 40) : 0,
       payment: {
         mode: paymentMode,
         label: paymentLabel,

@@ -16,10 +16,16 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 
 
+class UpdateResult:
+    def __init__(self, modified_count: int = 0, matched_count: int = 0):
+        self.modified_count = modified_count
+        self.matched_count = matched_count
+
+
 class Collection(Protocol):
     async def find_one(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]: ...
     async def insert_one(self, document: Dict[str, Any]) -> None: ...
-    async def update_one(self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False) -> None: ...
+    async def update_one(self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False) -> Any: ...
     async def delete_many(self, query: Dict[str, Any]) -> int: ...
     async def count_documents(self, query: Dict[str, Any]) -> int: ...
 
@@ -137,15 +143,18 @@ class InMemoryCollection:
 
     async def update_one(
         self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False
-    ) -> None:
+    ) -> UpdateResult:
         async with self._lock:
             target = next((d for d in self._docs if _matches(d, query)), None)
             if target is None:
                 if not upsert:
-                    return
+                    return UpdateResult(0, 0)
                 target = {**query, **update.get("$setOnInsert", {})}
                 self._docs.append(target)
+                _apply_update(target, update)
+                return UpdateResult(1, 1)
             _apply_update(target, update)
+            return UpdateResult(1, 1)
 
     async def update_many(
         self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False
@@ -239,31 +248,29 @@ class Database:
         return "in-memory"
 
     async def connect(self) -> None:
-        """Connect to Supabase PostgreSQL database (or dev in-memory fallback)."""
+        """Connect to Supabase PostgreSQL database."""
         settings = get_settings()
-        is_prod = settings.app_env.lower() == "production"
         import logging
 
-        # 1. Connect to Supabase PostgreSQL
+        # Connect to Supabase PostgreSQL
         db_url = (getattr(settings, "database_url", None) or "").strip()
         if db_url:
-            try:
-                from app.db.supabase_client import SupabaseDatabase
-                sb_db = SupabaseDatabase(db_url)
-                await asyncio.wait_for(sb_db.connect(), timeout=15.0)
-                self._supabase = sb_db
-                self._engine = "supabase-postgresql"
-                self._fallback_in_memory = False
-                logging.getLogger(__name__).info("Connected to Supabase PostgreSQL successfully.")
-                return
-            except Exception as err:
-                logging.getLogger(__name__).warning("Supabase PostgreSQL connection failed: %s", repr(err))
-                if is_prod:
-                    raise RuntimeError(f"FATAL: Production database connection to Supabase failed: {err}") from err
-                self._supabase = None
-
-        if is_prod:
-            raise RuntimeError("FATAL: Production database connection URL not configured")
+            for attempt in range(3):
+                try:
+                    from app.db.supabase_client import SupabaseDatabase
+                    sb_db = SupabaseDatabase(db_url)
+                    await asyncio.wait_for(sb_db.connect(), timeout=30.0)
+                    self._supabase = sb_db
+                    self._engine = "supabase-postgresql"
+                    self._fallback_in_memory = False
+                    logging.getLogger(__name__).info("Connected to Supabase PostgreSQL successfully.")
+                    return
+                except Exception as err:
+                    logging.getLogger(__name__).warning("Supabase PostgreSQL connection attempt %d failed: %s", attempt + 1, repr(err))
+                    if attempt < 2:
+                        await asyncio.sleep(1.5)
+                    else:
+                        raise RuntimeError(f"FATAL: Database connection to Supabase failed: {err}") from err
 
         self._fallback_in_memory = True
         self._engine = "in-memory"

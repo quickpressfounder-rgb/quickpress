@@ -52,7 +52,7 @@ export function AddServiceScreen() {
         enabled: values.enabled,
         imageLabel: values.imageLabel || null,
       });
-      setSuccess("Service added");
+      setSuccess("✓ Service submitted for Admin approval! Admin verification ke baad live hogi.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add service");
     } finally {
@@ -67,11 +67,14 @@ export function AddServiceScreen() {
       <div className="relative mx-auto w-full max-w-md md:max-w-2xl">
         <PartnerTopBar
           title="Add Service"
-          subtitle="Publish a new service to your rate card"
+          subtitle="Submit a new service for Admin approval"
           onBack={() => navigate({ to: partnerRoutes.services })}
         />
 
         <div className="animate-slide-up px-5 pb-36 pt-4">
+          <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-amber-900">
+            ⏳ <strong>Admin Approval Required:</strong> New services are verified by QuickPress Admin before going live in customer catalog.
+          </div>
           <ServiceForm mode="create" values={values} errors={errors} onChange={change} />
         </div>
 
@@ -83,7 +86,7 @@ export function AddServiceScreen() {
             className="ripple flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-black tracking-tight text-primary-foreground transition-all duration-300 active:scale-[0.98] disabled:opacity-60"
           >
             <Plus className="size-4" />
-            {isSaving ? "Saving..." : "Save Service"}
+            {isSaving ? "Submitting..." : "Submit for Admin Approval"}
           </button>
         </div>
       </div>

@@ -8,6 +8,8 @@
 import type { Order } from "@/shared/types";
 import { ORDER_STATUS_LABEL } from "@/shared/types/order";
 import { apiGetJson, apiPostJson } from "@/api/core/transport";
+import { apiBaseUrl } from "./customer/api/config";
+import { readToken } from "./core/session-store";
 
 export type OrderStatus =
   | "Pending"
@@ -182,22 +184,204 @@ export type OrderDetail = AdminOrder & {
   isReassigned?: boolean;
 };
 
+export const STATUS_RANK: Record<string, number> = {
+  placed: 1,
+  pending: 1,
+  Pending: 1,
+  pending_partner_acceptance: 1,
+  new: 1,
+  order_created: 1,
+  partner_accepted: 2,
+  accepted: 2,
+  Accepted: 2,
+  rider_searching: 2,
+  pickup_rider_assigned: 2,
+  rider_assigned: 2,
+  "Pickup Assigned": 2,
+  pickup_rider_accepted: 2,
+  rider_accepted: 2,
+  pickup_otp_pending: 2,
+  picked_up: 3,
+  "Picked up": 3,
+  at_partner: 3,
+  dropped_at_partner: 3,
+  processing: 4,
+  Processing: 4,
+  in_wash: 4,
+  "In wash": 4,
+  washing: 4,
+  dry_cleaning: 4,
+  ironing: 4,
+  ready_for_delivery: 5,
+  "Ready for delivery": 5,
+  completed: 5,
+  ready: 5,
+  delivery_rider_assigned: 5,
+  "Delivery Assigned": 5,
+  delivery_rider_accepted: 5,
+  dispatch_otp_pending: 5,
+  out_for_delivery: 5,
+  "Out for delivery": 5,
+  delivery_otp_pending: 5,
+  delivered: 6,
+  Delivered: 6,
+  cancelled: 99,
+  Cancelled: 99,
+};
+
 /** GET /api/admin/orders/{id} */
 export async function fetchOrder(id: string): Promise<OrderDetail> {
   const order = await apiGetJson<any>(`/api/admin/orders/${id}`);
-  const time = (iso: string) =>
-    new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  const time = (iso?: string) => {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "—";
+      return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+    } catch {
+      return "—";
+    }
+  };
 
-  const stages: { label: string; status: keyof typeof ORDER_STATUS_LABEL }[] = [
-    { label: "Order placed", status: "placed" },
-    { label: "Partner accepted", status: "partner_accepted" },
-    { label: "Rider assigned", status: "rider_assigned" },
-    { label: "Picked up", status: "picked_up" },
-    { label: "In Processing", status: "processing" },
-    { label: "Processing completed", status: "completed" },
-    { label: "Out for delivery", status: "out_for_delivery" },
-    { label: "Delivered", status: "delivered" },
+  const norm = (s?: string) => String(s || "").toLowerCase().trim();
+  const currentRawStatus = norm(order.status);
+  const currentRank = STATUS_RANK[order.status] ?? STATUS_RANK[currentRawStatus] ?? 1;
+  const isCancelled = currentRawStatus === "cancelled" || Boolean(order.cancelledAt);
+
+  const createdAt = order.createdAt || order.placedAt || order.placedOn;
+
+  const STAGES_CONFIG: {
+    label: string;
+    stageRank: number;
+    statuses: string[];
+    fallbackTime?: string;
+  }[] = [
+    {
+      label: "Order placed",
+      stageRank: 1,
+      statuses: ["placed", "pending", "pending_partner_acceptance", "new", "order_created"],
+      fallbackTime: createdAt,
+    },
+    {
+      label: "Partner accepted",
+      stageRank: 2,
+      statuses: ["partner_accepted", "accepted", "store_accepted"],
+    },
+    {
+      label: "Rider assigned",
+      stageRank: 2,
+      statuses: [
+        "pickup_rider_assigned",
+        "rider_assigned",
+        "rider_searching",
+        "pickup_rider_accepted",
+        "rider_accepted",
+        "pickup_otp_pending",
+      ],
+    },
+    {
+      label: "Picked up",
+      stageRank: 3,
+      statuses: ["picked_up", "at_partner", "dropped_at_partner"],
+    },
+    {
+      label: "In Processing",
+      stageRank: 4,
+      statuses: ["processing", "washing", "ironing", "dry_cleaning", "in_wash"],
+    },
+    {
+      label: "Processing completed",
+      stageRank: 5,
+      statuses: ["ready_for_delivery", "ready", "completed"],
+    },
+    {
+      label: "Out for delivery",
+      stageRank: 5,
+      statuses: ["out_for_delivery", "delivery_rider_assigned", "delivery_rider_accepted", "delivery_otp_pending"],
+    },
+    {
+      label: "Delivered",
+      stageRank: 6,
+      statuses: ["delivered"],
+    },
   ];
+
+  const events: any[] = Array.isArray(order.events) ? order.events : [];
+  const backendTimeline: any[] = Array.isArray(order.timeline) ? order.timeline : [];
+
+  let lastKnownTime = createdAt ? time(createdAt) : "—";
+
+  const timeline = STAGES_CONFIG.map((stage, idx) => {
+    // 1. Check matching event in events audit log
+    const matchedEvent = events.find((item: any) =>
+      stage.statuses.includes(norm(item?.status))
+    );
+
+    // 2. Check matching stage in backend timeline
+    const bStep = backendTimeline.find(
+      (s: any) =>
+        stage.statuses.includes(norm(s?.id)) ||
+        norm(s?.label) === norm(stage.label)
+    );
+
+    // 3. Stage 0 is ALWAYS done for an existing order
+    const isFirstStage = idx === 0;
+
+    // 4. Milestone done evaluation with forward progression
+    let done = Boolean(matchedEvent) || Boolean(bStep?.done);
+    if (!done && !isCancelled) {
+      if (isFirstStage) {
+        done = true;
+      } else if (currentRank >= stage.stageRank) {
+        done = true;
+      }
+    }
+
+    // Special case: "Rider assigned" is done if rider details or ride exists
+    if (stage.label === "Rider assigned" && (order.rider?.id || (order.rider && order.rider !== "Unassigned") || order.assignedRiderId)) {
+      done = true;
+    }
+
+    // 5. Compute formatted time string
+    let atStr = "—";
+    if (matchedEvent?.at) {
+      atStr = time(matchedEvent.at);
+    } else if (bStep?.at || bStep?.time) {
+      atStr = time(bStep.at || bStep.time);
+    } else if (done) {
+      if (isFirstStage && createdAt) {
+        atStr = time(createdAt);
+      } else {
+        atStr = lastKnownTime !== "—" ? lastKnownTime : "—";
+      }
+    }
+
+    if (atStr !== "—") {
+      lastKnownTime = atStr;
+    }
+
+    return {
+      label: stage.label,
+      at: atStr,
+      done,
+    };
+  });
+
+  // If order is cancelled, append cancelled milestone
+  if (isCancelled) {
+    const cancelEvt = events.find((e: any) => norm(e?.status) === "cancelled");
+    const cancelTime = cancelEvt?.at || order.cancelledAt || order.updatedAt;
+    const reason =
+      order.cancellationReason ||
+      order.cancelledReason ||
+      order.refundReason ||
+      "Order Cancelled";
+    timeline.push({
+      label: `Cancelled (${reason})`,
+      at: cancelTime ? time(cancelTime) : "—",
+      done: true,
+    });
+  }
 
   const cancReason =
     order.cancellationReason ||
@@ -266,10 +450,7 @@ export async function fetchOrder(id: string): Promise<OrderDetail> {
       qty: item.qty || item.quantity || 1,
       price: money((item.qty || item.quantity || 1) * (item.price || 0)),
     })),
-    timeline: stages.map((stage) => {
-      const event = (order.events || []).find((item: any) => item.status === stage.status);
-      return { label: stage.label, at: event ? time(event.at) : "—", done: Boolean(event) };
-    }),
+    timeline,
   };
 }
 
@@ -292,10 +473,85 @@ export async function changeOrderStatus(orderId: string, status: string, reason?
   return { ok: true as const, orderId, status };
 }
 
-/** No invoice-generation endpoint exists on the backend yet. */
-export async function downloadInvoice(): Promise<never> {
-  throw new Error("Invoice generation is not available yet.");
+/** Fetch full GST Tax Invoice JSON for an order */
+export async function fetchOrderInvoice(orderId: string): Promise<any> {
+  try {
+    return await apiGetJson<any>(`/api/admin/orders/${orderId}/invoice`);
+  } catch {
+    return await apiGetJson<any>(`/api/orders/${orderId}/invoice`);
+  }
 }
+
+/** Get pre-authorized direct URL to stream 3-page Tax Invoice PDF */
+export function getOrderInvoicePdfUrl(orderId: string): string {
+  const token = readToken();
+  const base = apiBaseUrl();
+  const cleanId = encodeURIComponent(orderId);
+  return `${base}/api/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+}
+
+/** Directly trigger a native client-side PDF file download via Blob for Admin */
+export async function downloadOrderInvoicePdfBlob(orderId: string, customFileName?: string): Promise<string> {
+  const token = readToken();
+  const base = apiBaseUrl();
+  const cleanId = encodeURIComponent(orderId);
+  let url = `${base}/api/admin/orders/${cleanId}/invoice/pdf`;
+  let response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    url = `${base}/api/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+    response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to download Tax Invoice PDF (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const fileName = customFileName || `QuickPress-Tax-Invoice-${orderId.replace(/\//g, "-")}.pdf`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  return fileName;
+}
+
+/** View Tax Invoice PDF in a new window/tab */
+export async function viewOrderInvoicePdf(orderId: string): Promise<void> {
+  const token = readToken();
+  const base = apiBaseUrl();
+  const cleanId = encodeURIComponent(orderId);
+  try {
+    const url = `${base}/api/admin/orders/${cleanId}/invoice/pdf`;
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (response.ok) {
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank", "noopener");
+      return;
+    }
+  } catch {
+    // fallback
+  }
+  const fallbackUrl = `${base}/api/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  window.open(fallbackUrl, "_blank", "noopener");
+}
+
+/** Backward-compatible alias for downloadInvoice */
+export async function downloadInvoice(orderId?: string, orderCode?: string): Promise<string> {
+  if (!orderId) {
+    throw new Error("Order ID is required to download invoice.");
+  }
+  return await downloadOrderInvoicePdfBlob(orderId, orderCode ? `QuickPress-Tax-Invoice-${orderCode}.pdf` : undefined);
+}
+
 /** No admin order-refund endpoint exists on the backend yet. */
 export async function refundOrder(): Promise<never> {
   throw new Error("Refunding an order from here is not available yet.");

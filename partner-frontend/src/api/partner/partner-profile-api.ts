@@ -105,6 +105,10 @@ export async function uploadPartnerBanner(image: string): Promise<{ url: string 
   return apiPostJson<{ url: string; field: string }>("/api/uploads/partner/banner", { image });
 }
 
+export async function uploadPartnerGalleryPhoto(image: string): Promise<{ url: string }> {
+  return apiPostJson<{ url: string; field: string }>("/api/uploads/partner/gallery", { image });
+}
+
 export async function toggleStoreStatus(isOnline: boolean): Promise<PartnerProfile> {
   return apiRequest<PartnerProfile>("PATCH", "/api/partner/store/status", { body: { isOnline } });
 }

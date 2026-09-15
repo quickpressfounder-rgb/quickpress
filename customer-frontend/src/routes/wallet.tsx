@@ -329,50 +329,50 @@ function WalletScreen() {
             ) : null}
 
             {/* Balances hero */}
-            <section className="relative overflow-hidden rounded-3xl bg-brand-dark p-6 text-background shadow-soft">
-              <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand-green/20 blur-2xl" />
-              <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-primary/20 blur-2xl" />
+            <section className="relative overflow-hidden rounded-3xl border border-border/80 bg-white p-6 text-foreground shadow-soft dark:bg-card">
+              <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-emerald-500/10 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-16 -left-16 size-48 rounded-full bg-emerald-500/5 blur-2xl" />
 
               <div className="relative flex items-start justify-between">
                 <div>
-                  <span className="text-[0.68rem] font-bold uppercase tracking-widest text-background/70">
+                  <span className="text-[0.68rem] font-bold uppercase tracking-widest text-muted-foreground">
                     Total Spendable Balance
                   </span>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-3xl font-black tracking-tight text-background">
+                    <span className="text-3xl font-black tracking-tight text-black dark:text-white">
                       {formatAmount(wallet.totalBalance)}
                     </span>
-                    <span className="text-xs font-bold text-brand-green">INR</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">INR</span>
                   </div>
                 </div>
-                <span className="flex size-11 items-center justify-center rounded-2xl bg-background/10 text-brand-green backdrop-blur-md">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
                   <WalletIcon className="size-5" />
                 </span>
               </div>
 
               {/* Sub-balances */}
-              <div className="relative mt-6 grid grid-cols-3 gap-2 border-t border-background/10 pt-4">
+              <div className="relative mt-6 grid grid-cols-3 gap-2 border-t border-border pt-4">
                 <div>
-                  <span className="block text-[0.62rem] font-semibold uppercase tracking-wider text-background/60">
+                  <span className="block text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground">
                     Main
                   </span>
-                  <span className="mt-0.5 block text-xs font-black tracking-tight text-background">
+                  <span className="mt-0.5 block text-sm font-black tracking-tight text-black dark:text-white">
                     {formatAmount(wallet.balances.currentBalance)}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-[0.62rem] font-semibold uppercase tracking-wider text-background/60">
+                  <span className="block text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground">
                     Cashback
                   </span>
-                  <span className="mt-0.5 block text-xs font-black tracking-tight text-brand-green">
+                  <span className="mt-0.5 block text-sm font-black tracking-tight text-emerald-600 dark:text-emerald-400">
                     {formatAmount(wallet.balances.rewardBalance)}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-[0.62rem] font-semibold uppercase tracking-wider text-background/60">
+                  <span className="block text-[0.65rem] font-bold uppercase tracking-wider text-muted-foreground">
                     Credits
                   </span>
-                  <span className="mt-0.5 block text-xs font-black tracking-tight text-primary">
+                  <span className="mt-0.5 block text-sm font-black tracking-tight text-black dark:text-white">
                     {formatAmount(wallet.balances.membershipCredits)}
                   </span>
                 </div>
@@ -833,7 +833,6 @@ function WalletScreen() {
       ) : null}
 
       <BottomNav active="wallet" />
-      <Toaster position="top-center" />
     </main>
   );
 }

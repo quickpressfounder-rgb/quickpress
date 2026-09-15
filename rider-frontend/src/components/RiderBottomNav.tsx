@@ -1,6 +1,7 @@
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Home, ClipboardList, type LucideIcon } from "lucide-react";
+import { fetchRiderOffers } from "../api/rider/rider-orders-api";
 
 export type RiderTabId = "dashboard" | "orders";
 
@@ -22,11 +23,39 @@ interface RiderBottomNavProps {
   ordersBadgeCount?: number;
 }
 
-export function RiderBottomNav({ active = "dashboard", ordersBadgeCount = 0 }: RiderBottomNavProps) {
+export function RiderBottomNav({ active = "dashboard", ordersBadgeCount }: RiderBottomNavProps) {
   const navigate = useNavigate();
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [pressed, setPressed] = useState<string | null>(null);
+  const [liveOrdersCount, setLiveOrdersCount] = useState<number>(ordersBadgeCount ?? 0);
+
+  // Sync or fetch live pending orders count
+  useEffect(() => {
+    if (typeof ordersBadgeCount === "number") {
+      setLiveOrdersCount(ordersBadgeCount);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchLiveCount = async () => {
+      try {
+        const offers = await fetchRiderOffers();
+        if (isMounted) {
+          setLiveOrdersCount(Array.isArray(offers) ? offers.length : 0);
+        }
+      } catch {
+        if (isMounted) setLiveOrdersCount(0);
+      }
+    };
+
+    fetchLiveCount();
+    const interval = setInterval(fetchLiveCount, 8000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [ordersBadgeCount]);
 
   // Preload tab routes for instant response on tap
   useEffect(() => {
@@ -63,9 +92,9 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount = 0 }: R
       className="fixed inset-x-0 bottom-0 z-40 pt-1 transition-[transform,opacity] duration-300 select-none pointer-events-none"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 8px, 14px)" }}
     >
-      {/* Floating Glass Dock (Matching Customer Panel Style) */}
+      {/* Floating Glass Dock */}
       <div className="mx-auto w-full max-w-md px-4 pointer-events-auto">
-        <div className="flex items-stretch gap-1 rounded-full border border-neutral-200/70 bg-white/90 p-1.5 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+        <div className="flex items-stretch gap-1 rounded-full border border-zinc-200/80 bg-white/95 p-1.5 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
           {RIDER_TABS.map((item) => {
             const isActive =
               item.id === active ||
@@ -82,29 +111,30 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount = 0 }: R
                 aria-label={item.label}
                 className={`tap-target relative flex flex-1 flex-col items-center justify-center gap-1 rounded-full px-3 py-2 transition-all duration-300 ease-out cursor-pointer ${
                   isActive
-                    ? "bg-[#00C853]/15 text-[#00C853]"
-                    : "text-neutral-500 hover:text-neutral-900"
+                    ? "bg-zinc-950 text-white shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-900"
                 }`}
               >
                 <div className="relative flex items-center justify-center">
                   <item.icon
-                    className={`size-[1.25rem] shrink-0 transition-transform duration-300 ease-out ${
-                      pressed === item.id ? "scale-[1.22]" : isActive ? "scale-110" : "scale-100"
+                    className={`size-[1.2rem] shrink-0 transition-transform duration-300 ease-out ${
+                      pressed === item.id ? "scale-[1.22]" : isActive ? "scale-105" : "scale-100"
                     }`}
                     strokeWidth={isActive ? 2.4 : 1.8}
                   />
 
                   {/* Orders Pending Count Badge */}
-                  {item.id === "orders" && ordersBadgeCount > 0 && (
+                  {item.id === "orders" && liveOrdersCount > 0 && (
                     <span className="absolute -top-1.5 -right-3 flex items-center justify-center min-w-[17px] h-[17px] px-1 text-[9px] font-black text-white bg-red-600 rounded-full border-2 border-white shadow-xs animate-pulse">
-                      {ordersBadgeCount}
+                      {liveOrdersCount}
                     </span>
                   )}
+
                 </div>
 
                 <span
                   className={`text-[0.7rem] leading-none tracking-[-0.01em] transition-all duration-200 ${
-                    isActive ? "font-black text-[#00C853]" : "font-semibold text-neutral-500"
+                    isActive ? "font-black text-white" : "font-semibold text-zinc-500"
                   }`}
                 >
                   {item.label}

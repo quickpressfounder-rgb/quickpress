@@ -54,7 +54,6 @@ import {
   PartnerAgreementSignaturePad,
   type AgreementSignatureData,
 } from "../components/onboarding/PartnerAgreementSignaturePad";
-import { PartnerDevicePermissionsCard } from "../components/onboarding/PartnerDevicePermissionsCard";
 import { testPartnerSoundAndVibration } from "../lib/partner-order-alert-sound";
 import {
   ChoiceChip,
@@ -1888,9 +1887,6 @@ export function BusinessRegistrationScreen() {
                     <ReviewRow label="IFSC Code" value={form.ifsc} />
                   </div>
                 </SectionCard>
-
-                {/* Real Device Permissions, Push FCM, High-Priority Siren & Battery Guide */}
-                <PartnerDevicePermissionsCard />
 
                 {/* Legal Merchant SLA Franchise Agreement & Digital Signature Pad */}
                 <PartnerAgreementSignaturePad

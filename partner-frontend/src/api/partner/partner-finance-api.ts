@@ -3,6 +3,7 @@
  */
 
 import { apiGetJson, apiPostJson } from "../core/transport";
+import { readToken } from "../core/session-store";
 
 export type SettlementCycle = {
   cycleId: string;
@@ -112,12 +113,14 @@ export type SettlementBreakdown = {
 
 export type TaxInvoice = {
   invoiceNumber: string;
+  orderNumber?: string;
   period: string;
   date: string;
   type: string;
   amount: number;
   gstAmount: number;
   status: string;
+  downloadUrl?: string;
 };
 
 export async function fetchFinanceOverview(): Promise<FinanceOverviewResponse> {
@@ -136,6 +139,63 @@ export async function emailSettlementReport(cycleId: string): Promise<{ ok: bool
   return apiPostJson<{ ok: boolean; message: string }>(`/api/partner/finance/statement/${cycleId}/email`, {});
 }
 
-export async function fetchFinanceTaxInvoices(): Promise<{ invoices: TaxInvoice[] }> {
-  return apiGetJson<{ invoices: TaxInvoice[] }>("/api/partner/finance/invoices");
+export async function fetchFinanceTaxInvoices(): Promise<{ invoices: TaxInvoice[]; orderInvoices?: TaxInvoice[] }> {
+  return apiGetJson<{ invoices: TaxInvoice[]; orderInvoices?: TaxInvoice[] }>("/api/partner/finance/invoices");
 }
+
+export function getPartnerOrderInvoicePdfUrl(orderId: string): string {
+  const token = readToken();
+  const cleanId = encodeURIComponent(orderId);
+  return `/api/partner/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+}
+
+export async function fetchPartnerOrderInvoice(orderId: string): Promise<any> {
+  return apiGetJson<any>(`/api/partner/orders/${encodeURIComponent(orderId)}/invoice`);
+}
+
+export async function downloadPartnerInvoicePdfBlob(orderId: string, customFileName?: string): Promise<string> {
+  const token = readToken();
+  const cleanId = encodeURIComponent(orderId);
+  const url = `/api/partner/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download invoice (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const fileName = customFileName || `QuickPress-Invoice-${orderId.replace(/\//g, "-")}.pdf`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  return fileName;
+}
+
+export async function downloadCommissionInvoicePdfBlob(periodKey: string, customFileName?: string): Promise<string> {
+  const token = readToken();
+  const cleanKey = encodeURIComponent(periodKey);
+  const url = `/api/partner/finance/commission-invoices/${cleanKey}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download commission invoice (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const fileName = customFileName || `QuickPress-Commission-Invoice-${periodKey}.pdf`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  return fileName;
+}
+

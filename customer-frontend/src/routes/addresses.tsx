@@ -625,7 +625,7 @@ function AddressesScreen() {
         />
       ) : null}
 
-      <BottomNav active="addresses" />
+      {mapOpen || sheetOpen ? null : <BottomNav active="addresses" />}
       <Toaster />
     </main>
   );

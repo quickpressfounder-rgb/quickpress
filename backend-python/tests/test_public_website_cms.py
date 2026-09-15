@@ -43,6 +43,36 @@ async def test_public_legal_doc_privacy_policy():
 
 
 @pytest.mark.asyncio
+async def test_all_app_legal_docs_and_aliases():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Partner Agreement
+        resp = await client.get("/api/public/legal/partner-agreement")
+        assert resp.status_code == 200
+        assert "Partner Merchant" in resp.json()["title"]
+
+        # 2. Rider Agreement
+        resp = await client.get("/api/public/legal/rider-agreement")
+        assert resp.status_code == 200
+        assert "Captain Delivery" in resp.json()["title"]
+
+        # 3. Grievance Redressal
+        resp = await client.get("/api/public/legal/grievance-redressal")
+        assert resp.status_code == 200
+        assert "Grievance" in resp.json()["title"]
+
+        # 4. Cancellation & Refund Policy
+        resp = await client.get("/api/public/legal/cancellation-refund-policy")
+        assert resp.status_code == 200
+        assert "Refund" in resp.json()["title"]
+
+        # 5. Terms of Service alias
+        resp = await client.get("/api/public/legal/terms-of-service")
+        assert resp.status_code == 200
+        assert "Terms" in resp.json()["title"]
+
+
+@pytest.mark.asyncio
 async def test_public_services_list_and_detail():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

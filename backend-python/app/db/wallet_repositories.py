@@ -44,6 +44,7 @@ Business rules enforced here
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 from typing import Any, Dict, List, Optional
@@ -124,6 +125,7 @@ def _money(value: Any) -> float:
 
 class WalletRepository:
     # ------------------------------------------------------------- wallet
+    _user_locks: Dict[str, asyncio.Lock] = {}
 
     async def _wallet_document(self, user: User) -> Dict[str, Any]:
         collection = database.collection(WALLETS)
@@ -321,42 +323,64 @@ class WalletRepository:
         method: Optional[str] = "wallet",
         reference: Optional[str] = None,
     ) -> tuple[Dict[str, Any], WalletTransaction]:
-        amount = self._validate_amount(amount)
-        document = await self._wallet_document(user)
-        balance = _money(document.get("balance"))
-        # Business rule: wallet balances can never go negative.
-        if amount > balance:
-            raise WalletError("Insufficient wallet balance.", 400)
-        document["balance"] = round(balance - amount, 2)
-        await self._save_wallet(document)
-        transaction = await self._record_transaction(
-            user,
-            kind=kind,
-            title=title,
-            amount=amount,
-            direction="debit",
-            balance_after=_money(document.get("balance")),
-            description=description,
-            method=method,
-            reference=reference,
-        )
+        user_lock = self._user_locks.setdefault(user.id, asyncio.Lock())
+        async with user_lock:
+            amount = self._validate_amount(amount)
+            # Ensure wallet document exists
+            await self._wallet_document(user)
 
-        # Synchronize double-entry wallet_ledger collection
-        try:
-            from app.services import wallet_ledger as ledger
-            await ledger.append_entry(
-                account_id=user.id,
-                role="customer",
-                direction="debit",
-                reason=kind if kind in ("order-payment", "withdrawal") else "order-payment",
-                amount=amount,
-                note=description or title,
-                reference=reference or transaction.id,
+            wallet_col = database.collection(WALLETS)
+            wallet_doc = await wallet_col.find_one({"user_id": user.id})
+            if not wallet_doc:
+                raise WalletError("Wallet not found.", 404)
+
+            current_balance = _money(wallet_doc.get("balance"))
+            if amount > current_balance:
+                raise WalletError("Insufficient wallet balance.", 400)
+
+            # Atomic conditional deduction: balance must be >= amount
+            res = await wallet_col.update_one(
+                {"_id": wallet_doc["_id"], "balance": {"$gte": amount}},
+                {
+                    "$inc": {"balance": -amount},
+                    "$set": {"updated_at": _iso(utcnow())},
+                },
             )
-        except Exception:
-            pass
+            # If condition wasn't met due to concurrent race, reject
+            if getattr(res, "modified_count", 1) == 0:
+                raise WalletError("Insufficient wallet balance or concurrent transaction in progress.", 400)
 
-        return document, transaction
+            refreshed = await wallet_col.find_one({"_id": wallet_doc["_id"]}) or wallet_doc
+            new_balance = _money(refreshed.get("balance"))
+
+            transaction = await self._record_transaction(
+                user,
+                kind=kind,
+                title=title,
+                amount=amount,
+                direction="debit",
+                balance_after=new_balance,
+                description=description,
+                method=method,
+                reference=reference,
+            )
+
+            # Synchronize double-entry wallet_ledger collection
+            try:
+                from app.services import wallet_ledger as ledger
+                await ledger.append_entry(
+                    account_id=user.id,
+                    role="customer",
+                    direction="debit",
+                    reason=kind if kind in ("order-payment", "withdrawal") else "order-payment",
+                    amount=amount,
+                    note=description or title,
+                    reference=reference or transaction.id,
+                )
+            except Exception:
+                pass
+
+            return refreshed, transaction
 
     def _validate_amount(self, amount: Any) -> float:
         value = _money(amount)

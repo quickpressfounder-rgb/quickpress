@@ -82,15 +82,19 @@ export function useCustomerOrderRealtime(
 
   useRealtimeEvent(ORDER_LIFECYCLE_EVENTS as string[], onOrderEvent);
 
-  useRealtimeEvent(SOCKET_EVENTS.locationUpdated, (payload) => {
-    const location = payload as LocationEventPayload;
+  useRealtimeEvent([SOCKET_EVENTS.locationUpdated, "captain_location_update"], (payload) => {
+    const location = payload as any;
     if (orderId && location.orderId && location.orderId !== orderId) return;
-    setRiderLocation({
-      lat: location.lat,
-      lng: location.lng,
-      ...(location.heading === undefined ? {} : { heading: location.heading }),
-      at: location.at ?? new Date().toISOString(),
-    });
+    const lat = Number(location.lat ?? location.latitude ?? location.coords?.lat);
+    const lng = Number(location.lng ?? location.longitude ?? location.coords?.lng);
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+      setRiderLocation({
+        lat,
+        lng,
+        ...(location.heading === undefined ? {} : { heading: Number(location.heading) }),
+        at: location.at ?? new Date().toISOString(),
+      });
+    }
   });
 
   return { ...statusState, timeline, riderLocation };

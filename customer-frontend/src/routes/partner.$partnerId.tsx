@@ -100,6 +100,78 @@ function resolveServiceImage(title?: string | null, img?: string | null): string
   return washFoldImg;
 }
 
+function getAvatarGradient(name?: string): string {
+  const gradients = [
+    "from-emerald-500 to-teal-600 text-white shadow-emerald-500/20",
+    "from-blue-500 to-indigo-600 text-white shadow-blue-500/20",
+    "from-purple-500 to-pink-600 text-white shadow-purple-500/20",
+    "from-amber-500 to-orange-600 text-white shadow-amber-500/20",
+    "from-rose-500 to-red-600 text-white shadow-rose-500/20",
+    "from-cyan-500 to-blue-600 text-white shadow-cyan-500/20",
+    "from-teal-500 to-emerald-600 text-white shadow-teal-500/20",
+    "from-violet-500 to-indigo-600 text-white shadow-violet-500/20",
+  ];
+  let hash = 0;
+  const str = (name || "Customer").trim();
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return gradients[Math.abs(hash) % gradients.length] || gradients[0]!;
+}
+
+function formatReviewTimeAgo(dateInput?: string | null): string {
+  if (!dateInput) return "Just now";
+  const trimmed = String(dateInput).trim();
+  if (!trimmed || trimmed === "Recently") return "Just now";
+  if (trimmed.toLowerCase().includes("ago") || trimmed.toLowerCase() === "just now") {
+    return trimmed;
+  }
+
+  // Parse ISO date or YYYY-MM-DD
+  const parsed = new Date(trimmed.includes("T") ? trimmed : `${trimmed}T12:00:00Z`);
+  if (isNaN(parsed.getTime())) {
+    return trimmed;
+  }
+
+  const now = new Date();
+  const diffMs = now.getTime() - parsed.getTime();
+
+  if (diffMs < 45 * 1000) {
+    return "Just now";
+  }
+
+  const diffMin = Math.floor(diffMs / (60 * 1000));
+  if (diffMin < 60) {
+    return `${diffMin} min${diffMin === 1 ? "" : "s"} ago`;
+  }
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) {
+    return "Yesterday";
+  }
+  if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  }
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 4) {
+    return `${diffWeeks} week${diffWeeks === 1 ? "" : "s"} ago`;
+  }
+
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) {
+    return `${diffMonths} month${diffMonths === 1 ? "" : "s"} ago`;
+  }
+
+  const diffYears = Math.floor(diffDays / 365);
+  return `${diffYears} year${diffYears === 1 ? "" : "s"} ago`;
+}
+
 export const Route = createFileRoute("/partner/$partnerId")({
   validateSearch: (search: Record<string, unknown>): { highlightService?: string | undefined } => ({
     highlightService: typeof search["highlightService"] === "string" ? String(search["highlightService"]) : undefined,
@@ -349,41 +421,45 @@ function PartnerDetailScreen() {
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950 scroll-smooth">
       <div className="relative mx-auto w-full max-w-md">
         {/* Top app bar */}
-        <header className="sticky top-0 z-30 mx-auto w-full max-w-md">
-          <div className="glass-panel flex items-center gap-2 px-4 py-3">
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => navigate({ to: "/home" })}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <p className="min-w-0 flex-1 truncate text-center text-sm font-bold tracking-tight text-foreground">
-              {data?.partner.name ?? "Laundry partner"}
-            </p>
-            <button
-              type="button"
-              aria-label={favorite ? "Remove partner from favourites" : "Add partner to favourites"}
-              aria-pressed={favorite}
-              onClick={() => void toggleFavorite()}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted transition-all duration-300 hover:bg-accent active:scale-[0.9]"
-            >
-              <Heart
-                className={`size-5 transition-all duration-300 ${
-                  favorite ? "scale-110 fill-current text-destructive" : "text-foreground"
-                }`}
-              />
-            </button>
-            <button
-              type="button"
-              aria-label="Share partner"
-              onClick={() => void share()}
-              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.9]"
-            >
-              {shared ? <Check className="size-5 text-brand-green" /> : <Share2 className="size-5" />}
-            </button>
-          </div>
+        <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-2 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+          <button
+            type="button"
+            aria-label="Go back"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate({ to: "/home" });
+              }
+            }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <p className="min-w-0 flex-1 truncate text-center text-sm font-bold tracking-tight text-foreground">
+            {data?.partner.name ?? "Laundry partner"}
+          </p>
+          <button
+            type="button"
+            aria-label={favorite ? "Remove partner from favourites" : "Add partner to favourites"}
+            aria-pressed={favorite}
+            onClick={() => void toggleFavorite()}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted transition-all duration-300 hover:bg-accent active:scale-[0.9]"
+          >
+            <Heart
+              className={`size-5 transition-all duration-300 ${
+                favorite ? "scale-110 fill-current text-destructive" : "text-foreground"
+              }`}
+            />
+          </button>
+          <button
+            type="button"
+            aria-label="Share partner"
+            onClick={() => void share()}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.9]"
+          >
+            {shared ? <Check className="size-5 text-brand-green" /> : <Share2 className="size-5" />}
+          </button>
         </header>
 
         {error && !data ? (
@@ -695,32 +771,36 @@ function PartnerDetailScreen() {
                   </div>
                 </div>
                 <div className="stagger-children mt-4 space-y-3">
-                  {(data.reviews || []).map((review) => (
-                    <div key={review.id} className="card-soft border border-border p-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={review.photo}
-                          alt={review.name}
-                          width={128}
-                          height={128}
-                          loading="lazy"
-                          className="size-9 rounded-2xl object-cover"
-                          decoding="async"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground">{review.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{review.date}</p>
+                  {(data.reviews || []).map((review) => {
+                    const firstLetter = (review.name || "Customer").trim().charAt(0).toUpperCase();
+                    return (
+                      <div key={review.id} className="card-soft border border-border p-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br font-black text-sm shadow-xs uppercase select-none ${getAvatarGradient(
+                              review.name,
+                            )}`}
+                            aria-label={review.name}
+                          >
+                            {firstLetter}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-foreground">{review.name}</p>
+                            <p className="text-[11px] font-medium text-muted-foreground">
+                              {formatReviewTimeAgo(review.date)}
+                            </p>
+                          </div>
+                          <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 text-[11px] font-bold text-brand-dark">
+                            <Star className="size-3 fill-current" />
+                            {review.rating}
+                          </span>
                         </div>
-                        <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 text-[11px] font-bold text-brand-dark">
-                          <Star className="size-3 fill-current" />
-                          {review.rating}
-                        </span>
+                        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                          {review.text}
+                        </p>
                       </div>
-                      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                        {review.text}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
 

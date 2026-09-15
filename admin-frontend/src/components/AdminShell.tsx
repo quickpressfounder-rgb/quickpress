@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
+
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import {
@@ -53,7 +53,7 @@ const NAV_GROUPS = [
   },
   {
     title: "FINANCE & GROWTH",
-    items: ["wallet", "coupons", "memberships", "analytics"],
+    items: ["finance-engine", "wallet", "coupons", "memberships", "analytics"],
   },
   {
     title: "SYSTEM & GOVERNANCE",
@@ -102,6 +102,7 @@ export function canAccessModule(moduleId: string, account?: Account | null): boo
 
   // Semantic permission alias mappings
   const moduleAliases: Record<string, string[]> = {
+    "finance-engine": ["finance", "finance-engine", "rules", "payouts", "settlement"],
     wallet: ["finance", "payouts", "wallet"],
     coupons: ["campaigns", "marketing", "coupons"],
     memberships: ["growth", "memberships"],
@@ -177,19 +178,17 @@ function SidebarNav({
                     key={item.id}
                     to={item.to}
                     onClick={onNavigate}
-                    className={`group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition-all ${
-                      active
+                    className={`group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition-all ${active
                         ? "bg-emerald-50 text-emerald-800 font-extrabold border border-emerald-200 shadow-sm"
                         : "text-zinc-600 hover:bg-zinc-100/80 hover:text-zinc-900 border border-transparent"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`flex size-7 items-center justify-center rounded-lg transition-colors ${
-                          active
+                        className={`flex size-7 items-center justify-center rounded-lg transition-colors ${active
                             ? "bg-emerald-600 text-white shadow-sm"
                             : "bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200 group-hover:text-zinc-900"
-                        }`}
+                          }`}
                       >
                         <Icon className="size-3.5" />
                       </div>
@@ -226,11 +225,10 @@ function BrandBlock({ account }: { account?: Account | null | undefined }) {
               Quick<span className="text-[#16A34A]">Press</span>
             </span>
             <span
-              className={`rounded px-1.5 py-0.2 text-[9px] font-black border ${
-                isSuper
+              className={`rounded px-1.5 py-0.2 text-[9px] font-black border ${isSuper
                   ? "bg-emerald-100 text-emerald-900 border-emerald-300"
                   : "bg-blue-100 text-blue-900 border-blue-300"
-              }`}
+                }`}
             >
               {isSuper ? "ADMIN" : "STAFF"}
             </span>
@@ -339,11 +337,9 @@ export function AdminShell({
         <div className="border-t border-zinc-200 p-3.5 bg-zinc-50/70">
           <div className="flex items-center justify-between rounded-xl bg-white border border-zinc-200 p-2.5 shadow-sm">
             <div className="flex items-center gap-2 min-w-0">
-              <Avatar className="size-6 rounded-md border border-emerald-500/40 shrink-0">
-                <AvatarFallback className="bg-emerald-600 text-white font-black text-[10px]">
-                  {avatarLetters}
-                </AvatarFallback>
-              </Avatar>
+              <div className="size-6 rounded-md border border-emerald-500/40 shrink-0 flex items-center justify-center bg-emerald-600 text-white font-black text-[10px]">
+                {avatarLetters}
+              </div>
               <div className="text-[11px] leading-tight min-w-0">
                 <p className="truncate font-bold text-zinc-900">{staffName}</p>
                 <p className="truncate text-[9px] text-emerald-700 font-semibold">{staffRole}</p>
@@ -521,9 +517,8 @@ export function AdminShell({
                             >
                               <span className="font-bold text-zinc-900">{rdr.name}</span>
                               <span
-                                className={`text-[10px] font-bold ${
-                                  rdr.isOnline ? "text-emerald-600" : "text-zinc-400"
-                                }`}
+                                className={`text-[10px] font-bold ${rdr.isOnline ? "text-emerald-600" : "text-zinc-400"
+                                  }`}
                               >
                                 {rdr.isOnline ? "● Online" : "Offline"}
                               </span>
@@ -560,11 +555,9 @@ export function AdminShell({
                   type="button"
                   className="flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-white p-1.5 pr-2.5 text-left transition-colors hover:bg-zinc-50 shadow-sm"
                 >
-                  <Avatar className="size-7 rounded-lg border border-emerald-500/40">
-                    <AvatarFallback className="bg-emerald-600 text-white font-black text-xs">
-                      {avatarLetters}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="size-7 rounded-lg border border-emerald-500/40 shrink-0 flex items-center justify-center bg-emerald-600 text-white font-black text-xs">
+                    {avatarLetters}
+                  </div>
                   <div className="hidden sm:block leading-none text-left">
                     <p className="truncate text-xs font-black text-zinc-900 max-w-[130px]">
                       {staffName}

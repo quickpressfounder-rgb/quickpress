@@ -46,6 +46,7 @@ export async function fetchRiderNotifications(): Promise<RiderNotification[]> {
       body: item.message || item.description || item.body || "",
       time: item.time || (item.date ? new Date(item.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recently"),
       unread: !item.read,
+      orderId: item.orderId,
     }));
   } catch (error) {
     console.warn("[rider-notifications-api] Failed to fetch notifications:", error);
@@ -80,8 +81,8 @@ export async function markAllRiderNotificationsRead(): Promise<void> {
 
 export async function sendTestNotification(title?: string, message?: string): Promise<void> {
   await apiPostJson("/api/rider/notifications/test", {
-    title: title || "🔔 QuickPress Captain Dispatch",
-    message: message || "High-priority Captain Notification Pipeline connected & verified!",
+    title: title || "QuickPress Captain Dispatch Notice",
+    message: message || "High-priority Captain Notification Pipeline connected & operational.",
     kind: "order",
   });
 }

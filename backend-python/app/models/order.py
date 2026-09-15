@@ -141,6 +141,8 @@ class PlaceOrderPayload(BaseModel):
     couponCode: Optional[str] = None
     couponDiscount: int = 0
     instructions: str = ""
+    isExpress: Optional[bool] = False
+    expressFee: Optional[float] = 0.0
     """Client generated key so a double tap can never create two orders."""
     idempotencyKey: Optional[str] = None
 
@@ -180,6 +182,12 @@ class OrderResponse(BaseModel):
     riderSlaRemainingSeconds: Optional[int] = None
     slaBreached: Optional[str] = None
     autoCancelled: Optional[bool] = False
+    isExpress: Optional[bool] = False
+    expressFee: Optional[float] = 0.0
+    partnerExpressBonus: Optional[float] = 0.0
+    riderExpressBonus: Optional[float] = 0.0
+    expressPartnerSharePercent: Optional[float] = 20.0
+    expressRiderSharePercent: Optional[float] = 80.0
 
 
 class PlaceOrderResponse(BaseModel):

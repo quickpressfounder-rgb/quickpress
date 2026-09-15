@@ -108,6 +108,7 @@ export type RiderNotification = {
   body: string;
   time: string;
   unread: boolean;
+  orderId?: string;
 };
 
 export type RiderProfile = {
@@ -138,11 +139,59 @@ export type RiderHistoryEntry = {
   id: string;
   code: string;
   customerName: string;
+  customerPhone?: string;
   partnerName: string;
+  partnerPhone?: string;
   pickupAddress?: string;
+  pickupPhone?: string;
+  pickupTime?: string;
+  acceptedTime?: string;
+  arrivedPickupTime?: string;
+  pickupOtp?: string;
+  storeName?: string;
+  storeAddress?: string;
+  storePhone?: string;
+  storeArrivalTime?: string;
+  storeDispatchTime?: string;
+  dispatchOtp?: string;
+  bagCount?: number;
+  itemSummary?: string;
+  storeNotes?: string;
   dropAddress?: string;
+  deliveryArrivalTime?: string;
+  deliveredTime?: string;
+  deliveryOtp?: string;
   date: string;
   amount: number;
+  orderTotal?: number;
   distanceKm: number;
+  durationMinutes?: number;
+  pickupTransitMinutes?: number;
+  storeProcessingMinutes?: number;
+  deliveryTransitMinutes?: number;
   outcome: "completed" | "cancelled" | "failed";
+  paymentType?: string;
+  paymentStatus?: string;
+  rideType?: string;
+  rating?: number;
+  feedback?: string;
+  baseFare?: number;
+  distanceBonus?: number;
+  surgeBonus?: number;
+  bagSurcharge?: number;
+  tipAmount?: number;
+  serviceCharges?: number;
+  customerDeliveryFee?: number;
+  customerGst?: number;
+  reviewed?: boolean;
+  riderReview?: {
+    customerRating: number;
+    customerFeedback?: string;
+    customerTags?: string[];
+    storeRating?: number;
+    storeFeedback?: string;
+    storeTags?: string[];
+    createdAt?: string;
+  };
 };
+

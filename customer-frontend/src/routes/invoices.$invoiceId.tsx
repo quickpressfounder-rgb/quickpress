@@ -7,6 +7,8 @@ import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
 import { Toaster } from "@/shared/ui/sonner";
 import {
   downloadInvoice,
+  downloadInvoicePdfBlob,
+  getInvoicePdfUrl,
   fetchInvoice,
   formatInvoiceAmount,
   shareInvoice,
@@ -67,6 +69,11 @@ function InvoiceDetailScreen() {
       setError(null);
       try {
         const result = await fetchInvoice(invoiceId, { forceRefresh });
+        if (result.status === "cancelled") {
+          setError("Invoice is not available for cancelled orders.");
+          setInvoice(null);
+          return;
+        }
         setInvoice(result);
         setOffline(typeof navigator !== "undefined" && !navigator.onLine);
       } catch (cause) {
@@ -89,9 +96,19 @@ function InvoiceDetailScreen() {
   const handleDownload = async () => {
     setBusy("download");
     try {
-      const result = await downloadInvoice(invoiceId);
-      toast.success(result.message || "Invoice ready");
-      if (result.downloadUrl) window.open(result.downloadUrl, "_blank", "noopener");
+      // Mark download count in backend
+      void downloadInvoice(invoiceId).catch(() => {});
+      const fileName = invoice?.invoiceNumber
+        ? `QuickPress-${invoice.invoiceNumber.replace(/\//g, "-")}.pdf`
+        : `QuickPress-Invoice-${invoiceId}.pdf`;
+      try {
+        await downloadInvoicePdfBlob(invoiceId, fileName);
+        toast.success("Tax Invoice PDF downloaded successfully!");
+      } catch {
+        const url = getInvoicePdfUrl(invoiceId);
+        window.open(url, "_blank", "noopener");
+        toast.success("Opening Tax Invoice PDF...");
+      }
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "Download failed. Try again.");
     } finally {

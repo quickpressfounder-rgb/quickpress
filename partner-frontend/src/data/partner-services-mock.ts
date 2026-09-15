@@ -53,6 +53,10 @@ export type ManagedService = {
   updatedMinutesAgo: number;
   /** UI-only image placeholder label (no upload wired). */
   imageLabel: string | null;
+  pendingApproval?: boolean;
+  approvalStatus?: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+  pendingChanges?: Record<string, any>;
 };
 
 export const SERVICE_CATEGORIES: { id: ServiceCategoryId; label: string }[] = [

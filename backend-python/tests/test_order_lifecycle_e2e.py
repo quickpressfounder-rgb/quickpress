@@ -107,7 +107,7 @@ def _place_order(client, customer: User) -> dict:
             "address": {
                 "label": "Home",
                 "line": "Flat 12, Indiranagar",
-                "city": "Bengaluru",
+                "city": "Kasganj",
                 "phone": "+91 90000 11111",
             },
             "pickup": {"date": "today", "slot": "morning", "express": False},

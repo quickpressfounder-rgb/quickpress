@@ -93,10 +93,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
     scripts: [
-      {
-        src: "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js",
-        defer: true,
-      },
+      ...(typeof import.meta !== "undefined" &&
+      (import.meta as any).env?.VITE_ONESIGNAL_APP_ID &&
+      !(import.meta as any).env?.VITE_ONESIGNAL_APP_ID.includes("184bda82")
+        ? [
+            {
+              src: "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js",
+              defer: true,
+            },
+          ]
+        : []),
     ],
   }),
   shellComponent: RootShell,

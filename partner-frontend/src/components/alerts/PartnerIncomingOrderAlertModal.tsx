@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertTriangle,
+  Zap,
 } from "lucide-react";
 import {
   playPartnerOrderAcceptedTone,
@@ -31,6 +32,10 @@ export interface PartnerIncomingOrder {
   itemsCount: number;
   items: Array<{ name: string; quantity: number; unit?: string }>;
   expressDelivery?: boolean;
+  isExpress?: boolean;
+  expressFee?: number;
+  partnerExpressBonus?: number;
+  expressPartnerSharePercent?: number;
   notes?: string;
 }
 
@@ -231,6 +236,33 @@ export function PartnerIncomingOrderAlertModal({
               )}
             </div>
           </div>
+
+          {/* ⚡ Express Priority Alert Banner */}
+          {(order.isExpress || order.expressDelivery) && (
+            <div className="rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-500/30 via-orange-500/25 to-amber-500/20 p-4 shadow-xl animate-pulse">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="size-10 rounded-2xl bg-amber-500/40 flex items-center justify-center text-amber-300 shrink-0 border border-amber-400/50">
+                    <Zap className="size-6 fill-amber-400" />
+                  </span>
+                  <div>
+                    <span className="text-sm font-black text-amber-300 tracking-wide block uppercase">
+                      ⚡ EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 20}% BONUS
+                    </span>
+                    <span className="text-xs text-zinc-200">
+                      Priority express order! Surcharge bonus credited directly to your store payout.
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] font-bold text-zinc-300 block uppercase">Bonus</span>
+                  <span className="text-xl font-black text-amber-300">
+                    +₹{order.partnerExpressBonus || Math.round((order.expressFee || 40) * 0.2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Customer & Location */}
           <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">

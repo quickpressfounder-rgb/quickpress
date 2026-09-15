@@ -83,6 +83,7 @@ class PartnerProfileResponse(BaseModel):
     gstin: Optional[str] = None
     address: Optional[str] = None
     area: Optional[str] = None
+    gallery: List[str] = []
 
     def model_post_init(self, __context: any) -> None:
         if not self.id:
@@ -118,6 +119,7 @@ class PartnerProfileUpdate(BaseModel):
     bannerUrl: Optional[str] = None
     cover: Optional[str] = None
     image: Optional[str] = None
+    gallery: Optional[List[str]] = None
 
 
 class BusinessSettingsResponse(BaseModel):
@@ -156,6 +158,10 @@ class PartnerServiceResponse(BaseModel):
     image: str = ""
     minQuantity: int = 1
     expressAvailable: bool = False
+    pendingApproval: bool = False
+    approvalStatus: str = "approved"
+    rejectionReason: Optional[str] = None
+    pendingChanges: Optional[Dict[str, Any]] = None
 
 
 class PartnerServiceCreate(BaseModel):
@@ -169,6 +175,8 @@ class PartnerServiceCreate(BaseModel):
     image: str = ""
     minQuantity: int = 1
     expressAvailable: bool = False
+    pendingApproval: Optional[bool] = None
+    approvalStatus: Optional[str] = None
 
 
 class PartnerServiceUpdate(BaseModel):
@@ -182,6 +190,10 @@ class PartnerServiceUpdate(BaseModel):
     image: Optional[str] = None
     minQuantity: Optional[int] = None
     expressAvailable: Optional[bool] = None
+    pendingApproval: Optional[bool] = None
+    approvalStatus: Optional[str] = None
+    rejectionReason: Optional[str] = None
+    pendingChanges: Optional[Dict[str, Any]] = None
 
 
 class PartnerDashboardResponse(BaseModel):

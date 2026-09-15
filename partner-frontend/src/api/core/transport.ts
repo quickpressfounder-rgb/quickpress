@@ -11,8 +11,8 @@
  * screen, no component and no service signature.
  */
 
-import { apiBaseUrl, apiTimeoutMs, appEnvironment, isApiConfigured } from "../customer/api/config";
-import { isOnline } from "../customer/api/network";
+import { apiBaseUrl, apiTimeoutMs, appEnvironment, isApiConfigured } from "./config";
+import { isOnline } from "./network";
 import { ApiError } from "./errors";
 import { activeSessionRole, clearSession, readToken } from "./session-store";
 import { recordApiCall } from "./api-inspector";

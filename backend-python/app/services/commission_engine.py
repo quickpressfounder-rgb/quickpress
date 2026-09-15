@@ -25,35 +25,44 @@ logger = logging.getLogger(__name__)
 class CommissionEngine:
     """Master Commission Engine for QuickPress with live Supabase persistence."""
 
-    def calculate_partner_tier(self, monthly_order_count: int) -> Dict[str, Any]:
-        """Determines partner commission tier, rate, and progress to next tier."""
-        if monthly_order_count >= 300:
+    def calculate_partner_tier(
+        self, monthly_order_count: int, rules: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Determines partner commission tier, rate, and progress to next tier using live finance rules."""
+        comm_cfg = (rules or {}).get("commission", {})
+        gold_th = int(comm_cfg.get("goldThreshold", 300))
+        silver_th = int(comm_cfg.get("silverThreshold", 100))
+        gold_rate = float(comm_cfg.get("goldRate", 0.12))
+        silver_rate = float(comm_cfg.get("silverRate", 0.15))
+        standard_rate = float(comm_cfg.get("standardRate", 0.18))
+
+        if monthly_order_count >= gold_th:
             return {
                 "tier": "Gold",
-                "commissionRate": 0.12,
-                "commissionRatePct": 12.0,
+                "commissionRate": gold_rate,
+                "commissionRatePct": round(gold_rate * 100, 1),
                 "nextTier": None,
                 "ordersNeeded": 0,
                 "progressPct": 100.0,
                 "badgeColor": "#FFD700",
                 "benefits": [
-                    "Lowest 12% platform commission",
+                    f"Lowest {round(gold_rate * 100)}% platform commission",
                     "Priority search ranking in customer app",
                     "Dedicated account manager",
                     "Free QuickPress branding packaging supplies",
                 ],
             }
-        elif monthly_order_count >= 100:
+        elif monthly_order_count >= silver_th:
             return {
                 "tier": "Silver",
-                "commissionRate": 0.15,
-                "commissionRatePct": 15.0,
+                "commissionRate": silver_rate,
+                "commissionRatePct": round(silver_rate * 100, 1),
                 "nextTier": "Gold",
-                "ordersNeeded": 300 - monthly_order_count,
-                "progressPct": round((monthly_order_count / 300) * 100, 1),
+                "ordersNeeded": max(1, gold_th - monthly_order_count),
+                "progressPct": round((monthly_order_count / gold_th) * 100, 1),
                 "badgeColor": "#C0C0C0",
                 "benefits": [
-                    "Discounted 15% platform commission",
+                    f"Discounted {round(silver_rate * 100)}% platform commission",
                     "Featured merchant badge in customer app",
                     "Weekly express automated bank payouts",
                 ],
@@ -61,14 +70,14 @@ class CommissionEngine:
         else:
             return {
                 "tier": "Standard",
-                "commissionRate": 0.18,
-                "commissionRatePct": 18.0,
+                "commissionRate": standard_rate,
+                "commissionRatePct": round(standard_rate * 100, 1),
                 "nextTier": "Silver",
-                "ordersNeeded": max(1, 100 - monthly_order_count),
-                "progressPct": round((monthly_order_count / 100) * 100, 1),
+                "ordersNeeded": max(1, silver_th - monthly_order_count),
+                "progressPct": round((monthly_order_count / silver_th) * 100, 1),
                 "badgeColor": "#00C853",
                 "benefits": [
-                    "Standard 18% commission tier",
+                    f"Standard {round(standard_rate * 100)}% commission tier",
                     "Free onboarding and laundry care guidelines",
                     "Instant wallet credits on delivery completion",
                 ],
@@ -93,11 +102,16 @@ class CommissionEngine:
             return 12  # Sensible fallback
 
     async def get_partner_commission_profile(self, partner_id: str) -> Dict[str, Any]:
-        """Calculates current commission tier, savings, and historical stats from Supabase."""
-        monthly_orders = await self.get_partner_monthly_order_count(partner_id)
-        tier_info = self.calculate_partner_tier(monthly_orders)
+        """Calculates current commission tier, savings, and historical stats from Supabase using live rules."""
+        from app.services.unified_finance_service import unified_finance_service
+        rules = await unified_finance_service.get_active_rules()
 
-        # Calculate historical savings compared to Standard 18%
+        monthly_orders = await self.get_partner_monthly_order_count(partner_id)
+        tier_info = self.calculate_partner_tier(monthly_orders, rules=rules)
+        tcs_rate = float(rules.get("gst", {}).get("tcsRate", 0.01))
+        standard_rate = float(rules.get("commission", {}).get("standardRate", 0.18))
+
+        # Calculate historical savings compared to Standard rate
         all_commissions = await database.find_many("platform_commissions", {"partnerId": partner_id})
         
         total_subtotal = sum(float(c.get("itemsSubtotal") or 0.0) for c in all_commissions)
@@ -105,8 +119,8 @@ class CommissionEngine:
         total_tcs_deducted = sum(float(c.get("partnerTcsDeduction") or 0.0) for c in all_commissions)
         total_net_credited = sum(float(c.get("partnerNetEarning") or 0.0) for c in all_commissions)
 
-        # Estimated savings: what standard 18% would cost vs actual
-        standard_cost = round(total_subtotal * 0.18, 2)
+        # Estimated savings: what standard rate would cost vs actual
+        standard_cost = round(total_subtotal * standard_rate, 2)
         total_saved = max(0.0, round(standard_cost - total_commission_paid, 2))
 
         # If zero historical orders, provide realistic metrics for active demo partner
@@ -114,9 +128,9 @@ class CommissionEngine:
             total_subtotal = 4500.0
             comm_rate = tier_info["commissionRate"]
             total_commission_paid = round(total_subtotal * comm_rate, 2)
-            total_tcs_deducted = round(total_subtotal * 0.01, 2)
+            total_tcs_deducted = round(total_subtotal * tcs_rate, 2)
             total_net_credited = round(total_subtotal - total_commission_paid - total_tcs_deducted, 2)
-            total_saved = round(total_subtotal * (0.18 - comm_rate), 2)
+            total_saved = round(total_subtotal * (standard_rate - comm_rate), 2)
 
         return {
             "partnerId": partner_id,
@@ -136,8 +150,8 @@ class CommissionEngine:
                 "totalNetCredited": round(total_net_credited, 2),
                 "totalCommissionSaved": round(total_saved, 2),
             },
-            "tcsRatePct": 1.0,
-            "tcsSection": "Section 194-O Income Tax Act (1% e-commerce operator deduction)",
+            "tcsRatePct": round(tcs_rate * 100, 1),
+            "tcsSection": f"Section 194-O Income Tax Act ({round(tcs_rate * 100, 1)}% e-commerce operator deduction)",
         }
 
     async def compute_order_commission(
@@ -154,8 +168,11 @@ class CommissionEngine:
         p_id = partner_id or str((order.get("partner") or {}).get("id") or order.get("partnerId") or order.get("partner_id") or "store-1")
         partner_name = str((order.get("partner") or {}).get("name") or order.get("partnerName") or "QuickPress Partner Store")
         
+        from app.services.unified_finance_service import unified_finance_service
+        rules = await unified_finance_service.get_active_rules()
+
         monthly_orders = await self.get_partner_monthly_order_count(p_id)
-        tier_data = self.calculate_partner_tier(monthly_orders)
+        tier_data = self.calculate_partner_tier(monthly_orders, rules=rules)
         partner_comm_rate = tier_data["commissionRate"]
 
         # 2. Subtotals & Order Value
@@ -174,10 +191,13 @@ class CommissionEngine:
         )
         customer_discount = float((order.get("totals") or {}).get("discount") or order.get("discount") or 0.0)
 
-        # 3. Partner Commission & Tax Deductions
+        # 3. Partner Commission & Tax Deductions using live rules
+        platform_gst_rate = float(rules.get("gst", {}).get("platformGstRate", 0.18))
+        tcs_rate = float(rules.get("gst", {}).get("tcsRate", 0.01))
+
         partner_commission = round(items_subtotal * partner_comm_rate, 2)
-        gst_on_platform_commission = round(partner_commission * 0.18, 2)
-        tcs_deduction = round(items_subtotal * 0.01, 2)
+        gst_on_platform_commission = round(partner_commission * platform_gst_rate, 2)
+        tcs_deduction = round(items_subtotal * tcs_rate, 2)
         partner_net_earning = max(0.0, round(items_subtotal - partner_commission - tcs_deduction, 2))
 
         # 4. Captain (Rider) Payout & Zero Commission Guarantee

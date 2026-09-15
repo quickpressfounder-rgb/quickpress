@@ -27,13 +27,31 @@ logger = logging.getLogger(__name__)
 class SettlementEngine:
     """Core accounting engine for Partner Payouts, Settlement Cycles, and Ledger."""
 
-    def get_weekly_cycles(self, reference_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
-        """Generates past weekly settlement cycles relative to reference date."""
+    def _extract_partner_join_date(self, profile: Dict[str, Any]) -> Optional[datetime]:
+        """Extracts the partner registration date from profile."""
+        raw = profile.get("createdAt") or profile.get("signedAt") or profile.get("joinedAt")
+        if isinstance(raw, datetime):
+            return raw if raw.tzinfo else raw.replace(tzinfo=timezone.utc)
+        if isinstance(raw, str) and raw:
+            try:
+                clean = raw.replace("Z", "+00:00")
+                return datetime.fromisoformat(clean)
+            except Exception:
+                pass
+        return None
+
+    def get_weekly_cycles(
+        self,
+        reference_date: Optional[datetime] = None,
+        join_date: Optional[datetime] = None,
+        max_weeks: int = 8,
+    ) -> List[Dict[str, Any]]:
+        """Generates past weekly settlement cycles relative to reference date, restricted to partner's join_date."""
         now = reference_date or datetime.now(timezone.utc)
         
         # Current ongoing weekly cycle (Monday to Sunday)
-        start_of_week = now - timedelta(days=now.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
+        start_of_week = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
         
         current_cycle = {
             "cycleId": "current",
@@ -46,11 +64,18 @@ class SettlementEngine:
             "isCurrent": True,
         }
 
-        # Past completed cycles (previous 8 weeks)
+        # Past completed cycles bounded by partner registration date
         past_cycles = []
-        for i in range(1, 9):
+        join_str = join_date.strftime("%Y-%m-%d") if join_date else None
+
+        for i in range(1, max_weeks + 1):
             cycle_start = start_of_week - timedelta(weeks=i)
             cycle_end = cycle_start + timedelta(days=6)
+
+            # Never include cycles that ended before the partner joined!
+            if join_str and cycle_end.strftime("%Y-%m-%d") < join_str:
+                break
+
             payout_dt = cycle_end + timedelta(days=3)  # Paid on Wednesday following cycle end
             
             past_cycles.append({
@@ -70,154 +95,214 @@ class SettlementEngine:
         self, partner_id: str, cycle_id: str = "current"
     ) -> Dict[str, Any]:
         """Calculates the complete itemized (A + B + C + D + E + F) financial breakdown."""
-        cycles = self.get_weekly_cycles()
-        matched_cycle = next((c for c in cycles if c["cycleId"] == cycle_id), cycles[0])
-        
-        # Fetch partner profile for bank & business name
+        # Fetch partner profile for join date, bank & business name
         profile = (
             await database.find_one("partner_profiles", {"_id": partner_id})
             or await database.find_one("partner_profiles", {"partnerId": partner_id})
             or await database.find_one("admin_partners", {"_id": partner_id})
             or {}
         )
+        join_dt = self._extract_partner_join_date(profile)
+        cycles = self.get_weekly_cycles(join_date=join_dt)
+        matched_cycle = next((c for c in cycles if c["cycleId"] == cycle_id), None)
+        if not matched_cycle:
+            unfiltered_cycles = self.get_weekly_cycles()
+            matched_cycle = next((c for c in unfiltered_cycles if c["cycleId"] == cycle_id), cycles[0])
         
         # Fetch actual customer orders for this partner
         all_orders = await database.find_many("customer_orders")
         partner_orders = [
             o for o in all_orders
             if str((o.get("partner") or {}).get("id") or o.get("partnerId") or o.get("partner_id") or "") == partner_id
-            or partner_id in ("PRT-DEMO-001", "store-1")  # Demo fallback
         ]
         
-        # If current cycle, take active/delivered orders; if past cycle, take delivered
-        if matched_cycle.get("isCurrent"):
-            cycle_orders = [o for o in partner_orders if o.get("status") not in ("cancelled",)]
-        else:
-            cycle_orders = [o for o in partner_orders if o.get("status") in ("delivered", "completed")]
+        cycle_start = matched_cycle.get("startDate", "")
+        cycle_end = matched_cycle.get("endDate", "")
 
-        # If zero real orders, generate a realistic deterministic baseline for demonstration
-        order_count = len(cycle_orders)
-        if order_count == 0:
-            if matched_cycle.get("isCurrent"):
-                order_count = 0
-                gross_items = 0.0
-                customer_gst = 0.0
-                partner_promos = 0.0
-                flat_discounts = 0.0
-            else:
-                order_count = 2
-                gross_items = 249.0
-                customer_gst = 12.45
-                partner_promos = 25.0
-                flat_discounts = 0.0
+        def _is_order_in_cycle(o: Dict[str, Any]) -> bool:
+            dt = str(
+                o.get("settledAt")
+                or o.get("deliveredAt")
+                or o.get("completedAt")
+                or o.get("createdAt")
+                or o.get("placedAt")
+                or ""
+            )[:10]
+            if not dt:
+                return bool(matched_cycle.get("isCurrent"))
+            return cycle_start <= dt <= cycle_end
+
+        # If current cycle, take active/delivered orders in current cycle window; if past cycle, take delivered/completed
+        if matched_cycle.get("isCurrent"):
+            cycle_orders = [
+                o for o in partner_orders
+                if _is_order_in_cycle(o) and str(o.get("status", "")).lower() != "cancelled"
+            ]
         else:
-            gross_items = sum(float(o.get("total") or o.get("totalAmount") or o.get("amount") or 149.0) for o in cycle_orders)
-            customer_gst = round(gross_items * 0.05, 2)  # 5% GST
-            partner_promos = sum(float(o.get("discount") or o.get("couponDiscount") or 0.0) for o in cycle_orders)
+            cycle_orders = [
+                o for o in partner_orders
+                if _is_order_in_cycle(o) and str(o.get("status", "")).lower() in ("delivered", "completed")
+            ]
+
+        order_count = len(cycle_orders)
+        # Fetch live active finance rules
+        from app.services.unified_finance_service import unified_finance_service
+        fin_rules = await unified_finance_service.get_active_rules()
+        laundry_gst_rate = float(fin_rules.get("gst", {}).get("laundryGstRate", 0.05))
+        platform_gst_rate = float(fin_rules.get("gst", {}).get("platformGstRate", 0.18))
+        tcs_rate = float(fin_rules.get("gst", {}).get("tcsRate", 0.01))
+
+        if order_count == 0:
+            gross_items = 0.0
+            customer_gst = 0.0
+            partner_promos = 0.0
+            flat_discounts = 0.0
+            net_order_value = 0.0
+            target_incentive = 0.0
+            quality_bonus = 0.0
+            tds_194h_credit = 0.0
+            tds_194c_credit = 0.0
+            additions_total = 0.0
+            comm_rate = financial_engine.get_commission_rate(0)
+            platform_commission = 0.0
+            damage_penalty = 0.0
+            cancellation_fee = 0.0
+            order_level_deductions = 0.0
+            gst_on_service_fee = 0.0
+            tds_194o = 0.0
+            gst_tcs = 0.0
+            tax_deductions_total = 0.0
+            online_ads_spend = 0.0
+            growth_investments_total = 0.0
+            packaging_supplies_spend = 0.0
+            supplies_spend_total = 0.0
+            est_net_payout = 0.0
+        else:
+            gross_items = sum(
+                float(
+                    (o.get("financialSnapshot") or {}).get("itemsSubtotal")
+                    or (o.get("totals") or {}).get("itemsTotal")
+                    or o.get("total")
+                    or o.get("totalAmount")
+                    or o.get("amount")
+                    or 0.0
+                )
+                for o in cycle_orders
+            )
+            customer_gst = round(gross_items * laundry_gst_rate, 2)
+            partner_promos = sum(
+                float(
+                    (o.get("totals") or {}).get("discount")
+                    or o.get("discount")
+                    or o.get("couponDiscount")
+                    or 0.0
+                )
+                for o in cycle_orders
+            )
             flat_discounts = 0.0
 
-        # --- (A) Net Order Value ---
-        net_order_value = max(0.0, round(gross_items + customer_gst - partner_promos - flat_discounts, 2))
+            # --- (A) Net Order Value ---
+            net_order_value = max(0.0, round(gross_items + customer_gst - partner_promos - flat_discounts, 2))
 
-        # --- (B) Additions ---
-        target_incentive = 100.0 if order_count >= 5 else 0.0
-        quality_bonus = 50.0 if float(profile.get("rating") or 4.8) >= 4.5 and order_count > 0 else 0.0
-        tds_194h_credit = round(net_order_value * 0.00, 2)
-        tds_194c_credit = round(net_order_value * 0.00, 2)
-        additions_total = round(target_incentive + quality_bonus + tds_194h_credit + tds_194c_credit, 2)
+            # --- (B) Additions ---
+            target_incentive = 100.0 if order_count >= 5 else 0.0
+            quality_bonus = 50.0 if float(profile.get("rating") or 0.0) >= 4.5 and order_count > 0 else 0.0
+            tds_194h_credit = 0.0
+            tds_194c_credit = 0.0
+            additions_total = round(target_incentive + quality_bonus + tds_194h_credit + tds_194c_credit, 2)
 
-        # --- (C) Order Level Deductions ---
-        comm_rate = financial_engine.get_commission_rate(order_count or 10)
-        platform_commission = round(net_order_value * comm_rate, 2)
-        damage_penalty = 0.0
-        cancellation_fee = 0.0
-        order_level_deductions = round(platform_commission + damage_penalty + cancellation_fee, 2)
+            # --- (C) Order Level Deductions ---
+            comm_rate = financial_engine.get_commission_rate(order_count)
+            platform_commission = round(net_order_value * comm_rate, 2)
+            damage_penalty = 0.0
+            cancellation_fee = 0.0
+            order_level_deductions = round(platform_commission + damage_penalty + cancellation_fee, 2)
 
-        # --- (D) Tax Deductions ---
-        gst_on_service_fee = round(platform_commission * 0.18, 2)
-        tds_194o = round(net_order_value * 0.01, 2) if net_order_value > 0 else 0.0
-        gst_tcs = round(net_order_value * 0.01, 2) if net_order_value > 0 else 0.0
-        tax_deductions_total = round(gst_on_service_fee + tds_194o + gst_tcs, 2)
+            # --- (D) Tax Deductions ---
+            gst_on_service_fee = round(platform_commission * platform_gst_rate, 2)
+            tds_194o = round(net_order_value * tcs_rate, 2) if net_order_value > 0 else 0.0
+            gst_tcs = round(net_order_value * tcs_rate, 2) if net_order_value > 0 else 0.0
+            tax_deductions_total = round(gst_on_service_fee + tds_194o + gst_tcs, 2)
 
-        # --- (E) Investments in Growth ---
-        online_ads_spend = 0.0
-        growth_investments_total = round(online_ads_spend, 2)
+            # --- (E) Investments in Growth ---
+            online_ads_spend = 0.0
+            growth_investments_total = round(online_ads_spend, 2)
 
-        # --- (F) Supplies & Packaging Spend ---
-        packaging_supplies_spend = 0.0
-        supplies_spend_total = round(packaging_supplies_spend, 2)
+            # --- (F) Supplies & Packaging Spend ---
+            packaging_supplies_spend = 0.0
+            supplies_spend_total = round(packaging_supplies_spend, 2)
 
-        # --- Final Estimated Net Payout ---
-        est_net_payout = max(0.0, round(
-            net_order_value + additions_total - order_level_deductions - tax_deductions_total - growth_investments_total - supplies_spend_total,
-            2
-        ))
+            # --- Final Estimated Net Payout ---
+            est_net_payout = max(0.0, round(
+                net_order_value + additions_total - order_level_deductions - tax_deductions_total - growth_investments_total - supplies_spend_total,
+                2
+            ))
 
         # Build itemized order rows for Orders tab
         mapped_orders = []
+        settlements_by_order = {}
+        order_settlements = await database.find_many("order_settlements", {"partnerId": partner_id})
+        for s in order_settlements:
+            if s.get("orderId"):
+                settlements_by_order[str(s["orderId"])] = s
+
         for i, o in enumerate(cycle_orders):
             ord_id = str(o.get("_id") or o.get("id") or f"ORD-QP-{1000 + i}")
-            code = str(o.get("orderNumber") or o.get("code") or ord_id[:8].upper())
-            items_desc = ", ".join([str(item.get("name") or "Laundry Item") for item in (o.get("items") or [])]) or "Standard Wash & Iron"
-            val = float(o.get("total") or o.get("totalAmount") or o.get("amount") or 149.0)
-            comm = round(val * comm_rate, 2)
-            net_ord = round(val - comm - (val * 0.01), 2)
-            
+            code = str(o.get("orderNumber") or o.get("code") or ord_id.replace("ord-", "").upper())
+            items_list = o.get("items") or []
+            if items_list:
+                items_desc = ", ".join([f"{it.get('qty', 1)}x {it.get('name') or 'Item'}" for it in items_list[:3]])
+                if len(items_list) > 3:
+                    items_desc += f" +{len(items_list) - 3} more"
+            else:
+                items_desc = o.get("serviceLabel") or "Standard Wash & Iron"
+
+            cust = o.get("customer") or {}
+            cust_name = str(cust.get("name") or o.get("customerName") or cust.get("phone") or o.get("customerPhone") or "Customer")
+
+            settle = settlements_by_order.get(ord_id)
+            snap = o.get("financialSnapshot") or {}
+            totals = o.get("totals") or {}
+
+            val = float((settle and settle.get("itemsSubtotal")) or snap.get("itemsSubtotal") or totals.get("itemsTotal") or o.get("total") or o.get("totalAmount") or 0.0)
+            comm = float((settle and settle.get("platformCommission")) or snap.get("platformEstimatedCommission") or round(val * comm_rate, 2))
+            net_earn = float((settle and settle.get("partnerNetEarning")) or snap.get("partnerEstimatedEarnings") or round(val - comm - (val * tcs_rate), 2))
+
+            dt_str = str(o.get("createdAt") or o.get("placedAt") or o.get("deliveredAt") or datetime.now(timezone.utc).isoformat())[:16].replace("T", " ")
+
             mapped_orders.append({
                 "orderId": ord_id,
                 "orderCode": code,
-                "date": (o.get("createdAt") or o.get("placedAt") or datetime.now(timezone.utc).isoformat())[:16],
+                "date": dt_str,
                 "itemsSummary": items_desc,
-                "customerName": str((o.get("customer") or {}).get("name") or o.get("customerName") or "Verified Customer"),
-                "grossValue": val,
-                "commission": comm,
-                "netEarning": net_ord,
+                "customerName": cust_name,
+                "grossValue": round(val, 2),
+                "commission": round(comm, 2),
+                "netEarning": round(net_earn, 2),
                 "status": str(o.get("status") or "delivered").upper(),
             })
 
-        # If zero orders, supply sample orders for past cycle
-        if not mapped_orders and not matched_cycle.get("isCurrent"):
-            mapped_orders = [
-                {
-                    "orderId": "ord-2026-0208-1",
-                    "orderCode": "QP-9281",
-                    "date": "2026-02-08 14:30",
-                    "itemsSummary": "Wash & Fold (4 KG) + 2x Shirt Steam Iron",
-                    "customerName": "Rohan Gupta",
-                    "grossValue": 149.0,
-                    "commission": 22.35,
-                    "netEarning": 125.16,
-                    "status": "DELIVERED",
-                },
-                {
-                    "orderId": "ord-2026-0208-2",
-                    "orderCode": "QP-9282",
-                    "date": "2026-02-08 18:15",
-                    "itemsSummary": "Dry Cleaning (Suit 2pc)",
-                    "customerName": "Pooja Sharma",
-                    "grossValue": 100.0,
-                    "commission": 15.00,
-                    "netEarning": 84.00,
-                    "status": "DELIVERED",
-                }
-            ]
-            est_net_payout = 203.58
-            net_order_value = 236.45
-            order_level_deductions = 37.35
-            tax_deductions_total = 7.52
-            order_count = 2
-
         # Bank transaction metadata
-        bank_acc = profile.get("accountNumber") or "•••• •••• 4545"
-        masked_acc = f"•••• •••• {str(bank_acc)[-4:]}" if len(str(bank_acc)) >= 4 else "•••• •••• 4545"
-        
+        bank_acc = str(profile.get("accountNumber") or (profile.get("bankDetails") or {}).get("accountNumber") or "")
+        masked_acc = f"•••• •••• {bank_acc[-4:]}" if len(bank_acc) >= 4 else ("•••• •••• 4545" if bank_acc else "Not Linked")
+
+        cycle_utr = None
+        for mo in mapped_orders:
+            st = settlements_by_order.get(mo["orderId"])
+            if st and st.get("utr"):
+                cycle_utr = st["utr"]
+                break
+
+        if not cycle_utr and matched_cycle.get("status") == "PAID" and order_count > 0:
+            cycle_utr = f"NPCI{random.randint(100000000000, 999999999999)}"
+
         bank_details = {
-            "accountHolder": profile.get("accountHolder") or profile.get("ownerName") or "Store Partner",
-            "bankName": profile.get("bankName") or "HDFC Bank",
+            "accountHolder": profile.get("accountHolder") or profile.get("ownerName") or profile.get("businessName") or "Store Partner",
+            "bankName": profile.get("bankName") or (profile.get("bankDetails") or {}).get("bankName") or "HDFC Bank",
             "accountNumberMasked": masked_acc,
-            "ifsc": profile.get("ifsc") or "HDFC0001234",
-            "utr": f"NPCI{random.randint(100000000000, 999999999999)}" if matched_cycle.get("status") == "PAID" else None,
-            "creditedAt": matched_cycle.get("payoutDate") if matched_cycle.get("status") == "PAID" else None,
+            "ifsc": profile.get("ifsc") or (profile.get("bankDetails") or {}).get("ifsc") or "—",
+            "utr": cycle_utr,
+            "creditedAt": matched_cycle.get("payoutDate") if (matched_cycle.get("status") == "PAID" and order_count > 0) else None,
             "transferMode": "NPCI IMPS / NEFT Direct Settlement",
         }
 
@@ -277,22 +362,47 @@ class SettlementEngine:
         }
 
     async def get_overview(self, partner_id: str) -> Dict[str, Any]:
-        """Returns the main Finance screen overview with current cycle and past cycles list."""
-        cycles = self.get_weekly_cycles()
+        """Returns the main Finance screen overview with current cycle and past cycles list bounded by partner join date."""
+        profile = (
+            await database.find_one("partner_profiles", {"_id": partner_id})
+            or await database.find_one("partner_profiles", {"partnerId": partner_id})
+            or await database.find_one("admin_partners", {"_id": partner_id})
+            or {}
+        )
+        all_orders = await database.find_many("customer_orders")
+        partner_orders = [
+            o for o in all_orders
+            if str((o.get("partner") or {}).get("id") or o.get("partnerId") or o.get("partner_id") or "") == partner_id
+        ]
         
+        join_dt = self._extract_partner_join_date(profile)
+        # If partner has earlier orders, respect the earliest order date
+        for o in partner_orders:
+            odt_str = str(o.get("createdAt") or o.get("placedAt") or o.get("deliveredAt") or "")[:10]
+            if odt_str:
+                try:
+                    odt = datetime.fromisoformat(odt_str).replace(tzinfo=timezone.utc)
+                    if not join_dt or odt < join_dt:
+                        join_dt = odt
+                except Exception:
+                    pass
+
+        cycles = self.get_weekly_cycles(join_date=join_dt)
         current_data = await self.compute_cycle_breakdown(partner_id, "current")
         
         past_summaries = []
-        for c in cycles[1:6]:
+        for c in cycles[1:]:
             past_calc = await self.compute_cycle_breakdown(partner_id, c["cycleId"])
-            past_summaries.append({
-                "cycleId": c["cycleId"],
-                "period": c["period"],
-                "payoutDate": c["payoutDate"],
-                "status": c["status"],
-                "netPayout": past_calc["estNetPayout"],
-                "orderCount": past_calc["totalOrders"],
-            })
+            # Only list past cycles in settlement history that had actual orders/settlement activity
+            if past_calc["totalOrders"] > 0:
+                past_summaries.append({
+                    "cycleId": c["cycleId"],
+                    "period": c["period"],
+                    "payoutDate": c["payoutDate"],
+                    "status": c["status"],
+                    "netPayout": past_calc["estNetPayout"],
+                    "orderCount": past_calc["totalOrders"],
+                })
 
         return {
             "currentCycle": {
@@ -304,7 +414,7 @@ class SettlementEngine:
                 "status": current_data["cycle"]["status"],
             },
             "pastCycles": past_summaries,
-            "filterOptions": [c["period"] for c in cycles[1:6]],
+            "filterOptions": [c["period"] for c in past_summaries],
         }
 
     async def settle_order_on_completion(self, order: Dict[str, Any]) -> Dict[str, Any]:

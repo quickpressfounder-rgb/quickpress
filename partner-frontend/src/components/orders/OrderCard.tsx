@@ -8,6 +8,7 @@ import {
   Star,
   Timer,
   Wallet,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -85,6 +86,12 @@ export function OrderCard({
           <p className="mt-0.5 truncate text-[0.7rem] font-semibold text-muted-foreground">
             {order.code} · {order.itemCount} items
           </p>
+          {order.isExpress && (
+            <div className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[0.65rem] font-black text-amber-700 dark:text-amber-400">
+              <Zap className="size-3 fill-amber-500" />
+              <span>⚡ EXPRESS + ₹{order.partnerExpressBonus || Math.round((order.expressFee || 40) * 0.2)} ({order.expressPartnerSharePercent || 20}% BONUS)</span>
+            </div>
+          )}
         </div>
         <OrderStatusBadge order={order} />
       </div>

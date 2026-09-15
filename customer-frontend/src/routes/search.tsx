@@ -118,15 +118,21 @@ function SearchScreen() {
   return (
     <main className="min-h-screen bg-white dark:bg-zinc-950 pb-16">
       <div className="mx-auto w-full max-w-md">
-        <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-950/95 px-5 py-3 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 bg-white/85 dark:bg-zinc-950/85 px-5 py-3.5 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-3">
             <button
               type="button"
               aria-label="Go back"
-              onClick={() => navigate({ to: "/home" })}
-              className="ripple flex size-10 shrink-0 items-center justify-center rounded-2xl border border-border text-foreground active:scale-[0.94]"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate({ to: "/home" });
+                }
+              }}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
             >
-              <ArrowLeft className="size-4" />
+              <ArrowLeft className="size-5" />
             </button>
             <label className="flex h-11 flex-1 items-center gap-2 rounded-2xl border border-border bg-card px-3.5">
               <SearchIcon className="size-4 shrink-0 text-muted-foreground" />

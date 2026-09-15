@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Toaster as Sonner } from "sonner";
+import { Check, AlertCircle, Info, XCircle } from "lucide-react";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
@@ -16,29 +17,63 @@ export function Toaster({ ...props }: ToasterProps) {
 
   return (
     <Sonner
-      position="top-center"
-      duration={2200}
+      position="bottom-center"
+      duration={500}
+      offset="80px"
       visibleToasts={2}
       closeButton={false}
-      richColors
       className="toaster group"
+      style={
+        {
+          "--width": "calc(100vw - 24px)",
+          maxWidth: "440px",
+          width: "calc(100vw - 24px)",
+        } as React.CSSProperties
+      }
+      icons={{
+        success: (
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300/80 shadow-2xs">
+            <Check className="size-3.5 stroke-[3]" />
+          </span>
+        ),
+        error: (
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700 border border-rose-300/80 shadow-2xs">
+            <XCircle className="size-4 stroke-[2.5]" />
+          </span>
+        ),
+        info: (
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 border border-blue-300/80 shadow-2xs">
+            <Info className="size-4 stroke-[2.5]" />
+          </span>
+        ),
+        warning: (
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 border border-amber-300/80 shadow-2xs">
+            <AlertCircle className="size-4 stroke-[2.5]" />
+          </span>
+        ),
+      }}
       toastOptions={{
+        duration: 500,
+        style: {
+          width: "calc(100vw - 24px)",
+          maxWidth: "440px",
+          backgroundColor: "#ffffff",
+          color: "#09090b",
+          border: "1px solid #e4e4e7",
+          boxShadow: "0 14px 40px -8px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.06)",
+          borderRadius: "16px",
+        },
         classNames: {
           toast:
-            "group toast font-sans !rounded-full !py-2.5 !px-4 !shadow-[0_12px_32px_rgba(0,0,0,0.18)] !border !backdrop-blur-xl transition-all duration-300 text-xs font-black tracking-tight",
-          success:
-            "!bg-gradient-to-r !from-emerald-600 !to-emerald-500 !text-white !border-emerald-400/50 !shadow-[0_10px_35px_rgba(16,185,129,0.4)]",
-          error:
-            "!bg-gradient-to-r !from-rose-600 !to-rose-500 !text-white !border-rose-400/50 !shadow-[0_10px_35px_rgba(244,63,94,0.4)]",
-          info:
-            "!bg-gradient-to-r !from-zinc-900 !to-zinc-800 !text-white !border-zinc-700 !shadow-lg",
-          warning:
-            "!bg-gradient-to-r !from-amber-500 !to-amber-400 !text-black !border-amber-300 !shadow-[0_10px_35px_rgba(245,158,11,0.4)]",
-          title: "!text-xs !font-black !tracking-tight",
-          description: "!text-[11px] !opacity-90 !font-semibold",
+            "group toast pointer-events-auto group-[.toaster]:!w-[calc(100vw-24px)] group-[.toaster]:!max-w-[440px] group-[.toaster]:!bg-white group-[.toaster]:!text-zinc-950 group-[.toaster]:!border group-[.toaster]:!border-zinc-200 group-[.toaster]:!shadow-[0_14px_40px_-8px_rgba(0,0,0,0.16)] group-[.toaster]:!rounded-2xl group-[.toaster]:!px-4.5 group-[.toaster]:!py-3.5 group-[.toaster]:!font-bold group-[.toaster]:!text-xs group-[.toaster]:!tracking-tight group-[.toaster]:!gap-3 group-[.toaster]:!mx-auto",
+          title: "group-[.toast]:!text-zinc-950 group-[.toast]:!font-black group-[.toast]:!text-xs",
+          description: "group-[.toast]:!text-zinc-600 group-[.toast]:!font-medium group-[.toast]:!text-[11px]",
+          actionButton: "group-[.toast]:!bg-black group-[.toast]:!text-white",
+          cancelButton: "group-[.toast]:!bg-zinc-100 group-[.toast]:!text-zinc-800",
         },
       }}
       {...props}
     />
   );
 }
+

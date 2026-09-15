@@ -1,4 +1,5 @@
 import { Clock3, IndianRupee, Pencil, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   categoryLabel,
@@ -27,6 +28,8 @@ export function ServiceCard({
   onViewDetails: () => void;
 }) {
   const Icon = serviceIcon(service.icon);
+  const isPending = Boolean(service.pendingApproval || service.approvalStatus === "pending");
+  const isRejected = service.approvalStatus === "rejected";
 
   return (
     <article
@@ -37,7 +40,13 @@ export function ServiceCard({
       <div className="flex items-start gap-3">
         <span
           className={`flex size-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 ${
-            service.enabled ? "bg-primary/15 text-brand-dark" : "bg-muted text-muted-foreground"
+            isPending
+              ? "bg-amber-100 text-amber-800"
+              : isRejected
+              ? "bg-rose-100 text-rose-800"
+              : service.enabled
+              ? "bg-primary/15 text-brand-dark"
+              : "bg-muted text-muted-foreground"
           }`}
         >
           <Icon className="size-5" strokeWidth={2.1} />
@@ -59,14 +68,30 @@ export function ServiceCard({
               role="switch"
               aria-checked={service.enabled}
               aria-label={`Toggle ${service.name}`}
-              onClick={onToggle}
+              onClick={() => {
+                if (isPending) {
+                  toast.error("Yeh service Admin review ke liye pending hai. Approval ke baad hi live hogi!");
+                  return;
+                }
+                if (isRejected) {
+                  toast.error(`Service Admin ne reject kar di: ${service.rejectionReason || "Please edit and resubmit."}`);
+                  return;
+                }
+                onToggle();
+              }}
               className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ${
-                service.enabled ? "bg-secondary" : "bg-muted"
+                isPending
+                  ? "bg-amber-300 cursor-not-allowed opacity-80"
+                  : isRejected
+                  ? "bg-rose-300 cursor-not-allowed opacity-80"
+                  : service.enabled
+                  ? "bg-secondary"
+                  : "bg-muted"
               }`}
             >
               <span
                 className={`absolute top-0.5 size-5 rounded-full bg-background shadow-soft transition-all duration-300 ${
-                  service.enabled ? "left-[1.4rem]" : "left-0.5"
+                  service.enabled && !isPending && !isRejected ? "left-[1.4rem]" : "left-0.5"
                 }`}
               />
             </button>
@@ -79,7 +104,12 @@ export function ServiceCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <StatusPill enabled={service.enabled} />
+        <StatusPill
+          enabled={service.enabled}
+          pendingApproval={isPending}
+          approvalStatus={service.approvalStatus}
+          rejectionReason={service.rejectionReason}
+        />
         <Chip icon={Clock3} label={formatTurnaround(service.estimatedHours)} />
         {service.ordersThisMonth > 0 ? (
           <Chip icon={TrendingUp} label={`${service.ordersThisMonth} orders`} />
@@ -131,7 +161,36 @@ export function ServiceCard({
   );
 }
 
-export function StatusPill({ enabled }: { enabled: boolean }) {
+export function StatusPill({
+  enabled,
+  pendingApproval,
+  approvalStatus,
+  rejectionReason,
+}: {
+  enabled: boolean;
+  pendingApproval?: boolean;
+  approvalStatus?: string;
+  rejectionReason?: string;
+}) {
+  if (pendingApproval || approvalStatus === "pending") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[0.65rem] font-black tracking-tight text-amber-800 border border-amber-300">
+        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+        ⏳ Pending Admin Approval
+      </span>
+    );
+  }
+  if (approvalStatus === "rejected") {
+    return (
+      <span
+        title={rejectionReason}
+        className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-1 text-[0.65rem] font-black tracking-tight text-rose-800 border border-rose-300"
+      >
+        <span className="size-1.5 rounded-full bg-rose-500" />
+        ❌ Rejected by Admin
+      </span>
+    );
+  }
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.65rem] font-bold tracking-tight ${
