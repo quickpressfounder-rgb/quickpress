@@ -115,14 +115,14 @@ function ContactScreen() {
 
               <div className="space-y-4 text-xs">
                 <a
-                  href="tel:+919997874502"
+                  href="tel:+918279538461"
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
                     <Phone className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">+91 99978 74502</p>
+                    <p className="font-bold text-slate-900 text-sm">+91 8279538461</p>
                     <p className="text-slate-500 mt-0.5">Quickpress Helpdesk (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                   </div>
                 </a>
@@ -181,7 +181,8 @@ function ContactScreen() {
                 <div className="flex items-start gap-2.5">
                   <MapPin className="size-4 text-slate-400 shrink-0 mt-0.5" />
                   <p>
-                    <strong>Shree Krishna EVs</strong><br />
+                    <strong>SHRI KRISHNA EVS</strong><br />
+                    <span className="text-slate-500">Legal Name / Proprietor: SAROJ KUMARI</span><br />
                     0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
                   </p>
                 </div>

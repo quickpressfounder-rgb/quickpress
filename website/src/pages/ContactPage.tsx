@@ -38,9 +38,9 @@ const CONTACT_CHANNELS: ChannelCard[] = [
     category: "Customer Support",
     title: "Order & Garment Care Desk",
     desc: "Assistance with active laundry orders, pickup time rescheduling, special fabric care instructions, and instant billing queries.",
-    contactText: "+91 99978 74502 (Helpdesk) • official.quickpress@gmail.com",
+    contactText: "+91 8279538461 (Helpdesk) • official.quickpress@gmail.com",
     actionText: "Call Quickpress Helpdesk",
-    actionHref: "tel:+919997874502",
+    actionHref: "tel:+918279538461",
     badge: "Avg ETA < 10 Mins",
     icon: (cls) => <IconPhone className={cls || "w-5 h-5"} />,
   },
@@ -49,9 +49,9 @@ const CONTACT_CHANNELS: ChannelCard[] = [
     category: "Partner Stores & Management",
     title: "Merchant Store Onboarding & MD Desk",
     desc: "Connect your laundry workshop to QuickPress logistics or connect directly with company executive leadership.",
-    contactText: "WhatsApp: +91 99978 74502 • MD Desk: +91 92587 30561",
-    actionText: "Call Company MD Contact",
-    actionHref: "tel:+919258730561",
+    contactText: "Phone / WhatsApp: +91 8279538461 • official.quickpress@gmail.com",
+    actionText: "Call Quickpress Helpline",
+    actionHref: "tel:+918279538461",
     badge: "Executive Priority",
     icon: (cls) => <IconStore className={cls || "w-5 h-5"} />,
   },
@@ -155,18 +155,11 @@ export function ContactPage({
         {/* Quick Communication Badges Strip */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs font-bold text-gray-700">
           <a
-            href="tel:+919997874502"
+            href="tel:+918279538461"
             className="px-4 py-2 rounded-xl bg-white border border-gray-200 shadow-2xs hover:border-emerald-500 hover:text-emerald-800 transition-all flex items-center gap-2"
           >
             <IconPhone className="w-4 h-4 text-emerald-700" />
-            <span>Helpdesk: +91 99978 74502</span>
-          </a>
-          <a
-            href="tel:+919258730561"
-            className="px-4 py-2 rounded-xl bg-white border border-gray-200 shadow-2xs hover:border-emerald-500 hover:text-emerald-800 transition-all flex items-center gap-2"
-          >
-            <IconPhone className="w-4 h-4 text-emerald-700" />
-            <span>Company MD: +91 92587 30561</span>
+            <span>Helpdesk: +91 8279538461</span>
           </a>
           <a
             href="mailto:official.quickpress@gmail.com"
@@ -276,7 +269,7 @@ export function ContactPage({
                 </p>
                 <div className="flex flex-wrap justify-center gap-3 pt-2">
                   <a
-                    href={`https://wa.me/919997874502?text=Hi%20QuickPress,%20I%20just%20submitted%20ticket%20${submittedTicket}%20regarding%20${inquiryType}.`}
+                    href={`https://wa.me/918279538461?text=Hi%20QuickPress,%20I%20just%20submitted%20ticket%20${submittedTicket}%20regarding%20${inquiryType}.`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-5 py-2.5 rounded-xl bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
@@ -443,15 +436,26 @@ export function ContactPage({
                 <span>Corporate Headquarters</span>
               </div>
               <h3 className="text-lg font-black text-gray-950">
-                Shree Krishna EVs
+                SHRI KRISHNA EVS
               </h3>
               <div className="text-xs text-gray-600 space-y-2 leading-relaxed">
+                <p>
+                  <strong>Legal Name / Proprietor:</strong> SAROJ KUMARI
+                </p>
                 <p className="flex items-start gap-2">
                   <IconMapPin className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                   <span>
                     <strong>Registered Office:</strong><br />
                     0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
                   </span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <IconPhone className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Helpline: <a href="tel:+918279538461" className="text-emerald-700 font-bold hover:underline">+91 8279538461</a></span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <IconMail className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 font-bold hover:underline">official.quickpress@gmail.com</a></span>
                 </p>
                 <p className="flex items-center gap-2">
                   <IconClock className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -498,10 +502,10 @@ export function ContactPage({
                 In compliance with the Information Technology Act 2000 and Consumer Protection (E-Commerce) Rules:
               </p>
               <div className="text-xs text-gray-800 font-mono space-y-1">
-                <p><strong>Nodal Officer:</strong> Legal & Compliance Desk</p>
-                <p><strong>Direct Email:</strong> official.quickpress@gmail.com</p>
-                <p><strong>Quickpress Helpdesk:</strong> +91 99978 74502</p>
-                <p><strong>Company MD Contact:</strong> +91 92587 30561</p>
+                <p><strong>Grievance Officer:</strong> SAROJ KUMARI</p>
+                <p><strong>Entity:</strong> SHRI KRISHNA EVS</p>
+                <p><strong>Direct Email:</strong> <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
+                <p><strong>Official Phone / Helpdesk:</strong> <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a></p>
               </div>
             </div>
           </div>

@@ -119,7 +119,16 @@ export function AboutPage({
                 <div>
                   <span className="text-gray-400 font-bold block text-[10px] uppercase">Corporate Entity</span>
                   <span className="text-gray-900 font-bold text-xs">
-                    Shree Krishna EVs
+                    SHRI KRISHNA EVS
+                  </span>
+                  <span className="text-gray-500 font-medium text-[11px] block">
+                    Legal Name / Proprietor: SAROJ KUMARI
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase">Contact & Support</span>
+                  <span className="text-gray-700 font-medium text-[11px] block">
+                    Phone: +91 8279538461 | official.quickpress@gmail.com
                   </span>
                 </div>
                 <div>

@@ -24,7 +24,11 @@ export function Footer({
           <div className="col-span-2 md:col-span-2 space-y-4 pr-0 md:pr-6">
             <Logo size="md" dark={true} onClick={() => onNavigate("home")} />
             <p className="text-white text-xs sm:text-sm leading-relaxed max-w-sm">
-              <strong className="text-white">Shree Krishna EVs</strong><br />
+              <strong className="text-white">SHRI KRISHNA EVS</strong><br />
+              <span className="text-[11px] text-white/80 block">Legal Name / Proprietor: SAROJ KUMARI</span>
+              <span className="text-[11px] text-white/80 block">
+                Helpline: <a href="tel:+918279538461" className="underline hover:text-emerald-300">+91 8279538461</a> • <a href="mailto:official.quickpress@gmail.com" className="underline hover:text-emerald-300">official.quickpress@gmail.com</a>
+              </span>
               Building connected on-demand services and smart delivery infrastructure. Built by friends, driven by ambition.
             </p>
             <div className="flex items-center gap-2.5 pt-2">
@@ -212,7 +216,7 @@ export function Footer({
 
         {/* Bottom Copyright Bar */}
         <div className="border-t border-emerald-900/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white">
-          <p className="text-white">© 2026 Shree Krishna EVs. All rights reserved.</p>
+          <p className="text-white">© 2026 SHRI KRISHNA EVS (Proprietor: SAROJ KUMARI). All rights reserved.</p>
           <div className="flex items-center gap-4 text-[11px] text-white">
             <button onClick={() => onNavigate("privacy")} className="text-white hover:text-emerald-300 cursor-pointer">
               Privacy Policy

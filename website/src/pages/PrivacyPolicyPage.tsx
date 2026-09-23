@@ -47,12 +47,14 @@ export function PrivacyPolicyPage({
         content: (
           <div className="space-y-3">
             <p>
-              QuickPress is operated by <strong>Shree Krishna EVs</strong>.
+              QuickPress is operated by <strong>SHRI KRISHNA EVS</strong> (Legal Name / Proprietor: <strong>SAROJ KUMARI</strong>).
             </p>
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 text-xs space-y-1.5 font-mono">
-              <p className="font-sans font-bold text-gray-900 text-sm">Shree Krishna EVs</p>
+              <p className="font-sans font-bold text-gray-900 text-sm">SHRI KRISHNA EVS</p>
+              <p>Legal Name / Proprietor: SAROJ KUMARI</p>
               <p>Registered Office: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</p>
-              <p>Grievance / Privacy Email: official.quickpress@gmail.com</p>
+              <p>Official Phone / Helpline: <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a></p>
+              <p>Grievance / Privacy Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline font-bold">official.quickpress@gmail.com</a></p>
               <p>Official Website: https://with.quickpress.com</p>
             </div>
           </div>
@@ -437,10 +439,11 @@ export function PrivacyPolicyPage({
             </p>
             <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-xs sm:text-sm space-y-1 text-emerald-950">
               <p className="font-bold text-emerald-900">Grievance Redressal Officer</p>
-              <p>Shree Krishna EVs</p>
-              <p>Registered Office: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</p>
-              <p className="font-bold">Email: official.quickpress@gmail.com</p>
-              <p><strong>Quickpress Helpdesk:</strong> +91 99978 74502 | <strong>Company MD:</strong> +91 92587 30561</p>
+              <p><strong>Legal Name / Officer:</strong> SAROJ KUMARI</p>
+              <p><strong>Entity / Trade Name:</strong> SHRI KRISHNA EVS</p>
+              <p><strong>Registered Office:</strong> 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</p>
+              <p className="font-bold">Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
+              <p><strong>Phone / Helpline:</strong> <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
               <p className="text-emerald-800/80 text-xs">Acknowledgment Time: Within 24 hours | Resolution Time: Within 15 business days</p>
             </div>
           </div>
@@ -455,11 +458,11 @@ export function PrivacyPolicyPage({
           <div className="space-y-3">
             <p>For any queries, feedback, or data privacy requests, you may connect with our team through:</p>
             <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm text-gray-700">
-              <li>Quickpress Helpdesk: <a href="tel:+919997874502" className="text-emerald-700 font-bold underline">+91 99978 74502</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</li>
-              <li>Company MD Contact: <a href="tel:+919258730561" className="text-emerald-700 font-bold underline">+91 92587 30561</a></li>
+              <li>Legal Entity: <strong>SHRI KRISHNA EVS</strong> (Legal Name: <strong>SAROJ KUMARI</strong>)</li>
+              <li>Official Phone / Helpline: <a href="tel:+918279538461" className="text-emerald-700 font-bold underline">+91 8279538461</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</li>
+              <li>General Support & Grievance Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 font-bold underline">official.quickpress@gmail.com</a></li>
               <li>In-App Support: Available on Customer, Partner, and Captain apps.</li>
-              <li>General Support Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 font-bold underline">official.quickpress@gmail.com</a></li>
-              <li>Physical Mail: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</li>
+              <li>Physical Registered Office: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</li>
             </ul>
           </div>
         ),

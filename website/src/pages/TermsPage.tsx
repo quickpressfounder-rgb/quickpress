@@ -86,16 +86,22 @@ export function TermsPage({
         </h1>
         <p className="text-gray-600 text-sm sm:text-base max-w-3xl mx-auto mt-4 leading-relaxed font-normal">
           Governing agreements, cancellation safeguards, delivery OTP verification, and statutory grievance redressal instituted by{" "}
-          <strong>Shree Krishna EVs</strong>.
+          <strong>SHRI KRISHNA EVS</strong> (Legal Name / Proprietor: <strong>SAROJ KUMARI</strong>).
         </p>
 
         {/* Corporate Entity Bar */}
         <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-600 font-mono">
+          <span><strong>Legal Name:</strong> SAROJ KUMARI</span>
+          <span className="text-gray-300">•</span>
+          <span><strong>Entity:</strong> SHRI KRISHNA EVS</span>
+          <span className="text-gray-300">•</span>
+          <span><strong>Phone:</strong> +91 8279538461</span>
+          <span className="text-gray-300">•</span>
+          <span><strong>Email:</strong> official.quickpress@gmail.com</span>
+          <span className="text-gray-300">•</span>
           <span><strong>GSTIN:</strong> 09KQCPK2468E1ZM</span>
           <span className="text-gray-300">•</span>
-          <span><strong>Official Website:</strong> with.quickpress.com</span>
-          <span className="text-gray-300">•</span>
-          <span><strong>Registered Office:</strong> 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123</span>
+          <span><strong>Registered Office:</strong> 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, UP 207123</span>
         </div>
       </section>
 
@@ -175,7 +181,7 @@ export function TermsPage({
                 </h3>
                 <p>
                   These Terms of Service ("Terms") constitute a legally binding agreement between you ("Customer", "User", "You") and{" "}
-                  <strong>Shree Krishna EVs</strong> ("QuickPress", "We", "Us", "Our"), having its registered office at 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123.
+                  <strong>SHRI KRISHNA EVS</strong> (Legal Name / Proprietor: <strong>SAROJ KUMARI</strong>) ("QuickPress", "We", "Us", "Our"), having its registered office at 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123.
                 </p>
                 <p>
                   By accessing, browsing, or using our website (<a href="https://with.quickpress.com" className="text-emerald-700 underline font-mono">with.quickpress.com</a>), consumer mobile application, partner portal, or booking doorstep laundry or courier services, you irrevocably accept and agree to be bound by these Terms, in conjunction with our Privacy Policy, Cancellation & Refund Policy, and Logistics Policy.
@@ -467,12 +473,11 @@ export function TermsPage({
                   </p>
 
                   <div className="bg-white p-4 rounded-2xl border border-emerald-200 text-xs font-mono space-y-1 text-gray-900">
-                    <p><strong>Designation:</strong> Head of Legal & Grievance Redressal</p>
-                    <p><strong>Company:</strong> Shree Krishna EVs</p>
+                    <p><strong>Grievance Redressal Officer / Legal Name:</strong> SAROJ KUMARI</p>
+                    <p><strong>Entity / Trade Name:</strong> SHRI KRISHNA EVS</p>
                     <p><strong>Registered Address:</strong> 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</p>
                     <p><strong>Direct Email:</strong> <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline font-bold">official.quickpress@gmail.com</a></p>
-                    <p><strong>Quickpress Helpdesk:</strong> +91 99978 74502 (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
-                    <p><strong>Company MD Contact:</strong> +91 92587 30561 (Escalation & Executive Desk)</p>
+                    <p><strong>Official Phone / Helpdesk:</strong> <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                     <p><strong>Statutory Acknowledgment:</strong> Within 48 Hours with unique CRM Ticket ID</p>
                     <p><strong>Mandatory Disposal Timeline:</strong> Within 30 Days of receipt of complaint</p>
                   </div>

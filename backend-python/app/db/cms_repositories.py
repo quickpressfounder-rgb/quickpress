@@ -116,10 +116,10 @@ We may update this Privacy Policy periodically to reflect technological, operati
 
 If you have any questions, concerns, or requests regarding this Privacy Policy or our data handling practices, please reach out to us:
 
-* **Company:** Shree Krishna EVs
+* **Company:** SHRI KRISHNA EVS
+* **Legal Name / Proprietor:** SAROJ KUMARI
 * **Official Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
-* **Quickpress Helpdesk:** +91 99978 74502 (Mon–Sun, 7:00 AM – 10:00 PM IST)
-* **Company MD Contact:** +91 92587 30561
+* **Phone / Helpline:** [+91 8279538461](tel:+918279538461) (Mon–Sun, 7:00 AM – 10:00 PM IST)
 * **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
 """,
         "versions": [
@@ -227,10 +227,10 @@ These Terms are governed by and construed in accordance with the laws of India. 
 ## 10. Contact Us
 
 For any clarifications regarding these Terms:
-* **Company:** Shree Krishna EVs
+* **Company:** SHRI KRISHNA EVS
+* **Legal Name / Proprietor:** SAROJ KUMARI
 * **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
-* **Quickpress Helpdesk:** +91 99978 74502
-* **Company MD Contact:** +91 92587 30561
+* **Phone / Helpline:** [+91 8279538461](tel:+918279538461)
 * **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
 """,
         "versions": [
@@ -323,10 +323,10 @@ If you are unsatisfied with garment cleaning quality or if an item is missing/da
 
 ## 5. Contact Information
 
-* **Company:** Shree Krishna EVs
+* **Company:** SHRI KRISHNA EVS
+* **Legal Name / Proprietor:** SAROJ KUMARI
 * **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
-* **Quickpress Helpdesk:** +91 99978 74502
-* **Company MD Contact:** +91 92587 30561
+* **Phone / Helpline:** [+91 8279538461](tel:+918279538461)
 * **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
 """,
         "versions": [
@@ -512,12 +512,11 @@ QuickPress is committed to providing prompt, fair, and transparent redressal of 
 ### Level 2: Grievance Officer (Statutory Escalation)
 If your complaint is not resolved satisfactorily at Level 1 within 48 hours, you may escalate directly to our designated Grievance Officer:
 
-- **Name:** Legal & Compliance Desk (Designated Grievance Officer)
-- **Company:** Shree Krishna EVs
+- **Grievance Officer / Legal Name:** SAROJ KUMARI
+- **Company:** SHRI KRISHNA EVS
 - **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
 - **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
-- **Quickpress Helpdesk:** +91 99978 74502 (Mon–Sun, 7:00 AM – 10:00 PM IST)
-- **Company MD Contact:** +91 92587 30561 (Direct Phone)
+- **Phone / Helpline:** [+91 8279538461](tel:+918279538461) (Mon–Sun, 7:00 AM – 10:00 PM IST)
 - **Statutory Acknowledgment:** Within **48 hours** with unique Ticket Reference ID.
 - **Resolution SLA:** Mandatory disposal and resolution within **30 days** of filing.
 
