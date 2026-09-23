@@ -5,6 +5,7 @@ export type PageType =
   | "how-it-works"
   | "partners"
   | "ecosystem"
+  | "contact"
   | "privacy"
   | "terms";
 

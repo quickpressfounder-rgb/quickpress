@@ -48,6 +48,29 @@ export async function requestDeviceNotificationPermission(): Promise<DevicePermi
   }
 }
 
+/** Open device application settings (Android / iOS) when permission is denied or managed */
+export async function openDeviceNotificationSettings(): Promise<boolean> {
+  try {
+    const cap = (window as any).Capacitor;
+    if (cap?.isNativePlatform?.()) {
+      if (cap.Plugins?.App?.openAppSettings) {
+        await cap.Plugins.App.openAppSettings();
+        return true;
+      }
+      if (cap.Plugins?.NativeSettings?.open) {
+        await cap.Plugins.NativeSettings.open({
+          optionAndroid: "application_details",
+          optionIOS: "app",
+        });
+        return true;
+      }
+    }
+  } catch (err) {
+    console.debug("Could not open device settings:", err);
+  }
+  return false;
+}
+
 export function sendTestNotification(
   title = "QuickPress Laundry Notifications Active 🎉",
   body = "You will now get live pickup, wash, and delivery updates right here."

@@ -89,7 +89,7 @@ export function CaptainLocationPermissionModal({
         {/* Learn More Link */}
         <div className="border-t border-slate-100 pt-3">
           <a
-            href="https://quickpress.in/#privacy"
+            href="https://with.quickpress.com/#privacy"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"

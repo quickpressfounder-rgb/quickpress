@@ -11,6 +11,7 @@ import {
   Printer,
   Shield,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -243,10 +244,18 @@ function LegalDocScreen() {
               </p>
               <div className="mt-4 space-y-2 text-xs">
                 <a
-                  href="mailto:support@quickpress.online"
+                  href="mailto:official.quickpress@gmail.com"
                   className="flex items-center gap-2 text-emerald-300 hover:underline"
                 >
-                  <Mail className="size-3.5" /> support@quickpress.online
+                  <Mail className="size-3.5" /> official.quickpress@gmail.com
+                </a>
+                <a
+                  href="https://with.quickpress.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-emerald-300 hover:underline"
+                >
+                  <Globe className="size-3.5" /> with.quickpress.com
                 </a>
               </div>
             </div>

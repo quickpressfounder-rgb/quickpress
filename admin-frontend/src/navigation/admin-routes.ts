@@ -15,6 +15,7 @@ import {
   Users,
   Wallet,
   Landmark,
+  Mail,
 } from "lucide-react";
 
 /** Central route map for the QuickPress Admin console. */
@@ -33,6 +34,7 @@ export const adminRoutes = {
   coupons: "/coupons",
   memberships: "/memberships",
   notifications: "/notifications",
+  emails: "/emails",
   analytics: "/analytics",
   support: "/support",
   staff: "/staff",
@@ -52,6 +54,7 @@ export const adminNavItems = [
   { id: "coupons", label: "Coupons", icon: TicketPercent, to: adminRoutes.coupons },
   { id: "memberships", label: "Memberships", icon: Crown, to: adminRoutes.memberships },
   { id: "notifications", label: "Notifications", icon: Bell, to: adminRoutes.notifications },
+  { id: "emails", label: "Email Hub", icon: Mail, to: adminRoutes.emails },
   { id: "analytics", label: "Analytics", icon: BarChart3, to: adminRoutes.analytics },
   { id: "support", label: "Support", icon: LifeBuoy, to: adminRoutes.support },
   { id: "staff", label: "Staff", icon: ShieldCheck, to: adminRoutes.staff },

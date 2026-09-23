@@ -105,6 +105,38 @@ def create_otp_record(code: Optional[str] = None, hours_valid: int = 4) -> Dict[
     }
 
 
+def check_geofence(
+    rider_lat: Optional[float],
+    rider_lng: Optional[float],
+    target_lat: Optional[float],
+    target_lng: Optional[float],
+    max_radius_meters: float = 250.0,
+) -> Dict[str, Any]:
+    """Validates that rider GPS position is within geofence perimeter (default 250m)."""
+    if rider_lat is None or rider_lng is None or target_lat is None or target_lng is None:
+        return {"verified": True, "distanceMeters": 0.0, "anomaly": False, "note": "Coordinates missing - bypassed"}
+
+    try:
+        r_lat, r_lng = float(rider_lat), float(rider_lng)
+        t_lat, t_lng = float(target_lat), float(target_lng)
+    except (ValueError, TypeError):
+        return {"verified": True, "distanceMeters": 0.0, "anomaly": False, "note": "Invalid coordinates - bypassed"}
+
+    if (r_lat == 0.0 and r_lng == 0.0) or (t_lat == 0.0 and t_lng == 0.0):
+        return {"verified": True, "distanceMeters": 0.0, "anomaly": False, "note": "Zero coordinates bypassed"}
+
+    dist_km = haversine_distance_km(r_lat, r_lng, t_lat, t_lng)
+    dist_meters = round(dist_km * 1000, 1)
+    is_within = dist_meters <= max_radius_meters
+
+    return {
+        "verified": is_within,
+        "distanceMeters": dist_meters,
+        "anomaly": not is_within,
+        "allowedRadiusMeters": max_radius_meters,
+    }
+
+
 class Smart2RideEngine:
     """Unified 2-Ride Auto Assignment & OTP Engine."""
 
@@ -987,6 +1019,27 @@ class Smart2RideEngine:
             room="riders",
         )
 
+        # Automated WhatsApp notification to customer
+        try:
+            from app.core.whatsapp_service import whatsapp_service
+            cust_phone = (order or {}).get("customerPhone") or ((order or {}).get("customer") or {}).get("phone")
+            cust_name = (order or {}).get("customerName") or ((order or {}).get("customer") or {}).get("name") or "Valued Customer"
+            ride_type = ride.get("rideType", "pickup")
+            if cust_phone:
+                asyncio.create_task(
+                    whatsapp_service.send_captain_assigned_whatsapp(
+                        phone=str(cust_phone),
+                        customer_name=str(cust_name),
+                        order_id=order_id,
+                        captain_name=str(r_name),
+                        captain_phone=str(r_phone),
+                        eta_minutes=15,
+                        ride_type=ride_type,
+                    )
+                )
+        except Exception as exc:
+            logger.warning("WhatsApp captain assigned trigger error: %s", exc)
+
         return await database.find_one(RIDES_COLLECTION, {"_id": ride_id}) or ride
 
     async def handle_rider_reject(
@@ -1058,7 +1111,14 @@ class Smart2RideEngine:
         remaining = max(0, max_attempts - otp_record["attempts"])
         raise PermissionError(f"Invalid {label}. {remaining} attempt(s) remaining.")
 
-    async def verify_pickup_otp(self, order_id: str, otp: str, rider_id: str) -> Dict[str, Any]:
+    async def verify_pickup_otp(
+        self,
+        order_id: str,
+        otp: str,
+        rider_id: str,
+        rider_lat: Optional[float] = None,
+        rider_lng: Optional[float] = None,
+    ) -> Dict[str, Any]:
         """Phase 1.5 OTP: Customer gives Pickup OTP to Rider upon clothes pickup."""
         order = await lifecycle.find_order(order_id)
         if not order:
@@ -1077,6 +1137,39 @@ class Smart2RideEngine:
             lifecycle.COMPLETED,
         ):
             return {"ok": True, "status": "PICKED_UP", "orderId": canonical_id, "alreadyPickedUp": True}
+
+        # Geofence Verification Guard (Default 250m)
+        r_lat, r_lng = rider_lat, rider_lng
+        if r_lat is None or r_lng is None:
+            live_doc = await database.find_one("live_locations", {"_id": f"rider:{rider_id}"})
+            if live_doc:
+                r_lat = live_doc.get("latitude")
+                r_lng = live_doc.get("longitude")
+
+        addr = order.get("address") or order.get("pickupAddress") or {}
+        t_lat = addr.get("latitude") or addr.get("lat")
+        t_lng = addr.get("longitude") or addr.get("lng")
+
+        # Geofence Verification Guard with Dynamic Admin Policy
+        from app.db.admin_repositories import admin_settings_repository
+        admin_settings = await admin_settings_repository.get()
+        dispatch_cfg = admin_settings.get("dispatch") or {}
+        max_geofence_meters = float(dispatch_cfg.get("geofenceRadiusMeters") or 250.0)
+        strict_geofence = bool(dispatch_cfg.get("geofenceStrictEnforcement", False))
+
+        geofence_status = check_geofence(
+            r_lat, r_lng, t_lat, t_lng, max_radius_meters=max_geofence_meters
+        )
+        if geofence_status.get("anomaly"):
+            logger.warning(
+                "🚨 [GEOFENCE ALERT] Order #%s Pickup: Rider #%s is %.1fm away (Allowed: %.0fm)",
+                canonical_id, rider_id, geofence_status["distanceMeters"], geofence_status["allowedRadiusMeters"]
+            )
+            if strict_geofence:
+                raise ValueError(
+                    f"Geofence security violation: Captain is {geofence_status['distanceMeters']:.0f}m away (Maximum allowed: {max_geofence_meters:.0f}m). Strict Geofence Enforcement is enabled by Admin."
+                )
+
         otp_dict = order.get("otp") or {}
         pickup_record = otp_dict.get("pickup")
         if not pickup_record:
@@ -1094,6 +1187,7 @@ class Smart2RideEngine:
                     "status": lifecycle.PICKED_UP,
                     "pickupOtpVerified": True,
                     "otp.pickup": pickup_record,
+                    "geofence.pickup": geofence_status,
                     "pickedAt": now,
                     "updatedAt": now,
                 }
@@ -1347,6 +1441,29 @@ class Smart2RideEngine:
                 )
             )
 
+            # Automated WhatsApp Out For Delivery Alert to Customer
+            try:
+                from app.core.whatsapp_service import whatsapp_service
+                cust_phone = (updated or order).get("customerPhone") or ((updated or order).get("customer") or {}).get("phone")
+                cust_name = (updated or order).get("customerName") or ((updated or order).get("customer") or {}).get("name") or "Valued Customer"
+                d_otp = str(
+                    (updated or order).get("deliveryOtp")
+                    or ((updated or order).get("otp") or {}).get("delivery", {}).get("code")
+                    or "1234"
+                )
+                if cust_phone:
+                    asyncio.create_task(
+                        whatsapp_service.send_out_for_delivery_whatsapp(
+                            phone=str(cust_phone),
+                            customer_name=str(cust_name),
+                            order_id=canonical_id,
+                            delivery_otp=d_otp,
+                            captain_name=str(assigned_rider_id or "Captain"),
+                        )
+                    )
+            except Exception as exc:
+                logger.warning("WhatsApp Out For Delivery notification error: %s", exc)
+
         return {
             "ok": True,
             "status": lifecycle.OUT_FOR_DELIVERY,
@@ -1357,7 +1474,14 @@ class Smart2RideEngine:
             "message": "Dispatch OTP verified. Package custody transferred to Delivery Captain.",
         }
 
-    async def verify_delivery_otp(self, order_id: str, otp: str, rider_id: str) -> Dict[str, Any]:
+    async def verify_delivery_otp(
+        self,
+        order_id: str,
+        otp: str,
+        rider_id: str,
+        rider_lat: Optional[float] = None,
+        rider_lng: Optional[float] = None,
+    ) -> Dict[str, Any]:
         """Phase 3 OTP: Customer provides final Delivery OTP to Rider at doorstep."""
         clean_otp = str(otp or "").strip()
         if len(clean_otp) != 4 or not clean_otp.isdigit():
@@ -1375,6 +1499,38 @@ class Smart2RideEngine:
         canonical_id = lifecycle.order_id_of(order)
         if current_status in (lifecycle.DELIVERED, lifecycle.COMPLETED):
             return {"ok": True, "status": "DELIVERED", "orderId": canonical_id, "alreadyDelivered": True}
+
+        # Geofence Verification Guard at Doorstep Delivery (<250m)
+        r_lat, r_lng = rider_lat, rider_lng
+        if r_lat is None or r_lng is None:
+            live_doc = await database.find_one("live_locations", {"_id": f"rider:{rider_id}"})
+            if live_doc:
+                r_lat = live_doc.get("latitude")
+                r_lng = live_doc.get("longitude")
+
+        addr = order.get("address") or order.get("deliveryAddress") or {}
+        t_lat = addr.get("latitude") or addr.get("lat")
+        t_lng = addr.get("longitude") or addr.get("lng")
+
+        # Geofence Verification Guard at Doorstep Delivery with Dynamic Admin Policy
+        from app.db.admin_repositories import admin_settings_repository
+        admin_settings = await admin_settings_repository.get()
+        dispatch_cfg = admin_settings.get("dispatch") or {}
+        max_geofence_meters = float(dispatch_cfg.get("geofenceRadiusMeters") or 250.0)
+        strict_geofence = bool(dispatch_cfg.get("geofenceStrictEnforcement", False))
+
+        geofence_status = check_geofence(
+            r_lat, r_lng, t_lat, t_lng, max_radius_meters=max_geofence_meters
+        )
+        if geofence_status.get("anomaly"):
+            logger.warning(
+                "🚨 [GEOFENCE ALERT] Order #%s Delivery: Rider #%s is %.1fm away (Allowed: %.0fm)",
+                canonical_id, rider_id, geofence_status["distanceMeters"], geofence_status["allowedRadiusMeters"]
+            )
+            if strict_geofence:
+                raise ValueError(
+                    f"Geofence security violation: Captain is {geofence_status['distanceMeters']:.0f}m away (Maximum allowed: {max_geofence_meters:.0f}m). Strict Geofence Enforcement is enabled by Admin."
+                )
 
         otp_dict = order.get("otp") or {}
         delivery_record = otp_dict.get("delivery")
@@ -1397,6 +1553,7 @@ class Smart2RideEngine:
                     "status": lifecycle.DELIVERED,
                     "deliveryOtpVerified": True,
                     "otp.delivery": delivery_record,
+                    "geofence.delivery": geofence_status,
                     "deliveredAt": now,
                     "completedAt": now,
                     "updatedAt": now,
@@ -1415,6 +1572,22 @@ class Smart2RideEngine:
                 }
             },
         )
+
+        # Automated WhatsApp Order Delivered Notification
+        try:
+            from app.core.whatsapp_service import whatsapp_service
+            cust_phone = (order or {}).get("customerPhone") or ((order or {}).get("customer") or {}).get("phone")
+            cust_name = (order or {}).get("customerName") or ((order or {}).get("customer") or {}).get("name") or "Valued Customer"
+            if cust_phone:
+                asyncio.create_task(
+                    whatsapp_service.send_order_delivered_whatsapp(
+                        phone=str(cust_phone),
+                        customer_name=str(cust_name),
+                        order_id=canonical_id,
+                    )
+                )
+        except Exception as exc:
+            logger.warning("WhatsApp order delivered notification error: %s", exc)
 
         # Record COD collected cash in rider's floating custody (Finance Security)
         pay_mode = str(order.get("paymentMode") or (order.get("payment") or {}).get("mode") or "").lower()

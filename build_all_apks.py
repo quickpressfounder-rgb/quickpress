@@ -5,7 +5,7 @@ import subprocess
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/d891cd66-afaf-4f0a-9f5b-c4519c672a50"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/3b6ce2cd-28f6-4eb0-a61c-f5e8e78f50a4"
 
 def run_cmd(cmd, cwd=ROOT_DIR):
     print(f"\n===> Executing: {cmd} (in {cwd})")

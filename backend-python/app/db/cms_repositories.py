@@ -45,7 +45,7 @@ LEGAL_DOCS_SEED: Dict[str, Dict[str, Any]] = {
 **Last Updated:** 25 August 2026  
 **Version:** 1.0  
 
-QuickPress ("we", "us", "our", or "Company") is committed to protecting your privacy. This Privacy Policy describes how we collect, use, store, share, and protect your personal information when you use our website [https://www.quickpress.online](https://www.quickpress.online), our mobile applications (Customer, Partner, Rider), and our door-to-door laundry & dry cleaning platform services.
+QuickPress ("we", "us", "our", or "Company") is committed to protecting your privacy. This Privacy Policy describes how we collect, use, store, share, and protect your personal information when you use our website [https://with.quickpress.com](https://with.quickpress.com), our mobile applications (Customer, Partner, Rider), and our door-to-door laundry & dry cleaning platform services.
 
 ---
 
@@ -102,7 +102,7 @@ QuickPress does NOT sell, rent, or trade your personal data to third parties for
 You maintain complete control over your personal information:
 - **Access & Edit:** You can view and update your profile information, saved addresses, and preferences directly in the QuickPress Customer App.
 - **Data Portability & Inquiries:** You may request a copy of your transaction history or order records.
-- **Account Deletion:** You have the right to request permanent deletion of your account and associated profile data by contacting `support@quickpress.in` or using the In-App Account Settings > Delete Account option. Upon request, non-essential data is removed within 30 days, subject to mandatory tax & financial record retention laws.
+- **Account Deletion:** You have the right to request permanent deletion of your account and associated profile data by contacting `official.quickpress@gmail.com` or using the In-App Account Settings > Delete Account option. Upon request, non-essential data is removed within 30 days, subject to mandatory tax & financial record retention laws.
 
 ---
 
@@ -116,9 +116,11 @@ We may update this Privacy Policy periodically to reflect technological, operati
 
 If you have any questions, concerns, or requests regarding this Privacy Policy or our data handling practices, please reach out to us:
 
-* **Official Email:** [support@quickpress.in](mailto:support@quickpress.in)
-* **Helpline:** 1800 012 3456 / +91 90000 90000 (Mon–Sun, 8:00 AM – 9:00 PM IST)
-* **Operating Address:** QuickPress Laundry Technologies, Kasganj, Uttar Pradesh 207123, India
+* **Company:** Shree Krishna EVs
+* **Official Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+* **Quickpress Helpdesk:** +91 99978 74502 (Mon–Sun, 7:00 AM – 10:00 PM IST)
+* **Company MD Contact:** +91 92587 30561
+* **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
 """,
         "versions": [
             {
@@ -147,7 +149,7 @@ If you have any questions, concerns, or requests regarding this Privacy Policy o
 **Last Updated:** 25 August 2026  
 **Version:** 1.0  
 
-Welcome to QuickPress! These Terms and Conditions ("Terms") constitute a legally binding agreement between you ("Customer", "User", "you") and QuickPress ("QuickPress", "we", "us", "our") regarding your use of the QuickPress website ([https://www.quickpress.online](https://www.quickpress.online)), mobile applications, and laundry logistics services.
+Welcome to QuickPress! These Terms and Conditions ("Terms") constitute a legally binding agreement between you ("Customer", "User", "you") and QuickPress ("QuickPress", "we", "us", "our") regarding your use of the QuickPress website ([https://with.quickpress.com](https://with.quickpress.com)), mobile applications, and laundry logistics services.
 
 By accessing our website, creating an account, or placing an order, you agree to be bound by these Terms.
 
@@ -225,9 +227,11 @@ These Terms are governed by and construed in accordance with the laws of India. 
 ## 10. Contact Us
 
 For any clarifications regarding these Terms:
-* **Email:** [support@quickpress.in](mailto:support@quickpress.in)
-* **Helpline:** 1800 012 3456
-* **Registered Address:** QuickPress Laundry Technologies, Kasganj, Uttar Pradesh 207123, India
+* **Company:** Shree Krishna EVs
+* **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+* **Quickpress Helpdesk:** +91 99978 74502
+* **Company MD Contact:** +91 92587 30561
+* **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
 """,
         "versions": [
             {
@@ -313,15 +317,17 @@ If you are unsatisfied with garment cleaning quality or if an item is missing/da
 
 1. **In-App Cancellation:** Open QuickPress App > Orders > Select Active Order > Tap **Cancel Order**.
 2. **Help Desk Support:** Go to Profile > Help & Support > Select "Refund Status" or "Cancel Order".
-3. **Email Inquiry:** Write to [support@quickpress.in](mailto:support@quickpress.in) with your Order ID and contact details.
+3. **Email Inquiry:** Write to [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com) with your Order ID and contact details.
 
 ---
 
 ## 5. Contact Information
 
-* **Email:** [support@quickpress.in](mailto:support@quickpress.in)
-* **Toll-Free Helpline:** 1800 012 3456 / +91 90000 90000
-* **Address:** QuickPress Laundry Technologies, Kasganj, Uttar Pradesh 207123, India
+* **Company:** Shree Krishna EVs
+* **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+* **Quickpress Helpdesk:** +91 99978 74502
+* **Company MD Contact:** +91 92587 30561
+* **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
 """,
         "versions": [
             {
@@ -500,24 +506,25 @@ QuickPress is committed to providing prompt, fair, and transparent redressal of 
 ## 1. Multi-Tier Resolution Framework
 
 ### Level 1: Customer & Partner In-App Support
-- **Channels:** Live In-App Chat, Support Tickets, or Email at [support@quickpress.online](mailto:support@quickpress.online).
+- **Channels:** Live In-App Chat, Support Tickets, or Email at [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com).
 - **Turnaround Time (TAT):** First acknowledgment within **2 hours**; ticket resolution within **24 hours**.
 
 ### Level 2: Grievance Officer (Statutory Escalation)
 If your complaint is not resolved satisfactorily at Level 1 within 48 hours, you may escalate directly to our designated Grievance Officer:
 
-- **Name:** Mr. Ankit Sharma
-- **Designation:** Grievance Redressal Officer
-- **Address:** QuickPress Laundry Technologies Private Limited, Station Road, Kasganj, Uttar Pradesh 207123, India
-- **Email:** [grievance@quickpress.online](mailto:grievance@quickpress.online)
-- **Helpline:** +91 92587 30561 (Mon–Sat, 9:30 AM – 6:30 PM IST)
+- **Name:** Legal & Compliance Desk (Designated Grievance Officer)
+- **Company:** Shree Krishna EVs
+- **Registered Office:** 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
+- **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
+- **Quickpress Helpdesk:** +91 99978 74502 (Mon–Sun, 7:00 AM – 10:00 PM IST)
+- **Company MD Contact:** +91 92587 30561 (Direct Phone)
 - **Statutory Acknowledgment:** Within **48 hours** with unique Ticket Reference ID.
 - **Resolution SLA:** Mandatory disposal and resolution within **30 days** of filing.
 
 ### Level 3: Nodal Officer (Law Enforcement & Regulatory Liaison)
 For government bodies, judicial authorities, and statutory cyber-crime law enforcement agencies:
 - **Nodal Officer:** Legal Director, Regulatory Affairs
-- **Email:** [nodal@quickpress.online](mailto:nodal@quickpress.online)
+- **Email:** [official.quickpress@gmail.com](mailto:official.quickpress@gmail.com)
 - **Response Timeline:** Within 24 hours of official requisition.
 
 ---
@@ -655,12 +662,12 @@ WEBSITE_SETTINGS_SEED: Dict[str, Any] = {
     "supportPhoneRaw": "+919000090000",
     "supportEmail": "support@quickpress.in",
     "supportWhatsapp": "+919000090000",
-    "operatingAddress": "QuickPress Laundry Technologies, Kasganj, Uttar Pradesh 207123, India",
-    "registeredOffice": "QuickPress Laundry Technologies Private Limited, Main Market, Kasganj, Uttar Pradesh 207123, India",
+    "operatingAddress": "0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India",
+    "registeredOffice": "0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India",
     "workingHours": "Monday – Sunday, 8:00 AM – 9:00 PM IST",
     "activeOperatingCity": "Kasganj, Uttar Pradesh",
-    "gstin": "09AAACQ1234F1Z5",
-    "cin": "U74999UP2026PTC123456",
+    "gstin": "09KQCPK2468E1ZM",
+    "cin": "",
     "appStoreUrl": "https://apps.apple.com",  # Handled gracefully in UI
     "playStoreUrl": "https://play.google.com",
     "appStoreAvailable": False,
@@ -674,7 +681,7 @@ WEBSITE_SETTINGS_SEED: Dict[str, Any] = {
     "seo": {
         "defaultTitle": "QuickPress — Premium Online Laundry & Dry Cleaning Doorstep Service",
         "defaultDescription": "QuickPress is India's premier technology-driven laundry and dry cleaning platform. Schedule doorstep pickup for Wash & Fold, Dry Cleaning, Steam Ironing & Shoe Care.",
-        "canonicalDomain": "https://www.quickpress.online",
+        "canonicalDomain": "https://with.quickpress.com",
         "ogImage": "/og-image.jpg"
     }
 }

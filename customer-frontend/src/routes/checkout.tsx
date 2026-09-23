@@ -285,6 +285,10 @@ export function CheckoutPage() {
 
   // Called ONLY when Online Payment (UPI / Card / Netbanking / Wallet) is 100% verified
   const handlePaymentSuccess = async (method: string, paymentId: string) => {
+    if (!selectedPickup) {
+      toast.error("Please select a pickup address.");
+      return;
+    }
     setPlacingOrder(true);
     try {
       const cleanPhone = customerPhone.replace(/\D/g, "");
@@ -337,6 +341,10 @@ export function CheckoutPage() {
 
   // Called when Customer explicitly selects Pay on Delivery (COD)
   const handleSelectCod = async () => {
+    if (!selectedPickup) {
+      toast.error("Please select a pickup address.");
+      return;
+    }
     setPlacingOrder(true);
     try {
       const cleanPhone = customerPhone.replace(/\D/g, "");

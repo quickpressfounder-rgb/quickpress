@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # --- environment -------------------------------------------------
     app_env: str = "development"  # development | staging | production
     api_prefix: str = "/api"
-    cors_origins: str = "https://appk-mu.vercel.app,https://quickpress-partner.vercel.app,https://quickpress-rider.vercel.app,https://quickpress-admin.vercel.app,https://quickpress-website.vercel.app,https://www.quickpress.online,https://quickpress.online,https://admin.quickpress.online,https://partner.quickpress.online,https://rider.quickpress.online,https://quickpress.in,https://www.quickpress.in"
+    cors_origins: str = "https://with.quickpress.com,https://www.with.quickpress.com,https://withquickpress.com,https://www.withquickpress.com,https://appk-mu.vercel.app,https://quickpress-partner.vercel.app,https://quickpress-rider.vercel.app,https://quickpress-admin.vercel.app,https://quickpress-website.vercel.app,https://www.quickpress.online,https://quickpress.online,https://admin.quickpress.online,https://partner.quickpress.online,https://rider.quickpress.online,https://quickpress.in,https://www.quickpress.in"
 
     # --- Supabase / PostgreSQL Database ------------------------------
     supabase_url: str = ""
@@ -47,11 +47,12 @@ class Settings(BaseSettings):
     otp_ttl_seconds: int = 300
     otp_max_sends_per_hour: int = 50
 
-    # --- Twilio SMS / OTP ------------------------------------------------
+    # --- Twilio & Fast2SMS / Indian SMS Gateways -------------------------
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_phone_number: str = ""
     twilio_verify_service_sid: str = ""
+    fast2sms_api_key: str = ""
 
     # --- Razorpay (Phase 5 · Sprint 5.6) ---------------------------------
     # Both the key id and the secret come from the environment. Nothing is
@@ -79,11 +80,26 @@ class Settings(BaseSettings):
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 465
     smtp_user: str = "official.quickpress@gmail.com"
-    smtp_password: str = "lleomkgsxtjxngbb"
-    smtp_from_name: str = "QuickPress"
+    smtp_password: str = ""
+    # --- WhatsApp Business Cloud API (Meta Graph API) --------------------
+    whatsapp_phone_number_id: str = ""
+    whatsapp_access_token: str = ""
+    whatsapp_business_account_id: str = ""
+    whatsapp_webhook_verify_token: str = "quickpress_meta_verify_2026"
+    # --- Indian SMS Gateways (Fast2SMS / MSG91) --------------------------
+    fast2sms_api_key: str = ""
+    msg91_auth_key: str = ""
+    msg91_sender_id: str = "QKPRES"
+    # --- Geofence Radius Threshold (Meters) ------------------------------
+    geofence_radius_meters: float = 250.0
     # --- OneSignal Push Notifications ------------------------------------
     onesignal_app_id: str = "184bda82-7c5b-4319-a977-4fcffbcca270"
     onesignal_rest_api_key: str = ""
+    # --- Distributed Cache & Sentry Monitoring ---------------------------
+    redis_url: str = ""
+    upstash_redis_rest_url: str = ""
+    upstash_redis_rest_token: str = ""
+    sentry_dsn: str = ""
 
     @property
     def cors_origin_list(self) -> List[str]:
@@ -127,6 +143,18 @@ class Settings(BaseSettings):
     @property
     def firebase_configured(self) -> bool:
         return bool(self.firebase_credentials_file.strip() or self.firebase_credentials_json.strip())
+
+    @property
+    def whatsapp_configured(self) -> bool:
+        return bool(self.whatsapp_phone_number_id.strip() and self.whatsapp_access_token.strip())
+
+    @property
+    def fast2sms_configured(self) -> bool:
+        return bool(self.fast2sms_api_key.strip())
+
+    @property
+    def msg91_configured(self) -> bool:
+        return bool(self.msg91_auth_key.strip())
 
 
 @lru_cache

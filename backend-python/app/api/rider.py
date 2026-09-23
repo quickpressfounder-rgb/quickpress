@@ -2397,10 +2397,15 @@ async def pickup_order(
     order_id: str, body: dict | None = None, user: User = Depends(current_user)
 ) -> dict:
     rider_id = await _rider_id(user)
-    otp = (body or {}).get("otp") or (body or {}).get("code")
+    payload = body or {}
+    otp = payload.get("otp") or payload.get("code")
+    r_lat = payload.get("latitude") or payload.get("lat")
+    r_lng = payload.get("longitude") or payload.get("lng")
     from app.services.smart_2ride_engine import smart_2ride_engine
     try:
-        return await smart_2ride_engine.verify_pickup_otp(order_id, str(otp or ""), rider_id)
+        return await smart_2ride_engine.verify_pickup_otp(
+            order_id, str(otp or ""), rider_id, rider_lat=r_lat, rider_lng=r_lng
+        )
     except (PermissionError, ValueError) as err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
     except LookupError as err:
@@ -2480,10 +2485,15 @@ async def deliver_order(
     order_id: str, body: dict | None = None, user: User = Depends(current_user)
 ) -> dict:
     rider_id = await _rider_id(user)
-    otp = (body or {}).get("otp") or (body or {}).get("code")
+    payload = body or {}
+    otp = payload.get("otp") or payload.get("code")
+    r_lat = payload.get("latitude") or payload.get("lat")
+    r_lng = payload.get("longitude") or payload.get("lng")
     from app.services.smart_2ride_engine import smart_2ride_engine
     try:
-        return await smart_2ride_engine.verify_delivery_otp(order_id, str(otp or ""), rider_id)
+        return await smart_2ride_engine.verify_delivery_otp(
+            order_id, str(otp or ""), rider_id, rider_lat=r_lat, rider_lng=r_lng
+        )
     except (PermissionError, ValueError) as err:
         logger.warning(f"smart_2ride_engine.verify_delivery_otp failed for {order_id} otp={otp}: {err}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))

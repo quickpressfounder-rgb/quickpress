@@ -20,6 +20,14 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.12
       # --- secrets: set the real values in the Render dashboard -----------
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_DB_NAME
@@ -163,3 +171,17 @@ services:
         sync: false
       - key: VITE_FIREBASE_APP_ID
         sync: false
+
+  # ---------------------------------------------------------------------------
+  # Marketing & Brand Website (with.quickpress.com)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: quickpress-website
+    runtime: static
+    rootDir: website
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

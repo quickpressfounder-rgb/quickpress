@@ -582,7 +582,7 @@ export function HomePage({
                     onClick={() => setActiveProcessStage(p.step)}
                     className={`p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between ${
                       isCurrent
-                        ? "bg-emerald-900 text-white border-emerald-950 shadow-lg scale-102 ring-2 ring-emerald-500/20"
+                        ? "bg-white text-emerald-950 border-2 border-emerald-600 shadow-md scale-102 ring-2 ring-emerald-500/20"
                         : isPassed
                         ? "bg-emerald-50/70 border-emerald-200 text-emerald-950 hover:bg-emerald-100/70"
                         : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
@@ -592,7 +592,7 @@ export function HomePage({
                       <span
                         className={`w-6 h-6 rounded-full text-xs font-black flex items-center justify-center ${
                           isCurrent
-                            ? "bg-white text-emerald-950"
+                            ? "bg-emerald-600 text-white"
                             : isPassed
                             ? "bg-emerald-200 text-emerald-900"
                             : "bg-gray-200 text-gray-700"
@@ -603,7 +603,7 @@ export function HomePage({
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
                           isCurrent
-                            ? "bg-white/20 text-emerald-200"
+                            ? "bg-emerald-100 text-emerald-800"
                             : "bg-gray-200/70 text-gray-600"
                         }`}
                       >
@@ -614,14 +614,14 @@ export function HomePage({
                     <div>
                       <span
                         className={`text-xs font-black block leading-tight ${
-                          isCurrent ? "text-white" : "text-gray-900"
+                          isCurrent ? "text-emerald-950" : "text-gray-900"
                         }`}
                       >
                         {p.title}
                       </span>
                       <span
                         className={`text-[10px] block mt-0.5 ${
-                          isCurrent ? "text-emerald-200" : "text-gray-400"
+                          isCurrent ? "text-emerald-700 font-bold" : "text-gray-400"
                         }`}
                       >
                         {p.panel}
@@ -744,26 +744,21 @@ export function HomePage({
             </div>
 
             {/* Partner Card */}
-            <div
-              className="rounded-3xl p-8 sm:p-12 text-white shadow-xl flex flex-col justify-between relative overflow-hidden"
-              style={{
-                background: `linear-gradient(135deg, ${GREEN_DARK} 0%, #061B0E 100%)`,
-              }}
-            >
+            <div className="bg-white rounded-3xl p-8 sm:p-12 text-gray-950 shadow-xl border-2 border-emerald-100 flex flex-col justify-between relative overflow-hidden">
               <div>
-                <span className="text-xs font-black tracking-widest text-emerald-300 uppercase bg-emerald-950/70 px-3 py-1 rounded-full border border-emerald-700/50">
+                <span className="text-xs font-black tracking-widest text-emerald-800 uppercase bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
                   For Partners
                 </span>
-                <h3 className="text-3xl font-black text-white mt-4 mb-2">
+                <h3 className="text-3xl font-black text-gray-950 mt-4 mb-2">
                   Grow your business with QuickPress.
                 </h3>
-                <p className="text-emerald-100/90 text-sm sm:text-base leading-relaxed mb-6">
+                <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
                   Join our verified network to receive guaranteed volume, dispatch software, and weekly automated payouts.
                 </p>
               </div>
               <button
                 onClick={() => onNavigate("partners")}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full font-black text-emerald-950 bg-white hover:bg-emerald-50 text-sm shadow-xl hover:scale-105 transition-all cursor-pointer inline-flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full font-black text-white bg-emerald-700 hover:bg-emerald-800 text-sm shadow-xl hover:scale-105 transition-all cursor-pointer inline-flex items-center justify-center gap-2"
               >
                 <span>Explore Partner Benefits</span>
                 <IconArrowRight className="w-4 h-4" />

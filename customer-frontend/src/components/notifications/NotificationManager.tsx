@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Bell, Sparkles, X, Check, Volume2 } from "lucide-react";
+import { useEffect } from "react";
+import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRealtimeEvent } from "@/shared/hooks/use-realtime";
@@ -9,46 +9,93 @@ import {
   requestPushNotificationPermission,
   setupForegroundMessageListener,
 } from "@/api/core/firebase-messaging";
-import {
-  playOrderBellNotificationSound,
-  playOrderPlacedSonicChime,
-} from "@/lib/order-success-sound";
+import { playOrderBellNotificationSound } from "@/lib/order-success-sound";
 
 export function NotificationManager() {
   const queryClient = useQueryClient();
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [permissionState, setPermissionState] = useState<NotificationPermission | "unsupported">("default");
 
   useEffect(() => {
     if (!isPushNotificationSupported()) {
-      setPermissionState("unsupported");
       return undefined;
     }
 
     const current = getNotificationPermission();
-    setPermissionState(current);
 
     // If permission was already granted in a past session, ensure foreground listener & FCM sync is active
     if (current === "granted") {
       void requestPushNotificationPermission();
+      return undefined;
     }
 
-    // Show permission prompt after a brief 1.5-second delay if not yet granted/denied
-    // and not previously dismissed in this session
-    const dismissed = sessionStorage.getItem("qp_notif_prompt_dismissed");
-    if (current === "default" && !dismissed) {
-      const timer = setTimeout(() => {
-        setShowPrompt(true);
-      }, 1500);
-      return () => clearTimeout(timer);
+    // Direct native permission request: asks directly from device/mobile/browser settings
+    // without showing any custom in-app popup banners.
+    const askNativeMobilePermission = async () => {
+      try {
+        // 1. Capacitor Native Mobile Platform check
+        const cap = (window as any).Capacitor;
+        if (cap?.isNativePlatform?.()) {
+          const push = cap.Plugins?.PushNotifications;
+          if (push) {
+            const check = await push.checkPermissions?.();
+            if (check?.receive !== "granted") {
+              const res = await push.requestPermissions?.();
+              if (res?.receive === "granted") {
+                await push.register?.();
+                void requestPushNotificationPermission();
+                return;
+              }
+            } else {
+              await push.register?.();
+              void requestPushNotificationPermission();
+              return;
+            }
+          }
+        }
+
+        // 2. Browser / Mobile Web Native Permission API
+        if (typeof window !== "undefined" && "Notification" in window) {
+          if (Notification.permission === "default") {
+            const perm = await Notification.requestPermission();
+            if (perm === "granted") {
+              void requestPushNotificationPermission();
+            }
+          }
+        }
+      } catch (err) {
+        console.debug("[NotificationManager] Native permission request:", err);
+      }
+    };
+
+    if (current === "default") {
+      // 1. Attempt immediately
+      void askNativeMobilePermission();
+
+      // 2. Modern mobile browsers require a user gesture (tap/touch) to show the native system dialog.
+      // Attach a one-time gesture trigger so the user's very first tap triggers the OS dialog directly.
+      const handleUserGesture = () => {
+        window.removeEventListener("click", handleUserGesture);
+        window.removeEventListener("touchstart", handleUserGesture);
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+          void askNativeMobilePermission();
+        }
+      };
+
+      window.addEventListener("click", handleUserGesture, { once: true });
+      window.addEventListener("touchstart", handleUserGesture, { once: true, passive: true });
+
+      return () => {
+        window.removeEventListener("click", handleUserGesture);
+        window.removeEventListener("touchstart", handleUserGesture);
+      };
     }
+
     return undefined;
   }, []);
 
   // Set up Firebase Cloud Messaging (FCM) Foreground Listener with Order Bell Chime
   useEffect(() => {
     let cleanup: (() => void) | null = null;
-    void setupForegroundMessageListener((payload) => {
+    void setupForegroundMessageListener(() => {
       // Play instant order bell chime sound on incoming push
       playOrderBellNotificationSound();
 
@@ -63,49 +110,6 @@ export function NotificationManager() {
       cleanup?.();
     };
   }, [queryClient]);
-
-  const requestPermission = async () => {
-    if (!isPushNotificationSupported()) return;
-    try {
-      setShowPrompt(false);
-      sessionStorage.setItem("qp_notif_prompt_dismissed", "true");
-
-      const token = await requestPushNotificationPermission();
-      const nextPermission = getNotificationPermission();
-      setPermissionState(nextPermission);
-
-      if (nextPermission === "granted" || token) {
-        // Ring the cheerful order bell sound to confirm audio & notification permission
-        playOrderBellNotificationSound();
-
-        toast.success("Notifications & Alerts Enabled! 🔔", {
-          description: "You will receive real-time order alerts, live rider updates, and exclusive deals.",
-          icon: <Check className="size-4 text-emerald-500" />,
-        });
-
-        // Send a test local welcome notification
-        try {
-          new Notification("QuickPress Notifications Active 🔔", {
-            body: "Live pickup, wash, and delivery order alerts are enabled.",
-            icon: "/favicon.png",
-          });
-        } catch {
-          // ignore web worker / platform restrictions
-        }
-      } else {
-        toast.info("Notifications not enabled", {
-          description: "You can enable notifications anytime in your browser settings.",
-        });
-      }
-    } catch (err) {
-      console.error("Error requesting notification permission:", err);
-    }
-  };
-
-  const dismissPrompt = () => {
-    setShowPrompt(false);
-    sessionStorage.setItem("qp_notif_prompt_dismissed", "true");
-  };
 
   // Real-time broadcast & order lifecycle event listener
   useRealtimeEvent(
@@ -168,60 +172,6 @@ export function NotificationManager() {
     }
   );
 
-  if (!showPrompt) return null;
-
-  return (
-    <div className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-md animate-sheet-up">
-      <div className="overflow-hidden rounded-3xl border border-emerald-500/30 bg-white/95 p-4 shadow-2xl backdrop-blur-md dark:border-emerald-500/20 dark:bg-zinc-900/95">
-        <div className="flex items-start gap-3.5">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20">
-            <Bell className="size-5 animate-pulse" />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <h4 className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-                  Allow Notifications
-                </h4>
-                <Volume2 className="size-3 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <button
-                type="button"
-                onClick={dismissPrompt}
-                className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <X className="size-3.5" />
-              </button>
-            </div>
-            <p className="mt-1 text-xs font-bold text-zinc-900 dark:text-white">
-              Never miss a pickup, delivery, or promo!
-            </p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Get live rider tracking milestones, order bell chimes, and exclusive discount codes.
-            </p>
-
-            <div className="mt-3.5 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={dismissPrompt}
-                className="rounded-xl px-3 py-1.5 text-xs font-bold text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                Later
-              </button>
-              <button
-                type="button"
-                onClick={requestPermission}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-black text-white shadow-sm shadow-emerald-600/30 hover:bg-emerald-700 active:scale-[0.98]"
-              >
-                <Sparkles className="size-3.5" />
-                Allow Notifications
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // Return null — no custom banner/popup is rendered
+  return null;
 }
-

@@ -472,13 +472,31 @@ class SupabaseDatabase:
             except Exception as e:
                 logger.warning("Cache preload attempt %d warning: %s", attempt + 1, repr(e))
                 if attempt == 3:
-                    raise e
+                    return
                 await asyncio.sleep(1.0 * (attempt + 1))
+
+    async def _safe_preload_cache(self) -> None:
+        try:
+            await self.preload_cache()
+            logger.info("Background cache preload completed successfully.")
+        except Exception as e:
+            logger.warning("Background cache preload warning: %s", repr(e))
 
     async def connect(self) -> None:
         logger.info("Connecting to Supabase PostgreSQL database...")
-        await self.preload_cache()
-        logger.info("Connected to Supabase PostgreSQL and cache preloaded successfully.")
+        pool = await self.get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS quickpress_documents (
+                    id TEXT PRIMARY KEY,
+                    collection TEXT NOT NULL,
+                    data JSONB NOT NULL,
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_collection ON quickpress_documents(collection);
+            """)
+        logger.info("Connected to Supabase PostgreSQL and initialized schema.")
+        asyncio.create_task(self._safe_preload_cache())
 
     async def disconnect(self) -> None:
         if self._pool is not None and not self._pool._closed:

@@ -112,6 +112,32 @@ async def send_twilio_sms_otp(phone: str, role: str = "customer") -> Tuple[bool,
             _log.error("Twilio SMS request failed: %s", exc)
             return False, "twilio_error", str(exc)
 
-    # 3. Fallback / Test mode when keys are not yet added
+    # 3. Check if Fast2SMS (Indian SMS Gateway) is configured
+    if settings.fast2sms_api_key:
+        clean_10digit = "".join(filter(str.isdigit, phone))[-10:]
+        url = "https://www.fast2sms.com/dev/bulkV2"
+        headers = {
+            "authorization": settings.fast2sms_api_key.strip(),
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "route": "otp",
+            "variables_values": otp_code,
+            "numbers": clean_10digit,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and data.get("return") is True:
+                    _log.info("Fast2SMS OTP dispatched successfully to %s", phone)
+                    return True, "fast2sms", None
+                _log.warning("Fast2SMS API returned: %s", data)
+                return False, "fast2sms_error", str(data.get("message") or resp.text)
+        except Exception as exc:
+            _log.error("Fast2SMS request failed: %s", exc)
+            return False, "fast2sms_error", str(exc)
+
+    # 4. Fallback / Test mode when keys are not yet added
     _log.info("🔐 [DEV/FALLBACK OTP] Phone: %s | Generated Code: %s", phone, otp_code)
     return True, "dev_fallback", None

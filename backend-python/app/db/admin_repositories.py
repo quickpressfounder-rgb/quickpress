@@ -3252,6 +3252,24 @@ class AdminSettingsRepository:
             "mockGpsGuard": True,
             "autoLockoutHours": 24,
         },
+        "dispatch": {
+            "autoDispatchEnabled": True,
+            "geofenceRadiusMeters": 250,
+            "geofenceStrictEnforcement": False,
+            "searchRadiusKm": 5.0,
+            "captainTimeoutSeconds": 30,
+            "maxActiveRidesPerCaptain": 1,
+        },
+        "omniChannel": {
+            "whatsappEnabled": True,
+            "smsEnabled": True,
+            "orderConfirmedWhatsapp": True,
+            "captainAssignedWhatsapp": True,
+            "clothesInspectedWhatsapp": True,
+            "outForDeliveryWhatsapp": True,
+            "orderDeliveredWhatsapp": True,
+            "deliveryOtpSms": True,
+        },
     }
 
     async def get(self, scope: str = "global", city_id: Optional[str] = None) -> Dict[str, Any]:
@@ -3274,7 +3292,7 @@ class AdminSettingsRepository:
             override_data.pop("_id", None)
 
             # Deep merge nested categories if provided in city override
-            for group in ("business", "finance", "surge", "slots", "referral", "compliance", "safety", "integrations", "platform"):
+            for group in ("business", "finance", "surge", "slots", "referral", "compliance", "safety", "integrations", "platform", "dispatch", "omniChannel"):
                 if group in override_data and isinstance(override_data[group], dict):
                     merged_city[group] = {**merged_city.get(group, {}), **override_data[group]}
 

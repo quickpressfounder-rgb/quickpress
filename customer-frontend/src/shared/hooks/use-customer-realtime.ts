@@ -82,7 +82,7 @@ export function useCustomerOrderRealtime(
 
   useRealtimeEvent(ORDER_LIFECYCLE_EVENTS as string[], onOrderEvent);
 
-  useRealtimeEvent([SOCKET_EVENTS.locationUpdated, "captain_location_update"], (payload) => {
+  useRealtimeEvent([SOCKET_EVENTS.locationUpdated, "captain_location_update", "rider.location"], (payload) => {
     const location = payload as any;
     if (orderId && location.orderId && location.orderId !== orderId) return;
     const lat = Number(location.lat ?? location.latitude ?? location.coords?.lat);

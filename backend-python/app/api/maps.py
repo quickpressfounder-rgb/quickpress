@@ -410,6 +410,18 @@ async def push_rider_location(
         "updatedAt": _now(),
     }
     await database.update(LIVE_LOCATIONS, {"_id": document["_id"]}, document, upsert=True)
+    try:
+        from app.services.socket_service import broadcast_rider_location
+        await broadcast_rider_location(
+            rider_id=str(rider_id),
+            latitude=body.latitude,
+            longitude=body.longitude,
+            heading=body.heading,
+            speed_kmph=body.speedKmph,
+            order_id=body.orderId,
+        )
+    except Exception:
+        pass
     return LiveLocation(id=str(rider_id), **{k: v for k, v in document.items() if k in {"kind", "label", "latitude", "longitude", "orderId", "status", "updatedAt"}})
 
 

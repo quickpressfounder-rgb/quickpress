@@ -12,6 +12,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -114,28 +115,56 @@ function ContactScreen() {
 
               <div className="space-y-4 text-xs">
                 <a
-                  href="tel:+918006001234"
+                  href="tel:+919997874502"
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
                     <Phone className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">+91 800 600 1234</p>
-                    <p className="text-slate-500 mt-0.5">Mon–Sun, 7:00 AM to 10:00 PM IST</p>
+                    <p className="font-bold text-slate-900 text-sm">+91 99978 74502</p>
+                    <p className="text-slate-500 mt-0.5">Quickpress Helpdesk (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                   </div>
                 </a>
 
                 <a
-                  href="mailto:support@quickpress.online"
+                  href="tel:+919258730561"
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                >
+                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                    <Phone className="size-4" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">+91 92587 30561</p>
+                    <p className="text-slate-500 mt-0.5">Company MD Contact / Direct Desk</p>
+                  </div>
+                </a>
+
+                <a
+                  href="mailto:official.quickpress@gmail.com"
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
                     <Mail className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">support@quickpress.online</p>
-                    <p className="text-slate-500 mt-0.5">Response within 2 hours</p>
+                    <p className="font-bold text-slate-900 text-sm">official.quickpress@gmail.com</p>
+                    <p className="text-slate-500 mt-0.5">Central Support Desk</p>
+                  </div>
+                </a>
+
+                <a
+                  href="https://with.quickpress.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                >
+                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                    <Globe className="size-4" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">with.quickpress.com</p>
+                    <p className="text-slate-500 mt-0.5">Official Brand & Company Website</p>
                   </div>
                 </a>
               </div>
@@ -152,15 +181,20 @@ function ContactScreen() {
                 <div className="flex items-start gap-2.5">
                   <MapPin className="size-4 text-slate-400 shrink-0 mt-0.5" />
                   <p>
-                    <strong>QuickPress Technologies Private Limited</strong><br />
-                    Plot 12, Station Road, Near Railway Colony,<br />
-                    Kasganj, Uttar Pradesh — 207123, India
+                    <strong>Shree Krishna EVs</strong><br />
+                    0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
+                  </p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="size-4 text-slate-400 shrink-0 mt-0.5" />
+                  <p>
+                    <strong>Central Operations Hub:</strong><br />
+                    Bilram Gate & Station Road Corridor, Kasganj, Uttar Pradesh 207123, India
                   </p>
                 </div>
 
                 <div className="border-t border-slate-100 pt-3 space-y-1 text-[11px] text-slate-500">
-                  <p><strong>CIN:</strong> U74999UP2026PTC123456</p>
-                  <p><strong>GSTIN:</strong> 09AAACQ1234F1Z5</p>
+                  <p><strong>GSTIN:</strong> 09KQCPK2468E1ZM</p>
                 </div>
               </div>
             </div>

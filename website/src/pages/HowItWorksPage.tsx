@@ -50,7 +50,7 @@ const STAGES = [
     mockPreview: {
       title: "Courier En Route",
       tag: "Driver 0.4 mi away",
-      info: "Alex Morgan (4.95★) • Van #842 • ETA: 4 Mins",
+      info: "Alex Morgan (4.95 Rating) • Van #842 • ETA: 4 Mins",
     },
   },
   {
@@ -286,22 +286,22 @@ export function HowItWorksPage({
 
       {/* ─── ₹5,000 Protection Guarantee ──────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-emerald-950 text-white rounded-3xl p-8 sm:p-12 border border-emerald-800/60 grid lg:grid-cols-12 gap-8 items-center">
+        <div className="bg-white text-gray-950 rounded-3xl p-8 sm:p-12 border-2 border-emerald-100 shadow-xl grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-8 space-y-4">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-900/60 px-3 py-1 rounded-full border border-emerald-700">
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
               Safety & Security
             </span>
-            <h3 className="text-3xl sm:text-4xl font-black">
+            <h3 className="text-3xl sm:text-4xl font-black text-gray-950">
               Comprehensive Protection up to ₹5,000 included with every order.
             </h3>
-            <p className="text-emerald-100/80 text-sm sm:text-base leading-relaxed">
+            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
               In the rare event of damage, delay, or transit issues, our dedicated claims desk resolves issues within 24 hours. Your peace of mind is guaranteed.
             </p>
           </div>
           <div className="lg:col-span-4 flex justify-center lg:justify-end">
             <button
               onClick={() => onOpenModal("booking")}
-              className="px-8 py-4 rounded-full font-bold text-gray-950 bg-emerald-400 hover:bg-emerald-300 transition-all shadow-xl cursor-pointer text-sm"
+              className="px-8 py-4 rounded-full font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-all shadow-xl cursor-pointer text-sm"
             >
               Start Your First Order →
             </button>

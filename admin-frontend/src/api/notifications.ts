@@ -127,3 +127,147 @@ export async function sendBroadcast(payload: {
     category: payload.category || "Promotional",
   });
 }
+
+// -----------------------------------------------------------------------------
+// OMNI-CHANNEL: WHATSAPP CLOUD API & INDIAN SMS GATEWAY
+// -----------------------------------------------------------------------------
+
+export type WhatsAppLog = {
+  _id: string;
+  id?: string;
+  messageId: string;
+  toPhone: string;
+  recipientName: string;
+  templateName: string;
+  messageBody: string;
+  buttons?: Array<{ id: string; title: string }>;
+  orderId?: string;
+  status: "sent" | "delivered" | "read" | "failed" | string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type SmsLog = {
+  _id: string;
+  id?: string;
+  messageId: string;
+  toPhone: string;
+  message: string;
+  provider: string;
+  status: "sent" | "delivered" | "failed" | string;
+  hasOtp?: boolean;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type OmniStats = {
+  whatsapp: {
+    total: number;
+    delivered: number;
+    read: number;
+    failed: number;
+    deliveryRate: number;
+    readRate: number;
+  };
+  sms: {
+    total: number;
+    sent: number;
+    failed: number;
+    successRate: number;
+  };
+  gateways: {
+    whatsapp: string;
+    sms: string;
+  };
+};
+
+export type OmniSettings = {
+  omniChannel: {
+    whatsappEnabled: boolean;
+    smsEnabled: boolean;
+    orderConfirmedWhatsapp: boolean;
+    captainAssignedWhatsapp: boolean;
+    clothesInspectedWhatsapp: boolean;
+    outForDeliveryWhatsapp: boolean;
+    orderDeliveredWhatsapp: boolean;
+    deliveryOtpSms: boolean;
+  };
+  dispatch: {
+    autoDispatchEnabled: boolean;
+    geofenceRadiusMeters: number;
+    geofenceStrictEnforcement: boolean;
+    searchRadiusKm: number;
+    captainTimeoutSeconds: number;
+  };
+  gateways: {
+    whatsapp: {
+      name: string;
+      isConfigured: boolean;
+      mode: string;
+      webhookToken: string;
+      phoneNumberId: string;
+    };
+    sms: {
+      name: string;
+      isConfigured: boolean;
+      provider: string;
+      senderId: string;
+    };
+  };
+};
+
+export async function fetchWhatsAppLogs(limit: number = 50, status?: string, search?: string): Promise<WhatsAppLog[]> {
+  try {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (status && status !== "all") params.append("status", status);
+    if (search?.trim()) params.append("search", search.trim());
+    const res = await apiGetJson<{ items: WhatsAppLog[]; count: number }>(`/api/admin/whatsapp/logs?${params.toString()}`);
+    return res.items || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function sendAdminWhatsApp(payload: {
+  toPhone: string;
+  recipientName: string;
+  templateName: string;
+  messageBody: string;
+  orderId?: string;
+}) {
+  return await apiPostJson<{ ok: boolean; messageId: string; recipient: string }>("/api/admin/whatsapp/send", payload);
+}
+
+export async function fetchSmsLogs(limit: number = 50, provider?: string, search?: string): Promise<SmsLog[]> {
+  try {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (provider && provider !== "all") params.append("provider", provider);
+    if (search?.trim()) params.append("search", search.trim());
+    const res = await apiGetJson<{ items: SmsLog[]; count: number }>(`/api/admin/sms/logs?${params.toString()}`);
+    return res.items || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function sendAdminSms(payload: {
+  toPhone: string;
+  message: string;
+  purpose?: string;
+}) {
+  return await apiPostJson<{ ok: boolean; messageId: string; recipient: string }>("/api/admin/sms/send", payload);
+}
+
+export async function fetchOmniStats(): Promise<OmniStats> {
+  return await apiGetJson<OmniStats>("/api/admin/omni/stats");
+}
+
+export async function fetchOmniSettings(): Promise<OmniSettings> {
+  return await apiGetJson<OmniSettings>("/api/admin/omni/settings");
+}
+
+export async function updateOmniSettings(payload: Partial<OmniSettings["omniChannel"] & OmniSettings["dispatch"]>) {
+  return await apiPostJson<any>("/api/admin/omni/settings", payload, { method: "PUT" });
+}

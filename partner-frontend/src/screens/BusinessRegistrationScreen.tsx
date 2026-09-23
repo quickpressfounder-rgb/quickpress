@@ -1044,7 +1044,7 @@ export function BusinessRegistrationScreen() {
                     Your information and documents may be processed for partner verification, onboarding, security, compliance and platform operations.
                   </p>
                   <a
-                    href="https://quickpress.in/#privacy"
+                    href="https://with.quickpress.com/#privacy"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 font-bold text-amber-900 hover:underline pt-0.5"
@@ -1961,11 +1961,11 @@ export function BusinessRegistrationScreen() {
                   <div className="space-y-2.5">
                     <p className="text-[11px] text-zinc-500 text-center leading-relaxed">
                       By submitting your application, you acknowledge that you have read our{" "}
-                      <a href="https://quickpress.in/#privacy" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
+                      <a href="https://with.quickpress.com/#privacy" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
                         Privacy Policy
                       </a>{" "}
                       and agree to the applicable{" "}
-                      <a href="https://quickpress.in/#terms" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
+                      <a href="https://with.quickpress.com/#terms" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
                         Partner Terms & Conditions
                       </a>.
                     </p>
@@ -2010,11 +2010,11 @@ export function BusinessRegistrationScreen() {
           {step === STEPS.length - 1 && (
             <p className="pb-2 text-[10.5px] text-zinc-500 text-center leading-relaxed">
               By submitting, you agree to our{" "}
-              <a href="https://quickpress.in/#privacy" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
+              <a href="https://with.quickpress.com/#privacy" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
                 Privacy Policy
               </a>{" "}
               and{" "}
-              <a href="https://quickpress.in/#terms" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
+              <a href="https://with.quickpress.com/#terms" target="_blank" rel="noreferrer" className="text-amber-800 font-bold underline">
                 Partner Terms
               </a>.
             </p>

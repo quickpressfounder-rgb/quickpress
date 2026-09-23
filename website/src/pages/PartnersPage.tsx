@@ -193,25 +193,25 @@ export function PartnersPage({
         {/* Selected Model Detailed View */}
         <div className="bg-white rounded-3xl border-2 border-gray-200/90 shadow-2xl overflow-hidden animate-fade-in">
           {/* Header Banner */}
-          <div className={`p-8 sm:p-12 text-white ${selectedPartnerId === "store" ? "bg-gradient-to-r from-emerald-950 via-emerald-900 to-[#0A2414]" : "bg-gradient-to-r from-[#78350F] via-amber-950 to-[#451A03]"} flex flex-col md:flex-row md:items-center justify-between gap-6`}>
+          <div className="p-8 sm:p-12 text-gray-950 bg-slate-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-yellow-400 text-gray-950 uppercase tracking-wider">
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-200 uppercase tracking-wider">
                 {selectedModel.badge}
               </span>
-              <h3 className="text-2xl sm:text-4xl font-black">{selectedModel.title}</h3>
-              <p className="text-xs sm:text-sm text-emerald-100/80 max-w-xl leading-relaxed">
+              <h3 className="text-2xl sm:text-4xl font-black text-gray-950">{selectedModel.title}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-xl leading-relaxed">
                 {selectedModel.description}
               </p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 text-center shrink-0 min-w-[220px]">
-              <span className="text-[10px] uppercase font-bold text-yellow-300 block">
+            <div className="bg-white rounded-2xl p-6 border border-gray-200 text-center shrink-0 min-w-[220px] shadow-sm">
+              <span className="text-[10px] uppercase font-bold text-gray-400 block">
                 Upfront Joining Cost
               </span>
-              <span className="text-3xl sm:text-4xl font-black text-white block mt-0.5">
+              <span className="text-3xl sm:text-4xl font-black text-emerald-800 block mt-0.5">
                 {selectedModel.commission}
               </span>
-              <span className="text-[11px] text-emerald-200 font-semibold block mt-1">
+              <span className="text-[11px] text-gray-500 font-semibold block mt-1">
                 Payout: {selectedModel.payoutCycle}
               </span>
             </div>
@@ -359,15 +359,15 @@ export function PartnersPage({
 
       {/* ─── Interactive Partner Earnings Calculator (in ₹) ────────────────────── */}
       <section id="calculator" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-br from-emerald-950 via-[#0A2414] to-[#06180E] text-white rounded-3xl p-8 sm:p-14 border border-emerald-800/60 grid lg:grid-cols-12 gap-10 items-center shadow-xl">
+        <div className="bg-white text-gray-950 rounded-3xl p-8 sm:p-14 border-2 border-emerald-200 shadow-2xl grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-6 space-y-6">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-900/60 px-3 py-1 rounded-full border border-emerald-700">
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
               Partner Earnings Estimator
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black">
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-950">
               Calculate your projected monthly net revenue.
             </h2>
-            <p className="text-emerald-100/80 text-sm sm:text-base leading-relaxed">
+            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
               Adjust your target daily capacity to preview monthly gross and net earnings across our dispatch ecosystem.
             </p>
 
@@ -382,8 +382,8 @@ export function PartnersPage({
                   onClick={() => setPartnerType(type.id as any)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     partnerType === type.id
-                      ? "bg-yellow-400 text-gray-950 font-black shadow-md"
-                      : "bg-emerald-900/50 text-emerald-200 hover:bg-emerald-900"
+                      ? "bg-emerald-700 text-white font-black shadow-md"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   {type.label}
@@ -392,11 +392,11 @@ export function PartnersPage({
             </div>
           </div>
 
-          <div className="lg:col-span-6 bg-[#0B2414] rounded-2xl p-6 sm:p-8 border border-emerald-800/80 space-y-6">
+          <div className="lg:col-span-6 bg-slate-50 rounded-2xl p-6 sm:p-8 border border-gray-200 space-y-6">
             <div>
-              <div className="flex justify-between text-xs font-bold mb-2">
+              <div className="flex justify-between text-xs font-bold mb-2 text-gray-700">
                 <span>Daily Order Capacity</span>
-                <span className="text-yellow-400 font-black">{dailyOrders} Orders / Day</span>
+                <span className="text-emerald-800 font-black">{dailyOrders} Orders / Day</span>
               </div>
               <input
                 type="range"
@@ -405,29 +405,28 @@ export function PartnersPage({
                 step={5}
                 value={dailyOrders}
                 onChange={(e) => setDailyOrders(Number(e.target.value))}
-                className="w-full accent-yellow-400 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-emerald-400/60 mt-1">
+              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
                 <span>10 / day (Starter Store)</span>
                 <span>50 / day (Active Store)</span>
                 <span>120+ / day (Large Facility)</span>
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#071B0E] border border-emerald-900/80 space-y-2">
-              <span className="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">
+            <div className="p-5 rounded-2xl bg-white border border-gray-200 shadow-xs space-y-2">
+              <span className="text-[10px] uppercase font-bold text-emerald-800 block tracking-wider">
                 Estimated Monthly Net Payout
               </span>
-              <p className="text-4xl font-black text-yellow-400">₹{grossMonthly}</p>
-              <p className="text-xs text-emerald-200/70">
+              <p className="text-4xl font-black text-gray-950">₹{grossMonthly}</p>
+              <p className="text-xs text-gray-500">
                 Calculated at 26 operating days/mo with 85% average net partner payout rate.
               </p>
             </div>
 
             <button
               onClick={() => onOpenModal("partner")}
-              className="w-full py-4 rounded-full font-black text-gray-950 text-sm shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
-              style={{ background: YELLOW }}
+              className="w-full py-4 rounded-full font-black text-white bg-emerald-700 hover:bg-emerald-800 text-sm shadow-xl hover:scale-[1.02] active:scale-98 transition-all cursor-pointer"
             >
               Join as QuickPress Partner →
             </button>

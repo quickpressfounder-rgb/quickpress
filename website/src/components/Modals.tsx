@@ -472,11 +472,11 @@ export function ContactModal({
   if (!isOpen) return null;
 
   const INQUIRY_TYPES = [
-    { id: "partner", label: "🏪 Partner Store Onboarding", desc: "List your laundry, dry cleaner store or ironing shop" },
-    { id: "captain", label: "🛵 Captain / Rider Fleet", desc: "Join as a delivery captain or fleet logistics partner" },
-    { id: "customer_help", label: "🧺 Customer & Order Help", desc: "Order tracking, pickup rescheduling or fabric care inquiry" },
-    { id: "corporate", label: "💼 B2B & Hotel Logistics", desc: "Bulk laundry contracts for hotels, salons & corporate staff" },
-    { id: "general", label: "💬 General & Media", desc: "General queries, feedback, or business consultation" },
+    { id: "partner", label: "Partner Store Onboarding", desc: "List your laundry, dry cleaner store or ironing shop" },
+    { id: "captain", label: "Captain / Rider Fleet", desc: "Join as a delivery captain or fleet logistics partner" },
+    { id: "customer_help", label: "Customer & Order Help", desc: "Order tracking, pickup rescheduling or fabric care inquiry" },
+    { id: "corporate", label: "B2B & Hotel Logistics", desc: "Bulk laundry contracts for hotels, salons & corporate staff" },
+    { id: "general", label: "General & Media", desc: "General queries, feedback, or business consultation" },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -538,14 +538,14 @@ export function ContactModal({
                       onClick={() => setInquiryType(t.id as any)}
                       className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                         isSelected
-                          ? "bg-emerald-900 text-white border-emerald-950 shadow-md ring-2 ring-emerald-500/20"
+                          ? "bg-white text-emerald-950 border-2 border-emerald-600 shadow-md ring-2 ring-emerald-500/20"
                           : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
                       }`}
                     >
-                      <span className={`text-xs font-black block ${isSelected ? "text-yellow-300" : "text-gray-900"}`}>
+                      <span className={`text-xs font-black block ${isSelected ? "text-emerald-900" : "text-gray-900"}`}>
                         {t.label}
                       </span>
-                      <span className={`text-[10px] mt-1 leading-tight block ${isSelected ? "text-emerald-100" : "text-gray-500"}`}>
+                      <span className={`text-[10px] mt-1 leading-tight block ${isSelected ? "text-emerald-700" : "text-gray-500"}`}>
                         {t.desc}
                       </span>
                     </button>
@@ -947,14 +947,14 @@ export function DownloadAppModal({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => onShowToast("Redirecting to Apple App Store...")}
-            className="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-950 text-white hover:bg-gray-800 transition-all shadow-md hover:scale-[1.02] cursor-pointer group"
+            className="flex items-center gap-3.5 p-4 rounded-2xl bg-white text-gray-950 border-2 border-gray-200 hover:border-emerald-600 transition-all shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer group"
           >
-            <IconApple className="w-8 h-8 text-white shrink-0 group-hover:scale-110 transition-transform" />
+            <IconApple className="w-8 h-8 text-gray-950 shrink-0 group-hover:scale-110 transition-transform" />
             <div className="text-left">
-              <span className="text-[10px] uppercase font-semibold text-gray-400 block leading-tight">
+              <span className="text-[10px] uppercase font-semibold text-gray-500 block leading-tight">
                 Download on the
               </span>
-              <span className="text-sm font-black text-white block">
+              <span className="text-sm font-black text-gray-950 block">
                 Apple App Store
               </span>
             </div>
@@ -966,14 +966,14 @@ export function DownloadAppModal({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => onShowToast("Redirecting to Google Play Store...")}
-            className="flex items-center gap-3.5 p-4 rounded-2xl bg-gray-950 text-white hover:bg-gray-800 transition-all shadow-md hover:scale-[1.02] cursor-pointer group"
+            className="flex items-center gap-3.5 p-4 rounded-2xl bg-white text-gray-950 border-2 border-gray-200 hover:border-emerald-600 transition-all shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer group"
           >
-            <IconGooglePlay className="w-8 h-8 text-emerald-400 shrink-0 group-hover:scale-110 transition-transform" />
+            <IconGooglePlay className="w-8 h-8 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
             <div className="text-left">
-              <span className="text-[10px] uppercase font-semibold text-gray-400 block leading-tight">
+              <span className="text-[10px] uppercase font-semibold text-gray-500 block leading-tight">
                 GET IT ON
               </span>
-              <span className="text-sm font-black text-white block">
+              <span className="text-sm font-black text-gray-950 block">
                 Google Play Store
               </span>
             </div>
@@ -981,8 +981,8 @@ export function DownloadAppModal({
         </div>
 
         {/* QR Code & SMS Link Box */}
-        <div className="bg-emerald-950 text-white rounded-2xl p-6 border border-emerald-800/80 grid sm:grid-cols-12 gap-6 items-center mb-6">
-          <div className="sm:col-span-4 flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-md text-center">
+        <div className="bg-slate-50 text-gray-950 rounded-2xl p-6 border-2 border-emerald-100 grid sm:grid-cols-12 gap-6 items-center mb-6">
+          <div className="sm:col-span-4 flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-xs border border-gray-200 text-center">
             {/* SVG Visual QR Code */}
             <svg className="w-24 h-24 text-gray-950" viewBox="0 0 100 100" fill="currentColor">
               {/* Corner 1 */}
@@ -1014,7 +1014,7 @@ export function DownloadAppModal({
           </div>
 
           <div className="sm:col-span-8 space-y-3">
-            <h4 className="font-bold text-white text-sm">
+            <h4 className="font-bold text-gray-950 text-sm">
               Scan QR code to install or get direct SMS link
             </h4>
             <form onSubmit={handleSendLink} className="flex gap-2">
@@ -1023,11 +1023,11 @@ export function DownloadAppModal({
                 placeholder="+91 98765 43210"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/10 border border-emerald-700 text-white placeholder:text-emerald-300/50 text-xs focus:outline-none focus:border-emerald-400"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 text-xs focus:outline-none focus:border-emerald-600"
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl bg-emerald-400 text-gray-950 font-black text-xs hover:bg-emerald-300 transition-all cursor-pointer shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-emerald-700 text-white font-black text-xs hover:bg-emerald-800 transition-all cursor-pointer shrink-0"
               >
                 {linkSent ? "Link Sent ✓" : "Send Link"}
               </button>

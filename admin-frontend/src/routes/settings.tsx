@@ -37,6 +37,9 @@ import {
   MapPin,
   Store,
   Loader2,
+  Compass,
+  MessageSquare,
+  Radio,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +83,14 @@ const SETTINGS_CATEGORIES = [
     icon: Truck,
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
     gradient: "from-emerald-500/10 to-teal-500/10",
+  },
+  {
+    id: "dispatch",
+    title: "Fleet Dispatch & Geofence",
+    subtitle: "Auto-Assign & 250m Guard",
+    icon: Compass,
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
+    gradient: "from-purple-500/10 to-indigo-500/10",
   },
   {
     id: "surge",
@@ -190,8 +201,11 @@ export function SettingsPage() {
   const saveMutation = useMutation({
     mutationFn: (settingsData: AdminSettings) => {
       const scope = selectedScopeId === "global" ? "global" : "city";
-      const cityId = selectedScopeId === "global" ? undefined : selectedScopeId;
-      return saveSettings({ settings: settingsData, scope, cityId });
+      return saveSettings(
+        selectedScopeId === "global"
+          ? { settings: settingsData, scope }
+          : { settings: settingsData, scope, cityId: selectedScopeId }
+      );
     },
     onSuccess: () => {
       const currentScope = (scopesQuery.data || []).find((s) => s.id === selectedScopeId);
@@ -272,7 +286,7 @@ export function SettingsPage() {
     );
   }
 
-  const activeCategory = SETTINGS_CATEGORIES.find((c) => c.id === activeTab) || SETTINGS_CATEGORIES[0];
+  const activeCategory = (SETTINGS_CATEGORIES.find((c) => c.id === activeTab) || SETTINGS_CATEGORIES[0])!;
 
   return (
     <AdminShell
@@ -1670,6 +1684,404 @@ export function SettingsPage() {
                         </div>
                       ))
                     )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* =====================================================================
+                TAB: FLEET DISPATCH, GEOFENCING & OMNI-CHANNEL GOVERNANCE
+            ===================================================================== */}
+            {activeTab === "dispatch" && (
+              <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-xs space-y-6">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-200">
+                      <Compass className="size-4" />
+                    </span>
+                    <h4 className="text-sm font-black text-zinc-900">Fleet Dispatch &amp; Geofencing Controls</h4>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Configure automated 2-ride captain allocation, Haversine perimeter fraud validation, and multi-channel notification triggers for <strong>{selectedScope?.name}</strong>.
+                  </p>
+                </div>
+
+                {/* 1. SMART AUTO-DISPATCH ENGINE */}
+                <div className="p-5 rounded-2xl bg-zinc-50/80 border border-zinc-200/80 space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-200/60">
+                    <div className="flex items-center gap-3">
+                      <div className="size-9 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 flex items-center justify-center font-black">
+                        ⚡
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-black text-zinc-900">Smart Auto-Dispatch Engine</h5>
+                        <p className="text-[11px] text-zinc-500">
+                          Automatically searches and flash-offers orders to the nearest online Captain
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        (draft.dispatch?.autoDispatchEnabled ?? true)
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                      }`}>
+                        {(draft.dispatch?.autoDispatchEnabled ?? true) ? "Auto-Dispatch Active" : "Manual Allocation Only"}
+                      </span>
+                      <Switch
+                        checked={draft.dispatch?.autoDispatchEnabled ?? true}
+                        onCheckedChange={(val) =>
+                          setDraft((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  dispatch: {
+                                    ...(p.dispatch ?? {
+                                      geofenceRadiusMeters: 250,
+                                      geofenceStrictEnforcement: false,
+                                      searchRadiusKm: 5,
+                                      captainTimeoutSeconds: 30,
+                                      maxActiveRidesPerCaptain: 1,
+                                    }),
+                                    autoDispatchEnabled: val,
+                                  },
+                                }
+                              : null
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5 p-3.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                      <Label className="text-xs font-bold text-zinc-800 flex items-center justify-between">
+                        <span>Search Radius</span>
+                        <span className="font-mono text-purple-700 font-bold">{draft.dispatch?.searchRadiusKm ?? 5} km</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={15}
+                        step={0.5}
+                        value={draft.dispatch?.searchRadiusKm ?? 5}
+                        onChange={(e) => {
+                          const num = parseFloat(e.target.value) || 5;
+                          setDraft((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  dispatch: {
+                                    ...(p.dispatch ?? {
+                                      autoDispatchEnabled: true,
+                                      geofenceRadiusMeters: 250,
+                                      geofenceStrictEnforcement: false,
+                                      captainTimeoutSeconds: 30,
+                                      maxActiveRidesPerCaptain: 1,
+                                    }),
+                                    searchRadiusKm: num,
+                                  },
+                                }
+                              : null
+                          );
+                        }}
+                        className="h-9 text-xs font-mono font-bold"
+                      />
+                      <p className="text-[10px] text-zinc-400">Radius to discover online available riders</p>
+                    </div>
+
+                    <div className="space-y-1.5 p-3.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                      <Label className="text-xs font-bold text-zinc-800 flex items-center justify-between">
+                        <span>Captain Offer Timeout</span>
+                        <span className="font-mono text-purple-700 font-bold">{draft.dispatch?.captainTimeoutSeconds ?? 30}s</span>
+                      </Label>
+                      <Select
+                        value={String(draft.dispatch?.captainTimeoutSeconds ?? 30)}
+                        onValueChange={(val) => {
+                          const num = parseInt(val) || 30;
+                          setDraft((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  dispatch: {
+                                    ...(p.dispatch ?? {
+                                      autoDispatchEnabled: true,
+                                      geofenceRadiusMeters: 250,
+                                      geofenceStrictEnforcement: false,
+                                      searchRadiusKm: 5,
+                                      maxActiveRidesPerCaptain: 1,
+                                    }),
+                                    captainTimeoutSeconds: num,
+                                  },
+                                }
+                              : null
+                          );
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">30 Seconds (Fast)</SelectItem>
+                          <SelectItem value="45">45 Seconds (Standard)</SelectItem>
+                          <SelectItem value="60">60 Seconds</SelectItem>
+                          <SelectItem value="90">90 Seconds (Rural zones)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-zinc-400">Time window before cascading to next captain</p>
+                    </div>
+
+                    <div className="space-y-1.5 p-3.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                      <Label className="text-xs font-bold text-zinc-800 flex items-center justify-between">
+                        <span>Max Active Rides / Captain</span>
+                        <span className="font-mono text-purple-700 font-bold">{draft.dispatch?.maxActiveRidesPerCaptain ?? 1}</span>
+                      </Label>
+                      <Select
+                        value={String(draft.dispatch?.maxActiveRidesPerCaptain ?? 1)}
+                        onValueChange={(val) => {
+                          const num = parseInt(val) || 1;
+                          setDraft((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  dispatch: {
+                                    ...(p.dispatch ?? {
+                                      autoDispatchEnabled: true,
+                                      geofenceRadiusMeters: 250,
+                                      geofenceStrictEnforcement: false,
+                                      searchRadiusKm: 5,
+                                      captainTimeoutSeconds: 30,
+                                    }),
+                                    maxActiveRidesPerCaptain: num,
+                                  },
+                                }
+                              : null
+                          );
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 Ride (Dedicated 1-to-1 SLA)</SelectItem>
+                          <SelectItem value="2">2 Rides (Batch Pickup + Delivery)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-zinc-400">Concurrency limit to prevent order delays</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. GEOFENCE SECURITY GOVERNANCE */}
+                <div className="p-5 rounded-2xl bg-zinc-50/80 border border-zinc-200/80 space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-200/60">
+                    <div className="flex items-center gap-3">
+                      <div className="size-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 flex items-center justify-center font-black">
+                        🛡️
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-black text-zinc-900">Haversine Geofence Security Perimeter Guard</h5>
+                        <p className="text-[11px] text-zinc-500">
+                          Cross-verifies Captain live GPS coordinates against customer location during OTP handshakes
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-200">
+                      Haversine Spherical Algorithm
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3 p-4 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                      <Label className="text-xs font-bold text-zinc-800 flex items-center justify-between">
+                        <span>Geofence Radius Threshold</span>
+                        <span className="font-mono text-emerald-700 font-black">{draft.dispatch?.geofenceRadiusMeters ?? 250} meters</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        min={50}
+                        max={1000}
+                        step={50}
+                        value={draft.dispatch?.geofenceRadiusMeters ?? 250}
+                        onChange={(e) => {
+                          const num = parseFloat(e.target.value) || 250;
+                          setDraft((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  dispatch: {
+                                    ...(p.dispatch ?? {
+                                      autoDispatchEnabled: true,
+                                      geofenceStrictEnforcement: false,
+                                      searchRadiusKm: 5,
+                                      captainTimeoutSeconds: 30,
+                                      maxActiveRidesPerCaptain: 1,
+                                    }),
+                                    geofenceRadiusMeters: num,
+                                  },
+                                }
+                              : null
+                          );
+                        }}
+                        className="h-9 text-xs font-mono font-bold"
+                      />
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
+                        <span className="text-[10px] text-zinc-400 font-bold">Quick Presets:</span>
+                        {[100, 250, 500, 1000].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => {
+                              setDraft((p) =>
+                                p
+                                  ? {
+                                      ...p,
+                                      dispatch: {
+                                        ...(p.dispatch ?? {
+                                          autoDispatchEnabled: true,
+                                          geofenceStrictEnforcement: false,
+                                          searchRadiusKm: 5,
+                                          captainTimeoutSeconds: 30,
+                                          maxActiveRidesPerCaptain: 1,
+                                        }),
+                                        geofenceRadiusMeters: preset,
+                                      },
+                                    }
+                                  : null
+                              );
+                            }}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${
+                              (draft.dispatch?.geofenceRadiusMeters ?? 250) === preset
+                                ? "bg-emerald-600 text-white border-emerald-600"
+                                : "bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100"
+                            }`}
+                          >
+                            {preset}m {preset === 250 ? "(Recommended)" : ""}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 p-4 rounded-xl bg-white border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-zinc-800">Strict Geofence Enforcement</Label>
+                          <Switch
+                            checked={draft.dispatch?.geofenceStrictEnforcement ?? false}
+                            onCheckedChange={(val) =>
+                              setDraft((p) =>
+                                p
+                                  ? {
+                                      ...p,
+                                      dispatch: {
+                                        ...(p.dispatch ?? {
+                                          autoDispatchEnabled: true,
+                                          geofenceRadiusMeters: 250,
+                                          searchRadiusKm: 5,
+                                          captainTimeoutSeconds: 30,
+                                          maxActiveRidesPerCaptain: 1,
+                                        }),
+                                        geofenceStrictEnforcement: val,
+                                      },
+                                    }
+                                  : null
+                              )
+                            }
+                          />
+                        </div>
+                        <p className="text-[11px] text-zinc-500 mt-2">
+                          {(draft.dispatch?.geofenceStrictEnforcement ?? false)
+                            ? "🔒 STRICT MODE: Hard-blocks Pickup/Delivery OTP verification if Captain's live GPS is outside the radius. Prevents all fraudulent remote completions."
+                            : "⚠️ AUDIT MODE: Allows OTP completion even if outside perimeter, but records a security anomaly warning flag in the Supabase audit trail."}
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-zinc-400 font-mono bg-zinc-50 p-2 rounded-lg border border-zinc-100">
+                        GPS Sensor Check: Active · Accuracy Threshold: High
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. MULTI-CHANNEL AUTOMATED NOTIFICATIONS MASTER TOGGLES */}
+                <div className="p-5 rounded-2xl bg-zinc-50/80 border border-zinc-200/80 space-y-4">
+                  <div className="flex items-center gap-3 pb-3 border-b border-zinc-200/60">
+                    <div className="size-9 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-700 flex items-center justify-center font-black">
+                      💬
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-black text-zinc-900">Omni-Channel Customer Alert Engine</h5>
+                      <p className="text-[11px] text-zinc-500">
+                        Master delivery toggles for WhatsApp Cloud API &amp; Indian Transactional SMS
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-white border border-zinc-200/80 shadow-2xs flex items-center justify-between">
+                      <div className="space-y-0.5 pr-3">
+                        <p className="text-xs font-black text-zinc-900">Meta WhatsApp Cloud API Triggers</p>
+                        <p className="text-[10px] text-zinc-500">
+                          Automatic interactive messages with CTA tracking buttons for Order Placed, Captain Assigned, OTP, Delivered
+                        </p>
+                      </div>
+                      <Switch
+                        checked={draft.omniChannel?.whatsappEnabled ?? true}
+                        onCheckedChange={(val) =>
+                          setDraft((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  omniChannel: {
+                                    ...(p.omniChannel ?? {
+                                      smsEnabled: true,
+                                      orderConfirmedWhatsapp: true,
+                                      captainAssignedWhatsapp: true,
+                                      clothesInspectedWhatsapp: true,
+                                      outForDeliveryWhatsapp: true,
+                                      orderDeliveredWhatsapp: true,
+                                      deliveryOtpSms: true,
+                                    }),
+                                    whatsappEnabled: val,
+                                  },
+                                }
+                              : null
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-white border border-zinc-200/80 shadow-2xs flex items-center justify-between">
+                      <div className="space-y-0.5 pr-3">
+                        <p className="text-xs font-black text-zinc-900">Indian Rapid SMS Gateway Alerts</p>
+                        <p className="text-[10px] text-zinc-500">
+                          Fast2SMS &amp; MSG91 SMS alerts for customer secure Delivery OTP and urgent operational notices
+                        </p>
+                      </div>
+                      <Switch
+                        checked={draft.omniChannel?.smsEnabled ?? true}
+                        onCheckedChange={(val) =>
+                          setDraft((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  omniChannel: {
+                                    ...(p.omniChannel ?? {
+                                      whatsappEnabled: true,
+                                      orderConfirmedWhatsapp: true,
+                                      captainAssignedWhatsapp: true,
+                                      clothesInspectedWhatsapp: true,
+                                      outForDeliveryWhatsapp: true,
+                                      orderDeliveredWhatsapp: true,
+                                      deliveryOtpSms: true,
+                                    }),
+                                    smsEnabled: val,
+                                  },
+                                }
+                              : null
+                          )
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

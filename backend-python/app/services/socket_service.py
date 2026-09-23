@@ -386,6 +386,69 @@ async def broadcast_admin_notification_event(
         await sio.emit(EVENT_NOTIFICATION_CREATED, payload)
         logger.info("Admin notification broadcasted to all active sockets: %s", title)
     except Exception as exc:
-        logger.warning("Failed to broadcast admin notification event: %s", exc)
+        logger.warning("Failed to broadcast admin notification: %s", exc)
+
+
+EVENT_RIDER_LOCATION = "rider.location"
+
+
+async def broadcast_rider_location(
+    rider_id: str,
+    latitude: float,
+    longitude: float,
+    heading: Optional[float] = None,
+    speed_kmph: Optional[float] = None,
+    order_id: Optional[str] = None,
+    eta_mins: Optional[int] = None,
+) -> None:
+    """Broadcasts real-time rider location coordinates to active customer tracking map & admin fleet monitor."""
+    from datetime import datetime, timezone
+    payload = {
+        "riderId": rider_id,
+        "lat": latitude,
+        "latitude": latitude,
+        "lng": longitude,
+        "longitude": longitude,
+        "heading": heading or 0.0,
+        "speedKmph": speed_kmph or 0.0,
+        "orderId": order_id,
+        "etaMinutes": eta_mins,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        # Broadcast to specific order room so customer live map receives it
+        if order_id:
+            await sio.emit(EVENT_RIDER_LOCATION, payload, room=f"order:{order_id}")
+        # Broadcast to admins and fleet monitor
+        await sio.emit(EVENT_RIDER_LOCATION, payload, room="admins")
+        await sio.emit(EVENT_LOCATION_UPDATED, payload, room="admins")
+    except Exception as exc:
+        logger.warning("Failed to broadcast rider location: %s", exc)
+
+
+@sio.on("rider.location_push")
+async def handle_rider_location_push(sid: str, data: Any) -> None:
+    """Socket.IO handler for real-time rider GPS fixes from Android APK / web."""
+    if not isinstance(data, dict):
+        return
+    r_id = str(data.get("riderId") or "").strip()
+    lat = data.get("lat") or data.get("latitude")
+    lng = data.get("lng") or data.get("longitude")
+    if not (r_id and lat is not None and lng is not None):
+        return
+
+    order_id = data.get("orderId")
+    heading = float(data.get("heading", 0.0) or 0.0)
+    speed = float(data.get("speedKmph", 0.0) or 0.0)
+
+    # Broadcast immediately
+    await broadcast_rider_location(
+        rider_id=r_id,
+        latitude=float(lat),
+        longitude=float(lng),
+        heading=heading,
+        speed_kmph=speed,
+        order_id=order_id,
+    )
 
 

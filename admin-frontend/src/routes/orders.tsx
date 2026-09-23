@@ -29,6 +29,7 @@ import {
   Eye,
   ExternalLink,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -567,7 +568,7 @@ function OrderDetailSheet({
   const currentStatus = data?.status ?? order?.status ?? "";
   const currentRank = STATUS_RANK[currentStatus] ?? 1;
   const isFinalized = currentRank >= 6;
-  const isCancelled = currentStatus === "Cancelled" || currentStatus === "cancelled" || order?.status === "Cancelled";
+  const isCancelled = String(currentStatus).toLowerCase() === "cancelled" || String(order?.status).toLowerCase() === "cancelled";
   const cancellationReason =
     (data as any)?.cancellationReason ||
     order?.cancellationReason ||
@@ -1220,7 +1221,22 @@ function OrderDetailSheet({
             </h4>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-zinc-700">Assign / Reassign Rider</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-zinc-700">Assign / Reassign Rider</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isFinalized || assignMutation.isPending}
+                  onClick={() => {
+                    if (order) assignMutation.mutate({ orderId: order.id, riderId: "rdr-auto" });
+                  }}
+                  className="h-6 px-2 text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border-purple-200 shadow-2xs"
+                  title="Automatically finds and assigns the nearest active captain"
+                >
+                  ⚡ Smart Auto-Dispatch
+                </Button>
+              </div>
               <Select
                 disabled={isFinalized}
                 onValueChange={(riderId) => {
@@ -1231,16 +1247,34 @@ function OrderDetailSheet({
                   <SelectValue placeholder={order?.rider === "Unassigned" ? "Choose a rider..." : order?.rider} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="rdr-auto">⚡ Smart Auto-Assign Nearest Captain (&lt;3km)</SelectItem>
                   {availableRiders.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       {r.name} ({r.city} · {r.live})
                     </SelectItem>
                   ))}
-                  {availableRiders.length === 0 && (
-                    <SelectItem value="rdr-auto">Auto-assign Nearest Rider</SelectItem>
-                  )}
                 </SelectContent>
               </Select>
+
+              {/* Geofence & WhatsApp Status Badges */}
+              <div className="flex items-center gap-2 flex-wrap pt-1">
+                <span
+                  className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                    (data as any)?.geofence?.delivery?.anomaly || (data as any)?.geofence?.pickup?.anomaly
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                      : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  }`}
+                >
+                  <ShieldCheck className="size-3 text-emerald-600" />
+                  {(data as any)?.geofence?.delivery?.anomaly || (data as any)?.geofence?.pickup?.anomaly
+                    ? "Geofence Anomaly (>250m) Flagged"
+                    : "Geofence Guard (<250m Active)"}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <MessageCircle className="size-3 text-emerald-600" />
+                  WhatsApp Live Sync
+                </span>
+              </div>
             </div>
 
             <div className="space-y-1.5">

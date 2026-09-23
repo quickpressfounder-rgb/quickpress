@@ -1,7 +1,9 @@
 {
-  "description": "Connects businesses with on-demand local service professionals instantly, streamlining hiring and ensuring reliable, fast service delivery.",
+  "title": "QuickPress — Fast On-Demand Laundry & Dry Cleaning",
+  "description": "QuickPress is India's premier fast on-demand laundry, dry cleaning, and fabric care platform with door-to-door pickup and express delivery.",
+  "language": "en",
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
     "addBypassLinks": false,

@@ -101,6 +101,26 @@ export type ScopeOption = {
   zones?: string[];
 };
 
+export type DispatchSettings = {
+  autoDispatchEnabled: boolean;
+  geofenceRadiusMeters: number;
+  geofenceStrictEnforcement: boolean;
+  searchRadiusKm: number;
+  captainTimeoutSeconds: number;
+  maxActiveRidesPerCaptain?: number;
+};
+
+export type OmniChannelSettings = {
+  whatsappEnabled: boolean;
+  smsEnabled: boolean;
+  orderConfirmedWhatsapp?: boolean;
+  captainAssignedWhatsapp?: boolean;
+  clothesInspectedWhatsapp?: boolean;
+  outForDeliveryWhatsapp?: boolean;
+  orderDeliveredWhatsapp?: boolean;
+  deliveryOtpSms?: boolean;
+};
+
 export type AdminSettings = {
   _scope?: "global" | "city" | "area";
   _cityId?: string | null;
@@ -115,6 +135,8 @@ export type AdminSettings = {
   referral: ReferralSettings;
   compliance: ComplianceSettings;
   safety: SafetySettings;
+  dispatch?: DispatchSettings;
+  omniChannel?: OmniChannelSettings;
 };
 
 export type SecurityEvent = {

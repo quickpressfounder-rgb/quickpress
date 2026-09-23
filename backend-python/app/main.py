@@ -12,6 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.addresses import router as addresses_router
 from app.api.health import router as health_router
 from app.api.admin import router as admin_router
+from app.api.admin_emails import router as admin_emails_router
+from app.api.email_tracking import router as email_tracking_router
+from app.api.email_templates_api import router as email_templates_router
+from app.api.email_campaigns_api import router as email_campaigns_router
 from app.api.admin_payments import router as admin_payments_router
 from app.api.public import router as public_router
 from app.api.availability import router as availability_router
@@ -46,6 +50,7 @@ from app.api.uploads import router as uploads_router
 from app.api.wallet import router as wallet_router
 from app.api.wallet_ledger import router as wallet_ledger_router
 from app.api.webhooks import router as webhooks_router
+from app.api.whatsapp_api import router as whatsapp_api_router
 from app.config import get_settings
 from app.db.availability_seed import AVAILABILITY_SEED
 from app.db.client import database
@@ -107,13 +112,26 @@ def create_app() -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=500)
     is_prod = (settings.app_env or "development").strip().lower() == "production"
 
+    # Optional Sentry Threat & Error Monitoring
+    if settings.sentry_dsn.strip():
+        try:
+            import sentry_sdk
+            sentry_sdk.init(
+                dsn=settings.sentry_dsn,
+                traces_sample_rate=0.2,
+                environment=settings.app_env,
+            )
+            logger.info("Sentry threat & error monitoring initialized.")
+        except Exception as exc:
+            logger.warning("Sentry monitoring init warning: %s", exc)
+
     if is_prod:
         # Strict Production CORS: Whitelist only verified QuickPress frontends
         prod_origins = list(settings.cors_origin_list)
         app.add_middleware(
             CORSMiddleware,
             allow_origins=prod_origins,
-            allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)?(quickpress\.online|quickpress\.in|vercel\.app)$",
+            allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app)$",
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             allow_headers=["*"],
@@ -188,6 +206,13 @@ def create_app() -> FastAPI:
     app.include_router(rider_router, prefix=settings.api_prefix)
     # Sprint 5.2: admin domain — dashboard, orders, customers, partners, riders.
     app.include_router(admin_router, prefix=settings.api_prefix)
+    # QuickPress Email Surveillance, Tracking, Template Studio & Campaigns
+    app.include_router(email_templates_router, prefix=settings.api_prefix)
+    app.include_router(email_campaigns_router, prefix=settings.api_prefix)
+    app.include_router(email_tracking_router, prefix=settings.api_prefix)
+    app.include_router(admin_emails_router, prefix=settings.api_prefix)
+    # QuickPress WhatsApp Cloud API & Multi-Channel SMS Gateway
+    app.include_router(whatsapp_api_router)
     # Sprint 5.6 (P0 #2): production payment rails. Registered AFTER the legacy
     # Sprint 2.10 routers so existing paths (/payments, /refunds, /wallet,
     # /partner/earnings, /rider/earnings) keep their current handlers; only the

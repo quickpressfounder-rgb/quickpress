@@ -7,6 +7,8 @@
 export const BRAND = {
   name: "QuickPress",
   tagline: "Laundry pickup & delivery",
+  domain: "with.quickpress.com",
+  websiteUrl: "https://with.quickpress.com",
   supportEmail: "help@quickpress.in",
   supportPhone: "+91 1800 200 400",
 } as const;

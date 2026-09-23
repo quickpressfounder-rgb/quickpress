@@ -4,12 +4,12 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CookieBanner } from "@/components/CookieBanner";
 import {
-  BookingModal,
   PartnerModal,
   ContactModal,
   ServiceDetailModal,
   DownloadAppModal,
 } from "@/components/Modals";
+import { handleGetStartedRedirect } from "@/utils/storeRedirect";
 
 // Pages
 import { HomePage } from "@/pages/HomePage";
@@ -20,6 +20,7 @@ import { PartnersPage } from "@/pages/PartnersPage";
 import { EcosystemPage } from "@/pages/EcosystemPage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { TermsPage } from "@/pages/TermsPage";
+import { ContactPage } from "@/pages/ContactPage";
 
 interface ToastState {
   show: boolean;
@@ -39,6 +40,14 @@ export default function App() {
     }, 4000);
   };
 
+  const handleOpenModal = (modal: ModalType) => {
+    if (modal === "booking") {
+      handleGetStartedRedirect();
+      return;
+    }
+    setActiveModal(modal);
+  };
+
   // Synchronize hash with current page
   useEffect(() => {
     const handleHashChange = () => {
@@ -50,6 +59,7 @@ export default function App() {
         "how-it-works",
         "partners",
         "ecosystem",
+        "contact",
         "privacy",
         "terms",
       ];
@@ -78,8 +88,8 @@ export default function App() {
     <div className="min-h-screen bg-white text-gray-900 font-sans antialiased flex flex-col selection:bg-emerald-200 selection:text-emerald-950">
       {/* Toast Notification */}
       {toast.show && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-950 text-white text-xs font-semibold px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-800 animate-slide-up flex items-center gap-3">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-live-dot" />
+        <div className="fixed bottom-6 right-6 z-50 bg-white text-gray-950 text-xs font-bold px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-200 animate-slide-up flex items-center gap-3">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-live-dot" />
           <span>{toast.message}</span>
         </div>
       )}
@@ -88,7 +98,7 @@ export default function App() {
       <Navbar
         currentPage={currentPage}
         onNavigate={navigateTo}
-        onOpenModal={setActiveModal}
+        onOpenModal={handleOpenModal}
       />
 
       {/* Primary Page Outlet */}
@@ -96,7 +106,7 @@ export default function App() {
         {currentPage === "home" && (
           <HomePage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
             onSelectService={handleSelectService}
           />
         )}
@@ -104,14 +114,14 @@ export default function App() {
         {currentPage === "about" && (
           <AboutPage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
           />
         )}
 
         {currentPage === "services" && (
           <ServicesPage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
             onSelectService={handleSelectService}
           />
         )}
@@ -119,35 +129,42 @@ export default function App() {
         {currentPage === "how-it-works" && (
           <HowItWorksPage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
           />
         )}
 
         {currentPage === "partners" && (
           <PartnersPage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
           />
         )}
 
         {currentPage === "ecosystem" && (
           <EcosystemPage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
           />
         )}
 
         {currentPage === "privacy" && (
           <PrivacyPolicyPage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
+          />
+        )}
+
+        {currentPage === "contact" && (
+          <ContactPage
+            onNavigate={navigateTo}
+            onOpenModal={handleOpenModal}
           />
         )}
 
         {currentPage === "terms" && (
           <TermsPage
             onNavigate={navigateTo}
-            onOpenModal={setActiveModal}
+            onOpenModal={handleOpenModal}
           />
         )}
       </main>
@@ -156,19 +173,9 @@ export default function App() {
       <CookieBanner onNavigate={navigateTo} />
 
       {/* Global Multi-Column Footer */}
-      <Footer onNavigate={navigateTo} onOpenModal={setActiveModal} />
+      <Footer onNavigate={navigateTo} onOpenModal={handleOpenModal} />
 
       {/* Interactive Modals */}
-      <BookingModal
-        isOpen={activeModal === "booking"}
-        onClose={() => setActiveModal(null)}
-        initialServiceId={selectedService?.id}
-        onSuccess={(id) => {
-          setActiveModal(null);
-          showToast(`Order #${id} confirmed! A courier will be assigned shortly.`);
-        }}
-      />
-
       <PartnerModal
         isOpen={activeModal === "partner"}
         onClose={() => setActiveModal(null)}
@@ -192,7 +199,8 @@ export default function App() {
         isOpen={activeModal === "service_detail"}
         onClose={() => setActiveModal(null)}
         onBook={() => {
-          setActiveModal("download_app");
+          setActiveModal(null);
+          handleGetStartedRedirect();
         }}
       />
 

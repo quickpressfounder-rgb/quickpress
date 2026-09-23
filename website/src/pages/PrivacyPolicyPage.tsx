@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { PageType, ModalType } from "@/types";
+import { IconMail, IconShield } from "@/components/Icons";
 
 interface PolicySection {
   id: string;
@@ -46,13 +47,13 @@ export function PrivacyPolicyPage({
         content: (
           <div className="space-y-3">
             <p>
-              QuickPress is operated by <strong>QUICKPRESS TECHNOLOGIES & SERVICES PRIVATE LIMITED</strong>, an incorporated company registered under the Companies Act, 2013, in India.
+              QuickPress is operated by <strong>Shree Krishna EVs</strong>.
             </p>
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 text-xs space-y-1.5 font-mono">
-              <p className="font-sans font-bold text-gray-900 text-sm">QUICKPRESS TECHNOLOGIES & SERVICES PRIVATE LIMITED</p>
-              <p>🏢 Registered Office: Unit 406 Tower B, Bhutani Alphathum, Sector 90, Noida 201305, Uttar Pradesh, India</p>
-              <p>✉️ Grievance / Privacy Email: official.quickpress@gmail.com</p>
-              <p>🌐 Official Website: https://quickpress.in</p>
+              <p className="font-sans font-bold text-gray-900 text-sm">Shree Krishna EVs</p>
+              <p>Registered Office: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</p>
+              <p>Grievance / Privacy Email: official.quickpress@gmail.com</p>
+              <p>Official Website: https://with.quickpress.com</p>
             </div>
           </div>
         ),
@@ -150,7 +151,7 @@ export function PrivacyPolicyPage({
           <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs sm:text-sm space-y-2">
               <h4 className="font-bold text-amber-900 text-sm flex items-center gap-1.5">
-                <span>📍 Prominent Location Disclosure (Google Play & App Store Compliance)</span>
+                <span>Prominent Location Disclosure (Google Play & App Store Compliance)</span>
               </h4>
               <p>
                 <strong>For Delivery Captains:</strong> QuickPress collects precise real-time location data (including <em>foreground</em> while app is open and <em>background</em> when minimized or screen is locked) exclusively to:
@@ -214,7 +215,7 @@ export function PrivacyPolicyPage({
               QuickPress prioritizes customer financial safety. All digital transactions are processed through RBI-regulated payment aggregators (such as Razorpay Software Private Limited) over 256-bit encrypted TLS channels.
             </p>
             <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-700 space-y-1">
-              <p className="font-bold text-gray-900">🔒 Zero Card Storage Guarantee:</p>
+              <p className="font-bold text-gray-900">Zero Card Storage Guarantee:</p>
               <p>
                 QuickPress servers NEVER capture, store, or have access to full debit/credit card numbers, expiry dates, CVVs, or Net Banking PINs.
               </p>
@@ -436,9 +437,10 @@ export function PrivacyPolicyPage({
             </p>
             <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-xs sm:text-sm space-y-1 text-emerald-950">
               <p className="font-bold text-emerald-900">Grievance Redressal Officer</p>
-              <p>QUICKPRESS TECHNOLOGIES & SERVICES PRIVATE LIMITED</p>
-              <p>📍 Unit 406 Tower B, Bhutani Alphathum, Sector 90, Noida 201305, Uttar Pradesh, India</p>
-              <p className="font-bold">✉️ Email: official.quickpress@gmail.com</p>
+              <p>Shree Krishna EVs</p>
+              <p>Registered Office: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</p>
+              <p className="font-bold">Email: official.quickpress@gmail.com</p>
+              <p><strong>Quickpress Helpdesk:</strong> +91 99978 74502 | <strong>Company MD:</strong> +91 92587 30561</p>
               <p className="text-emerald-800/80 text-xs">Acknowledgment Time: Within 24 hours | Resolution Time: Within 15 business days</p>
             </div>
           </div>
@@ -453,9 +455,11 @@ export function PrivacyPolicyPage({
           <div className="space-y-3">
             <p>For any queries, feedback, or data privacy requests, you may connect with our team through:</p>
             <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm text-gray-700">
+              <li>Quickpress Helpdesk: <a href="tel:+919997874502" className="text-emerald-700 font-bold underline">+91 99978 74502</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</li>
+              <li>Company MD Contact: <a href="tel:+919258730561" className="text-emerald-700 font-bold underline">+91 92587 30561</a></li>
               <li>In-App Support: Available on Customer, Partner, and Captain apps.</li>
               <li>General Support Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 font-bold underline">official.quickpress@gmail.com</a></li>
-              <li>Physical Mail: Unit 406 Tower B, Bhutani Alphathum, Sector 90, Noida 201305, Uttar Pradesh, India</li>
+              <li>Physical Mail: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</li>
             </ul>
           </div>
         ),
@@ -505,22 +509,22 @@ export function PrivacyPolicyPage({
   return (
     <div className="bg-white text-gray-900 min-h-screen pt-24 pb-20 selection:bg-emerald-200 selection:text-emerald-950">
       {/* Header Banner */}
-      <div className="bg-[#07160D] text-white py-14 sm:py-18 px-4 sm:px-6 lg:px-8 border-b border-emerald-950">
+      <div className="bg-emerald-50/60 text-gray-950 py-14 sm:py-18 px-4 sm:px-6 lg:px-8 border-b border-emerald-100">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 text-xs font-bold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-bold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
               QuickPress Legal Center
             </span>
-            <span className="text-xs text-emerald-300/70 font-mono">
+            <span className="text-xs text-gray-500 font-mono">
               Last Updated: 3 September 2026
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-4">
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-gray-950 mb-4">
             QuickPress Privacy Policy
           </h1>
-          <p className="text-emerald-100/80 text-sm sm:text-base leading-relaxed max-w-3xl">
+          <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-3xl">
             Official privacy, personal data protection, location access, and statutory disclosures for the QuickPress Customer App, Partner Store App, Delivery Partner (Captain) App, and website.
           </p>
 
@@ -532,22 +536,27 @@ export function PrivacyPolicyPage({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Privacy Policy (e.g. Location, Payment, Cookies, Deletion, Partner)..."
-                className="w-full h-12 pl-11 pr-4 rounded-2xl bg-emerald-950/80 border border-emerald-700/60 text-white text-xs sm:text-sm placeholder:text-emerald-400/60 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 shadow-lg"
+                className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white border border-gray-300 text-gray-950 text-xs sm:text-sm placeholder:text-gray-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
               />
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 text-sm">
-                🔍
-              </span>
+              <svg
+                className="w-4 h-4 text-emerald-600 absolute left-4 top-1/2 -translate-y-1/2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-emerald-400 hover:text-white"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-900"
                 >
                   Clear
                 </button>
               )}
             </div>
             {searchQuery && (
-              <p className="text-[11px] text-emerald-300/80 mt-2 font-medium">
+              <p className="text-[11px] text-emerald-800 mt-2 font-medium">
                 Found {filteredSections.length} matching section{filteredSections.length === 1 ? "" : "s"} for "{searchQuery}"
               </p>
             )}
@@ -562,7 +571,7 @@ export function PrivacyPolicyPage({
           className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-xs font-bold text-gray-900 transition-colors"
         >
           <span className="flex items-center gap-2">
-            <span>📑 Table of Contents</span>
+            <span>Table of Contents</span>
             <span className="text-[10px] text-gray-500 font-normal">
               (Section {activeSection.replace("s", "")} of 26)
             </span>
@@ -634,10 +643,10 @@ export function PrivacyPolicyPage({
                 </button>
                 <button
                   onClick={() => onOpenModal("contact")}
-                  className="w-full py-2 px-3 rounded-xl bg-gray-900 hover:bg-black text-xs font-bold text-white flex items-center justify-between cursor-pointer"
+                  className="w-full py-2 px-3 rounded-xl bg-white border border-gray-200 hover:border-emerald-600 text-xs font-bold text-gray-900 flex items-center justify-between cursor-pointer shadow-2xs"
                 >
                   <span>Privacy Support</span>
-                  <span>✉️</span>
+                  <IconMail className="w-3.5 h-3.5 text-emerald-600" />
                 </button>
               </div>
             </div>
@@ -648,7 +657,7 @@ export function PrivacyPolicyPage({
             {/* Quick Overview Pill Card */}
             <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border border-emerald-100 shadow-xs">
               <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm mb-2">
-                <span className="text-base">🛡️</span>
+                <IconShield className="w-4 h-4 text-emerald-700" />
                 <span>Plain-English Privacy Commitment</span>
               </div>
               <p className="text-xs sm:text-sm text-emerald-950/80 leading-relaxed">
@@ -678,7 +687,7 @@ export function PrivacyPolicyPage({
                     className="text-[11px] font-bold text-gray-400 hover:text-emerald-700 transition-colors"
                     title="Copy section link"
                   >
-                    🔗 Share
+                    Share
                   </button>
                 </div>
                 {s.content}
@@ -689,7 +698,7 @@ export function PrivacyPolicyPage({
             <div className="pt-8 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4">
               <button
                 onClick={() => onNavigate("home")}
-                className="px-6 py-2.5 rounded-full bg-gray-950 text-white text-xs font-bold hover:bg-black transition-all cursor-pointer flex items-center gap-2"
+                className="px-6 py-2.5 rounded-full bg-white border border-gray-300 text-gray-900 text-xs font-bold hover:border-emerald-600 hover:text-emerald-700 transition-all cursor-pointer flex items-center gap-2 shadow-xs"
               >
                 <span>← Back to Home</span>
               </button>

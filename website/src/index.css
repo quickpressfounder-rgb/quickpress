@@ -59,6 +59,15 @@ html {
   background: #94a3b8;
 }
 
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Keyframes for subtle, high-end motion */
 @keyframes floatSlow {
   0%, 100% { transform: translateY(0px) rotate(0deg); }

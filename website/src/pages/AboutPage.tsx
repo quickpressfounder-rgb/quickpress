@@ -119,13 +119,13 @@ export function AboutPage({
                 <div>
                   <span className="text-gray-400 font-bold block text-[10px] uppercase">Corporate Entity</span>
                   <span className="text-gray-900 font-bold text-xs">
-                    QUICKPRESS TECHNOLOGIES & SERVICES PRIVATE LIMITED
+                    Shree Krishna EVs
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 font-bold block text-[10px] uppercase">Registered Office</span>
                   <span className="text-emerald-700 font-medium text-[11px] leading-tight block">
-                    Unit 406 Tower B, Bhutani Alphathum, Sector 90, Noida 201305, Uttar Pradesh, India
+                    0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
                   </span>
                 </div>
               </div>
@@ -154,7 +154,7 @@ export function AboutPage({
           <div className="flex flex-col items-center">
             <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-600 shadow-xl relative text-center">
               <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-black bg-emerald-800 text-white uppercase tracking-widest shadow-md">
-                ★ Founder & Business Owner
+                Founder & Business Owner
               </span>
 
               <div className="mt-2">
@@ -228,39 +228,39 @@ export function AboutPage({
 
       {/* ─── Why QuickPress? ─────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-emerald-950 text-white rounded-3xl p-8 sm:p-14 border border-emerald-800/60 grid lg:grid-cols-12 gap-10 items-center">
+        <div className="bg-white text-gray-950 rounded-3xl p-8 sm:p-14 border border-gray-200 shadow-xl grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7 space-y-5">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-900/60 px-3 py-1 rounded-full border border-emerald-700">
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
               Our Vision
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black">
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-950">
               Why QuickPress?
             </h2>
-            <p className="text-emerald-100/90 text-sm sm:text-base leading-relaxed">
+            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
               We saw an opportunity to build something that could make everyday services simpler, faster, and more accessible. QuickPress is our attempt to turn that vision into reality.
             </p>
-            <div className="p-4 rounded-2xl bg-[#0B2414] border border-emerald-800">
-              <p className="text-base sm:text-lg font-bold text-yellow-400">
+            <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+              <p className="text-base sm:text-lg font-bold text-emerald-950">
                 "Technology should make life easier — not more complicated."
               </p>
-              <p className="text-xs text-emerald-200/80 mt-2 leading-relaxed">
+              <p className="text-xs text-emerald-900/80 mt-2 leading-relaxed">
                 From the way customers discover and order services to the way partners manage their business and teams deliver those services, we want to create a connected ecosystem that works for everyone.
               </p>
             </div>
           </div>
 
           <div className="lg:col-span-5 grid grid-cols-2 gap-3">
-            <div className="p-5 bg-emerald-900/40 rounded-2xl border border-emerald-700/60 text-center">
-              <p className="text-2xl sm:text-3xl font-black text-emerald-400">100%</p>
-              <p className="text-xs text-emerald-200 mt-1 font-semibold">Reliability Focus</p>
+            <div className="p-5 bg-slate-50 rounded-2xl border border-gray-200 text-center">
+              <p className="text-2xl sm:text-3xl font-black text-emerald-700">100%</p>
+              <p className="text-xs text-gray-600 mt-1 font-semibold">Reliability Focus</p>
             </div>
-            <div className="p-5 bg-emerald-900/40 rounded-2xl border border-emerald-700/60 text-center">
-              <p className="text-2xl sm:text-3xl font-black text-yellow-400">Unified</p>
-              <p className="text-xs text-emerald-200 mt-1 font-semibold">Service Ecosystem</p>
+            <div className="p-5 bg-slate-50 rounded-2xl border border-gray-200 text-center">
+              <p className="text-2xl sm:text-3xl font-black text-emerald-800">Unified</p>
+              <p className="text-xs text-gray-600 mt-1 font-semibold">Service Ecosystem</p>
             </div>
-            <div className="p-5 bg-emerald-900/40 rounded-2xl border border-emerald-700/60 text-center col-span-2">
-              <p className="text-xl sm:text-2xl font-black text-white">Built by Friends</p>
-              <p className="text-xs text-emerald-200 mt-0.5">Driven by ambition. Made for what comes next.</p>
+            <div className="p-5 bg-emerald-50/80 rounded-2xl border border-emerald-200 text-center col-span-2">
+              <p className="text-xl sm:text-2xl font-black text-emerald-950">Built by Friends</p>
+              <p className="text-xs text-emerald-800 mt-0.5">Driven by ambition. Made for what comes next.</p>
             </div>
           </div>
         </div>

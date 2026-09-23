@@ -1278,7 +1278,7 @@ export function PartnerProfileScreen() {
                 {/* QR Code */}
                 <div className="mx-auto flex size-44 items-center justify-center rounded-2xl bg-white p-3 shadow-md border border-zinc-200">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://quickpress.in/store/${partnerId}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://with.quickpress.com/store/${partnerId}`}
                     alt="QuickPress Store QR"
                     className="size-full rounded-xl"
                   />

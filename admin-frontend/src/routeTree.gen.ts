@@ -16,6 +16,7 @@ import { Route as CitiesRouteImport } from './routes/cities'
 import { Route as CouponsRouteImport } from './routes/coupons'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as EmailsRouteImport } from './routes/emails'
 import { Route as FinanceEngineRouteImport } from './routes/finance-engine'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as MembershipsRouteImport } from './routes/memberships'
@@ -62,6 +63,11 @@ const CustomersRoute = CustomersRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailsRoute = EmailsRouteImport.update({
+  id: '/emails',
+  path: '/emails',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceEngineRoute = FinanceEngineRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/coupons': typeof CouponsRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
+  '/emails': typeof EmailsRoute
   '/finance-engine': typeof FinanceEngineRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/memberships': typeof MembershipsRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/coupons': typeof CouponsRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
+  '/emails': typeof EmailsRoute
   '/finance-engine': typeof FinanceEngineRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/memberships': typeof MembershipsRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/coupons': typeof CouponsRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
+  '/emails': typeof EmailsRoute
   '/finance-engine': typeof FinanceEngineRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/memberships': typeof MembershipsRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/coupons'
     | '/customers'
     | '/dashboard'
+    | '/emails'
     | '/finance-engine'
     | '/forgot-password'
     | '/memberships'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/coupons'
     | '/customers'
     | '/dashboard'
+    | '/emails'
     | '/finance-engine'
     | '/forgot-password'
     | '/memberships'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/coupons'
     | '/customers'
     | '/dashboard'
+    | '/emails'
     | '/finance-engine'
     | '/forgot-password'
     | '/memberships'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   CouponsRoute: typeof CouponsRoute
   CustomersRoute: typeof CustomersRoute
   DashboardRoute: typeof DashboardRoute
+  EmailsRoute: typeof EmailsRoute
   FinanceEngineRoute: typeof FinanceEngineRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   MembershipsRoute: typeof MembershipsRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/emails': {
+      id: '/emails'
+      path: '/emails'
+      fullPath: '/emails'
+      preLoaderRoute: typeof EmailsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finance-engine': {
@@ -423,6 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   CouponsRoute: CouponsRoute,
   CustomersRoute: CustomersRoute,
   DashboardRoute: DashboardRoute,
+  EmailsRoute: EmailsRoute,
   FinanceEngineRoute: FinanceEngineRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   MembershipsRoute: MembershipsRoute,

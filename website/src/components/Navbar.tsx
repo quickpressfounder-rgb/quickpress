@@ -3,6 +3,7 @@ import logoLight from "@/assets/quickpress-logo.png";
 import logoDark from "@/assets/quickpress-logo-dark.png";
 import { PageType, ModalType } from "@/types";
 import { IconArrowRight, IconClose } from "./Icons";
+import { handleGetStartedRedirect } from "@/utils/storeRedirect";
 
 const GREEN = "#1A7A3C";
 
@@ -111,13 +112,13 @@ export function Navbar({
         {/* Right CTA Actions */}
         <div className="hidden lg:flex items-center gap-3">
           <button
-            onClick={() => onOpenModal("contact")}
+            onClick={() => handleLinkClick("contact")}
             className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-950 hover:bg-gray-100/80 rounded-full transition-all cursor-pointer"
           >
             Contact Us
           </button>
           <button
-            onClick={() => onOpenModal("booking")}
+            onClick={handleGetStartedRedirect}
             className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95 flex items-center gap-1.5 group cursor-pointer"
             style={{ background: GREEN }}
           >
@@ -168,20 +169,17 @@ export function Navbar({
           })}
           <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-2.5">
             <button
-              onClick={() => {
-                setMobileOpen(false);
-                onOpenModal("contact");
-              }}
-              className="w-full py-2.5 text-center text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl"
+              onClick={() => handleLinkClick("contact")}
+              className="w-full py-2.5 text-center text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl cursor-pointer"
             >
               Contact Us
             </button>
             <button
-              onClick={() => {
+              onClick={(e) => {
                 setMobileOpen(false);
-                onOpenModal("booking");
+                handleGetStartedRedirect(e);
               }}
-              className="w-full py-2.5 text-center text-sm font-bold text-white rounded-xl shadow-md"
+              className="w-full py-2.5 text-center text-sm font-bold text-white rounded-xl shadow-md cursor-pointer"
               style={{ background: GREEN }}
             >
               Get Started

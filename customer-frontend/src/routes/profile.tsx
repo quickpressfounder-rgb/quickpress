@@ -78,6 +78,7 @@ import { readSavedLocation } from "@/api/customer/services/location-service";
 import {
   getDeviceNotificationPermission,
   requestDeviceNotificationPermission,
+  openDeviceNotificationSettings,
   sendTestNotification,
   type DevicePermissionStatus,
 } from "@/lib/notifications";
@@ -426,7 +427,12 @@ function ProfileScreen() {
         toast.success("Device notification permission allowed! 🎉");
         sendTestNotification();
       } else if (res === "denied") {
-        toast.error("Notification permission denied in phone/browser settings.");
+        const opened = await openDeviceNotificationSettings();
+        if (opened) {
+          toast.info("Opening app settings... Please turn ON 'Allow Notifications'.");
+        } else {
+          toast.error("Notification permission denied. Please allow notifications in device/browser settings.");
+        }
       }
     } catch {
       toast.error("Failed to request permission.");

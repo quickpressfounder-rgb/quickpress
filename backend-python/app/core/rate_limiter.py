@@ -80,8 +80,9 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
         if client_ip in ("testclient", "testserver"):
             return await call_next(request)
 
-        # Global per-IP rate limit: 180 requests per minute
-        if not rate_limiter.check_limit(f"ip:{client_ip}", max_requests=180, window_seconds=60):
+        # Global per-IP rate limit: 180 requests per minute backed by Upstash Redis
+        from app.core.redis_limiter import distributed_limiter
+        if not await distributed_limiter.check_limit(f"ip:{client_ip}", max_requests=180, window_seconds=60):
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={"detail": "Too many requests. Please slow down and try again."},
