@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite dev --port 8084",
-    "build": "vite build && mkdir -p dist && cp -r .output/public/* dist/",
+    "build": "vite build && mkdir -p dist && (cp -r .output/public/* dist/ 2>/dev/null || true)",
     "build:dev": "vite build --mode development",
 
     "preview": "vite preview",
