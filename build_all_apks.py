@@ -34,7 +34,7 @@ def main():
 
     # 1. CUSTOMER APP
     print("\n--- [1/3] Building Customer App ---")
-    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production-3292.up.railway.app npm run build:customer", ROOT_DIR)
+    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:customer", ROOT_DIR)
     cust_web_dist = os.path.join(ROOT_DIR, "customer-frontend", ".output", "public")
     cust_android_assets = os.path.join(ROOT_DIR, "customer-frontend", "android", "app", "src", "main", "assets", "public")
     sync_assets(cust_web_dist, cust_android_assets)
@@ -54,7 +54,7 @@ def main():
 
     # 2. PARTNER APP
     print("\n--- [2/3] Building Partner App ---")
-    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production-3292.up.railway.app npm run build:partner", ROOT_DIR)
+    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:partner", ROOT_DIR)
     part_web_dist = os.path.join(ROOT_DIR, "partner-frontend", ".output", "public")
     part_android_assets = os.path.join(ROOT_DIR, "partner-frontend", "android", "app", "src", "main", "assets", "public")
     sync_assets(part_web_dist, part_android_assets)
@@ -74,7 +74,7 @@ def main():
 
     # 3. RIDER APP
     print("\n--- [3/3] Building Rider App ---")
-    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production-3292.up.railway.app npm run build:rider", ROOT_DIR)
+    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:rider", ROOT_DIR)
     rdr_web_dist = os.path.join(ROOT_DIR, "rider-frontend", ".output", "public")
     rdr_android_assets = os.path.join(ROOT_DIR, "rider-frontend", "android", "app", "src", "main", "assets", "public")
     sync_assets(rdr_web_dist, rdr_android_assets)
