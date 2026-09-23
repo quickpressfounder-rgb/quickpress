@@ -1,0 +1,11 @@
+node_modules
+.git
+admin-frontend
+customer-frontend
+partner-frontend
+rider-frontend
+website
+apks
+*.apk
+.output
+dist
