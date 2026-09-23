@@ -11,7 +11,7 @@ services:
     region: singapore
     buildCommand: pip install -r requirements.txt
     # FastAPI is ASGI — it must be served by uvicorn, never gunicorn/wsgi.
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python run.py
     healthCheckPath: /health
     autoDeploy: true
     envVars:
