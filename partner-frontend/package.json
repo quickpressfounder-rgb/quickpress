@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite dev --port 8082",
-    "build": "vite build && mkdir -p dist && (cp -r .output/public/* dist/ 2>/dev/null || true)",
+    "build": "vite build && node -e \"const fs=require('fs'); if(fs.existsSync('.output/public')){fs.mkdirSync('dist',{recursive:true}); fs.cpSync('.output/public','dist',{recursive:true})}\",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
