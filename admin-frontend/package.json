@@ -6,7 +6,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite dev --port 8084",
-    "build": "vite build && node -e \"const fs=require('fs'); if(fs.existsSync('.output/public')){fs.mkdirSync('dist',{recursive:true}); fs.cpSync('.output/public','dist',{recursive:true})}\",
+    "build": "vite build",
     "build:dev": "vite build --mode development",
 
     "preview": "vite preview",
