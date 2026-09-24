@@ -43,7 +43,6 @@ import { useLanguage } from "../lib/i18n";
 import { SimpleSelfieCaptureModal } from "../components/kyc/SimpleSelfieCaptureModal";
 import { compareKycNames } from "../lib/kyc-name-matcher";
 import { triggerHaptic } from "../lib/captain-audio";
-import { readSession } from "../api/core/session-store";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 import { fetchRiderVerificationStatus } from "../api/rider/rider-verification-api";
 
