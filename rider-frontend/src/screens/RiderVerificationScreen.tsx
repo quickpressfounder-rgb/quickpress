@@ -27,8 +27,6 @@ import {
 import { toast } from "sonner";
 import {
   fetchRiderVerificationStatus,
-  simulateAdminApprove,
-  simulateAdminReject,
   type RiderVerificationStatusResponse,
 } from "../api/rider/rider-verification-api";
 import { clearSession, readSession, writeSession } from "../api/core/session-store";
@@ -40,8 +38,6 @@ export function RiderVerificationScreen() {
   const [data, setData] = useState<RiderVerificationStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showDevControls, setShowDevControls] = useState(false);
-  const [simulating, setSimulating] = useState(false);
 
   const loadStatus = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -52,19 +48,33 @@ export function RiderVerificationScreen() {
       setData(res);
 
       // If not registered at all, redirect to registration
-      if (!res.isOnboarded && res.status === "not_registered") {
+      if (!res.isOnboarded) {
+        const current = readSession("rider") || readSession();
+        if (current && (current.isOnboarded || (current.account as any)?.isOnboarded)) {
+          writeSession({
+            ...current,
+            isOnboarded: false,
+            is_onboarded: false,
+            account: {
+              ...(current.account || {}),
+              isOnboarded: false,
+              is_onboarded: false,
+            },
+          }, "rider");
+        }
         toast.info("Please submit your Captain registration first.");
-        navigate({ to: "/registration" });
+        navigate({ to: "/registration", replace: true });
         return;
       }
 
       // If approved, update local session store and navigate to dashboard
-      if (res.isApproved) {
+      if (res.isApproved || res.isVerified) {
         const current = readSession("rider") || readSession();
         if (current) {
           writeSession({
             ...current,
             isVerified: true,
+            is_verified: true,
             isApproved: true,
             status: "active",
             kycStatus: "verified",
@@ -80,7 +90,7 @@ export function RiderVerificationScreen() {
         triggerHaptic();
         toast.success("🎉 Congratulations! Your Captain account has been approved by Admin!");
         setTimeout(() => {
-          navigate({ to: "/dashboard" });
+          navigate({ to: "/dashboard", replace: true });
         }, 1000);
         return;
       }
@@ -128,37 +138,6 @@ export function RiderVerificationScreen() {
     clearSession();
     toast.info("Logged out successfully");
     navigate({ to: "/auth" });
-  };
-
-  const handleSimulateApprove = async () => {
-    setSimulating(true);
-    triggerHaptic();
-    try {
-      await simulateAdminApprove(data?.riderId);
-      toast.success("Admin Approved! Unlocking Captain Dashboard... 🚀");
-      await loadStatus(true);
-      setTimeout(() => {
-        navigate({ to: "/dashboard" });
-      }, 1200);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to simulate approval");
-    } finally {
-      setSimulating(false);
-    }
-  };
-
-  const handleSimulateReject = async () => {
-    setSimulating(true);
-    triggerHaptic();
-    try {
-      await simulateAdminReject("Vehicle RC photo is blurry. Please re-upload clear front & back RC document.", data?.riderId);
-      toast.error("Simulated Admin Rejection set.");
-      await loadStatus(true);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to simulate rejection");
-    } finally {
-      setSimulating(false);
-    }
   };
 
   const isApproved = data?.isApproved ?? false;
@@ -433,53 +412,138 @@ export function RiderVerificationScreen() {
         </section>
 
         {/* SUBMITTED DOCUMENTS CHECKLIST */}
+        {/* SUBMITTED DOCUMENTS CHECKLIST */}
         <section className="p-4 bg-white rounded-3xl border border-slate-200 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
               Submitted Documents
             </h3>
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              5 of 5 Uploaded
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                isApproved
+                  ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                  : isRejected
+                  ? "text-red-700 bg-red-50 border-red-200"
+                  : "text-amber-800 bg-amber-50 border-amber-200"
+              }`}
+            >
+              {isApproved
+                ? "All 5 Verified ✅"
+                : isRejected
+                ? "Action Required ⚠️"
+                : "Documents In Review ⏳"}
             </span>
           </div>
 
           <div className="space-y-2">
-            {[
-              { id: "aadhaar", name: "Aadhaar Card (Front & Back)", icon: IdCard },
-              { id: "dl", name: "Driving License (DL)", icon: Award },
-              { id: "rc", name: "Vehicle RC Certificate", icon: Truck },
-              { id: "selfie", name: "Live Profile Selfie Photo", icon: User },
-              { id: "bank", name: "Bank Account & UPI Details", icon: Building2 },
-            ].map((doc) => {
-              const Icon = doc.icon;
+            {(data?.documents && data.documents.length > 0
+              ? data.documents
+              : [
+                  { id: "aadhaar", name: "Aadhaar Card (Front & Back)", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
+                  { id: "dl", name: "Driving License (DL)", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
+                  { id: "rc", name: "Vehicle RC Certificate", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
+                  { id: "selfie", name: "Live Profile Selfie Photo", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
+                  { id: "bank", name: "Bank Account & UPI Details", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
+                ]
+            ).map((doc) => {
+              const iconMap: Record<string, any> = {
+                aadhaar: IdCard,
+                dl: Award,
+                rc: Truck,
+                selfie: User,
+                bank: Building2,
+                agreement: FileCheck2,
+              };
+              const Icon = iconMap[doc.id] || FileText;
+              const docIsRejected = doc.status === "rejected";
+              const docIsVerified = isApproved || doc.status === "verified";
+              const specificDocReason = (doc as any).rejectionReason || (docIsRejected ? rejectionReason : null);
+
               return (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between p-2.5 bg-slate-50/80 rounded-2xl border border-slate-100 text-xs"
+                  className={`p-3 rounded-2xl border transition-all ${
+                    docIsRejected
+                      ? "bg-red-50/70 border-red-200 shadow-2xs"
+                      : docIsVerified
+                      ? "bg-emerald-50/40 border-emerald-100"
+                      : "bg-slate-50/80 border-slate-100"
+                  }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
-                      <Icon className="w-3.5 h-3.5" />
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${
+                          docIsRejected
+                            ? "bg-red-100 border-red-200 text-red-600"
+                            : docIsVerified
+                            ? "bg-emerald-100 border-emerald-200 text-emerald-700"
+                            : "bg-white border-slate-200 text-slate-700"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-800">{doc.name}</span>
+                        {docIsRejected && (
+                          <span className="block text-[10px] text-red-600 font-bold">
+                            ⚠️ Verification Failed
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="font-bold text-slate-800">{doc.name}</span>
+
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                        docIsVerified
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          : docIsRejected
+                          ? "bg-red-100 text-red-800 border border-red-200"
+                          : "bg-amber-100 text-amber-900 border border-amber-200"
+                      }`}
+                    >
+                      {docIsVerified ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      ) : docIsRejected ? (
+                        <AlertCircle className="w-3 h-3 text-red-600" />
+                      ) : (
+                        <Clock className="w-3 h-3 text-amber-600" />
+                      )}
+                      <span>
+                        {docIsVerified ? "Verified" : docIsRejected ? "Rejected" : "In Review"}
+                      </span>
+                    </span>
                   </div>
 
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
-                      isApproved
-                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        : isRejected
-                        ? "bg-red-100 text-red-800 border border-red-200"
-                        : "bg-amber-100 text-amber-900 border border-amber-200"
-                    }`}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>{isApproved ? "Verified" : isRejected ? "Re-upload" : "Submitted"}</span>
-                  </span>
+                  {docIsRejected && specificDocReason && (
+                    <div className="mt-2 pt-2 border-t border-red-200/60 flex items-start gap-1.5 text-[11px] text-red-800">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-red-950">Rejection Note: </span>
+                        <span>{specificDocReason}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
+
+          {isRejected && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic();
+                  navigate({ to: "/registration" });
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl bg-red-600 hover:bg-red-700 active:scale-98 text-white font-black text-xs shadow-sm transition-all"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Fix & Re-upload Rejected Documents</span>
+              </button>
+            </div>
+          )}
         </section>
 
         {/* APPLICATION SUMMARY */}
@@ -541,43 +605,6 @@ export function RiderVerificationScreen() {
               <span>WhatsApp Desk</span>
             </a>
           </div>
-        </section>
-
-        {/* DEVELOPER / ADMIN TEST CONTROLS */}
-        <section className="pt-2 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() => setShowDevControls(!showDevControls)}
-            className="w-full text-center text-[10px] font-bold text-slate-400 hover:text-slate-600 py-1"
-          >
-            {showDevControls ? "▲ Hide Admin Testing Sandbox" : "▼ Admin Testing Sandbox (Click to simulate approval/rejection)"}
-          </button>
-
-          {showDevControls && (
-            <div className="mt-2 p-3 bg-slate-100/80 rounded-2xl border border-slate-200 space-y-2 text-xs">
-              <p className="text-[11px] font-bold text-slate-700">
-                🔧 Quick Admin Action Sandbox (For testing):
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={handleSimulateApprove}
-                  disabled={simulating}
-                  className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs active:scale-95 transition-all"
-                >
-                  Simulate Admin Approve ✅
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSimulateReject}
-                  disabled={simulating}
-                  className="py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] shadow-xs active:scale-95 transition-all"
-                >
-                  Simulate Admin Reject ❌
-                </button>
-              </div>
-            </div>
-          )}
         </section>
       </main>
     </div>

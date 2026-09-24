@@ -13,6 +13,7 @@ export interface VerificationDocument {
   name: string;
   status: "submitted" | "verified" | "rejected" | "pending";
   required: boolean;
+  rejectionReason?: string | null;
 }
 
 export interface RiderVerificationStatusResponse {
@@ -30,6 +31,7 @@ export interface RiderVerificationStatusResponse {
   submittedAt: string;
   estimatedTime: string;
   rejectionReason?: string | null;
+  rejectedDocuments?: string[];
   steps: VerificationStep[];
   documents: VerificationDocument[];
   support: {

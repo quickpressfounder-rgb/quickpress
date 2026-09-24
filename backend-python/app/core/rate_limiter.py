@@ -77,7 +77,12 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
         forwarded = request.headers.get("x-forwarded-for")
         client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
 
-        if client_ip in ("testclient", "testserver"):
+        # Allow local testing / internal clients / development environment
+        if client_ip in ("testclient", "testserver", "127.0.0.1", "::1", "localhost"):
+            return await call_next(request)
+
+        from app.config import get_settings
+        if get_settings().app_env == "development":
             return await call_next(request)
 
         # Global per-IP rate limit: 180 requests per minute backed by Upstash Redis

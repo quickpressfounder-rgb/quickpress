@@ -17,30 +17,7 @@ export function isRiderApproved(sess: any): boolean {
     return false;
   }
 
-  // 1. Direct verified flags (check root & account, camelCase & snake_case)
-  if (
-    sess.isVerified === true ||
-    sess.is_verified === true ||
-    sess.isApproved === true ||
-    sess.account?.isVerified === true ||
-    sess.account?.is_verified === true
-  ) {
-    return true;
-  }
-
-  // 2. Explicit approved or active status
-  if (
-    status === "approved" ||
-    status === "active" ||
-    sess.status === "active" ||
-    sess.account?.status === "active" ||
-    sess.status === "approved" ||
-    sess.account?.status === "approved"
-  ) {
-    return true;
-  }
-
-  // 3. Pending / under review states are strictly NOT approved
+  // Pending / under verification states are strictly NOT approved
   if (
     status === "pending" ||
     status === "pending_approval" ||
@@ -51,7 +28,16 @@ export function isRiderApproved(sess: any): boolean {
     return false;
   }
 
-  return false;
+  // Must have an explicit verification flag
+  const isVer = Boolean(
+    sess.isVerified === true ||
+    sess.is_verified === true ||
+    sess.isApproved === true ||
+    sess.account?.isVerified === true ||
+    sess.account?.is_verified === true
+  );
+
+  return isVer && (status === "active" || status === "approved" || kycStatus === "verified");
 }
 
 /**
@@ -60,20 +46,16 @@ export function isRiderApproved(sess: any): boolean {
 export function isRiderOnboarded(sess: any): boolean {
   if (!sess) return false;
 
-  // If already approved, they are definitely onboarded!
+  // 1. If already approved, definitely onboarded
   if (isRiderApproved(sess)) return true;
 
-  // If explicitly flagged as not onboarded
-  if (
-    sess.isOnboarded === false ||
-    sess.is_onboarded === false ||
-    sess.account?.isOnboarded === false ||
-    sess.account?.is_onboarded === false
-  ) {
-    return false;
+  // 2. Explicit submitted status set post-registration
+  const status = String(sess.status || sess.account?.status || "").toLowerCase();
+  if (status === "pending_approval" || status === "under_verification") {
+    return true;
   }
 
-  // Direct boolean flags
+  // 3. Direct boolean flags
   if (
     sess.isOnboarded === true ||
     sess.is_onboarded === true ||

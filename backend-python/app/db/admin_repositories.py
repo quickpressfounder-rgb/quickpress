@@ -1641,6 +1641,7 @@ class AdminRiderRepository:
             users,
             riders_tbl,
             profiles,
+            admin_riders_tbl,
             orders,
             wallets,
             shifts,
@@ -1648,6 +1649,7 @@ class AdminRiderRepository:
             database.find_many("users", {"role": "rider"}),
             database.find_many("riders"),
             database.find_many("rider_profiles"),
+            database.find_many("admin_riders"),
             database.find_many("customer_orders"),
             database.find_many("rider_wallets"),
             database.find_many("rider_shifts"),
@@ -1661,8 +1663,8 @@ class AdminRiderRepository:
 
         profiles_by_id = {}
         profiles_by_phone = {}
-        for p in (profiles or []):
-            for k in ("_id", "riderId", "userId", "user_id"):
+        for p in (list(profiles or []) + list(admin_riders_tbl or [])):
+            for k in ("_id", "riderId", "userId", "user_id", "id"):
                 if p.get(k):
                     profiles_by_id[str(p[k])] = p
             ph = str(p.get("phone") or p.get("mobile") or "").replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
@@ -1698,7 +1700,7 @@ class AdminRiderRepository:
         merged_riders = []
         seen_keys = set()
 
-        all_raw = list(profiles or []) + list(riders_tbl or []) + list(users or [])
+        all_raw = list(profiles or []) + list(admin_riders_tbl or []) + list(riders_tbl or []) + list(users or [])
         for row in all_raw:
             raw_phone = str(row.get("phone") or row.get("mobile") or "")
             clean_phone = raw_phone.replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:] if raw_phone else ""
@@ -1888,15 +1890,31 @@ class AdminRiderRepository:
     async def detail(self, entity_id: str) -> Optional[Dict[str, Any]]:
         res = await self.list(1, 1000)
         items = res.get("items", [])
+        clean_target = str(entity_id).replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
         for item in items:
-            if item.get("id") == entity_id or item.get("phone") == entity_id:
+            item_phone = str(item.get("phone") or "").replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
+            if item.get("id") == entity_id or (clean_target and len(clean_target) == 10 and item_phone == clean_target):
                 return item
+            if entity_id and (entity_id in str(item.get("id", "")) or str(item.get("id", "")) in entity_id):
+                return item
+
+        prof = (
+            await database.find_one("rider_profiles", {"_id": entity_id})
+            or await database.find_one("rider_profiles", {"userId": entity_id})
+            or await database.find_one("rider_profiles", {"riderId": entity_id})
+        )
+        if prof:
+            for item in items:
+                if item.get("phone") == prof.get("phone") or item.get("id") in (prof.get("userId"), prof.get("_id"), prof.get("riderId")):
+                    return item
         return None
 
     async def get_rider_360(self, rider_id: str) -> Dict[str, Any]:
         doc = await self.detail(rider_id)
         if doc is None:
             raise LookupError(f"Rider {rider_id} not found")
+
+        resolved_id = str(doc.get("id") or rider_id)
 
         (
             user_doc,
@@ -1909,15 +1927,15 @@ class AdminRiderRepository:
             payouts,
             sessions,
         ) = await asyncio.gather(
-            database.find_one("users", {"_id": rider_id}),
-            database.find_one("rider_profiles", {"_id": rider_id}),
-            database.find_one("riders", {"_id": rider_id}),
-            database.find_many("customer_orders", {"$or": [{"rider.id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}, {"rider.phone": doc.get("phone")}]}),
-            database.find_one("rider_wallets", {"_id": rider_id}),
-            database.find_many("wallet_ledger", {"$or": [{"userId": rider_id}, {"riderId": rider_id}, {"user_id": rider_id}]}),
-            database.find_many("rider_shifts", {"$or": [{"riderId": rider_id}, {"userId": rider_id}]}),
-            database.find_many("rider_payouts", {"$or": [{"riderId": rider_id}, {"userId": rider_id}]}),
-            database.find_many("user_sessions", {"$or": [{"userId": rider_id}, {"user_id": rider_id}]}),
+            database.find_one("users", {"$or": [{"_id": resolved_id}, {"_id": rider_id}]}),
+            database.find_one("rider_profiles", {"$or": [{"_id": resolved_id}, {"_id": rider_id}, {"userId": resolved_id}, {"userId": rider_id}, {"riderId": resolved_id}, {"riderId": rider_id}]}),
+            database.find_one("riders", {"$or": [{"_id": resolved_id}, {"_id": rider_id}, {"rider_id": resolved_id}, {"rider_id": rider_id}]}),
+            database.find_many("customer_orders", {"$or": [{"rider.id": resolved_id}, {"riderId": resolved_id}, {"rider_id": resolved_id}, {"rider.id": rider_id}, {"rider.phone": doc.get("phone")}]}),
+            database.find_one("rider_wallets", {"$or": [{"_id": resolved_id}, {"_id": rider_id}]}),
+            database.find_many("wallet_ledger", {"$or": [{"userId": resolved_id}, {"riderId": resolved_id}, {"userId": rider_id}]}),
+            database.find_many("rider_shifts", {"$or": [{"riderId": resolved_id}, {"userId": resolved_id}, {"riderId": rider_id}]}),
+            database.find_many("rider_payouts", {"$or": [{"riderId": resolved_id}, {"userId": resolved_id}, {"riderId": rider_id}]}),
+            database.find_many("user_sessions", {"$or": [{"userId": resolved_id}, {"user_id": resolved_id}, {"userId": rider_id}]}),
         )
 
         completed_trips = [o for o in (orders or []) if o.get("status") == "delivered"]
@@ -1980,6 +1998,14 @@ class AdminRiderRepository:
             kyc_docs.append({"id": "pan_card", "type": "PAN Card", "name": "PAN Card", "documentUrl": pdoc["panCard"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
         if pdoc.get("selfieUrl") or pdoc.get("photoUrl"):
             kyc_docs.append({"id": "selfie", "type": "Captain Profile Photo / Selfie", "name": "Selfie", "documentUrl": pdoc.get("selfieUrl") or pdoc.get("photoUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
+        if pdoc.get("vehiclePhoto") or pdoc.get("bikePhoto") or pdoc.get("bikePhotoUrl"):
+            kyc_docs.append({"id": "bike_photo", "type": "Vehicle / Bike Photo", "name": "Bike Photo", "documentUrl": pdoc.get("vehiclePhoto") or pdoc.get("bikePhoto") or pdoc.get("bikePhotoUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
+        if pdoc.get("passbookPhoto") or pdoc.get("passbookUrl"):
+            kyc_docs.append({"id": "bank_passbook", "type": "Bank Passbook (Front Page)", "name": "Bank Passbook", "documentUrl": pdoc.get("passbookPhoto") or pdoc.get("passbookUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
+        if pdoc.get("cancelledCheque") or pdoc.get("cancelledChequeUrl"):
+            kyc_docs.append({"id": "cancelled_cheque", "type": "Cancelled Cheque", "name": "Cancelled Cheque", "documentUrl": pdoc.get("cancelledCheque") or pdoc.get("cancelledChequeUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
+        if pdoc.get("agreementSignature") or pdoc.get("signatureUrl") or doc.get("agreementSignature"):
+            kyc_docs.append({"id": "agreement_signature", "type": "Digital Agreement Signature", "name": "E-Signature", "documentUrl": pdoc.get("agreementSignature") or pdoc.get("signatureUrl") or doc.get("agreementSignature"), "status": "Signed", "uploadedAt": pdoc.get("agreementSignedAt") or doc.get("agreementSignedAt") or doc.get("registrationTimestamp")})
 
         # Real Wallet Ledger
         ledger_list = [
@@ -2033,8 +2059,93 @@ class AdminRiderRepository:
             for sess in (sessions or [])
         ]
 
+        # Enrich profile with complete A-to-Z details from profile_doc
+        merged_profile = {
+            **doc,
+            "fullName": pdoc.get("fullName") or pdoc.get("name") or doc.get("name") or "Delivery Captain",
+            "name": pdoc.get("fullName") or pdoc.get("name") or doc.get("name") or "Delivery Captain",
+            "phone": pdoc.get("phone") or doc.get("phone") or "—",
+            "email": pdoc.get("email") or doc.get("email") or "—",
+            "dob": pdoc.get("dob") or "—",
+            "gender": pdoc.get("gender") or "Male",
+            "emergencyContact": pdoc.get("emergencyContact") or pdoc.get("emergencyContactName") or "—",
+            "address": pdoc.get("address") or pdoc.get("street") or "—",
+            "street": pdoc.get("street") or pdoc.get("address") or "—",
+            "landmark": pdoc.get("landmark") or "—",
+            "city": pdoc.get("city") or doc.get("city") or "Kasganj",
+            "state": pdoc.get("state") or "Uttar Pradesh",
+            "pincode": pdoc.get("pincode") or "—",
+            "aadhaarNumber": pdoc.get("aadhaar") or pdoc.get("aadhaarNumber") or "—",
+            "panNumber": pdoc.get("pan") or pdoc.get("panNumber") or "—",
+            "vehicleType": pdoc.get("vehicleType") or doc.get("vehicle") or "Motorbike",
+            "vehicleBrand": pdoc.get("vehicleBrand") or "—",
+            "vehicleModel": pdoc.get("vehicleModel") or "—",
+            "fuelType": pdoc.get("fuelType") or "Petrol",
+            "regYear": pdoc.get("regYear") or pdoc.get("vehicleYear") or "—",
+            "vehicleNumber": pdoc.get("vehicleNumber") or doc.get("plate") or "—",
+            "plate": pdoc.get("vehicleNumber") or doc.get("plate") or "—",
+            "chassisNumber": pdoc.get("chassisNumber") or "—",
+            "engineNumber": pdoc.get("engineNumber") or "—",
+            "drivingLicenseNumber": pdoc.get("dlNumber") or pdoc.get("license") or "—",
+            "dlExpiry": pdoc.get("dlExpiry") or "—",
+            "rcNumber": pdoc.get("rcNumber") or pdoc.get("vehicleNumber") or doc.get("plate") or "—",
+            "insuranceNumber": pdoc.get("insuranceNumber") or "—",
+            "insuranceProvider": pdoc.get("insuranceProvider") or "—",
+            "insuranceValidTill": pdoc.get("insuranceValidTill") or pdoc.get("insuranceExpiry") or "—",
+            "accountHolder": pdoc.get("accountHolder") or pdoc.get("accountHolderName") or doc.get("name"),
+            "bankName": pdoc.get("bankName") or doc.get("bankName") or "—",
+            "accountNumber": pdoc.get("accountNumber") or "—",
+            "ifsc": pdoc.get("ifsc") or pdoc.get("ifscCode") or doc.get("ifsc") or "—",
+            "branch": pdoc.get("branch") or "—",
+            "upiId": pdoc.get("upiId") or doc.get("upiId") or "—",
+            "agreementSignature": pdoc.get("agreementSignature") or pdoc.get("signatureUrl") or "",
+            "agreementSignedAt": pdoc.get("agreementSignedAt") or pdoc.get("signedAt") or "",
+            "termsAccepted": bool(pdoc.get("termsAccepted", True)),
+            "rejectionReason": pdoc.get("rejectionReason") or pdoc.get("kycReason") or None,
+            "rejectedDocuments": pdoc.get("rejectedDocuments") or [],
+        }
+
+        # Format document numbers & status
+        rejected_docs_set = set(str(x).lower() for x in (pdoc.get("rejectedDocuments") or []))
+        for doc_item in kyc_docs:
+            d_id = str(doc_item.get("id", "")).lower()
+            if "dl" in d_id:
+                doc_item["documentNumber"] = pdoc.get("dlNumber") or pdoc.get("license") or "—"
+            elif "rc" in d_id:
+                doc_item["documentNumber"] = pdoc.get("rcNumber") or pdoc.get("vehicleNumber") or "—"
+            elif "aadhaar" in d_id:
+                doc_item["documentNumber"] = pdoc.get("aadhaar") or "—"
+            elif "pan" in d_id:
+                doc_item["documentNumber"] = pdoc.get("pan") or "—"
+            elif "passbook" in d_id or "bank" in d_id:
+                doc_item["documentNumber"] = pdoc.get("accountNumber") or "—"
+
+            if doc.get("status") == "Active" or pdoc.get("isVerified"):
+                doc_item["status"] = "Verified"
+            elif any(k in d_id for k in rejected_docs_set) or (pdoc.get("status") == "rejected" and not rejected_docs_set):
+                doc_item["status"] = "Rejected"
+                doc_item["rejectionReason"] = pdoc.get("rejectionReason") or pdoc.get("kycReason")
+            else:
+                doc_item["status"] = "Submitted"
+
         return {
-            "profile": doc,
+            "profile": merged_profile,
+            "personal": {
+                "fullName": merged_profile.get("fullName", "—"),
+                "phone": merged_profile.get("phone", "—"),
+                "email": merged_profile.get("email", "—"),
+                "dob": merged_profile.get("dob", "—"),
+                "gender": merged_profile.get("gender", "—"),
+                "emergencyContact": merged_profile.get("emergencyContact", "—"),
+                "address": merged_profile.get("address", "—"),
+                "street": merged_profile.get("street", "—"),
+                "landmark": merged_profile.get("landmark", "—"),
+                "city": merged_profile.get("city", "—"),
+                "state": merged_profile.get("state", "—"),
+                "pincode": merged_profile.get("pincode", "—"),
+                "aadhaarNumber": merged_profile.get("aadhaarNumber", "—"),
+                "panNumber": merged_profile.get("panNumber", "—"),
+            },
             "overview": {
                 "firstLoginAt": doc.get("registrationTimestamp"),
                 "lastLoginAt": doc.get("lastLoginTimestamp"),
@@ -2052,18 +2163,34 @@ class AdminRiderRepository:
                 "batteryLevel": int((profile_doc or {}).get("batteryLevel") or 95),
             },
             "vehicle": {
-                "vehicleType": doc.get("vehicle") or (profile_doc or {}).get("vehicleType") or "Motorbike",
-                "vehicleModel": (profile_doc or {}).get("vehicleModel") or (profile_doc or {}).get("vehicleBrand") or "Two Wheeler",
-                "vehicleNumber": doc.get("plate") or (profile_doc or {}).get("vehicleNumber") or "—",
-                "drivingLicenseNumber": (profile_doc or {}).get("dlNumber") or (profile_doc or {}).get("license") or (profile_doc or {}).get("drivingLicenseNumber") or "—",
-                "rcNumber": (profile_doc or {}).get("rcNumber") or doc.get("plate") or "—",
-                "insuranceExpiry": (profile_doc or {}).get("insuranceValidTill") or (profile_doc or {}).get("insuranceExpiry") or "—",
+                "vehicleType": merged_profile.get("vehicleType", "Motorbike"),
+                "vehicleBrand": merged_profile.get("vehicleBrand", "—"),
+                "vehicleModel": merged_profile.get("vehicleModel", "—"),
+                "vehicleNumber": merged_profile.get("vehicleNumber", "—"),
+                "fuelType": merged_profile.get("fuelType", "Petrol"),
+                "regYear": merged_profile.get("regYear", "—"),
+                "chassisNumber": merged_profile.get("chassisNumber", "—"),
+                "engineNumber": merged_profile.get("engineNumber", "—"),
+                "drivingLicenseNumber": merged_profile.get("drivingLicenseNumber", "—"),
+                "dlExpiry": merged_profile.get("dlExpiry", "—"),
+                "rcNumber": merged_profile.get("rcNumber", "—"),
+                "insuranceNumber": merged_profile.get("insuranceNumber", "—"),
+                "insuranceProvider": merged_profile.get("insuranceProvider", "—"),
+                "insuranceExpiry": merged_profile.get("insuranceValidTill", "—"),
                 "pollutionExpiry": (profile_doc or {}).get("pollutionExpiry") or "—",
             },
             "kyc": {
-                "status": doc.get("kyc", "Verified"),
+                "status": "Verified" if doc.get("status") == "Active" else ("Rejected" if pdoc.get("status") == "rejected" else "Pending"),
                 "verifiedAt": doc.get("registrationTimestamp"),
+                "rejectionReason": pdoc.get("rejectionReason") or pdoc.get("kycReason") or None,
+                "rejectedDocuments": pdoc.get("rejectedDocuments") or [],
                 "documents": kyc_docs,
+            },
+            "agreement": {
+                "termsAccepted": bool(merged_profile.get("termsAccepted", True)),
+                "signedAt": merged_profile.get("agreementSignedAt") or doc.get("registrationTimestamp"),
+                "signerName": merged_profile.get("fullName", "—"),
+                "signatureUrl": merged_profile.get("agreementSignature", ""),
             },
             "trips": trips_list,
             "wallet": {
@@ -2075,11 +2202,12 @@ class AdminRiderRepository:
                 "ledger": ledger_list,
             },
             "payouts": {
-                "bankName": (profile_doc or {}).get("bankName") or doc.get("bankName") or "—",
-                "accountNumber": (profile_doc or {}).get("accountNumber") or (f"•••• {doc.get('accountLast4')}" if doc.get("accountLast4") and doc.get("accountLast4") != "—" else "—"),
-                "ifsc": (profile_doc or {}).get("ifsc") or doc.get("ifsc") or "—",
-                "upiId": (profile_doc or {}).get("upiId") or doc.get("upiId") or "—",
-                "beneficiaryName": (profile_doc or {}).get("accountHolder") or doc.get("name"),
+                "bankName": merged_profile["bankName"],
+                "accountNumber": merged_profile["accountNumber"],
+                "ifsc": merged_profile["ifsc"],
+                "branch": merged_profile["branch"],
+                "upiId": merged_profile["upiId"],
+                "beneficiaryName": merged_profile["accountHolder"],
                 "payoutHistory": payouts_list,
             },
             "shifts": shifts_list,
@@ -2095,35 +2223,61 @@ class AdminRiderRepository:
             },
         }
 
-    async def set_status(self, entity_id: str, status: str) -> Optional[Dict[str, Any]]:
-        is_active = status == "active"
-        is_suspended = status == "suspended"
+    async def set_status(
+        self,
+        entity_id: str,
+        status: str,
+        reason: Optional[str] = None,
+        rejected_documents: Optional[List[str]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        is_active = status in ("active", "approved")
+        is_rejected = status in ("rejected", "suspended")
         now_iso = datetime.now(timezone.utc).isoformat()
 
         # Lookup existing profile to find userId and phone
         profile = (
             await database.find_one("rider_profiles", {"_id": entity_id})
             or await database.find_one("rider_profiles", {"riderId": entity_id})
+            or await database.find_one("rider_profiles", {"userId": entity_id})
             or await database.find_one("admin_riders", {"_id": entity_id})
             or await database.find_one("admin_riders", {"riderId": entity_id})
             or {}
         )
-        user_id = profile.get("userId")
+        user_id = profile.get("userId") or entity_id
         phone = profile.get("phone")
 
         changes = {
-            "status": status,
+            "status": "active" if is_active else ("rejected" if status == "rejected" else status),
             "isVerified": is_active,
+            "isApproved": is_active,
             "isOnboarded": True,
             "isOnline": is_active,
             "is_available": is_active,
-            "kycStatus": "verified" if is_active else ("rejected" if is_suspended else "pending"),
+            "kycStatus": "verified" if is_active else ("rejected" if is_rejected else "pending"),
             "updatedAt": now_iso,
         }
+
+        if is_rejected:
+            eff_reason = reason or "Documents verification failed. Please re-upload valid documents."
+            changes["rejectionReason"] = eff_reason
+            changes["kycReason"] = eff_reason
+            changes["rejectedDocuments"] = rejected_documents or []
+            changes["rejectedAt"] = now_iso
+            changes["isOnline"] = False
+            changes["is_available"] = False
+        elif is_active:
+            changes["rejectionReason"] = None
+            changes["kycReason"] = None
+            changes["rejectedDocuments"] = []
+            changes["approvedAt"] = now_iso
 
         # 1. Update rider_profiles
         await database.update("rider_profiles", {"_id": entity_id}, changes)
         await database.update("rider_profiles", {"riderId": entity_id}, changes)
+        await database.update("rider_profiles", {"userId": entity_id}, changes)
+        if user_id:
+            await database.update("rider_profiles", {"_id": user_id}, changes)
+            await database.update("rider_profiles", {"userId": user_id}, changes)
         if phone:
             await database.update("rider_profiles", {"phone": phone}, changes)
 
@@ -2134,13 +2288,13 @@ class AdminRiderRepository:
             await database.update("admin_riders", {"phone": phone}, changes)
 
         # 3. Update riders table
-        await database.update("riders", {"_id": entity_id}, {"is_verified": is_active, "status": status, "is_available": is_active})
-        await database.update("riders", {"rider_id": entity_id}, {"is_verified": is_active, "status": status, "is_available": is_active})
+        await database.update("riders", {"_id": entity_id}, {"is_verified": is_active, "status": changes["status"], "is_available": is_active})
+        await database.update("riders", {"rider_id": entity_id}, {"is_verified": is_active, "status": changes["status"], "is_available": is_active})
         if user_id:
-            await database.update("riders", {"user_id": user_id}, {"is_verified": is_active, "status": status, "is_available": is_active})
+            await database.update("riders", {"user_id": user_id}, {"is_verified": is_active, "status": changes["status"], "is_available": is_active})
 
         # 4. Update users table
-        user_changes = {"is_verified": is_active, "is_onboarded": True, "status": "active" if is_active else status}
+        user_changes = {"is_verified": is_active, "is_onboarded": True, "status": "active" if is_active else changes["status"]}
         await database.update("users", {"_id": entity_id}, user_changes)
         await database.update("users", {"linked_id": entity_id}, user_changes)
         if user_id:
@@ -2148,6 +2302,21 @@ class AdminRiderRepository:
         if phone:
             clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
             await database.update("users", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}], "role": "rider"}, user_changes)
+
+        # 5. Broadcast real-time socket event to instantly notify rider app
+        try:
+            from app.core.socket_manager import sio
+            await sio.emit("rider:status_updated", {
+                "riderId": entity_id,
+                "status": changes["status"],
+                "kycStatus": changes["kycStatus"],
+                "isVerified": is_active,
+                "isApproved": is_active,
+                "rejectionReason": changes.get("rejectionReason"),
+                "rejectedDocuments": changes.get("rejectedDocuments", []),
+            })
+        except Exception:
+            pass
 
         return await self.detail(entity_id)
 

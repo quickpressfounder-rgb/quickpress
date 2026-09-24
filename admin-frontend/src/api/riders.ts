@@ -45,6 +45,28 @@ export type RiderStats = {
 
 export type Rider360Data = {
   profile: AdminRider;
+  personal?: {
+    fullName: string;
+    phone: string;
+    email: string;
+    city: string;
+    fatherName: string;
+    dob: string;
+    gender: string;
+    address: string;
+    pincode: string;
+    registeredAt: string;
+    emergencyContactName: string;
+    emergencyContactPhone: string;
+  };
+  agreement?: {
+    isSigned: boolean;
+    signedAt: string;
+    signerName: string;
+    ipAddress: string;
+    deviceInfo: string;
+    signatureUrl?: string;
+  };
   overview: {
     firstLoginAt: string;
     lastLoginAt: string;
@@ -67,12 +89,17 @@ export type Rider360Data = {
     vehicleNumber: string;
     drivingLicenseNumber: string;
     rcNumber: string;
+    fuelType?: string;
+    vehicleColor?: string;
+    vehicleYear?: string;
     insuranceExpiry: string;
     pollutionExpiry: string;
   };
   kyc: {
     status: "Verified" | "Pending" | "Rejected";
     verifiedAt: string;
+    rejectionReason?: string;
+    rejectedDocuments?: string[];
     documents: Array<{
       id: string;
       type: string;
@@ -299,8 +326,16 @@ export async function fetchRider360(id: string): Promise<Rider360Data> {
 }
 
 /** POST /api/admin/riders/{id}/approve|reject|suspend|activate */
-export async function setRiderStatus(id: string, action: "approve" | "reject" | "suspend" | "activate", reason?: string) {
-  return apiPostJson<{ id: string; status: string } | null>(`/api/admin/riders/${encodeURIComponent(id)}/${action}`, { reason });
+export async function setRiderStatus(
+  id: string,
+  action: "approve" | "reject" | "suspend" | "activate",
+  reason?: string,
+  rejectedDocuments?: string[]
+) {
+  return apiPostJson<{ id: string; status: string } | null>(
+    `/api/admin/riders/${encodeURIComponent(id)}/${action}`,
+    { reason, rejectedDocuments }
+  );
 }
 
 /** POST /api/admin/riders/{id}/wallet/adjust */

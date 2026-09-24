@@ -99,27 +99,34 @@ export async function submitRiderRegistration(payload: unknown): Promise<RiderSe
   }
 
   const currentSession = readSession(ROLE);
-  if (currentSession && currentSession.account) {
-    const updatedSession = {
-      ...currentSession,
+  const updatedSession = {
+    ...(currentSession || {}),
+    token: currentSession?.token || `qp_token_${Date.now()}`,
+    status: "pending_approval",
+    kycStatus: "pending",
+    isVerified: false,
+    is_verified: false,
+    isOnboarded: true,
+    is_onboarded: true,
+    account: {
+      ...(currentSession?.account || {}),
+      id: res.riderId,
+      linkedId: res.riderId,
+      phone: res.phone,
+      name: res.fullName,
+      role: ROLE,
+      isOnboarded: true,
+      is_onboarded: true,
+      isVerified: false,
+      is_verified: false,
       status: "pending_approval",
       kycStatus: "pending",
-      isVerified: false,
-      isOnboarded: true,
-      account: {
-        ...currentSession.account,
-        name: res.fullName,
-        isOnboarded: true,
-        isVerified: false,
-        status: "pending_approval",
-        kycStatus: "pending",
-      },
-    };
-    writeSession(updatedSession, ROLE);
-  }
+    },
+  };
+  writeSession(updatedSession, ROLE);
 
   return toRiderSession({
-    token: currentSession?.token || `qp_token_${Date.now()}`,
+    token: updatedSession.token,
     refreshToken: currentSession?.refreshToken || `qp_refresh_${Date.now()}`,
     expiresAt: currentSession?.expiresAt || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
     account: {
@@ -361,17 +368,18 @@ export async function getMe(): Promise<{
       linkedId?: string;
     }>("/api/auth/me");
 
-    const isVerified = Boolean(me.isVerified || me.status === "active");
+    const isVerified = Boolean(me.isVerified);
+    const isOnboarded = Boolean(me.isOnboarded);
     const currentSession = readSession(ROLE);
     if (currentSession && currentSession.account) {
       const updatedSession = {
         ...currentSession,
         isVerified,
-        isOnboarded: Boolean(me.isOnboarded),
+        isOnboarded,
         account: {
           ...currentSession.account,
           isVerified,
-          isOnboarded: Boolean(me.isOnboarded),
+          isOnboarded,
           name: me.name || currentSession.account.name,
           linkedId: me.linkedId || currentSession.account.linkedId,
         },

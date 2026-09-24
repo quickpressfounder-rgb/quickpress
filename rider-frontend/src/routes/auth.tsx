@@ -6,7 +6,17 @@ import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 export const Route = createFileRoute("/auth")({
   beforeLoad: () => {
     if (typeof window !== "undefined") {
-      const sess = readSession("rider") || readSession();
+      let sess: any = readSession("rider") || readSession();
+      if (!sess) {
+        try {
+          const raw =
+            window.localStorage.getItem("quickpress.session.rider") ||
+            window.sessionStorage.getItem("quickpress.session.rider");
+          if (raw) sess = JSON.parse(raw);
+        } catch {
+          /* ignore */
+        }
+      }
       if (sess && sess.token) {
         if (isRiderApproved(sess)) {
           throw redirect({ to: "/dashboard" });

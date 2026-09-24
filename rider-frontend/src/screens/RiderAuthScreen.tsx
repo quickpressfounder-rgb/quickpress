@@ -1,21 +1,50 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, X } from "lucide-react";
-import React, { useState, type FormEvent } from "react";
+import React, { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
 import { sendOtp } from "../api/rider/rider-auth-api";
+import { readSession } from "../api/core/session-store";
+import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 import { useLanguage } from "../lib/i18n";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
 
 export function RiderAuthScreen() {
   const navigate = useNavigate();
-  const { setPhone } = useRiderContext();
+  const { phone, session, setPhone } = useRiderContext();
   const { t, selectedLanguageObj } = useLanguage();
 
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(() => {
+    if (phone) return phone.replace(/\D/g, "").slice(-10);
+    if (typeof window !== "undefined") {
+      try {
+        const stored =
+          window.sessionStorage.getItem("qp.rider.pendingPhone") ||
+          window.localStorage.getItem("qp.rider.pendingPhone");
+        if (stored) return stored.replace(/\D/g, "").slice(-10);
+      } catch {
+        /* ignore */
+      }
+    }
+    return "";
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fast synchronous session check: redirect immediately if already authenticated
+  useEffect(() => {
+    const sess = readSession("rider") || readSession();
+    if (sess && sess.token) {
+      if (isRiderApproved(sess)) {
+        navigate({ to: "/dashboard", replace: true });
+      } else if (isRiderOnboarded(sess)) {
+        navigate({ to: "/verification", replace: true });
+      } else {
+        navigate({ to: "/registration", replace: true });
+      }
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

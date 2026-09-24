@@ -806,11 +806,23 @@ async def update_rider(rider_id: str, payload: AdminRiderUpdatePayload, user: Us
     return await database.find_one("rider_profiles", {"_id": target_id})
 
 
-async def _rider_transition(rider_id: str, new_status: str, action: str, user: User):
-    rider = await admin_rider_repository.set_status(rider_id, new_status)
+async def _rider_transition(
+    rider_id: str,
+    new_status: str,
+    action: str,
+    user: User,
+    reason: str | None = None,
+    rejected_docs: list | None = None,
+):
+    rider = await admin_rider_repository.set_status(
+        rider_id,
+        new_status,
+        reason=reason,
+        rejected_documents=rejected_docs,
+    )
     if rider is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rider not found")
-    await audit_repository.log(await _actor(user), f"rider.{action}", rider_id)
+    await audit_repository.log(await _actor(user), f"rider.{action}", rider_id, {"reason": reason, "rejectedDocuments": rejected_docs})
     return rider
 
 
@@ -826,7 +838,7 @@ async def suspend_rider(rider_id: str, body: dict | None = None, user: User = De
     now_iso = datetime.now(timezone.utc).isoformat()
     await database.update("rider_profiles", {"_id": rider_id}, {"suspensionReason": reason, "suspendedAt": now_iso, "appealStatus": "none"})
     await database.update("rider_profiles", {"riderId": rider_id}, {"suspensionReason": reason, "suspendedAt": now_iso, "appealStatus": "none"})
-    return await _rider_transition(rider_id, "suspended", "suspend", user)
+    return await _rider_transition(rider_id, "suspended", "suspend", user, reason=reason)
 
 
 @router.post("/riders/{rider_id}/activate")
@@ -839,8 +851,17 @@ async def activate_rider(rider_id: str, user: User = Depends(current_user)):
 
 
 @router.post("/riders/{rider_id}/reject")
-async def reject_rider(rider_id: str, user: User = Depends(current_user)):
-    return await _rider_transition(rider_id, "suspended", "reject", user)
+async def reject_rider(rider_id: str, body: dict | None = None, user: User = Depends(current_user)):
+    reason = (body or {}).get("reason") or "Documents verification failed"
+    rejected_docs = (body or {}).get("rejectedDocuments") or []
+    return await _rider_transition(
+        rider_id,
+        "rejected",
+        "reject",
+        user,
+        reason=reason,
+        rejected_docs=rejected_docs,
+    )
 
 
 @router.delete("/riders/{rider_id}")

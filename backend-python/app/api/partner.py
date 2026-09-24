@@ -1108,6 +1108,28 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                 detail=f"This Email address ({clean_email}) is already registered with another store."
             )
 
+    # 4. GSTIN Uniqueness Check
+    clean_gstin = str(payload.gstin or "").replace(" ", "").strip().upper()
+    if clean_gstin and len(clean_gstin) == 15:
+        existing_gstin = await database.find_one("partner_profiles", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}})
+        if not existing_gstin:
+            existing_gstin = await database.find_one("partners", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}})
+        if existing_gstin:
+            raise HTTPException(
+                status_code=400,
+                detail=f"This GSTIN ({clean_gstin}) is already registered with another store ({existing_gstin.get('businessName', 'Partner')}).",
+            )
+
+    # 5. Bank Account Uniqueness Check
+    clean_bank = str(getattr(payload, "accountNumber", "") or "").strip()
+    if clean_bank and len(clean_bank) >= 8:
+        existing_bank = await database.find_one("partner_profiles", {"accountNumber": clean_bank, "_id": {"$ne": store_id_str}})
+        if existing_bank:
+            raise HTTPException(
+                status_code=400,
+                detail=f"This Bank Account (XX{clean_bank[-4:]}) is already linked with another partner store.",
+            )
+
     changes = {
         "_id": store_id_str,
         "partnerId": store_id_str,

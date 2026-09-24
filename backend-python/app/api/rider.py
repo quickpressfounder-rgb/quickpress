@@ -367,6 +367,129 @@ async def get_onboarding_status(
     }
 
 
+async def _check_rider_uniqueness(
+    *,
+    current_rider_id: str,
+    phone: str,
+    aadhaar: str = "",
+    pan: str = "",
+    vehicle_number: str = "",
+    license_number: str = "",
+    account_number: str = "",
+):
+    """Ensure Phone, Aadhaar, PAN, Vehicle/RC Plate, Driving License and Bank Account
+    can only be registered ONCE across all riders in QuickPress.
+    """
+    import re
+    # 1. Phone number check
+    if phone:
+        clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
+        if len(clean_phone) == 10:
+            query = {
+                "$or": [
+                    {"phone": phone},
+                    {"phone": clean_phone},
+                    {"phone": f"+91{clean_phone}"},
+                    {"mobile": clean_phone},
+                    {"mobile": f"+91{clean_phone}"},
+                ],
+                "_id": {"$ne": current_rider_id},
+            }
+            dup = await database.find_one("rider_profiles", query)
+            if not dup:
+                dup = await database.find_one("riders", {"phone": clean_phone, "rider_id": {"$ne": current_rider_id}})
+            if dup:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"यह मोबाइल नंबर (+91 {clean_phone}) पहले से QuickPress में किसी अन्य राइडर के साथ रजिस्टर्ड है।",
+                )
+
+    # 2. Aadhaar Uniqueness Check
+    clean_aadhaar = re.sub(r"\D", "", aadhaar or "")
+    if len(clean_aadhaar) == 12:
+        dup = await database.find_one(
+            "rider_profiles",
+            {"aadhaar": clean_aadhaar, "_id": {"$ne": current_rider_id}},
+        )
+        if not dup:
+            dup = await database.find_one("admin_riders", {"aadhaar": clean_aadhaar, "_id": {"$ne": current_rider_id}})
+        if dup:
+            raise HTTPException(
+                status_code=400,
+                detail=f"यह आधार नंबर (XXXX-XXXX-{clean_aadhaar[-4:]}) पहले से QuickPress में रजिस्टर्ड है। एक आधार से केवल एक राइडर रजिस्टर हो सकता है।",
+            )
+
+    # 3. PAN Uniqueness Check
+    clean_pan = (pan or "").strip().upper()
+    if len(clean_pan) == 10:
+        dup = await database.find_one(
+            "rider_profiles",
+            {"pan": clean_pan, "_id": {"$ne": current_rider_id}},
+        )
+        if not dup:
+            dup = await database.find_one("admin_riders", {"pan": clean_pan, "_id": {"$ne": current_rider_id}})
+        if dup:
+            raise HTTPException(
+                status_code=400,
+                detail=f"यह पैन कार्ड नंबर ({clean_pan}) पहले से QuickPress में रजिस्टर्ड है।",
+            )
+
+    # 4. Vehicle / RC Number Uniqueness Check
+    clean_rc = re.sub(r"[^A-Za-z0-9]", "", vehicle_number or "").upper()
+    if len(clean_rc) >= 6:
+        dup = await database.find_one(
+            "rider_profiles",
+            {
+                "$or": [
+                    {"vehicleNumber": vehicle_number.strip().upper()},
+                    {"vehicleNumber": clean_rc},
+                    {"rcNumber": vehicle_number.strip().upper()},
+                    {"rcNumber": clean_rc},
+                ],
+                "_id": {"$ne": current_rider_id},
+            },
+        )
+        if dup:
+            raise HTTPException(
+                status_code=400,
+                detail=f"यह वाहन नंबर ({vehicle_number.strip().upper()}) पहले से QuickPress में किसी अन्य राइडर के साथ रजिस्टर्ड है।",
+            )
+
+    # 5. Driving License Uniqueness Check
+    clean_dl = re.sub(r"[^A-Za-z0-9]", "", license_number or "").upper()
+    if len(clean_dl) >= 8:
+        dup = await database.find_one(
+            "rider_profiles",
+            {
+                "$or": [
+                    {"license": license_number.strip().upper()},
+                    {"license": clean_dl},
+                    {"dlNumber": license_number.strip().upper()},
+                    {"dlNumber": clean_dl},
+                ],
+                "_id": {"$ne": current_rider_id},
+            },
+        )
+        if dup:
+            raise HTTPException(
+                status_code=400,
+                detail=f"यह ड्राइविंग लाइसेंस ({license_number.strip().upper()}) पहले से QuickPress में रजिस्टर्ड है।",
+            )
+
+    # 6. Bank Account Uniqueness Check
+    clean_bank = (account_number or "").strip()
+    if len(clean_bank) >= 8:
+        dup = await database.find_one(
+            "rider_profiles",
+            {"accountNumber": clean_bank, "_id": {"$ne": current_rider_id}},
+        )
+        if dup:
+            raise HTTPException(
+                status_code=400,
+                detail=f"यह बैंक खाता नंबर (XX{clean_bank[-4:]}) पहले से किसी अन्य राइडर पेआउट खाते में रजिस्टर्ड है।",
+            )
+
+
 @router.post("/onboarding")
 async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> dict:
     payload = body.get("payload", body)
@@ -389,9 +512,20 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
     if candidate_name in ("Delivery Partner", "Delivery Captain"):
         candidate_name = ""
     full_name = candidate_name
-    phone = payload.get("mobile") or user.phone or ""
+    phone = payload.get("phone") or payload.get("mobile") or user.phone or ""
     email = payload.get("email") or user.email or ""
     city = payload.get("city") or payload.get("preferredCity") or "Kasganj"
+
+    # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank
+    await _check_rider_uniqueness(
+        current_rider_id=rider_id_str,
+        phone=phone,
+        aadhaar=payload.get("aadhaar", ""),
+        pan=payload.get("pan", ""),
+        vehicle_number=payload.get("vehicleNumber") or payload.get("rcNumber", ""),
+        license_number=payload.get("license") or payload.get("dlNumber", ""),
+        account_number=payload.get("accountNumber", ""),
+    )
 
     # Extract operating pincodes & territory
     raw_operating_pins = payload.get("operatingPincodes") or payload.get("pincodes") or []
@@ -421,6 +555,7 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "fullName": full_name,
         "name": full_name,
         "phone": phone,
+        "mobile": phone,
         "email": email,
         "dob": payload.get("dob", ""),
         "gender": payload.get("gender", "Male"),
@@ -466,7 +601,8 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "vehicleNumber": payload.get("vehicleNumber", ""),
         "chassisNumber": payload.get("chassisNumber", ""),
         "engineNumber": payload.get("engineNumber", ""),
-        "vehiclePhoto": payload.get("vehiclePhoto") or payload.get("bikePhoto", ""),
+        "vehiclePhoto": payload.get("vehiclePhoto") or payload.get("bikePhoto") or payload.get("bikePhotoUrl", ""),
+        "bikePhoto": payload.get("bikePhoto") or payload.get("bikePhotoUrl") or payload.get("vehiclePhoto", ""),
         # RC
         "rcNumber": payload.get("rcNumber") or payload.get("vehicleNumber", ""),
         "rcFront": payload.get("rcFront", ""),
@@ -485,6 +621,8 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "ifsc": payload.get("ifsc", ""),
         "branch": payload.get("branch", ""),
         "upiId": payload.get("upiId", ""),
+        "passbookPhoto": payload.get("passbookPhoto") or payload.get("passbookUrl", ""),
+        "cancelledCheque": payload.get("cancelledCheque") or payload.get("cancelledChequeUrl", ""),
         "bankVerified": bool(payload.get("bankVerified", True)),
         # Preferences
         "preferredCity": payload.get("preferredCity", city),
@@ -496,7 +634,11 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "termsAccepted": bool(payload.get("termsAccepted", True)),
         # Status
         "status": "pending",
+        "kycStatus": "pending",
         "isVerified": False,
+        "is_verified": False,
+        "isOnboarded": True,
+        "is_onboarded": True,
         "isOnline": False,
         "rating": 5.0,
         "totalDeliveries": 0,
@@ -524,6 +666,18 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
     if payload.get("selfieUrl") or payload.get("photoUrl"):
         selfie_img = payload.get("selfieUrl") or payload.get("photoUrl")
         kyc_doc_list.append({"id": "selfie", "type": "Captain Profile Photo / Selfie", "name": "Live Selfie", "documentUrl": selfie_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("bikePhoto") or payload.get("vehiclePhoto") or payload.get("bikePhotoUrl"):
+        bike_img = payload.get("bikePhoto") or payload.get("vehiclePhoto") or payload.get("bikePhotoUrl")
+        kyc_doc_list.append({"id": "bike_photo", "type": "Vehicle / Bike Photo", "name": "Bike Photo", "documentUrl": bike_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("passbookPhoto") or payload.get("passbookUrl"):
+        pass_img = payload.get("passbookPhoto") or payload.get("passbookUrl")
+        kyc_doc_list.append({"id": "bank_passbook", "type": "Bank Passbook (Front Page)", "name": "Bank Passbook", "documentUrl": pass_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("cancelledCheque") or payload.get("cancelledChequeUrl"):
+        cheque_img = payload.get("cancelledCheque") or payload.get("cancelledChequeUrl")
+        kyc_doc_list.append({"id": "cancelled_cheque", "type": "Cancelled Cheque", "name": "Cancelled Cheque", "documentUrl": cheque_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("agreementSignature") or payload.get("signatureUrl"):
+        sig_img = payload.get("agreementSignature") or payload.get("signatureUrl")
+        kyc_doc_list.append({"id": "agreement_signature", "type": "Digital Agreement Signature", "name": "E-Signature", "documentUrl": sig_img, "status": "Signed", "uploadedAt": datetime.now(timezone.utc).isoformat()})
 
     profile_data["documents"] = kyc_doc_list
     profile_data["kycDocuments"] = kyc_doc_list
@@ -566,6 +720,13 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "rcFront": payload.get("rcFront", ""),
         "rcBack": payload.get("rcBack", ""),
         "selfieUrl": payload.get("selfieUrl") or payload.get("photoUrl", ""),
+        "bikePhoto": payload.get("bikePhoto") or payload.get("bikePhotoUrl") or payload.get("vehiclePhoto", ""),
+        "passbookPhoto": payload.get("passbookPhoto") or payload.get("passbookUrl", ""),
+        "cancelledCheque": payload.get("cancelledCheque") or payload.get("cancelledChequeUrl", ""),
+        "agreementSignature": payload.get("agreementSignature") or payload.get("signatureUrl", ""),
+        "agreementSignedAt": payload.get("agreementSignedAt") or datetime.now(timezone.utc).isoformat(),
+        "isOnboarded": True,
+        "is_onboarded": True,
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
@@ -633,8 +794,19 @@ async def submit_registration(body: dict) -> dict:
     full_name = payload.get("fullName") or payload.get("name") or ""
     if full_name in ("Delivery Partner", "Delivery Captain"):
         full_name = ""
-    phone = payload.get("mobile", "")
+    phone = payload.get("phone") or payload.get("mobile", "")
     city = payload.get("city") or payload.get("preferredCity") or "Kasganj"
+
+    # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank
+    await _check_rider_uniqueness(
+        current_rider_id=rider_id,
+        phone=phone,
+        aadhaar=payload.get("aadhaar", ""),
+        pan=payload.get("pan", ""),
+        vehicle_number=payload.get("vehicleNumber") or payload.get("rcNumber", ""),
+        license_number=payload.get("license") or payload.get("dlNumber", ""),
+        account_number=payload.get("accountNumber", ""),
+    )
 
     profile_data = {
         "_id": rider_id,
@@ -642,6 +814,7 @@ async def submit_registration(body: dict) -> dict:
         "fullName": full_name,
         "name": full_name,
         "phone": phone,
+        "mobile": phone,
         "email": payload.get("email", ""),
         "dob": payload.get("dob", ""),
         "gender": payload.get("gender", "Male"),
@@ -681,7 +854,8 @@ async def submit_registration(body: dict) -> dict:
         "vehicleNumber": payload.get("vehicleNumber", ""),
         "chassisNumber": payload.get("chassisNumber", ""),
         "engineNumber": payload.get("engineNumber", ""),
-        "vehiclePhoto": payload.get("vehiclePhoto") or payload.get("bikePhoto", ""),
+        "vehiclePhoto": payload.get("vehiclePhoto") or payload.get("bikePhoto") or payload.get("bikePhotoUrl", ""),
+        "bikePhoto": payload.get("bikePhoto") or payload.get("bikePhotoUrl") or payload.get("vehiclePhoto", ""),
         # RC
         "rcNumber": payload.get("rcNumber") or payload.get("vehicleNumber", ""),
         "rcFront": payload.get("rcFront", ""),
@@ -700,6 +874,8 @@ async def submit_registration(body: dict) -> dict:
         "ifsc": payload.get("ifsc", ""),
         "branch": payload.get("branch", ""),
         "upiId": payload.get("upiId", ""),
+        "passbookPhoto": payload.get("passbookPhoto") or payload.get("passbookUrl", ""),
+        "cancelledCheque": payload.get("cancelledCheque") or payload.get("cancelledChequeUrl", ""),
         "bankVerified": bool(payload.get("bankVerified", True)),
         # Preferences
         "preferredCity": payload.get("preferredCity", city),
@@ -712,8 +888,11 @@ async def submit_registration(body: dict) -> dict:
         "termsAccepted": bool(payload.get("termsAccepted", True)),
         # Status
         "status": "pending",
+        "kycStatus": "pending",
         "isVerified": False,
+        "is_verified": False,
         "isOnboarded": True,
+        "is_onboarded": True,
         "isOnline": False,
         "rating": 5.0,
         "totalDeliveries": 0,
@@ -721,6 +900,42 @@ async def submit_registration(body: dict) -> dict:
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
+
+    # Build structured documents list for KYC review
+    kyc_doc_list = []
+    if payload.get("aadhaarFront"):
+        kyc_doc_list.append({"id": "aadhaar_front", "type": "Aadhaar Card (Front)", "name": "Aadhaar Front", "documentUrl": payload["aadhaarFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("aadhaarBack"):
+        kyc_doc_list.append({"id": "aadhaar_back", "type": "Aadhaar Card (Back)", "name": "Aadhaar Back", "documentUrl": payload["aadhaarBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("panCard"):
+        kyc_doc_list.append({"id": "pan_card", "type": "PAN Card", "name": "PAN Card", "documentUrl": payload["panCard"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("dlFront"):
+        kyc_doc_list.append({"id": "dl_front", "type": "Driving License (Front)", "name": "DL Front", "documentUrl": payload["dlFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("dlBack"):
+        kyc_doc_list.append({"id": "dl_back", "type": "Driving License (Back)", "name": "DL Back", "documentUrl": payload["dlBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("rcFront"):
+        kyc_doc_list.append({"id": "rc_front", "type": "RC Certificate (Front)", "name": "RC Front", "documentUrl": payload["rcFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("rcBack"):
+        kyc_doc_list.append({"id": "rc_back", "type": "RC Certificate (Back)", "name": "RC Back", "documentUrl": payload["rcBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("selfieUrl") or payload.get("photoUrl"):
+        selfie_img = payload.get("selfieUrl") or payload.get("photoUrl")
+        kyc_doc_list.append({"id": "selfie", "type": "Captain Profile Photo / Selfie", "name": "Live Selfie", "documentUrl": selfie_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("bikePhoto") or payload.get("vehiclePhoto") or payload.get("bikePhotoUrl"):
+        bike_img = payload.get("bikePhoto") or payload.get("vehiclePhoto") or payload.get("bikePhotoUrl")
+        kyc_doc_list.append({"id": "bike_photo", "type": "Vehicle / Bike Photo", "name": "Bike Photo", "documentUrl": bike_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("passbookPhoto") or payload.get("passbookUrl"):
+        pass_img = payload.get("passbookPhoto") or payload.get("passbookUrl")
+        kyc_doc_list.append({"id": "bank_passbook", "type": "Bank Passbook (Front Page)", "name": "Bank Passbook", "documentUrl": pass_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("cancelledCheque") or payload.get("cancelledChequeUrl"):
+        cheque_img = payload.get("cancelledCheque") or payload.get("cancelledChequeUrl")
+        kyc_doc_list.append({"id": "cancelled_cheque", "type": "Cancelled Cheque", "name": "Cancelled Cheque", "documentUrl": cheque_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("agreementSignature") or payload.get("signatureUrl"):
+        sig_img = payload.get("agreementSignature") or payload.get("signatureUrl")
+        kyc_doc_list.append({"id": "agreement_signature", "type": "Digital Agreement Signature", "name": "E-Signature", "documentUrl": sig_img, "status": "Signed", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+
+    profile_data["documents"] = kyc_doc_list
+    profile_data["kycDocuments"] = kyc_doc_list
+
     await database.insert("rider_profiles", profile_data)
     await database.insert(
         "rider_wallets",
@@ -755,11 +970,28 @@ async def submit_registration(body: dict) -> dict:
         "completedDeliveries": 0,
         "walletBalance": 0.0,
         "cashInHand": 0.0,
+        "documents": kyc_doc_list,
+        "kycDocuments": kyc_doc_list,
+        "aadhaarFront": payload.get("aadhaarFront", ""),
+        "aadhaarBack": payload.get("aadhaarBack", ""),
+        "panCard": payload.get("panCard", ""),
+        "dlFront": payload.get("dlFront", ""),
+        "dlBack": payload.get("dlBack", ""),
+        "rcFront": payload.get("rcFront", ""),
+        "rcBack": payload.get("rcBack", ""),
+        "selfieUrl": payload.get("selfieUrl") or payload.get("photoUrl", ""),
+        "bikePhoto": payload.get("bikePhoto") or payload.get("bikePhotoUrl") or payload.get("vehiclePhoto", ""),
+        "passbookPhoto": payload.get("passbookPhoto") or payload.get("passbookUrl", ""),
+        "cancelledCheque": payload.get("cancelledCheque") or payload.get("cancelledChequeUrl", ""),
+        "agreementSignature": payload.get("agreementSignature") or payload.get("signatureUrl", ""),
+        "agreementSignedAt": payload.get("agreementSignedAt") or datetime.now(timezone.utc).isoformat(),
+        "isOnboarded": True,
+        "is_onboarded": True,
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
     await database.update("admin_riders", {"_id": rider_id}, admin_rider_doc, upsert=True)
-    await database.update("riders", {"rider_id": rider_id}, {"_id": rider_id, "rider_id": rider_id, "name": full_name, "phone": phone, "status": "pending", "is_verified": False}, upsert=True)
+    await database.update("riders", {"rider_id": rider_id}, {"_id": rider_id, "rider_id": rider_id, "name": full_name, "phone": phone, "status": "pending", "is_verified": False, "isOnboarded": True, "is_onboarded": True}, upsert=True)
 
     # Sync with users collection if exists
     if phone:
@@ -771,19 +1003,24 @@ async def submit_registration(body: dict) -> dict:
                 {
                     "is_onboarded": True,
                     "is_verified": False,
+                    "role": "rider",
+                    "status": "pending",
                     "display_name": full_name,
                     "city": city,
                     "linked_id": rider_id,
                 },
             )
+
     return {
         "ok": True,
         "riderId": rider_id,
         "fullName": full_name,
         "phone": phone,
         "status": "pending",
+        "kycStatus": "pending",
         "isVerified": False,
         "isOnboarded": True,
+        "is_onboarded": True,
         "message": "Registration submitted successfully. Waiting for admin approval.",
     }
 
@@ -1249,7 +1486,7 @@ async def get_rider_verification_status(
             "city": "",
             "vehicleType": "",
             "vehicleNumber": "",
-            "status": "pending",
+            "status": "not_registered",
             "kycStatus": "pending",
             "isVerified": False,
             "isApproved": False,
@@ -1324,7 +1561,9 @@ async def get_rider_verification_status(
         or profile_status == "active"
         or (profile_status == "active" and kyc_status == "verified")
     )
-    rejection_reason = profile.get("kycReason") or profile.get("rejectionReason") or None
+    is_rejected = profile_status in ("rejected", "suspended") or kyc_status == "rejected"
+    rejection_reason = profile.get("rejectionReason") or profile.get("kycReason") or None
+    rejected_docs = [str(x).lower() for x in (profile.get("rejectedDocuments") or [])]
 
     raw_user_name = getattr(user, "name", "") or getattr(user, "display_name", "") or ""
     if raw_user_name in ("Delivery Partner", "Delivery Captain"):
@@ -1336,6 +1575,18 @@ async def get_rider_verification_status(
     vehicle_number = profile.get("vehicleNumber") or ""
     vehicle_type = profile.get("vehicleType") or "Bike"
     created_at = profile.get("createdAt") or profile.get("registrationTimestamp") or datetime.now(timezone.utc).isoformat()
+
+    def get_doc_status(doc_key: str):
+        if is_verified:
+            return "verified"
+        if is_rejected:
+            if doc_key.lower() in rejected_docs:
+                return "rejected"
+            if not rejected_docs:
+                if rejection_reason and (doc_key.lower() in rejection_reason.lower() or (doc_key == "dl" and "license" in rejection_reason.lower())):
+                    return "rejected"
+                return "rejected"
+        return "submitted"
 
     steps = [
         {
@@ -1353,23 +1604,24 @@ async def get_rider_verification_status(
         {
             "id": "step_3",
             "title": "Admin Document Review & Background Check",
-            "status": "completed" if is_verified else ("rejected" if kyc_status == "rejected" else "in_progress"),
-            "desc": "All documents approved by Kasganj Admin" if is_verified else ("Verification rejected by Admin" if kyc_status == "rejected" else "Kasganj Hub Verification Desk is reviewing your documents"),
+            "status": "completed" if is_verified else ("rejected" if is_rejected else "in_progress"),
+            "desc": "All documents approved by Kasganj Admin" if is_verified else (f"Rejected by Admin: {rejection_reason}" if (is_rejected and rejection_reason) else ("Verification rejected by Admin" if is_rejected else "Kasganj Hub Verification Desk is reviewing your documents")),
         },
         {
             "id": "step_4",
             "title": "Captain Account Activation & Dispatch Ready",
             "status": "completed" if is_verified else "pending",
-            "desc": "Live order dispatch and daily earnings unlocked" if is_verified else "Awaiting Admin approval",
+            "desc": "Live order dispatch and daily earnings unlocked" if is_verified else ("Awaiting document corrections & Admin approval" if is_rejected else "Awaiting Admin approval"),
         },
     ]
 
     documents = [
-        {"id": "aadhaar", "name": "Aadhaar Card (Front & Back)", "status": "verified" if is_verified else ("rejected" if kyc_status == "rejected" else "submitted"), "required": True},
-        {"id": "dl", "name": "Driving License (DL)", "status": "verified" if is_verified else ("rejected" if kyc_status == "rejected" else "submitted"), "required": True},
-        {"id": "rc", "name": "Vehicle Registration (RC)", "status": "verified" if is_verified else ("rejected" if kyc_status == "rejected" else "submitted"), "required": True},
-        {"id": "selfie", "name": "Live Profile Selfie Photo", "status": "verified" if is_verified else ("rejected" if kyc_status == "rejected" else "submitted"), "required": True},
-        {"id": "bank", "name": "Bank Account & UPI Details", "status": "verified" if is_verified else ("rejected" if kyc_status == "rejected" else "submitted"), "required": True},
+        {"id": "aadhaar", "name": "Aadhaar Card (Front & Back)", "status": get_doc_status("aadhaar"), "required": True, "rejectionReason": rejection_reason if get_doc_status("aadhaar") == "rejected" else None},
+        {"id": "dl", "name": "Driving License (DL)", "status": get_doc_status("dl"), "required": True, "rejectionReason": rejection_reason if get_doc_status("dl") == "rejected" else None},
+        {"id": "rc", "name": "Vehicle Registration (RC)", "status": get_doc_status("rc"), "required": True, "rejectionReason": rejection_reason if get_doc_status("rc") == "rejected" else None},
+        {"id": "selfie", "name": "Live Profile Selfie Photo", "status": get_doc_status("selfie"), "required": True, "rejectionReason": rejection_reason if get_doc_status("selfie") == "rejected" else None},
+        {"id": "bank", "name": "Bank Account & UPI Details", "status": get_doc_status("bank"), "required": True, "rejectionReason": rejection_reason if get_doc_status("bank") == "rejected" else None},
+        {"id": "agreement", "name": "Partner Agreement & E-Signature", "status": "verified" if bool(profile.get("agreementSignature") or profile.get("signatureUrl")) else ("rejected" if get_doc_status("agreement") == "rejected" else "submitted"), "required": True, "rejectionReason": rejection_reason if get_doc_status("agreement") == "rejected" else None},
     ]
 
     return {
@@ -1379,14 +1631,15 @@ async def get_rider_verification_status(
         "city": city,
         "vehicleType": vehicle_type,
         "vehicleNumber": vehicle_number,
-        "status": "active" if is_verified else ("rejected" if kyc_status == "rejected" else "pending"),
-        "kycStatus": "verified" if is_verified else kyc_status,
+        "status": "active" if is_verified else ("rejected" if is_rejected else "pending"),
+        "kycStatus": "verified" if is_verified else ("rejected" if is_rejected else kyc_status),
         "isVerified": is_verified,
         "isApproved": is_verified,
         "isOnboarded": True,
         "submittedAt": created_at,
         "estimatedTime": "Usually within 24 – 48 Hours",
         "rejectionReason": rejection_reason,
+        "rejectedDocuments": rejected_docs,
         "steps": steps,
         "documents": documents,
         "support": {
