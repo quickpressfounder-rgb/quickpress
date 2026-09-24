@@ -31,7 +31,10 @@ export interface RiderVerificationStatusResponse {
   submittedAt: string;
   estimatedTime: string;
   rejectionReason?: string | null;
-  rejectedDocuments?: string[];
+  resubmitted?: boolean;
+  resubmittedAt?: string;
+  resubmissionCount?: number;
+  draftData?: Record<string, any>;
   steps: VerificationStep[];
   documents: VerificationDocument[];
   support: {

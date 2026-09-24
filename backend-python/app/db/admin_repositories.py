@@ -1819,6 +1819,10 @@ class AdminRiderRepository:
                 or "1970-01-01T00:00:00+00:00"
             )
             last_login_ts = row.get("updated_at") or row.get("last_login_at") or p.get("updatedAt") or reg_ts
+            is_resub = bool(p.get("resubmitted") or row.get("resubmitted"))
+            resub_at = p.get("resubmittedAt") or row.get("resubmittedAt") or ""
+            resub_count = int(p.get("resubmissionCount") or row.get("resubmissionCount") or 0)
+            rej_reason = p.get("rejectionReason") or p.get("kycReason") or row.get("rejectionReason") or ""
 
             merged_riders.append({
                 "id": target_id,
@@ -1846,6 +1850,10 @@ class AdminRiderRepository:
                 "kyc": kyc_val,
                 "live": current_live,
                 "status": status_val,
+                "resubmitted": is_resub,
+                "resubmittedAt": str(resub_at) if resub_at else "",
+                "resubmissionCount": resub_count,
+                "rejectionReason": rej_reason,
             })
 
         # Apply search filter
@@ -1876,9 +1884,9 @@ class AdminRiderRepository:
         if live_state and live_state != "all":
             merged_riders = [r for r in merged_riders if str(r.get("live") or "").lower() == live_state.lower()]
 
-        # Sort merged_riders DESCENDING by registrationTimestamp so newly registered riders ALWAYS appear at the very TOP
+        # Sort merged_riders DESCENDING by resubmittedAt or registrationTimestamp so newly registered/resubmitted riders ALWAYS appear at the very TOP
         merged_riders.sort(
-            key=lambda r: str(r.get("registrationTimestamp") or r.get("joinedOn") or ""),
+            key=lambda r: str(r.get("resubmittedAt") or r.get("registrationTimestamp") or r.get("joinedOn") or ""),
             reverse=True
         )
 
@@ -2164,6 +2172,9 @@ class AdminRiderRepository:
             "termsAccepted": bool(pdoc.get("termsAccepted", True)),
             "rejectionReason": pdoc.get("rejectionReason") or pdoc.get("kycReason") or None,
             "rejectedDocuments": pdoc.get("rejectedDocuments") or [],
+            "resubmitted": bool(pdoc.get("resubmitted") or doc.get("resubmitted")),
+            "resubmittedAt": str(pdoc.get("resubmittedAt") or doc.get("resubmittedAt") or ""),
+            "resubmissionCount": int(pdoc.get("resubmissionCount") or doc.get("resubmissionCount") or 0),
         }
 
         # Format document numbers & status

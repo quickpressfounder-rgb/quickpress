@@ -27,6 +27,10 @@ export type AdminRider = {
   kyc: "Verified" | "Pending" | "Rejected";
   live: "Online" | "Offline" | "On delivery";
   status: "Active" | "Pending" | "Suspended";
+  resubmitted?: boolean;
+  resubmittedAt?: string;
+  resubmissionCount?: number;
+  rejectionReason?: string;
   raw?: any;
 };
 
@@ -196,11 +200,13 @@ function toAdminRider(row: any): AdminRider {
   const rating = (Number(row.rating ?? 5.0)).toFixed(1);
   const isOnline = Boolean(row.isOnline || row.is_available || row.live === "Online" || row.live === "On delivery");
 
+  const isResubmitted = Boolean(row.resubmitted);
+
   let status: AdminRider["status"] = "Active";
   const rawStatus = String(row.status || "").toLowerCase();
-  if (rawStatus === "pending") {
+  if (rawStatus === "pending" || isResubmitted) {
     status = "Pending";
-  } else if (rawStatus === "suspended") {
+  } else if (rawStatus === "suspended" || rawStatus === "rejected") {
     status = "Suspended";
   } else {
     status = "Active";
@@ -208,7 +214,7 @@ function toAdminRider(row: any): AdminRider {
 
   let kyc: AdminRider["kyc"] = "Verified";
   const rawKyc = String(row.kyc || row.kycStatus || "").toLowerCase();
-  if (rawKyc === "pending") {
+  if (rawKyc === "pending" || isResubmitted) {
     kyc = "Pending";
   } else if (rawKyc === "rejected" || status === "Suspended") {
     kyc = "Rejected";
@@ -253,6 +259,10 @@ function toAdminRider(row: any): AdminRider {
     kyc,
     live: liveState,
     status,
+    resubmitted: isResubmitted,
+    resubmittedAt: row.resubmittedAt ? String(row.resubmittedAt) : undefined,
+    resubmissionCount: typeof row.resubmissionCount === "number" ? row.resubmissionCount : undefined,
+    rejectionReason: row.rejectionReason || row.kycReason || undefined,
     raw: row,
   };
 }

@@ -23,6 +23,7 @@ import {
   MapPin,
   PenTool,
   RefreshCw,
+  RotateCcw,
   Scale,
   Search,
   ShieldAlert,
@@ -428,6 +429,9 @@ export function RiderRegistrationScreen() {
   const [customPincodeMode, setCustomPincodeMode] = useState<boolean>(false);
   const [emergencyPhone, setEmergencyPhone] = useState<string>("");
 
+  const [rejectionNotice, setRejectionNotice] = useState<string | null>(null);
+  const [isResubmissionFlow, setIsResubmissionFlow] = useState<boolean>(false);
+
   // STEP 2: Identity (Aadhaar or PAN) + Candidate Photo / Selfie (Upload or Live Click)
   const [kycDocMode, setKycDocMode] = useState<"aadhaar" | "pan">("aadhaar");
 
@@ -662,31 +666,79 @@ export function RiderRegistrationScreen() {
     };
   }, [currentStep]);
 
-  // Safeguard: Check verification status on mount - NEVER allow already submitted applicant back into form
+  // Safeguard & Prefill: Check verification status on mount - Allow resubmission/edit if rejected or ?resubmit=true
   useEffect(() => {
     let active = true;
+    const urlParams = new URLSearchParams(window.location.search);
+    const isResubmitParam = urlParams.get("resubmit") === "true" || urlParams.get("edit") === "true";
+
     fetchRiderVerificationStatus()
       .then((statusRes) => {
         if (!active || !statusRes) return;
         if (statusRes.isApproved || statusRes.isVerified) {
           toast.success("Account already approved. Opening Hub...");
           navigate({ to: "/dashboard", replace: true });
-        } else if (statusRes.isOnboarded) {
+        } else if (statusRes.isOnboarded && !isResubmitParam && statusRes.status !== "rejected" && statusRes.kycStatus !== "rejected") {
           navigate({ to: "/verification", replace: true });
         } else {
-          // If server reports applicant is not yet onboarded, keep local session clean
-          const current = readSession("rider") || readSession();
-          if (current && (current.isOnboarded || (current.account as any)?.isOnboarded)) {
-            writeSession({
-              ...current,
-              isOnboarded: false,
-              is_onboarded: false,
-              account: {
-                ...(current.account || {}),
-                isOnboarded: false,
-                is_onboarded: false,
-              },
-            }, "rider");
+          if (isResubmitParam || statusRes.status === "rejected" || statusRes.kycStatus === "rejected") {
+            setIsResubmissionFlow(true);
+          }
+          if (statusRes.rejectionReason) {
+            setRejectionNotice(statusRes.rejectionReason);
+          }
+          // Pre-fill form from existing profile if available
+          if (statusRes.draftData) {
+            const d = statusRes.draftData;
+            if (d.fullName) setFullName((prev) => prev || d.fullName);
+            if (d.gender) setGender((prev) => prev || d.gender);
+            if (d.dob) setDob((prev) => prev || d.dob);
+            if (d.city) setSelectedCity((prev) => prev || d.city);
+            if (d.pincode) setPincode((prev) => prev || d.pincode);
+            if (d.emergencyPhone) setEmergencyPhone((prev) => prev || d.emergencyPhone);
+            if (d.aadhaar) setAadhaarNumber((prev) => prev || d.aadhaar);
+            if (d.aadhaarFront) setAadhaarFrontUrl((prev) => prev || d.aadhaarFront);
+            if (d.aadhaarBack) setAadhaarBackUrl((prev) => prev || d.aadhaarBack);
+            if (d.pan) {
+              setPanNumber((prev) => prev || d.pan);
+              setPanVerified(true);
+            }
+            if (d.panCard) setPanCardUrl((prev) => prev || d.panCard);
+            if (d.selfieUrl) {
+              setSelfieUrl((prev) => prev || d.selfieUrl);
+              setSelfieVerified(true);
+            }
+            if (d.vehicleNumber) {
+              setVehicleNumber((prev) => prev || d.vehicleNumber);
+              setRcVerified(true);
+            }
+            if (d.vehicleType) setVehicleType((prev) => prev || (String(d.vehicleType).toLowerCase().includes("ev") ? "ev" : "bike"));
+            if (d.vehicleBrand) setSelectedBrand((prev) => prev || d.vehicleBrand);
+            if (d.vehicleModel) setSelectedModel((prev) => prev || d.vehicleModel);
+            if (d.bikePhoto) setBikePhotoUrl((prev) => prev || d.bikePhoto);
+            if (d.rcFront) setRcFrontUrl((prev) => prev || d.rcFront);
+            if (d.rcBack) setRcBackUrl((prev) => prev || d.rcBack);
+            if (d.license) {
+              setDrivingLicense((prev) => prev || d.license);
+              setDlVerified(true);
+            }
+            if (d.dlExpiry) setDlExpiry((prev) => prev || d.dlExpiry);
+            if (d.dlFront) setDlFrontUrl((prev) => prev || d.dlFront);
+            if (d.dlBack) setDlBackUrl((prev) => prev || d.dlBack);
+            if (d.bankName) setCustomBankName((prev) => prev || d.bankName);
+            if (d.accountNumber) {
+              setAccountNumber((prev) => prev || d.accountNumber);
+              setConfirmAccountNumber((prev) => prev || d.accountNumber);
+              setBankVerified(true);
+            }
+            if (d.ifsc) setIfsc((prev) => prev || d.ifsc);
+            if (d.upiId) setUpiId((prev) => prev || d.upiId);
+            if (d.passbookPhoto) setPassbookUrl((prev) => prev || d.passbookPhoto);
+            if (d.cancelledCheque) setCancelledChequeUrl((prev) => prev || d.cancelledCheque);
+            if (d.agreementSignature) {
+              setSignatureDataUrl((prev) => prev || d.agreementSignature);
+              setHasSignature(true);
+            }
           }
         }
       })
@@ -1335,6 +1387,8 @@ export function RiderRegistrationScreen() {
         kycStatus: "pending",
         isVerified: false,
         isOnboarded: true,
+        riderId: (session as any)?.account?.linkedId || (session as any)?.account?.id || (session as any)?.riderId || (session as any)?.id || "",
+        phone: targetPhone || session?.phone || phone,
       };
 
       const result = await submitRiderRegistration(payload);
@@ -1344,7 +1398,7 @@ export function RiderRegistrationScreen() {
         localStorage.setItem("qp_rider_government_name", officialApplicantName);
       } catch {}
 
-      toast.success("Application & Agreement submitted for Admin Approval! ✓");
+      toast.success(isResubmissionFlow ? "Updated application & documents re-submitted for Admin Approval! ✓" : "Application & Agreement submitted for Admin Approval! ✓");
       navigate({ to: "/verification", replace: true });
     } catch (err: any) {
       toast.error(err?.message || "Registration submission failed. Please retry.");
@@ -1450,6 +1504,24 @@ export function RiderRegistrationScreen() {
 
       {/* 3. Step Body */}
       <div className="p-4 flex-1">
+        {/* Resubmission / Correction Banner */}
+        {rejectionNotice && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 text-xs text-red-900 shadow-2xs">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-red-950">Previous Application Correction Request:</p>
+              <p className="mt-0.5 text-red-800 font-medium">{rejectionNotice}</p>
+              <p className="mt-1 text-[10px] text-red-700 font-semibold">Please check your details, upload corrected documents, and re-submit for Admin approval.</p>
+            </div>
+          </div>
+        )}
+        {!rejectionNotice && isResubmissionFlow && (
+          <div className="mb-4 p-2.5 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-center gap-2 text-xs text-indigo-900 shadow-2xs">
+            <RotateCcw className="w-4 h-4 text-indigo-600 shrink-0 animate-spin" />
+            <span className="font-bold">Editing & Updating Submitted Registration Details</span>
+          </div>
+        )}
+
         {/* ========================================================
             STEP 1: PERSONAL DATA
         ======================================================== */}

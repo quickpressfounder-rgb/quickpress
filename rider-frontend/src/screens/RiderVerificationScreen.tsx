@@ -251,9 +251,9 @@ export function RiderVerificationScreen() {
               type="button"
               onClick={() => {
                 triggerHaptic();
-                navigate({ to: "/registration" });
+                navigate({ to: "/registration", search: { resubmit: true } });
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-98 text-white font-black text-xs shadow-sm transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-98 text-white font-black text-xs shadow-sm transition-all cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Update & Re-Submit Documents</span>
@@ -278,6 +278,12 @@ export function RiderVerificationScreen() {
               <h2 className="text-lg font-black text-slate-900 mt-2">
                 Application Under Review
               </h2>
+              {data?.resubmitted && (
+                <div className="my-2 p-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold text-xs flex items-center justify-center gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5 text-indigo-700 animate-spin" />
+                  <span>Updated Documents Re-Submitted Successfully!</span>
+                </div>
+              )}
               <p className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">
                 Your Captain profile, driving license, and vehicle documents are currently being verified by the <strong>QuickPress Kasganj Admin Desk</strong>.
               </p>
@@ -299,10 +305,23 @@ export function RiderVerificationScreen() {
               type="button"
               onClick={() => loadStatus(true)}
               disabled={refreshing}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-500 active:scale-98 text-slate-950 font-black text-xs shadow-xs transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-amber-400 hover:bg-amber-500 active:scale-98 text-slate-950 font-black text-xs shadow-xs transition-all cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
               <span>{refreshing ? "Checking Admin Status..." : "Check Status Now 🔄"}</span>
+            </button>
+
+            {/* Update / Re-Fill Button for Pending Application */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic();
+                navigate({ to: "/registration", search: { resubmit: true } });
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-2xl bg-white hover:bg-slate-50 active:scale-98 text-slate-800 font-bold text-xs border border-amber-200 shadow-2xs transition-all cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
+              <span>Update & Edit Submitted Details</span>
             </button>
           </section>
         )}

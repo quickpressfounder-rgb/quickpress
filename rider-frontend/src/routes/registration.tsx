@@ -4,7 +4,11 @@ import { readSession } from "../api/core/session-store";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 
 export const Route = createFileRoute("/registration")({
-  beforeLoad: () => {
+  validateSearch: (search: Record<string, unknown>) => ({
+    resubmit: search?.resubmit === true || search?.resubmit === "true" || search?.resubmit === "1",
+    edit: search?.edit === true || search?.edit === "true" || search?.edit === "1",
+  }),
+  beforeLoad: ({ search }: { search: { resubmit?: boolean; edit?: boolean } }) => {
     if (typeof window === "undefined") return;
     const sess = readSession("rider") || readSession();
 
@@ -18,8 +22,8 @@ export const Route = createFileRoute("/registration")({
       throw redirect({ to: "/dashboard" });
     }
 
-    // If already submitted registration -> go to verification page!
-    if (isRiderOnboarded(sess)) {
+    // If already submitted registration -> go to verification page unless explicitly resubmitting or correcting!
+    if (isRiderOnboarded(sess) && !search?.resubmit && !search?.edit) {
       throw redirect({ to: "/verification" });
     }
   },

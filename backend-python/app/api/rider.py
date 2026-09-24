@@ -381,6 +381,8 @@ async def _check_rider_uniqueness(
     can only be registered ONCE across all riders in QuickPress.
     """
     import re
+    exclude_filter = {"_id": {"$ne": current_rider_id}, "riderId": {"$ne": current_rider_id}} if current_rider_id else {}
+
     # 1. Phone number check
     if phone:
         clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
@@ -393,7 +395,7 @@ async def _check_rider_uniqueness(
                     {"mobile": clean_phone},
                     {"mobile": f"+91{clean_phone}"},
                 ],
-                "_id": {"$ne": current_rider_id},
+                **exclude_filter,
             }
             dup = await database.find_one("rider_profiles", query)
             if not dup:
@@ -409,10 +411,10 @@ async def _check_rider_uniqueness(
     if len(clean_aadhaar) == 12:
         dup = await database.find_one(
             "rider_profiles",
-            {"aadhaar": clean_aadhaar, "_id": {"$ne": current_rider_id}},
+            {"aadhaar": clean_aadhaar, **exclude_filter},
         )
         if not dup:
-            dup = await database.find_one("admin_riders", {"aadhaar": clean_aadhaar, "_id": {"$ne": current_rider_id}})
+            dup = await database.find_one("admin_riders", {"aadhaar": clean_aadhaar, **exclude_filter})
         if dup:
             raise HTTPException(
                 status_code=400,
@@ -424,10 +426,10 @@ async def _check_rider_uniqueness(
     if len(clean_pan) == 10:
         dup = await database.find_one(
             "rider_profiles",
-            {"pan": clean_pan, "_id": {"$ne": current_rider_id}},
+            {"pan": clean_pan, **exclude_filter},
         )
         if not dup:
-            dup = await database.find_one("admin_riders", {"pan": clean_pan, "_id": {"$ne": current_rider_id}})
+            dup = await database.find_one("admin_riders", {"pan": clean_pan, **exclude_filter})
         if dup:
             raise HTTPException(
                 status_code=400,
@@ -446,7 +448,7 @@ async def _check_rider_uniqueness(
                     {"rcNumber": vehicle_number.strip().upper()},
                     {"rcNumber": clean_rc},
                 ],
-                "_id": {"$ne": current_rider_id},
+                **exclude_filter,
             },
         )
         if dup:
@@ -467,7 +469,7 @@ async def _check_rider_uniqueness(
                     {"dlNumber": license_number.strip().upper()},
                     {"dlNumber": clean_dl},
                 ],
-                "_id": {"$ne": current_rider_id},
+                **exclude_filter,
             },
         )
         if dup:
@@ -481,7 +483,7 @@ async def _check_rider_uniqueness(
     if len(clean_bank) >= 8:
         dup = await database.find_one(
             "rider_profiles",
-            {"accountNumber": clean_bank, "_id": {"$ne": current_rider_id}},
+            {"accountNumber": clean_bank, **exclude_filter},
         )
         if dup:
             raise HTTPException(
@@ -494,14 +496,32 @@ async def _check_rider_uniqueness(
 async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> dict:
     payload = body.get("payload", body)
 
-    # 1. Resolve or generate rider_id
+    phone = payload.get("phone") or payload.get("mobile") or user.phone or ""
+    clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:] if phone else ""
+    requested_id = str(payload.get("riderId") or payload.get("id") or "").strip()
+
+    # 1. Resolve existing profile and rider_id
+    existing_profile = None
     account = await database.find_one("riders", {"user_id": user.id}) or {}
-    rider_id = account.get("rider_id") or account.get("riderId") or getattr(user, "linked_id", None)
-    if not rider_id:
+    rider_id = account.get("rider_id") or account.get("riderId") or getattr(user, "linked_id", None) or requested_id
+    if rider_id:
+        existing_profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": str(rider_id)}, {"riderId": str(rider_id)}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": str(rider_id)}, {"riderId": str(rider_id)}]})
+        )
+    if not existing_profile:
         existing_profile = await database.find_one("rider_profiles", {"userId": user.id})
-        if existing_profile:
-            rider_id = existing_profile.get("_id")
-    if not rider_id:
+    if not existing_profile and clean_phone:
+        existing_profile = (
+            await database.find_one("rider_profiles", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}, {"mobile": clean_phone}]})
+            or await database.find_one("admin_riders", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}, {"mobile": clean_phone}]})
+            or await database.find_one("riders", {"phone": clean_phone})
+        )
+
+    is_resubmission = bool(existing_profile)
+    if existing_profile:
+        rider_id = str(existing_profile.get("riderId") or existing_profile.get("_id") or existing_profile.get("rider_id") or rider_id)
+    elif not rider_id:
         rider_id = await generate_rider_id()
 
     rider_id_str = str(rider_id)
@@ -512,11 +532,10 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
     if candidate_name in ("Delivery Partner", "Delivery Captain"):
         candidate_name = ""
     full_name = candidate_name
-    phone = payload.get("phone") or payload.get("mobile") or user.phone or ""
     email = payload.get("email") or user.email or ""
     city = payload.get("city") or payload.get("preferredCity") or "Kasganj"
 
-    # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank
+    # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank (excluding current rider ID)
     await _check_rider_uniqueness(
         current_rider_id=rider_id_str,
         phone=phone,
@@ -632,7 +651,12 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "agreementSignature": payload.get("signatureUrl") or payload.get("agreementSignature", ""),
         "agreementSignedAt": payload.get("signedAt") or payload.get("agreementSignedAt", datetime.now(timezone.utc).isoformat()),
         "termsAccepted": bool(payload.get("termsAccepted", True)),
-        # Status
+        # Status & Resubmission Tracking
+        "resubmitted": is_resubmission,
+        "resubmittedAt": datetime.now(timezone.utc).isoformat() if is_resubmission else None,
+        "resubmissionCount": (int(existing_profile.get("resubmissionCount") or 0) + 1) if existing_profile else 0,
+        "rejectionReason": None,
+        "rejectedDocuments": [],
         "status": "pending",
         "kycStatus": "pending",
         "isVerified": False,
@@ -642,8 +666,8 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "isOnline": False,
         "rating": 5.0,
         "totalDeliveries": 0,
-        "joinedOn": datetime.now(timezone.utc).strftime("%B %Y"),
-        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "joinedOn": existing_profile.get("joinedOn") if existing_profile else datetime.now(timezone.utc).strftime("%B %Y"),
+        "createdAt": existing_profile.get("createdAt") if existing_profile else datetime.now(timezone.utc).isoformat(),
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -705,6 +729,11 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "vehicleNumber": payload.get("vehicleNumber", ""),
         "status": "pending",
         "kycStatus": "pending",
+        "resubmitted": is_resubmission,
+        "resubmittedAt": datetime.now(timezone.utc).isoformat() if is_resubmission else None,
+        "resubmissionCount": (int(existing_profile.get("resubmissionCount") or 0) + 1) if existing_profile else 0,
+        "rejectionReason": None,
+        "rejectedDocuments": [],
         "liveState": "offline",
         "rating": 5.0,
         "completedDeliveries": 0,
@@ -727,10 +756,24 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "agreementSignedAt": payload.get("agreementSignedAt") or datetime.now(timezone.utc).isoformat(),
         "isOnboarded": True,
         "is_onboarded": True,
-        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "createdAt": existing_profile.get("createdAt") if existing_profile else datetime.now(timezone.utc).isoformat(),
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
     await database.update("admin_riders", {"_id": rider_id_str}, admin_rider_doc, upsert=True)
+
+    # Broadcast real-time socket event so Admin Panel updates immediately
+    try:
+        from app.core.socket_manager import sio
+        await sio.emit("rider:status_updated", {
+            "riderId": rider_id_str,
+            "status": "pending",
+            "kycStatus": "pending",
+            "resubmitted": is_resubmission,
+            "name": full_name,
+            "phone": phone,
+        })
+    except Exception:
+        pass
 
     # Sync candidate full name & linked_id to users collection
     await database.update(
@@ -804,14 +847,40 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
 @public_router.post("/auth/registration")
 async def submit_registration(body: dict) -> dict:
     payload = body.get("payload", body)
-    rider_id = await generate_rider_id()
+
+    phone = payload.get("phone") or payload.get("mobile", "")
+    clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:] if phone else ""
+    requested_id = str(payload.get("riderId") or payload.get("id") or "").strip()
+
+    # Detect if applicant is already in system (Resubmission flow)
+    existing_profile = None
+    if requested_id:
+        existing_profile = (
+            await database.find_one("rider_profiles", {"$or": [{"_id": requested_id}, {"riderId": requested_id}]})
+            or await database.find_one("admin_riders", {"$or": [{"_id": requested_id}, {"riderId": requested_id}]})
+        )
+    if not existing_profile and clean_phone:
+        existing_profile = (
+            await database.find_one("rider_profiles", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}, {"mobile": clean_phone}]})
+            or await database.find_one("admin_riders", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}, {"mobile": clean_phone}]})
+            or await database.find_one("riders", {"phone": clean_phone})
+        )
+
+    is_resubmission = bool(existing_profile)
+    if existing_profile:
+        rider_id = str(existing_profile.get("riderId") or existing_profile.get("_id") or existing_profile.get("rider_id") or requested_id)
+        resub_count = int(existing_profile.get("resubmissionCount") or 0) + 1
+    else:
+        rider_id = await generate_rider_id()
+        resub_count = 0
+
     full_name = payload.get("fullName") or payload.get("name") or ""
     if full_name in ("Delivery Partner", "Delivery Captain"):
         full_name = ""
-    phone = payload.get("phone") or payload.get("mobile", "")
     city = payload.get("city") or payload.get("preferredCity") or "Kasganj"
+    now_iso = datetime.now(timezone.utc).isoformat()
 
-    # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank
+    # Enforce Uniqueness: 1 account per Phone, Aadhaar, PAN, Vehicle Number, DL, Bank (excluding current rider ID)
     await _check_rider_uniqueness(
         current_rider_id=rider_id,
         phone=phone,
@@ -898,9 +967,14 @@ async def submit_registration(body: dict) -> dict:
         "employmentType": payload.get("employmentType", "Full Time"),
         # Legal Agreement & Consent
         "agreementSignature": payload.get("signatureUrl") or payload.get("agreementSignature", ""),
-        "agreementSignedAt": payload.get("signedAt") or payload.get("agreementSignedAt", datetime.now(timezone.utc).isoformat()),
+        "agreementSignedAt": payload.get("signedAt") or payload.get("agreementSignedAt", now_iso),
         "termsAccepted": bool(payload.get("termsAccepted", True)),
-        # Status
+        # Status & Resubmission Tracking
+        "resubmitted": is_resubmission,
+        "resubmittedAt": now_iso if is_resubmission else None,
+        "resubmissionCount": resub_count,
+        "rejectionReason": None,
+        "rejectedDocuments": [],
         "status": "pending",
         "kycStatus": "pending",
         "isVerified": False,
@@ -910,59 +984,65 @@ async def submit_registration(body: dict) -> dict:
         "isOnline": False,
         "rating": 5.0,
         "totalDeliveries": 0,
-        "joinedOn": datetime.now(timezone.utc).strftime("%B %Y"),
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-        "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "joinedOn": existing_profile.get("joinedOn") if existing_profile else datetime.now(timezone.utc).strftime("%B %Y"),
+        "createdAt": existing_profile.get("createdAt") if existing_profile else now_iso,
+        "updatedAt": now_iso,
     }
 
     # Build structured documents list for KYC review
     kyc_doc_list = []
     if payload.get("aadhaarFront"):
-        kyc_doc_list.append({"id": "aadhaar_front", "type": "Aadhaar Card (Front)", "name": "Aadhaar Front", "documentUrl": payload["aadhaarFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "aadhaar_front", "type": "Aadhaar Card (Front)", "name": "Aadhaar Front", "documentUrl": payload["aadhaarFront"], "status": "Pending", "uploadedAt": now_iso})
     if payload.get("aadhaarBack"):
-        kyc_doc_list.append({"id": "aadhaar_back", "type": "Aadhaar Card (Back)", "name": "Aadhaar Back", "documentUrl": payload["aadhaarBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "aadhaar_back", "type": "Aadhaar Card (Back)", "name": "Aadhaar Back", "documentUrl": payload["aadhaarBack"], "status": "Pending", "uploadedAt": now_iso})
     if payload.get("panCard"):
-        kyc_doc_list.append({"id": "pan_card", "type": "PAN Card", "name": "PAN Card", "documentUrl": payload["panCard"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "pan_card", "type": "PAN Card", "name": "PAN Card", "documentUrl": payload["panCard"], "status": "Pending", "uploadedAt": now_iso})
     if payload.get("dlFront"):
-        kyc_doc_list.append({"id": "dl_front", "type": "Driving License (Front)", "name": "DL Front", "documentUrl": payload["dlFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "dl_front", "type": "Driving License (Front)", "name": "DL Front", "documentUrl": payload["dlFront"], "status": "Pending", "uploadedAt": now_iso})
     if payload.get("dlBack"):
-        kyc_doc_list.append({"id": "dl_back", "type": "Driving License (Back)", "name": "DL Back", "documentUrl": payload["dlBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "dl_back", "type": "Driving License (Back)", "name": "DL Back", "documentUrl": payload["dlBack"], "status": "Pending", "uploadedAt": now_iso})
     if payload.get("rcFront"):
-        kyc_doc_list.append({"id": "rc_front", "type": "RC Certificate (Front)", "name": "RC Front", "documentUrl": payload["rcFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "rc_front", "type": "RC Certificate (Front)", "name": "RC Front", "documentUrl": payload["rcFront"], "status": "Pending", "uploadedAt": now_iso})
     if payload.get("rcBack"):
-        kyc_doc_list.append({"id": "rc_back", "type": "RC Certificate (Back)", "name": "RC Back", "documentUrl": payload["rcBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "rc_back", "type": "RC Certificate (Back)", "name": "RC Back", "documentUrl": payload["rcBack"], "status": "Pending", "uploadedAt": now_iso})
     if payload.get("selfieUrl") or payload.get("photoUrl"):
         selfie_img = payload.get("selfieUrl") or payload.get("photoUrl")
-        kyc_doc_list.append({"id": "selfie", "type": "Captain Profile Photo / Selfie", "name": "Live Selfie", "documentUrl": selfie_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "selfie", "type": "Captain Profile Photo / Selfie", "name": "Live Selfie", "documentUrl": selfie_img, "status": "Pending", "uploadedAt": now_iso})
     if payload.get("bikePhoto") or payload.get("vehiclePhoto") or payload.get("bikePhotoUrl"):
         bike_img = payload.get("bikePhoto") or payload.get("vehiclePhoto") or payload.get("bikePhotoUrl")
-        kyc_doc_list.append({"id": "bike_photo", "type": "Vehicle / Bike Photo", "name": "Bike Photo", "documentUrl": bike_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "bike_photo", "type": "Vehicle / Bike Photo", "name": "Bike Photo", "documentUrl": bike_img, "status": "Pending", "uploadedAt": now_iso})
     if payload.get("passbookPhoto") or payload.get("passbookUrl"):
         pass_img = payload.get("passbookPhoto") or payload.get("passbookUrl")
-        kyc_doc_list.append({"id": "bank_passbook", "type": "Bank Passbook (Front Page)", "name": "Bank Passbook", "documentUrl": pass_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "bank_passbook", "type": "Bank Passbook (Front Page)", "name": "Bank Passbook", "documentUrl": pass_img, "status": "Pending", "uploadedAt": now_iso})
     if payload.get("cancelledCheque") or payload.get("cancelledChequeUrl"):
         cheque_img = payload.get("cancelledCheque") or payload.get("cancelledChequeUrl")
-        kyc_doc_list.append({"id": "cancelled_cheque", "type": "Cancelled Cheque", "name": "Cancelled Cheque", "documentUrl": cheque_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "cancelled_cheque", "type": "Cancelled Cheque", "name": "Cancelled Cheque", "documentUrl": cheque_img, "status": "Pending", "uploadedAt": now_iso})
     if payload.get("agreementSignature") or payload.get("signatureUrl"):
         sig_img = payload.get("agreementSignature") or payload.get("signatureUrl")
-        kyc_doc_list.append({"id": "agreement_signature", "type": "Digital Agreement Signature", "name": "E-Signature", "documentUrl": sig_img, "status": "Signed", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+        kyc_doc_list.append({"id": "agreement_signature", "type": "Digital Agreement Signature", "name": "E-Signature", "documentUrl": sig_img, "status": "Signed", "uploadedAt": now_iso})
 
     profile_data["documents"] = kyc_doc_list
     profile_data["kycDocuments"] = kyc_doc_list
 
-    await database.insert("rider_profiles", profile_data)
-    await database.insert(
-        "rider_wallets",
-        {
-            "_id": rider_id,
-            "riderId": rider_id,
-            "balance": 0.0,
-            "todayEarned": 0.0,
-            "thisWeekEarned": 0.0,
-            "cashInHand": 0.0,
-            "lifetimeEarned": 0.0,
-        },
-    )
+    if is_resubmission:
+        await database.update("rider_profiles", {"_id": rider_id}, profile_data, upsert=True)
+    else:
+        await database.insert("rider_profiles", profile_data)
+
+    existing_wallet = await database.find_one("rider_wallets", {"_id": rider_id})
+    if not existing_wallet:
+        await database.insert(
+            "rider_wallets",
+            {
+                "_id": rider_id,
+                "riderId": rider_id,
+                "balance": 0.0,
+                "todayEarned": 0.0,
+                "thisWeekEarned": 0.0,
+                "cashInHand": 0.0,
+                "lifetimeEarned": 0.0,
+            },
+        )
 
     # Sync to admin_riders & riders tables
     admin_rider_doc = {
@@ -979,6 +1059,11 @@ async def submit_registration(body: dict) -> dict:
         "vehicleNumber": payload.get("vehicleNumber", ""),
         "status": "pending",
         "kycStatus": "pending",
+        "resubmitted": is_resubmission,
+        "resubmittedAt": now_iso if is_resubmission else None,
+        "resubmissionCount": resub_count,
+        "rejectionReason": None,
+        "rejectedDocuments": [],
         "liveState": "offline",
         "rating": 5.0,
         "completedDeliveries": 0,
@@ -998,14 +1083,14 @@ async def submit_registration(body: dict) -> dict:
         "passbookPhoto": payload.get("passbookPhoto") or payload.get("passbookUrl", ""),
         "cancelledCheque": payload.get("cancelledCheque") or payload.get("cancelledChequeUrl", ""),
         "agreementSignature": payload.get("agreementSignature") or payload.get("signatureUrl", ""),
-        "agreementSignedAt": payload.get("agreementSignedAt") or datetime.now(timezone.utc).isoformat(),
+        "agreementSignedAt": payload.get("agreementSignedAt") or now_iso,
         "isOnboarded": True,
         "is_onboarded": True,
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-        "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "createdAt": existing_profile.get("createdAt") if existing_profile else now_iso,
+        "updatedAt": now_iso,
     }
     await database.update("admin_riders", {"_id": rider_id}, admin_rider_doc, upsert=True)
-    await database.update("riders", {"rider_id": rider_id}, {"_id": rider_id, "rider_id": rider_id, "name": full_name, "phone": phone, "status": "pending", "is_verified": False, "isOnboarded": True, "is_onboarded": True}, upsert=True)
+    await database.update("riders", {"rider_id": rider_id}, {"_id": rider_id, "rider_id": rider_id, "name": full_name, "phone": phone, "status": "pending", "is_verified": False, "isOnboarded": True, "is_onboarded": True, "resubmitted": is_resubmission, "updated_at": now_iso}, upsert=True)
 
     # Sync with users collection if exists
     if phone:
@@ -1028,6 +1113,20 @@ async def submit_registration(body: dict) -> dict:
                 },
             )
 
+    # Broadcast real-time socket event so Admin Panel updates immediately
+    try:
+        from app.core.socket_manager import sio
+        await sio.emit("rider:status_updated", {
+            "riderId": rider_id,
+            "status": "pending",
+            "kycStatus": "pending",
+            "resubmitted": is_resubmission,
+            "name": full_name,
+            "phone": phone,
+        })
+    except Exception:
+        pass
+
     return {
         "ok": True,
         "riderId": rider_id,
@@ -1035,6 +1134,7 @@ async def submit_registration(body: dict) -> dict:
         "phone": phone,
         "status": "pending",
         "kycStatus": "pending",
+        "resubmitted": is_resubmission,
         "isVerified": False,
         "isOnboarded": True,
         "is_onboarded": True,
@@ -1641,8 +1741,48 @@ async def get_rider_verification_status(
         {"id": "agreement", "name": "Partner Agreement & E-Signature", "status": "verified" if bool(profile.get("agreementSignature") or profile.get("signatureUrl")) else ("rejected" if get_doc_status("agreement") == "rejected" else "submitted"), "required": True, "rejectionReason": rejection_reason if get_doc_status("agreement") == "rejected" else None},
     ]
 
+    draft_data = {
+        "riderId": str(profile.get("riderId") or profile.get("_id") or effective_rider_id or ""),
+        "fullName": candidate_name if candidate_name not in ("Delivery Partner", "Delivery Captain", "Captain") else "",
+        "phone": phone,
+        "email": profile.get("email") or getattr(user, "email", "") or "",
+        "gender": profile.get("gender") or "Male",
+        "dob": profile.get("dob") or "",
+        "city": city,
+        "pincode": profile.get("pincode") or "",
+        "emergencyPhone": profile.get("emergencyContact") or profile.get("emergencyPhone") or "",
+        "aadhaar": profile.get("aadhaar") or "",
+        "aadhaarFront": profile.get("aadhaarFront") or "",
+        "aadhaarBack": profile.get("aadhaarBack") or "",
+        "pan": profile.get("pan") or "",
+        "panCard": profile.get("panCard") or "",
+        "selfieUrl": profile.get("selfieUrl") or profile.get("photoUrl") or "",
+        "vehicleNumber": vehicle_number,
+        "vehicleType": vehicle_type,
+        "vehicleBrand": profile.get("vehicleBrand") or "",
+        "vehicleModel": profile.get("vehicleModel") or "",
+        "bikePhoto": profile.get("bikePhoto") or profile.get("vehiclePhoto") or profile.get("bikePhotoUrl") or "",
+        "rcFront": profile.get("rcFront") or "",
+        "rcBack": profile.get("rcBack") or "",
+        "license": profile.get("license") or profile.get("dlNumber") or "",
+        "dlExpiry": profile.get("dlExpiry") or "",
+        "dlFront": profile.get("dlFront") or "",
+        "dlBack": profile.get("dlBack") or "",
+        "bankName": profile.get("bankName") or "",
+        "accountNumber": profile.get("accountNumber") or "",
+        "ifsc": profile.get("ifsc") or "",
+        "upiId": profile.get("upiId") or "",
+        "passbookPhoto": profile.get("passbookPhoto") or profile.get("passbookUrl") or "",
+        "cancelledCheque": profile.get("cancelledCheque") or profile.get("cancelledChequeUrl") or "",
+        "agreementSignature": profile.get("agreementSignature") or profile.get("signatureUrl") or "",
+        "resubmitted": bool(profile.get("resubmitted", False)),
+        "resubmittedAt": profile.get("resubmittedAt"),
+        "rejectionReason": rejection_reason,
+        "rejectedDocuments": rejected_docs,
+    }
+
     return {
-        "riderId": rider_id,
+        "riderId": str(profile.get("riderId") or profile.get("_id") or effective_rider_id or ""),
         "name": candidate_name,
         "phone": phone,
         "city": city,
@@ -1653,12 +1793,16 @@ async def get_rider_verification_status(
         "isVerified": is_verified,
         "isApproved": is_verified,
         "isOnboarded": True,
+        "resubmitted": bool(profile.get("resubmitted", False)),
+        "resubmittedAt": profile.get("resubmittedAt"),
+        "resubmissionCount": int(profile.get("resubmissionCount") or 0),
         "submittedAt": created_at,
         "estimatedTime": "Usually within 24 – 48 Hours",
         "rejectionReason": rejection_reason,
         "rejectedDocuments": rejected_docs,
         "steps": steps,
         "documents": documents,
+        "draftData": draft_data,
         "support": {
             "helpline": "1800-123-QPAY",
             "whatsapp": "+91 80060 00000",

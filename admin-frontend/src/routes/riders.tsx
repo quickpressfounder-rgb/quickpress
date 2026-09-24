@@ -574,9 +574,15 @@ export function RidersPage() {
                       />
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-bold text-zinc-900 text-xs">{r.name}</p>
                         {r.trips > 50 && <Star className="size-3 fill-amber-400 text-amber-500" />}
+                        {r.resubmitted && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-[9px] shadow-2xs">
+                            <RotateCcw className="size-2.5 text-indigo-600 animate-spin" />
+                            <span>Re-Submitted</span>
+                          </span>
+                        )}
                       </div>
                       <p className="font-mono text-[10px] text-zinc-400 font-medium">#{r.id.slice(0, 16)}</p>
                     </div>
@@ -644,18 +650,26 @@ export function RidersPage() {
                 key: "kyc",
                 label: "KYC Status",
                 render: (r) => (
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                      r.kyc === "Verified"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : r.kyc === "Rejected"
-                        ? "bg-rose-50 text-rose-700 border border-rose-200"
-                        : "bg-amber-50 text-amber-700 border border-amber-200"
-                    }`}
-                  >
-                    {r.kyc === "Verified" ? <CheckCircle2 className="size-3 text-emerald-600" /> : <AlertTriangle className="size-3 text-amber-600" />}
-                    {r.kyc}
-                  </span>
+                  <div className="flex flex-col gap-1 items-start">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        r.kyc === "Verified"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : r.kyc === "Rejected"
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
+                          : "bg-amber-50 text-amber-700 border border-amber-200"
+                      }`}
+                    >
+                      {r.kyc === "Verified" ? <CheckCircle2 className="size-3 text-emerald-600" /> : <AlertTriangle className="size-3 text-amber-600" />}
+                      {r.kyc}
+                    </span>
+                    {r.resubmitted && (
+                      <span className="inline-flex items-center gap-1 text-[9px] text-indigo-700 font-extrabold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                        <RotateCcw className="size-2.5 text-indigo-600" />
+                        <span>Form Re-Filled</span>
+                      </span>
+                    )}
+                  </div>
                 ),
               },
               {
@@ -1009,10 +1023,12 @@ function Rider360Sheet({
                 )}
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-black tracking-wider uppercase text-slate-900">
                     {rider.status === "Active"
                       ? "VERIFIED FLEET CAPTAIN"
+                      : (rider.resubmitted || (data360?.profile as any)?.resubmitted)
+                      ? "APPLICATION RE-SUBMITTED (UPDATED KYC)"
                       : rider.status === "Suspended"
                       ? "APPLICATION REJECTED / SUSPENDED"
                       : "KYC VERIFICATION PENDING"}
@@ -1028,10 +1044,18 @@ function Rider360Sheet({
                   >
                     KYC: {rider.kyc}
                   </span>
+                  {(rider.resubmitted || (data360?.profile as any)?.resubmitted) && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-100 text-indigo-900 border border-indigo-300 flex items-center gap-1 shadow-2xs">
+                      <RotateCcw className="size-3 text-indigo-700 animate-spin" />
+                      <span>Re-Submitted by Candidate</span>
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-700 font-medium mt-0.5">
                   {rider.status === "Active"
                     ? "Rider account is verified and fully active for live dispatch and daily earnings."
+                    : (rider.resubmitted || (data360?.profile as any)?.resubmitted)
+                    ? `🔄 Captain has re-filled and updated registration details${(rider.resubmittedAt || (data360?.profile as any)?.resubmittedAt) ? ` on ${new Date(rider.resubmittedAt || (data360?.profile as any)?.resubmittedAt).toLocaleString("en-IN")}` : ""}. Previous documents or details were revised. Review documents below and approve.`
                     : data360?.kyc.rejectionReason
                     ? `Admin Reason: ${data360.kyc.rejectionReason}`
                     : "Review all uploaded KYC documents below and approve or reject with a reason note."}
