@@ -1,9 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   ArrowRight,
   BadgeCheck,
   Check,
   Clock3,
+  Edit3,
   ExternalLink,
   Headphones,
   Loader2,
@@ -40,6 +42,10 @@ export function RegistrationSubmittedScreen() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   const [redirecting, setRedirecting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [isResubmitted, setIsResubmitted] = useState(false);
+  const [resubmittedAt, setResubmittedAt] = useState<string | null>(null);
+  const [kycStatus, setKycStatus] = useState<string>("pending");
 
   const checkStatus = useCallback(
     async (manual = false) => {
@@ -50,6 +56,10 @@ export function RegistrationSubmittedScreen() {
         setLastChecked(new Date());
         if (result.businessName) setBusinessName(result.businessName);
         if (result.partnerId) setPartnerId(result.partnerId);
+        if (result.rejectionReason) setRejectionReason(result.rejectionReason);
+        if (result.resubmitted) setIsResubmitted(true);
+        if (result.resubmittedAt) setResubmittedAt(result.resubmittedAt);
+        if (result.kycStatus) setKycStatus(result.kycStatus);
 
         if (result.isVerified) {
           setIsApproved(true);
@@ -69,7 +79,11 @@ export function RegistrationSubmittedScreen() {
         } else {
           setIsApproved(false);
           if (manual) {
-            toast.info("Verification is in progress. The Admin team is reviewing your store.");
+            if (result.kycStatus === "rejected" || result.rejectionReason) {
+              toast.error("Application rejected / update required by Admin. Please re-submit documents.");
+            } else {
+              toast.info("Verification is in progress. The Admin team is reviewing your store.");
+            }
           }
         }
       } catch (err) {
@@ -203,6 +217,62 @@ export function RegistrationSubmittedScreen() {
           </section>
         )}
 
+        {/* REJECTION / UPDATE REQUIRED CARD */}
+        {!isApproved && (rejectionReason || kycStatus === "rejected") && (
+          <section className="animate-slide-up card-soft mt-5 border border-rose-500/40 bg-rose-500/10 p-4.5 rounded-2xl shadow-soft">
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 text-rose-600 font-black">
+                <AlertTriangle className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-wider text-rose-700">
+                    Document Correction Required
+                  </p>
+                  <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[0.62rem] font-black text-rose-800">
+                    REJECTED / ACTION NEEDED
+                  </span>
+                </div>
+                <div className="mt-2 rounded-xl border border-rose-200 bg-white/90 p-3 shadow-xs">
+                  <p className="text-[0.68rem] font-bold uppercase text-rose-500 tracking-wider">
+                    Admin Rejection Reason:
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold leading-relaxed text-foreground">
+                    {rejectionReason || "One or more documents or business details were rejected during admin verification. Please correct and re-submit."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: partnerRoutes.registration, search: { resubmit: true } })}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 py-3 text-xs font-black text-white shadow-cta transition-all hover:bg-rose-700 active:scale-95"
+                >
+                  <Edit3 className="size-3.5" />
+                  Update &amp; Re-Submit Store Documents / पुनः सुधारें
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* RE-SUBMITTED STATUS BANNER */}
+        {!isApproved && isResubmitted && !(rejectionReason || kycStatus === "rejected") && (
+          <section className="animate-slide-up card-soft mt-5 border border-indigo-500/30 bg-indigo-500/10 p-3.5 rounded-2xl">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-700 font-bold">
+                <RefreshCw className="size-4 animate-spin" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-indigo-900">
+                  Documents Re-Submitted Successfully!
+                </p>
+                <p className="text-[0.68rem] text-indigo-700">
+                  Your corrected partner documents have been queued for priority admin review.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Informational Callout Card */}
         {!isApproved && (
           <section className="animate-slide-up stagger-2 card-soft mt-6 border border-amber-500/25 bg-amber-500/5 p-4">
@@ -303,6 +373,17 @@ export function RegistrationSubmittedScreen() {
                 <RefreshCw className="size-4" strokeWidth={2.4} />
               )}
               {checking ? "Checking Approval Status..." : "Check Verification Status"}
+            </button>
+          )}
+
+          {!isApproved && (
+            <button
+              type="button"
+              onClick={() => navigate({ to: partnerRoutes.registration, search: { resubmit: true } })}
+              className="ripple focus-key flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-xs font-bold text-foreground shadow-soft transition-all duration-300 hover:bg-muted active:scale-[0.97]"
+            >
+              <Edit3 className="size-3.5 text-primary" />
+              Update / Re-Submit Store Documents
             </button>
           )}
 

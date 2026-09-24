@@ -114,13 +114,23 @@ export async function registerBusiness(
   return updatedSession;
 }
 
-/** Check if Admin has approved the partner in Supabase backend. */
-export async function checkPartnerVerificationStatus(): Promise<{
+export type PartnerVerificationResult = {
   isVerified: boolean;
+  isOnboarded?: boolean;
   status: string;
+  kycStatus?: string;
   businessName: string;
+  ownerName?: string;
   partnerId: string;
-}> {
+  rejectionReason?: string;
+  resubmitted?: boolean;
+  resubmittedAt?: string;
+  resubmissionCount?: number;
+  draftData?: any;
+};
+
+/** Check if Admin has approved the partner in Supabase backend. */
+export async function checkPartnerVerificationStatus(): Promise<PartnerVerificationResult> {
   const currentSession = readSession(ROLE);
   const storedPhone = currentSession?.account?.phone || "";
   const storedPid = currentSession?.account?.linkedId || "";
@@ -129,9 +139,16 @@ export async function checkPartnerVerificationStatus(): Promise<{
     let res: {
       isVerified?: boolean;
       status?: string;
+      kycStatus?: string;
       businessName?: string;
+      ownerName?: string;
       partnerId?: string;
       isOnboarded?: boolean;
+      rejectionReason?: string;
+      resubmitted?: boolean;
+      resubmittedAt?: string;
+      resubmissionCount?: number;
+      draftData?: any;
     } | null = null;
 
     // 1. Try dedicated verification-status endpoint
@@ -177,9 +194,17 @@ export async function checkPartnerVerificationStatus(): Promise<{
 
     return {
       isVerified,
+      isOnboarded: res?.isOnboarded ?? true,
       status: activeStatus,
+      kycStatus: res?.kycStatus || (isVerified ? "verified" : (activeStatus === "rejected" ? "rejected" : "pending")),
       businessName: bName,
+      ownerName: res?.ownerName || "",
       partnerId: pId,
+      rejectionReason: res?.rejectionReason,
+      resubmitted: res?.resubmitted,
+      resubmittedAt: res?.resubmittedAt,
+      resubmissionCount: res?.resubmissionCount,
+      draftData: res?.draftData,
     };
   } catch {
     const isAlreadyVerified = Boolean(
@@ -190,7 +215,9 @@ export async function checkPartnerVerificationStatus(): Promise<{
     );
     return {
       isVerified: isAlreadyVerified,
+      isOnboarded: true,
       status: isAlreadyVerified ? "active" : "pending_verification",
+      kycStatus: isAlreadyVerified ? "verified" : "pending",
       businessName: currentSession?.account?.name || "",
       partnerId: currentSession?.account?.linkedId || "",
     };

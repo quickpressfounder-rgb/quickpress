@@ -280,7 +280,17 @@ export function PartnerSuspendedScreen() {
             Need Immediate Help?
           </p>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={() => navigate({ to: partnerRoutes.registration, search: { resubmit: true } })}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3.5 text-xs font-black text-amber-300 hover:bg-amber-400/20 active:scale-[0.98] transition-all shadow-md"
+            >
+              <Store className="size-4" />
+              <span>Update Store Details &amp; Re-Submit Documents / पुनः सुधारें</span>
+            </button>
+
+            <div className="grid grid-cols-2 gap-2.5">
             {/* WhatsApp */}
             <button
               type="button"
@@ -299,6 +309,7 @@ export function PartnerSuspendedScreen() {
               <Phone className="size-4" />
               <span>Call Helpline</span>
             </a>
+            </div>
           </div>
 
           {/* Logout Action */}

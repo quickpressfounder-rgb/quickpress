@@ -66,6 +66,7 @@ import {
   addPartnerNote,
   updatePartnerTags,
   sendPartnerNotification,
+  rejectPartner,
   createPartner,
   type AdminPartner,
   type Partner360Data,
@@ -89,6 +90,16 @@ export const Route = createFileRoute("/partners")({
     </AdminShell>
   ),
 });
+
+const PARTNER_REJECTION_PRESETS = [
+  "Clear Storefront Logo / Facade Banner photo is missing or blurry. Please upload clear photos.",
+  "GSTIN number is unverified or trade name does not match business documents.",
+  "PAN card name or number mismatch with owner profile.",
+  "Bank account details / Cancelled cheque unreadable or incorrect IFSC code.",
+  "Trade / Shop & Establishment license expired or illegible.",
+  "Store address or pin code is outside currently serviceable areas.",
+  "Catalog pricing / service categories incomplete or require adjustment.",
+];
 
 function PartnersPage() {
   const queryClient = useQueryClient();
@@ -136,6 +147,10 @@ function PartnersPage() {
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [blockNote, setBlockNote] = useState("");
+
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState(PARTNER_REJECTION_PRESETS[0]);
+  const [customRejectNote, setCustomRejectNote] = useState("");
 
   const [kycModalOpen, setKycModalOpen] = useState(false);
   const [kycStatusVal, setKycStatusVal] = useState("Verified");
@@ -231,6 +246,17 @@ function PartnersPage() {
     onError: () => toast.error("Failed to unblock partner."),
   });
 
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => rejectPartner(id, reason ? { reason } : undefined),
+    onSuccess: () => {
+      toast.success("Partner store registration rejected and feedback sent for re-submission.");
+      setRejectModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
+      if (selectedId) queryClient.invalidateQueries({ queryKey: ["admin", "partners", "360", selectedId] });
+    },
+    onError: () => toast.error("Failed to reject partner."),
+  });
+
   const kycMutation = useMutation({
     mutationFn: ({ id, status, reason }: { id: string; status: string; reason?: string }) =>
       updatePartnerKyc(id, { status, reason }),
@@ -304,13 +330,17 @@ function PartnersPage() {
       const matchesQuery = !q || [p.id, p.businessName, p.ownerName, p.phone, p.email, p.city].filter(Boolean).join(" ").toLowerCase().includes(q);
       const matchesStatus =
         statusTab === "all" ||
+        (statusTab === "RESUBMITTED" && Boolean(p.resubmitted)) ||
         (statusTab === "ONLINE" && Boolean(p.isOnline || (p as any).isOpen)) ||
         (statusTab === "ACTIVE" && p.status === "ACTIVE") ||
         (statusTab === "PENDING_APPROVAL" && p.status === "PENDING_APPROVAL") ||
         (statusTab === "TEMPORARILY_SUSPENDED" && p.status === "TEMPORARILY_SUSPENDED") ||
         (statusTab === "PERMANENTLY_BLOCKED" && p.status === "PERMANENTLY_BLOCKED");
       const matchesCity = city === "all" || String(p.city || "").toLowerCase() === city.toLowerCase();
-      const matchesKyc = kycFilter === "all" || String(p.kycStatus || "").toLowerCase() === kycFilter.toLowerCase();
+      const matchesKyc =
+        kycFilter === "all" ||
+        (kycFilter === "resubmitted" && Boolean(p.resubmitted)) ||
+        String(p.kycStatus || "").toLowerCase() === kycFilter.toLowerCase();
       return matchesQuery && matchesStatus && matchesCity && matchesKyc;
     });
   }, [allPartners, query, statusTab, city, kycFilter]);
@@ -617,13 +647,14 @@ function PartnersPage() {
 
             {/* KYC Filter Dropdown */}
             <Select value={kycFilter} onValueChange={setKycFilter}>
-              <SelectTrigger className="w-[130px] h-9 text-xs bg-zinc-50 border-zinc-200">
+              <SelectTrigger className="w-[140px] h-9 text-xs bg-zinc-50 border-zinc-200">
                 <SelectValue placeholder="KYC Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All KYC</SelectItem>
                 <SelectItem value="verified">Verified</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="resubmitted">🔄 Re-Submitted</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
@@ -655,6 +686,7 @@ function PartnersPage() {
         <div className="flex items-center gap-1 border-b border-zinc-100 pb-3 mb-4 overflow-x-auto text-xs">
           {[
             { id: "all", label: `All Stores (${allPartners.length})` },
+            { id: "RESUBMITTED", label: `🔄 Re-Submitted (${allPartners.filter((p) => Boolean(p?.resubmitted)).length})` },
             { id: "ONLINE", label: `🟢 Live Online (${allPartners.filter((p) => p?.isOnline || (p as any).isOpen).length})` },
             { id: "ACTIVE", label: `Active (${allPartners.filter((p) => p?.status === "ACTIVE").length})` },
             { id: "PENDING_APPROVAL", label: `Pending Review (${allPartners.filter((p) => p?.status === "PENDING_APPROVAL").length})` },
@@ -691,7 +723,18 @@ function PartnersPage() {
                 />
               </div>
               <div>
-                <p className="font-bold text-zinc-900 text-xs leading-tight">{r.businessName}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="font-bold text-zinc-900 text-xs leading-tight">{r.businessName}</p>
+                  {r.resubmitted && (
+                    <span
+                      className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200"
+                      title={`Re-submitted ${r.resubmissionCount || 1}x`}
+                    >
+                      <RefreshCw className="size-2.5" />
+                      Re-Submitted
+                    </span>
+                  )}
+                </div>
                 <p className="text-[10px] text-zinc-400 font-mono font-medium">#{r.id.slice(0, 16)}</p>
               </div>
             </div>,
@@ -715,9 +758,26 @@ function PartnersPage() {
               <Star className="size-3.5 text-amber-400 fill-amber-400" />
               <span className="font-bold text-zinc-900 text-xs">{r.rating}</span>
             </div>,
-            <span key="kyc" className={`rounded-full px-2 py-0.5 text-[10px] font-black ${r.kycStatus === "Verified" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-              {r.kycStatus}
-            </span>,
+            <div key="kyc" className="flex flex-col gap-0.5">
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-black text-center ${
+                  r.kycStatus === "Verified"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : r.resubmitted
+                    ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                    : r.kycStatus === "Rejected"
+                    ? "bg-rose-100 text-rose-800"
+                    : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                {r.resubmitted ? "Re-Submitted" : r.kycStatus}
+              </span>
+              {r.rejectionReason && (
+                <span className="text-[9px] text-rose-600 font-medium truncate max-w-[110px]" title={r.rejectionReason}>
+                  {r.rejectionReason}
+                </span>
+              )}
+            </div>,
             <span
               key="st"
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
@@ -801,11 +861,55 @@ function PartnersPage() {
                   </div>
                 </div>
 
+                {/* Re-submitted Notification Banner */}
+                {profile.header.resubmitted && (
+                  <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl flex items-start gap-3 text-xs text-indigo-950">
+                    <RefreshCw className="size-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="font-bold flex items-center gap-2">
+                        <span>Store Documents Re-Submitted by Partner</span>
+                        <span className="text-[10px] bg-indigo-200/60 text-indigo-800 px-2 py-0.5 rounded-full font-mono">
+                          Attempt #{profile.header.resubmissionCount || 1}
+                        </span>
+                        {profile.header.resubmittedAt && (
+                          <span className="text-[10px] text-indigo-600 font-normal">
+                            • {new Date(profile.header.resubmittedAt).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-indigo-800 mt-1">
+                        The merchant has corrected and updated their store registration details following feedback. Please review updated documents and activate store or request further changes.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejection / Correction Request Notice */}
+                {profile.header.rejectionReason && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-950">
+                    <AlertTriangle className="size-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <span className="font-bold text-rose-900">Admin Rejection / Clarification Note: </span>
+                      <span className="text-rose-800 font-medium">{profile.header.rejectionReason}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Header Action Buttons */}
                 <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-zinc-100">
                   {profile.header.status !== "ACTIVE" && (
                     <Button size="sm" onClick={() => selectedId && approveMutation.mutate(selectedId)} className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1 rounded-xl shadow-xs">
                       <Check className="size-3.5" /> Approve &amp; Activate
+                    </Button>
+                  )}
+                  {profile.header.status !== "REJECTED" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setRejectModalOpen(true)}
+                      className="h-8 border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100 text-xs font-bold gap-1 rounded-xl shadow-xs"
+                    >
+                      <XCircle className="size-3.5" /> Reject / Flag Store
                     </Button>
                   )}
                   {profile.header.status === "ACTIVE" && (
@@ -1168,14 +1272,36 @@ function PartnersPage() {
 
                   {/* 13. DOCUMENTS */}
                   <TabsContent value="documents" className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {profile.documents.map((doc) => (
-                        <div key={doc.name} className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 flex items-center justify-between">
-                          <div>
-                            <p className="font-bold text-xs text-zinc-900">{doc.name}</p>
-                            <p className="text-[10px] text-zinc-500">Status: {doc.status}</p>
+                        <div key={doc.name} className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 flex flex-col justify-between gap-2">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-bold text-xs text-zinc-900">{doc.name}</p>
+                              <span
+                                className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-black ${
+                                  doc.status === "VERIFIED" || doc.status === "UPLOADED" || doc.status.includes("PHOTOS")
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-zinc-200 text-zinc-700"
+                                }`}
+                              >
+                                {doc.status}
+                              </span>
+                            </div>
+                            <FileText className="size-4 text-zinc-400 shrink-0" />
                           </div>
-                          <FileText className="size-4 text-zinc-400" />
+                          {doc.url ? (
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-emerald-600 hover:text-emerald-700 font-bold hover:underline"
+                            >
+                              <Eye className="size-3" /> View Document / Photo
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-zinc-400 italic">No document file attached</span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1350,6 +1476,78 @@ function PartnersPage() {
           <DialogFooter className="pt-4">
             <Button variant="outline" onClick={() => setBlockModalOpen(false)} className="text-xs font-bold">Cancel</Button>
             <Button onClick={() => selectedId && blockMutation.mutate({ id: selectedId, reason: blockReason, internalNote: blockNote })} className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">Confirm Permanent Block</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          REJECT / FLAG STORE MODAL
+      ========================================================================= */}
+      <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
+        <DialogContent className="sm:max-w-md bg-white text-zinc-900">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600 font-black">
+              <XCircle className="size-5" /> Reject / Request Document Correction
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              The merchant will see this feedback in their Partner app and will be able to update and re-submit their store documents.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2 text-xs">
+            <div>
+              <label className="font-bold text-zinc-800">Quick Reason Preset</label>
+              <Select
+                value={rejectReason}
+                onValueChange={(val) => {
+                  setRejectReason(val);
+                  if (val !== "other") setCustomRejectNote("");
+                }}
+              >
+                <SelectTrigger className="mt-1 bg-zinc-50 border-zinc-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PARTNER_REJECTION_PRESETS.map((p, idx) => (
+                    <SelectItem key={idx} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="other">Custom feedback / Other reason...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {rejectReason === "other" && (
+              <div>
+                <label className="font-bold text-zinc-800">Custom Reason Note *</label>
+                <Input
+                  value={customRejectNote}
+                  onChange={(e) => setCustomRejectNote(e.target.value)}
+                  placeholder="Specify exact issue for the partner to correct..."
+                  className="mt-1 bg-zinc-50 border-zinc-200"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="pt-4">
+            <Button variant="outline" onClick={() => setRejectModalOpen(false)} className="text-xs font-bold">
+              Cancel
+            </Button>
+            <Button
+              disabled={rejectMutation.isPending}
+              onClick={() => {
+                const finalReason = rejectReason === "other" ? customRejectNote.trim() : rejectReason;
+                if (!finalReason) {
+                  toast.error("Please provide a rejection reason.");
+                  return;
+                }
+                if (selectedId) {
+                  rejectMutation.mutate({ id: selectedId, reason: finalReason });
+                }
+              }}
+              className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold"
+            >
+              {rejectMutation.isPending ? "Rejecting..." : "Confirm Rejection & Notify Merchant"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -754,14 +754,18 @@ class AdminPartnerRepository:
     async def _get_raw_partners(self) -> List[Dict[str, Any]]:
         catalog_partners = await database.find_many("catalog_partners")
         primary = await database.find_many("partner_profiles")
+        admin_partners = await database.find_many("admin_partners")
         fallback = await database.find_many("partners")
         users = await database.find_many("users", {"role": "partner"})
 
         by_id: Dict[str, Dict[str, Any]] = {}
-        for p in catalog_partners + primary + fallback + users:
+        for p in catalog_partners + primary + admin_partners + fallback + users:
             pid = str(p.get("_id") or p.get("id") or p.get("partnerId") or p.get("userId") or "")
-            if pid and pid not in by_id:
-                by_id[pid] = p
+            if pid:
+                if pid not in by_id:
+                    by_id[pid] = dict(p)
+                else:
+                    by_id[pid].update({k: v for k, v in p.items() if v is not None})
         return list(by_id.values())
 
     async def list(self, page: int, page_size: int, q: Optional[str] = None, city: Optional[str] = None, zone: Optional[str] = None, status: Optional[str] = None, kyc_status: Optional[str] = None) -> Dict[str, Any]:
@@ -805,6 +809,11 @@ class AdminPartnerRepository:
             raw_phone = str(doc.get("phone") or doc.get("mobile") or "").strip()
             clean_phone = "" if "98765 43210" in raw_phone or "9876543210" in raw_phone else raw_phone
 
+            is_resub = bool(doc.get("resubmitted"))
+            resub_at = doc.get("resubmittedAt") or ""
+            resub_count = int(doc.get("resubmissionCount") or 0)
+            rej_reason = doc.get("rejectionReason") or doc.get("kycReason") or ""
+
             enhanced.append({
                 "id": pid,
                 "businessName": name,
@@ -827,6 +836,10 @@ class AdminPartnerRepository:
                 "lastActive": (doc.get("updatedAt") or doc.get("lastActive") or now_iso())[:10],
                 "tags": doc.get("tags") or ["Kasganj", "Partner"],
                 "isOnline": bool(doc.get("isOnline", True)),
+                "resubmitted": is_resub,
+                "resubmittedAt": str(resub_at) if resub_at else "",
+                "resubmissionCount": resub_count,
+                "rejectionReason": rej_reason,
             })
 
         # Apply search filter
@@ -845,6 +858,17 @@ class AdminPartnerRepository:
 
         if kyc_status and kyc_status != "all":
             enhanced = [p for p in enhanced if p["kycStatus"].lower() == kyc_status.lower()]
+
+        # Sort so that resubmitted and newly registered pending partners appear at the very top
+        enhanced.sort(
+            key=lambda p: (
+                2 if (p.get("resubmitted") and p.get("status") in ("PENDING_APPROVAL", "UNDER_REVIEW"))
+                else (1 if p.get("status") in ("PENDING_APPROVAL", "UNDER_REVIEW") else 0),
+                p.get("resubmittedAt") or "",
+                p.get("joinedDate") or "",
+            ),
+            reverse=True,
+        )
 
         total = len(enhanced)
         start_idx = (page - 1) * page_size
@@ -1126,6 +1150,10 @@ class AdminPartnerRepository:
                 "operationalHours": doc.get("operationalHours") or "09:00 AM - 09:00 PM",
                 "turnaroundHours": turnaround_hrs,
                 "deliveryRadiusKm": doc.get("deliveryRadiusKm") or 10,
+                "resubmitted": bool(doc.get("resubmitted")),
+                "resubmittedAt": doc.get("resubmittedAt") or "",
+                "resubmissionCount": int(doc.get("resubmissionCount") or 0),
+                "rejectionReason": doc.get("rejectionReason") or doc.get("kycReason") or "",
             },
             "overview": {
                 "totalOrders": len(p_orders),
@@ -1258,13 +1286,20 @@ class AdminPartnerRepository:
                 "signedAt": doc.get("signedAt") or (doc.get("createdAt") or now_iso())[:19],
                 "signedByName": doc.get("signedByName") or owner,
                 "agreementVersion": doc.get("agreementVersion") or "QP-SLA-2026-v4.2",
+                "resubmitted": bool(doc.get("resubmitted")),
+                "resubmittedAt": doc.get("resubmittedAt") or "",
+                "resubmissionCount": int(doc.get("resubmissionCount") or 0),
+                "rejectionReason": doc.get("rejectionReason") or doc.get("kycReason") or "",
             },
             "documents": [
                 {"name": "Aadhaar Card (UIDAI KYC)", "type": "UIDAI Aadhaar", "number": doc.get("aadhaarMasked") or (f"XXXX XXXX {str(doc.get('aadhaar'))[-4:]}" if doc.get("aadhaar") else "Pending Upload"), "status": "Verified" if doc.get("aadhaar") else "Pending", "date": (doc.get("createdAt") or now_iso())[:10]},
                 {"name": "Business PAN Card", "type": "PAN Card", "number": doc.get("pan") or "Pending Upload", "status": "Verified" if doc.get("pan") else "Pending", "date": (doc.get("createdAt") or now_iso())[:10]},
                 {"name": "GSTIN Certificate", "type": "GST Certificate", "number": doc.get("gstin") or "Exempt / Pending", "status": "Verified" if doc.get("gstin") else "Exempt", "date": (doc.get("createdAt") or now_iso())[:10]},
                 {"name": "Bank Account (NPCI Verified)", "type": "Bank Settlement", "number": f"{doc.get('bankName', 'Bank')} - {doc.get('accountNumber', 'Pending')}", "status": "Verified" if doc.get("accountNumber") else "Pending", "date": (doc.get("createdAt") or now_iso())[:10]},
-                {"name": "Signed SLA Franchise Agreement", "type": "Legal SLA", "number": doc.get("agreementVersion") or "QP-SLA-2026-v4.2", "status": "E-Signed ✓" if doc.get("agreementSigned") else "Pending Signature", "date": (doc.get("signedAt") or doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Storefront Logo & Signboard", "type": "Store Branding", "number": "Uploaded Logo" if doc.get("logo") else "Pending", "status": "Uploaded ✓" if doc.get("logo") else "Pending", "url": doc.get("logo"), "date": (doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Store Facade Banner", "type": "Store Photo", "number": "Uploaded Banner" if doc.get("banner") else "Pending", "status": "Uploaded ✓" if doc.get("banner") else "Pending", "url": doc.get("banner"), "date": (doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Store Inside / Machinery Photos", "type": "Shop Gallery", "number": f"{len(doc.get('gallery') or [])} Photos Uploaded", "status": "Uploaded ✓" if (doc.get("gallery") and len(doc.get("gallery")) > 0) else "Pending", "date": (doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Signed SLA Franchise Agreement", "type": "Legal SLA", "number": doc.get("agreementVersion") or "QP-SLA-2026-v4.2", "status": "E-Signed ✓" if doc.get("agreementSigned") else "Pending Signature", "url": doc.get("signatureUrl"), "date": (doc.get("signedAt") or doc.get("createdAt") or now_iso())[:10]},
             ],
             "ratings": {
                 "score": calc_rating,
@@ -1497,8 +1532,42 @@ class AdminPartnerRepository:
     async def update_kyc(self, partner_id: str, status: str, reason: Optional[str], admin_id: str) -> Dict[str, Any]:
         now = now_iso()
         is_ver = str(status).lower() == "verified"
-        changes = {"kycStatus": status, "isVerified": is_ver, "kycReason": reason, "updatedAt": now}
+        is_rej = str(status).lower() in ("rejected", "rejected_kyc")
+        changes = {
+            "kycStatus": "Verified" if is_ver else ("Rejected" if is_rej else status),
+            "isVerified": is_ver,
+            "kycReason": reason,
+            "rejectionReason": reason if is_rej else None,
+            "updatedAt": now,
+        }
+        if is_ver:
+            changes["status"] = "active"
+            changes["resubmitted"] = False
+        elif is_rej:
+            changes["status"] = "rejected"
+
         await database.update(self.collection, {"_id": partner_id}, changes, upsert=True)
+        await database.update("partner_profiles", {"_id": partner_id}, changes, upsert=True)
+        await database.update("admin_partners", {"_id": partner_id}, changes, upsert=True)
+        await database.update("partners", {"_id": partner_id}, changes, upsert=True)
+        await database.update(
+            "partner_verifications",
+            {"$or": [{"partnerId": partner_id}, {"_id": partner_id}]},
+            {"status": "approved" if is_ver else ("rejected" if is_rej else "pending"), "rejectionReason": reason if is_rej else None, "updatedAt": now},
+            upsert=True,
+        )
+
+        try:
+            from app.services.socket_service import notify_partner_status_changed
+            await notify_partner_status_changed(
+                partner_id=partner_id,
+                is_online=is_ver,
+                store_open=is_ver,
+                accepting=is_ver,
+                extra={"status": changes.get("status"), "kycStatus": changes.get("kycStatus"), "rejectionReason": reason if is_rej else None},
+            )
+        except Exception:
+            pass
 
         await database.insert("admin_audit_logs", {
             "id": new_id("audit"),
@@ -1510,7 +1579,7 @@ class AdminPartnerRepository:
             "reason": reason,
             "createdAt": now,
         })
-        return {"ok": True, "kycStatus": status}
+        return {"ok": True, "kycStatus": changes["kycStatus"]}
 
     async def update_commission(self, partner_id: str, rate: float, service_rates: Optional[Dict[str, float]], admin_id: str) -> Dict[str, Any]:
         now = now_iso()

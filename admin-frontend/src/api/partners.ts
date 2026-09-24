@@ -50,6 +50,10 @@ export type BackendPartnerItem = {
   lastActive: string;
   tags: string[];
   isOnline: boolean;
+  resubmitted?: boolean;
+  resubmittedAt?: string;
+  resubmissionCount?: number;
+  rejectionReason?: string;
 };
 
 export type BackendPartnerListPage = {
@@ -98,6 +102,10 @@ export type Partner360Data = {
     operationalHours?: string;
     turnaroundHours?: number;
     deliveryRadiusKm?: number;
+    resubmitted?: boolean;
+    resubmittedAt?: string;
+    resubmissionCount?: number;
+    rejectionReason?: string;
   };
   overview: {
     totalOrders: number;
@@ -235,6 +243,10 @@ export type Partner360Data = {
     accountNumber: string;
     ifsc: string;
     ownerVerified: boolean;
+    resubmitted?: boolean;
+    resubmittedAt?: string;
+    resubmissionCount?: number;
+    rejectionReason?: string;
   };
   documents: Array<{
     name?: string;
@@ -416,6 +428,11 @@ export async function unblockPartner(id: string, reason = "Admin unblocked partn
 /** POST /api/admin/partners/{id}/kyc */
 export async function updatePartnerKyc(id: string, payload: { status: string; reason?: string }) {
   return apiPostJson<{ ok: boolean; kycStatus: string }>(`/api/admin/partners/${encodeURIComponent(id)}/kyc`, payload);
+}
+
+/** POST /api/admin/partners/{id}/reject */
+export async function rejectPartner(id: string, payload?: { reason: string }) {
+  return apiPostJson<{ ok: boolean; status: string }>(`/api/admin/partners/${encodeURIComponent(id)}/reject`, payload || {});
 }
 
 /** POST /api/admin/partners/{id}/commission */

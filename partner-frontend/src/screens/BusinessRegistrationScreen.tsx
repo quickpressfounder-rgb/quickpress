@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   ArrowLeft,
   BadgeCheck,
   Banknote,
@@ -29,6 +30,7 @@ import {
   Navigation,
   Phone,
   ReceiptText,
+  RefreshCw,
   Search,
   Send,
   ShieldCheck,
@@ -84,6 +86,7 @@ import {
   type FieldErrors,
 } from "../lib/partner-validation";
 import {
+  checkPartnerVerificationStatus,
   registerBusiness,
   sendPartnerAadhaarOtp,
   verifyPartnerAadhaarOtp,
@@ -256,6 +259,9 @@ export function BusinessRegistrationScreen() {
   const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
   const [customPincodeInput, setCustomPincodeInput] = useState<string>("");
 
+  const [isResubmissionFlow, setIsResubmissionFlow] = useState(false);
+  const [rejectionNotice, setRejectionNotice] = useState<string | null>(null);
+
   // Route protection
   useEffect(() => {
     if (hydrating) return;
@@ -263,7 +269,9 @@ export function BusinessRegistrationScreen() {
       navigate({ to: partnerRoutes.auth });
       return;
     }
-    if (session.isOnboarded && !session.isVerified) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isResubmitParam = urlParams.get("resubmit") === "true" || urlParams.get("edit") === "true";
+    if (session.isOnboarded && !session.isVerified && !isResubmitParam && session.status !== "rejected" && (session as any).kycStatus !== "rejected") {
       navigate({ to: partnerRoutes.registrationSubmitted });
       return;
     }
@@ -272,6 +280,110 @@ export function BusinessRegistrationScreen() {
       return;
     }
   }, [hydrating, session, navigate]);
+
+  // Prefill existing application / draftData if re-submitting or updating
+  useEffect(() => {
+    let active = true;
+    const urlParams = new URLSearchParams(window.location.search);
+    const isResubmitParam = urlParams.get("resubmit") === "true" || urlParams.get("edit") === "true";
+
+    checkPartnerVerificationStatus()
+      .then((statusRes) => {
+        if (!active || !statusRes) return;
+        if (statusRes.isVerified) {
+          toast.success("Account already approved. Opening Dashboard...");
+          navigate({ to: partnerRoutes.dashboard, replace: true });
+          return;
+        }
+        if (statusRes.isOnboarded && !isResubmitParam && statusRes.status !== "rejected" && statusRes.kycStatus !== "rejected") {
+          navigate({ to: partnerRoutes.registrationSubmitted, replace: true });
+          return;
+        }
+
+        if (isResubmitParam || statusRes.status === "rejected" || statusRes.kycStatus === "rejected") {
+          setIsResubmissionFlow(true);
+        }
+        if (statusRes.rejectionReason) {
+          setRejectionNotice(statusRes.rejectionReason);
+        }
+
+        // Pre-fill form from draftData if available
+        if (statusRes.draftData) {
+          const d = statusRes.draftData;
+          setForm((prev) => ({
+            ...prev,
+            shopName: prev.shopName || d.shopName || "",
+            ownerName: prev.ownerName || d.ownerName || "",
+            mobile: prev.mobile || d.phone || "",
+            email: prev.email || d.email || "",
+            shopAddress: prev.shopAddress || d.shopAddress || "",
+            gstin: prev.gstin || d.gstin || "",
+            pan: prev.pan || d.pan || "",
+            aadhaar: prev.aadhaar || d.aadhaar || "",
+            businessType: prev.businessType || d.businessType || "Laundry",
+            experience: prev.experience || d.experience || "1 - 3 years",
+            openingTime: prev.openingTime || d.openingTime || "08:00",
+            closingTime: prev.closingTime || d.closingTime || "21:00",
+            emergencyClosing: prev.emergencyClosing || d.emergencyClosing || "",
+            state: prev.state || d.state || "Uttar Pradesh",
+            city: prev.city || d.city || "Kasganj",
+            area: prev.area || d.area || "",
+            pincode: prev.pincode || d.pincode || "",
+            pickupRadius: d.pickupRadius || prev.pickupRadius,
+            deliveryRadius: d.deliveryRadius || prev.deliveryRadius,
+            accountHolder: prev.accountHolder || d.accountHolder || "",
+            bankName: prev.bankName || d.bankName || "",
+            accountNumber: prev.accountNumber || d.accountNumber || "",
+            ifsc: prev.ifsc || d.ifsc || "",
+          }));
+
+          if (Array.isArray(d.selectedPincodes) && d.selectedPincodes.length > 0) {
+            setSelectedPincodes(d.selectedPincodes);
+          }
+          if (Array.isArray(d.selectedSectors) && d.selectedSectors.length > 0) {
+            setSelectedSectors(d.selectedSectors);
+          }
+          if (Array.isArray(d.weeklyOff) && d.weeklyOff.length > 0) {
+            setWeeklyOff(d.weeklyOff);
+          }
+          if (d.logo || d.banner || (Array.isArray(d.gallery) && d.gallery.length > 0)) {
+            setUploads((prev) => ({
+              logo: prev.logo || d.logo || "",
+              banner: prev.banner || d.banner || "",
+              gallery: (prev.gallery && prev.gallery.length > 0) ? prev.gallery : (d.gallery || []),
+            }));
+          }
+          if (Array.isArray(d.services) && d.services.length > 0) {
+            setServices(d.services);
+          }
+          if (d.servicePrices && Object.keys(d.servicePrices).length > 0) {
+            setServicePrices((prev) => ({ ...prev, ...d.servicePrices }));
+          }
+          if (d.serviceTurnarounds && Object.keys(d.serviceTurnarounds).length > 0) {
+            setServiceTurnarounds((prev) => ({ ...prev, ...d.serviceTurnarounds }));
+          }
+          if (d.aadhaar) setAadhaarVerified(true);
+          if (d.pan) setPanVerified(true);
+          if (d.gstin) setGstVerified(true);
+          if (d.accountNumber) setBankVerified(true);
+          if (d.signatureUrl) {
+            setAgreementData({
+              signerName: d.signedByName || d.ownerName || "",
+              signatureUrl: d.signatureUrl,
+              signedAt: new Date().toISOString(),
+              agreementVersion: d.agreementVersion || "QP-SLA-2026-v4.2",
+              consentAgreed: true,
+              aadhaarEsignVerified: true,
+            });
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
 
   // Sync session details safely without auto-filling phone numbers into ownerName
   useEffect(() => {
@@ -956,6 +1068,54 @@ export function BusinessRegistrationScreen() {
         <div className="mt-6">
           <StepProgress steps={STEPS} current={step} onStepClick={editStep} />
         </div>
+
+        {/* Re-submission / Admin Rejection Alert Banner */}
+        {rejectionNotice && (
+          <div className="mt-6 rounded-2xl border-2 border-rose-500/40 bg-rose-50/90 p-4.5 text-rose-900 shadow-md animate-slide-up">
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-500 text-white font-bold">
+                <AlertTriangle className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-rose-950 uppercase tracking-wide">
+                    Action Required: Update Flagged Details / सुधार आवश्यक
+                  </h3>
+                  <span className="rounded bg-rose-200/80 px-2 py-0.5 text-[10px] font-black text-rose-900">
+                    RE-SUBMISSION MODE
+                  </span>
+                </div>
+                <div className="mt-2 rounded-xl bg-white p-3 border border-rose-200 shadow-xs">
+                  <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">
+                    Admin Feedback & Reason:
+                  </p>
+                  <p className="text-xs font-semibold text-rose-950 mt-0.5">
+                    {rejectionNotice}
+                  </p>
+                </div>
+                <p className="mt-2 text-[11px] font-medium text-rose-800">
+                  Please review and modify the fields below, upload any requested documents, and submit at Step 4. Your updated store will be prioritized for verification.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isResubmissionFlow && !rejectionNotice && (
+          <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50/90 p-4 text-indigo-900 shadow-xs flex items-center gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-white font-bold">
+              <RefreshCw className="size-4 animate-spin" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-indigo-950">
+                Editing Store Application / जानकारी अपडेट मोड
+              </p>
+              <p className="text-[11px] text-indigo-700">
+                You can update your business information, store timings, service prices, and bank details.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Two-Column Grid on Desktop / Single-Column on Mobile */}
         <div className="mt-8 grid grid-cols-12 gap-8 items-start">

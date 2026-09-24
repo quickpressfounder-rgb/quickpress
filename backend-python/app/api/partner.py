@@ -399,14 +399,103 @@ async def get_partner_verification_status(
         status_str = "active"
         is_onboarded = True
 
+    admin_prof = None
+    if pid:
+        admin_prof = await database.find_one("admin_partners", {"$or": [{"_id": pid}, {"partnerId": pid}]})
+    if not admin_prof and u_doc:
+        admin_prof = await database.find_one("admin_partners", {"userId": str(u_doc.get("_id") or u_doc.get("id"))})
+
+    rejection_reason = (
+        (prof.get("rejectionReason") if prof else None)
+        or (prof.get("kycReason") if prof else None)
+        or (admin_prof.get("rejectionReason") if admin_prof else None)
+        or (admin_prof.get("kycReason") if admin_prof else None)
+        or (pv.get("rejectionReason") if pv else None)
+        or (u_doc.get("rejectionReason") if u_doc else None)
+        or None
+    )
+
+    is_resub = bool(
+        (prof and prof.get("resubmitted"))
+        or (admin_prof and admin_prof.get("resubmitted"))
+        or (u_doc and u_doc.get("resubmitted"))
+    )
+    resub_at = (
+        (prof.get("resubmittedAt") if prof else None)
+        or (admin_prof.get("resubmittedAt") if admin_prof else None)
+        or (u_doc.get("resubmittedAt") if u_doc else None)
+        or ""
+    )
+    resub_count = int(
+        (prof.get("resubmissionCount") if prof else 0)
+        or (admin_prof.get("resubmissionCount") if admin_prof else 0)
+        or 0
+    )
+    kyc_status = (
+        (prof.get("kycStatus") if prof else None)
+        or (admin_prof.get("kycStatus") if admin_prof else None)
+        or ("verified" if is_verified else ("rejected" if (status_str == "rejected" or rejection_reason) else "pending"))
+    )
+
+    draft_data = None
+    if prof:
+        partner_services = await database.find_many("partner_services", {"partnerId": pid}) if pid else []
+        services_list = [s.get("name") for s in partner_services if s.get("name")]
+        service_prices = {s.get("name"): s.get("price") for s in partner_services if s.get("name") and s.get("price") is not None}
+        service_turnarounds = {s.get("name"): s.get("turnaroundHours") for s in partner_services if s.get("name") and s.get("turnaroundHours") is not None}
+
+        draft_data = {
+            "shopName": prof.get("businessName") or prof.get("storeName") or "",
+            "ownerName": prof.get("ownerName") or "",
+            "phone": prof.get("phone") or prof.get("mobile") or (u_doc.get("phone") if u_doc else "") or "",
+            "email": prof.get("email") or (u_doc.get("email") if u_doc else "") or "",
+            "shopAddress": prof.get("address") or "",
+            "gstin": prof.get("gstin") or "",
+            "pan": prof.get("pan") or "",
+            "aadhaar": prof.get("aadhaar") or "",
+            "businessType": prof.get("category") or "Laundry",
+            "experience": prof.get("experience") or "1 - 3 years",
+            "openingTime": prof.get("openingTime") or "08:00",
+            "closingTime": prof.get("closingTime") or "21:00",
+            "emergencyClosing": prof.get("emergencyClosing") or "",
+            "state": prof.get("state") or "Uttar Pradesh",
+            "city": prof.get("city") or "Kasganj",
+            "area": prof.get("area") or "",
+            "pincode": prof.get("pincode") or "",
+            "pickupRadius": prof.get("pickupRadiusKm") or 5,
+            "deliveryRadius": prof.get("deliveryRadiusKm") or 8,
+            "accountHolder": prof.get("accountHolder") or "",
+            "bankName": prof.get("bankName") or "",
+            "accountNumber": prof.get("accountNumber") or "",
+            "ifsc": prof.get("ifsc") or "",
+            "selectedPincodes": prof.get("servicePincodes") or ([prof.get("pincode")] if prof.get("pincode") else []),
+            "selectedSectors": prof.get("sectors") or ([prof.get("area")] if prof.get("area") else []),
+            "weeklyOff": [d.strip() for d in str(prof.get("weeklyOff", "Sun")).split(",") if d.strip()],
+            "logo": prof.get("logo") or "",
+            "banner": prof.get("banner") or "",
+            "gallery": prof.get("gallery") or [],
+            "signatureUrl": prof.get("signatureUrl") or "",
+            "signedByName": prof.get("signedByName") or prof.get("ownerName") or "",
+            "agreementVersion": prof.get("agreementVersion") or "QP-SLA-2026-v4.2",
+            "services": services_list,
+            "servicePrices": service_prices,
+            "serviceTurnarounds": service_turnarounds,
+        }
+
     return {
         "ok": True,
         "isVerified": is_verified,
         "isOnboarded": is_onboarded,
         "status": status_str,
+        "kycStatus": kyc_status,
         "partnerId": pid or "PRT-UNKNOWN",
         "businessName": business_name,
         "ownerName": owner_name,
+        "rejectionReason": rejection_reason,
+        "resubmitted": is_resub,
+        "resubmittedAt": resub_at,
+        "resubmissionCount": resub_count,
+        "draftData": draft_data,
     }
 
 
@@ -1079,9 +1168,9 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
 
     # 1. Aadhaar Uniqueness Check
     if clean_aadhaar and len(clean_aadhaar) == 12:
-        existing_aadhaar = await database.find_one("partner_profiles", {"aadhaar": clean_aadhaar, "_id": {"$ne": store_id_str}})
+        existing_aadhaar = await database.find_one("partner_profiles", {"aadhaar": clean_aadhaar, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
         if not existing_aadhaar:
-            existing_aadhaar = await database.find_one("partners", {"aadhaar": clean_aadhaar, "_id": {"$ne": store_id_str}})
+            existing_aadhaar = await database.find_one("partners", {"aadhaar": clean_aadhaar, "_id": {"$ne": store_id_str}, "user_id": {"$ne": user.id}})
         if existing_aadhaar:
             raise HTTPException(
                 status_code=400,
@@ -1090,9 +1179,9 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
 
     # 2. PAN Uniqueness Check
     if clean_pan and len(clean_pan) == 10:
-        existing_pan = await database.find_one("partner_profiles", {"pan": clean_pan, "_id": {"$ne": store_id_str}})
+        existing_pan = await database.find_one("partner_profiles", {"pan": clean_pan, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
         if not existing_pan:
-            existing_pan = await database.find_one("partners", {"pan": clean_pan, "_id": {"$ne": store_id_str}})
+            existing_pan = await database.find_one("partners", {"pan": clean_pan, "_id": {"$ne": store_id_str}, "user_id": {"$ne": user.id}})
         if existing_pan:
             raise HTTPException(
                 status_code=400,
@@ -1101,7 +1190,7 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
 
     # 3. Email Uniqueness Check
     if clean_email:
-        existing_email = await database.find_one("partner_profiles", {"email": clean_email, "_id": {"$ne": store_id_str}})
+        existing_email = await database.find_one("partner_profiles", {"email": clean_email, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
         if existing_email:
             raise HTTPException(
                 status_code=400,
@@ -1111,9 +1200,9 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
     # 4. GSTIN Uniqueness Check
     clean_gstin = str(payload.gstin or "").replace(" ", "").strip().upper()
     if clean_gstin and len(clean_gstin) == 15:
-        existing_gstin = await database.find_one("partner_profiles", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}})
+        existing_gstin = await database.find_one("partner_profiles", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
         if not existing_gstin:
-            existing_gstin = await database.find_one("partners", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}})
+            existing_gstin = await database.find_one("partners", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}, "user_id": {"$ne": user.id}})
         if existing_gstin:
             raise HTTPException(
                 status_code=400,
@@ -1123,12 +1212,29 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
     # 5. Bank Account Uniqueness Check
     clean_bank = str(getattr(payload, "accountNumber", "") or "").strip()
     if clean_bank and len(clean_bank) >= 8:
-        existing_bank = await database.find_one("partner_profiles", {"accountNumber": clean_bank, "_id": {"$ne": store_id_str}})
+        existing_bank = await database.find_one("partner_profiles", {"accountNumber": clean_bank, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
         if existing_bank:
             raise HTTPException(
                 status_code=400,
                 detail=f"This Bank Account (XX{clean_bank[-4:]}) is already linked with another partner store.",
             )
+
+    existing_profile = (
+        await database.find_one("partner_profiles", {"_id": store_id_str})
+        or await database.find_one("partner_profiles", {"userId": user.id})
+        or await database.find_one("admin_partners", {"_id": store_id_str})
+    )
+    is_resubmission = bool(
+        existing_profile
+        and (
+            existing_profile.get("isOnboarded")
+            or existing_profile.get("status") in ("pending_verification", "rejected", "suspended")
+            or existing_profile.get("rejectionReason")
+            or existing_profile.get("kycReason")
+        )
+    )
+    resub_count = (int(existing_profile.get("resubmissionCount", 0)) + 1) if (is_resubmission and existing_profile) else 0
+    now_iso_str = datetime.now(timezone.utc).isoformat()
 
     changes = {
         "_id": store_id_str,
@@ -1163,14 +1269,20 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "longitude": payload.longitude,
         "agreementSigned": True,
         "signatureUrl": payload.signatureUrl,
-        "signedAt": payload.signedAt or datetime.now(timezone.utc).isoformat(),
+        "signedAt": payload.signedAt or now_iso_str,
         "signedByName": payload.signedByName or payload.ownerName,
         "agreementVersion": payload.agreementVersion or "QP-SLA-2026-v4.2",
         "status": "pending_verification",
+        "kycStatus": "pending",
+        "rejectionReason": None,
+        "kycReason": None,
         "isVerified": False,
         "isOnboarded": True,
+        "resubmitted": is_resubmission,
+        "resubmittedAt": now_iso_str if is_resubmission else None,
+        "resubmissionCount": resub_count,
+        "updatedAt": now_iso_str,
     }
-    existing_profile = await database.find_one("partner_profiles", {"_id": store_id_str})
     if existing_profile is None:
         await database.insert(
             "partner_profiles",
@@ -1182,8 +1294,7 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                 "onTimeRate": 98.5,
                 "tier": "Silver",
                 "isOnline": False,
-                "createdAt": datetime.now(timezone.utc).isoformat(),
-                "updatedAt": datetime.now(timezone.utc).isoformat(),
+                "createdAt": now_iso_str,
             },
         )
     else:
@@ -1219,18 +1330,60 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
             "accountNumber": payload.accountNumber,
             "ifsc": payload.ifsc,
             "agreementSigned": True,
-            "signedAt": payload.signedAt or datetime.now(timezone.utc).isoformat(),
+            "signedAt": payload.signedAt or now_iso_str,
             "signedByName": payload.signedByName or payload.ownerName,
             "signatureUrl": payload.signatureUrl,
             "agreementVersion": payload.agreementVersion or "QP-SLA-2026-v4.2",
             "status": "pending_verification",
+            "kycStatus": "pending",
+            "rejectionReason": None,
+            "kycReason": None,
             "isVerified": False,
             "isOnboarded": True,
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "updatedAt": datetime.now(timezone.utc).isoformat(),
+            "resubmitted": is_resubmission,
+            "resubmittedAt": now_iso_str if is_resubmission else None,
+            "resubmissionCount": resub_count,
+            "createdAt": (existing_profile.get("createdAt") if existing_profile else None) or now_iso_str,
+            "updatedAt": now_iso_str,
         },
         upsert=True,
     )
+
+    # Sync with partner_verifications collection
+    await database.update(
+        "partner_verifications",
+        {"$or": [{"partnerId": store_id_str}, {"_id": store_id_str}]},
+        {
+            "partnerId": store_id_str,
+            "status": "pending",
+            "isVerified": False,
+            "resubmitted": is_resubmission,
+            "resubmittedAt": now_iso_str if is_resubmission else None,
+            "rejectionReason": None,
+            "updatedAt": now_iso_str,
+        },
+        upsert=True,
+    )
+
+    try:
+        from app.services.socket_service import notify_partner_status_changed
+        await notify_partner_status_changed(
+            partner_id=store_id_str,
+            is_online=False,
+            store_open=False,
+            accepting=False,
+            extra={
+                "resubmitted": is_resubmission,
+                "resubmittedAt": now_iso_str if is_resubmission else None,
+                "status": "pending_verification",
+                "kycStatus": "pending",
+                "businessName": payload.businessName,
+                "ownerName": payload.ownerName,
+                "city": payload.city,
+            },
+        )
+    except Exception as exc:
+        logger.warning("Could not broadcast partner onboarding status change: %s", exc)
 
     # Initialize partner store settings with timing, radius, and weekly off
     await database.update(

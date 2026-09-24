@@ -645,9 +645,10 @@ async def activate_partner(partner_id: str, user: User = Depends(current_user)):
 
 
 @router.post("/partners/{partner_id}/reject")
-async def reject_partner(partner_id: str, user: User = Depends(current_user)):
-    res = await admin_partner_repository.block(partner_id, "Application rejected by admin", "Rejected during onboarding", user.id)
-    await audit_repository.log(await _actor(user), "partner.reject", partner_id)
+async def reject_partner(partner_id: str, payload: dict | None = None, user: User = Depends(current_user)):
+    reason = (payload or {}).get("reason") or "Application rejected by admin"
+    res = await admin_partner_repository.update_kyc(partner_id, "rejected", reason, user.id)
+    await audit_repository.log(await _actor(user), "partner.reject", partner_id, {"reason": reason})
     return res
 
 
