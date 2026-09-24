@@ -334,14 +334,14 @@ export function AdminLiveMap({
         attributionControl: false,
       });
 
-      // CartoDB Voyager Tile Layer
+      // OpenStreetMap Standard Tile Layer (Free, no API key required)
       L.tileLayer(
         tileMode === "satellite"
           ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+          : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
           maxZoom: 19,
-          subdomains: "abcd",
+          subdomains: "abc",
         },
       ).addTo(map);
 
@@ -384,9 +384,9 @@ export function AdminLiveMap({
     const tileUrl =
       tileMode === "satellite"
         ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+        : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-    L.tileLayer(tileUrl, { maxZoom: 19, subdomains: "abcd" }).addTo(map);
+    L.tileLayer(tileUrl, { maxZoom: 19, subdomains: "abc" }).addTo(map);
   }, [leaflet, tileMode]);
 
   // Update Markers and Routes
@@ -820,10 +820,10 @@ export function AdminRiderLiveLocation({ riderId }: { riderId: string }) {
       });
 
       L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
           maxZoom: 19,
-          subdomains: "abcd",
+          subdomains: "abc",
         },
       ).addTo(map);
 

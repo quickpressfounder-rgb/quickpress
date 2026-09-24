@@ -60,7 +60,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/shared/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { AdminShell } from "../components/AdminShell";
-import { AdminLiveMap, AdminRiderLiveLocation } from "../components/AdminLiveMap";
+import { AdminRiderLiveLocation } from "../components/AdminLiveMap";
 import { DataTable, DetailRow, SectionCard, StatusPill, KpiCard } from "../components/AdminUI";
 import {
   fetchRider,
@@ -452,22 +452,6 @@ export function RidersPage() {
           </div>
         </div>
 
-        {/* =========================================================================
-            2. LIVE FLEET MAP
-        ========================================================================= */}
-        <SectionCard
-          title="Live Fleet & Order GPS Telemetry"
-          description="Real-time live positions of online riders and partner store pickup hubs in Kasganj"
-        >
-          <AdminLiveMap
-            onSelectRider={(riderId) => {
-              const found = allRiders.find(
-                (r) => r.id === riderId || r.name.toLowerCase() === riderId.toLowerCase(),
-              );
-              if (found) setSelectedRider(found);
-            }}
-          />
-        </SectionCard>
 
         {/* =========================================================================
             3. MULTI-DIMENSIONAL FILTERS & TOOLBAR
