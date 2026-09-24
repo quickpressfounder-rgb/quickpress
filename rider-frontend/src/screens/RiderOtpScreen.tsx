@@ -129,13 +129,13 @@ export function RiderOtpScreen() {
 
       if (!onboarded) {
         toast.success("Phone verified! Please complete Captain Registration 🛵");
-        navigate({ to: "/registration" });
+        navigate({ to: "/registration", replace: true });
       } else if (!approved) {
         toast.info("Your application is under verification ⏳");
-        navigate({ to: "/verification" });
+        navigate({ to: "/verification", replace: true });
       } else {
         toast.success("Welcome back, Captain! Redirecting to Dashboard... 🚀");
-        navigate({ to: "/dashboard" });
+        navigate({ to: "/dashboard", replace: true });
       }
     } catch (err: any) {
       toast.error(err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.");

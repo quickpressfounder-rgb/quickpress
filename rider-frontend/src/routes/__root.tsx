@@ -131,6 +131,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { GlobalOrderDispatchListener } from "@/components/orders/GlobalOrderDispatchListener";
+import { CapacitorBackHandler } from "@/components/common/CapacitorBackHandler";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -143,6 +144,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <RiderProvider>
+          <CapacitorBackHandler />
           <GlobalOrderDispatchListener />
           <Outlet />
         </RiderProvider>
