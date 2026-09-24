@@ -996,16 +996,24 @@ function Rider360Sheet({
             </div>
           </div>
 
-          {/* Quick Action Verification & Approval Bar */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-zinc-950 p-3.5 text-white shadow-md border border-zinc-800">
+          {/* Quick Action Verification & Approval Bar (Clean Light Theme) */}
+          <div
+            className={`mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl p-3.5 shadow-xs border transition-all ${
+              rider.status === "Active"
+                ? "bg-emerald-50/80 border-emerald-200 text-slate-900"
+                : rider.status === "Suspended"
+                ? "bg-rose-50/80 border-rose-200 text-slate-900"
+                : "bg-amber-50/80 border-amber-200 text-slate-900"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div
-                className={`flex size-10 items-center justify-center rounded-xl font-bold text-sm shrink-0 ${
+                className={`flex size-10 items-center justify-center rounded-xl font-bold text-sm shrink-0 border ${
                   rider.status === "Active"
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                     : rider.status === "Suspended"
-                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/40"
-                    : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                    ? "bg-rose-100 text-rose-800 border-rose-300"
+                    : "bg-amber-100 text-amber-800 border-amber-300"
                 }`}
               >
                 {rider.status === "Active" ? (
@@ -1018,7 +1026,7 @@ function Rider360Sheet({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black tracking-wider uppercase text-white">
+                  <span className="text-xs font-black tracking-wider uppercase text-slate-900">
                     {rider.status === "Active"
                       ? "VERIFIED FLEET CAPTAIN"
                       : rider.status === "Suspended"
@@ -1026,20 +1034,20 @@ function Rider360Sheet({
                       : "KYC VERIFICATION PENDING"}
                   </span>
                   <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                    className={`px-2 py-0.5 rounded text-[10px] font-black border ${
                       rider.kyc === "Verified"
-                        ? "bg-emerald-500/30 text-emerald-300 border border-emerald-500/30"
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                         : rider.kyc === "Rejected"
-                        ? "bg-rose-500/30 text-rose-300 border border-rose-500/30"
-                        : "bg-amber-500/30 text-amber-200 border border-amber-500/30"
+                        ? "bg-rose-100 text-rose-800 border-rose-300"
+                        : "bg-amber-100 text-amber-800 border-amber-300"
                     }`}
                   >
                     KYC: {rider.kyc}
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-300 font-medium mt-0.5">
+                <p className="text-[11px] text-slate-700 font-medium mt-0.5">
                   {rider.status === "Active"
-                    ? "Rider account is fully unlocked for live dispatch, customer rides, and daily wallet earnings."
+                    ? "Rider account is verified and fully active for live dispatch and daily earnings."
                     : data360?.kyc.rejectionReason
                     ? `Admin Reason: ${data360.kyc.rejectionReason}`
                     : "Review all uploaded KYC documents below and approve or reject with a reason note."}
@@ -1048,28 +1056,53 @@ function Rider360Sheet({
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
-              <Button
-                size="sm"
-                className="h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-sm transition-all"
-                onClick={() => setApproveConfirmOpen(true)}
-              >
-                <Check className="size-3.5 mr-1" />
-                Approve Rider ✅
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8.5 rounded-xl border-rose-500/60 bg-rose-500/10 text-rose-300 hover:bg-rose-600 hover:text-white active:scale-95 font-black text-xs transition-all"
-                onClick={() => {
-                  setSelectedPreset("dl_invalid");
-                  setRejectReasonNote("Driving License (DL) is invalid, expired, or photo is unclear. Please re-upload a valid license.");
-                  setRejectedDocsSelected(["dl"]);
-                  setRejectModalOpen(true);
-                }}
-              >
-                <X className="size-3.5 mr-1" />
-                Reject Application ❌
-              </Button>
+              {rider.status === "Active" ? (
+                <>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-xs">
+                    <CheckCircle2 className="size-3.5 text-emerald-700" />
+                    <span>Account Active & Approved</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8.5 rounded-xl border-rose-300 bg-white text-rose-700 hover:bg-rose-50 active:scale-95 font-bold text-xs transition-all shadow-2xs"
+                    onClick={() => {
+                      setSelectedPreset("custom");
+                      setRejectReasonNote("Account temporarily suspended by fleet operations.");
+                      setRejectedDocsSelected([]);
+                      setRejectModalOpen(true);
+                    }}
+                  >
+                    <PauseCircle className="size-3.5 mr-1 text-rose-600" />
+                    Suspend
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    className="h-8.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs shadow-sm transition-all"
+                    onClick={() => setApproveConfirmOpen(true)}
+                  >
+                    <Check className="size-3.5 mr-1" />
+                    Approve Rider ✅
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8.5 rounded-xl border-rose-300 bg-white text-rose-700 hover:bg-rose-50 active:scale-95 font-bold text-xs transition-all shadow-2xs"
+                    onClick={() => {
+                      setSelectedPreset("dl_invalid");
+                      setRejectReasonNote("Driving License (DL) is invalid, expired, or photo is unclear. Please re-upload a valid license.");
+                      setRejectedDocsSelected(["dl"]);
+                      setRejectModalOpen(true);
+                    }}
+                  >
+                    <X className="size-3.5 mr-1 text-rose-600" />
+                    Reject Application ❌
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1121,7 +1154,7 @@ function Rider360Sheet({
                   <p className="text-[11px] text-zinc-500">
                     {data360?.vehicle.vehicleModel && data360.vehicle.vehicleModel !== "—"
                       ? data360.vehicle.vehicleModel
-                      : "Registered Fleet Delivery Two-Wheeler"}
+                      : "—"}
                   </p>
                 </div>
               </div>
@@ -1379,7 +1412,7 @@ function Rider360Sheet({
                     </span>
                   </div>
                   <DetailRow label="Vehicle Category" value={data360?.vehicle.vehicleType || rider.vehicle} />
-                  <DetailRow label="Vehicle Make & Model" value={data360?.vehicle.vehicleModel || "Registered Fleet Delivery Vehicle"} />
+                  <DetailRow label="Vehicle Make & Model" value={data360?.vehicle.vehicleModel || "—"} />
                   <DetailRow
                     label="Registration Plate (IND)"
                     value={
@@ -1394,7 +1427,7 @@ function Rider360Sheet({
                     }
                   />
                   <DetailRow label="Manufacture Year" value={data360?.vehicle.vehicleYear || "—"} />
-                  <DetailRow label="Fuel / Power Type" value={data360?.vehicle.fuelType || "Petrol / EV"} />
+                  <DetailRow label="Fuel / Power Type" value={data360?.vehicle.fuelType || "—"} />
                   <DetailRow label="Vehicle Color" value={data360?.vehicle.vehicleColor || "—"} />
                   <DetailRow label="Driving License (DL) Number" value={<span className="font-mono font-bold text-zinc-900">{data360?.vehicle.drivingLicenseNumber || "—"}</span>} />
                   <DetailRow label="Vehicle RC Certificate No." value={<span className="font-mono font-bold text-zinc-900">{data360?.vehicle.rcNumber || "—"}</span>} />
@@ -1412,7 +1445,7 @@ function Rider360Sheet({
                   <DetailRow label="Bank Name" value={data360?.payouts.bankName || rider.bankName || "—"} />
                   <DetailRow label="Bank Account Number" value={<span className="font-mono font-bold">{data360?.payouts.accountNumber || (rider.accountLast4 ? `•••• ${rider.accountLast4}` : "—")}</span>} />
                   <DetailRow label="IFSC Code" value={<span className="font-mono font-bold text-zinc-900">{data360?.payouts.ifsc || rider.ifsc || "—"}</span>} />
-                  <DetailRow label="Account Type" value={(data360?.payouts as any)?.accountType || "Savings Account"} />
+                  <DetailRow label="Account Type" value={(data360?.payouts as any)?.accountType || "—"} />
                   <DetailRow label="UPI ID / VPA" value={<span className="font-mono text-emerald-700 font-bold">{data360?.payouts.upiId || rider.upiId || "—"}</span>} />
                 </div>
 
@@ -1434,8 +1467,8 @@ function Rider360Sheet({
                   <DetailRow label="Agreement Status" value={data360?.agreement?.isSigned ? "Legally Accepted & Active ✅" : "Pending Signature ⏳"} />
                   <DetailRow label="Signer Legal Name" value={data360?.agreement?.signerName || rider.name} />
                   <DetailRow label="Signing Timestamp" value={formatTimestamp(data360?.agreement?.signedAt || rider.registrationTimestamp)} />
-                  <DetailRow label="Signer IP Address" value={<span className="font-mono">{data360?.agreement?.ipAddress || "127.0.0.1"}</span>} />
-                  <DetailRow label="Device / OS Fingerprint" value={data360?.agreement?.deviceInfo || "QuickPress Captain Android"} />
+                  <DetailRow label="Signer IP Address" value={<span className="font-mono">{data360?.agreement?.ipAddress || "—"}</span>} />
+                  <DetailRow label="Device / OS Fingerprint" value={data360?.agreement?.deviceInfo || "—"} />
 
                   {data360?.agreement?.signatureUrl && (
                     <div className="pt-2 border-t border-zinc-200/80">
@@ -1458,7 +1491,7 @@ function Rider360Sheet({
                           alt="Digital Signature"
                           className="h-16 w-auto max-w-[200px] object-contain group-hover:scale-105 transition-transform"
                         />
-                        <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="absolute bottom-1 right-1 bg-white/95 text-slate-800 border border-slate-200 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs opacity-0 group-hover:opacity-100 transition-opacity">
                           Click to Zoom
                         </span>
                       </div>
@@ -1468,39 +1501,57 @@ function Rider360Sheet({
 
                 {/* Quick Governance Buttons */}
                 <div className="flex gap-2 pt-2">
-                  <Button
-                    className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white h-10 shadow-sm"
-                    onClick={() => setApproveConfirmOpen(true)}
-                  >
-                    <Check className="size-4 mr-1.5" /> Approve Rider
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 rounded-xl border-rose-300 text-rose-600 hover:bg-rose-50 text-xs font-bold h-10"
-                    onClick={() => {
-                      setSelectedPreset("dl_invalid");
-                      setRejectReasonNote("Driving License (DL) is invalid, expired, or photo is unclear. Please re-upload a valid license.");
-                      setRejectedDocsSelected(["dl"]);
-                      setRejectModalOpen(true);
-                    }}
-                  >
-                    <X className="size-4 mr-1.5" /> Reject Application
-                  </Button>
-                  {rider.status === "Suspended" ? (
-                    <Button
-                      className="rounded-xl bg-sky-600 hover:bg-sky-700 text-xs font-bold text-white h-10 px-4"
-                      onClick={() => onAction(rider.id, "activate")}
-                    >
-                      <PlayCircle className="size-4 mr-1.5" /> Reactivate
-                    </Button>
+                  {rider.status === "Active" ? (
+                    <>
+                      <div className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-black">
+                        <CheckCircle2 className="size-4 text-emerald-600" />
+                        Rider Account Approved & Active
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="rounded-xl border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-bold h-10 px-4"
+                        onClick={() => onAction(rider.id, "suspend")}
+                      >
+                        <PauseCircle className="size-4 mr-1.5 text-rose-600" /> Suspend
+                      </Button>
+                    </>
                   ) : (
-                    <Button
-                      variant="destructive"
-                      className="rounded-xl text-xs font-bold bg-zinc-800 hover:bg-zinc-900 h-10 px-4"
-                      onClick={() => onAction(rider.id, "suspend")}
-                    >
-                      <PauseCircle className="size-4 mr-1.5" /> Suspend
-                    </Button>
+                    <>
+                      <Button
+                        className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white h-10 shadow-sm"
+                        onClick={() => setApproveConfirmOpen(true)}
+                      >
+                        <Check className="size-4 mr-1.5" /> Approve Rider
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 rounded-xl border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-bold h-10"
+                        onClick={() => {
+                          setSelectedPreset("dl_invalid");
+                          setRejectReasonNote("Driving License (DL) is invalid, expired, or photo is unclear. Please re-upload a valid license.");
+                          setRejectedDocsSelected(["dl"]);
+                          setRejectModalOpen(true);
+                        }}
+                      >
+                        <X className="size-4 mr-1.5 text-rose-600" /> Reject Application
+                      </Button>
+                      {rider.status === "Suspended" ? (
+                        <Button
+                          className="rounded-xl bg-sky-600 hover:bg-sky-700 text-xs font-bold text-white h-10 px-4"
+                          onClick={() => onAction(rider.id, "activate")}
+                        >
+                          <PlayCircle className="size-4 mr-1.5" /> Reactivate
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="rounded-xl text-xs font-bold border-rose-300 text-rose-700 hover:bg-rose-50 h-10 px-4"
+                          onClick={() => onAction(rider.id, "suspend")}
+                        >
+                          <PauseCircle className="size-4 mr-1.5 text-rose-600" /> Suspend
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -1535,28 +1586,37 @@ function Rider360Sheet({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
-                      onClick={() => setApproveConfirmOpen(true)}
-                    >
-                      <Check className="size-3.5 mr-1" />
-                      Approve All Docs
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 rounded-xl border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs"
-                      onClick={() => {
-                        setSelectedPreset("dl_invalid");
-                        setRejectReasonNote("Driving License (DL) is invalid, expired, or photo is unclear. Please re-upload a valid license.");
-                        setRejectedDocsSelected(["dl"]);
-                        setRejectModalOpen(true);
-                      }}
-                    >
-                      <X className="size-3.5 mr-1" />
-                      Reject / Flag Docs
-                    </Button>
+                    {rider.status === "Active" ? (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-xs">
+                        <CheckCircle2 className="size-3.5 text-emerald-700" />
+                        <span>All Documents Approved</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+                          onClick={() => setApproveConfirmOpen(true)}
+                        >
+                          <Check className="size-3.5 mr-1" />
+                          Approve All Docs
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-xl border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs"
+                          onClick={() => {
+                            setSelectedPreset("dl_invalid");
+                            setRejectReasonNote("Driving License (DL) is invalid, expired, or photo is unclear. Please re-upload a valid license.");
+                            setRejectedDocsSelected(["dl"]);
+                            setRejectModalOpen(true);
+                          }}
+                        >
+                          <X className="size-3.5 mr-1 text-rose-600" />
+                          Reject / Flag Docs
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1622,9 +1682,9 @@ function Rider360Sheet({
                                 <span className="text-[10px] font-bold">Image Preview Pending</span>
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                              <span className="text-white text-xs font-bold flex items-center gap-1 bg-black/70 px-3 py-1.5 rounded-xl shadow-md">
-                                <Eye className="size-3.5" /> Inspect High-Res
+                            <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <span className="text-slate-900 text-xs font-bold flex items-center gap-1 bg-white/95 border border-slate-200 px-3 py-1.5 rounded-xl shadow-md">
+                                <Eye className="size-3.5 text-sky-600" /> Inspect High-Res
                               </span>
                             </div>
                             <span className="absolute top-2 right-2">
@@ -1913,9 +1973,9 @@ function Rider360Sheet({
                   <h4 className="text-xs font-black uppercase tracking-wider text-zinc-500 mb-2">SECURITY & DEVICE AUDIT</h4>
                   <DetailRow label="Registered On" value={rider.registrationTimestamp} />
                   <DetailRow label="Last Active Timestamp" value={rider.lastLoginTimestamp} />
-                  <DetailRow label="Device Model" value={data360?.security.deviceInfo || "Android 14 · Xiaomi"} />
-                  <DetailRow label="App Build" value={data360?.security.appVersion || "QuickPress Rider v2.4.1"} />
-                  <DetailRow label="IP Address" value={<span className="font-mono">{data360?.security.ipAddress || "103.212.144.60"}</span>} />
+                  <DetailRow label="Device Model" value={data360?.security.deviceInfo || "—"} />
+                  <DetailRow label="App Build" value={data360?.security.appVersion || "QuickPress Captain v2.4"} />
+                  <DetailRow label="IP Address" value={<span className="font-mono">{data360?.security.ipAddress || "—"}</span>} />
                 </div>
 
                 <div className="pt-2">
@@ -2130,15 +2190,15 @@ function Rider360Sheet({
             }
           }}
         >
-          <DialogContent className="max-w-3xl rounded-3xl bg-zinc-950 text-white border border-zinc-800 p-0 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <DialogHeader className="p-4 border-b border-zinc-800 flex flex-row items-center justify-between">
+          <DialogContent className="max-w-3xl rounded-3xl bg-white text-slate-900 border border-slate-200 p-0 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <DialogHeader className="p-4 border-b border-slate-200 bg-slate-50 flex flex-row items-center justify-between">
               <div>
-                <DialogTitle className="text-sm font-black text-white flex items-center gap-2">
-                  <FileText className="size-4 text-sky-400" />
+                <DialogTitle className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <FileText className="size-4 text-sky-600" />
                   <span>{docPreviewModal?.title}</span>
                   <StatusPill value={docPreviewModal?.status || "Pending"} />
                 </DialogTitle>
-                <DialogDescription className="text-xs text-zinc-400 font-medium">
+                <DialogDescription className="text-xs text-slate-500 font-medium">
                   {docPreviewModal?.type} · Captain: {rider.name}
                 </DialogDescription>
               </div>
@@ -2148,19 +2208,19 @@ function Rider360Sheet({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="size-8 p-0 rounded-lg border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  className="size-8 p-0 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-2xs font-bold"
                   onClick={() => setZoomLevel((z) => Math.max(0.6, z - 0.2))}
                   title="Zoom Out"
                 >
                   -
                 </Button>
-                <span className="text-[10px] font-mono text-zinc-400 px-1">
+                <span className="text-[10px] font-mono text-slate-600 font-bold px-1">
                   {Math.round(zoomLevel * 100)}%
                 </span>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="size-8 p-0 rounded-lg border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  className="size-8 p-0 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-2xs font-bold"
                   onClick={() => setZoomLevel((z) => Math.min(3, z + 0.2))}
                   title="Zoom In"
                 >
@@ -2169,7 +2229,7 @@ function Rider360Sheet({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="size-8 p-0 rounded-lg border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                  className="size-8 p-0 rounded-lg border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-2xs"
                   onClick={() => setRotation((r) => (r + 90) % 360)}
                   title="Rotate 90°"
                 >
@@ -2180,7 +2240,7 @@ function Rider360Sheet({
                     href={docPreviewModal.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex size-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                    className="flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-2xs"
                     title="Open original in new window"
                   >
                     <ExternalLink className="size-3.5" />
@@ -2190,7 +2250,7 @@ function Rider360Sheet({
             </DialogHeader>
 
             {/* Document Image Viewer */}
-            <div className="flex-1 overflow-auto bg-zinc-900/60 p-6 flex items-center justify-center min-h-[350px]">
+            <div className="flex-1 overflow-auto bg-slate-100/70 p-6 flex items-center justify-center min-h-[350px]">
               {docPreviewModal?.url ? (
                 <div
                   style={{
@@ -2202,21 +2262,21 @@ function Rider360Sheet({
                   <img
                     src={docPreviewModal.url}
                     alt={docPreviewModal.title}
-                    className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-2xl border border-zinc-800"
+                    className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-lg border border-slate-200 bg-white"
                   />
                 </div>
               ) : (
-                <div className="text-center text-zinc-500 space-y-2">
-                  <FileText className="size-12 mx-auto text-zinc-700" />
-                  <p className="text-xs font-bold text-zinc-400">Document File Not Uploaded</p>
+                <div className="text-center text-slate-400 space-y-2">
+                  <FileText className="size-12 mx-auto text-slate-300" />
+                  <p className="text-xs font-bold text-slate-600">Document File Not Uploaded</p>
                 </div>
               )}
             </div>
 
             {/* Rejection Note Footer if Rejected */}
             {docPreviewModal?.rejectionReason && (
-              <div className="p-3 bg-rose-950/60 border-t border-rose-900/60 text-xs text-rose-300 flex items-center gap-2">
-                <AlertCircle className="size-4 text-rose-400 shrink-0" />
+              <div className="p-3 bg-rose-50 border-t border-rose-200 text-xs text-rose-900 flex items-center gap-2">
+                <AlertCircle className="size-4 text-rose-600 shrink-0" />
                 <span>
                   <strong>Rejection Note: </strong>
                   {docPreviewModal.rejectionReason}
@@ -2224,11 +2284,11 @@ function Rider360Sheet({
               </div>
             )}
 
-            <DialogFooter className="p-3 border-t border-zinc-800 flex justify-between items-center bg-zinc-950">
+            <DialogFooter className="p-3 border-t border-slate-200 flex justify-between items-center bg-slate-50">
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-xl border-rose-500/40 bg-rose-500/10 text-rose-300 hover:bg-rose-600 hover:text-white text-xs font-bold"
+                className="rounded-xl border-rose-300 bg-white text-rose-700 hover:bg-rose-50 text-xs font-bold shadow-2xs"
                 onClick={() => {
                   let docKey = "dl";
                   if (docPreviewModal?.title.toLowerCase().includes("rc")) docKey = "rc";
@@ -2245,12 +2305,13 @@ function Rider360Sheet({
                   setRejectModalOpen(true);
                 }}
               >
-                <X className="size-3 mr-1" /> Flag This Document
+                <X className="size-3 mr-1 text-rose-600" /> Flag / Reject This Document
               </Button>
 
               <Button
+                variant="outline"
                 size="sm"
-                className="rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold"
+                className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold"
                 onClick={() => setDocPreviewModal(null)}
               >
                 Close Preview

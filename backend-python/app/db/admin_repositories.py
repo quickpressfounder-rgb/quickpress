@@ -1664,7 +1664,7 @@ class AdminRiderRepository:
         profiles_by_id = {}
         profiles_by_phone = {}
         for p in (list(profiles or []) + list(admin_riders_tbl or [])):
-            for k in ("_id", "riderId", "userId", "user_id", "id"):
+            for k in ("_id", "riderId", "userId", "user_id", "id", "linked_id"):
                 if p.get(k):
                     profiles_by_id[str(p[k])] = p
             ph = str(p.get("phone") or p.get("mobile") or "").replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
@@ -1711,35 +1711,53 @@ class AdminRiderRepository:
             u = users_by_id.get(uid) or (users_by_phone.get(clean_phone) if clean_phone else None) or {}
 
             # Primary action target ID for admin actions (approve/suspend/etc)
-            target_id = str(p.get("riderId") or p.get("_id") or r.get("rider_id") or r.get("_id") or u.get("linked_id") or uid)
+            target_id = str(p.get("riderId") or p.get("_id") or u.get("linked_id") or r.get("rider_id") or r.get("_id") or uid)
             effective_phone = clean_phone or str(p.get("phone") or u.get("phone") or r.get("phone") or "").replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
+
+            if not effective_phone and not p and not u:
+                continue
 
             if not target_id and not effective_phone:
                 continue
 
             if target_id and target_id in seen_keys:
                 continue
+            if uid and uid in seen_keys:
+                continue
             if effective_phone and effective_phone in seen_keys:
                 continue
 
             if target_id:
                 seen_keys.add(target_id)
+            if uid:
+                seen_keys.add(uid)
             if effective_phone:
                 seen_keys.add(effective_phone)
+            if p.get("_id"):
+                seen_keys.add(str(p["_id"]))
+            if p.get("userId"):
+                seen_keys.add(str(p["userId"]))
+            if u.get("_id"):
+                seen_keys.add(str(u["_id"]))
 
             # Name calculation: NEVER show 'Delivery Partner' or 'Delivery Captain' if actual name exists
             raw_name = (
                 p.get("fullName")
                 or p.get("name")
                 or p.get("accountHolder")
+                or p.get("verifiedGovernmentName")
+                or p.get("rcOwnerName")
+                or p.get("dlHolderName")
+                or u.get("fullName")
                 or u.get("display_name")
                 or u.get("name")
+                or row.get("fullName")
                 or row.get("display_name")
                 or row.get("name")
                 or ""
             )
             if raw_name in ("Delivery Partner", "Delivery Captain", "None", ""):
-                holder = p.get("accountHolder") or ""
+                holder = p.get("accountHolder") or p.get("verifiedGovernmentName") or ""
                 if holder and holder not in ("Delivery Partner", "Delivery Captain", "None", "uhuhu"):
                     name = holder
                 else:
@@ -1790,8 +1808,17 @@ class AdminRiderRepository:
             wallet_bal = float(w_doc.get("balance", 0.0))
             cod_cash = float(w_doc.get("codCashInHand", 0.0))
 
-            reg_ts = row.get("created_at") or row.get("createdAt") or p.get("createdAt") or datetime.now(timezone.utc).isoformat()
-            last_login_ts = row.get("updated_at") or row.get("last_login_at") or reg_ts
+            reg_ts = (
+                p.get("createdAt")
+                or p.get("created_at")
+                or p.get("registrationTimestamp")
+                or row.get("createdAt")
+                or row.get("created_at")
+                or u.get("createdAt")
+                or u.get("created_at")
+                or "1970-01-01T00:00:00+00:00"
+            )
+            last_login_ts = row.get("updated_at") or row.get("last_login_at") or p.get("updatedAt") or reg_ts
 
             merged_riders.append({
                 "id": target_id,
@@ -1848,6 +1875,12 @@ class AdminRiderRepository:
         # Apply live state filter
         if live_state and live_state != "all":
             merged_riders = [r for r in merged_riders if str(r.get("live") or "").lower() == live_state.lower()]
+
+        # Sort merged_riders DESCENDING by registrationTimestamp so newly registered riders ALWAYS appear at the very TOP
+        merged_riders.sort(
+            key=lambda r: str(r.get("registrationTimestamp") or r.get("joinedOn") or ""),
+            reverse=True
+        )
 
         total = len(merged_riders)
         start_idx = (page - 1) * page_size
@@ -1919,6 +1952,7 @@ class AdminRiderRepository:
         (
             user_doc,
             profile_doc,
+            admin_rider_doc,
             rider_doc,
             orders,
             wallet_doc,
@@ -1929,6 +1963,7 @@ class AdminRiderRepository:
         ) = await asyncio.gather(
             database.find_one("users", {"$or": [{"_id": resolved_id}, {"_id": rider_id}]}),
             database.find_one("rider_profiles", {"$or": [{"_id": resolved_id}, {"_id": rider_id}, {"userId": resolved_id}, {"userId": rider_id}, {"riderId": resolved_id}, {"riderId": rider_id}]}),
+            database.find_one("admin_riders", {"$or": [{"_id": resolved_id}, {"_id": rider_id}, {"riderId": resolved_id}, {"riderId": rider_id}]}),
             database.find_one("riders", {"$or": [{"_id": resolved_id}, {"_id": rider_id}, {"rider_id": resolved_id}, {"rider_id": rider_id}]}),
             database.find_many("customer_orders", {"$or": [{"rider.id": resolved_id}, {"riderId": resolved_id}, {"rider_id": resolved_id}, {"rider.id": rider_id}, {"rider.phone": doc.get("phone")}]}),
             database.find_one("rider_wallets", {"$or": [{"_id": resolved_id}, {"_id": rider_id}]}),
@@ -1967,45 +2002,64 @@ class AdminRiderRepository:
 
         tot_earnings = sum(float(t["earning"]) for t in trips_list) or wallet_bal
 
-        # Real KYC Documents
-        raw_docs = (profile_doc or {}).get("documents") or (profile_doc or {}).get("kycDocuments") or (rider_doc or {}).get("documents") or []
-        kyc_docs = []
-        for idx, d in enumerate(raw_docs, 1):
-            if isinstance(d, dict) and (d.get("url") or d.get("documentUrl")):
-                kyc_docs.append({
-                    "id": str(d.get("id") or f"doc_{idx}"),
-                    "type": d.get("type") or d.get("title") or "ID Document",
-                    "name": d.get("name") or f"Document {idx}",
-                    "documentUrl": d.get("url") or d.get("documentUrl"),
-                    "status": d.get("status") or doc.get("kyc", "Verified"),
-                    "uploadedAt": d.get("uploadedAt") or doc.get("registrationTimestamp"),
-                })
+        pdoc = {**(admin_rider_doc or {}), **(profile_doc or {})}
 
-        pdoc = profile_doc or {}
-        if pdoc.get("dlFront"):
-            kyc_docs.append({"id": "dl_front", "type": "Driving License (Front)", "name": "DL Front", "documentUrl": pdoc["dlFront"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("dlBack"):
-            kyc_docs.append({"id": "dl_back", "type": "Driving License (Back)", "name": "DL Back", "documentUrl": pdoc["dlBack"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("rcFront"):
-            kyc_docs.append({"id": "rc_front", "type": "RC Certificate (Front)", "name": "RC Front", "documentUrl": pdoc["rcFront"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("rcBack"):
-            kyc_docs.append({"id": "rc_back", "type": "RC Certificate (Back)", "name": "RC Back", "documentUrl": pdoc["rcBack"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("aadhaarFront"):
-            kyc_docs.append({"id": "aadhaar_front", "type": "Aadhaar Card (Front)", "name": "Aadhaar Front", "documentUrl": pdoc["aadhaarFront"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("aadhaarBack"):
-            kyc_docs.append({"id": "aadhaar_back", "type": "Aadhaar Card (Back)", "name": "Aadhaar Back", "documentUrl": pdoc["aadhaarBack"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("panCard"):
-            kyc_docs.append({"id": "pan_card", "type": "PAN Card", "name": "PAN Card", "documentUrl": pdoc["panCard"], "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("selfieUrl") or pdoc.get("photoUrl"):
-            kyc_docs.append({"id": "selfie", "type": "Captain Profile Photo / Selfie", "name": "Selfie", "documentUrl": pdoc.get("selfieUrl") or pdoc.get("photoUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("vehiclePhoto") or pdoc.get("bikePhoto") or pdoc.get("bikePhotoUrl"):
-            kyc_docs.append({"id": "bike_photo", "type": "Vehicle / Bike Photo", "name": "Bike Photo", "documentUrl": pdoc.get("vehiclePhoto") or pdoc.get("bikePhoto") or pdoc.get("bikePhotoUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("passbookPhoto") or pdoc.get("passbookUrl"):
-            kyc_docs.append({"id": "bank_passbook", "type": "Bank Passbook (Front Page)", "name": "Bank Passbook", "documentUrl": pdoc.get("passbookPhoto") or pdoc.get("passbookUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("cancelledCheque") or pdoc.get("cancelledChequeUrl"):
-            kyc_docs.append({"id": "cancelled_cheque", "type": "Cancelled Cheque", "name": "Cancelled Cheque", "documentUrl": pdoc.get("cancelledCheque") or pdoc.get("cancelledChequeUrl"), "status": doc.get("kyc", "Pending"), "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp")})
-        if pdoc.get("agreementSignature") or pdoc.get("signatureUrl") or doc.get("agreementSignature"):
-            kyc_docs.append({"id": "agreement_signature", "type": "Digital Agreement Signature", "name": "E-Signature", "documentUrl": pdoc.get("agreementSignature") or pdoc.get("signatureUrl") or doc.get("agreementSignature"), "status": "Signed", "uploadedAt": pdoc.get("agreementSignedAt") or doc.get("agreementSignedAt") or doc.get("registrationTimestamp")})
+        # Real KYC Documents - merge structured array and all document fields
+        doc_map: Dict[str, Dict[str, Any]] = {}
+        raw_docs = (
+            pdoc.get("documents")
+            or pdoc.get("kycDocuments")
+            or (rider_doc or {}).get("documents")
+            or []
+        )
+        for idx, d in enumerate(raw_docs, 1):
+            if isinstance(d, dict):
+                url = d.get("url") or d.get("documentUrl") or d.get("fileUrl") or d.get("uri")
+                if url:
+                    doc_id = str(d.get("id") or f"doc_{idx}").lower()
+                    doc_map[doc_id] = {
+                        "id": doc_id,
+                        "type": d.get("type") or d.get("title") or "ID Document",
+                        "name": d.get("name") or f"Document {idx}",
+                        "documentUrl": url,
+                        "status": d.get("status") or doc.get("kyc", "Verified"),
+                        "uploadedAt": d.get("uploadedAt") or doc.get("registrationTimestamp"),
+                    }
+
+        def register_doc(did: str, dtype: str, dname: str, *keys: str):
+            for k in keys:
+                val = (
+                    pdoc.get(k)
+                    or (admin_rider_doc or {}).get(k)
+                    or (profile_doc or {}).get(k)
+                    or (user_doc or {}).get(k)
+                    or (rider_doc or {}).get(k)
+                )
+                if val and isinstance(val, str) and len(val) > 5:
+                    doc_map[did] = {
+                        "id": did,
+                        "type": dtype,
+                        "name": dname,
+                        "documentUrl": val,
+                        "status": doc.get("kyc", "Pending"),
+                        "uploadedAt": pdoc.get("createdAt") or doc.get("registrationTimestamp"),
+                    }
+                    break
+
+        register_doc("dl_front", "Driving License (Front)", "DL Front", "dlFront", "dlFrontUrl", "dl_front", "licenseFront")
+        register_doc("dl_back", "Driving License (Back)", "DL Back", "dlBack", "dlBackUrl", "dl_back", "licenseBack")
+        register_doc("rc_front", "RC Certificate (Front)", "RC Front", "rcFront", "rcFrontUrl", "rc_front", "rcCertificateFront")
+        register_doc("rc_back", "RC Certificate (Back)", "RC Back", "rcBack", "rcBackUrl", "rc_back", "rcCertificateBack")
+        register_doc("aadhaar_front", "Aadhaar Card (Front)", "Aadhaar Front", "aadhaarFront", "aadhaarFrontUrl", "aadhaar_front", "aadhaarCardFront")
+        register_doc("aadhaar_back", "Aadhaar Card (Back)", "Aadhaar Back", "aadhaarBack", "aadhaarBackUrl", "aadhaar_back", "aadhaarCardBack")
+        register_doc("pan_card", "PAN Card", "PAN Card", "panCard", "panCardUrl", "pan_card", "panCardFront", "pan")
+        register_doc("selfie", "Captain Profile Photo / Selfie", "Live Selfie", "selfieUrl", "photoUrl", "selfie", "profilePhoto", "avatar")
+        register_doc("bike_photo", "Vehicle / Bike Photo", "Bike Photo", "vehiclePhoto", "bikePhoto", "bikePhotoUrl", "bike_photo")
+        register_doc("bank_passbook", "Bank Passbook (Front Page)", "Bank Passbook", "passbookPhoto", "passbookUrl", "passbook", "bank_passbook")
+        register_doc("cancelled_cheque", "Cancelled Cheque", "Cancelled Cheque", "cancelledCheque", "cancelledChequeUrl", "cheque")
+        register_doc("agreement_signature", "Digital Agreement Signature", "E-Signature", "agreementSignature", "signatureUrl", "signature")
+
+        kyc_docs = list(doc_map.values())
 
         # Real Wallet Ledger
         ledger_list = [
@@ -2059,16 +2113,19 @@ class AdminRiderRepository:
             for sess in (sessions or [])
         ]
 
-        # Enrich profile with complete A-to-Z details from profile_doc
+        # Enrich profile with complete A-to-Z details from profile_doc and admin_rider_doc
         merged_profile = {
             **doc,
-            "fullName": pdoc.get("fullName") or pdoc.get("name") or doc.get("name") or "Delivery Captain",
-            "name": pdoc.get("fullName") or pdoc.get("name") or doc.get("name") or "Delivery Captain",
-            "phone": pdoc.get("phone") or doc.get("phone") or "—",
-            "email": pdoc.get("email") or doc.get("email") or "—",
+            "fullName": pdoc.get("fullName") or pdoc.get("name") or (user_doc or {}).get("name") or doc.get("name") or "—",
+            "name": pdoc.get("fullName") or pdoc.get("name") or (user_doc or {}).get("name") or doc.get("name") or "—",
+            "phone": pdoc.get("phone") or (user_doc or {}).get("phone") or doc.get("phone") or "—",
+            "email": pdoc.get("email") or (user_doc or {}).get("email") or doc.get("email") or "—",
+            "fatherName": pdoc.get("fatherName") or pdoc.get("father") or (rider_doc or {}).get("fatherName") or "—",
             "dob": pdoc.get("dob") or "—",
             "gender": pdoc.get("gender") or "Male",
             "emergencyContact": pdoc.get("emergencyContact") or pdoc.get("emergencyContactName") or "—",
+            "emergencyContactName": pdoc.get("emergencyContactName") or pdoc.get("emergencyContact") or "—",
+            "emergencyContactPhone": pdoc.get("emergencyContactPhone") or pdoc.get("emergencyPhone") or "—",
             "address": pdoc.get("address") or pdoc.get("street") or "—",
             "street": pdoc.get("street") or pdoc.get("address") or "—",
             "landmark": pdoc.get("landmark") or "—",
@@ -2082,6 +2139,8 @@ class AdminRiderRepository:
             "vehicleModel": pdoc.get("vehicleModel") or "—",
             "fuelType": pdoc.get("fuelType") or "Petrol",
             "regYear": pdoc.get("regYear") or pdoc.get("vehicleYear") or "—",
+            "vehicleYear": pdoc.get("regYear") or pdoc.get("vehicleYear") or "—",
+            "vehicleColor": pdoc.get("vehicleColor") or pdoc.get("color") or "—",
             "vehicleNumber": pdoc.get("vehicleNumber") or doc.get("plate") or "—",
             "plate": pdoc.get("vehicleNumber") or doc.get("plate") or "—",
             "chassisNumber": pdoc.get("chassisNumber") or "—",
@@ -2092,11 +2151,13 @@ class AdminRiderRepository:
             "insuranceNumber": pdoc.get("insuranceNumber") or "—",
             "insuranceProvider": pdoc.get("insuranceProvider") or "—",
             "insuranceValidTill": pdoc.get("insuranceValidTill") or pdoc.get("insuranceExpiry") or "—",
-            "accountHolder": pdoc.get("accountHolder") or pdoc.get("accountHolderName") or doc.get("name"),
+            "pollutionExpiry": pdoc.get("pollutionExpiry") or "—",
+            "accountHolder": pdoc.get("accountHolder") or pdoc.get("accountHolderName") or doc.get("name") or "—",
             "bankName": pdoc.get("bankName") or doc.get("bankName") or "—",
             "accountNumber": pdoc.get("accountNumber") or "—",
             "ifsc": pdoc.get("ifsc") or pdoc.get("ifscCode") or doc.get("ifsc") or "—",
             "branch": pdoc.get("branch") or "—",
+            "accountType": pdoc.get("accountType") or "Savings Account",
             "upiId": pdoc.get("upiId") or doc.get("upiId") or "—",
             "agreementSignature": pdoc.get("agreementSignature") or pdoc.get("signatureUrl") or "",
             "agreementSignedAt": pdoc.get("agreementSignedAt") or pdoc.get("signedAt") or "",
@@ -2134,9 +2195,12 @@ class AdminRiderRepository:
                 "fullName": merged_profile.get("fullName", "—"),
                 "phone": merged_profile.get("phone", "—"),
                 "email": merged_profile.get("email", "—"),
+                "fatherName": merged_profile.get("fatherName", "—"),
                 "dob": merged_profile.get("dob", "—"),
                 "gender": merged_profile.get("gender", "—"),
                 "emergencyContact": merged_profile.get("emergencyContact", "—"),
+                "emergencyContactName": merged_profile.get("emergencyContactName", "—"),
+                "emergencyContactPhone": merged_profile.get("emergencyContactPhone", "—"),
                 "address": merged_profile.get("address", "—"),
                 "street": merged_profile.get("street", "—"),
                 "landmark": merged_profile.get("landmark", "—"),
@@ -2167,8 +2231,11 @@ class AdminRiderRepository:
                 "vehicleBrand": merged_profile.get("vehicleBrand", "—"),
                 "vehicleModel": merged_profile.get("vehicleModel", "—"),
                 "vehicleNumber": merged_profile.get("vehicleNumber", "—"),
+                "vehiclePlate": merged_profile.get("plate", "—"),
                 "fuelType": merged_profile.get("fuelType", "Petrol"),
                 "regYear": merged_profile.get("regYear", "—"),
+                "vehicleYear": merged_profile.get("vehicleYear", "—"),
+                "vehicleColor": merged_profile.get("vehicleColor", "—"),
                 "chassisNumber": merged_profile.get("chassisNumber", "—"),
                 "engineNumber": merged_profile.get("engineNumber", "—"),
                 "drivingLicenseNumber": merged_profile.get("drivingLicenseNumber", "—"),
@@ -2177,7 +2244,7 @@ class AdminRiderRepository:
                 "insuranceNumber": merged_profile.get("insuranceNumber", "—"),
                 "insuranceProvider": merged_profile.get("insuranceProvider", "—"),
                 "insuranceExpiry": merged_profile.get("insuranceValidTill", "—"),
-                "pollutionExpiry": (profile_doc or {}).get("pollutionExpiry") or "—",
+                "pollutionExpiry": merged_profile.get("pollutionExpiry", "—"),
             },
             "kyc": {
                 "status": "Verified" if doc.get("status") == "Active" else ("Rejected" if pdoc.get("status") == "rejected" else "Pending"),
@@ -2187,10 +2254,12 @@ class AdminRiderRepository:
                 "documents": kyc_docs,
             },
             "agreement": {
+                "isSigned": bool(merged_profile.get("agreementSignature") or pdoc.get("agreementSigned") or pdoc.get("termsAccepted")),
                 "termsAccepted": bool(merged_profile.get("termsAccepted", True)),
                 "signedAt": merged_profile.get("agreementSignedAt") or doc.get("registrationTimestamp"),
                 "signerName": merged_profile.get("fullName", "—"),
                 "signatureUrl": merged_profile.get("agreementSignature", ""),
+                "ipAddress": pdoc.get("agreementIp") or (user_doc or {}).get("lastIp") or "—",
             },
             "trips": trips_list,
             "wallet": {
@@ -2202,12 +2271,13 @@ class AdminRiderRepository:
                 "ledger": ledger_list,
             },
             "payouts": {
-                "bankName": merged_profile["bankName"],
-                "accountNumber": merged_profile["accountNumber"],
-                "ifsc": merged_profile["ifsc"],
-                "branch": merged_profile["branch"],
-                "upiId": merged_profile["upiId"],
-                "beneficiaryName": merged_profile["accountHolder"],
+                "bankName": merged_profile.get("bankName", "—"),
+                "accountNumber": merged_profile.get("accountNumber", "—"),
+                "ifsc": merged_profile.get("ifsc", "—"),
+                "branch": merged_profile.get("branch", "—"),
+                "accountType": merged_profile.get("accountType", "Savings Account"),
+                "upiId": merged_profile.get("upiId", "—"),
+                "beneficiaryName": merged_profile.get("accountHolder") or merged_profile.get("fullName", "—"),
                 "payoutHistory": payouts_list,
             },
             "shifts": shifts_list,

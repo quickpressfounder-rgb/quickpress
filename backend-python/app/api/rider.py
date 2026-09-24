@@ -732,6 +732,20 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
     }
     await database.update("admin_riders", {"_id": rider_id_str}, admin_rider_doc, upsert=True)
 
+    # Sync candidate full name & linked_id to users collection
+    await database.update(
+        "users",
+        {"_id": user.id},
+        {
+            "name": full_name,
+            "display_name": full_name,
+            "fullName": full_name,
+            "linked_id": rider_id_str,
+            "is_onboarded": True,
+            "phone": phone,
+        },
+    )
+
     # 3. Initialize wallet if not present
     existing_wallet = await database.find_one("rider_wallets", {"_id": rider_id_str})
     if existing_wallet is None:
@@ -995,17 +1009,20 @@ async def submit_registration(body: dict) -> dict:
 
     # Sync with users collection if exists
     if phone:
-        clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+        clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "").strip()[-10:]
         u = await database.find_one("users", {"$or": [{"phone": phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}]})
         if u:
-            await users.update(
-                u["_id"],
+            await database.update(
+                "users",
+                {"_id": u["_id"]},
                 {
                     "is_onboarded": True,
                     "is_verified": False,
                     "role": "rider",
                     "status": "pending",
+                    "name": full_name,
                     "display_name": full_name,
+                    "fullName": full_name,
                     "city": city,
                     "linked_id": rider_id,
                 },
