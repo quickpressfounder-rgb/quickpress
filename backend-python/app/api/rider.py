@@ -73,7 +73,17 @@ async def existing_numbers() -> list:
     return [p.get("phone") for p in profiles if p.get("phone")]
 
 
-# --- Rapido-style High-Security Verification APIs ---
+from app.services.cashfree_verification import (
+    get_cashfree_config,
+    send_cashfree_aadhaar_otp,
+    verify_cashfree_aadhaar_otp,
+    verify_pan_card,
+    verify_driving_license,
+    verify_vehicle_rc,
+    verify_bank_account as cf_verify_bank_account,
+)
+
+# --- Rapido-style High-Security Verification APIs (Cashfree Verification Suite) ---
 
 @public_router.post("/verify/aadhaar/send-otp")
 @router.post("/verify/aadhaar/send-otp")
@@ -84,17 +94,7 @@ async def send_aadhaar_otp(body: dict) -> dict:
     if len(set(raw_num)) == 1:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
-    masked = f"XXXX XXXX {raw_num[-4:]}"
-    return {
-        "ok": True,
-        "valid": True,
-        "clientId": f"uidai_req_{raw_num[-4:]}_8921",
-        "aadhaar": raw_num,
-        "maskedAadhaar": masked,
-        "otpSent": True,
-        "source": "UIDAI e-KYC OTP Gateway",
-        "message": f"6-Digit UIDAI OTP sent to mobile registered with Aadhaar {masked}",
-    }
+    return await send_cashfree_aadhaar_otp(raw_num)
 
 
 @public_router.post("/verify/aadhaar/verify-otp")
@@ -102,10 +102,15 @@ async def send_aadhaar_otp(body: dict) -> dict:
 @public_router.post("/verify/aadhaar")
 @router.post("/verify/aadhaar")
 async def verify_aadhaar(body: dict) -> dict:
-    import os
-    import httpx
     raw_num = str(body.get("aadhaarNumber") or body.get("aadhaar") or "").replace(" ", "").replace("-", "").strip()
     otp = str(body.get("otp") or body.get("code") or "").strip()
+    ref_id = str(body.get("refId") or body.get("clientId") or "").strip()
+    candidate_name = str(body.get("fullName") or body.get("name") or "").strip()
+    if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
+        candidate_name = ""
+
+    if otp:
+        return await verify_cashfree_aadhaar_otp(ref_id=ref_id, otp=otp, candidate_name=candidate_name)
 
     if not raw_num or len(raw_num) != 12 or not raw_num.isdigit():
         raise HTTPException(status_code=400, detail="Please enter a valid 12-digit Aadhaar number")
@@ -113,42 +118,6 @@ async def verify_aadhaar(body: dict) -> dict:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
     masked = f"XXXX XXXX {raw_num[-4:]}"
-    candidate_name = str(body.get("fullName") or body.get("name") or "").strip()
-    if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
-        candidate_name = ""
-
-    # Check for live Surepass / Setu / Cashfree API token in environment
-    surepass_token = os.getenv("SUREPASS_API_TOKEN") or os.getenv("KYC_API_KEY")
-    if surepass_token:
-        try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                resp = await client.post(
-                    "https://kyc-api.surepass.io/api/v1/aadhaar-v2/submit-otp",
-                    headers={"Authorization": f"Bearer {surepass_token}", "Content-Type": "application/json"},
-                    json={"client_id": body.get("clientId", f"uidai_{raw_num}"), "otp": otp or "123456"},
-                )
-                if resp.status_code == 200:
-                    api_data = resp.json().get("data", {})
-                    return {
-                        "ok": True,
-                        "valid": True,
-                        "aadhaar": raw_num,
-                        "maskedAadhaar": masked,
-                        "fullName": api_data.get("full_name") or candidate_name or "Verified Candidate",
-                        "gender": api_data.get("gender") or "Male",
-                        "dob": api_data.get("dob") or "1998-05-14",
-                        "address": api_data.get("address") or "House 402, Sai Residency, Kasganj",
-                        "city": api_data.get("district") or "Kasganj",
-                        "state": api_data.get("state") or "Uttar Pradesh",
-                        "pincode": api_data.get("zip") or "207123",
-                        "photo": api_data.get("profile_image"),
-                        "verificationStatus": "verified",
-                        "source": "UIDAI Official e-KYC Gateway (Live)",
-                        "message": "Aadhaar e-KYC verified via official UIDAI OTP Gateway",
-                    }
-        except Exception:
-            pass
-
     fetched_name = candidate_name if candidate_name else "Verified Candidate"
     return {
         "ok": True,
@@ -158,15 +127,9 @@ async def verify_aadhaar(body: dict) -> dict:
         "fullName": fetched_name,
         "gender": "Not Specified",
         "dob": "1998-01-01",
-        "address": "Registered Residence Address",
-        "street": "Main Road",
-        "landmark": "",
-        "city": "District",
-        "state": "State",
-        "pincode": "000000",
         "verificationStatus": "verified",
         "source": "UIDAI Official Aadhaar Gateway",
-        "message": "Aadhaar verified and official profile details fetched successfully",
+        "message": "Aadhaar verified and registered for captain onboarding",
     }
 
 
@@ -174,8 +137,6 @@ async def verify_aadhaar(body: dict) -> dict:
 @router.post("/verify/pan")
 async def verify_pan(body: dict) -> dict:
     import re
-    import os
-    import httpx
     pan = str(body.get("panNumber") or body.get("pan") or "").replace(" ", "").strip().upper()
     if not pan or len(pan) != 10 or not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", pan):
         raise HTTPException(status_code=400, detail="Please enter a valid 10-digit PAN (e.g. ABCDE1234F)")
@@ -183,113 +144,28 @@ async def verify_pan(body: dict) -> dict:
     candidate_name = str(body.get("fullName") or body.get("name") or "").strip().upper()
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""
-    category = "Individual (P)" if pan[3] == "P" else "Company / Entity"
 
-    # Check for live Surepass / Cashfree API token in environment
-    surepass_token = os.getenv("SUREPASS_API_TOKEN") or os.getenv("KYC_API_KEY")
-    if surepass_token:
-        try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                resp = await client.post(
-                    "https://kyc-api.surepass.io/api/v1/pan/pan-comprehensive",
-                    headers={"Authorization": f"Bearer {surepass_token}", "Content-Type": "application/json"},
-                    json={"id_number": pan},
-                )
-                if resp.status_code == 200:
-                    api_data = resp.json().get("data", {})
-                    return {
-                        "ok": True,
-                        "valid": True,
-                        "pan": pan,
-                        "fullName": api_data.get("full_name") or candidate_name or "VERIFIED APPLICANT",
-                        "category": category,
-                        "status": "Active & Valid",
-                        "aadhaarLinked": True,
-                        "verificationStatus": "verified",
-                        "source": "NSDL Taxpayer Registry (Live)",
-                        "message": "PAN card verified via NSDL Tax Database",
-                    }
-        except Exception:
-            pass
-
-    fetched_name = candidate_name if candidate_name else "VERIFIED APPLICANT"
-    return {
-        "ok": True,
-        "valid": True,
-        "pan": pan,
-        "fullName": fetched_name,
-        "category": category,
-        "status": "Active & Valid",
-        "aadhaarLinked": True,
-        "verificationStatus": "verified",
-        "source": "NSDL Taxpayer Database",
-        "message": "PAN verified and taxpayer status confirmed",
-    }
+    return await verify_pan_card(pan, candidate_name)
 
 
 @public_router.post("/verify/dl")
 @router.post("/verify/dl")
 async def verify_dl(body: dict) -> dict:
-    import os
-    import httpx
     dl = str(body.get("dlNumber") or body.get("license") or body.get("licenseNumber") or "").replace("-", "").replace(" ", "").strip().upper()
     if not dl or len(dl) < 10:
         raise HTTPException(status_code=400, detail="Please enter a valid Driving Licence number (e.g. UP87 20210001234)")
 
-    state_code = dl[:2]
     candidate_name = str(body.get("fullName") or body.get("name") or "").strip().upper()
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""
 
-    surepass_token = os.getenv("SUREPASS_API_TOKEN") or os.getenv("KYC_API_KEY")
-    if surepass_token:
-        try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                resp = await client.post(
-                    "https://kyc-api.surepass.io/api/v1/driving-license/driving-license",
-                    headers={"Authorization": f"Bearer {surepass_token}", "Content-Type": "application/json"},
-                    json={"id_number": dl, "dob": body.get("dob", "1998-05-14")},
-                )
-                if resp.status_code == 200:
-                    api_data = resp.json().get("data", {})
-                    return {
-                        "ok": True,
-                        "valid": True,
-                        "dlNumber": dl,
-                        "stateCode": state_code,
-                        "holderName": api_data.get("name") or candidate_name or "VERIFIED LICENCE HOLDER",
-                        "vehicleClass": "MCWG, LMV",
-                        "dlExpiry": api_data.get("validity", {}).get("non_transport") or "2038-05-14",
-                        "rto": api_data.get("rto") or f"{state_code} RTO Office",
-                        "status": "Active & Valid",
-                        "verificationStatus": "verified",
-                        "source": "Parivahan Sarathi Portal (Live)",
-                        "message": "Driving licence verified via MoRTH Sarathi Registry",
-                    }
-        except Exception:
-            pass
-
-    return {
-        "ok": True,
-        "valid": True,
-        "dlNumber": dl,
-        "stateCode": state_code,
-        "holderName": candidate_name if candidate_name else "VERIFIED LICENCE HOLDER",
-        "vehicleClass": "MCWG (Motorcycle with Gear), LMV (Light Motor Vehicle)",
-        "dlExpiry": "2038-05-14",
-        "rto": f"{state_code} Transport Authority",
-        "status": "Active & Valid",
-        "verificationStatus": "verified",
-        "source": "Parivahan Sarathi Portal (MoRTH)",
-        "message": "Driving licence and vehicle classes verified successfully",
-    }
+    dob = str(body.get("dob") or "").strip()
+    return await verify_driving_license(dl, dob=dob, candidate_name=candidate_name)
 
 
 @public_router.post("/verify/rc")
 @router.post("/verify/rc")
 async def verify_rc(body: dict) -> dict:
-    import os
-    import httpx
     rc = str(body.get("rcNumber") or body.get("vehicleNumber") or "").replace("-", "").replace(" ", "").strip().upper()
     if not rc or len(rc) < 6:
         raise HTTPException(status_code=400, detail="Please enter a valid Vehicle Registration / RC Number")
@@ -298,54 +174,7 @@ async def verify_rc(body: dict) -> dict:
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""
 
-    surepass_token = os.getenv("SUREPASS_API_TOKEN") or os.getenv("KYC_API_KEY")
-    if surepass_token:
-        try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                resp = await client.post(
-                    "https://kyc-api.surepass.io/api/v1/rc/rc-full",
-                    headers={"Authorization": f"Bearer {surepass_token}", "Content-Type": "application/json"},
-                    json={"id_number": rc},
-                )
-                if resp.status_code == 200:
-                    api_data = resp.json().get("data", {})
-                    return {
-                        "ok": True,
-                        "valid": True,
-                        "rcNumber": rc,
-                        "ownerName": api_data.get("owner_name") or candidate_name or "REGISTERED VEHICLE OWNER",
-                        "vehicleBrand": api_data.get("maker_description") or "Two-Wheeler",
-                        "vehicleModel": api_data.get("maker_model") or "Motorcycle",
-                        "vehicleClass": "2W - Motorcycle / Scooter",
-                        "fuelType": api_data.get("fuel_type") or "Petrol",
-                        "regYear": str(api_data.get("manufacturing_date_formatted") or "2022")[:4],
-                        "fitnessValidTill": api_data.get("fitness_upto") or "2037-08-15",
-                        "insuranceStatus": "Active",
-                        "status": "Active & Fitness Valid",
-                        "verificationStatus": "verified",
-                        "source": "Parivahan Vahan Portal (Live)",
-                        "message": "Vehicle RC specs fetched from Parivahan Vahan",
-                    }
-        except Exception:
-            pass
-
-    return {
-        "ok": True,
-        "valid": True,
-        "rcNumber": rc,
-        "ownerName": candidate_name if candidate_name else "REGISTERED VEHICLE OWNER",
-        "vehicleBrand": "Two-Wheeler",
-        "vehicleModel": "Motorcycle",
-        "vehicleClass": "2W - Motorcycle / Scooter",
-        "fuelType": "Petrol",
-        "regYear": "2022",
-        "fitnessValidTill": "2037-08-15",
-        "insuranceStatus": "Active (ICICI Lombard)",
-        "status": "Active & Fitness Valid",
-        "verificationStatus": "verified",
-        "source": "Parivahan Vahan National Registry",
-        "message": "Vehicle RC verified and specs auto-extracted",
-    }
+    return await verify_vehicle_rc(rc, candidate_name)
 
 
 @public_router.post("/verify/ifsc")
@@ -676,6 +505,29 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
 
+    # Build structured documents list for KYC review
+    kyc_doc_list = []
+    if payload.get("aadhaarFront"):
+        kyc_doc_list.append({"id": "aadhaar_front", "type": "Aadhaar Card (Front)", "name": "Aadhaar Front", "documentUrl": payload["aadhaarFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("aadhaarBack"):
+        kyc_doc_list.append({"id": "aadhaar_back", "type": "Aadhaar Card (Back)", "name": "Aadhaar Back", "documentUrl": payload["aadhaarBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("panCard"):
+        kyc_doc_list.append({"id": "pan_card", "type": "PAN Card", "name": "PAN Card", "documentUrl": payload["panCard"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("dlFront"):
+        kyc_doc_list.append({"id": "dl_front", "type": "Driving License (Front)", "name": "DL Front", "documentUrl": payload["dlFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("dlBack"):
+        kyc_doc_list.append({"id": "dl_back", "type": "Driving License (Back)", "name": "DL Back", "documentUrl": payload["dlBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("rcFront"):
+        kyc_doc_list.append({"id": "rc_front", "type": "RC Certificate (Front)", "name": "RC Front", "documentUrl": payload["rcFront"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("rcBack"):
+        kyc_doc_list.append({"id": "rc_back", "type": "RC Certificate (Back)", "name": "RC Back", "documentUrl": payload["rcBack"], "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+    if payload.get("selfieUrl") or payload.get("photoUrl"):
+        selfie_img = payload.get("selfieUrl") or payload.get("photoUrl")
+        kyc_doc_list.append({"id": "selfie", "type": "Captain Profile Photo / Selfie", "name": "Live Selfie", "documentUrl": selfie_img, "status": "Pending", "uploadedAt": datetime.now(timezone.utc).isoformat()})
+
+    profile_data["documents"] = kyc_doc_list
+    profile_data["kycDocuments"] = kyc_doc_list
+
     existing = await database.find_one("rider_profiles", {"_id": rider_id_str})
     if existing is None:
         await database.insert("rider_profiles", profile_data)
@@ -704,6 +556,16 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         "completedDeliveries": 0,
         "walletBalance": 0.0,
         "cashInHand": 0.0,
+        "documents": kyc_doc_list,
+        "kycDocuments": kyc_doc_list,
+        "aadhaarFront": payload.get("aadhaarFront", ""),
+        "aadhaarBack": payload.get("aadhaarBack", ""),
+        "panCard": payload.get("panCard", ""),
+        "dlFront": payload.get("dlFront", ""),
+        "dlBack": payload.get("dlBack", ""),
+        "rcFront": payload.get("rcFront", ""),
+        "rcBack": payload.get("rcBack", ""),
+        "selfieUrl": payload.get("selfieUrl") or payload.get("photoUrl", ""),
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
@@ -1663,10 +1525,116 @@ async def submit_rider_appeal(body: dict, user: User = Depends(current_user)) ->
 @router.patch("/profile")
 async def update_profile(body: dict, user: User = Depends(current_user)) -> dict:
     rider_id = await _rider_id(user)
-    updated = await rider_profile_repository.update(rider_id, body)
-    if updated is None:
+    existing = await rider_profile_repository.get(rider_id)
+    if existing is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rider profile not found")
+
+    is_locked = bool(existing.get("kycLocked") or existing.get("isKycVerified") or existing.get("status") in ("active", "approved", "verified"))
+
+    # Check if user is attempting to change government-verified KYC fields
+    critical_fields = ["fullName", "name", "vehicleNumber", "dlNumber", "pan", "panNumber"]
+    requested_critical_changes = {}
+    for f in critical_fields:
+        if f in body and body[f] and str(body[f]).strip() != str(existing.get(f) or "").strip():
+            requested_critical_changes[f] = body[f]
+
+    if requested_critical_changes and is_locked:
+        change_req = {
+            "id": f"pcr_{uuid.uuid4().hex[:8]}",
+            "riderId": rider_id,
+            "riderName": existing.get("fullName", ""),
+            "phone": existing.get("phone", ""),
+            "currentValues": {k: existing.get(k) for k in requested_critical_changes},
+            "requestedValues": requested_critical_changes,
+            "status": "pending_admin_approval",
+            "reason": body.get("reason") or "Rider requested changes to verified details",
+            "requestedAt": datetime.now(timezone.utc).isoformat(),
+        }
+
+        # Apply only non-critical allowed updates immediately (email, city, vehicleType, photo)
+        safe_changes = {k: v for k, v in body.items() if k not in critical_fields}
+        safe_changes["pendingChangeRequest"] = change_req
+        safe_changes["updatedAt"] = datetime.now(timezone.utc).isoformat()
+
+        updated = await rider_profile_repository.update(rider_id, safe_changes)
+
+        # Notify Admin Panel
+        await database.insert("admin_notifications", {
+            "type": "rider_profile_change_request",
+            "title": f"KYC Change Request: {existing.get('fullName')}",
+            "message": f"Rider {rider_id} requested change for verified details: {list(requested_critical_changes.keys())}. Admin approval is required.",
+            "riderId": rider_id,
+            "data": change_req,
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "read": False,
+        })
+
+        res = _public(updated or existing)
+        res["requiresApproval"] = True
+        res["pendingChangeRequest"] = change_req
+        res["message"] = "Government-verified details (Name/Vehicle Plate) are locked. Your change request has been submitted for Admin approval."
+        return res
+
+    updated = await rider_profile_repository.update(rider_id, body)
     return _public(updated)
+
+
+@public_router.post("/change-request/approve")
+@router.post("/change-request/approve")
+async def approve_rider_change_request(body: dict) -> dict:
+    rider_id = body.get("riderId")
+    if not rider_id:
+        raise HTTPException(status_code=400, detail="riderId is required")
+
+    profile = await database.find_one("rider_profiles", {"_id": rider_id})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Rider profile not found")
+
+    pcr = profile.get("pendingChangeRequest")
+    bcr = profile.get("pendingBankChangeRequest")
+    applied = {}
+
+    if pcr and pcr.get("requestedValues"):
+        for k, v in pcr["requestedValues"].items():
+            applied[k] = v
+        await database.update("rider_profiles", {"_id": rider_id}, {
+            **applied,
+            "pendingChangeRequest": None,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        })
+        await database.update("admin_riders", {"_id": rider_id}, applied)
+
+    if bcr and bcr.get("requestedValues"):
+        bank_vals = bcr["requestedValues"]
+        await database.update("rider_bank_accounts", {"_id": rider_id}, {
+            **bank_vals,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        }, upsert=True)
+        await database.update("rider_profiles", {"_id": rider_id}, {
+            **bank_vals,
+            "pendingBankChangeRequest": None,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        })
+
+    return {"ok": True, "message": f"Changes approved for Rider {rider_id}", "applied": applied}
+
+
+@public_router.post("/change-request/reject")
+@router.post("/change-request/reject")
+async def reject_rider_change_request(body: dict) -> dict:
+    rider_id = body.get("riderId")
+    reason = body.get("reason", "Verification rejected by Admin")
+    if not rider_id:
+        raise HTTPException(status_code=400, detail="riderId is required")
+
+    await database.update("rider_profiles", {"_id": rider_id}, {
+        "pendingChangeRequest": None,
+        "pendingBankChangeRequest": None,
+        "changeRequestRejectionReason": reason,
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True, "message": f"Change request rejected for Rider {rider_id}"}
+
 
 
 @router.get("/settings")
@@ -3517,6 +3485,53 @@ async def get_rider_bank(user: User = Depends(current_user)) -> dict:
 @router.patch("/bank")
 async def update_rider_bank(body: dict, user: User = Depends(current_user)) -> dict:
     rider_id = await _rider_id(user)
+    existing_bank = await database.find_one("rider_bank_accounts", {"_id": rider_id}) or {}
+    existing_profile = await database.find_one("rider_profiles", {"_id": rider_id}) or {}
+
+    is_locked = bool(existing_profile.get("kycLocked") or existing_profile.get("bankVerified") or existing_bank.get("isVerified"))
+
+    # Check if sensitive bank credentials are changing
+    critical_bank_fields = ["accountNumber", "ifsc", "accountHolder"]
+    requested_bank_changes = {}
+    for f in critical_bank_fields:
+        if f in body and body[f] and str(body[f]).strip() != str(existing_bank.get(f) or existing_profile.get(f) or "").strip():
+            requested_bank_changes[f] = body[f]
+
+    if requested_bank_changes and is_locked and (existing_bank.get("accountNumber") or existing_profile.get("accountNumber")):
+        change_req = {
+            "id": f"bcr_{uuid.uuid4().hex[:8]}",
+            "riderId": rider_id,
+            "riderName": existing_profile.get("fullName", ""),
+            "phone": existing_profile.get("phone", ""),
+            "currentValues": {k: existing_bank.get(k) or existing_profile.get(k) for k in requested_bank_changes},
+            "requestedValues": requested_bank_changes,
+            "bankName": body.get("bankName", existing_bank.get("bankName")),
+            "status": "pending_admin_approval",
+            "requestedAt": datetime.now(timezone.utc).isoformat(),
+        }
+
+        # Non-critical like UPI can update immediately:
+        if body.get("upiId"):
+            await database.update("rider_bank_accounts", {"_id": rider_id}, {"upiId": body.get("upiId")}, upsert=True)
+            await database.update("rider_profiles", {"_id": rider_id}, {"upiId": body.get("upiId")})
+
+        await database.update("rider_profiles", {"_id": rider_id}, {"pendingBankChangeRequest": change_req})
+        await database.insert("admin_notifications", {
+            "type": "rider_bank_change_request",
+            "title": f"Bank Change Request: {existing_profile.get('fullName')}",
+            "message": f"Rider {rider_id} requested to update verified bank account. Admin approval required.",
+            "riderId": rider_id,
+            "data": change_req,
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "read": False,
+        })
+        return {
+            "ok": True,
+            "requiresApproval": True,
+            "pendingBankChangeRequest": change_req,
+            "message": "Bank account changes submitted for Admin approval. Existing verified account remains active until approved.",
+        }
+
     update_data = {
         "bankName": body.get("bankName", ""),
         "accountNumber": body.get("accountNumber", ""),

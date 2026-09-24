@@ -23,6 +23,7 @@ FOLDERS = {
     "partner_logo": "quickpress/partners/logo",
     "partner_banner": "quickpress/partners/banner",
     "rider_photo": "quickpress/riders/profile",
+    "rider_document": "quickpress/riders/documents",
 }
 
 

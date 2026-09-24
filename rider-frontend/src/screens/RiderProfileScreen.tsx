@@ -214,7 +214,7 @@ export function RiderProfileScreen() {
     setSaving(true);
     triggerHaptic();
     try {
-      await updateRiderProfile({
+      const profRes = await updateRiderProfile({
         fullName,
         email,
         city,
@@ -222,7 +222,7 @@ export function RiderProfileScreen() {
         vehicleNumber,
       });
 
-      await updateRiderBank({
+      const bankRes = await updateRiderBank({
         bankName,
         accountNumber,
         ifsc,
@@ -231,7 +231,15 @@ export function RiderProfileScreen() {
       });
 
       setShowEditModal(false);
-      toast.success("Profile details updated successfully! ✅");
+      if (profRes?.requiresApproval || bankRes?.requiresApproval) {
+        toast.info(
+          profRes?.message ||
+            bankRes?.message ||
+            "Government-verified details require Admin Approval. Change request submitted! ⏳"
+        );
+      } else {
+        toast.success("Profile details updated successfully! ✅");
+      }
       await loadProfileData();
     } catch {
       toast.error("Failed to update profile. Please try again.");
@@ -334,9 +342,12 @@ export function RiderProfileScreen() {
 
               {/* Captain Basic Info */}
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <h2 className="truncate text-base font-black text-zinc-900">{fullName}</h2>
-                  <BadgeCheck className="size-4 text-blue-500 fill-current shrink-0" />
+                  <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                    <BadgeCheck className="size-3 text-emerald-600 fill-current shrink-0" />
+                    <span>Govt Verified</span>
+                  </span>
                 </div>
                 <p className="text-xs font-semibold text-zinc-500">{normalizeDisplayPhone(phone)}</p>
                 <div className="mt-1 flex items-center gap-2">
@@ -384,6 +395,19 @@ export function RiderProfileScreen() {
             </div>
           </div>
         </div>
+
+        {/* Pending Change Request Alert (Requires Admin Approval) */}
+        {(profile?.pendingChangeRequest || profile?.pendingBankChangeRequest) && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 flex items-start gap-3 shadow-xs">
+            <Hourglass className="size-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+            <div className="space-y-1">
+              <p className="font-black text-amber-950">Change Request Pending Admin Review ⏳</p>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                Your request to change government-verified KYC or Bank details is currently waiting for Admin approval. Existing active details remain valid until approved.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* OPERATIONAL SWITCHES (Matching Partner Profile) */}
         <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm space-y-3">
@@ -635,45 +659,66 @@ export function RiderProfileScreen() {
               </button>
             </div>
 
+            {/* KYC Lock Notice */}
+            <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-start gap-2.5 text-xs text-blue-950">
+              <ShieldCheck className="size-4 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-black text-blue-950">Government-Verified Account 🔒</p>
+                <p className="text-[11px] text-blue-800 leading-tight mt-0.5">
+                  Name, Vehicle Plate & Bank Details are linked to verified KYC records. Any changes will be submitted for QuickPress Admin Approval.
+                </p>
+              </div>
+            </div>
+
             <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
               <div>
-                <label className="font-bold text-zinc-700">Captain Full Name</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-zinc-700">Captain Full Name</label>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                    🔒 Requires Approval
+                  </span>
+                </div>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-black text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                  className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-black text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-zinc-700">Email Address</label>
+                <label className="font-bold text-zinc-700 block mb-1">Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                  className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-zinc-700">Service City Hub</label>
+                <label className="font-bold text-zinc-700 block mb-1">Service City Hub</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                  className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-zinc-700">Vehicle Plate Number</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-zinc-700">Vehicle Plate Number</label>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                    🔒 Requires Approval
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={vehicleNumber}
                   onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-                  className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-black text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                  className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-black text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -684,52 +729,67 @@ export function RiderProfileScreen() {
 
                 <div className="space-y-2.5">
                   <div>
-                    <label className="font-bold text-zinc-700">Account Holder Name</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-zinc-700">Account Holder Name</label>
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                        🔒 Requires Approval
+                      </span>
+                    </div>
                     <input
                       type="text"
                       value={accountHolder}
                       onChange={(e) => setAccountHolder(e.target.value)}
-                      className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                      className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="font-bold text-zinc-700">Bank Name</label>
+                    <label className="font-bold text-zinc-700 block mb-1">Bank Name</label>
                     <input
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                      className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="font-bold text-zinc-700">Bank Account Number</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-zinc-700">Bank Account Number</label>
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                        🔒 Requires Approval
+                      </span>
+                    </div>
                     <input
                       type="text"
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value)}
-                      className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                      className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="font-bold text-zinc-700">Bank IFSC Code</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-zinc-700">Bank IFSC Code</label>
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                        🔒 Requires Approval
+                      </span>
+                    </div>
                     <input
                       type="text"
                       value={ifsc}
                       onChange={(e) => setIfsc(e.target.value.toUpperCase())}
-                      className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                      className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-bold text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="font-bold text-zinc-700">Primary Instant UPI ID</label>
+                    <label className="font-bold text-zinc-700 block mb-1">Primary Instant UPI ID</label>
                     <input
                       type="text"
                       value={upiId}
                       onChange={(e) => setUpiId(e.target.value)}
-                      className="w-full mt-1 p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-black text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
+                      className="w-full p-2.5 bg-zinc-50 border border-zinc-300 rounded-xl font-mono font-black text-zinc-900 focus:bg-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>

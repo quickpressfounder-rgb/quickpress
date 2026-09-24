@@ -31,6 +31,10 @@ export interface RiderProfile {
   isOnboarded: boolean;
   isOnline: boolean;
   kycStatus: string;
+  kycLocked?: boolean;
+  verifiedGovernmentName?: string;
+  pendingChangeRequest?: any;
+  pendingBankChangeRequest?: any;
   documents?: Array<{
     id: string;
     label: string;
@@ -80,12 +84,16 @@ export async function fetchRiderProfile(): Promise<RiderProfile> {
     isOnboarded: Boolean(res.isOnboarded ?? true),
     isOnline: Boolean(res.isOnline),
     kycStatus: res.kycStatus || (res.isVerified ? "verified" : "pending"),
+    kycLocked: Boolean(res.kycLocked || res.isKycVerified || res.isVerified),
+    verifiedGovernmentName: res.verifiedGovernmentName || cleanName,
+    pendingChangeRequest: res.pendingChangeRequest || null,
+    pendingBankChangeRequest: res.pendingBankChangeRequest || null,
     documents: Array.isArray(res.documents) ? res.documents : [],
   };
 }
 
 export async function updateRiderProfile(patch: Record<string, any>) {
-  return apiPatchJson<{ ok: boolean }>("/api/rider/profile", patch);
+  return apiPatchJson<{ ok: boolean; requiresApproval?: boolean; message?: string; pendingChangeRequest?: any }>("/api/rider/profile", patch);
 }
 
 export interface RiderBankAccount {
@@ -102,7 +110,7 @@ export async function fetchRiderBank(): Promise<RiderBankAccount> {
 }
 
 export async function updateRiderBank(bank: Partial<RiderBankAccount>) {
-  return apiPatchJson<{ ok: boolean; bank: RiderBankAccount }>("/api/rider/bank", bank);
+  return apiPatchJson<{ ok: boolean; requiresApproval?: boolean; message?: string; bank?: RiderBankAccount; pendingBankChangeRequest?: any }>("/api/rider/bank", bank);
 }
 
 export async function fetchWorkSettings() {
