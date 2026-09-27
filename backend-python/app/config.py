@@ -143,6 +143,11 @@ class Settings(BaseSettings):
 
     @property
     def cashfree_is_production(self) -> bool:
+        secret = (self.cashfree_secret_key or "").strip()
+        if secret.startswith("cfsk_ma_prod_"):
+            return True
+        if secret.startswith("cfsk_ma_test_"):
+            return False
         return self.cashfree_env.strip().upper() in ("PROD", "PRODUCTION", "LIVE")
 
     @property

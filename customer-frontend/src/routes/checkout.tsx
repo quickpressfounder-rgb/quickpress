@@ -73,7 +73,7 @@ export function CheckoutPage() {
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
 
-  // Payment mode: Online (Razorpay) vs Cash on Delivery
+  // Payment mode: Online (Cashfree) vs Cash on Delivery
   const [paymentMode, setPaymentMode] = useState<"online" | "cod">("online");
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
@@ -87,7 +87,7 @@ export function CheckoutPage() {
 
   const [financeRules, setFinanceRules] = useState<FinancialRules>(DEFAULT_FINANCIAL_RULES);
 
-  // Load backend data and preload Razorpay on mount
+  // Load backend data and preload Cashfree on mount
   useEffect(() => {
     let alive = true;
 
@@ -184,7 +184,7 @@ export function CheckoutPage() {
     ? selectedPickup
     : addresses.find((a) => a.id === deliveryAddressId) || addresses[0];
 
-  // Direct Action: Triggers Razorpay Checkout directly for Online, or places COD
+  // Direct Action: Triggers Cashfree Checkout directly for Online, or places COD
   const handleProceedToPayOrOrder = async () => {
     if (cart.lines.length === 0) {
       toast.error("Your cart is empty.");
@@ -740,12 +740,12 @@ export function CheckoutPage() {
             </span>
             <span className="text-[10px] text-zinc-400 font-semibold flex items-center gap-1">
               <ShieldCheck className="size-3 text-[#0c831f]" />
-              <span>Razorpay 100% Secure</span>
+              <span>Cashfree 100% Secure</span>
             </span>
           </div>
 
           <div className="space-y-2">
-            {/* 1. Online Payment (Razorpay - Direct Gateway) */}
+            {/* 1. Online Payment (Cashfree - Direct Gateway) */}
             <label
               onClick={() => setPaymentMode("online")}
               className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${

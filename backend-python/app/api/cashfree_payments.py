@@ -18,13 +18,16 @@ from app.models.payment import (
 )
 from app.models.user import User
 from app.services import cashfree_payments_service as service
+from app.services.cashfree_client import CashfreeError
 from app.services.cashfree_payments_service import CashfreePaymentServiceError
 
 router = APIRouter(prefix="/payments/cashfree", tags=["cashfree-payments"])
 
 
-def _handle_error(err: CashfreePaymentServiceError) -> HTTPException:
-    return HTTPException(status_code=err.status_code, detail=err.message)
+def _handle_error(err: Any) -> HTTPException:
+    status_code = getattr(err, "status_code", 400)
+    message = getattr(err, "message", str(err))
+    return HTTPException(status_code=status_code, detail=message)
 
 
 @router.get("/config", response_model=CashfreeConfig)
@@ -43,7 +46,7 @@ async def create_order(
     try:
         result = await service.create_cashfree_order(user, payload.model_dump())
         return CashfreeOrderResult(**result)
-    except CashfreePaymentServiceError as exc:
+    except (CashfreePaymentServiceError, CashfreeError) as exc:
         raise _handle_error(exc) from exc
 
 
@@ -55,7 +58,7 @@ async def verify_payment(
     """Verify payment server-to-server with Cashfree and advance order status."""
     try:
         return await service.verify_cashfree_payment(user, payload.model_dump())
-    except CashfreePaymentServiceError as exc:
+    except (CashfreePaymentServiceError, CashfreeError) as exc:
         raise _handle_error(exc) from exc
 
 
@@ -67,7 +70,7 @@ async def get_payment_status(
     """Check live status of payment for an order."""
     try:
         return await service.get_payment_status(user, order_id)
-    except CashfreePaymentServiceError as exc:
+    except (CashfreePaymentServiceError, CashfreeError) as exc:
         raise _handle_error(exc) from exc
 
 
@@ -82,7 +85,7 @@ async def retry_payment(
         raise HTTPException(status_code=400, detail="orderId is required.")
     try:
         return await service.retry_cashfree_order(user, str(order_id))
-    except CashfreePaymentServiceError as exc:
+    except (CashfreePaymentServiceError, CashfreeError) as exc:
         raise _handle_error(exc) from exc
 
 
@@ -106,7 +109,7 @@ async def cashfree_webhook(
             signature=x_webhook_signature,
             timestamp=x_webhook_timestamp,
         )
-    except CashfreePaymentServiceError as exc:
+    except (CashfreePaymentServiceError, CashfreeError) as exc:
         raise _handle_error(exc) from exc
 
 
@@ -118,5 +121,5 @@ async def refund_order_payment(
     """Initiate a full or partial refund to source or wallet."""
     try:
         return await service.refund_cashfree_payment(user, payload.model_dump())
-    except CashfreePaymentServiceError as exc:
+    except (CashfreePaymentServiceError, CashfreeError) as exc:
         raise _handle_error(exc) from exc
