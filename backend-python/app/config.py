@@ -54,12 +54,13 @@ class Settings(BaseSettings):
     twilio_verify_service_sid: str = ""
     fast2sms_api_key: str = ""
 
-    # --- Razorpay (Phase 5 · Sprint 5.6) ---------------------------------
-    # Both the key id and the secret come from the environment. Nothing is
-    # hardcoded, so a production deploy cannot accidentally ship a test key.
-    razorpay_key_id: str = ""
-    razorpay_key_secret: str = ""
-    razorpay_webhook_secret: str = ""
+    # --- Cashfree Payment Gateway (v2023-08-01) ------------------------
+    cashfree_app_id: str = ""
+    cashfree_secret_key: str = ""
+    cashfree_api_version: str = "2023-08-01"
+    cashfree_env: str = "PROD"
+    cashfree_webhook_secret: str = ""
+
 
 
     # --- Google Maps Platform --------------------------------------------
@@ -137,8 +138,20 @@ class Settings(BaseSettings):
         return bool(self.maps_server_key)
 
     @property
+    def cashfree_configured(self) -> bool:
+        return bool(self.cashfree_app_id.strip() and self.cashfree_secret_key.strip())
+
+    @property
+    def cashfree_is_production(self) -> bool:
+        return self.cashfree_env.strip().upper() in ("PROD", "PRODUCTION", "LIVE")
+
+    @property
+    def cashfree_pg_base_url(self) -> str:
+        return "https://api.cashfree.com/pg" if self.cashfree_is_production else "https://sandbox.cashfree.com/pg"
+
+    @property
     def razorpay_configured(self) -> bool:
-        return bool(self.razorpay_key_id.strip() and self.razorpay_key_secret.strip())
+        return False
 
     @property
     def firebase_configured(self) -> bool:

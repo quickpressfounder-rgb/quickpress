@@ -275,7 +275,7 @@ function PaymentMethodsScreen() {
     setSaving(true);
     try {
       await addPaymentMethod({
-        kind: "razorpay",
+        kind: "netbanking",
         name: `${bank.name} Netbanking`,
         masked: `${bank.code} Bank Account`,
         isDefault: methods?.length === 0,

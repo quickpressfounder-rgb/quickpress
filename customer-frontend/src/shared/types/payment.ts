@@ -9,7 +9,7 @@
  * Additive only — no existing type was changed.
  */
 
-export type PaymentGateway = "razorpay" | "wallet" | "cod" | "mixed";
+export type PaymentGateway = "cashfree" | "wallet" | "cod" | "mixed" | "razorpay";
 
 export type GatewayPaymentStatus =
   | "created"
@@ -19,7 +19,35 @@ export type GatewayPaymentStatus =
   | "failed"
   | "refunded"
   | "partially_refunded"
-  | "cancelled";
+  | "cancelled"
+  | "user_dropped";
+
+export type CashfreeConfig = {
+  appId: string;
+  env: "SANDBOX" | "PROD";
+  apiVersion: string;
+  enabled: boolean;
+  currency: string;
+};
+
+export type CashfreeOrderResult = {
+  ok: boolean;
+  paymentId: string;
+  orderId: string;
+  cfOrderId?: string;
+  paymentSessionId?: string;
+  amount: number;
+  walletApplied: number;
+  payableAmount: number;
+  fullyPaidByWallet: boolean;
+  currency: string;
+  env: string;
+  customerDetails?: {
+    customerId?: string;
+    customerPhone?: string;
+    customerName?: string;
+  };
+};
 
 export type RazorpayConfig = {
   /** Publishable key id (rzp_test_… / rzp_live_…). Never the secret. */

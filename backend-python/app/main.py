@@ -40,7 +40,7 @@ from app.api.partner import router as partner_router
 from app.api.partners import router as partners_router
 from app.api.payments import router as payments_router
 from app.api.profile import router as profile_router
-from app.api.razorpay import router as razorpay_router
+from app.api.cashfree_payments import router as cashfree_payments_router
 from app.api.referral import router as referral_router
 from app.api.reviews import router as reviews_router
 from app.api.rider import public_router as rider_public_router
@@ -217,7 +217,8 @@ def create_app() -> FastAPI:
     # Sprint 2.10 routers so existing paths (/payments, /refunds, /wallet,
     # /partner/earnings, /rider/earnings) keep their current handlers; only the
     # gateway-specific paths below are added.
-    app.include_router(razorpay_router, prefix=settings.api_prefix)
+    # Cashfree Payments (v2023-08-01 PG Architecture)
+    app.include_router(cashfree_payments_router, prefix=settings.api_prefix)
     app.include_router(wallet_ledger_router, prefix=settings.api_prefix)
     app.include_router(admin_payments_router, prefix=settings.api_prefix)
     app.include_router(earnings_router, prefix=settings.api_prefix)

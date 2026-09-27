@@ -43,14 +43,8 @@ import {
   type FinancialRules,
   DEFAULT_FINANCIAL_RULES,
 } from "@/api/customer/finance-api";
-import {
-  createRazorpayOrder,
-  verifyRazorpayPayment,
-} from "@/api/payments/razorpay-api";
-import {
-  loadRazorpayCheckout,
-  openRazorpayCheckout,
-} from "@/api/core/razorpay";
+import { payWithCashfree } from "@/api/payments/cashfree-api";
+import { getCashfreeInstance } from "@/api/core/cashfree";
 import { playOrderPlacedSonicChime } from "@/lib/order-success-sound";
 
 export const Route = createFileRoute("/checkout")({
@@ -97,8 +91,8 @@ export function CheckoutPage() {
   useEffect(() => {
     let alive = true;
 
-    // Preload Razorpay Checkout script silently for 0ms instant modal display
-    void loadRazorpayCheckout().catch(() => {});
+    // Preload Cashfree Checkout SDK silently for instant modal display
+    void getCashfreeInstance().catch(() => {});
 
     async function loadData() {
       try {
@@ -233,50 +227,29 @@ export function CheckoutPage() {
       return;
     }
 
-    // 2. DIRECT ONLINE PAYMENT VIA RAZORPAY
+    // 2. DIRECT ONLINE PAYMENT VIA CASHFREE
     if (placingOrder) return;
     setPlacingOrder(true);
 
     try {
-      toast.info("Opening Razorpay Secure Gateway...");
-      const rzpOrder = await createRazorpayOrder({
+      toast.info("Opening Cashfree Secure Gateway...");
+      const outcome = await payWithCashfree({
         amount: grandTotal,
         purpose: "QuickPress Laundry Order",
-      });
-
-      const outcome = await openRazorpayCheckout(rzpOrder, {
-        description: `QuickPress Laundry Payment (₹${grandTotal})`,
-        profile: {
-          name: customerName.trim(),
-          contact: cleanPhone,
-        },
-        themeColor: "#0c831f",
-        appName: "QuickPress",
+        customerName: customerName.trim(),
+        customerPhone: cleanPhone,
       });
 
       if (outcome.status === "success") {
-        toast.info("Verifying payment security with bank...");
-        const verification = await verifyRazorpayPayment({
-          paymentId: rzpOrder.paymentId,
-          razorpayOrderId: outcome.payload.razorpay_order_id,
-          razorpayPaymentId: outcome.payload.razorpay_payment_id,
-          razorpaySignature: outcome.payload.razorpay_signature,
-        });
-
-        const verifiedPaymentId =
-          verification.payment?.id ||
-          outcome.payload.razorpay_payment_id ||
-          `rzp-${Date.now()}`;
-
         toast.success("Payment Successful! 💳 Placing your order...");
-        await handlePaymentSuccess("razorpay", verifiedPaymentId);
-      } else if (outcome.status === "dismissed") {
+        await handlePaymentSuccess("cashfree", outcome.paymentId);
+      } else if (outcome.status === "user_dropped") {
         toast.error("Payment cancelled. Order has NOT been placed.");
       } else {
         toast.error(outcome.reason || "Payment rejected. Order has NOT been placed.");
       }
     } catch (err: any) {
-      console.error("[Checkout] Razorpay error:", err);
+      console.error("[Checkout] Cashfree error:", err);
       toast.error(err?.message || "Payment could not be processed. Order has NOT been placed.");
     } finally {
       setPlacingOrder(false);

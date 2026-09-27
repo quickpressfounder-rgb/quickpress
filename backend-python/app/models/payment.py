@@ -11,7 +11,7 @@ from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-PaymentGateway = Literal["razorpay", "wallet", "cod", "mixed"]
+PaymentGateway = Literal["cashfree", "wallet", "cod", "mixed", "razorpay"]
 GatewayPaymentStatus = Literal[
     "created",
     "authorized",
@@ -21,6 +21,7 @@ GatewayPaymentStatus = Literal[
     "refunded",
     "partially_refunded",
     "cancelled",
+    "user_dropped",
 ]
 LedgerDirection = Literal["credit", "debit"]
 LedgerReason = Literal[
@@ -39,6 +40,54 @@ GatewayRefundStatus = Literal["requested", "approved", "processing", "processed"
 SettlementStatus = Literal["pending", "approved", "processing", "settled", "rejected"]
 WithdrawalStatus = Literal["requested", "approved", "processing", "paid", "rejected"]
 AccountRole = Literal["customer", "partner", "rider", "admin"]
+
+
+class CashfreeConfig(BaseModel):
+    appId: str
+    env: Literal["SANDBOX", "PROD"]
+    apiVersion: str = "2023-08-01"
+    enabled: bool
+    currency: str = "INR"
+
+
+class CashfreeCreateOrderPayload(BaseModel):
+    amount: float = Field(gt=0, le=1_000_000)
+    orderId: Optional[str] = None
+    walletAmount: Optional[float] = 0.0
+    purpose: Optional[str] = "Order payment"
+    customerPhone: Optional[str] = None
+    customerEmail: Optional[str] = None
+    customerName: Optional[str] = None
+    returnUrl: Optional[str] = None
+
+
+class CashfreeOrderResult(BaseModel):
+    ok: bool = True
+    paymentId: str
+    orderId: str
+    cfOrderId: Optional[str] = None
+    paymentSessionId: Optional[str] = None
+    amount: float
+    walletApplied: float = 0.0
+    payableAmount: float
+    fullyPaidByWallet: bool = False
+    currency: str = "INR"
+    env: str = "SANDBOX"
+    customerDetails: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CashfreeVerifyPayload(BaseModel):
+    paymentId: Optional[str] = None
+    orderId: str
+    cfOrderId: Optional[str] = None
+
+
+class CashfreeRefundPayload(BaseModel):
+    orderId: str
+    paymentId: Optional[str] = None
+    amount: float
+    reason: str = "Customer cancellation"
+    destination: Literal["source", "wallet"] = "source"
 
 
 class RazorpayConfig(BaseModel):

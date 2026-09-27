@@ -41,11 +41,7 @@ import {
   MobikwikLogo,
   LazyPayLogo,
 } from "./UpiLogos";
-import {
-  createRazorpayOrder,
-  verifyRazorpayPayment,
-} from "@/api/payments/razorpay-api";
-import { openRazorpayCheckout } from "@/api/core/razorpay";
+import { payWithCashfree } from "@/api/payments/cashfree-api";
 
 export interface ZomatoPaymentSheetProps {
   isOpen: boolean;
@@ -133,87 +129,46 @@ export function ZomatoPaymentSheet({
 
   const isCodAllowed = grandTotal >= 50;
 
-  // Direct Mobile UPI App Launcher (PhonePe, GPay, Paytm, Any Installed)
-  const handleLaunchDirectUpi = (target: UpiAppTarget, label: string) => {
-    toast.info(`Opening ${label}...`);
-    setWaitingDirectUpiApp(label);
-    launchDirectUpiApp(target, upiUri);
-  };
-
-  // Confirming Direct UPI after user enters PIN in PhonePe/GPay/Paytm
-  const handleConfirmDirectUpiPaid = async () => {
-    if (processingMethod) return;
-    setProcessingMethod("Verifying UPI");
-    toast.info("Verifying transaction with bank...");
-
-    try {
-      await onPaymentSuccess("upi", `upi-intent-${upiTxnRef}`);
-      onClose();
-    } catch (err: any) {
-      toast.error(err?.message || "Payment confirmation failed. Please try again.");
-    } finally {
-      setProcessingMethod(null);
-    }
-  };
-
-  // Online Payment fallback for Cards & Netbanking via Razorpay
-  const handleRazorpayFlow = async (
-    preferredMethod: "card" | "netbanking" | "wallet",
-    methodLabel: string
+  // Cashfree In-App Payment Flow (UPI, Cards, Net Banking, Wallets)
+  const handleCashfreePayment = async (
+    methodLabel: string,
+    preferredMethod: "upi" | "card" | "netbanking" | "wallet" | "online" = "online"
   ) => {
     if (processingMethod) return;
     setProcessingMethod(methodLabel);
 
     try {
-      toast.info(`Launching ${methodLabel}...`);
+      toast.info(`Launching ${methodLabel} via Cashfree...`);
 
-      const rzpOrder = await createRazorpayOrder({
+      const outcome = await payWithCashfree({
         amount: grandTotal,
         purpose: "QuickPress Laundry Order",
-      });
-
-      const outcome = await openRazorpayCheckout(rzpOrder, {
-        description: `QuickPress Laundry Payment (₹${grandTotal})`,
-        profile: {
-          name: customerName.trim(),
-          contact: customerPhone.replace(/\D/g, ""),
-        },
-        themeColor: "#0c831f",
-        appName: "QuickPress",
-        preferredMethod,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.replace(/\D/g, ""),
       });
 
       if (outcome.status === "success") {
-        toast.info("Verifying payment security...");
-        const verification = await verifyRazorpayPayment({
-          paymentId: rzpOrder.paymentId,
-          razorpayOrderId: outcome.payload.razorpay_order_id,
-          razorpayPaymentId: outcome.payload.razorpay_payment_id,
-          razorpaySignature: outcome.payload.razorpay_signature,
-        });
-
-        const verifiedPaymentId =
-          verification.payment?.id ||
-          outcome.payload.razorpay_payment_id ||
-          `rzp-${Date.now()}`;
-
         toast.success("Payment Successful! 💳 Placing your order...");
-        await onPaymentSuccess(preferredMethod, verifiedPaymentId);
+        await onPaymentSuccess(preferredMethod, outcome.paymentId);
         onClose();
-      } else if (outcome.status === "dismissed") {
-        toast.error("Payment cancelled. Order has NOT been placed.");
+      } else if (outcome.status === "user_dropped") {
+        toast.error(outcome.reason || "Payment cancelled. Order has NOT been placed.");
       } else {
         toast.error(outcome.reason || "Payment rejected. Order has NOT been placed.");
       }
     } catch (err: any) {
-      console.error("[ZomatoPaymentSheet] Payment error:", err);
+      console.error("[ZomatoPaymentSheet] Cashfree payment error:", err);
       toast.error(err?.message || "Payment could not be processed. Order has NOT been placed.");
     } finally {
       setProcessingMethod(null);
     }
   };
 
-  // QuickPress Wallet Payment
+  const handleConfirmDirectUpiPaid = async () => {
+    await handleCashfreePayment(waitingDirectUpiApp || "UPI Direct", "upi");
+  };
+
+  // QuickPress Wallet Payment with instant server verification
   const handleWalletPayment = async () => {
     if (processingMethod) return;
 
@@ -227,8 +182,21 @@ export function ZomatoPaymentSheet({
     setProcessingMethod("QuickPress Wallet");
     try {
       toast.info("Deducting from QuickPress Wallet...");
-      await onPaymentSuccess("wallet", `wallet-tx-${Date.now()}`);
-      onClose();
+      const outcome = await payWithCashfree({
+        amount: grandTotal,
+        walletAmount: grandTotal,
+        purpose: "QuickPress Laundry Order (Wallet)",
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.replace(/\D/g, ""),
+      });
+
+      if (outcome.status === "success") {
+        toast.success("Paid via QuickPress Wallet! Placing your order...");
+        await onPaymentSuccess("wallet", outcome.paymentId);
+        onClose();
+      } else {
+        toast.error(outcome.reason || "Wallet deduction failed. Order not placed.");
+      }
     } catch (err: any) {
       toast.error(err?.message || "Wallet deduction failed. Order not placed.");
     } finally {
@@ -504,11 +472,11 @@ export function ZomatoPaymentSheet({
                 </button>
               </div>
 
-              {/* Top Hero Option: Opens User's Installed UPI Apps natively */}
+              {/* Top Hero Option: Opens In-App Cashfree UPI Apps */}
               <button
                 type="button"
                 disabled={Boolean(processingMethod)}
-                onClick={() => handleLaunchDirectUpi("any", "Any Installed UPI App")}
+                onClick={() => handleCashfreePayment("UPI Apps", "upi")}
                 className="w-full p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 hover:from-emerald-500/15 border-2 border-emerald-500/40 rounded-2xl flex items-center justify-between text-left active:scale-[0.99] transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -521,11 +489,11 @@ export function ZomatoPaymentSheet({
                         Pay with Installed UPI Apps
                       </p>
                       <span className="bg-[#0c831f] text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full uppercase">
-                        Shows Installed Only
+                        Instant UPI
                       </span>
                     </div>
                     <p className="text-[10.5px] font-medium text-emerald-900 truncate">
-                      Opens system chooser with apps on your phone
+                      PhonePe, GPay, Paytm, BHIM & Supermoney
                     </p>
                   </div>
                 </div>
@@ -538,11 +506,11 @@ export function ZomatoPaymentSheet({
 
               {/* Direct Individual UPI App Shortcuts with REAL Official Logos */}
               <div className="divide-y divide-zinc-100 pt-1">
-                {/* 1. PhonePe (Official Logo - DIRECT 1-TAP OPEN, NO RAZORPAY) */}
+                {/* 1. PhonePe (Official Logo) */}
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleLaunchDirectUpi("phonepe", "PhonePe")}
+                  onClick={() => handleCashfreePayment("PhonePe", "upi")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -553,11 +521,11 @@ export function ZomatoPaymentSheet({
                           PhonePe
                         </p>
                         <span className="bg-purple-100 text-[#5f259f] text-[9px] font-bold px-1.5 py-0.2 rounded-md">
-                          Direct Open
+                          Cashfree UPI
                         </span>
                       </div>
                       <p className="text-[10px] font-medium text-zinc-500 truncate">
-                        Direct 1-tap open in PhonePe App (No Gateway)
+                        1-Tap pay via PhonePe
                       </p>
                     </div>
                   </div>
@@ -571,7 +539,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleLaunchDirectUpi("gpay", "Google Pay")}
+                  onClick={() => handleCashfreePayment("Google Pay", "upi")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -581,7 +549,7 @@ export function ZomatoPaymentSheet({
                         Google Pay (GPay)
                       </p>
                       <p className="text-[10px] font-medium text-zinc-500 truncate">
-                        Direct 1-tap open in GPay App
+                        1-Tap pay via GPay
                       </p>
                     </div>
                   </div>
@@ -595,7 +563,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleLaunchDirectUpi("paytm", "Paytm")}
+                  onClick={() => handleCashfreePayment("Paytm", "upi")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -605,7 +573,7 @@ export function ZomatoPaymentSheet({
                         Paytm UPI
                       </p>
                       <p className="text-[10px] font-medium text-zinc-500 truncate">
-                        Direct 1-tap open in Paytm App
+                        1-Tap pay via Paytm
                       </p>
                     </div>
                   </div>
@@ -619,7 +587,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleLaunchDirectUpi("cred", "CRED")}
+                  onClick={() => handleCashfreePayment("CRED", "upi")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -629,7 +597,7 @@ export function ZomatoPaymentSheet({
                         CRED UPI
                       </p>
                       <p className="text-[10px] font-medium text-zinc-500 truncate">
-                        Direct 1-tap open in CRED App
+                        1-Tap pay via CRED
                       </p>
                     </div>
                   </div>
@@ -690,7 +658,7 @@ export function ZomatoPaymentSheet({
               <button
                 type="button"
                 disabled={Boolean(processingMethod)}
-                onClick={() => handleRazorpayFlow("wallet", "Amazon Pay")}
+                onClick={() => handleCashfreePayment("Amazon Pay", "wallet")}
                 className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -704,7 +672,7 @@ export function ZomatoPaymentSheet({
                 </div>
 
                 <span className="text-xs font-black text-[#0c831f] uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-emerald-50 transition-colors">
-                  ADD
+                  PAY
                 </span>
               </button>
 
@@ -712,7 +680,7 @@ export function ZomatoPaymentSheet({
               <button
                 type="button"
                 disabled={Boolean(processingMethod)}
-                onClick={() => handleRazorpayFlow("wallet", "Mobikwik")}
+                onClick={() => handleCashfreePayment("Mobikwik", "wallet")}
                 className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -724,7 +692,7 @@ export function ZomatoPaymentSheet({
                 </div>
 
                 <span className="text-xs font-black text-[#0c831f] uppercase tracking-wide px-2 py-0.5 rounded-md hover:bg-emerald-50 transition-colors">
-                  ADD
+                  PAY
                 </span>
               </button>
             </div>
@@ -739,7 +707,7 @@ export function ZomatoPaymentSheet({
             <button
               type="button"
               disabled={Boolean(processingMethod)}
-              onClick={() => handleRazorpayFlow("card", "Credit or Debit Card")}
+              onClick={() => handleCashfreePayment("Credit or Debit Card", "card")}
               className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -758,7 +726,7 @@ export function ZomatoPaymentSheet({
                 {processingMethod === "Credit or Debit Card" ? (
                   <Loader2 className="size-3.5 animate-spin text-[#0c831f]" />
                 ) : (
-                  "ADD"
+                  "PAY"
                 )}
               </span>
             </button>
@@ -773,7 +741,7 @@ export function ZomatoPaymentSheet({
             <button
               type="button"
               disabled={Boolean(processingMethod)}
-              onClick={() => handleRazorpayFlow("netbanking", "Netbanking")}
+              onClick={() => handleCashfreePayment("Netbanking", "netbanking")}
               className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 min-w-0">

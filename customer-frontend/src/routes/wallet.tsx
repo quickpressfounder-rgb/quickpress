@@ -45,7 +45,7 @@ import {
   type PaymentRecord,
   type RefundRecord,
 } from "@/api/customer/payments-api";
-import { payWithRazorpay } from "@/api/payments/razorpay-api";
+import { payWithCashfree } from "@/api/payments/cashfree-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { onRealtimeEvent } from "@/api/core/socket-client";
 
@@ -220,25 +220,23 @@ function WalletScreen() {
         setAmount("500");
         await load(true);
       } else {
-        // Online Payment via Razorpay (UPI, Cards, NetBanking)
-        const payResult = await payWithRazorpay({
+        // Online Payment via Cashfree (UPI, Cards, NetBanking, Wallets)
+        const outcome = await payWithCashfree({
           amount: value,
-          purpose: "Wallet Top-up",
-          description: `Add ₹${value} to QuickPress Wallet via ${selectedMethod.toUpperCase()}`,
+          purpose: "QuickPress Wallet Top-up",
         });
 
-        if (payResult.status === "paid") {
-          const paymentId = payResult.payment?.id || (payResult.payment as any)?.razorpayPaymentId || undefined;
-          const result = await addFunds(value, selectedMethod, paymentId);
+        if (outcome.status === "success") {
+          const result = await addFunds(value, selectedMethod, outcome.paymentId);
           setWallet(result.wallet);
           toast.success(result.message || `₹${value} successfully added to your wallet!`);
           setAddOpen(false);
           setAmount("500");
           await load(true);
-        } else if (payResult.status === "cancelled") {
+        } else if (outcome.status === "user_dropped") {
           toast.info("Payment cancelled. You can try again anytime.");
         } else {
-          toast.error(payResult.message || "Payment failed. Please try again.");
+          toast.error(outcome.reason || "Payment failed. Please try again.");
         }
       }
     } catch (cause) {
