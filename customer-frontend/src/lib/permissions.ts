@@ -3,7 +3,8 @@
  * Coordinates Location (GPS) and Push Notification permissions together.
  */
 
-import { refreshLocationFromGps, type SavedLocation } from "@/api/customer/services/location-service";
+import { readLocation, type SavedLocation } from "@/api/customer/location";
+import { refreshLocationFromGps } from "@/api/customer/services/location-service";
 import { requestPushNotificationPermission } from "@/api/core/firebase-messaging";
 import { playOrderBellNotificationSound } from "@/lib/order-success-sound";
 
@@ -45,13 +46,13 @@ export async function getPermissionsStatus(): Promise<SystemPermissionsStatus> {
         locationStatus = "prompt";
       }
     } catch {
-      // Fallback: check localStorage if location was previously saved
-      const savedLoc = localStorage.getItem("qp_saved_location");
-      locationStatus = savedLoc ? "granted" : "prompt";
+      // Fallback: check if location was previously saved
+      const savedLoc = readLocation();
+      locationStatus = savedLoc?.latitude ? "granted" : "prompt";
     }
   } else {
-    const savedLoc = localStorage.getItem("qp_saved_location");
-    locationStatus = savedLoc ? "granted" : "prompt";
+    const savedLoc = readLocation();
+    locationStatus = savedLoc?.latitude ? "granted" : "prompt";
   }
 
   return {
