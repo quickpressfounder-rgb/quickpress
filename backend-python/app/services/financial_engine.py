@@ -49,8 +49,8 @@ DEFAULT_FINANCIAL_CONFIG: Dict[str, Any] = {
     "riderBaseFare": 30.0,           # Minimum base pickup/drop fare
     "riderPerKmRate": 8.0,           # Per KM rate
     "riderWaitingFeePerMin": 1.5,     # Waiting fee after 10 mins
-    "riderRainSurge": 20.0,          # Extra during rain
-    "riderNightSurge": 25.0,         # Extra between 10 PM - 6 AM
+    "riderRainSurge": 0.0,           # Surge permanently disabled
+    "riderNightSurge": 0.0,          # Surge permanently disabled
 
     # Daily Incentive Target Rewards
     "incentiveTier1Trips": 5,
@@ -340,15 +340,9 @@ class FinancialEngine:
         dist = max(0.5, float(distance_km or 2.5))
         distance_fare = round(dist * per_km, 2)
 
+        # Surge pricing permanently disabled across platform
         surge_amount = 0.0
         surge_reasons = []
-
-        if is_rain:
-            surge_amount += float(self.config["riderRainSurge"])
-            surge_reasons.append("Rain Surge (+₹20)")
-        if is_night:
-            surge_amount += float(self.config["riderNightSurge"])
-            surge_reasons.append("Night Shift (+₹25)")
 
         waiting_fare = 0.0
         if waiting_minutes > 10:

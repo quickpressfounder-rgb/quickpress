@@ -403,7 +403,7 @@ class RiderDeliveryRepository:
             rows.append(
                 {
                     "id": order_id,
-                    "code": task.get("code") or order_id[-6:].toUpperCase(),
+                    "code": task.get("code") or (order_id[-6:].upper() if len(order_id) >= 6 else order_id),
                     "customerName": task.get("customerName") or "Customer",
                     "customerPhone": mask_phone(task.get("customerPhone") or "+91 98765 43210"),
                     "customerPhoneMasked": mask_phone(task.get("customerPhone") or "+91 98765 43210"),
@@ -430,6 +430,8 @@ class RiderDeliveryRepository:
                     "deliveredTime": delivered_ts,
                     "deliveryOtp": str(task.get("deliveryOtp") or "9042"),
                     "date": delivered_ts,
+                    "placedAt": p_date,
+                    "createdAt": p_date,
                     "amount": payout,
                     "orderTotal": float(task.get("amount") or document.get("total_amount") or 340),
                     "distanceKm": dist,
@@ -441,8 +443,8 @@ class RiderDeliveryRepository:
                     "paymentType": task.get("paymentMode") or document.get("paymentMethod") or "Prepaid UPI",
                     "paymentStatus": "PAID" if task.get("paymentMode") != "cod" else "COD COLLECTED",
                     "rideType": task.get("rideType") or document.get("type") or "delivery",
-                    "rating": float(existing_rev.get("customerRating") or document.get("rating") or 5.0),
-                    "feedback": existing_rev.get("customerFeedback") or document.get("feedback") or "Order delivered safely with OTP verification.",
+                    "rating": float((existing_rev.get("customerRating") if existing_rev else None) or document.get("rating") or 5.0),
+                    "feedback": (existing_rev.get("customerFeedback") if existing_rev else None) or document.get("feedback") or "Order delivered safely with OTP verification.",
                     "baseFare": float(document.get("baseFare") or 35.0),
                     "distanceBonus": float(document.get("distanceBonus") or 15.0),
                     "surgeBonus": float(document.get("surgeBonus") or 0.0),

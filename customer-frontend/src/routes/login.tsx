@@ -11,8 +11,12 @@ import {
   ShieldCheck,
   Tag,
   Timer,
+  User,
+  UserCheck,
+  Sparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   fetchCountries,
@@ -24,6 +28,10 @@ import {
   type Country,
 } from "@/api/customer/auth-api";
 import { verifyCustomerOtp } from "@/lib/customer-auth";
+import { updateProfile } from "@/api/customer/profile-api";
+import { readSession, writeSession } from "@/api/core/session-store";
+import { CACHE_KEYS, writeCache } from "@/api/customer/api/cache";
+import type { AuthSession } from "@/shared/types";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } => {
@@ -51,6 +59,32 @@ export const Route = createFileRoute("/login")({
 });
 
 const FALLBACK_COUNTRY: Country = { code: "+91", label: "IN", digits: 10 };
+
+const GENERIC_NAMES = [
+  "customer",
+  "quickpress customer",
+  "quickpress user",
+  "user",
+  "guest",
+  "client",
+  "anonymous",
+  "apple user",
+  "google user",
+  "verified customer",
+  "test user",
+  "new user",
+];
+
+export function isGenericName(name?: string | null): boolean {
+  if (!name) return true;
+  const clean = name.trim().toLowerCase();
+  if (clean.length < 2) return true;
+  // If numeric or phone number string
+  if (/^\+?\d+$/.test(clean.replace(/\s+/g, ""))) return true;
+  // If email format
+  if (clean.includes("@")) return true;
+  return GENERIC_NAMES.some((g) => clean === g || clean.startsWith(g));
+}
 
 /** Typographic brand lockup — wordmark instead of a logo mark. */
 function BrandHeader() {
@@ -83,12 +117,14 @@ function BrandHeader() {
 }
 
 function AuthScreen() {
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "name">("phone");
   const [countries, setCountries] = useState<Country[]>([]);
   const [country, setCountry] = useState<Country>(FALLBACK_COUNTRY);
   const [phone, setPhone] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [sending, setSending] = useState(false);
+  const [activeSession, setActiveSession] = useState<AuthSession | null>(null);
+  const [initialSuggestedName, setInitialSuggestedName] = useState("");
   const navigate = useNavigate();
   const search = Route.useSearch();
   const redirectTarget = search?.redirect && search.redirect !== "/login" ? search.redirect : undefined;
@@ -106,13 +142,31 @@ function AuthScreen() {
     };
   }, []);
 
+  const handleAuthSuccess = (session: AuthSession) => {
+    setActiveSession(session);
+    const candidateName = session.account?.name || "";
+    const isNew = Boolean(session.account?.isNewUser);
+    const isGeneric = isGenericName(candidateName);
+
+    if (isNew || isGeneric) {
+      setInitialSuggestedName(isGeneric ? "" : candidateName);
+      setStep("name");
+    } else {
+      if (redirectTarget) {
+        void navigate({ to: redirectTarget as any });
+      } else {
+        void navigate({ to: "/location" });
+      }
+    }
+  };
+
   return (
     <main className="relative flex min-h-dvh flex-col bg-white dark:bg-zinc-950">
       <div className="relative flex w-full flex-1 flex-col">
         <div className="flex justify-end px-5 pt-[max(0.9rem,env(safe-area-inset-top))]">
           <button
             type="button"
-            onClick={() => void navigate({ to: "/home" })}
+            onClick={() => void navigate({ to: (redirectTarget as any) || "/home" })}
             className="min-h-11 rounded-full px-4 text-[13px] font-bold text-muted-foreground transition-colors hover:text-foreground"
           >
             Skip
@@ -137,6 +191,7 @@ function AuthScreen() {
                 setReferralCode={setReferralCode}
                 sending={sending}
                 redirectTarget={redirectTarget}
+                onSuccessSession={handleAuthSuccess}
                 onContinue={() => {
                   setSending(true);
                   // POST /api/auth/request-otp
@@ -148,13 +203,21 @@ function AuthScreen() {
                     });
                 }}
               />
-            ) : (
+            ) : step === "otp" ? (
               <OtpStep
                 phone={`${country.code}${phone}`}
                 fullNumber={`${country.code} ${phone}`}
                 referralCode={referralCode}
                 redirectTarget={redirectTarget}
                 onEdit={() => setStep("phone")}
+                onSuccessSession={handleAuthSuccess}
+              />
+            ) : (
+              <NameStep
+                session={activeSession}
+                initialName={initialSuggestedName}
+                redirectTarget={redirectTarget}
+                onBack={() => setStep("phone")}
               />
             )}
           </section>
@@ -180,6 +243,7 @@ function PhoneStep({
   sending,
   redirectTarget,
   onContinue,
+  onSuccessSession,
 }: {
   countries: Country[];
   country: Country;
@@ -191,6 +255,7 @@ function PhoneStep({
   sending: boolean;
   redirectTarget?: string | undefined;
   onContinue: () => void;
+  onSuccessSession: (session: AuthSession) => void;
 }) {
   const valid = phone.length === country.digits;
   const navigate = useNavigate();
@@ -206,7 +271,9 @@ function PhoneStep({
     void restoreCustomerSession()
       .then((restored) => {
         if (active && restored) {
-          if (redirectTarget) {
+          if (isGenericName(restored.account?.name)) {
+            onSuccessSession(restored);
+          } else if (redirectTarget) {
             void navigate({ to: redirectTarget as any });
           } else {
             void navigate({ to: "/home" });
@@ -217,7 +284,7 @@ function PhoneStep({
     return () => {
       active = false;
     };
-  }, [navigate, redirectTarget]);
+  }, [navigate, redirectTarget, onSuccessSession]);
 
   /** Firebase social sign in → FastAPI exchange → QuickPress JWT session. */
   const signInWithProvider = async (provider: "google" | "apple") => {
@@ -226,12 +293,8 @@ function PhoneStep({
     setSocial(provider);
     try {
       rememberCustomerLogin(true);
-      await (provider === "google" ? loginWithGoogle(referralCode) : loginWithApple(referralCode));
-      if (redirectTarget) {
-        void navigate({ to: redirectTarget as any });
-      } else {
-        void navigate({ to: "/location" });
-      }
+      const session = await (provider === "google" ? loginWithGoogle(referralCode) : loginWithApple(referralCode));
+      onSuccessSession(session);
     } catch (cause: any) {
       const code = String(cause?.code || "");
       const msg = String(cause?.message || "");
@@ -244,6 +307,7 @@ function PhoneStep({
           msg ? msg : `${label} sign-in complete nahi hua. Dobara try karein.`,
         );
       }
+    } finally {
       setSocial(null);
     }
   };
@@ -485,12 +549,14 @@ function OtpStep({
   referralCode,
   redirectTarget,
   onEdit,
+  onSuccessSession,
 }: {
   phone: string;
   fullNumber: string;
   referralCode?: string;
   redirectTarget?: string | undefined;
   onEdit: () => void;
+  onSuccessSession: (session: AuthSession) => void;
 }) {
   const navigate = useNavigate();
   const router = useRouter();
@@ -537,16 +603,12 @@ function OtpStep({
       verifyCustomerOtp(phone, code, referralCode),
       router.preloadRoute({ to: "/location" }).catch(() => undefined),
     ])
-      .then(() => {
+      .then(([session]) => {
         setVerified(true);
         window.dispatchEvent(new Event("qp:prompt-name"));
         window.setTimeout(() => {
-          if (redirectTarget) {
-            void navigate({ to: redirectTarget as any });
-          } else {
-            void navigate({ to: "/location" });
-          }
-        }, 550);
+          onSuccessSession(session);
+        }, 450);
       })
       .catch((cause: unknown) => {
         setVerifying(false);
@@ -737,5 +799,214 @@ function AppleIcon() {
         d="M16.36 12.72c.02 2.6 2.28 3.47 2.31 3.48-.02.06-.36 1.24-1.2 2.46-.72 1.05-1.47 2.1-2.66 2.12-1.16.02-1.54-.69-2.87-.69-1.33 0-1.75.67-2.85.71-1.14.04-2.01-1.12-2.74-2.17-1.6-2.3-2.82-6.5-1.18-9.35.81-1.41 2.27-2.31 3.85-2.33 1.12-.02 2.18.75 2.87.75.69 0 1.98-.93 3.34-.79.57.02 2.17.21 3.19 1.71-.08.05-1.87 1.1-1.86 3.29ZM14.3 3.9c.61-.74 1.02-1.77.91-2.8-.88.04-1.95.59-2.58 1.33-.57.65-1.05 1.7-.92 2.7.98.08 1.98-.5 2.59-1.23Z"
       />
     </svg>
+  );
+}
+
+function NameStep({
+  session,
+  initialName,
+  redirectTarget,
+  onBack,
+}: {
+  session: AuthSession | null;
+  initialName: string;
+  redirectTarget?: string | undefined;
+  onBack?: () => void;
+}) {
+  const navigate = useNavigate();
+  const [name, setName] = useState(initialName);
+  const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const cleanName = name.trim();
+  const isValid = cleanName.length >= 2;
+  const isInvalid = touched && !isValid;
+
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setTouched(true);
+    if (!isValid || saving) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      // 1. Update remote backend profile
+      await updateProfile({ name: cleanName });
+
+      // 2. Update local session store
+      const current = session || readSession("customer");
+      if (current && current.account) {
+        current.account.name = cleanName;
+        current.account.isOnboarded = true;
+        current.account.isNewUser = false;
+        const initials =
+          cleanName
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((p) => p[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase() || "QP";
+        current.account.avatarInitials = initials;
+        writeSession(current, "customer");
+
+        // 3. Write cache for home screen & profile screen instant sync
+        writeCache(CACHE_KEYS.profile, {
+          id: current.account.id,
+          name: cleanName,
+          initials,
+          phone: current.account.phone,
+          email: current.account.email,
+        });
+      }
+
+      sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+
+      // 4. Notify app components
+      window.dispatchEvent(new CustomEvent("qp:profile-updated", { detail: { name: cleanName } }));
+      window.dispatchEvent(new Event("qp:login-success"));
+
+      toast.success(`Welcome to QuickPress, ${cleanName}! 🎉`);
+
+      // 5. Navigate to destination
+      if (redirectTarget) {
+        void navigate({ to: redirectTarget as any });
+      } else {
+        void navigate({ to: "/location" });
+      }
+    } catch (cause: any) {
+      console.error("Failed to save name:", cause);
+      setError(cause?.message || "Could not save your name. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSkip = () => {
+    sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+    window.dispatchEvent(new Event("qp:login-success"));
+    if (redirectTarget) {
+      void navigate({ to: redirectTarget as any });
+    } else {
+      void navigate({ to: "/location" });
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="grid size-10 place-items-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted active:scale-95"
+            aria-label="Back"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+        ) : (
+          <span />
+        )}
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-green">
+          <Sparkles className="size-3 text-brand-green" />
+          Profile Setup
+        </span>
+      </div>
+
+      <div className="pt-2 text-center">
+        <div className="auth-pop mx-auto mb-3.5 grid size-16 place-items-center rounded-3xl bg-brand-green/15 text-brand-green shadow-inner">
+          <UserCheck className="size-8" />
+        </div>
+        <h2 className="text-[1.65rem] font-black leading-tight tracking-[-0.03em] text-foreground">
+          What is your name?
+        </h2>
+        <p className="mt-1.5 text-[13.5px] font-medium leading-relaxed text-muted-foreground">
+          Enter your name so your laundry captain and store partner can identify your pickup &amp; delivery orders.
+        </p>
+      </div>
+
+      <form className="mt-6" onSubmit={handleSave}>
+        <label
+          htmlFor="qp-customer-name"
+          className="mb-2 block text-[11.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+        >
+          Your Full Name
+        </label>
+
+        <div
+          className={`auth-field flex h-14 items-center overflow-hidden rounded-2xl border-2 bg-background transition-all ${
+            isInvalid ? "input-invalid" : isValid ? "border-brand-green/80" : "border-border"
+          }`}
+        >
+          <div className="flex size-14 shrink-0 items-center justify-center border-r border-border text-muted-foreground">
+            <User className="size-5" />
+          </div>
+          <input
+            id="qp-customer-name"
+            type="text"
+            autoComplete="name"
+            autoFocus
+            placeholder="e.g. Rahul Sharma"
+            value={name}
+            onBlur={() => setTouched(true)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (error) setError(null);
+            }}
+            className="h-full min-w-0 flex-1 bg-transparent px-4 text-[16px] font-bold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/60"
+          />
+          {isValid ? (
+            <span className="auth-pop mr-3.5 grid size-6 shrink-0 place-items-center rounded-full bg-brand-green">
+              <Check className="size-3.5 text-background" />
+            </span>
+          ) : null}
+        </div>
+
+        {isInvalid ? (
+          <p className="animate-shake mt-2 text-xs font-semibold text-destructive" role="alert">
+            Please enter at least 2 characters for your name.
+          </p>
+        ) : null}
+
+        {error ? (
+          <p className="animate-shake mt-2 text-xs font-semibold text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="mt-3.5 flex items-center gap-2 rounded-xl bg-muted/60 px-3.5 py-2.5 text-[11.5px] font-medium text-muted-foreground">
+          <ShieldCheck className="size-4 shrink-0 text-brand-green" />
+          <span>Visible on pickup receipts, invoices &amp; order tracking.</span>
+        </div>
+
+        <button
+          type="submit"
+          disabled={!isValid || saving}
+          className="btn-ripple shadow-cta mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[15.5px] font-black tracking-tight text-primary-foreground transition-all duration-300 active:scale-[0.985] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="size-5 animate-spin" aria-hidden />
+              Saving name…
+            </>
+          ) : (
+            <>
+              Get Started
+              <ArrowRight className="size-[18px]" aria-hidden />
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSkip}
+          className="mt-3 min-h-11 w-full text-center text-[12.5px] font-bold text-muted-foreground transition-colors hover:text-foreground"
+        >
+          I'll add this later
+        </button>
+      </form>
+    </div>
   );
 }

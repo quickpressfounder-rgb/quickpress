@@ -363,18 +363,19 @@ function MembershipScreen() {
         {membership ? (
           <div className="px-5 pb-32 pt-4">
             {/* Current plan — GET /api/membership */}
-            <section className="relative overflow-hidden rounded-3xl border border-border/80 bg-white p-5 text-foreground shadow-soft dark:bg-card">
-              <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-500/10 blur-2xl" />
+            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-5 text-white shadow-soft">
+              <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-400/25 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-10 -left-10 size-40 rounded-full bg-emerald-500/20 blur-2xl" />
               <div className="relative flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[0.68rem] font-bold uppercase tracking-widest text-muted-foreground">
+                  <p className="text-[0.68rem] font-bold uppercase tracking-widest text-emerald-100">
                     {membership.active ? "Current plan" : "VIP Membership"}
                   </p>
-                  <p className="mt-1 flex items-center gap-2 truncate text-2xl font-black tracking-tight text-black dark:text-white">
-                    <Crown className="size-5 text-emerald-600 dark:text-emerald-400" />
+                  <p className="mt-1 flex items-center gap-2 truncate text-2xl font-black tracking-tight text-white">
+                    <Crown className="size-5 text-amber-300" />
                     {membership.active ? membership.planName : "Join VIP Membership"}
                   </p>
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  <p className="mt-2 text-xs leading-relaxed text-emerald-100/90 font-medium">
                     {membership.active
                       ? `Active until ${membership.expiresLabel} · ${membership.remainingDays} day${
                           membership.remainingDays === 1 ? "" : "s"
@@ -390,10 +391,10 @@ function MembershipScreen() {
                   type="button"
                   aria-label="Refresh membership"
                   onClick={() => void load({ refresh: true })}
-                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted/50 text-foreground transition-all duration-300 hover:bg-muted active:scale-[0.94]"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur-sm transition-all duration-300 hover:bg-white/25 active:scale-[0.94]"
                 >
                   {refreshing ? (
-                    <Loader2 className="size-4 animate-spin text-emerald-600" />
+                    <Loader2 className="size-4 animate-spin text-white" />
                   ) : (
                     <RefreshCw className="size-4" />
                   )}
@@ -401,14 +402,14 @@ function MembershipScreen() {
               </div>
 
               <div className="relative mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-white">
                   {membership.active ? membership.billingCycle ?? "active" : "no active plan"}
                 </span>
-                <span className="rounded-full border border-border bg-muted/60 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-foreground">
+                <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-emerald-100">
                   {membership.active ? membership.status : "Not Subscribed"}
                 </span>
                 {membership.amountPaid > 0 ? (
-                  <span className="rounded-full border border-border bg-muted/60 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-foreground">
+                  <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-emerald-100">
                     {formatMembershipPrice(membership.amountPaid)} paid
                   </span>
                 ) : null}

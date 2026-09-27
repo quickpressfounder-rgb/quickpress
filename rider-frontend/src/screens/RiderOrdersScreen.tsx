@@ -13,6 +13,7 @@ import {
   X,
   XCircle,
   Route,
+  Sparkles,
   Zap,
 } from "lucide-react";
 import { RiderBottomNav } from "../components/RiderBottomNav";
@@ -203,17 +204,17 @@ export function RiderOrdersScreen() {
     }
   };
 
-  useEffect(() => {
-    loadOffers();
-    const timer = setInterval(() => {
-      if (!activeOrder) {
-        loadOffers(true);
-      }
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [activeOrder]);
+    useEffect(() => {
+      loadOffers();
+      const timer = setInterval(() => {
+        if (!activeOrder) {
+          loadOffers(true);
+        }
+      }, 15000);
+      return () => clearInterval(timer);
+    }, [activeOrder]);
 
-  // 2-minute SLA Timer (120s) for the top incoming offer
+  // 2-minute SLA Timer (120s) with stabilized boolean dependencies
   useEffect(() => {
     if (offers.length === 0 || activeOrder) return;
     setCountdown(120);
@@ -229,7 +230,7 @@ export function RiderOrdersScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [offers.length, activeOrder]);
+  }, [offers.length > 0, Boolean(activeOrder)]);
 
   // Real-time Socket.IO subscription for order lifecycle updates
   useEffect(() => {
@@ -568,7 +569,7 @@ export function RiderOrdersScreen() {
             return (
               <div
                 key={offer.id}
-                className="rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm transition-all space-y-3.5"
+                className="contain-render rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm transition-all space-y-3.5"
               >
                 {/* 2-Minute SLA Countdown (Top incoming offer) */}
                 {isTop && (
@@ -651,6 +652,31 @@ export function RiderOrdersScreen() {
                       <span className="text-[9px] font-bold text-amber-900/80 dark:text-amber-300 block uppercase">Bonus</span>
                       <span className="text-base font-black text-amber-900 dark:text-amber-200">
                         +₹{offer.riderExpressBonus || Math.round((offer.expressFee || 40) * 0.8)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 🔄 Reassigned Delivery Bonus Callout */}
+                {(offer.isReassigned || offer.isReassignedBonus || Boolean(offer.extraBonusAmount && offer.extraBonusAmount > 0)) && (
+                  <div className="flex items-center justify-between gap-2 px-3.5 py-3 bg-gradient-to-r from-purple-500/20 via-indigo-500/15 to-purple-500/10 border-2 border-purple-500/70 rounded-2xl shadow-md">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="flex size-8 rounded-xl bg-purple-500/30 items-center justify-center text-purple-900 dark:text-purple-200 shrink-0 border border-purple-500/50">
+                        <Sparkles className="size-4.5 text-purple-700 fill-purple-300" />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="block text-xs font-black text-purple-950 dark:text-purple-200 uppercase tracking-wide truncate">
+                          🚀 REASSIGNED DELIVERY + ₹{offer.extraBonusAmount || 20} BONUS POOL
+                        </span>
+                        <span className="block text-[10.5px] text-purple-900/90 dark:text-purple-300 font-medium">
+                          Store SLA transfer bonus added to your normal delivery payout.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[9px] font-bold text-purple-900/80 dark:text-purple-300 block uppercase">Bonus Pool</span>
+                      <span className="text-base font-black text-purple-900 dark:text-purple-200">
+                        +₹{offer.extraBonusAmount || 20}
                       </span>
                     </div>
                   </div>

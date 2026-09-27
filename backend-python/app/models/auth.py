@@ -61,6 +61,7 @@ class AccountResponse(BaseModel):
     permissions: Optional[List[str]] = None
     departmentRole: Optional[str] = None
     scope: Optional[str] = None
+    isNewUser: Optional[bool] = False
 
     @classmethod
     def from_user(cls, user: User) -> "AccountResponse":

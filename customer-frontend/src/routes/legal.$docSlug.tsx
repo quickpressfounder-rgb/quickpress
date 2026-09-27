@@ -234,7 +234,7 @@ function LegalDocScreen() {
             </div>
 
             {/* Assistance card */}
-            <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white shadow-sm">
+            <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-5 text-white shadow-soft">
               <h3 className="text-sm font-bold flex items-center gap-1.5">
                 <HelpCircle className="size-4 text-emerald-400" />
                 Questions about this policy?

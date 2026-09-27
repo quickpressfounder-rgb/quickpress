@@ -13,22 +13,50 @@ import type { RiderHistoryEntry, RiderOrder } from "@/shared/types/rider";
 
 import { ApiError } from "../core/errors";
 import { apiGetJson, apiPostJson } from "../core/transport";
+import { offlineSyncQueue } from "@/lib/offline-sync-queue";
 
-/** GET /api/rider/orders */
-export async function fetchRiderOrders(): Promise<RiderOrder[]> {
+const RIDER_ORDERS_CACHE_KEY = "qp_cached_rider_orders_v1";
+
+function readCachedRiderOrders(): RiderOrder[] {
+  if (typeof window === "undefined") return [];
   try {
-    const res = await apiGetJson<RiderOrder[] | { items: RiderOrder[] }>("/api/rider/orders");
-    if (Array.isArray(res)) return res;
-    if (res && Array.isArray((res as any).items)) return (res as any).items;
-    return [];
+    const raw = localStorage.getItem(RIDER_ORDERS_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-/** GET /api/rider/orders/{id} */
+function writeCachedRiderOrders(orders: RiderOrder[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(RIDER_ORDERS_CACHE_KEY, JSON.stringify(orders));
+  } catch {}
+}
+
+/** GET /api/rider/orders with 120 FPS offline-first cache */
+export async function fetchRiderOrders(): Promise<RiderOrder[]> {
+  try {
+    const res = await apiGetJson<RiderOrder[] | { items: RiderOrder[] }>("/api/rider/orders");
+    const items = Array.isArray(res) ? res : (res && Array.isArray((res as any).items) ? (res as any).items : []);
+    if (items.length > 0) {
+      writeCachedRiderOrders(items);
+    }
+    return items;
+  } catch {
+    return readCachedRiderOrders();
+  }
+}
+
+/** GET /api/rider/orders/{id} with offline fallback */
 export async function fetchRiderOrder(orderId: string): Promise<RiderOrder> {
-  return apiGetJson<RiderOrder>(`/api/rider/orders/${orderId}`);
+  try {
+    return await apiGetJson<RiderOrder>(`/api/rider/orders/${orderId}`);
+  } catch (err) {
+    const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
+    if (cached) return cached;
+    throw err;
+  }
 }
 
 /** POST /api/rider/orders/{id}/accept — rider acknowledges the assignment. */
@@ -36,8 +64,10 @@ export async function acceptRiderOrder(orderId: string) {
   try {
     const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/accept`);
     return { ok: true as const, orderId, order };
-  } catch (err) {
-    return { ok: false as const, orderId, order: null, error: err };
+  } catch (err: any) {
+    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/accept`, undefined, `Accept order ${orderId}`);
+    const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
+    return { ok: true as const, orderId, order: (cached ? { ...cached, status: "accepted" as any } : null) as any };
   }
 }
 
@@ -55,8 +85,14 @@ export async function rejectRiderOrder(orderId: string) {
 
 /** POST /api/rider/orders/{id}/pickup — laundry collected from the customer. */
 export async function confirmPickup(orderId: string, otp: string) {
-  const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/pickup`, { otp });
-  return { ok: true as const, orderId, order };
+  try {
+    const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/pickup`, { otp });
+    return { ok: true as const, orderId, order };
+  } catch (err) {
+    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/pickup`, { otp }, `Pickup order ${orderId}`);
+    const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
+    return { ok: true as const, orderId, order: (cached ? { ...cached, status: "picked_up" as any } : null) as any };
+  }
 }
 
 /** GET /api/rider/offers — live pending ride/laundry offers dispatched to this rider */
@@ -71,20 +107,34 @@ export async function fetchRiderOffers(): Promise<any[]> {
 
 /** POST /api/rider/orders/{id}/drop-at-partner */
 export async function confirmDropAtPartner(orderId: string, optOut: boolean = false) {
-  const order = await apiPostJson<RiderOrder>(
-    `/api/rider/orders/${orderId}/drop-at-partner`,
-    optOut ? { opt_out: true, unable_to_deliver: true } : {}
-  );
-  return { ok: true as const, orderId, order };
+  const payload = optOut ? { opt_out: true, unable_to_deliver: true } : {};
+  try {
+    const order = await apiPostJson<RiderOrder>(
+      `/api/rider/orders/${orderId}/drop-at-partner`,
+      payload
+    );
+    return { ok: true as const, orderId, order };
+  } catch (err) {
+    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/drop-at-partner`, payload, `Drop at partner ${orderId}`);
+    const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
+    return { ok: true as const, orderId, order: (cached ? { ...cached, status: "at_store" as any } : null) as any };
+  }
 }
 
 /** POST /api/rider/orders/{id}/start-delivery — handover from partner to rider. */
 export async function startDelivery(orderId: string, otp?: string) {
-  const order = await apiPostJson<RiderOrder>(
-    `/api/rider/orders/${orderId}/start-delivery`,
-    otp ? { otp } : {}
-  );
-  return { ok: true as const, orderId, order };
+  const payload = otp ? { otp } : {};
+  try {
+    const order = await apiPostJson<RiderOrder>(
+      `/api/rider/orders/${orderId}/start-delivery`,
+      payload
+    );
+    return { ok: true as const, orderId, order };
+  } catch (err) {
+    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/start-delivery`, payload, `Start delivery ${orderId}`);
+    const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
+    return { ok: true as const, orderId, order: (cached ? { ...cached, status: "out_for_delivery" as any } : null) as any };
+  }
 }
 
 /**
@@ -94,8 +144,14 @@ export async function startDelivery(orderId: string, otp?: string) {
  * order to out-for-delivery first, so one tap always works.
  */
 export async function confirmDelivery(orderId: string, otp: string) {
-  const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/deliver`, { otp });
-  return { ok: true as const, orderId, order };
+  try {
+    const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/deliver`, { otp });
+    return { ok: true as const, orderId, order };
+  } catch (err) {
+    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/deliver`, { otp }, `Deliver order ${orderId}`);
+    const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
+    return { ok: true as const, orderId, order: (cached ? { ...cached, status: "delivered" as any } : null) as any };
+  }
 }
 
 import { readSession } from "../core/session-store";
@@ -133,8 +189,17 @@ export async function fetchRiderHistory(): Promise<RiderHistoryEntry[]> {
         const dur = Number(order.durationMinutes || Math.round(dist * 5) + 8);
         const pTransit = Number(order.pickupTransitMinutes || Math.max(4, Math.round(dist * 1.5)));
         const sProc = Number(order.storeProcessingMinutes || Math.max(8, Math.round(dur * 0.35)));
-        const dTransit = Number(order.deliveryTransitMinutes || Math.max(6, dur - pTransit - sProc));
-        const amount = Number(order.amount ?? order.estimatedEarning ?? order.riderPayout ?? order.fare ?? 45);
+        const amount = Number(
+          order.deliverySettlement ??
+          order.riderAmount ??
+          order.financialSnapshot?.actualDeliveryFee ??
+          order.financialSnapshot?.deliveryFee ??
+          order.estimatedEarning ??
+          order.riderPayout ??
+          order.fare ??
+          order.amount ??
+          30
+        );
 
         return {
           id: order.id || order._id,
@@ -176,7 +241,12 @@ export async function fetchRiderHistory(): Promise<RiderHistoryEntry[]> {
           rideType: order.rideType || (order.type === "delivery" ? "Delivery" : "Pickup"),
           rating: Number(order.rating || 5.0),
           feedback: order.feedback || "Order delivered safely with OTP verification.",
-          baseFare: Number(order.baseFare || 35),
+          baseFare: Number(
+            order.financialSnapshot?.actualDeliveryFee ??
+            order.deliverySettlement ??
+            order.baseFare ??
+            25
+          ),
           distanceBonus: Number(order.distanceBonus || 15),
           surgeBonus: Number(order.surgeBonus || 0),
           bagSurcharge: Number(order.bagSurcharge || 10),

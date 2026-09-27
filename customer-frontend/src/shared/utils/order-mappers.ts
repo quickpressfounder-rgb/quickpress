@@ -33,7 +33,7 @@ export const CUSTOMER_STAGES: CustomerOrderStage[] = [
   "delivered",
 ];
 
-const CUSTOMER_STAGE_BY_STATUS: Record<OrderLifecycleStatus, CustomerOrderStage> = {
+const CUSTOMER_STAGE_BY_STATUS: Record<string, CustomerOrderStage> = {
   placed: "confirmed",
   pending_partner_acceptance: "confirmed",
   partner_accepted: "confirmed",
@@ -44,23 +44,38 @@ const CUSTOMER_STAGE_BY_STATUS: Record<OrderLifecycleStatus, CustomerOrderStage>
   rider_accepted: "rider-assigned",
   pickup_otp_pending: "rider-assigned",
   picked_up: "picked-up",
+  at_store: "picked-up",
   at_partner: "picked-up",
+  store_drop_confirmed: "in-cleaning",
+  processing_started: "in-cleaning",
   processing: "in-cleaning",
+  washing: "in-cleaning",
+  drying: "in-cleaning",
+  dry_cleaning: "in-cleaning",
   ironing: "in-cleaning",
+  quality_check: "quality-check",
+  packed: "quality-check",
+  processing_completed: "quality-check",
   ready_for_delivery: "quality-check",
   ready: "quality-check",
-  completed: "quality-check",
   delivery_rider_assigned: "out-for-delivery",
+  delivery_rider_2_assigned: "out-for-delivery",
+  delivery_rider_reassigning: "out-for-delivery",
+  delivery_failed: "out-for-delivery",
   delivery_rider_accepted: "out-for-delivery",
   dispatch_otp_pending: "out-for-delivery",
+  dispatch_otp_verified: "out-for-delivery",
   out_for_delivery: "out-for-delivery",
   delivery_otp_pending: "out-for-delivery",
+  delivery_otp_verified: "delivered",
   delivered: "delivered",
+  completed: "delivered",
   cancelled: "confirmed",
 };
 
 export function customerStage(order: Order): CustomerOrderStage {
-  return CUSTOMER_STAGE_BY_STATUS[order.status];
+  const norm = String(order?.status || "").toLowerCase();
+  return CUSTOMER_STAGE_BY_STATUS[norm] || "confirmed";
 }
 
 export function customerStageIndex(order: Order): number {

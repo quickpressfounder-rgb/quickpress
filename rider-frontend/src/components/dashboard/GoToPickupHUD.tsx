@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { initRiderSocket, subscribeRiderOrders, emitRiderLocation } from "../../lib/rider-socket";
+import { riderLocationEngine } from "../../lib/rider-location-service";
 import {
   playArrivalChime,
   playSuccessChime,
@@ -59,6 +60,9 @@ import { RiderUnableToDeliverModal } from "../orders/RiderUnableToDeliverModal";
 import { RiderHandoverWaitingCard } from "../orders/RiderHandoverWaitingCard";
 import { CaptainReviewModal } from "./CaptainReviewModal";
 import { pushRiderLocation } from "../../api/rider/rider-dashboard-api";
+import { SwipeActionButton } from "../common/SwipeActionButton";
+import { OrderJourneyStepper } from "./OrderJourneyStepper";
+import { RiderCustomerOtpInput, RiderStoreDispatchDisplay } from "./RiderOtpCard";
 
 import {
   verifyHandoverOtp,
@@ -96,6 +100,9 @@ export interface ActiveOrderData {
   isHandoverTransfer?: boolean;
   handoverOtp?: string;
   pickupLegPayout?: number;
+  isReassigned?: boolean;
+  extraBonusAmount?: number;
+  reassignmentPool?: number;
   partnerName?: string;
   partnerAddress?: string;
   partnerPhone?: string;
@@ -440,55 +447,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     );
   });
 
-  // Track Captain's real-time device GPS coordinates and sync with backend
+  // Track Captain's real-time device GPS coordinates via Singleton Engine
   useEffect(() => {
-    if (typeof window === "undefined" || !("geolocation" in navigator)) return;
-
-    let isMounted = true;
-    const handlePos = (pos: GeolocationPosition) => {
-      if (!isMounted) return;
-      const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      const isMock = Boolean(
-        (pos.coords as any).isMock ||
-        (pos as any).isMock ||
-        (pos.coords as any).isFromMockProvider ||
-        (pos.coords as any).mocked
-      );
-      pushRiderLocation(next.lat, next.lng, {
-        isMock,
-        heading: pos.coords.heading ?? undefined,
-        speed: pos.coords.speed ?? undefined,
-        accuracy: pos.coords.accuracy ?? undefined,
-      }).catch(() => {});
-      emitRiderLocation({
-        lat: next.lat,
-        lng: next.lng,
-        orderId: order.orderId,
-        heading: pos.coords.heading ?? undefined,
-        speed: pos.coords.speed ?? undefined,
-      });
-    };
-
-    const handleErr = (err: any) => {
-      console.warn("GPS tracking note:", err?.message || err);
-    };
-
-    navigator.geolocation.getCurrentPosition(handlePos, handleErr, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-    });
-
-    const watchId = navigator.geolocation.watchPosition(handlePos, handleErr, {
-      enableHighAccuracy: true,
-      maximumAge: 5000,
-      timeout: 15000,
-    });
-
+    riderLocationEngine.setActiveOrder(order.orderId);
     return () => {
-      isMounted = false;
-      navigator.geolocation.clearWatch(watchId);
+      riderLocationEngine.setActiveOrder(null);
     };
-  }, []);
+  }, [order.orderId]);
 
   const customerCoords = order.customerCoords || order.pickupCoords || { lat: 27.8095, lng: 78.6490 };
   const storeCoords = order.partnerCoords || (order.rideType === "pickup" ? (order.dropCoords || { lat: 27.8118, lng: 78.6477 }) : (order.pickupCoords || { lat: 27.8118, lng: 78.6477 }));
@@ -1026,8 +991,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }
   };
 
-  const handleStartTrip = async () => {
-    const enteredOtp = otpDigits.join("").trim();
+  const handleStartTrip = async (directOtp?: string) => {
+    const enteredOtp = (directOtp || otpDigits.join("")).trim();
     const otpToVerify = enteredOtp || order.startOtp;
 
     if (!otpToVerify || otpToVerify.length < 4) {
@@ -1092,7 +1057,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     toast.info("Arrived at Customer Doorstep! Ask customer for 4-digit Delivery OTP 📦");
   };
 
-  const handleCompleteTrip = async () => {
+  const handleCompleteTrip = async (directOtp?: string) => {
     unlockAudioContext();
     triggerHaptic();
     playSuccessChime();
@@ -1136,7 +1101,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       }
     } else {
       // --- LEG 2 COMPLETE: Customer Doorstep Delivery ---
-      const enteredOtp = (customerDeliveryOtpDigits.join("") || otpDigits.join("")).trim();
+      const enteredOtp = (directOtp || customerDeliveryOtpDigits.join("") || otpDigits.join("")).trim();
       const otpToVerify = enteredOtp || order.deliveryOtp;
       if (!otpToVerify || otpToVerify.length < 4) {
         toast.error("Please enter the 4-digit delivery code from the customer");
@@ -1470,163 +1435,212 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         </div>
       </div>
 
-      {/* 3. Status Pill Banner: ✔ Customer Verified Location + ⏱️ Order Timeline Trigger */}
-      <div className="z-20 flex items-center justify-between py-2 px-4 bg-white border-t border-zinc-200 text-xs font-black text-zinc-950">
-        <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-4 h-4 text-[#00C853] shrink-0" />
-          <span className="text-zinc-950 font-black">Customer Verified Location</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowTimelineModal(true)}
-          className="flex items-center gap-1 text-[11px] font-black text-[#00873D] hover:text-[#00B248] bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 active:scale-95 transition-all"
-        >
-          <Clock className="w-3 h-3 text-[#00873D]" />
-          <span>Timeline</span>
-          <ChevronRight className="w-3 h-3" />
-        </button>
+      {/* 3. Order Journey Stepper (Zomato/Blinkit Style Live Progress Bar) */}
+      <div className="z-20 bg-white border-t border-zinc-200">
+        <OrderJourneyStepper
+          currentStep={
+            stage === "store_processing" ||
+            stage === "ready_pickup_store" ||
+            (stage === "arrived_pickup" && (isStorePickupForDelivery || isHandoverRide))
+              ? 2
+              : (stage === "in_trip" && currentLeg === "store_to_customer") || stage === "completed"
+              ? 3
+              : 1
+          }
+          isReassigned={Boolean(order.isReassigned || (order.extraBonusAmount && order.extraBonusAmount > 0))}
+        />
       </div>
 
-      {/* 4. Customer Information Card (Dark High-Contrast Text for Sunlight Readability) */}
-      <div className="relative z-20 bg-white px-4 pt-3.5 pb-3.5 border-t border-zinc-200 shadow-xs">
+      {/* 4. Customer / Store Information Card (Zomato/Blinkit Captain Sunlight UI) */}
+      <div className="relative z-20 bg-white px-4 py-3 border-t border-zinc-100 shadow-xs">
         <div className="flex items-start justify-between gap-3">
-          {/* Green Location Pin & Customer Details */}
-          <div className="flex items-start gap-2.5 flex-1 pr-12">
-            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-100 text-[#00C853] shrink-0 mt-0.5 border border-emerald-300">
-              <MapPin className="w-5 h-5 fill-[#00C853] text-white" />
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {/* Visual Icon Badge */}
+            <div
+              className={`flex items-center justify-center w-11 h-11 rounded-2xl shrink-0 border shadow-xs ${
+                stage === "in_trip" && currentLeg === "pickup_to_store"
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-600"
+                  : isStorePickupForDelivery || stage === "ready_pickup_store"
+                  ? "bg-amber-50 border-amber-300 text-amber-600"
+                  : "bg-blue-50 border-blue-300 text-blue-600"
+              }`}
+            >
+              {stage === "in_trip" && currentLeg === "pickup_to_store" ? (
+                <Package className="w-5 h-5" />
+              ) : isStorePickupForDelivery || stage === "ready_pickup_store" ? (
+                <Package className="w-5 h-5" />
+              ) : (
+                <MapPin className="w-5 h-5 fill-blue-600 text-white" />
+              )}
             </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-zinc-950 leading-tight">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-black text-zinc-950 leading-tight truncate">
                   {stage === "in_trip" && currentLeg === "pickup_to_store"
                     ? partnerStoreName
                     : (order.customerName || "Customer")}
                 </h2>
+                {order.orderCode && (
+                  <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">
+                    #{order.orderCode.slice(-4).toUpperCase()}
+                  </span>
+                )}
+                <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300">
+                  ⭐ 4.9
+                </span>
+              </div>
+
+              <p className="text-xs font-semibold text-zinc-600 leading-snug mt-1 line-clamp-1">
+                {activeDestAddress}
+              </p>
+
+              {/* Status pills row */}
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {distanceRemainingKm !== null && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md">
+                    <Navigation className="w-3 h-3 text-blue-600" />
+                    <span>{distanceRemainingKm.toFixed(1)} km</span>
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowTimelineModal(true)}
-                  className="text-[10px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-200"
+                  className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 active:scale-95 transition-all"
                 >
-                  ⏱️ Timeline
+                  <Clock className="w-3 h-3 text-emerald-600" />
+                  <span>Timeline</span>
+                  <ChevronRight className="w-2.5 h-2.5" />
                 </button>
               </div>
-              <p className="text-xs font-bold text-zinc-800 leading-snug mt-1 line-clamp-2">
-                {activeDestAddress}
-              </p>
             </div>
           </div>
 
-          {/* Floating Royal Blue Chat Button 💬 */}
-          <button
-            type="button"
-            onClick={() => setShowChatModal(true)}
-            className="absolute right-4 top-3.5 flex items-center justify-center w-12 h-12 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-xl active:scale-95 transition-all border border-blue-400"
-            aria-label="Open Chat with Customer"
-          >
-            <MessageSquare className="w-6 h-6 fill-white" />
-          </button>
+          {/* Quick Contact Action Buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowCallModal(true)}
+              className="flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-md active:scale-95 transition-all"
+              aria-label="Call Customer / Store"
+              title="Call"
+            >
+              <Phone className="w-5 h-5 fill-white" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowChatModal(true)}
+              className="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white shadow-md active:scale-95 transition-all"
+              aria-label="Open Chat"
+              title="Chat"
+            >
+              <MessageSquare className="w-5 h-5 fill-white" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 5. Bottom Action Controls depending on Stage */}
       <div className="relative z-20 bg-white p-4 pt-2 border-t border-neutral-100 space-y-2">
-        {/* STAGE 1: Royal Blue [ → ARRIVED ] Button (Exact Match to Screenshot) */}
+        {/* STAGE 1: Heading to Pickup */}
         {stage === "en_route_pickup" && (
-          <button
-            type="button"
-            onClick={handleMarkArrived}
-            className="w-full h-13.5 flex items-center bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white font-black text-base tracking-wider rounded-xl shadow-lg shadow-blue-500/25 active:scale-[0.99] transition-all overflow-hidden"
-          >
-            {/* Left Arrow Icon Box */}
-            <div className="flex items-center justify-center w-14 h-full bg-blue-600/60 border-r border-blue-400/30">
-              <ArrowRight className="w-6 h-6 stroke-[3]" />
+          <div className="space-y-2.5 animate-in fade-in duration-200">
+            {/* Dual Quick GPS Navigation Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleStartInAppNavigation}
+                className="py-2.5 px-2 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-950 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+              >
+                <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>In-App Voice GPS</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle)}
+                className="py-2.5 px-2 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+              >
+                <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
+                <span>Google Maps</span>
+              </button>
             </div>
-            {/* Center Label */}
-            <div className="flex-1 text-center pr-14">
-              <span>ARRIVED</span>
-            </div>
-          </button>
+
+            {/* Interactive Swipe to Arrive */}
+            <SwipeActionButton
+              label="Swipe to Arrive at Location"
+              hint="लोकेशन पहुंचकर स्लाइड करें • Mark Arrived"
+              color="blue"
+              onConfirm={handleMarkArrived}
+            />
+          </div>
         )}
 
         {/* STAGE 2: Arrived at Pickup / Handover Point */}
         {stage === "arrived_pickup" && (
           <div className="space-y-3 animate-in fade-in duration-200">
             {isStorePickupForDelivery || isHandoverRide ? (
-              <div className="p-4 bg-emerald-50 border-2 border-emerald-400/80 rounded-2xl space-y-3 shadow-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <span className="text-xs font-black text-emerald-950 uppercase tracking-wide block">
-                        Partner Store Dispatch OTP
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-700">
-                        Tell this 4-digit code to Partner (पार्टनर को यह 4-अंकीय कोड बताएं)
-                      </span>
-                    </div>
-                  </div>
-                  <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
-                    Handshake Code
-                  </span>
-                </div>
+              <div className="space-y-3">
+                <RiderStoreDispatchDisplay
+                  code={captainDispatchOtp || "----"}
+                  storeName={partnerStoreName}
+                  onCopy={() => {
+                    if (captainDispatchOtp) {
+                      navigator.clipboard.writeText(captainDispatchOtp);
+                      toast.success("OTP Copied to Clipboard!");
+                    }
+                  }}
+                  onSpeak={() => speakDispatchOtpPrompt(captainDispatchOtp)}
+                />
 
-                <p className="text-xs text-emerald-900 font-medium">
-                  You have arrived at <b>{partnerStoreName}</b>. Tell this 4-digit code to the Partner to collect the clean laundry package:
-                </p>
-
-                {/* Big 4-digit OTP cards */}
-                <div className="flex justify-center gap-3 py-2">
-                  {(captainDispatchOtp || "----").padEnd(4, "-").slice(0, 4).split("").map((digit, idx) => (
-                    <span
-                      key={idx}
-                      className="w-13 h-14 flex items-center justify-center text-2xl font-black font-mono bg-white border-2 border-emerald-400 text-emerald-950 rounded-xl shadow-md"
-                    >
-                      {digit}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="bg-white/90 border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2 text-[11px] text-emerald-900 font-semibold">
+                <div className="bg-white border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2 text-[11px] text-emerald-900 font-semibold shadow-2xs">
                   <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span className="truncate">{partnerStoreAddress}</span>
                 </div>
 
                 <div className="space-y-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={async () => {
+                  <SwipeActionButton
+                    label="Swipe to Start Customer Delivery"
+                    hint="पार्टनर से कपड़े कलेक्ट करके स्लाइड करें"
+                    color="emerald"
+                    onConfirm={async () => {
                       try {
                         const res = await fetchDispatchOtp(order.orderId);
-                        if (res?.isVerified || res?.status === "out_for_delivery" || res?.status === "OUT_FOR_DELIVERY") {
+                        if (
+                          res?.isVerified ||
+                          res?.status === "out_for_delivery" ||
+                          res?.status === "OUT_FOR_DELIVERY"
+                        ) {
                           unlockAudioContext();
                           playSuccessChime();
                           speakText("डिलीवरी शुरू करें।");
                           toast.success("✓ Custody verified! Navigating to customer.");
                           setStage("in_trip");
-                          setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+                          setStartTime(
+                            new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                          );
                           setTimeout(() => {
                             launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
                           }, 600);
                         } else {
-                          toast.error("Partner has not verified your Dispatch OTP yet! Please ask store partner to enter the 4-digit code in their Partner Panel.");
+                          toast.error(
+                            "Partner has not verified your Dispatch OTP yet! Please ask store partner to enter the 4-digit code in their Partner Panel."
+                          );
                         }
                       } catch {
                         toast.error("Could not verify partner status. Please ask partner to enter OTP.");
                       }
                     }}
-                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md shadow-emerald-500/20 active:scale-98 transition-all flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle2 className="w-4 h-4 stroke-[3]" />
-                    <span>Check Partner Verification & Start Trip</span>
-                  </button>
+                  />
 
                   <button
                     type="button"
                     onClick={() => setShowManualHandoverInput(!showManualHandoverInput)}
                     className="w-full text-center text-[10px] font-bold text-emerald-700 hover:underline"
                   >
-                    {showManualHandoverInput ? "Hide direct Captain OTP input" : "Switch to Captain-to-Captain OTP verification"}
+                    {showManualHandoverInput
+                      ? "Hide direct Captain OTP input"
+                      : "Switch to Captain-to-Captain OTP verification"}
                   </button>
                 </div>
 
@@ -1650,6 +1664,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                             if (val && idx < 3) {
                               const nextEl = document.getElementById(`handover-otp-${idx + 1}`);
                               nextEl?.focus();
+                            } else if (val && idx === 3 && next.every((d) => d.length === 1)) {
+                              handleVerifyHandoverTransfer();
                             }
                           }}
                           id={`handover-otp-${idx}`}
@@ -1671,64 +1687,34 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             ) : (
               <>
                 {/* Waiting Timer Card */}
-                <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-2xl">
                   <div className="flex items-center gap-2 text-xs font-black text-amber-900">
                     <Timer className="w-4 h-4 text-amber-600 animate-spin duration-3000" />
-                    <span>Free Waiting Time</span>
+                    <span>Free Waiting Time (निःशुल्क प्रतीक्षा समय)</span>
                   </div>
-                  <span className="text-sm font-black text-amber-950 font-mono">
+                  <span className="text-sm font-black text-amber-950 font-mono bg-white px-2.5 py-0.5 rounded-lg border border-amber-300 shadow-2xs">
                     {formatTimer(waitingSeconds)}
                   </span>
                 </div>
 
-                {/* 4-Digit Start OTP Input (Dark High-Contrast) */}
-                <div className="p-3.5 bg-zinc-50 border-2 border-zinc-300 rounded-2xl space-y-2.5 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-zinc-950 uppercase tracking-wide">
-                      Enter Customer Start OTP
-                    </label>
-                    <span className="text-[11px] font-bold text-zinc-700">
-                      Ask 4-digit code from customer
-                    </span>
-                  </div>
+                {/* 4-Digit Customer Start OTP Input Card with Instant Auto-Accept */}
+                <RiderCustomerOtpInput
+                  otpDigits={otpDigits}
+                  setOtpDigits={setOtpDigits}
+                  title="Customer Pickup OTP"
+                  hint="Ask 4-digit code from customer (कस्टमर से कोड पूछें)"
+                  onAutoSubmit={(code) => {
+                    handleStartTrip(code);
+                  }}
+                />
 
-                  <div className="flex gap-2.5 justify-center py-1">
-                    {[0, 1, 2, 3].map((idx) => (
-                      <input
-                        key={idx}
-                        type="tel"
-                        maxLength={1}
-                        value={otpDigits[idx]}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          const next = [...otpDigits];
-                          next[idx] = val;
-                          setOtpDigits(next);
-                          if (val && idx < 3) {
-                            const nextEl = document.getElementById(`trip-otp-${idx + 1}`);
-                            nextEl?.focus();
-                          }
-                        }}
-                        id={`trip-otp-${idx}`}
-                        className="w-13 h-13 text-center font-black font-mono text-2xl bg-white border-2 border-zinc-400 rounded-xl focus:border-[#00C853] focus:ring-2 focus:ring-emerald-200 focus:outline-none shadow-md text-zinc-950"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bright Green [ → START TRIP ] Slider */}
-                <button
-                  type="button"
-                  onClick={handleStartTrip}
-                  className="w-full h-13.5 flex items-center bg-[#00C853] hover:bg-[#00B248] text-white font-black text-base tracking-wider rounded-xl shadow-lg shadow-emerald-500/25 active:scale-[0.99] transition-all overflow-hidden"
-                >
-                  <div className="flex items-center justify-center w-14 h-full bg-emerald-600/50 border-r border-emerald-400/30">
-                    <ArrowRight className="w-6 h-6 stroke-[3]" />
-                  </div>
-                  <div className="flex-1 text-center pr-14">
-                    <span>START TRIP</span>
-                  </div>
-                </button>
+                {/* Swipe to Start Trip */}
+                <SwipeActionButton
+                  label="Swipe to Start Trip"
+                  hint="OTP दर्ज करके स्लाइड करें • Start Trip"
+                  color="emerald"
+                  onConfirm={handleStartTrip}
+                />
               </>
             )}
           </div>
@@ -1739,18 +1725,25 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <div className="space-y-2.5 animate-in fade-in duration-200">
             {currentLeg === "pickup_to_store" ? (
               <>
-                <button
-                  type="button"
-                  onClick={handleCompleteTrip}
-                  className="w-full h-14 flex items-center bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm sm:text-base tracking-wider rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-[0.99] transition-all overflow-hidden"
-                >
-                  <div className="flex items-center justify-center w-14 h-full bg-emerald-700/60 border-r border-emerald-400/30">
-                    <ArrowRight className="w-6 h-6 stroke-[3]" />
+                {/* Destination Store Banner */}
+                <div className="p-3 bg-emerald-50/90 border border-emerald-300 rounded-2xl flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wide block">
+                        Drop Clothes at Partner Store
+                      </span>
+                      <p className="text-xs font-black text-zinc-950 truncate max-w-[200px]">
+                        {partnerStoreName}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 text-center pr-14">
-                    <span>ARRIVAL TO STORE & HANDOVER 🧺</span>
-                  </div>
-                </button>
+                  <span className="text-[11px] font-black text-emerald-700 bg-white px-2 py-1 rounded-lg border border-emerald-200">
+                    Leg 1 Active
+                  </span>
+                </div>
 
                 {/* In-Trip Navigation Action Buttons */}
                 <div className="grid grid-cols-2 gap-2">
@@ -1768,9 +1761,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     className="py-2.5 px-2 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
                   >
                     <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
-                    <span>Google Maps Turn-by-Turn</span>
+                    <span>Google Maps</span>
                   </button>
                 </div>
+
+                {/* Swipe to Handover at Store */}
+                <SwipeActionButton
+                  label="Swipe: Arrived & Drop at Store 🧺"
+                  hint="स्टोर पहुंचकर कपड़े जमा करने हेतु स्लाइड करें"
+                  color="emerald"
+                  onConfirm={handleCompleteTrip}
+                />
 
                 {/* Unable to Deliver: Opt-out at store with 25% fee */}
                 <button
@@ -1791,57 +1792,53 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-blue-950 font-black text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
                 >
                   <MapPin className="w-4 h-4 text-blue-600" />
-                  <span>ARRIVED AT CUSTOMER DOORSTEP 📍</span>
+                  <span>ARRIVED AT CUSTOMER DOORSTEP 📍 (आवाज सायरन)</span>
                 </button>
 
-                {/* 4-Digit Customer Delivery OTP Input */}
-                <div className="p-3 bg-blue-50/90 border border-blue-200 rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-blue-950">
-                      Enter Customer Delivery OTP
-                    </label>
-                    <span className="text-[10px] font-bold text-blue-700">
-                      Ask 4-digit code from customer
+                {/* Payment Collection Banner (COD or Prepaid) */}
+                {Boolean(order.isCod || (order as any).paymentMethod === "cash" || (order as any).paymentMethod === "cod") ? (
+                  <div className="p-3 bg-amber-50 border-2 border-amber-400 rounded-2xl flex items-center justify-between shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-black text-sm">
+                        ₹
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-amber-800 uppercase tracking-wide block">
+                          Cash on Delivery (COD)
+                        </span>
+                        <span className="text-xs font-bold text-amber-950">
+                          Collect cash before handing clothes
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-base font-black text-amber-950 font-mono bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
+                      ₹{order.fare.toFixed(2)}
                     </span>
                   </div>
+                ) : (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-xs font-black text-emerald-950">
+                        Prepaid Order • No Cash to Collect
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                      Paid Online ✓
+                    </span>
+                  </div>
+                )}
 
-                  <div className="flex gap-2 justify-center">
-                    {[0, 1, 2, 3].map((idx) => (
-                      <input
-                        key={idx}
-                        type="tel"
-                        maxLength={1}
-                        value={customerDeliveryOtpDigits[idx]}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          const next = [...customerDeliveryOtpDigits];
-                          next[idx] = val;
-                          setCustomerDeliveryOtpDigits(next);
-                          if (val && idx < 3) {
-                            const nextEl = document.getElementById(`customer-del-otp-${idx + 1}`);
-                            nextEl?.focus();
-                          }
-                        }}
-                        id={`customer-del-otp-${idx}`}
-                        className="w-12 h-11 text-center font-black text-lg bg-white border border-blue-300 rounded-lg focus:border-blue-600 focus:outline-none shadow-xs text-blue-950"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Delivery Ride: Vibrant Royal Blue Theme */}
-                <button
-                  type="button"
-                  onClick={handleCompleteTrip}
-                  className="w-full h-14 flex items-center bg-blue-600 hover:bg-blue-700 text-white font-black text-sm sm:text-base tracking-wider rounded-2xl shadow-lg shadow-blue-500/25 active:scale-[0.99] transition-all overflow-hidden"
-                >
-                  <div className="flex items-center justify-center w-14 h-full bg-blue-700/60 border-r border-blue-400/30">
-                    <ArrowRight className="w-6 h-6 stroke-[3]" />
-                  </div>
-                  <div className="flex-1 text-center pr-14">
-                    <span>COMPLETE CUSTOMER DELIVERY (OTP) 📦</span>
-                  </div>
-                </button>
+                {/* 4-Digit Customer Delivery OTP Input with Instant Auto-Accept */}
+                <RiderCustomerOtpInput
+                  otpDigits={customerDeliveryOtpDigits}
+                  setOtpDigits={setCustomerDeliveryOtpDigits}
+                  title="Customer Delivery OTP"
+                  hint="Ask 4-digit code from customer (कस्टमर से कोड पूछें)"
+                  onAutoSubmit={(code) => {
+                    handleCompleteTrip(code);
+                  }}
+                />
 
                 {/* In-Trip Navigation Action Buttons */}
                 <div className="grid grid-cols-2 gap-2">
@@ -1859,9 +1856,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     className="py-2.5 px-2 rounded-xl border border-blue-300 bg-blue-100 hover:bg-blue-200 text-blue-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
                   >
                     <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
-                    <span>Google Maps Turn-by-Turn</span>
+                    <span>Google Maps</span>
                   </button>
                 </div>
+
+                {/* Swipe to Complete Delivery */}
+                <SwipeActionButton
+                  label="Swipe to Complete Customer Delivery 📦"
+                  hint="डिलीवरी सफलतापूर्वक पूरी करने के लिए स्लाइड करें"
+                  color="blue"
+                  onConfirm={handleCompleteTrip}
+                />
 
                 {/* Unable to Complete Delivery */}
                 <button
@@ -1981,7 +1986,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               </div>
 
               {/* Real Earnings Settlement Badge */}
-              <div className="grid grid-cols-2 gap-2 text-center pt-1">
+              <div className={`grid ${Boolean(order.isReassigned || (order.extraBonusAmount && order.extraBonusAmount > 0)) ? "grid-cols-3" : "grid-cols-2"} gap-2 text-center pt-1`}>
                 <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
                   <span className="text-[10px] font-black text-neutral-600 uppercase">
                     Pickup Leg Fare
@@ -2000,6 +2005,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </p>
                   <span className="text-[9px] font-bold text-neutral-500">Upon Customer Drop</span>
                 </div>
+                {Boolean(order.isReassigned || (order.extraBonusAmount && order.extraBonusAmount > 0)) && (
+                  <div className="p-2.5 rounded-xl bg-purple-50/80 border border-purple-300">
+                    <span className="text-[10px] font-black text-purple-700 uppercase">
+                      Bonus Pool
+                    </span>
+                    <p className="text-sm font-black text-purple-800">
+                      +₹{(order.extraBonusAmount || order.reassignmentPool || 20).toFixed(2)}
+                    </p>
+                    <span className="text-[9px] font-bold text-purple-600">🚀 SLA Transfer</span>
+                  </div>
+                )}
               </div>
 
               {/* Quick Check / Refresh Button */}
@@ -2086,19 +2102,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 </p>
               </div>
 
-              {/* Action Button: Arrived at Store */}
-              <button
-                type="button"
-                onClick={handleMarkArrivedAtStore}
-                className="w-full h-14 flex items-center bg-[#00C853] hover:bg-[#00B248] text-white font-black text-sm sm:text-base tracking-wider rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-[0.99] transition-all overflow-hidden"
-              >
-                <div className="flex items-center justify-center w-14 h-full bg-emerald-600/50 border-r border-emerald-400/30">
-                  <ArrowRight className="w-6 h-6 stroke-[3]" />
-                </div>
-                <div className="flex-1 text-center pr-14">
-                  <span>ARRIVED AT STORE 🏪</span>
-                </div>
-              </button>
+              {/* Action Button: Swipe to Confirm Arrived at Store */}
+              <SwipeActionButton
+                label="Swipe: Arrived at Store 🏪"
+                hint="पार्टनर स्टोर पहुंचकर स्लाइड करें • Mark Arrived"
+                color="emerald"
+                onConfirm={handleMarkArrivedAtStore}
+              />
 
               {/* In-App Turn-by-Turn GPS to Store */}
               <button

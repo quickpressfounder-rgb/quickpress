@@ -45,30 +45,40 @@ export interface LocationSurgeStatus {
 }
 
 /**
- * 📍 Fetch live location-based dynamic surge zones computed by the backend engine.
+ * 📍 Surge is permanently disabled. Returns zero surge and empty zones.
  */
 export async function fetchSurgeZones(
   lat?: number | null,
   lng?: number | null,
   radiusKm: number = 15.0
 ): Promise<SurgeZonesResponse> {
-  const params = new URLSearchParams();
-  if (lat !== undefined && lat !== null) params.set("lat", String(lat));
-  if (lng !== undefined && lng !== null) params.set("lng", String(lng));
-  params.set("radius_km", String(radiusKm));
-
-  const query = params.toString();
-  return await apiGetJson<SurgeZonesResponse>(`/api/rider/surge/zones${query ? `?${query}` : ""}`);
+  return {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    timeShift: "normal",
+    riderLocation: null,
+    isRiderInSurgeZone: false,
+    activeSurgeBonus: 0,
+    activeMultiplier: "1.0x",
+    currentZone: null,
+    nearestZone: null,
+    totalZones: 0,
+    zones: [],
+  };
 }
 
 /**
- * 🔍 Quick check if a given pickup coordinate has active surge pricing.
+ * 🔍 Surge is permanently disabled. Returns hasSurge: false.
  */
 export async function checkLocationSurge(
   lat: number,
   lng: number
 ): Promise<LocationSurgeStatus> {
-  return await apiGetJson<LocationSurgeStatus>(
-    `/api/rider/surge/check-location?lat=${lat}&lng=${lng}`
-  );
+  return {
+    hasSurge: false,
+    bonus: 0,
+    multiplier: "1.0x",
+    zoneName: null,
+    reason: "Standard Rates (No Surge)",
+  };
 }

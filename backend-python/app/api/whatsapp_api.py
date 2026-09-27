@@ -16,11 +16,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.core.deps import current_user
+from app.core.deps import current_user, require_roles
 from app.core.sms_service import sms_service
 from app.core.whatsapp_service import whatsapp_service
 from app.db.omni_channel_repositories import omni_channel_repo
-from app.models.user import User
+from app.models.user import Role, User
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ async def get_whatsapp_logs(
     limit: int = Query(50, ge=1, le=200),
     status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    user: User = Depends(current_user),
+    user: User = Depends(require_roles(Role.admin)),
 ):
     """Lists recent WhatsApp notifications with live statuses."""
     items = await omni_channel_repo.list_whatsapp_logs(limit=limit, status=status, search=search)
@@ -122,7 +122,7 @@ async def get_whatsapp_logs(
 @router.post("/api/admin/whatsapp/send")
 async def admin_send_whatsapp(
     payload: AdminWhatsAppSendPayload,
-    user: User = Depends(current_user),
+    user: User = Depends(require_roles(Role.admin)),
 ):
     """Sends manual WhatsApp message via Meta Cloud API / simulation."""
     ok, msg_id, err = await whatsapp_service._send_meta_request(
@@ -142,7 +142,7 @@ async def get_sms_logs(
     limit: int = Query(50, ge=1, le=200),
     provider: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    user: User = Depends(current_user),
+    user: User = Depends(require_roles(Role.admin)),
 ):
     """Lists SMS transmissions."""
     items = await omni_channel_repo.list_sms_logs(limit=limit, provider=provider, search=search)
@@ -152,7 +152,7 @@ async def get_sms_logs(
 @router.post("/api/admin/sms/send")
 async def admin_send_sms(
     payload: AdminSmsSendPayload,
-    user: User = Depends(current_user),
+    user: User = Depends(require_roles(Role.admin)),
 ):
     """Dispatches transactional SMS alert."""
     ok, msg_id, err = await sms_service.send_transactional_sms(
@@ -167,7 +167,7 @@ async def admin_send_sms(
 
 @router.get("/api/admin/omni/stats")
 async def get_omni_channel_analytics(
-    user: User = Depends(current_user),
+    user: User = Depends(require_roles(Role.admin)),
 ):
     """Returns aggregated KPI analytics for WhatsApp and SMS."""
     settings = get_settings()
@@ -194,7 +194,7 @@ class OmniSettingsPayload(BaseModel):
 
 
 @router.get("/api/admin/omni/settings")
-async def get_omni_settings(user: User = Depends(current_user)):
+async def get_omni_settings(user: User = Depends(require_roles(Role.admin))):
     """Returns current admin governance settings for WhatsApp, SMS, and Dispatch."""
     from app.db.admin_repositories import admin_settings_repository
     settings = get_settings()
@@ -242,7 +242,7 @@ async def get_omni_settings(user: User = Depends(current_user)):
 @router.put("/api/admin/omni/settings")
 async def update_omni_settings(
     payload: OmniSettingsPayload,
-    user: User = Depends(current_user),
+    user: User = Depends(require_roles(Role.admin)),
 ):
     """Updates admin governance toggles for WhatsApp, SMS, and Dispatch."""
     from app.db.admin_repositories import admin_settings_repository

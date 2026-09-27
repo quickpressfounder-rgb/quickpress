@@ -57,9 +57,9 @@ export const Route = createFileRoute("/offers")({
 });
 
 const BANNER_TONE: Record<OfferBanner["tone"], string> = {
-  festival: "from-brand-dark via-brand-dark to-brand-green",
-  discount: "from-brand-green via-brand-green to-primary",
-  cashback: "from-primary via-primary to-brand-green",
+  festival: "from-emerald-600 via-emerald-700 to-emerald-950",
+  discount: "from-emerald-500 via-emerald-600 to-emerald-800",
+  cashback: "from-teal-600 via-emerald-600 to-emerald-800",
 };
 
 const OFFER_ICON: Record<SpecialOffer["kind"], typeof Gift> = {
@@ -187,20 +187,20 @@ function OffersScreen() {
                 {banners.map((banner) => (
                   <article
                     key={banner.id}
-                    className={`relative w-full shrink-0 snap-center overflow-hidden rounded-3xl bg-gradient-to-br p-5 shadow-soft ${BANNER_TONE[banner.tone]}`}
+                    className={`relative w-full shrink-0 snap-center overflow-hidden rounded-3xl bg-gradient-to-br p-5 text-white shadow-soft ${BANNER_TONE[banner.tone]}`}
                   >
-                    <div className="pointer-events-none absolute -right-8 -top-10 size-32 rounded-full bg-background/20 blur-2xl" />
-                    <p className="relative text-[0.65rem] font-black uppercase tracking-widest text-background/75">
+                    <div className="pointer-events-none absolute -right-8 -top-10 size-32 rounded-full bg-white/20 blur-2xl" />
+                    <p className="relative text-[0.65rem] font-black uppercase tracking-widest text-emerald-100">
                       {banner.eyebrow}
                     </p>
-                    <h2 className="relative mt-2 text-2xl font-black tracking-tight text-background">
+                    <h2 className="relative mt-2 text-2xl font-black tracking-tight text-white">
                       {banner.title}
                     </h2>
-                    <p className="relative mt-1 text-xs text-background/85">{banner.subtitle}</p>
+                    <p className="relative mt-1 text-xs text-emerald-100/90 font-medium">{banner.subtitle}</p>
                     <button
                       type="button"
                       onClick={() => navigate({ to: "/home" })}
-                      className="relative mt-4 rounded-full bg-background/20 px-4 py-2 text-[0.7rem] font-black tracking-tight text-background transition-transform duration-300 active:scale-[0.96]"
+                      className="relative mt-4 rounded-full bg-white/20 px-4 py-2 text-[0.7rem] font-black tracking-tight text-white backdrop-blur-sm transition-transform duration-300 hover:bg-white/30 active:scale-[0.96]"
                     >
                       Book now
                     </button>

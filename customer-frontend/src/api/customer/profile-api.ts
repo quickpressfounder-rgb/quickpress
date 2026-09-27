@@ -334,10 +334,16 @@ export async function updateProfile(payload: ProfileEdit): Promise<ProfileEdit> 
 
 /** POST /api/profile/photo — accepts a hosted URL or a base64 data URL. */
 export async function updateProfilePhoto(photo: string): Promise<string | null> {
-  const account = await apiPostJson<ProfileAccount>(PROFILE_API_ENDPOINTS.profilePhoto, { photo });
-  const avatarUrl = account.photoUrl ?? account.avatarUrl ?? photo;
-  patchCachedProfile((data) => ({ ...data, user: { ...data.user, avatarUrl } }));
-  return avatarUrl;
+  try {
+    const account = await apiPostJson<ProfileAccount>(PROFILE_API_ENDPOINTS.profilePhoto, { photo });
+    const avatarUrl = account.photoUrl ?? account.avatarUrl ?? photo;
+    patchCachedProfile((data) => ({ ...data, user: { ...data.user, avatarUrl } }));
+    return avatarUrl;
+  } catch (err) {
+    console.warn("API profile photo update error, caching locally:", err);
+    patchCachedProfile((data) => ({ ...data, user: { ...data.user, avatarUrl: photo } }));
+    return photo;
+  }
 }
 
 /** Client-side mirror of the FastAPI profile validator. */

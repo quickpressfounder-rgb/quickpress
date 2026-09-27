@@ -282,6 +282,16 @@ class OnboardingPayload(BaseModel):
     pan: Optional[str] = ""
     aadhaar: Optional[str] = ""
     experience: Optional[str] = ""
+    ownerPhoto: Optional[str] = None
+    aadhaarFront: Optional[str] = None
+    aadhaarBack: Optional[str] = None
+    panCard: Optional[str] = None
+    chequePhoto: Optional[str] = None
+    gender: Optional[str] = None
+    dob: Optional[str] = None
+    alternatePhone: Optional[str] = None
+    servicePrices: Optional[Dict[str, int]] = Field(default_factory=dict)
+    serviceTurnarounds: Optional[Dict[str, int]] = Field(default_factory=dict)
     accountHolder: Optional[str] = ""
     bankName: Optional[str] = ""
     accountNumber: Optional[str] = ""

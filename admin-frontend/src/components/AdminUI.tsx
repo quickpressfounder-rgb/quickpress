@@ -176,7 +176,9 @@ export type DataTableProps<T = any> = {
   onRowClick?: (row: any) => void;
 };
 
-export function DataTable<T extends { id?: string } = any>({
+import React from "react";
+
+export const DataTable = React.memo(function DataTable<T extends { id?: string } = any>({
   columns,
   headers,
   rows = [],
@@ -231,7 +233,7 @@ export function DataTable<T extends { id?: string } = any>({
                 key={row?.id || rIdx}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  "border-b border-zinc-100 transition-colors hover:bg-zinc-50/80",
+                  "contain-render border-b border-zinc-100 transition-colors hover:bg-zinc-50/80",
                   onRowClick ? "cursor-pointer" : "",
                 )}
               >
@@ -278,7 +280,7 @@ export function DataTable<T extends { id?: string } = any>({
               key={row?.id || rIdx}
               onClick={() => onRowClick?.(row)}
               className={cn(
-                "border-b border-zinc-100 transition-colors hover:bg-zinc-50/80",
+                "contain-render border-b border-zinc-100 transition-colors hover:bg-zinc-50/80",
                 onRowClick ? "cursor-pointer" : "",
               )}
             >
@@ -293,7 +295,7 @@ export function DataTable<T extends { id?: string } = any>({
       </Table>
     </div>
   );
-}
+}) as <T extends { id?: string } = any>(props: DataTableProps<T>) => React.ReactElement;
 
 /* ----------------------------------------------------------------- cards */
 

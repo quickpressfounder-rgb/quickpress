@@ -54,6 +54,10 @@ export function RegistrationSubmittedScreen() {
       try {
         const result = await checkPartnerVerificationStatus();
         setLastChecked(new Date());
+        if (result.isOnboarded === false && !result.isVerified) {
+          navigate({ to: partnerRoutes.registration });
+          return;
+        }
         if (result.businessName) setBusinessName(result.businessName);
         if (result.partnerId) setPartnerId(result.partnerId);
         if (result.rejectionReason) setRejectionReason(result.rejectionReason);

@@ -153,4 +153,69 @@
   will-change: transform;
 }
 
+/* ---------- Android Native Mobile Ergonomics & Insets ---------- */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+input, textarea, select {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+.pt-safe {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+}
+
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.android-shell {
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 120 FPS GPU & Containment Optimization Pipeline ---------- */
+.gpu-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+.contain-render {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 100px;
+  contain: layout style paint;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+
+
 

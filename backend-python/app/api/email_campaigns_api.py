@@ -12,8 +12,10 @@ import logging
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
+from app.core.deps import require_roles
+from app.models.user import Role
 from app.core.email_rate_limiter import email_rate_limiter, get_client_ip
 from app.db.client import database
 from app.db.email_repositories import email_repository
@@ -22,7 +24,11 @@ from app.services.socket_service import sio
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/admin/emails/campaigns", tags=["admin-email-campaigns"])
+router = APIRouter(
+    prefix="/admin/emails/campaigns",
+    tags=["admin-email-campaigns"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 class CreateCampaignPayload(BaseModel):

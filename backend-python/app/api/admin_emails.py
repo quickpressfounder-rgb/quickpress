@@ -16,15 +16,21 @@ import logging
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
+from app.core.deps import require_roles
+from app.models.user import Role
 from app.db.email_repositories import email_repository
 from app.core import email_service
 from app.core.email_rate_limiter import email_rate_limiter, get_client_ip
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/admin/emails", tags=["admin-emails"])
+router = APIRouter(
+    prefix="/admin/emails",
+    tags=["admin-emails"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 class SendCustomEmailPayload(BaseModel):

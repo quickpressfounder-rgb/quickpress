@@ -78,7 +78,7 @@ async def upload_image(source: str, *, kind: str, public_id: str) -> str:
     if "res.cloudinary.com" in value:
         return value
     if not is_cloudinary_configured():
-        if value.startswith("http"):
+        if value.startswith("http") or value.startswith("data:image/"):
             return value
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -1199,6 +1199,31 @@ export function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Master Commercial & Pricing Engine Link Card */}
+                <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 rounded-xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-700 font-black text-sm flex items-center gap-1.5">
+                        <Sparkles className="size-4 text-emerald-600" />
+                        Commercial & Pricing Control Center (Master Engine)
+                      </span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Live v2.5.0
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-600 max-w-xl">
+                      Govern all 9 commercial engines from one centralized panel: Service Item Pricing, Delivery Distance & Surges, Tiered Commissions, SAC 998813 Tax/GST, Platform/Convenience Fees, Coupons & Discounts, Cancellation Refunds, Rider Earnings, and Partner Weekly Settlement.
+                    </p>
+                  </div>
+                  <a
+                    href="/finance-engine"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
+                  >
+                    <span>Open Commercial Engine</span>
+                    <ArrowUpRight className="size-4" />
+                  </a>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-zinc-800">QuickPress Platform Commission</Label>

@@ -18,8 +18,6 @@ export const Route = createFileRoute("/registration")({
     const isVerified = Boolean(
       sess.isVerified === true ||
       sess.account?.isVerified === true ||
-      sess.status === "active" ||
-      sess.account?.status === "active" ||
       sess.status === "approved" ||
       sess.account?.status === "approved"
     );

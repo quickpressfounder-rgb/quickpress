@@ -36,6 +36,7 @@ from app.models.admin import (
     AdminLoginPayload,
     AdminPartnerUpdatePayload,
     AdminRiderUpdatePayload,
+    AssignPartnerPayload,
     AssignRiderPayload,
     BlockPartnerPayload,
     BroadcastPayload,
@@ -395,6 +396,17 @@ async def order_events(order_id: str, user: User = Depends(current_user)):
     return await admin_order_repository.events(str(order["_id"]))
 
 
+@router.get("/orders/{order_id}/rider-ledger")
+async def get_order_rider_ledger(order_id: str, user: User = Depends(current_user)):
+    """Fetch the immutable rider earnings ledger entries (Leg 1 Pickup, Leg 2 Delivery, Reassignment transfers)."""
+    from app.db.rider_earnings_ledger import rider_earnings_ledger
+    canonical_id = f"ord-{order_id}" if not order_id.startswith("ord") and not order_id.startswith("QP") else order_id
+    entries = await rider_earnings_ledger.get_by_order(canonical_id)
+    if not entries and canonical_id != order_id:
+        entries = await rider_earnings_ledger.get_by_order(order_id)
+    return {"orderId": order_id, "entries": entries}
+
+
 @router.post("/orders/{order_id}/assign-rider")
 async def assign_rider(order_id: str, payload: AssignRiderPayload, user: User = Depends(current_user)):
     try:
@@ -408,6 +420,16 @@ async def assign_rider(order_id: str, payload: AssignRiderPayload, user: User = 
     except LookupError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
     await audit_repository.log(await _actor(user), "order.assign_rider", order_id, {"riderId": payload.riderId})
+    return row
+
+
+@router.post("/orders/{order_id}/assign-partner")
+async def assign_partner(order_id: str, payload: AssignPartnerPayload, user: User = Depends(current_user)):
+    try:
+        row = await admin_order_repository.assign_partner(order_id, payload.partnerId)
+    except LookupError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    await audit_repository.log(await _actor(user), "order.assign_partner", order_id, {"partnerId": payload.partnerId})
     return row
 
 
@@ -764,6 +786,14 @@ async def send_rider_notification(rider_id: str, payload: SendRiderNotificationP
 async def logout_rider_sessions(rider_id: str, user: User = Depends(current_user)):
     await audit_repository.log(await _actor(user), "rider.logout_sessions", rider_id)
     return {"ok": True, "invalidated": True, "riderId": rider_id}
+
+
+@router.post("/riders/{rider_id}/notes")
+async def add_rider_note(rider_id: str, payload: AddRiderNotePayload, user: User = Depends(current_user)):
+    actor = await _actor(user)
+    res = await admin_rider_repository.add_note(rider_id, payload.note, actor)
+    await audit_repository.log(actor, "rider.add_note", rider_id)
+    return res
 
 
 @router.put("/riders/{rider_id}")

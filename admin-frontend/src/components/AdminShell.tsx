@@ -102,7 +102,7 @@ export function canAccessModule(moduleId: string, account?: Account | null): boo
 
   // Semantic permission alias mappings
   const moduleAliases: Record<string, string[]> = {
-    "finance-engine": ["finance", "finance-engine", "rules", "payouts", "settlement"],
+    "finance-engine": ["finance", "finance-engine", "rules", "payouts", "settlement", "commercial", "pricing", "pricing-engine"],
     wallet: ["finance", "payouts", "wallet"],
     coupons: ["campaigns", "marketing", "coupons"],
     memberships: ["growth", "memberships"],

@@ -10,15 +10,21 @@ import logging
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from app.core.deps import require_roles
+from app.models.user import Role
 from app.core.email_rate_limiter import email_rate_limiter, get_client_ip
 from app.db.email_repositories import email_repository
 from app.core.email_service import _render_base_email
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/admin/emails/templates", tags=["admin-email-templates"])
+router = APIRouter(
+    prefix="/admin/emails/templates",
+    tags=["admin-email-templates"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 class UpdateTemplatePayload(BaseModel):

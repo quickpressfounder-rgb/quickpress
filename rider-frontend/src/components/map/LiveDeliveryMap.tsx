@@ -31,44 +31,7 @@ export type SurgeHotspot = {
   isCurrentRiderInside?: boolean;
 };
 
-export const KASGANJ_SURGE_HOTSPOTS: SurgeHotspot[] = [
-  {
-    id: "ksj-station",
-    name: "Kasganj Junction Station",
-    lat: 27.8105,
-    lng: 78.6410,
-    bonus: 25,
-    multiplier: "1.6x",
-    label: "+₹25 Surge 🔥",
-  },
-  {
-    id: "ksj-market",
-    name: "Main Bazaar & Gandhi Murti",
-    lat: 27.8145,
-    lng: 78.6495,
-    bonus: 20,
-    multiplier: "1.5x",
-    label: "+₹20 Surge ⚡",
-  },
-  {
-    id: "ksj-soron",
-    name: "Soron Gate Commercial Hub",
-    lat: 27.8182,
-    lng: 78.6442,
-    bonus: 15,
-    multiplier: "1.3x",
-    label: "+₹15 Surge 📍",
-  },
-  {
-    id: "ksj-bilram",
-    name: "Bilram Gate Express Zone",
-    lat: 27.8080,
-    lng: 78.6525,
-    bonus: 20,
-    multiplier: "1.4x",
-    label: "+₹20 Surge 🚀",
-  },
-];
+export const KASGANJ_SURGE_HOTSPOTS: SurgeHotspot[] = [];
 
 export type LiveDeliveryMapProps = {
   riderLocation?: MapCoordinate | null;
@@ -131,7 +94,7 @@ export function LiveDeliveryMap({
   phase = "pickup",
   heightClassName = "h-72",
   showControls = true,
-  showSurgePins = true,
+  showSurgePins = false,
   surgeHotspots,
   isRapidoTheme = true,
   onOpenNavigation,

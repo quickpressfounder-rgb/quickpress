@@ -82,6 +82,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     "nav.dashboard": "Home",
     "nav.orders": "Orders",
     "nav.wallet": "Earnings",
+    "nav.earnings": "Earnings",
     "nav.leaderboard": "Leaderboard",
     "nav.incentives": "Incentives",
     "nav.profile": "Profile",
@@ -119,6 +120,15 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     "wallet.cashout": "Instant UPI Cashout",
     "wallet.passbook": "Passbook Ledger",
     "wallet.noTxn": "No transactions found",
+    "earnings.title": "Earnings & Wallet",
+    "earnings.availableBalance": "Available Balance",
+    "earnings.passbook": "Passbook & Ledger",
+    "earnings.todayEarnings": "Today's Earnings",
+    "earnings.thisWeek": "This Week",
+    "earnings.lifetime": "Lifetime Earnings",
+    "earnings.totalTransferred": "Total Transferred",
+    "earnings.cashout": "Request Settlement Payout",
+    "earnings.synced": "Wallet & Passbook Updated 🟢",
 
     // Leaderboard
     "leaderboard.title": "City Leaderboard",
@@ -229,6 +239,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     "orders.reject": "अस्वीकार",
 
     // Wallet & Earnings
+    "nav.earnings": "कमाई (Earnings)",
     "wallet.title": "कमाई और पासबुक",
     "wallet.balance": "कुल वॉलेट बैलेंस",
     "wallet.today": "आज की कमाई",
@@ -237,6 +248,15 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     "wallet.cashout": "तुरंत यूपीआई बैंक निकासी",
     "wallet.passbook": "पासबुक खाता बही",
     "wallet.noTxn": "कोई लेनदेन नहीं मिला",
+    "earnings.title": "कमाई और पासबुक",
+    "earnings.availableBalance": "उपलब्ध बैलेंस",
+    "earnings.passbook": "पासबुक लेजर",
+    "earnings.todayEarnings": "आज की कमाई",
+    "earnings.thisWeek": "इस सप्ताह",
+    "earnings.lifetime": "कुल जीवन भर की कमाई",
+    "earnings.totalTransferred": "ट्रांसफर की गई राशि",
+    "earnings.cashout": "निकासी अनुरोध",
+    "earnings.synced": "वॉलेट व पासबुक अपडेट 🟢",
 
     // Leaderboard
     "leaderboard.title": "सिटी लीडरबोर्ड",

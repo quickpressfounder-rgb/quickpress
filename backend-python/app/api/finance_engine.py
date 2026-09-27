@@ -78,6 +78,8 @@ async def calculate_checkout_price(body: Dict[str, Any]) -> Dict[str, Any]:
     is_member = bool(body.get("isMember", False))
     customer_state = str(body.get("customerState") or "Uttar Pradesh")
     partner_state = str(body.get("partnerState") or "Uttar Pradesh")
+    customer_city = body.get("customerCity")
+    customer_area = body.get("customerArea")
 
     res = await unified_finance_service.calculate_checkout_price(
         items=items,
@@ -88,6 +90,8 @@ async def calculate_checkout_price(body: Dict[str, Any]) -> Dict[str, Any]:
         is_member=is_member,
         customer_state=customer_state,
         partner_state=partner_state,
+        customer_city=customer_city,
+        customer_area=customer_area,
     )
     return {"ok": True, **res}
 

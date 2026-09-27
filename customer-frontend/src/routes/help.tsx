@@ -500,27 +500,27 @@ function HelpScreen() {
 
             {/* Emergency support */}
             <section className="mt-7">
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-brand-dark to-brand-green p-5 shadow-soft">
-                <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-primary/25 blur-2xl" />
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-5 shadow-soft text-white">
+                <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-400/25 blur-2xl" />
                 <div className="relative flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-widest text-background/70">
+                    <p className="text-[0.68rem] font-bold uppercase tracking-widest text-emerald-100">
                       Emergency Support
                     </p>
-                    <p className="mt-1 text-lg font-black tracking-tight text-background">
+                    <p className="mt-1 text-lg font-black tracking-tight text-white">
                       24×7 Customer Support
                     </p>
-                    <p className="mt-1 text-xs text-background/75">
+                    <p className="mt-1 text-xs text-emerald-100/90 font-medium">
                       Average response time · {contact?.responseTime}
                     </p>
                   </div>
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-background/15 text-background">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur-sm border border-white/20 shadow-xs">
                     <LifeBuoy className="size-5" />
                   </span>
                 </div>
                 <a
                   href={`tel:${contact?.phone}`}
-                  className="ripple relative mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-3xl bg-primary text-sm font-bold text-primary-foreground transition-all duration-300 active:scale-[0.97]"
+                  className="ripple relative mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-3xl bg-white text-sm font-black text-emerald-800 shadow-md transition-all duration-300 hover:bg-emerald-50 active:scale-[0.97]"
                 >
                   <Headphones className="size-4" />
                   Call {contact?.phoneLabel}

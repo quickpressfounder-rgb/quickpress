@@ -49,7 +49,7 @@ export const adminNavItems = [
   { id: "riders", label: "Riders", icon: Truck, to: adminRoutes.riders },
   { id: "services", label: "Services", icon: Sparkles, to: adminRoutes.services },
   { id: "cities", label: "Cities", icon: MapPin, to: adminRoutes.cities },
-  { id: "finance-engine", label: "Finance Engine", icon: Landmark, to: adminRoutes.financeEngine },
+  { id: "finance-engine", label: "Commercial & Pricing", icon: Landmark, to: adminRoutes.financeEngine },
   { id: "wallet", label: "Wallet", icon: Wallet, to: adminRoutes.wallet },
   { id: "coupons", label: "Coupons", icon: TicketPercent, to: adminRoutes.coupons },
   { id: "memberships", label: "Memberships", icon: Crown, to: adminRoutes.memberships },

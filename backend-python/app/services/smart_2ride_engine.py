@@ -24,6 +24,8 @@ from app.db.client import database
 from app.core.privacy import mask_phone
 from app.services import order_lifecycle as lifecycle
 from app.services.financial_engine import financial_engine
+from app.services.processing_service import processing_service
+from app.db.rider_earnings_ledger import rider_earnings_ledger
 from app.services.socket_service import (
     EVENT_LOCATION_UPDATED,
     EVENT_ORDER_ACCEPTED,
@@ -214,8 +216,15 @@ class Smart2RideEngine:
 
         pickup_earning = base_pickup_earning + int(round(rider_express_bonus))
 
-        # Always generate guaranteed distinct cryptographic 4-digit OTPs for every ride leg
-        p_code = generate_secure_4digit_otp()
+        # Preserve existing order pickup OTP if already generated
+        existing_pickup = (order.get("otp") or {}).get("pickup")
+        if isinstance(existing_pickup, dict) and existing_pickup.get("code"):
+            p_code = str(existing_pickup["code"])
+        elif existing_pickup:
+            p_code = str(existing_pickup)
+        else:
+            p_code = str(order.get("pickupOtp") or generate_secure_4digit_otp())
+
         h_code = generate_secure_4digit_otp()
         while h_code == p_code:
             h_code = generate_secure_4digit_otp()
@@ -363,9 +372,23 @@ class Smart2RideEngine:
         fare_calc = financial_engine.compute_rider_trip_fare(distance_km=distance_km, city=clean_city.title())
         delivery_earning = max(35, int(round(fare_calc.totalTripEarnings)))
 
-        # Always generate guaranteed distinct cryptographic 4-digit OTPs for dispatch and final delivery
-        d_code = generate_secure_4digit_otp()
-        del_code = generate_secure_4digit_otp()
+        # Preserve existing dispatch and delivery OTPs if already generated
+        existing_dispatch = (order.get("otp") or {}).get("dispatch")
+        if isinstance(existing_dispatch, dict) and existing_dispatch.get("code"):
+            d_code = str(existing_dispatch["code"])
+        elif existing_dispatch:
+            d_code = str(existing_dispatch)
+        else:
+            d_code = str(order.get("dispatchOtp") or generate_secure_4digit_otp())
+
+        existing_delivery = (order.get("otp") or {}).get("delivery")
+        if isinstance(existing_delivery, dict) and existing_delivery.get("code"):
+            del_code = str(existing_delivery["code"])
+        elif existing_delivery:
+            del_code = str(existing_delivery)
+        else:
+            del_code = str(order.get("deliveryOtp") or generate_secure_4digit_otp())
+
         while del_code == d_code:
             del_code = generate_secure_4digit_otp()
 
@@ -483,6 +506,7 @@ class Smart2RideEngine:
         )
 
         # Update canonical order status
+        now_dt = datetime.now(timezone.utc)
         order_update: Dict[str, Any] = {
             "ride2Id": ride_doc["_id"],
             "status": lifecycle.READY_FOR_DELIVERY,
@@ -497,6 +521,8 @@ class Smart2RideEngine:
             order_update["riderId"] = str(orig_rider_id)
             order_update["rider"] = assigned_rider_obj
             order_update["deliveryRider"] = assigned_rider_obj
+            order_update["deliveryAcceptDeadline"] = (now_dt + timedelta(seconds=120)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+            order_update["deliverySlaSeconds"] = 120
 
         await database.collection(ORDERS_COLLECTION).update_one(
             {"_id": canonical_id},
@@ -511,27 +537,216 @@ class Smart2RideEngine:
                 "rideId": ride_doc["_id"],
                 "autoAssignedRiderId": assigned_rider_id,
                 "continuousRide": not has_opted_out and bool(orig_rider_id),
+                "deliverySlaSeconds": 120 if (not has_opted_out and orig_rider_id) else 0,
             },
         )
 
         if not has_opted_out and orig_rider_id:
+            # Start 120-second (2-minute) Store Arrival & Acceptance SLA timer
+            self._schedule_delivery_store_sla_timer(canonical_id, str(orig_rider_id), seconds=120)
+
             # Send in-app notification to the original Captain
             try:
                 from app.db.rider_repositories import rider_notification_repository
                 await rider_notification_repository.create(
                     rider_id=str(orig_rider_id),
                     title="📦 Order Packed & Ready for Delivery!",
-                    message=f"Order #{order.get('code') or canonical_id[:8]} packed by partner store. Pick up parcel and deliver to customer doorstep.",
+                    message=f"Order #{order.get('code') or canonical_id[:8]} packed by store. Please reach store within 2 minutes to collect package.",
                     kind="order_ready",
                 )
             except Exception:
                 pass
-            logger.info("Single Continuous Ride retained for Captain %s on order %s", orig_rider_id, canonical_id)
+            logger.info("Single Continuous Ride retained for Captain %s on order %s with 2-minute store SLA timer", orig_rider_id, canonical_id)
         else:
             # Start sequential auto-dispatch for Captain 2 with +20% bonus
             asyncio.create_task(self.dispatch_next_offer(ride_doc["_id"]))
 
         return ride_doc
+
+    def _schedule_delivery_store_sla_timer(self, order_id: str, rider_id: str, seconds: int = 120) -> None:
+        """Starts 120-second (2-minute) SLA timer for rider to accept and reach store.
+        If rider does not verify Dispatch OTP at the store within 2 minutes:
+        System auto-triggers delivery reassignment to Rider 2 with 20% pool transfer!
+        """
+        async def _timer():
+            try:
+                await asyncio.sleep(seconds)
+                order = await lifecycle.find_order(order_id)
+                if not order:
+                    return
+                current_st = lifecycle.order_status(order)
+                if current_st in (lifecycle.READY_FOR_DELIVERY, lifecycle.READY, lifecycle.DELIVERY_RIDER_ASSIGNED, "dispatch_otp_pending"):
+                    if not order.get("dispatchOtpVerified"):
+                        logger.warning(
+                            "⏱️ [DELIVERY SLA BREACH] Rider %s failed to report to store within %ds for order %s. Auto-reassigning Rider 2!",
+                            rider_id, seconds, order_id
+                        )
+                        await self.handle_store_arrival_timeout(order_id, rider_id)
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                logger.error("Error in delivery store SLA timer for order %s: %s", order_id, e)
+
+        timer_key = f"store_sla_{order_id}"
+        if timer_key in self._active_timers:
+            self._active_timers[timer_key].cancel()
+        self._active_timers[timer_key] = asyncio.create_task(_timer())
+
+    async def handle_store_arrival_timeout(self, order_id: str, rider_id: str) -> Dict[str, Any]:
+        """Triggered when Rider 1 fails to report to the partner store within 2 minutes (120s).
+        Enforces:
+        - 20% deduction applied ONLY to the delivery leg fare.
+        - Diverts 20% to reassignment_pool.
+        - Immediately auto-assigns Rider 2 without waiting for admin.
+        - Rider 1's Pickup leg payout is 100% safe.
+        """
+        order = await lifecycle.find_order(order_id)
+        if not order:
+            return {"ok": False, "error": "Order not found"}
+
+        canonical_id = lifecycle.order_id_of(order)
+        now = lifecycle.now_iso()
+
+        # Query delivery ride document for delivery fare
+        ride_2 = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_id, "rideType": "delivery"})
+        base_delivery = float((ride_2 or {}).get("estimatedEarning") or (ride_2 or {}).get("fare") or 35.0)
+
+        # 20% deduction from delivery earning
+        deduction_20 = round(base_delivery * 0.20, 2)
+        rider_1_delivery_net = round(base_delivery - deduction_20, 2)
+
+        # Record Rider 1 deduction in rider_earnings_ledger
+        await rider_earnings_ledger.record_entry(
+            order_id=canonical_id,
+            rider_id=rider_id,
+            trip_type="DELIVERY",
+            base_earning=base_delivery,
+            deduction=deduction_20,
+            deduction_percentage=20.0,
+            transfer_amount=0.0,
+            final_earning=rider_1_delivery_net,
+            reason="Store arrival SLA (2 mins) breached — 20% diverted to reassignment pool",
+            status="DEDUCTED",
+            metadata={"slaSeconds": 120, "at": now},
+        )
+
+        # Update order with failure state and reassignment pool
+        await database.collection(ORDERS_COLLECTION).update_one(
+            {"_id": canonical_id},
+            {
+                "$set": {
+                    "status": lifecycle.DELIVERY_FAILED,
+                    "deliveryFailedReason": "Store arrival SLA (2 mins) breached",
+                    "reassignmentPool": deduction_20,
+                    "reassignmentRequired": True,
+                    "riderDeliveryOptOut": True,
+                    "originalRiderId": rider_id,
+                    "assignedRiderId": None,
+                    "deliveryRiderId": None,
+                    "updatedAt": now,
+                }
+            },
+        )
+
+        await lifecycle.record_event(
+            order,
+            "DELIVERY_FAILED",
+            actor_id=rider_id,
+            actor_role="system",
+            metadata={"reason": "Store arrival SLA (2 mins) breached", "reassignmentPool": deduction_20},
+            at=now,
+        )
+
+        # Notify via Socket.IO
+        await broadcast_order_event(
+            "order.delivery_failed",
+            order,
+            extra_data={
+                "reason": "Store arrival SLA (2 mins) breached",
+                "reassignmentPool": deduction_20,
+                "autoReassigning": True,
+            },
+        )
+
+        # Now immediately trigger Rider 2 auto-assignment
+        logger.info("Auto-reassigning delivery rider (Rider 2) for order %s...", canonical_id)
+        await database.collection(ORDERS_COLLECTION).update_one(
+            {"_id": canonical_id},
+            {"$set": {"status": lifecycle.DELIVERY_RIDER_REASSIGNING, "updatedAt": now}},
+        )
+
+        # Re-dispatch Ride 2 with reassignment bonus
+        asyncio.create_task(self.reassign_delivery_to_rider_2(canonical_id, bonus_amount=deduction_20))
+        return {"ok": True, "reassignmentPool": deduction_20}
+
+    async def reassign_delivery_to_rider_2(self, order_id: str, bonus_amount: float = 0.0) -> Optional[Dict[str, Any]]:
+        """Automatically finds and dispatches Rider 2 for the delivery leg."""
+        order = await lifecycle.find_order(order_id)
+        if not order:
+            return None
+
+        canonical_id = lifecycle.order_id_of(order)
+        now = lifecycle.now_iso()
+
+        # Update ride_2 in rides collection
+        ride_2 = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_id, "rideType": "delivery"})
+        if not ride_2:
+            return None
+
+        orig_fare = float(ride_2.get("fare") or ride_2.get("estimatedEarning") or 35.0)
+        pool = float(bonus_amount or order.get("reassignmentPool") or round(orig_fare * 0.20, 2))
+        rider_2_fare = round(orig_fare + pool, 2)
+
+        # Generate fresh Dispatch OTP for store handoff
+        new_disp_code = generate_secure_4digit_otp()
+        disp_rec = create_otp_record(new_disp_code)
+
+        orig_rider_id = order.get("originalRiderId") or ride_2.get("riderId")
+        attempted = [str(orig_rider_id)] if orig_rider_id else []
+
+        await database.collection(RIDES_COLLECTION).update_one(
+            {"_id": ride_2["_id"]},
+            {
+                "$set": {
+                    "status": "SEARCHING_RIDER",
+                    "baseFare": orig_fare,
+                    "fare": rider_2_fare,
+                    "estimatedEarning": rider_2_fare,
+                    "isReassigned": True,
+                    "isReassignedBonus": True,
+                    "extraBonusAmount": pool,
+                    "extraBonusPercent": 20,
+                    "preferredRiderId": None,
+                    "riderId": None,
+                    "rider": None,
+                    "offeredRiderId": None,
+                    "attemptedRiderIds": attempted,
+                    "otp.dispatch": disp_rec,
+                    "updatedAt": now,
+                }
+            },
+        )
+
+        await database.collection(ORDERS_COLLECTION).update_one(
+            {"_id": canonical_id},
+            {
+                "$set": {
+                    "status": lifecycle.DELIVERY_RIDER_REASSIGNING,
+                    "dispatchOtp": new_disp_code,
+                    "otp.dispatch": disp_rec,
+                    "reassignmentPool": pool,
+                    "assignedRiderId": None,
+                    "deliveryRiderId": None,
+                    "deliveryRider": None,
+                    "rider": None,
+                    "updatedAt": now,
+                }
+            },
+        )
+
+        # Dispatch next offer to nearby eligible riders excluding original rider
+        asyncio.create_task(self.dispatch_next_offer(ride_2["_id"]))
+        return ride_2
 
     # -------------------------------------------------------------------------
     # 3. AREA & DISTANCE-BASED ELIGIBILITY AND RANKING
@@ -1177,6 +1392,8 @@ class Smart2RideEngine:
             if not pickup_code:
                 raise PermissionError("Pickup OTP has not been generated for this order yet.")
             pickup_record = {"code": str(pickup_code), "attempts": 0, "verified": False}
+        elif isinstance(pickup_record, str):
+            pickup_record = {"code": pickup_record, "attempts": 0, "verified": False}
         self._verify_otp_record(pickup_record, otp, "Customer Pickup OTP")
 
         now = lifecycle.now_iso()
@@ -1236,13 +1453,72 @@ class Smart2RideEngine:
         self._verify_otp_record(handover_record, otp, "Store Handover OTP")
 
         now = lifecycle.now_iso()
+
+        # 1. Fetch Pickup Ride to determine full configured pickup earning
+        ride_1 = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_id, "rideType": "pickup"})
+        pickup_rider_id = str((ride_1 or {}).get("riderId") or order.get("assignedRiderId") or order.get("riderId") or "")
+        pickup_fare = float((ride_1 or {}).get("fare") or (ride_1 or {}).get("estimatedEarning") or 35.0)
+
+        # 2. Settle 100% of Pickup Leg payout into Rider 1 wallet (NO deduction)
+        if pickup_rider_id:
+            try:
+                from app.db.rider_repositories import rider_wallet_repository, rider_notification_repository
+                code_str = order.get("code") or canonical_id[:8]
+                existing_credit = await database.find_one(
+                    "rider_wallet_transactions",
+                    {"$or": [{"riderId": pickup_rider_id}, {"rider_id": pickup_rider_id}], "orderCode": code_str, "kind": "pickup_fare"}
+                )
+                if not existing_credit:
+                    await rider_wallet_repository.credit(
+                        rider_id=pickup_rider_id,
+                        amount=pickup_fare,
+                        title=f"Pickup Leg Fare (100% full) · #{code_str}",
+                        order_code=code_str,
+                        kind="pickup_fare",
+                    )
+                # Immutable Rider Earnings Ledger: 100% Pickup Leg Settlement
+                await rider_earnings_ledger.record_entry(
+                    order_id=canonical_id,
+                    rider_id=pickup_rider_id,
+                    trip_type="PICKUP",
+                    base_earning=pickup_fare,
+                    deduction=0.0,
+                    deduction_percentage=0.0,
+                    transfer_amount=0.0,
+                    final_earning=pickup_fare,
+                    reason="Customer to Store pickup completed successfully",
+                    status="SETTLED",
+                    metadata={"handoverOtpVerified": True, "at": now},
+                )
+                await rider_notification_repository.create(
+                    rider_id=pickup_rider_id,
+                    title="🎉 Pickup Leg Settled (100%)",
+                    message=f"Pickup for order #{code_str} confirmed at store. ₹{pickup_fare:.2f} credited to your wallet in full.",
+                    kind="payment",
+                )
+            except Exception as w_err:
+                logger.error("Error settling pickup rider fare: %s", w_err)
+
+        # 3. Dynamic Service Processing Timeline & Category Pipeline Calculation
+        timeline_info = await processing_service.calculate_processing_timeline(order)
+
         await database.collection(ORDERS_COLLECTION).update_one(
             {"_id": canonical_id},
             {
                 "$set": {
-                    "status": lifecycle.AT_PARTNER,
-                    "otp.handover": handover_record,
+                    "status": lifecycle.PROCESSING_STARTED,
+                    "previousStatus": lifecycle.STORE_DROP_CONFIRMED,
+                    "storeDropConfirmed": True,
+                    "storeDropConfirmedAt": now,
                     "receivedByPartnerAt": now,
+                    "otp.handover": handover_record,
+                    "processingTimeline": timeline_info,
+                    "processingStages": timeline_info.get("stages", []),
+                    "expectedReadyAt": timeline_info.get("expectedReadyAt"),
+                    "processingCategory": timeline_info.get("category"),
+                    "currentProcessingStage": timeline_info.get("currentStageId", "sorting"),
+                    "pickupLegSettled": True,
+                    "pickupLegEarning": pickup_fare,
                     "updatedAt": now,
                 }
             },
@@ -1251,9 +1527,11 @@ class Smart2RideEngine:
             {"orderId": canonical_id, "rideType": "pickup"},
             {
                 "$set": {
-                    "status": "DELIVERED",
+                    "status": "COMPLETED",
                     "otp.handover": handover_record,
                     "droppedAtStoreAt": now,
+                    "isSettled": True,
+                    "settledEarning": pickup_fare,
                     "updatedAt": now,
                 }
             },
@@ -1263,14 +1541,31 @@ class Smart2RideEngine:
         if updated:
             await lifecycle.record_event(
                 updated,
-                "AT_PARTNER",
+                "STORE_DROP_CONFIRMED",
                 actor_id=partner_id,
                 actor_role="partner",
-                metadata={"handoverOtpVerified": True},
+                metadata={"handoverOtpVerified": True, "pickupFare": pickup_fare},
                 at=now,
             )
-            await broadcast_order_event(lifecycle.AT_PARTNER, updated)
-        return {"ok": True, "status": "AT_PARTNER", "orderId": canonical_id}
+            await lifecycle.record_event(
+                updated,
+                "PROCESSING_STARTED",
+                actor_id=partner_id,
+                actor_role="partner",
+                metadata={"expectedReadyAt": timeline_info.get("expectedReadyAt"), "category": timeline_info.get("category")},
+                at=now,
+            )
+            await broadcast_order_event("STORE_DROP_CONFIRMED", updated)
+            await broadcast_order_event(lifecycle.PROCESSING_STARTED, updated)
+            await broadcast_order_event(
+                "order.processing_started",
+                updated,
+                extra_data={
+                    "processingTimeline": timeline_info,
+                    "expectedReadyAt": timeline_info.get("expectedReadyAt"),
+                },
+            )
+        return {"ok": True, "status": "STORE_DROP_CONFIRMED", "orderId": canonical_id, "processingTimeline": timeline_info}
 
     async def verify_dispatch_otp(self, order_id: str, otp: str, rider_id: str) -> Dict[str, Any]:
         """Phase 2.5 OTP: Delivery Rider verifies Dispatch OTP communicated by Partner Store."""
@@ -1534,7 +1829,7 @@ class Smart2RideEngine:
 
         otp_dict = order.get("otp") or {}
         delivery_record = otp_dict.get("delivery")
-        if delivery_record and delivery_record.get("verified"):
+        if delivery_record and isinstance(delivery_record, dict) and delivery_record.get("verified"):
             return {"ok": True, "status": "DELIVERED", "orderId": canonical_id, "alreadyDelivered": True}
 
         if not delivery_record:
@@ -1542,6 +1837,8 @@ class Smart2RideEngine:
             if not delivery_code:
                 raise PermissionError("Customer Delivery OTP has not been generated for this order yet.")
             delivery_record = {"code": str(delivery_code), "attempts": 0, "verified": False}
+        elif isinstance(delivery_record, str):
+            delivery_record = {"code": delivery_record, "attempts": 0, "verified": False}
 
         self._verify_otp_record(delivery_record, clean_otp, "Customer Delivery OTP")
 
@@ -1605,6 +1902,60 @@ class Smart2RideEngine:
                     {"$inc": {"floatingCash": collected_amount, "cashInHand": collected_amount}},
                 )
                 logger.info("Captain %s collected COD cash: ₹%.2f (added to floating cash)", rider_id, collected_amount)
+
+        # Settle Delivery Leg payout and Rider 2 Reassignment Pool
+        ride_2 = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_id, "rideType": {"$in": ["delivery", "handover_delivery"]}})
+        reassignment_pool = float(order.get("reassignmentPool") or (ride_2 or {}).get("extraBonusAmount") or 0.0)
+        is_reassigned_delivery = bool(reassignment_pool > 0 or order.get("isReassigned") or (ride_2 or {}).get("isReassigned"))
+
+        stored_fare = float((ride_2 or {}).get("fare") or (ride_2 or {}).get("estimatedEarning") or 35.0)
+        base_delivery = float((ride_2 or {}).get("baseFare") or (ride_2 or {}).get("baseDeliveryPayout") or (
+            stored_fare - reassignment_pool if is_reassigned_delivery and reassignment_pool > 0 and stored_fare > reassignment_pool else stored_fare
+        ))
+
+        if is_reassigned_delivery and reassignment_pool > 0:
+            final_delivery_payout = round(base_delivery + reassignment_pool, 2)
+            payout_title = f"Delivery Fare + Reassignment Bonus (+₹{reassignment_pool:.2f}) · #{order.get('code')}"
+            reason_str = f"Reassigned delivery completed successfully (+20% bonus pool ₹{reassignment_pool:.2f} transferred)"
+            transfer_amt = reassignment_pool
+        else:
+            final_delivery_payout = base_delivery
+            payout_title = f"Delivery Leg Fare (100% full) · #{order.get('code')}"
+            reason_str = "Doorstep delivery completed successfully"
+            transfer_amt = 0.0
+
+        if rider_id:
+            try:
+                from app.db.rider_repositories import rider_wallet_repository, rider_notification_repository
+                code_str = order.get("code") or canonical_id[:8]
+                await rider_wallet_repository.credit(
+                    rider_id=rider_id,
+                    amount=final_delivery_payout,
+                    title=payout_title,
+                    order_code=code_str,
+                    kind="delivery_fare",
+                )
+                await rider_earnings_ledger.record_entry(
+                    order_id=canonical_id,
+                    rider_id=rider_id,
+                    trip_type="DELIVERY",
+                    base_earning=base_delivery,
+                    deduction=0.0,
+                    deduction_percentage=0.0,
+                    transfer_amount=transfer_amt,
+                    final_earning=final_delivery_payout,
+                    reason=reason_str,
+                    status="SETTLED",
+                    metadata={"deliveryOtpVerified": True, "at": now},
+                )
+                await rider_notification_repository.create(
+                    rider_id=rider_id,
+                    title="🎉 Delivery Leg Settled",
+                    message=f"Delivery for order #{code_str} completed. ₹{final_delivery_payout:.2f} credited to your wallet in full.",
+                    kind="payment",
+                )
+            except Exception as r_payout_err:
+                logger.error("Error crediting delivery rider payout: %s", r_payout_err)
 
         # Settle partner, rider, and platform financials via settlement_engine and unified finance ledger
         try:
@@ -1705,7 +2056,7 @@ class Smart2RideEngine:
         drop_lng = float(drop_loc.get("lng") or drop_loc.get("longitude") or 78.6550)
         drop_addr = str(drop_loc.get("address") or drop_loc.get("line") or order.get("deliveryAddress") or "Customer Doorstep")
 
-        # Pickup leg payout (Customer -> Partner completed by Rider 1)
+        # Pickup leg payout is 100% PROTECTED (Customer -> Store completed by Rider 1)
         ride_1 = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_id, "rideType": "pickup"})
         cust_loc = order.get("pickupLocation") or order.get("customerLocation") or {}
         c_lat = float(cust_loc.get("lat") or cust_loc.get("latitude") or p_lat)
@@ -1713,52 +2064,61 @@ class Smart2RideEngine:
         pickup_dist_km = max(0.5, haversine_distance_km(c_lat, c_lng, p_lat, p_lng))
         calc_pickup = round(25.0 + max(0.0, pickup_dist_km * 8.0), 2)
         pickup_gross_payout = float((ride_1 or {}).get("estimatedEarning") or (ride_1 or {}).get("fare") or calc_pickup)
+        # ZERO deduction from pickup leg!
+        net_pickup_payout = pickup_gross_payout
+        penalty_deduction = 0.0
 
-        # User Rule: 25% penalty deduction when Captain opts out of the delivery leg
-        penalty_deduction = round(pickup_gross_payout * 0.25, 2)
-        net_pickup_payout = round(pickup_gross_payout - penalty_deduction, 2)
-
-        # User Rule: Delivery leg payout with +20% bonus for the new replacement rider
+        # Delivery leg payout: 20% deduction applies ONLY to the failed delivery leg
         delivery_dist_km = max(0.5, haversine_distance_km(p_lat, p_lng, drop_lat, drop_lng))
         base_delivery_payout = round(25.0 + max(0.0, delivery_dist_km * 8.0), 2)
-        bonus_20 = round(base_delivery_payout * 0.20, 2)
-        new_rider_delivery_payout = round(base_delivery_payout + bonus_20, 2)
+        delivery_deduction_20 = round(base_delivery_payout * 0.20, 2)
+        rider_1_delivery_payout = round(base_delivery_payout - delivery_deduction_20, 2)
+        reassignment_pool = delivery_deduction_20
+        new_rider_delivery_payout = round(base_delivery_payout + reassignment_pool, 2)
 
         # Generate secure 4-digit Dispatch OTP for Partner -> Rider 2 handover
         dispatch_otp = generate_secure_4digit_otp()
         dispatch_record = create_otp_record(dispatch_otp)
 
-        # 1. Settle Rider 1 wallet with 75% net pickup payout (25% opt-out deduction applied)
+        # Record Rider 1 Delivery Deduction in immutable ledger
         if rider_id:
             try:
+                code_str = order.get("code") or canonical_id[:8]
                 from app.db.rider_repositories import rider_wallet_repository, rider_notification_repository
-                code_str = order.get('code') or canonical_id[:8]
-                existing_credit = await database.find_one(
+
+                # Ensure 100% pickup is credited if not already done
+                existing_pickup = await database.find_one(
                     "rider_wallet_transactions",
                     {"$or": [{"riderId": rider_id}, {"rider_id": rider_id}], "orderCode": code_str, "kind": "pickup_fare"}
                 )
-                if existing_credit:
-                    # 100% gross was already credited upon store drop; apply 25% opt-out deduction
-                    await rider_wallet_repository.debit(
-                        rider_id=rider_id,
-                        amount=penalty_deduction,
-                        title=f"Delivery Opt-Out Fee (25%) · #{code_str}",
-                        order_code=code_str,
-                        kind="opt_out_deduction",
-                    )
-                else:
-                    # Direct opt-out at store: credit 75% net pickup payout
+                if not existing_pickup:
                     await rider_wallet_repository.credit(
                         rider_id=rider_id,
-                        amount=net_pickup_payout,
-                        title=f"Pickup leg payout (75% net after 25% opt-out fee) · #{code_str}",
+                        amount=pickup_gross_payout,
+                        title=f"Pickup Leg Fare (100% full) · #{code_str}",
                         order_code=code_str,
-                        kind="transfer_pickup",
+                        kind="pickup_fare",
                     )
+
+                # Record 20% delivery leg deduction in rider_earnings_ledger
+                await rider_earnings_ledger.record_entry(
+                    order_id=canonical_id,
+                    rider_id=rider_id,
+                    trip_type="DELIVERY",
+                    base_earning=base_delivery_payout,
+                    deduction=delivery_deduction_20,
+                    deduction_percentage=20.0,
+                    transfer_amount=0.0,
+                    final_earning=rider_1_delivery_payout,
+                    reason=f"Delivery unable ({reason}) — 20% diverted to reassignment pool",
+                    status="DEDUCTED",
+                    metadata={"at": now, "remarks": remarks or ""},
+                )
+
                 await rider_notification_repository.create(
                     rider_id=rider_id,
-                    title="🎉 Pickup Payout Settled (75% Net)",
-                    message=f"Pickup for order #{code_str} completed. ₹{net_pickup_payout:.2f} settled to your wallet (Gross ₹{pickup_gross_payout:.2f} minus 25% delivery opt-out fee ₹{penalty_deduction:.2f}). Package safe in Partner Store custody.",
+                    title="⚠️ Delivery Reassigned",
+                    message=f"Delivery for order #{code_str} reassigned due to {reason.replace('_', ' ')}. ₹{rider_1_delivery_payout:.2f} delivery credit (20% pool ₹{delivery_deduction_20:.2f} diverted to Rider 2). Pickup earning is 100% safe.",
                     kind="payment",
                 )
                 if reason in ("vehicle_breakdown", "accident_health", "medical_emergency"):
@@ -1767,7 +2127,7 @@ class Smart2RideEngine:
                         {"$set": {"isOnline": False, "dutyStatus": "OFF DUTY", "updatedAt": now}}
                     )
             except Exception as err:
-                logger.error(f"Error crediting Rider 1 pickup payout: {err}", exc_info=True)
+                logger.error(f"Error recording Rider 1 delivery reassignment: {err}", exc_info=True)
 
         reassignment_data = {
             "requested": True,
@@ -1784,7 +2144,8 @@ class Smart2RideEngine:
             "baseDeliveryPayout": base_delivery_payout,
             "deliveryLegPayout": new_rider_delivery_payout,
             "extraBonusPercent": 20,
-            "extraBonusAmount": bonus_20,
+            "extraBonusAmount": reassignment_pool,
+            "reassignmentPool": reassignment_pool,
             "handoverCompleted": False,
             "assignedTransferRiderId": None,
             "storeLocation": {
@@ -1800,16 +2161,18 @@ class Smart2RideEngine:
             {"_id": canonical_id},
             {
                 "$set": {
-                    "status": lifecycle.DELIVERY_REASSIGNMENT_REQUIRED,
+                    "status": lifecycle.DELIVERY_RIDER_REASSIGNING,
+                    "previousStatus": lifecycle.DELIVERY_FAILED,
                     "riderDeliveryOptOut": True,
                     "reassignmentRequired": True,
                     "assignedRiderId": None,
+                    "deliveryRiderId": None,
                     "originalRiderId": rider_id,
                     "pickupGrossPayout": pickup_gross_payout,
-                    "pickupPenaltyDeduction": penalty_deduction,
                     "pickupNetPayout": net_pickup_payout,
                     "deliveryReassignedBonusPercent": 20,
-                    "deliveryReassignedBonusAmount": bonus_20,
+                    "deliveryReassignedBonusAmount": reassignment_pool,
+                    "reassignmentPool": reassignment_pool,
                     "reassignment": reassignment_data,
                     "otp.dispatch": dispatch_record,
                     "otp.handover": dispatch_record,

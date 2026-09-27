@@ -213,17 +213,18 @@ function ReferralScreen() {
         {data ? (
           <div className="px-5 pb-32 pt-4">
             {/* Referral code card — GET /api/referral */}
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-brand-dark to-brand-green p-5 shadow-soft">
-              <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-primary/25 blur-2xl" />
+            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-5 shadow-soft text-white">
+              <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-400/25 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-10 -left-10 size-40 rounded-full bg-emerald-500/20 blur-2xl" />
               <div className="relative flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-widest text-background/70">
+                  <p className="text-[0.68rem] font-bold uppercase tracking-widest text-emerald-100">
                     Your referral code
                   </p>
-                  <p className="mt-1 truncate text-2xl font-black tracking-[0.18em] text-background">
+                  <p className="mt-1 truncate text-2xl font-black tracking-[0.18em] text-white">
                     {data.code}
                   </p>
-                  <p className="mt-2 text-xs leading-relaxed text-background/75">
+                  <p className="mt-2 text-xs leading-relaxed text-emerald-100/90 font-medium">
                     Friends get 50% OFF (up to ₹{data.stats.refereeReward}) — you get ₹
                     {data.stats.referrerReward} wallet cash after their 1st completed order.
                   </p>
@@ -232,32 +233,34 @@ function ReferralScreen() {
                   type="button"
                   aria-label="Refresh referrals"
                   onClick={() => void load({ refresh: true })}
-                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background/15 text-background transition-all duration-300 active:scale-[0.94]"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur-sm transition-all duration-300 hover:bg-white/25 active:scale-[0.94]"
                 >
                   {refreshing ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <Loader2 className="size-4 animate-spin text-white" />
                   ) : (
                     <RefreshCw className="size-4" />
                   )}
                 </button>
               </div>
 
-              <div className="relative mt-4 flex items-center gap-3 rounded-2xl bg-background/12 p-3">
-                <img
-                  src={data.qrCodeUrl}
-                  alt={`QR code for QuickPress referral code ${data.code}`}
-                  loading="lazy"
-                  className="size-20 shrink-0 rounded-xl bg-background object-contain p-1.5"
-                />
+              <div className="relative mt-4 flex items-center gap-3 rounded-2xl bg-black/25 backdrop-blur-md border border-white/15 p-3">
+                <div className="size-20 shrink-0 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-xs">
+                  <img
+                    src={data.qrCodeUrl}
+                    alt={`QR code for QuickPress referral code ${data.code}`}
+                    loading="lazy"
+                    className="size-full object-contain"
+                  />
+                </div>
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-[0.68rem] font-semibold uppercase tracking-widest text-background/70">
+                  <p className="flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-widest text-emerald-100">
                     <QrCode className="size-3.5" /> Scan to join
                   </p>
-                  <p className="mt-1 truncate text-xs text-background/80">{data.link}</p>
+                  <p className="mt-1 truncate text-xs text-white/95 font-medium">{data.link}</p>
                   <button
                     type="button"
                     onClick={() => void share("copy")}
-                    className="ripple mt-2 inline-flex h-9 items-center gap-1.5 rounded-2xl bg-background px-4 text-xs font-bold text-brand-dark transition-all duration-300 active:scale-[0.96]"
+                    className="ripple mt-2 inline-flex h-9 items-center gap-1.5 rounded-2xl bg-white px-4 text-xs font-black text-emerald-800 shadow-sm transition-all duration-300 hover:bg-emerald-50 active:scale-[0.96]"
                   >
                     <Copy className="size-3.5" /> Copy code
                   </button>

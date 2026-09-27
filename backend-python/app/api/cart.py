@@ -12,9 +12,10 @@ collection `customer_carts`, using the existing bearer auth dependency.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from typing import Optional
+from app.core.anti_fraud import extract_device_id
 from app.core.deps import current_user, optional_user
 from app.db.cart_repositories import cart_repository
 from app.models.cart import (
@@ -29,28 +30,37 @@ from app.models.user import User
 router = APIRouter(tags=["cart"])
 
 
+def _cart_uid(user: Optional[User], request: Request) -> str:
+    if user and user.id:
+        return user.id
+    dev_id = extract_device_id(request)
+    return f"guest:{dev_id}" if dev_id else "guest"
+
+
 @router.get("/cart", response_model=CartResponse)
 async def get_cart(
+    request: Request,
     couponDiscount: int = Query(default=0, ge=0),
     user: Optional[User] = Depends(optional_user),
 ) -> CartResponse:
-    uid = user.id if user else "guest"
+    uid = _cart_uid(user, request)
     return await cart_repository.cart(uid, couponDiscount)
 
 
 @router.get("/cart/summary", response_model=CartSummaryResponse)
 async def get_cart_summary(
+    request: Request,
     couponDiscount: int = Query(default=0, ge=0),
     user: Optional[User] = Depends(optional_user),
 ) -> CartSummaryResponse:
-    uid = user.id if user else "guest"
+    uid = _cart_uid(user, request)
     return await cart_repository.summary(uid, couponDiscount)
 
 
 @router.get("/cart/coupons", response_model=list)
-async def get_cart_coupons(user: Optional[User] = Depends(optional_user)):
+async def get_cart_coupons(request: Request, user: Optional[User] = Depends(optional_user)):
     """GET /api/cart/coupons — list available promo codes and active referral welcome discounts."""
-    uid = user.id if user else "guest"
+    uid = _cart_uid(user, request)
     return await cart_repository.coupons(uid)
 
 

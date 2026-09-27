@@ -248,11 +248,12 @@ class Database:
         return "in-memory"
 
     async def connect(self) -> None:
-        """Connect to Supabase PostgreSQL database."""
+        """Connect to Supabase PostgreSQL or MongoDB database."""
         settings = get_settings()
         import logging
+        is_production = settings.app_env.lower() == "production"
 
-        # Connect to Supabase PostgreSQL
+        # 1. Connect to Supabase PostgreSQL if configured
         db_url = (getattr(settings, "database_url", None) or "").strip()
         if db_url:
             for attempt in range(3):
@@ -270,7 +271,29 @@ class Database:
                     if attempt < 2:
                         await asyncio.sleep(1.5)
                     else:
-                        raise RuntimeError(f"FATAL: Database connection to Supabase failed: {err}") from err
+                        if is_production:
+                            raise RuntimeError(f"FATAL: Production database connection to Supabase failed: {err}") from err
+
+        # 2. Connect to MongoDB if configured
+        mongo_uri = (getattr(settings, "mongodb_uri", None) or "").strip()
+        if mongo_uri:
+            try:
+                from motor.motor_asyncio import AsyncIOMotorClient
+                client = AsyncIOMotorClient(mongo_uri, serverSelectionTimeoutMS=2000)
+                # Verify ping
+                await asyncio.wait_for(client.admin.command("ping"), timeout=2.0)
+                self._client = client
+                self._db = client[settings.mongodb_db_name]
+                self._engine = "mongodb"
+                self._fallback_in_memory = False
+                logging.getLogger(__name__).info("Connected to MongoDB successfully.")
+                return
+            except Exception as err:
+                if is_production:
+                    raise RuntimeError(f"FATAL: Production database connection failed: {err}") from err
+
+        if is_production:
+            raise RuntimeError("FATAL: Production database connection failed: No database reachable in production.")
 
         self._fallback_in_memory = True
         self._engine = "in-memory"

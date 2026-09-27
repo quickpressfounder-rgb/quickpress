@@ -27,10 +27,13 @@ export type AdminRider = {
   kyc: "Verified" | "Pending" | "Rejected";
   live: "Online" | "Offline" | "On delivery";
   status: "Active" | "Pending" | "Suspended";
-  resubmitted?: boolean;
-  resubmittedAt?: string;
-  resubmissionCount?: number;
-  rejectionReason?: string;
+  profilePhoto?: string | undefined;
+  approvedAt?: string | undefined;
+  approvedBy?: string | undefined;
+  resubmitted?: boolean | undefined;
+  resubmittedAt?: string | undefined;
+  resubmissionCount?: number | undefined;
+  rejectionReason?: string | undefined;
   raw?: any;
 };
 
@@ -259,6 +262,9 @@ function toAdminRider(row: any): AdminRider {
     kyc,
     live: liveState,
     status,
+    profilePhoto: row.profilePhoto || row.avatar || row.selfieUrl || row.photoUrl || undefined,
+    approvedAt: row.approvedAt ? String(row.approvedAt) : undefined,
+    approvedBy: row.approvedBy ? String(row.approvedBy) : undefined,
     resubmitted: isResubmitted,
     resubmittedAt: row.resubmittedAt ? String(row.resubmittedAt) : undefined,
     resubmissionCount: typeof row.resubmissionCount === "number" ? row.resubmissionCount : undefined,
@@ -375,4 +381,12 @@ export async function updateRider(id: string, payload: Record<string, unknown>) 
 /** DELETE /api/admin/riders/{id} — permanently remove rider */
 export async function deleteRider(id: string) {
   return apiDeleteJson<{ ok: boolean; deleted: string }>(`/api/admin/riders/${encodeURIComponent(id)}`);
+}
+
+/** POST /api/admin/riders/{id}/notes — append internal audit note */
+export async function addRiderNote(id: string, note: string) {
+  return apiPostJson<{ id: string; note: string; author: string; at: string }>(
+    `/api/admin/riders/${encodeURIComponent(id)}/notes`,
+    { note }
+  );
 }

@@ -17,6 +17,10 @@ class AssignRiderPayload(BaseModel):
     riderId: str
 
 
+class AssignPartnerPayload(BaseModel):
+    partnerId: str
+
+
 class CancelOrderPayload(BaseModel):
     reason: Optional[str] = None
 

@@ -18,6 +18,7 @@ export type Account = {
   /** Partner/rider onboarding state; always true for customers and admins. */
   isOnboarded: boolean;
   isVerified: boolean;
+  isNewUser?: boolean;
   /** Partner store id / rider profile id this login owns (partner & rider roles). */
   linkedId?: string;
 };

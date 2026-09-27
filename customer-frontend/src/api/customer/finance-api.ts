@@ -114,8 +114,8 @@ export const DEFAULT_FINANCIAL_RULES: FinancialRules = {
     ],
     freeDeliveryThreshold: 499.0,
     subsidyFundingSource: "QUICKPRESS_FUNDED",
-    nightSurge: 25.0,
-    rainSurge: 20.0,
+    nightSurge: 0.0,
+    rainSurge: 0.0,
   },
   commission: {
     standardRate: 0.18,

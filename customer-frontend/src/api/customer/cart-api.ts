@@ -108,8 +108,8 @@ export const EMPTY_TOTALS: Totals = {
 export const EMPTY_CHARGES: Charges = {
   pickup: 0,
   delivery: 0,
-  handling: 0,
-  gstRate: 0,
+  handling: 15,
+  gstRate: 0.05,
   discount: 0,
 };
 

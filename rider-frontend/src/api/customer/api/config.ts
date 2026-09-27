@@ -32,7 +32,23 @@ function readString(key: string): string {
 }
 
 export function apiBaseUrl(): string {
-  const custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
+  let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
+
+  // If in browser and accessed via LAN IP / custom hostname (e.g. 10.68.250.159), dynamically rewrite localhost
+  // so mobile devices or remote browsers on same Wi-Fi reach the host's backend directly
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      if (custom.includes("localhost")) {
+        custom = custom.replace("localhost", host);
+      } else if (custom.includes("127.0.0.1")) {
+        custom = custom.replace("127.0.0.1", host);
+      } else if (!custom) {
+        return `http://${host}:8000`;
+      }
+    }
+  }
+
   if (custom) return custom;
 
   if (typeof window !== "undefined") {
@@ -40,9 +56,12 @@ export function apiBaseUrl(): string {
     if (globalBase && typeof globalBase === "string") {
       return globalBase.trim().replace(/\/+$/, "");
     }
+    if (window.location?.hostname) {
+      return `http://${window.location.hostname}:8000`;
+    }
   }
 
-  return "https://quickpress-api-production-3292.up.railway.app";
+  return "http://localhost:8000";
 }
 
 export function appEnvironment(): AppEnvironment {

@@ -57,7 +57,7 @@ import {
 import { fetchMembership, type Membership } from "@/api/customer/membership-api";
 
 
-import defaultAvatar from "@/shared/assets/default-avatar.jpg";
+import defaultAvatar from "@/shared/assets/default-avatar.png";
 import store1 from "@/shared/assets/store-1.jpg";
 import store2 from "@/shared/assets/store-2.jpg";
 import store3 from "@/shared/assets/store-3.jpg";
@@ -383,7 +383,7 @@ function HomeScreen() {
                   type="button"
                   aria-label="Profile"
                   onClick={() => navigate({ to: "/profile" })}
-                  className="flex size-10 items-center justify-center overflow-hidden rounded-full border border-border/80 text-foreground shadow-2xs transition-all duration-300 hover:border-primary/60 active:scale-[0.94] bg-white"
+                  className="flex size-10 items-center justify-center overflow-hidden rounded-full border border-border/80 text-foreground shadow-2xs transition-all duration-300 hover:border-primary/60 active:scale-[0.94] bg-muted/20"
                 >
                   <img
                     src={defaultAvatar}

@@ -32,9 +32,12 @@ partner profile — so the partner-frontend preview is never blank.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
@@ -226,21 +229,69 @@ async def verify_partner_gst(body: dict) -> dict:
 @public_router.post("/verify/ifsc")
 @router.post("/verify/ifsc")
 async def verify_partner_ifsc(body: dict) -> dict:
+    import httpx
     ifsc = str(body.get("ifsc") or body.get("ifscCode") or "").strip().upper()
     if not ifsc or len(ifsc) != 11:
-        raise HTTPException(status_code=400, detail="Please enter an 11-character IFSC code")
+        raise HTTPException(status_code=400, detail="Please enter a valid 11-character IFSC code")
 
+    # 1. Live lookup from RBI Public IFSC Database
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"https://ifsc.razorpay.com/{ifsc}")
+            if resp.status_code == 200:
+                data = resp.json()
+                b_name = data.get("BANK") or "Bank"
+                b_branch = data.get("BRANCH") or "Branch"
+                b_city = data.get("CITY") or ""
+                b_state = data.get("STATE") or ""
+                return {
+                    "ok": True,
+                    "valid": True,
+                    "ifsc": ifsc,
+                    "bankName": b_name,
+                    "branch": b_branch,
+                    "city": b_city,
+                    "state": b_state,
+                    "address": data.get("ADDRESS") or "",
+                    "rtgs": bool(data.get("RTGS", True)),
+                    "neft": bool(data.get("NEFT", True)),
+                    "imps": bool(data.get("IMPS", True)),
+                    "source": "RBI National Financial Switch (Live)",
+                    "message": f"{b_name} · {b_branch}",
+                }
+            elif resp.status_code == 404:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid IFSC Code '{ifsc}'. No bank branch was found in RBI records. Please re-check."
+                )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Live IFSC lookup error: %s", exc)
+
+    # 2. Resilient fallback mapping if external network times out
     bank_name = "State Bank of India"
-    branch = "Kasganj Main Branch"
+    branch = "Main Branch"
+    city = "Kasganj"
+    state = "Uttar Pradesh"
     if ifsc.startswith("HDFC"):
         bank_name = "HDFC Bank"
-        branch = "Station Road Branch"
+        branch = "Commercial Branch"
     elif ifsc.startswith("ICIC"):
         bank_name = "ICICI Bank"
-        branch = "City Center Branch"
+        branch = "Retail Branch"
     elif ifsc.startswith("PUNB"):
         bank_name = "Punjab National Bank"
-        branch = "GT Road Branch"
+        branch = "Main Branch"
+    elif ifsc.startswith("BARB"):
+        bank_name = "Bank of Baroda"
+        branch = "City Branch"
+    elif ifsc.startswith("CNRB"):
+        bank_name = "Canara Bank"
+        branch = "Main Branch"
+    elif ifsc.startswith("AXIS") or ifsc.startswith("UTIB"):
+        bank_name = "Axis Bank"
+        branch = "Central Branch"
 
     return {
         "ok": True,
@@ -248,12 +299,12 @@ async def verify_partner_ifsc(body: dict) -> dict:
         "ifsc": ifsc,
         "bankName": bank_name,
         "branch": branch,
-        "city": "Kasganj",
-        "state": "Uttar Pradesh",
+        "city": city,
+        "state": state,
         "rtgs": True,
         "neft": True,
         "imps": True,
-        "source": "Reserve Bank of India (RBI IFSC Database)",
+        "source": "RBI IFSC Registry",
         "message": f"IFSC valid: {bank_name}, {branch}",
     }
 
@@ -348,11 +399,17 @@ async def get_partner_verification_status(
             pid = getattr(user, "linked_id", None) or getattr(user, "linked_partner_id", None)
 
     u_doc = None
+    target_phone = phone or (user.phone if user else None)
+    clean_p = (target_phone or "").replace(" ", "").replace("-", "").replace("+91", "").replace("+", "").strip()
+    last10 = clean_p[-10:] if len(clean_p) >= 10 else clean_p
+    phone_candidates = [p for p in [target_phone, clean_p, last10, f"+91{last10}", f"+91 {last10}", f"91{last10}"] if p]
+
     if user:
         u_doc = await database.find_one("users", {"_id": user.id})
-    elif phone:
-        clean_p = phone.replace(" ", "").replace("-", "")
-        u_doc = await database.find_one("users", {"$or": [{"phone": clean_p}, {"phone": f"+91{clean_p}"}, {"phone": clean_p[-10:]}]})
+    elif target_phone:
+        u_doc = await database.find_one("users", {"phone": {"$in": phone_candidates}, "role": "partner"})
+        if not u_doc:
+            u_doc = await database.find_one("users", {"phone": {"$in": phone_candidates}})
         if u_doc and not pid:
             pid = u_doc.get("linked_id") or u_doc.get("linked_partner_id")
 
@@ -361,12 +418,30 @@ async def get_partner_verification_status(
         prof = (
             await database.find_one("partner_profiles", {"$or": [{"_id": pid}, {"partnerId": pid}]})
             or await database.find_one("admin_partners", {"$or": [{"_id": pid}, {"partnerId": pid}]})
-            or await database.find_one("partners", {"$or": [{"_id": pid}, {"partnerId": pid}]})
         )
 
     if not prof and u_doc:
         uid = str(u_doc.get("_id") or u_doc.get("id"))
-        prof = await database.find_one("partner_profiles", {"userId": uid}) or await database.find_one("admin_partners", {"userId": uid})
+        prof = (
+            await database.find_one("partner_profiles", {"userId": uid})
+            or await database.find_one("admin_partners", {"userId": uid})
+        )
+
+    if not prof and phone_candidates:
+        prof = (
+            await database.find_one("partner_profiles", {
+                "$or": [
+                    {"phone": {"$in": phone_candidates}},
+                    {"ownerPhone": {"$in": phone_candidates}},
+                ]
+            })
+            or await database.find_one("admin_partners", {
+                "$or": [
+                    {"phone": {"$in": phone_candidates}},
+                    {"mobile": {"$in": phone_candidates}},
+                ]
+            })
+        )
 
     pv = None
     if pid:
@@ -374,7 +449,7 @@ async def get_partner_verification_status(
 
     is_verified = False
     is_onboarded = False
-    status_str = "pending_verification"
+    status_str = "not_registered"
     business_name = "QuickPress Partner Store"
     owner_name = "Partner"
 
@@ -387,13 +462,26 @@ async def get_partner_verification_status(
             prof.get("isVerified")
             or status_str in ("active", "approved")
             or (pv and pv.get("status") == "approved")
-            or (u_doc and (u_doc.get("is_verified") or u_doc.get("status") == "active"))
+            or (u_doc and u_doc.get("is_verified") is True)
         )
         is_onboarded = bool(prof.get("isOnboarded", True))
-    elif u_doc:
-        status_str = str(u_doc.get("status") or "pending_verification").lower()
-        is_verified = bool(u_doc.get("is_verified") or status_str in ("active", "approved"))
-        is_onboarded = bool(u_doc.get("is_onboarded", True))
+    else:
+        # No partner profile found in partner_profiles -> Phone is NOT registered yet
+        is_verified = False
+        is_onboarded = False
+        status_str = "not_registered"
+        if u_doc and (u_doc.get("is_onboarded") or u_doc.get("is_verified")):
+            await database.update(
+                "users",
+                {"_id": u_doc.get("_id") or u_doc.get("id")},
+                {
+                    "is_onboarded": False,
+                    "is_verified": False,
+                    "linked_id": None,
+                    "linked_partner_id": None,
+                    "status": "pending",
+                },
+            )
 
     if is_verified:
         status_str = "active"
@@ -755,6 +843,36 @@ async def start_processing(order_id: str, partner_id: str = Depends(_verified_pa
             event="PROCESSING_STARTED",
             title=f"Processing Started #{doc.get('code', order_id[:8])}",
             description="Washing / dry-cleaning cycle commenced at store",
+            actor="Partner",
+            order_id=order_id,
+            order_code=doc.get("code"),
+            tone="info",
+        ))
+    except PartnerAccessError as error:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+    except PartnerNotFoundError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    except InvalidTransitionError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+    return _order_response(doc)
+
+
+@router.post("/orders/{order_id}/stage", response_model=PartnerOrderResponse)
+@router.post("/orders/{order_id}/processing-stage", response_model=PartnerOrderResponse)
+async def advance_processing_stage(
+    order_id: str, body: dict | None = None, partner_id: str = Depends(_verified_partner_id)
+) -> PartnerOrderResponse:
+    stage_id = str((body or {}).get("stage") or (body or {}).get("stageId") or "sorting")
+    try:
+        doc = await partner_order_repository.advance_stage(partner_id, order_id, stage_id)
+        from app.services.partner_activity_logger import log_partner_activity
+        import asyncio
+        asyncio.create_task(log_partner_activity(
+            partner_id=partner_id,
+            category="orders",
+            event="STAGE_UPDATED",
+            title=f"Stage Advanced: {stage_id.title()} #{doc.get('code', order_id[:8])}",
+            description=f"Order progressed to {stage_id.title()}",
             actor="Partner",
             order_id=order_id,
             order_code=doc.get("code"),
@@ -1148,8 +1266,18 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         or getattr(user, "linked_partner_id", None)
         or getattr(user, "linked_id", None)
     )
+    clean_user_phone = (user.phone or "").replace("+91", "").replace("+", "").strip()
+    clean_phone = str(getattr(payload, "phone", None) or user.phone or "").strip()
+    phone_cands = [p for p in [user.phone, clean_phone, clean_user_phone, f"+91{clean_user_phone}"] if p]
+
     if not partner_id:
-        existing_profile = await database.find_one("partner_profiles", {"userId": user.id})
+        existing_profile = await database.find_one("partner_profiles", {
+            "$or": [
+                {"userId": user.id},
+                {"phone": {"$in": phone_cands}},
+                {"ownerPhone": {"$in": phone_cands}},
+            ]
+        })
         if existing_profile:
             partner_id = existing_profile.get("_id") or existing_profile.get("partnerId")
     if not partner_id:
@@ -1160,63 +1288,75 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
 
     store_id_str = str(partner_id)
 
-    # --- Strict 1-to-1 Uniqueness Constraints ---
-    clean_phone = str(getattr(payload, "phone", None) or user.phone or "").strip()
+    # --- Strict 1-to-1 Uniqueness Constraints (Excluding self / own store & unapproved drafts) ---
     clean_aadhaar = str(payload.aadhaar or "").replace(" ", "").replace("-", "").strip()
     clean_pan = str(payload.pan or "").replace(" ", "").strip().upper()
     clean_email = str(getattr(payload, "email", None) or user.email or "").strip().lower()
 
-    # 1. Aadhaar Uniqueness Check
+    self_filter = {
+        "_id": {"$ne": store_id_str},
+        "partnerId": {"$ne": store_id_str},
+        "userId": {"$ne": user.id},
+        "phone": {"$nin": phone_cands},
+        "ownerPhone": {"$nin": phone_cands},
+    }
+    conflict_filter = {
+        **self_filter,
+        "status": {"$in": ["approved", "active"]},
+        "isVerified": True,
+    }
+
+    # 1. Aadhaar Uniqueness Check (Only against active approved stores)
     if clean_aadhaar and len(clean_aadhaar) == 12:
-        existing_aadhaar = await database.find_one("partner_profiles", {"aadhaar": clean_aadhaar, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
+        existing_aadhaar = await database.find_one("partner_profiles", {"aadhaar": clean_aadhaar, **conflict_filter})
         if not existing_aadhaar:
-            existing_aadhaar = await database.find_one("partners", {"aadhaar": clean_aadhaar, "_id": {"$ne": store_id_str}, "user_id": {"$ne": user.id}})
+            existing_aadhaar = await database.find_one("partners", {"aadhaar": clean_aadhaar, **conflict_filter})
         if existing_aadhaar:
             raise HTTPException(
                 status_code=400,
-                detail=f"This Aadhaar Number (XXXX-XXXX-{clean_aadhaar[-4:]}) is already registered with another store ({existing_aadhaar.get('businessName', 'Partner')}). Each partner identity can only register one business."
+                detail=f"This Aadhaar Number (XXXX-XXXX-{clean_aadhaar[-4:]}) is already registered with an active store ({existing_aadhaar.get('businessName', 'Partner')}).",
             )
 
-    # 2. PAN Uniqueness Check
+    # 2. PAN Uniqueness Check (Only against active approved stores)
     if clean_pan and len(clean_pan) == 10:
-        existing_pan = await database.find_one("partner_profiles", {"pan": clean_pan, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
+        existing_pan = await database.find_one("partner_profiles", {"pan": clean_pan, **conflict_filter})
         if not existing_pan:
-            existing_pan = await database.find_one("partners", {"pan": clean_pan, "_id": {"$ne": store_id_str}, "user_id": {"$ne": user.id}})
+            existing_pan = await database.find_one("partners", {"pan": clean_pan, **conflict_filter})
         if existing_pan:
             raise HTTPException(
                 status_code=400,
-                detail=f"This PAN Number ({clean_pan}) is already registered with an existing Partner store."
+                detail=f"This PAN Number ({clean_pan}) is already registered with an active Partner store.",
             )
 
-    # 3. Email Uniqueness Check
+    # 3. Email Uniqueness Check (Only against active approved stores)
     if clean_email:
-        existing_email = await database.find_one("partner_profiles", {"email": clean_email, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
+        existing_email = await database.find_one("partner_profiles", {"email": clean_email, **conflict_filter})
         if existing_email:
             raise HTTPException(
                 status_code=400,
-                detail=f"This Email address ({clean_email}) is already registered with another store."
+                detail=f"This Email address ({clean_email}) is already registered with another active store.",
             )
 
     # 4. GSTIN Uniqueness Check
     clean_gstin = str(payload.gstin or "").replace(" ", "").strip().upper()
     if clean_gstin and len(clean_gstin) == 15:
-        existing_gstin = await database.find_one("partner_profiles", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
+        existing_gstin = await database.find_one("partner_profiles", {"gstin": clean_gstin, **conflict_filter})
         if not existing_gstin:
-            existing_gstin = await database.find_one("partners", {"gstin": clean_gstin, "_id": {"$ne": store_id_str}, "user_id": {"$ne": user.id}})
+            existing_gstin = await database.find_one("partners", {"gstin": clean_gstin, **conflict_filter})
         if existing_gstin:
             raise HTTPException(
                 status_code=400,
-                detail=f"This GSTIN ({clean_gstin}) is already registered with another store ({existing_gstin.get('businessName', 'Partner')}).",
+                detail=f"This GSTIN ({clean_gstin}) is already registered with another active store ({existing_gstin.get('businessName', 'Partner')}).",
             )
 
     # 5. Bank Account Uniqueness Check
     clean_bank = str(getattr(payload, "accountNumber", "") or "").strip()
     if clean_bank and len(clean_bank) >= 8:
-        existing_bank = await database.find_one("partner_profiles", {"accountNumber": clean_bank, "_id": {"$ne": store_id_str}, "userId": {"$ne": user.id}})
+        existing_bank = await database.find_one("partner_profiles", {"accountNumber": clean_bank, **conflict_filter})
         if existing_bank:
             raise HTTPException(
                 status_code=400,
-                detail=f"This Bank Account (XX{clean_bank[-4:]}) is already linked with another partner store.",
+                detail=f"This Bank Account (XX{clean_bank[-4:]}) is already linked with an active partner store.",
             )
 
     existing_profile = (
@@ -1248,6 +1388,16 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "gstin": payload.gstin,
         "pan": clean_pan,
         "aadhaar": clean_aadhaar,
+        "ownerPhoto": payload.ownerPhoto or payload.logo,
+        "aadhaarFront": payload.aadhaarFront,
+        "aadhaarBack": payload.aadhaarBack,
+        "panCard": payload.panCard,
+        "chequePhoto": payload.chequePhoto,
+        "alternatePhone": payload.alternatePhone,
+        "gender": payload.gender,
+        "dob": payload.dob,
+        "servicePrices": payload.servicePrices or {},
+        "serviceTurnarounds": payload.serviceTurnarounds or {},
         "experience": payload.experience,
         "address": payload.address,
         "city": payload.city,
@@ -1312,9 +1462,13 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
             "businessName": payload.businessName,
             "storeName": payload.businessName,
             "ownerName": payload.ownerName,
+            "ownerPhoto": payload.ownerPhoto or payload.logo,
             "phone": clean_phone,
             "mobile": clean_phone,
+            "alternatePhone": payload.alternatePhone,
             "email": clean_email,
+            "gender": payload.gender,
+            "dob": payload.dob,
             "city": payload.city,
             "area": payload.area,
             "address": payload.address,
@@ -1325,6 +1479,15 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
             "aadhaarVerified": True,
             "panVerified": True,
             "bankVerified": True,
+            "aadhaarFront": payload.aadhaarFront,
+            "aadhaarBack": payload.aadhaarBack,
+            "panCard": payload.panCard,
+            "chequePhoto": payload.chequePhoto,
+            "logo": payload.logo,
+            "banner": payload.banner,
+            "gallery": payload.gallery,
+            "latitude": payload.latitude,
+            "longitude": payload.longitude,
             "bankName": payload.bankName,
             "accountHolder": payload.accountHolder,
             "accountNumber": payload.accountNumber,

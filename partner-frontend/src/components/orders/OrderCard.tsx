@@ -10,7 +10,7 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 
 import {
   STAGE_LABEL,
@@ -34,7 +34,7 @@ const PAYMENT_LABEL: Record<PaymentStatus, string> = {
   refunded: "Refunded",
 };
 
-export function OrderStatusBadge({ order }: { order: ManagedOrder }) {
+export const OrderStatusBadge = React.memo(function OrderStatusBadge({ order }: { order: ManagedOrder }) {
   const stage = order?.stage || "new";
   const tone = STAGE_TONE[stage] || "bg-primary/15 text-brand-dark";
   const label = STAGE_LABEL[stage] || stage || "Active";
@@ -45,10 +45,10 @@ export function OrderStatusBadge({ order }: { order: ManagedOrder }) {
       {label}
     </span>
   );
-}
+});
 
-/** Expandable order card used across every stage tab. */
-export function OrderCard({
+/** Expandable order card with 120 FPS React.memo and CSS containment */
+export const OrderCard = React.memo(function OrderCard({
   order,
   index = 0,
   onAction,
@@ -69,7 +69,7 @@ export function OrderCard({
         if (target.closest("button, a, input, select, textarea")) return;
         navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
       }}
-      className="card-soft animate-rise border border-border p-4 transition-all duration-300 hover:border-primary/60 cursor-pointer"
+      className="contain-render card-soft animate-rise border border-border p-4 transition-all duration-300 hover:border-primary/60 cursor-pointer"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -189,4 +189,4 @@ export function OrderCard({
       </div>
     </article>
   );
-}
+});

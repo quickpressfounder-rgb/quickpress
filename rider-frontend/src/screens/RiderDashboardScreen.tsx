@@ -31,6 +31,7 @@ import {
   subscribeRiderStatus,
   subscribeRiderWallet,
 } from "../lib/rider-socket";
+import { riderLocationEngine } from "../lib/rider-location-service";
 
 export function RiderDashboardScreen() {
   const navigate = useNavigate();
@@ -129,40 +130,15 @@ export function RiderDashboardScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // GPS Geolocation Tracking
+  // GPS Geolocation Tracking via High-Performance Engine
   useEffect(() => {
-    if (!navigator?.geolocation) return;
-
-    geoWatchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setCurrentCoords(coords);
-        if (isOnline) {
-          const isMock = Boolean(
-            (pos.coords as any).isMock ||
-            (pos as any).isMock ||
-            (pos.coords as any).isFromMockProvider ||
-            (pos.coords as any).mocked
-          );
-          pushRiderLocation(coords.lat, coords.lng, {
-            isMock,
-            heading: pos.coords.heading ?? undefined,
-            speed: pos.coords.speed ?? undefined,
-            accuracy: pos.coords.accuracy ?? undefined,
-          }).catch(() => {});
-        }
-      },
-      () => {
-        setCurrentCoords({ lat: 27.8118, lng: 78.6477 });
-      },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
-    );
-
-    return () => {
-      if (geoWatchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(geoWatchIdRef.current);
+    riderLocationEngine.setOnline(isOnline);
+    const unsubscribe = riderLocationEngine.subscribe((data) => {
+      if (data.lat !== null && data.lng !== null) {
+        setCurrentCoords({ lat: data.lat, lng: data.lng });
       }
-    };
+    });
+    return unsubscribe;
   }, [isOnline]);
 
   // Live Offers Stream: When an offer arrives, switch immediately to the Orders tab!

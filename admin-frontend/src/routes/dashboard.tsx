@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Download,
@@ -34,6 +34,10 @@ import {
   Flame,
   ShieldAlert,
   Cpu,
+  CheckCheck,
+  Check,
+  RotateCcw,
+  Bike,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -130,6 +134,115 @@ export function DashboardPage() {
 
   const data = summary.data;
 
+  // Priority Action Center Read/Acknowledged alerts state
+  const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("qp_dashboard_read_alerts");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleAlertRead = (alertId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setAcknowledgedAlerts((prev) => {
+      const next: Record<string, boolean> = { ...prev, [alertId]: !Boolean(prev[alertId]) };
+      try {
+        localStorage.setItem("qp_dashboard_read_alerts", JSON.stringify(next));
+      } catch {}
+      if (next[alertId]) {
+        toast.success("Incident / Alert marked as read & acknowledged");
+      } else {
+        toast.info("Incident / Alert marked as unread");
+      }
+      return next;
+    });
+  };
+
+  const markAllAlertsRead = () => {
+    const raw = data?.attentionAlerts || [];
+    const allRead: Record<string, boolean> = { ...acknowledgedAlerts };
+    raw.forEach((a) => {
+      allRead[a.id] = true;
+    });
+    allRead["sla_delayed"] = true;
+    allRead["pending_partners"] = true;
+    allRead["unassigned_orders"] = true;
+    allRead["pending_payouts"] = true;
+    setAcknowledgedAlerts(allRead);
+    try {
+      localStorage.setItem("qp_dashboard_read_alerts", JSON.stringify(allRead));
+    } catch {}
+    toast.success("All priority operational alerts marked as read & acknowledged");
+  };
+
+  const resetAllAlertsRead = () => {
+    setAcknowledgedAlerts({});
+    try {
+      localStorage.removeItem("qp_dashboard_read_alerts");
+    } catch {}
+    toast.info("Operational alerts reset to unread");
+  };
+
+  const count = (n?: number) => (n ?? 0).toLocaleString("en-IN");
+  const currency = (n?: number) => `₹${(n ?? 0).toLocaleString("en-IN")}`;
+
+  const effectiveAlerts = useMemo(() => {
+    const raw = data?.attentionAlerts || [];
+    if (raw.length > 0) return raw;
+    const list = [];
+    if ((data?.delayedOrders ?? 0) > 0) {
+      list.push({
+        id: "sla_delayed",
+        severity: "warning" as const,
+        title: `${data?.delayedOrders} Delayed Orders (SLA Breach)`,
+        description: "Orders exceeding standard turnaround thresholds requiring dispatch intervention",
+        count: data?.delayedOrders ?? 0,
+        actionText: "Investigate",
+        actionRoute: adminRoutes.orders,
+      });
+    }
+    if ((data?.pendingPartners ?? 0) > 0) {
+      list.push({
+        id: "pending_partners",
+        severity: "warning" as const,
+        title: `${data?.pendingPartners} Partner Applications Pending`,
+        description: "New laundry partner stores awaiting KYC verification & onboarding approval",
+        count: data?.pendingPartners ?? 0,
+        actionText: "Review Stores",
+        actionRoute: adminRoutes.partners,
+      });
+    }
+    if ((data?.unassignedOrders ?? 0) > 0) {
+      list.push({
+        id: "unassigned_orders",
+        severity: "critical" as const,
+        title: `${data?.unassignedOrders} Orders Without Rider`,
+        description: "Live customer orders awaiting partner acceptance or pilot dispatch",
+        count: data?.unassignedOrders ?? 0,
+        actionText: "View Orders",
+        actionRoute: adminRoutes.orders,
+      });
+    }
+    if ((data?.pendingPayoutAmount ?? 0) > 0) {
+      list.push({
+        id: "pending_payouts",
+        severity: "warning" as const,
+        title: `Payout Requests Pending (${currency(data?.pendingPayoutAmount)})`,
+        description: "Partner settlement withdrawals requiring finance audit and approval",
+        count: 1,
+        actionText: "Process Payouts",
+        actionRoute: adminRoutes.wallet,
+      });
+    }
+    return list;
+  }, [data]);
+
+  const unreadAlertsCount = useMemo(() => {
+    return effectiveAlerts.filter((a) => !Boolean(acknowledgedAlerts[a.id])).length;
+  }, [effectiveAlerts, acknowledgedAlerts]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -141,9 +254,6 @@ export function DashboardPage() {
       setIsRefreshing(false);
     }
   };
-
-  const count = (n?: number) => (n ?? 0).toLocaleString("en-IN");
-  const currency = (n?: number) => `₹${(n ?? 0).toLocaleString("en-IN")}`;
 
   const latestRows = (latest.data?.rows ?? []).map((row, index) => ({
     id: String(row["id"] ?? index),
@@ -257,77 +367,192 @@ export function DashboardPage() {
         </div>
 
         {/* =========================================================================
-            SECTION 5: ATTENTION REQUIRED (ACTIONABLE ALERT STRIP)
+            SECTION 5: PRIORITY ACTION CENTER (CRITICAL OPERATIONS & INCIDENT QUEUES)
         ========================================================================= */}
-        {data?.attentionAlerts && data.attentionAlerts.length > 0 && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-4 sm:p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-amber-200/80">
-              <div className="flex items-center gap-2">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-white font-black text-xs">
-                  <AlertTriangle className="size-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-amber-950">Requires Immediate Attention</h3>
-                  <p className="text-xs text-amber-800 font-medium">Critical items needing admin intervention</p>
-                </div>
+        <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xs space-y-4">
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-100 pb-3.5">
+            <div className="flex items-center gap-3">
+              <div className="relative flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                <ShieldAlert className="size-4.5" />
+                {unreadAlertsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex size-2.5">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                  </span>
+                )}
               </div>
-              <span className="rounded-full bg-amber-200/80 px-2.5 py-0.5 text-[10px] font-black text-amber-900">
-                {data.attentionAlerts.length} Action Items
-              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-black tracking-tight text-zinc-900">
+                    Priority Action Center
+                  </h3>
+                  <span className="rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                    CRITICAL ATTENTION QUEUES
+                  </span>
+                  {unreadAlertsCount === 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black text-emerald-800">
+                      <Check className="size-3 text-emerald-600" /> All Queues Read
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-900 px-2.5 py-0.5 text-[10px] font-bold text-white font-mono">
+                      <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      {unreadAlertsCount} Action {unreadAlertsCount === 1 ? "Item" : "Items"} Pending
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-zinc-500 font-medium">
+                  Immediate operational intervention for SLA breaches, partner KYC audits, unassigned dispatches, and payout settlements
+                </p>
+              </div>
             </div>
 
-            <div className="mt-3.5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {data.attentionAlerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className={`flex flex-col justify-between rounded-xl border p-3.5 bg-white transition-all hover:shadow-sm ${
-                    alert.severity === "critical" ? "border-rose-300 bg-rose-50/40" : "border-amber-300"
-                  }`}
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              {unreadAlertsCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={markAllAlertsRead}
+                  className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 shadow-2xs transition-all hover:border-emerald-300 hover:bg-emerald-50/80 hover:text-emerald-800 active:scale-95 cursor-pointer"
+                  title="Mark all priority alerts as read & acknowledged"
                 >
-                  <div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${alert.severity === "critical" ? "text-rose-600" : "text-amber-700"}`}>
-                      {alert.title}
-                    </span>
-                    <p className="mt-1 text-xs text-zinc-600 line-clamp-2">{alert.description}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate({ to: alert.actionRoute as any })}
-                    className="mt-3 flex items-center justify-between rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-black text-white hover:bg-zinc-800 active:scale-95"
-                  >
-                    <span>{alert.actionText}</span>
-                    <ChevronRight className="size-3.5" />
-                  </button>
-                </div>
-              ))}
+                  <CheckCheck className="size-3.5 text-emerald-600" />
+                  <span>Mark All as Read</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resetAllAlertsRead}
+                  className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/90 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs transition-all hover:bg-emerald-100 active:scale-95 cursor-pointer"
+                  title="Reset read status"
+                >
+                  <Check className="size-3.5" />
+                  <span>All Read · Reset</span>
+                </button>
+              )}
             </div>
           </div>
-        )}
+
+          {effectiveAlerts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {effectiveAlerts.map((alert) => {
+                const isRead = Boolean(acknowledgedAlerts[alert.id]);
+                const isCritical = alert.severity === "critical" || alert.id === "sla_delayed";
+                const isPartner = alert.id === "pending_partners";
+                const isPayout = alert.id === "pending_payouts";
+
+                return (
+                  <div
+                    key={alert.id}
+                    className={`group relative flex flex-col justify-between overflow-hidden rounded-xl border p-4 transition-all duration-200 cursor-pointer bg-white hover:bg-zinc-50/50 border-zinc-200/80 hover:border-emerald-500 hover:shadow-xs ${
+                      isRead ? "opacity-75 bg-zinc-50/60" : ""
+                    }`}
+                    onClick={() => navigate({ to: alert.actionRoute as any })}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-7.5 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-xs font-black shadow-2xs">
+                            {isCritical ? <Clock className="size-4" /> : isPartner ? <Building2 className="size-4" /> : isPayout ? <Wallet className="size-4" /> : <Truck className="size-4" />}
+                          </div>
+                          <span className="text-xs font-black text-zinc-900 truncate">
+                            {alert.title}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isRead ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              <Check className="size-2.5" /> Read
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 rounded-full bg-zinc-900 px-2.5 py-0.5 text-xs font-black font-mono text-white shadow-2xs">
+                              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              {alert.count || 1}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">
+                        {alert.description}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between pt-2 border-t border-zinc-100">
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 group-hover:text-emerald-800 group-hover:underline">
+                        <span>{alert.actionText}</span>
+                        <ChevronRight className="size-3 text-emerald-600" />
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => toggleAlertRead(alert.id, e)}
+                        className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition-all border cursor-pointer ${
+                          isRead
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            : "border-zinc-200 bg-white text-zinc-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                        }`}
+                        title={isRead ? "Mark as unread" : "Mark as read & acknowledged"}
+                      >
+                        {isRead ? "✓ Read" : "Mark Read"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl bg-emerald-50/50 border border-emerald-100">
+              <ShieldCheck className="size-8 text-emerald-600 mb-2" />
+              <h4 className="text-sm font-black text-emerald-900">All Operations Clear &amp; Nominal</h4>
+              <p className="text-xs text-emerald-700 max-w-md mt-0.5">
+                Zero active SLA delays, unassigned orders, or pending compliance audits requiring immediate intervention.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* =========================================================================
-            SECTION 4: TOP KPI CARDS (ORDERS, BUSINESS, OPERATIONS) - FULLY INTERACTIVE
+            SECTION 4: TOP KPI CARDS (ORDERS, BUSINESS, OPERATIONS) - ADVANCE LEVEL
         ========================================================================= */}
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* 1. ORDERS CATEGORY - CLICKABLE */}
             <div
               onClick={() => navigate({ to: adminRoutes.orders })}
-              className="group cursor-pointer rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs transition-all hover:border-emerald-500/60 hover:shadow-md active:scale-[0.99]"
+              className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-emerald-500/70 hover:shadow-lg hover:shadow-emerald-500/5 active:scale-[0.99]"
             >
+              {/* Top Accent Gradient Bar */}
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-emerald-500 via-teal-500 to-emerald-600" />
+
               <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">ORDERS HEALTH</span>
                   <ArrowRight className="size-3 text-zinc-400 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 text-emerald-600" />
                 </div>
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50/80 px-2 py-0.5 rounded-full border border-emerald-200/60">
                   <TrendingUp className="size-3" />
                   {data?.ordersTrend ? `${data.ordersTrend.changePct > 0 ? "+" : ""}${data.ordersTrend.changePct}%` : "+0%"} vs prev
                 </span>
               </div>
-              <p className="mt-2 text-3xl font-black text-zinc-900 group-hover:text-emerald-700 transition-colors">
-                {count(data?.totalOrders)}
-              </p>
-              <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50 p-2 text-center text-xs">
+
+              <div className="mt-3 flex items-baseline justify-between">
+                <p className="text-3xl font-black text-zinc-900 group-hover:text-emerald-700 transition-colors">
+                  {count(data?.totalOrders)}
+                </p>
+                <span className="text-xs font-semibold text-zinc-500">
+                  {Math.min(100, Math.round(((data?.deliveredOrders || 0) / (data?.totalOrders || 1)) * 100))}% Fulfilled
+                </span>
+              </div>
+
+              {/* Progress Meter */}
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.round(((data?.deliveredOrders || 0) / (data?.totalOrders || 1)) * 100))}%` }}
+                />
+              </div>
+
+              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -336,7 +561,7 @@ export function DashboardPage() {
                   }}
                   className="rounded-lg p-1.5 transition-all hover:bg-emerald-100/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold">Active</p>
+                  <p className="text-[10px] text-zinc-500 font-bold">Active</p>
                   <p className="font-black text-emerald-700 text-sm">{count(data?.liveOrders)}</p>
                 </button>
                 <button
@@ -347,7 +572,7 @@ export function DashboardPage() {
                   }}
                   className="rounded-lg p-1.5 transition-all hover:bg-zinc-200/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold">Delivered</p>
+                  <p className="text-[10px] text-zinc-500 font-bold">Delivered</p>
                   <p className="font-black text-zinc-900 text-sm">{count(data?.deliveredOrders)}</p>
                 </button>
                 <button
@@ -358,7 +583,7 @@ export function DashboardPage() {
                   }}
                   className="rounded-lg p-1.5 transition-all hover:bg-rose-100/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold">Delayed</p>
+                  <p className="text-[10px] text-zinc-500 font-bold">Delayed</p>
                   <p className="font-black text-rose-600 text-sm">{count(data?.delayedOrders)}</p>
                 </button>
               </div>
@@ -367,32 +592,50 @@ export function DashboardPage() {
             {/* 2. BUSINESS CATEGORY - CLICKABLE */}
             <div
               onClick={() => navigate({ to: adminRoutes.analytics })}
-              className="group cursor-pointer rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs transition-all hover:border-emerald-500/60 hover:shadow-md active:scale-[0.99]"
+              className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-indigo-500/70 hover:shadow-lg hover:shadow-indigo-500/5 active:scale-[0.99]"
             >
+              {/* Top Accent Gradient Bar */}
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-indigo-500 via-violet-500 to-purple-600" />
+
               <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">BUSINESS &amp; REVENUE</span>
-                  <ArrowRight className="size-3 text-zinc-400 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 text-emerald-600" />
+                  <ArrowRight className="size-3 text-zinc-400 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 text-indigo-600" />
                 </div>
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                <span className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-full border border-indigo-200/60">
                   <TrendingUp className="size-3" />
                   {data?.revenueTrend ? `${data.revenueTrend.changePct > 0 ? "+" : ""}${data.revenueTrend.changePct}%` : "+0%"} vs prev
                 </span>
               </div>
-              <p className="mt-2 text-3xl font-black text-emerald-700 group-hover:text-emerald-800 transition-colors">
-                {currency(data?.todayRevenue || data?.revenue)}
-              </p>
-              <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50 p-2 text-center text-xs">
+
+              <div className="mt-3 flex items-baseline justify-between">
+                <p className="text-3xl font-black text-indigo-700 group-hover:text-indigo-800 transition-colors">
+                  {currency(data?.todayRevenue || data?.revenue)}
+                </p>
+                <span className="text-xs font-semibold text-zinc-500">
+                  18% Platform Take
+                </span>
+              </div>
+
+              {/* Progress Meter */}
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-indigo-500 to-violet-500 transition-all duration-500"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate({ to: adminRoutes.wallet });
                   }}
-                  className="rounded-lg p-1.5 transition-all hover:bg-emerald-100/70 hover:scale-[1.03] active:scale-95"
+                  className="rounded-lg p-1.5 transition-all hover:bg-indigo-100/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold truncate">Commission (18%)</p>
-                  <p className="font-black text-emerald-800 text-sm">{currency(data?.platformCommission)}</p>
+                  <p className="text-[10px] text-zinc-500 font-bold truncate">Commission (18%)</p>
+                  <p className="font-black text-indigo-800 text-sm">{currency(data?.platformCommission)}</p>
                 </button>
                 <button
                   type="button"
@@ -402,7 +645,7 @@ export function DashboardPage() {
                   }}
                   className="rounded-lg p-1.5 transition-all hover:bg-amber-100/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold truncate">Pending Payout</p>
+                  <p className="text-[10px] text-zinc-500 font-bold truncate">Pending Payout</p>
                   <p className="font-black text-amber-700 text-sm">{currency(data?.pendingPayoutAmount)}</p>
                 </button>
                 <button
@@ -413,7 +656,7 @@ export function DashboardPage() {
                   }}
                   className="rounded-lg p-1.5 transition-all hover:bg-zinc-200/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold">Customers</p>
+                  <p className="text-[10px] text-zinc-500 font-bold">Customers</p>
                   <p className="font-black text-zinc-900 text-sm">{count(data?.totalCustomers)}</p>
                 </button>
               </div>
@@ -422,32 +665,52 @@ export function DashboardPage() {
             {/* 3. OPERATIONS CATEGORY - CLICKABLE */}
             <div
               onClick={() => navigate({ to: adminRoutes.riders })}
-              className="group cursor-pointer rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs transition-all hover:border-emerald-500/60 hover:shadow-md active:scale-[0.99]"
+              className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-sky-500/70 hover:shadow-lg hover:shadow-sky-500/5 active:scale-[0.99]"
             >
+              {/* Top Accent Gradient Bar */}
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-blue-500 via-sky-500 to-cyan-600" />
+
               <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">FLEET &amp; PARTNERS</span>
-                  <ArrowRight className="size-3 text-zinc-400 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 text-emerald-600" />
+                  <ArrowRight className="size-3 text-zinc-400 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 text-sky-600" />
                 </div>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Live Telemetry</span>
+                <span className="rounded-full bg-sky-50/80 px-2 py-0.5 text-[10px] font-bold text-sky-700 border border-sky-200/60">
+                  Live Telemetry
+                </span>
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <p className="text-3xl font-black text-zinc-900 group-hover:text-emerald-700 transition-colors">
-                  {count(data?.onlineRiders)}
-                </p>
-                <span className="text-xs font-bold text-zinc-500">Riders Online / {count(data?.totalRiders)}</span>
+
+              <div className="mt-3 flex items-baseline justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-black text-zinc-900 group-hover:text-sky-700 transition-colors">
+                    {count(data?.onlineRiders)}
+                  </p>
+                  <span className="text-xs font-bold text-zinc-500">Online / {count(data?.totalRiders)}</span>
+                </div>
+                <span className="text-xs font-semibold text-zinc-500">
+                  {Math.min(100, Math.round(((data?.availableRiders || 0) / (data?.onlineRiders || 1)) * 100))}% Ready
+                </span>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50 p-2 text-center text-xs">
+
+              {/* Progress Meter */}
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-blue-500 to-cyan-500 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.round(((data?.availableRiders || 0) / (data?.onlineRiders || 1)) * 100))}%` }}
+                />
+              </div>
+
+              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate({ to: adminRoutes.riders });
                   }}
-                  className="rounded-lg p-1.5 transition-all hover:bg-emerald-100/70 hover:scale-[1.03] active:scale-95"
+                  className="rounded-lg p-1.5 transition-all hover:bg-sky-100/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold">Available</p>
-                  <p className="font-black text-emerald-700 text-sm">{count(data?.availableRiders)}</p>
+                  <p className="text-[10px] text-zinc-500 font-bold">Available</p>
+                  <p className="font-black text-sky-700 text-sm">{count(data?.availableRiders)}</p>
                 </button>
                 <button
                   type="button"
@@ -457,7 +720,7 @@ export function DashboardPage() {
                   }}
                   className="rounded-lg p-1.5 transition-all hover:bg-zinc-200/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold">Active Stores</p>
+                  <p className="text-[10px] text-zinc-500 font-bold">Active Stores</p>
                   <p className="font-black text-zinc-900 text-sm">{count(data?.activePartners)}</p>
                 </button>
                 <button
@@ -468,7 +731,7 @@ export function DashboardPage() {
                   }}
                   className="rounded-lg p-1.5 transition-all hover:bg-rose-100/70 hover:scale-[1.03] active:scale-95"
                 >
-                  <p className="text-[10px] text-zinc-500 font-semibold">Pending Stores</p>
+                  <p className="text-[10px] text-zinc-500 font-bold">Pending Stores</p>
                   <p className="font-black text-rose-600 text-sm">{count(data?.pendingPartners)}</p>
                 </button>
               </div>
@@ -478,26 +741,58 @@ export function DashboardPage() {
 
 
         {/* =========================================================================
-            SECTION 8: ORDER FULFILLMENT PIPELINE (VISUAL 9-STAGE PROGRESSION)
+            SECTION 8: ORDER FULFILLMENT PIPELINE (ADVANCED 9-STAGE PROGRESSION)
         ========================================================================= */}
         <SectionCard
           title="Order Lifecycle Pipeline"
-          description="Click any stage to inspect and filter orders in that operational state"
+          description="Real-time multi-stage operational telemetry across pickup, cleaning, and delivery legs"
         >
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
-            {(data?.pipeline || []).map((stage) => (
-              <button
-                key={stage.id}
-                type="button"
-                onClick={() => navigate({ to: adminRoutes.orders })}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-center transition-all hover:border-emerald-500 hover:bg-white hover:shadow-xs active:scale-95"
-              >
-                <span className="text-xl font-black text-zinc-900">{stage.count}</span>
-                <span className="mt-1 text-[11px] font-bold text-zinc-600 leading-tight">
-                  {stage.label}
-                </span>
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-9">
+            {(data?.pipeline || []).map((stage, idx) => {
+              const hasItems = stage.count > 0;
+              const isLateStage = idx >= 6;
+              const isMidStage = idx >= 3 && idx < 6;
+
+              return (
+                <button
+                  key={stage.id}
+                  type="button"
+                  onClick={() => navigate({ to: adminRoutes.orders })}
+                  className={`group relative flex flex-col items-center justify-between rounded-xl border p-3 text-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                    hasItems
+                      ? isLateStage
+                        ? "bg-linear-to-b from-emerald-50/70 to-white border-emerald-300 hover:border-emerald-500 hover:shadow-sm"
+                        : isMidStage
+                        ? "bg-linear-to-b from-purple-50/70 to-white border-purple-300 hover:border-purple-500 hover:shadow-sm"
+                        : "bg-linear-to-b from-sky-50/70 to-white border-sky-300 hover:border-sky-500 hover:shadow-sm"
+                      : "bg-zinc-50/60 border-zinc-200/80 hover:bg-white hover:border-zinc-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span className="text-[9px] font-black text-zinc-400 font-mono">#{idx + 1}</span>
+                    {hasItems && (
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    )}
+                  </div>
+
+                  <span className={`text-xl font-black transition-transform group-hover:scale-110 ${
+                    hasItems
+                      ? isLateStage
+                        ? "text-emerald-700"
+                        : isMidStage
+                        ? "text-purple-700"
+                        : "text-sky-700"
+                      : "text-zinc-700"
+                  }`}>
+                    {stage.count}
+                  </span>
+
+                  <span className="mt-1 text-[11px] font-bold text-zinc-700 leading-tight line-clamp-2">
+                    {stage.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </SectionCard>
 

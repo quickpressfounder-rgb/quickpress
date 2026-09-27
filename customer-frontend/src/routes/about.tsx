@@ -159,7 +159,7 @@ function AboutScreen() {
       {/* Safety & Hygiene Pledge */}
       <section className="py-12">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 p-8 sm:p-12 text-white">
+          <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-8 sm:p-12 text-white shadow-soft">
             <div className="max-w-2xl space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-emerald-300">
                 <ShieldCheck className="size-4" /> 100% Sanitized Promise

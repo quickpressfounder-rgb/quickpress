@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
   },
   server: {
-    url: "https://quickpress-customer.vercel.app",
+    url: "http://localhost:8081",
     cleartext: true,
   },
 };

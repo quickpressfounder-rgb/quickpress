@@ -85,13 +85,7 @@ def _validate_otp_attempt(otp_obj: Any, submitted_code: Optional[str], otp_name:
         raise PermissionError(f"{otp_name} has not been generated for this order yet")
 
     if otp_obj.get("verified"):
-        return
-
-    expected_code = str(otp_obj.get("code", "")).strip()
-    if code_str == expected_code:
-        otp_obj["verified"] = True
-        otp_obj["attempts"] = 0
-        return
+        raise ValueError(f"{otp_name} has already been verified")
 
     attempts = int(otp_obj.get("attempts", 0))
     max_attempts = int(otp_obj.get("maxAttempts", 5))
@@ -107,6 +101,11 @@ def _validate_otp_attempt(otp_obj: Any, submitted_code: Optional[str], otp_name:
                 raise PermissionError(f"{otp_name} has expired")
         except Exception:
             pass
+
+    expected_code = str(otp_obj.get("code", "")).strip()
+    if code_str == expected_code:
+        otp_obj["verified"] = True
+        return
 
     # Increment attempts
     otp_obj["attempts"] = attempts + 1

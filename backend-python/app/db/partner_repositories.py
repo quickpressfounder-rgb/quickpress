@@ -663,16 +663,32 @@ class PartnerOrderRepository:
             raise PartnerAccessError(str(error)) from error
 
         current_status = lifecycle.order_status(order)
-        if current_status != lifecycle.AT_PARTNER:
+        if current_status not in (lifecycle.STORE_DROP_CONFIRMED, lifecycle.AT_STORE, lifecycle.AT_PARTNER):
             raise InvalidTransitionError(
-                f"Cannot start processing before Captain completes pickup and arrives at store (Current status: {current_status}). Captain must reach store and perform store arrival first."
+                f"Cannot start processing before clothes are dropped and confirmed at store (Current status: {current_status}). STORE_DROP_CONFIRMED is strictly required before processing starts."
             )
 
-        from app.services.rider_dispatch import rider_dispatch_engine
-        res = await rider_dispatch_engine.partner_start_processing(order_id, partner_id)
-        return lifecycle.to_partner_order(res)
+        from app.services.processing_service import processing_service
+        timeline_info = await processing_service.calculate_processing_timeline(order)
+        now = lifecycle.now_iso()
 
-    async def start_ironing(self, partner_id: str, order_id: str) -> Dict[str, Any]:
+        updated = await lifecycle.transition(
+            lifecycle.order_id_of(order),
+            lifecycle.PROCESSING_STARTED,
+            actor_id=partner_id,
+            actor_role="partner",
+            metadata={"expectedReadyAt": timeline_info.get("expectedReadyAt")},
+            changes={
+                "processingTimeline": timeline_info,
+                "processingStages": timeline_info.get("stages", []),
+                "currentProcessingStage": timeline_info.get("currentStageId", "sorting"),
+                "expectedReadyAt": timeline_info.get("expectedReadyAt"),
+            },
+        )
+        return lifecycle.to_partner_order(updated)
+
+    async def advance_stage(self, partner_id: str, order_id: str, stage_id: str) -> Dict[str, Any]:
+        """Advance to a specific processing stage (e.g. sorting, washing, drying, quality_check, packed)."""
         order = await lifecycle.find_order(order_id)
         if not order:
             raise PartnerNotFoundError("Order not found")
@@ -681,15 +697,31 @@ class PartnerOrderRepository:
         except lifecycle.OrderAuthorizationError as error:
             raise PartnerAccessError(str(error)) from error
 
-        current_status = lifecycle.order_status(order)
-        if current_status not in (lifecycle.PROCESSING, "washing", "dry_cleaning"):
-            raise InvalidTransitionError(
-                f"Cannot start ironing before processing is completed (Current status: {current_status})."
-            )
+        now = lifecycle.now_iso()
+        stages = list(order.get("processingStages") or [])
+        clean_stage = stage_id.strip().lower()
 
-        from app.services.rider_dispatch import rider_dispatch_engine
-        res = await rider_dispatch_engine.partner_start_ironing(order_id, partner_id)
-        return lifecycle.to_partner_order(res)
+        # Update stage completion status
+        for stg in stages:
+            if stg.get("id") == clean_stage:
+                stg["completed"] = True
+                stg["completedAt"] = now
+
+        canonical_id = lifecycle.order_id_of(order)
+        await database.collection("customer_orders").update_one(
+            {"_id": canonical_id},
+            {
+                "$set": {
+                    "processingStages": stages,
+                    "currentProcessingStage": clean_stage,
+                    "updatedAt": now,
+                }
+            },
+        )
+        updated = await lifecycle.find_order(canonical_id)
+        from app.services.socket_service import broadcast_order_event
+        await broadcast_order_event("order.stage_updated", updated, extra_data={"currentStage": clean_stage})
+        return lifecycle.to_partner_order(updated)
 
     async def complete(self, partner_id: str, order_id: str) -> Dict[str, Any]:
         order = await lifecycle.find_order(order_id)
@@ -701,19 +733,54 @@ class PartnerOrderRepository:
             raise PartnerAccessError(str(error)) from error
 
         current_status = lifecycle.order_status(order)
-        if current_status not in (lifecycle.PROCESSING, "washing", "dry_cleaning", lifecycle.IRONING, "ironing"):
+        if current_status not in (
+            lifecycle.PROCESSING,
+            lifecycle.PROCESSING_STARTED,
+            "washing",
+            "dry_cleaning",
+            lifecycle.IRONING,
+            "ironing",
+            "sorting",
+            "quality_check",
+            "packed",
+        ):
             raise InvalidTransitionError(
                 f"Cannot mark order ready before processing is started (Current status: {current_status})."
             )
 
-        from app.services.rider_dispatch import rider_dispatch_engine
-        res = await rider_dispatch_engine.partner_mark_ready(order_id, partner_id)
-        # Automatically trigger delivery rider search/offer dispatch
-        try:
-            await rider_dispatch_engine.search_and_offer_riders(order_id)
-        except Exception as e:
-            logger.warning("Delivery rider dispatch offer failed for order %s: %s", order_id, e)
-        return lifecycle.to_partner_order(res)
+        now = lifecycle.now_iso()
+        canonical_id = lifecycle.order_id_of(order)
+
+        # Mark all stages completed
+        stages = list(order.get("processingStages") or [])
+        for stg in stages:
+            stg["completed"] = True
+            if not stg.get("completedAt"):
+                stg["completedAt"] = now
+
+        from app.services.rider_dispatch import create_otp_record
+        dispatch_otp_record = (order.get("otp") or {}).get("dispatch")
+        if not dispatch_otp_record or not (isinstance(dispatch_otp_record, dict) and dispatch_otp_record.get("code")):
+            dispatch_otp_record = create_otp_record()
+
+        changes = {
+            "processingStages": stages,
+            "currentProcessingStage": "packed",
+            "processingCompletedAt": now,
+            "readyAt": now,
+            "otp.dispatch": dispatch_otp_record,
+            "dispatchOtp": dispatch_otp_record["code"],
+        }
+
+        updated = await lifecycle.transition(
+            canonical_id,
+            lifecycle.READY_FOR_DELIVERY,
+            actor_id=partner_id,
+            actor_role="partner",
+            metadata={"completedAt": now, "dispatchOtpGenerated": True},
+            changes=changes,
+        )
+        return lifecycle.to_partner_order(updated)
 
     async def history(self, partner_id: str) -> List[Dict[str, Any]]:
         return [

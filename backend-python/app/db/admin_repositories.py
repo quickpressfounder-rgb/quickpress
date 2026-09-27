@@ -240,6 +240,47 @@ class AdminOrderRepository:
             )
         return to_admin_order_row(updated)
 
+    async def assign_partner(self, order_id: str, partner_id: str) -> Dict[str, Any]:
+        order = await self.find(order_id)
+        if order is None:
+            raise LookupError(f"Order {order_id} does not exist")
+        partner = await database.find_one("admin_partners", {"_id": partner_id})
+        if partner is None:
+            partner = await database.find_one("partner_profiles", {"_id": partner_id})
+        if partner is None:
+            partner = await database.find_one("partners", {"_id": partner_id})
+        if partner is None:
+            raise LookupError(f"Partner {partner_id} does not exist")
+
+        partner_party = {
+            "id": str(partner["_id"]),
+            "name": partner.get("businessName") or partner.get("storeName") or partner.get("name") or "QuickPress Partner",
+            "phone": partner.get("phone") or partner.get("ownerPhone") or "",
+            "address": partner.get("address") or "",
+            "city": partner.get("city") or "",
+        }
+        now = now_iso()
+        await database.update(
+            self.collection,
+            {"_id": order["_id"]},
+            {
+                "partner": partner_party,
+                "partnerId": str(partner["_id"]),
+                "partner_id": str(partner["_id"]),
+                "updatedAt": now,
+            },
+        )
+        await lifecycle.record_event(
+            order,
+            "PARTNER_REASSIGNED",
+            actor_id="admin",
+            actor_role="admin",
+            metadata={"partnerId": partner_id, "partnerName": partner_party["name"], "phone": partner_party["phone"]},
+            at=now,
+        )
+        updated = await self.find(order["_id"])
+        return to_admin_order_row(updated)
+
     async def cancel(self, order_id: str, reason: str) -> Dict[str, Any]:
         order = await self.find(order_id)
         if order is None:
@@ -752,14 +793,13 @@ class AdminPartnerRepository:
     collection = "partner_profiles"
 
     async def _get_raw_partners(self) -> List[Dict[str, Any]]:
-        catalog_partners = await database.find_many("catalog_partners")
         primary = await database.find_many("partner_profiles")
         admin_partners = await database.find_many("admin_partners")
         fallback = await database.find_many("partners")
         users = await database.find_many("users", {"role": "partner"})
 
         by_id: Dict[str, Dict[str, Any]] = {}
-        for p in catalog_partners + primary + admin_partners + fallback + users:
+        for p in primary + admin_partners + fallback + users:
             pid = str(p.get("_id") or p.get("id") or p.get("partnerId") or p.get("userId") or "")
             if pid:
                 if pid not in by_id:
@@ -822,7 +862,7 @@ class AdminPartnerRepository:
                 "email": doc.get("email") or f"{pid[:8]}@quickpress.online",
                 "city": clean_city,
                 "zone": doc.get("zone") or "Central Zone",
-                "serviceCategories": ["Wash & Fold", "Dry Cleaning", "Steam Iron"],
+                "serviceCategories": [s.get("name") for s in (doc.get("services") or []) if isinstance(s, dict) and s.get("name")] or ["Wash & Fold", "Dry Cleaning", "Steam Iron"],
                 "totalOrders": len(p_orders),
                 "completedOrders": len(deliv_orders),
                 "cancelledOrders": sum(1 for o in p_orders if o.get("status") == "cancelled"),
@@ -840,6 +880,23 @@ class AdminPartnerRepository:
                 "resubmittedAt": str(resub_at) if resub_at else "",
                 "resubmissionCount": resub_count,
                 "rejectionReason": rej_reason,
+                "logo": doc.get("logo") or doc.get("ownerPhoto") or "",
+                "ownerPhoto": doc.get("ownerPhoto") or doc.get("logo") or "",
+                "banner": doc.get("banner") or "",
+                "address": doc.get("address") or "",
+                "pincode": doc.get("pincode") or "",
+                "area": doc.get("area") or "",
+                "aadhaar": doc.get("aadhaar") or "",
+                "pan": doc.get("pan") or "",
+                "bankName": doc.get("bankName") or "",
+                "accountNumber": doc.get("accountNumber") or "",
+                "ifsc": doc.get("ifsc") or "",
+                "accountHolder": doc.get("accountHolder") or owner,
+                "aadhaarFront": doc.get("aadhaarFront") or "",
+                "aadhaarBack": doc.get("aadhaarBack") or "",
+                "panCard": doc.get("panCard") or "",
+                "chequePhoto": doc.get("chequePhoto") or "",
+                "signatureUrl": doc.get("signatureUrl") or "",
             })
 
         # Apply search filter
@@ -941,13 +998,18 @@ class AdminPartnerRepository:
         }
 
     async def get_partner_360(self, partner_id: str) -> Dict[str, Any]:
-        doc = (
-            await database.find_one(self.collection, {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"userId": partner_id}]})
-            or await database.find_one("catalog_partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}]})
-            or await database.find_one("partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}]})
-            or await database.find_one("users", {"$or": [{"_id": partner_id}, {"id": partner_id}], "role": "partner"})
-            or {}
-        )
+        doc1 = await database.find_one(self.collection, {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"userId": partner_id}]}) or {}
+        doc2 = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"userId": partner_id}]}) or {}
+        doc3 = await database.find_one("catalog_partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}]}) or {}
+        doc4 = await database.find_one("partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}]}) or {}
+        doc5 = await database.find_one("users", {"$or": [{"_id": partner_id}, {"id": partner_id}], "role": "partner"}) or {}
+
+        doc = {}
+        for d in [doc5, doc4, doc3, doc2, doc1]:
+            for k, v in d.items():
+                if v is not None and v != "":
+                    doc[k] = v
+
         pid = str(doc.get("_id") or doc.get("id") or doc.get("partnerId") or partner_id)
 
         all_orders = await database.find_many("customer_orders")
@@ -1142,10 +1204,15 @@ class AdminPartnerRepository:
                 "kycStatus": "Verified" if doc.get("isVerified") else "Pending",
                 "rating": calc_rating,
                 "joinedDate": (doc.get("createdAt") or doc.get("created_at") or now_iso())[:10],
+                "registrationTimestamp": doc.get("createdAt") or doc.get("created_at") or now_iso(),
+                "approvedAt": doc.get("approvedAt") or doc.get("approvedTimestamp") or (doc.get("updatedAt") if raw_status == "ACTIVE" else None),
+                "approvedBy": doc.get("approvedBy") or "Operations Lead",
                 "lastActive": (doc.get("updatedAt") or doc.get("lastActive") or now_iso())[:10],
+                "lastLoginTimestamp": doc.get("lastLoginAt") or doc.get("lastActive") or doc.get("updatedAt") or doc.get("createdAt") or now_iso(),
                 "tags": doc.get("tags") or ["Kasganj", "Partner"],
                 "activeOrdersCount": len(active),
                 "isOpen": bool(doc.get("isOpen", True)),
+                "isOnline": bool(doc.get("isOnline") or (doc.get("isOpen", True) and raw_status == "ACTIVE")),
                 "isLive": bool(doc.get("isLive", True)),
                 "operationalHours": doc.get("operationalHours") or "09:00 AM - 09:00 PM",
                 "turnaroundHours": turnaround_hrs,
@@ -1154,6 +1221,29 @@ class AdminPartnerRepository:
                 "resubmittedAt": doc.get("resubmittedAt") or "",
                 "resubmissionCount": int(doc.get("resubmissionCount") or 0),
                 "rejectionReason": doc.get("rejectionReason") or doc.get("kycReason") or "",
+                "logo": doc.get("logo") or doc.get("ownerPhoto") or "",
+                "ownerPhoto": doc.get("ownerPhoto") or doc.get("logo") or "",
+                "banner": doc.get("banner") or "",
+                "address": doc.get("address") or "",
+                "pincode": doc.get("pincode") or "",
+                "area": doc.get("area") or "",
+                "aadhaar": doc.get("aadhaar") or "",
+                "pan": doc.get("pan") or "",
+                "bankName": doc.get("bankName") or "",
+                "accountNumber": doc.get("accountNumber") or "",
+                "ifsc": doc.get("ifsc") or "",
+                "accountHolder": doc.get("accountHolder") or owner,
+                "aadhaarFront": doc.get("aadhaarFront") or "",
+                "aadhaarBack": doc.get("aadhaarBack") or "",
+                "panCard": doc.get("panCard") or "",
+                "chequePhoto": doc.get("chequePhoto") or "",
+                "signatureUrl": doc.get("signatureUrl") or "",
+                "dob": doc.get("dob") or "",
+                "gender": doc.get("gender") or "",
+                "category": doc.get("category") or "laundry",
+                "openingTime": doc.get("openingTime") or "08:00",
+                "closingTime": doc.get("closingTime") or "21:00",
+                "servicePincodes": doc.get("servicePincodes") or ([doc.get("pincode")] if doc.get("pincode") else []),
             },
             "overview": {
                 "totalOrders": len(p_orders),
@@ -1290,10 +1380,31 @@ class AdminPartnerRepository:
                 "resubmittedAt": doc.get("resubmittedAt") or "",
                 "resubmissionCount": int(doc.get("resubmissionCount") or 0),
                 "rejectionReason": doc.get("rejectionReason") or doc.get("kycReason") or "",
+                "aadhaarFront": doc.get("aadhaarFront") or "",
+                "aadhaarBack": doc.get("aadhaarBack") or "",
+                "panCard": doc.get("panCard") or "",
+                "chequePhoto": doc.get("chequePhoto") or "",
+                "signatureUrl": doc.get("signatureUrl") or "",
+                "logo": doc.get("logo") or "",
+                "banner": doc.get("banner") or "",
+                "ownerPhoto": doc.get("ownerPhoto") or "",
+                "address": doc.get("address") or "",
+                "pincode": doc.get("pincode") or "",
+                "area": doc.get("area") or "",
+                "dob": doc.get("dob") or "",
+                "gender": doc.get("gender") or "",
+                "category": doc.get("category") or "laundry",
+                "openingTime": doc.get("openingTime") or "08:00",
+                "closingTime": doc.get("closingTime") or "21:00",
+                "servicePincodes": doc.get("servicePincodes") or ([doc.get("pincode")] if doc.get("pincode") else []),
             },
             "documents": [
+                {"name": "Store Owner Photo / Live Selfie", "type": "Owner Selfie", "number": "Owner Photo Captured" if (doc.get("ownerPhoto") or doc.get("logo")) else "Pending", "status": "Uploaded ✓" if (doc.get("ownerPhoto") or doc.get("logo")) else "Pending", "url": doc.get("ownerPhoto") or doc.get("logo"), "date": (doc.get("createdAt") or now_iso())[:10]},
                 {"name": "Aadhaar Card (UIDAI KYC)", "type": "UIDAI Aadhaar", "number": doc.get("aadhaarMasked") or (f"XXXX XXXX {str(doc.get('aadhaar'))[-4:]}" if doc.get("aadhaar") else "Pending Upload"), "status": "Verified" if doc.get("aadhaar") else "Pending", "date": (doc.get("createdAt") or now_iso())[:10]},
-                {"name": "Business PAN Card", "type": "PAN Card", "number": doc.get("pan") or "Pending Upload", "status": "Verified" if doc.get("pan") else "Pending", "date": (doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Aadhaar Card Front Photo", "type": "Aadhaar Front", "number": "Front Uploaded" if doc.get("aadhaarFront") else "Pending Upload", "status": "Uploaded ✓" if doc.get("aadhaarFront") else "Pending", "url": doc.get("aadhaarFront"), "date": (doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Aadhaar Card Back Photo", "type": "Aadhaar Back", "number": "Back Uploaded" if doc.get("aadhaarBack") else "Pending Upload", "status": "Uploaded ✓" if doc.get("aadhaarBack") else "Pending", "url": doc.get("aadhaarBack"), "date": (doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Business PAN Card", "type": "PAN Card", "number": doc.get("pan") or "Pending Upload", "status": "Verified" if doc.get("pan") else "Pending", "url": doc.get("panCard"), "date": (doc.get("createdAt") or now_iso())[:10]},
+                {"name": "Cancelled Cheque / Passbook", "type": "Bank Proof", "number": f"{doc.get('bankName', 'Bank')} Proof" if doc.get("chequePhoto") else "Pending", "status": "Uploaded ✓" if doc.get("chequePhoto") else "Pending", "url": doc.get("chequePhoto"), "date": (doc.get("createdAt") or now_iso())[:10]},
                 {"name": "GSTIN Certificate", "type": "GST Certificate", "number": doc.get("gstin") or "Exempt / Pending", "status": "Verified" if doc.get("gstin") else "Exempt", "date": (doc.get("createdAt") or now_iso())[:10]},
                 {"name": "Bank Account (NPCI Verified)", "type": "Bank Settlement", "number": f"{doc.get('bankName', 'Bank')} - {doc.get('accountNumber', 'Pending')}", "status": "Verified" if doc.get("accountNumber") else "Pending", "date": (doc.get("createdAt") or now_iso())[:10]},
                 {"name": "Storefront Logo & Signboard", "type": "Store Branding", "number": "Uploaded Logo" if doc.get("logo") else "Pending", "status": "Uploaded ✓" if doc.get("logo") else "Pending", "url": doc.get("logo"), "date": (doc.get("createdAt") or now_iso())[:10]},
@@ -1892,6 +2003,19 @@ class AdminRiderRepository:
             resub_at = p.get("resubmittedAt") or row.get("resubmittedAt") or ""
             resub_count = int(p.get("resubmissionCount") or row.get("resubmissionCount") or 0)
             rej_reason = p.get("rejectionReason") or p.get("kycReason") or row.get("rejectionReason") or ""
+            photo_url = (
+                p.get("profilePhoto")
+                or p.get("selfieUrl")
+                or p.get("photoUrl")
+                or p.get("avatar")
+                or row.get("profilePhoto")
+                or row.get("avatar")
+                or u.get("profilePhoto")
+                or u.get("avatar")
+                or ""
+            )
+            app_at = p.get("approvedAt") or row.get("approvedAt") or ""
+            app_by = p.get("approvedBy") or row.get("approvedBy") or ""
 
             merged_riders.append({
                 "id": target_id,
@@ -1902,6 +2026,7 @@ class AdminRiderRepository:
                 "zone": row.get("zone") or p.get("zone") or "Central Kasganj Zone",
                 "vehicle": vehicle_val,
                 "plate": plate_val,
+                "profilePhoto": photo_url,
                 "trips": trips,
                 "rating": f"{rating:.1f}",
                 "wallet": f"₹{wallet_bal:,.2f}",
@@ -1916,6 +2041,8 @@ class AdminRiderRepository:
                 "registrationTimestamp": str(reg_ts),
                 "lastActive": str(last_login_ts)[:10],
                 "lastLoginTimestamp": str(last_login_ts),
+                "approvedAt": str(app_at) if app_at else "",
+                "approvedBy": str(app_by) if app_by else "",
                 "kyc": kyc_val,
                 "live": current_live,
                 "status": status_val,
@@ -2191,8 +2318,23 @@ class AdminRiderRepository:
         ]
 
         # Enrich profile with complete A-to-Z details from profile_doc and admin_rider_doc
+        app_at = pdoc.get("approvedAt") or doc.get("approvedAt") or ""
+        app_by = pdoc.get("approvedBy") or doc.get("approvedBy") or ""
+        photo_url = (
+            pdoc.get("profilePhoto")
+            or pdoc.get("selfieUrl")
+            or pdoc.get("photoUrl")
+            or doc.get("profilePhoto")
+            or (user_doc or {}).get("profilePhoto")
+            or (user_doc or {}).get("avatar")
+            or ""
+        )
+
         merged_profile = {
             **doc,
+            "profilePhoto": photo_url,
+            "approvedAt": str(app_at) if app_at else "",
+            "approvedBy": str(app_by) if app_by else "",
             "fullName": pdoc.get("fullName") or pdoc.get("name") or (user_doc or {}).get("name") or doc.get("name") or "—",
             "name": pdoc.get("fullName") or pdoc.get("name") or (user_doc or {}).get("name") or doc.get("name") or "—",
             "phone": pdoc.get("phone") or (user_doc or {}).get("phone") or doc.get("phone") or "—",
@@ -2244,6 +2386,7 @@ class AdminRiderRepository:
             "resubmitted": bool(pdoc.get("resubmitted") or doc.get("resubmitted")),
             "resubmittedAt": str(pdoc.get("resubmittedAt") or doc.get("resubmittedAt") or ""),
             "resubmissionCount": int(pdoc.get("resubmissionCount") or doc.get("resubmissionCount") or 0),
+            "internalNotes": pdoc.get("internalNotes") or doc.get("internalNotes") or [],
         }
 
         # Format document numbers & status
@@ -2294,6 +2437,8 @@ class AdminRiderRepository:
                 "firstLoginAt": doc.get("registrationTimestamp"),
                 "lastLoginAt": doc.get("lastLoginTimestamp"),
                 "registrationTimestamp": doc.get("registrationTimestamp"),
+                "approvedAt": str(app_at) if app_at else "",
+                "approvedBy": str(app_by) if app_by else ("Operations Admin" if app_at else ""),
                 "totalTrips": len(completed_trips) or int(doc.get("trips") or 0),
                 "completedDeliveries": len(completed_trips),
                 "cancelledDeliveries": 0,
@@ -2500,6 +2645,14 @@ class AdminRiderRepository:
         await database.insert_one("wallet_ledger", tx_doc)
 
         return {"ok": True, "newBalance": new_bal, "newCodCash": new_cod}
+
+    async def add_note(self, rider_id: str, note: str, author: str) -> Dict[str, Any]:
+        doc = await database.find_one("rider_profiles", {"_id": rider_id}) or await database.find_one("rider_profiles", {"riderId": rider_id}) or {"_id": rider_id}
+        notes = doc.get("internalNotes") or []
+        entry = {"id": new_id("note"), "note": note, "author": author, "at": now_iso()}
+        notes.append(entry)
+        await database.update("rider_profiles", {"_id": doc.get("_id", rider_id)}, {"internalNotes": notes}, upsert=True)
+        return entry
 
 
 admin_rider_repository = AdminRiderRepository()

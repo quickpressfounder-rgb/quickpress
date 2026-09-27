@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Edit2, Loader2, RotateCcw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Edit2, Loader2, RotateCcw, ShieldCheck, Zap, CheckCircle2, Sparkles } from "lucide-react";
 import React, { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ClipboardEvent } from "react";
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { sendOtp, verifyOtp } from "../api/rider/rider-auth-api";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
 import { useLanguage } from "../lib/i18n";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
+import { triggerHaptic } from "../lib/captain-audio";
 
 export function RiderOtpScreen() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export function RiderOtpScreen() {
   // 6-digit OTP array
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
   const [timer, setTimer] = useState(30);
 
@@ -50,7 +52,7 @@ export function RiderOtpScreen() {
     }
   }, [phone, targetPhone, setPhone]);
 
-  // If no phone at all, redirect to /auth (NEVER to non-existent /login)
+  // If no phone at all, redirect to /auth
   useEffect(() => {
     if (!targetPhone && !phone) {
       const timerId = setTimeout(() => {
@@ -73,54 +75,18 @@ export function RiderOtpScreen() {
   // Combined OTP code string
   const otpCode = digits.join("");
 
-  // Handle individual digit change
-  const handleDigitChange = (index: number, value: string) => {
-    const cleanDigit = value.replace(/\D/g, "").slice(-1);
-    const newDigits = [...digits];
-    newDigits[index] = cleanDigit;
-    setDigits(newDigits);
-
-    // Auto-advance to next box if digit entered
-    if (cleanDigit && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  // Handle backspace navigation
-  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  // Handle paste full OTP
-  const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (!pastedData) return;
-
-    const newDigits = ["", "", "", "", "", ""];
-    for (let i = 0; i < pastedData.length; i++) {
-      newDigits[i] = pastedData[i] || "";
-    }
-    setDigits(newDigits);
-
-    // Focus on the next empty box or the last box
-    const nextIndex = Math.min(pastedData.length, 5);
-    inputRefs.current[nextIndex]?.focus();
-  };
-
   // Handle Verify with Real Backend & Database Check
-  const handleVerify = async (e?: FormEvent) => {
+  const handleVerify = async (overrideOtp?: string, e?: FormEvent) => {
     if (e) e.preventDefault();
-    if (otpCode.length !== 6 || loading) return;
+    const codeToVerify = (overrideOtp || digits.join("")).trim();
+    if (codeToVerify.length !== 6 || loading) return;
 
     setLoading(true);
 
     try {
       // 1. Real Backend Phone OTP verification
       const effectivePhone = targetPhone || phone;
-      const sessionResult = await verifyOtp(effectivePhone, otpCode);
+      const sessionResult = await verifyOtp(effectivePhone, codeToVerify);
       signIn(sessionResult);
 
       // 2. Check Database: Is rider already onboarded and approved?
@@ -139,8 +105,97 @@ export function RiderOtpScreen() {
       }
     } catch (err: any) {
       toast.error(err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.");
+      setIsAutoSubmitting(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Web OTP API (SMS Auto-detection on mobile devices)
+  useEffect(() => {
+    if (typeof window !== "undefined" && "OTPCredential" in window) {
+      const ac = new AbortController();
+      (navigator.credentials as any)
+        ?.get({
+          otp: { transport: ["sms"] },
+          signal: ac.signal,
+        })
+        .then((content: any) => {
+          if (content && content.code) {
+            const clean = content.code.replace(/\D/g, "").slice(0, 6);
+            if (clean.length === 6) {
+              const spl = clean.split("");
+              setDigits(spl);
+              toast.success(`⚡ SMS OTP Auto-detected: ${clean}`);
+              setIsAutoSubmitting(true);
+              triggerHaptic([40, 60]);
+              setTimeout(() => {
+                handleVerify(clean);
+              }, 250);
+            }
+          }
+        })
+        .catch(() => {});
+
+      return () => {
+        ac.abort();
+      };
+    }
+  }, []);
+
+  // Handle individual digit change (Auto-accept when 6th digit entered!)
+  const handleDigitChange = (index: number, value: string) => {
+    const cleanDigit = value.replace(/\D/g, "").slice(-1);
+    const newDigits = [...digits];
+    newDigits[index] = cleanDigit;
+    setDigits(newDigits);
+
+    // Auto-advance to next box if digit entered
+    if (cleanDigit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // ⚡ Instant Auto-Accept when all 6 digits are filled!
+    if (cleanDigit && newDigits.every((d) => d.length === 1)) {
+      const fullCode = newDigits.join("");
+      setIsAutoSubmitting(true);
+      triggerHaptic([30, 50]);
+      setTimeout(() => {
+        handleVerify(fullCode);
+      }, 250);
+    }
+  };
+
+  // Handle backspace navigation
+  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle paste full OTP (Auto-accepts immediately on paste!)
+  const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pastedData) return;
+
+    const newDigits = ["", "", "", "", "", ""];
+    for (let i = 0; i < pastedData.length; i++) {
+      newDigits[i] = pastedData[i] || "";
+    }
+    setDigits(newDigits);
+
+    // Focus on the next empty box or the last box
+    const nextIndex = Math.min(pastedData.length, 5);
+    inputRefs.current[nextIndex]?.focus();
+
+    // ⚡ If 6 digits pasted, auto-accept immediately!
+    if (pastedData.length === 6) {
+      setIsAutoSubmitting(true);
+      triggerHaptic([30, 50]);
+      setTimeout(() => {
+        handleVerify(pastedData);
+      }, 250);
     }
   };
 
@@ -219,7 +274,7 @@ export function RiderOtpScreen() {
         </div>
 
         {/* 2. 6-Digit Individual OTP Input Boxes */}
-        <form onSubmit={handleVerify} className="space-y-6">
+        <form onSubmit={(e) => handleVerify(undefined, e)} className="space-y-4">
           <div className="flex items-center justify-between gap-1.5 sm:gap-2 px-0.5">
             {digits.map((digit, idx) => (
               <input
@@ -236,12 +291,26 @@ export function RiderOtpScreen() {
                 onPaste={handlePaste}
                 className={`w-11 sm:w-12 h-13 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-2xl border-2 transition-all outline-none ${
                   digit
-                    ? "border-[#00C853] bg-emerald-50/40 text-neutral-950 shadow-xs"
+                    ? "border-[#00C853] bg-emerald-50 text-neutral-950 shadow-xs scale-105"
                     : "border-neutral-200 bg-white text-neutral-900 focus:border-[#00C853] focus:bg-emerald-50/20"
                 }`}
+                placeholder="•"
               />
             ))}
           </div>
+
+          {/* Auto-Submitting Pill */}
+          {isAutoSubmitting ? (
+            <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 text-white text-xs font-black animate-pulse shadow-sm">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>✓ 6 Digits Entered! Auto-logging in... (लॉगिन हो रहा है)</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50/80 py-1.5 px-3 rounded-xl border border-emerald-200">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>6 अंक भरते ही बिना बटन दबाए ऑटो लॉगिन होगा</span>
+            </div>
+          )}
 
           {/* Resend Timer Row */}
           <div className="flex items-center justify-between px-2 text-xs pt-1">
@@ -267,16 +336,19 @@ export function RiderOtpScreen() {
         </form>
       </div>
 
-      {/* 3. Bottom Green Action Button */}
+      {/* 3. Bottom Green Action Button (Optional manual fallback) */}
       <div className="pt-4 pb-2 space-y-3">
         <button
           type="button"
-          onClick={handleVerify}
+          onClick={() => handleVerify()}
           disabled={loading || otpCode.length !== 6}
           className="w-full h-13.5 flex items-center justify-center bg-[#00C853] hover:bg-[#00B248] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm tracking-wide rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-98 transition-all"
         >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-white" />
+          {loading || isAutoSubmitting ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-white" />
+              <span>Verifying & Logging In...</span>
+            </div>
           ) : (
             <span>{t("otp.verifyContinue", "Verify & Continue")}</span>
           )}

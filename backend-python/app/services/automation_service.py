@@ -423,16 +423,9 @@ class AutomationService:
         num_riders = max(1, len(online_riders))
         ratio = round(num_orders / num_riders, 2)
 
+        # Surge pricing permanently disabled
         multiplier = 1.0
         bonus = 0.0
-        zone_label = "Kasganj Central Commercial Zone"
-
-        if ratio >= 2.5:
-            multiplier = 1.6
-            bonus = 25.0
-        elif ratio >= 1.5:
-            multiplier = 1.3
-            bonus = 15.0
 
         if multiplier > 1.0:
             await automation_repository.log_event(

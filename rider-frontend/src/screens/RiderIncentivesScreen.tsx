@@ -648,47 +648,49 @@ export function RiderIncentivesScreen() {
               ))}
             </div>
 
-            {/* Live Kasganj High Demand Surge Zones */}
-            <div className="mt-4 pt-2">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <MapPin className="size-3.5 text-amber-500" />
-                  <span>Kasganj High Surge Zones</span>
-                </h3>
-                <span className="text-[10px] font-bold text-emerald-600">LIVE DEMAND</span>
-              </div>
+            {/* Live Kasganj High Demand Surge Zones (Hidden when surge is disabled) */}
+            {Boolean(surgeZones && surgeZones.length > 0) && (
+              <div className="mt-4 pt-2">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+                    <MapPin className="size-3.5 text-amber-500" />
+                    <span>Kasganj High Surge Zones</span>
+                  </h3>
+                  <span className="text-[10px] font-bold text-emerald-600">LIVE DEMAND</span>
+                </div>
 
-              <div className="space-y-2">
-                {surgeZones.map((z) => (
-                  <div
-                    key={z.id}
-                    className="p-3 bg-white rounded-2xl border border-zinc-200 flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-zinc-900 leading-tight">
-                          {z.name}
-                        </h4>
-                        {z.isActive && (
-                          <span className="text-[9px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                            {z.multiplier}
-                          </span>
-                        )}
+                <div className="space-y-2">
+                  {surgeZones.map((z) => (
+                    <div
+                      key={z.id}
+                      className="p-3 bg-white rounded-2xl border border-zinc-200 flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-zinc-900 leading-tight">
+                            {z.name}
+                          </h4>
+                          {z.isActive && (
+                            <span className="text-[9px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                              {z.multiplier}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">
+                          {z.activeTiming} · {z.demandLevel}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">
-                        {z.activeTiming} · {z.demandLevel}
-                      </p>
-                    </div>
 
-                    <div className="text-right">
-                      <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 font-mono">
-                        +₹{Number(z.bonusPerTrip || 0).toFixed(0)}/trip
-                      </span>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 font-mono">
+                          +₹{Number(z.bonusPerTrip || 0).toFixed(0)}/trip
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

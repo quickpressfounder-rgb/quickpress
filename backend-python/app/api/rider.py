@@ -1465,7 +1465,6 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
 # Dynamic Guidelines & 24/7 Support (Connected to Admin Settings)
 # --------------------------------------------------------------------------
 
-@public_router.get("/guidelines")
 @router.get("/guidelines")
 async def get_rider_guidelines() -> dict:
     from app.db.admin_repositories import admin_settings_repository
@@ -1526,7 +1525,6 @@ async def get_rider_guidelines() -> dict:
     }
 
 
-@public_router.get("/support")
 @router.get("/support")
 async def get_rider_support() -> dict:
     from app.db.admin_repositories import admin_settings_repository
@@ -1552,7 +1550,6 @@ async def get_rider_support() -> dict:
     }
 
 
-@public_router.get("/verification-status")
 @router.get("/verification-status")
 async def get_rider_verification_status(
     rider_id: Optional[str] = Query(None),
@@ -2069,7 +2066,6 @@ async def update_settings(body: dict, user: User = Depends(current_user)) -> dic
 from app.services.route_booking_engine import route_booking_engine
 
 
-@public_router.get("/route-booking")
 @router.get("/route-booking")
 async def get_rider_route_booking(
     rider_id: Optional[str] = Query(None),
@@ -2086,7 +2082,6 @@ async def get_rider_route_booking(
     return await route_booking_engine.get_rider_route_state(effective_id)
 
 
-@public_router.post("/route-booking/toggle")
 @router.post("/route-booking/toggle")
 async def toggle_rider_route_booking(
     body: dict,
@@ -2106,7 +2101,6 @@ async def toggle_rider_route_booking(
     return await route_booking_engine.toggle_route_booking(effective_id, enable)
 
 
-@public_router.post("/route-booking/destination")
 @router.post("/route-booking/destination")
 async def set_rider_route_destination(
     body: dict,
@@ -2134,7 +2128,6 @@ async def set_rider_route_destination(
     )
 
 
-@public_router.get("/route-booking/saved-addresses")
 @router.get("/route-booking/saved-addresses")
 async def get_saved_route_addresses(
     rider_id: Optional[str] = Query(None),
@@ -2152,7 +2145,6 @@ async def get_saved_route_addresses(
     return state.get("savedAddresses") or []
 
 
-@public_router.post("/route-booking/saved-addresses")
 @router.post("/route-booking/saved-addresses")
 async def add_saved_route_address(
     body: dict,
@@ -2178,7 +2170,6 @@ async def add_saved_route_address(
     )
 
 
-@public_router.delete("/route-booking/saved-addresses/{preset_id}")
 @router.delete("/route-booking/saved-addresses/{preset_id}")
 async def delete_saved_route_address(
     preset_id: str,
@@ -2202,7 +2193,6 @@ async def delete_saved_route_address(
 # --------------------------------------------------------------------------
 
 
-@public_router.get("/offers")
 @router.get("/offers")
 async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> list:
     """Fetch live pending ride offers dispatched to this rider — strictly validated against real customer orders."""
@@ -2626,7 +2616,6 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
     return valid_offers
 
 
-@public_router.get("/orders")
 @router.get("/orders")
 async def list_orders(
     q: Optional[str] = None,
@@ -2789,8 +2778,10 @@ async def pickup_order(
             order_id, str(otp or ""), rider_id, rider_lat=r_lat, rider_lng=r_lng
         )
     except (PermissionError, ValueError) as err:
+        logger.error("verify_pickup_otp failed with error: %s", err)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
     except LookupError as err:
+        logger.error("verify_pickup_otp LookupError: %s", err)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
 
 
@@ -3078,9 +3069,6 @@ async def collect_cash_order(order_id: str, user: User = Depends(current_user)) 
     return {"ok": True, "message": "Cash payment recorded successfully", "orderId": target_order_id}
 
 
-@public_router.post("/orders/{order_id}/review")
-@public_router.post("/orders/{order_id}/rate-customer")
-@public_router.post("/orders/{order_id}/rate")
 @router.post("/orders/{order_id}/review")
 @router.post("/orders/{order_id}/rate-customer")
 @router.post("/orders/{order_id}/rate")
@@ -3115,7 +3103,6 @@ async def submit_rider_order_review(order_id: str, body: dict, user: Optional[Us
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
 
-@public_router.get("/orders/{order_id}/review")
 @router.get("/orders/{order_id}/review")
 async def get_rider_order_review(order_id: str, user: Optional[User] = Depends(optional_user)) -> Optional[dict]:
     """Check if Captain has already reviewed this order."""
@@ -3138,7 +3125,6 @@ async def get_rider_order_review(order_id: str, user: Optional[User] = Depends(o
 # --------------------------------------------------------------------------
 
 
-@public_router.get("/history")
 @router.get("/history")
 async def history(
     rider_id: Optional[str] = None,
@@ -3155,7 +3141,6 @@ async def history(
     return await rider_delivery_repository.history(resolved_id)
 
 
-@public_router.get("/earnings")
 @router.get("/earnings")
 async def earnings(user: Optional[User] = Depends(optional_user)) -> dict:
     if not user:
@@ -3164,7 +3149,6 @@ async def earnings(user: Optional[User] = Depends(optional_user)) -> dict:
     return await rider_earnings_repository.summary(rider_id)
 
 
-@public_router.get("/wallet")
 @router.get("/wallet")
 async def wallet(user: Optional[User] = Depends(optional_user)) -> dict:
     if not user:
@@ -3176,7 +3160,6 @@ async def wallet(user: Optional[User] = Depends(optional_user)) -> dict:
     return wallet_doc
 
 
-@public_router.post("/wallet/withdraw")
 @router.post("/wallet/withdraw")
 async def withdraw(body: dict, user: Optional[User] = Depends(optional_user)) -> dict:
     if not user:
@@ -3193,7 +3176,6 @@ async def withdraw(body: dict, user: Optional[User] = Depends(optional_user)) ->
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-@public_router.post("/wallet/credit")
 @router.post("/wallet/credit")
 async def credit(body: dict, user: Optional[User] = Depends(optional_user)) -> dict:
     if not user:
@@ -3209,7 +3191,6 @@ async def credit(body: dict, user: Optional[User] = Depends(optional_user)) -> d
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-@public_router.get("/wallet/transactions")
 @router.get("/wallet/transactions")
 async def wallet_transactions(user: Optional[User] = Depends(optional_user)) -> list:
     if not user:
@@ -3218,7 +3199,6 @@ async def wallet_transactions(user: Optional[User] = Depends(optional_user)) -> 
     return await rider_wallet_repository.transactions(rider_id)
 
 
-@public_router.get("/floating-cash")
 @router.get("/floating-cash")
 async def get_floating_cash(user: Optional[User] = Depends(optional_user)) -> dict:
     if not user:
@@ -3236,7 +3216,6 @@ async def get_floating_cash(user: Optional[User] = Depends(optional_user)) -> di
     }
 
 
-@public_router.post("/deposit-cash")
 @router.post("/deposit-cash")
 async def deposit_cash(body: dict, user: Optional[User] = Depends(optional_user)) -> dict:
     """Allows rider to settle/deposit collected COD cash at hub or via UPI transfer."""
@@ -3380,7 +3359,6 @@ CANDY_CRUSH_LEVELS = [
 ]
 
 
-@public_router.get("/incentives")
 @router.get("/incentives")
 async def get_rider_incentives(
     rider_id: Optional[str] = Query(None),
@@ -3618,7 +3596,6 @@ async def get_rider_incentives(
     }
 
 
-@public_router.post("/incentives/claim")
 @router.post("/incentives/claim")
 async def claim_rider_incentive(
     body: dict,
@@ -3754,7 +3731,6 @@ async def claim_rider_incentive(
 # Dynamic Location-Based Surge Engine Endpoints
 # --------------------------------------------------------------------------
 
-@public_router.get("/surge/zones")
 @router.get("/surge/zones")
 async def get_surge_zones(
     lat: Optional[float] = Query(None, description="Rider's current latitude"),
@@ -3781,7 +3757,6 @@ async def get_surge_zones(
     )
 
 
-@public_router.get("/surge/check-location")
 @router.get("/surge/check-location")
 async def check_surge_location(
     lat: float = Query(..., description="Latitude to evaluate"),
@@ -4021,7 +3996,6 @@ async def update_work_settings(body: dict, user: User = Depends(current_user)) -
 # --------------------------------------------------------------------------
 
 
-@public_router.get("/leaderboard")
 @router.get("/leaderboard")
 async def get_city_leaderboard(
     period: str = Query(default="today", regex="^(today|weekly|all_time)$"),

@@ -15,9 +15,9 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.deps import optional_user
+from app.core.deps import optional_user, require_roles
 from app.db.client import database
-from app.models.user import User
+from app.models.user import Role, User
 from app.services.commission_engine import commission_engine
 
 logger = logging.getLogger(__name__)
@@ -170,7 +170,7 @@ async def get_partner_commission_summary(
 # --------------------------------------------------------------------------
 
 @router.get("/api/rider/commission/guarantee")
-async def get_rider_commission_guarantee() -> dict:
+async def get_rider_commission_guarantee(user: User = Depends(require_roles(Role.rider))) -> dict:
     """Returns QuickPress Captain 0% Platform Commission guarantee details."""
     return {
         "policy": "QuickPress Captain 0% Platform Commission Guarantee",
@@ -206,7 +206,7 @@ async def get_rider_order_commission_slip(
 # --------------------------------------------------------------------------
 
 @router.get("/api/admin/commission/analytics")
-async def get_admin_commission_analytics() -> dict:
+async def get_admin_commission_analytics(user: User = Depends(require_roles(Role.admin))) -> dict:
     """Master platform commission ledger & KPIs from Supabase PostgreSQL."""
     return await commission_engine.get_platform_commission_analytics()
 

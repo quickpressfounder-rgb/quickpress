@@ -171,14 +171,30 @@ class UserRepository:
                     "linked_partner_id": str(partner_id),
                     "is_onboarded": True,
                     "is_verified": is_verified,
+                    "status": "active" if is_verified else "pending_verification",
                     "display_name": business_name,
                     "city": city,
                 })
                 user.linked_id = str(partner_id)
                 user.is_onboarded = True
                 user.is_verified = is_verified
+                user.status = UserStatus.active if is_verified else UserStatus.pending
                 user.display_name = business_name
                 user.city = city
+                return
+            else:
+                # NO partner profile found in partner_profiles (user has not completed registration yet)
+                await self.update(user.id, {
+                    "linked_id": None,
+                    "linked_partner_id": None,
+                    "is_onboarded": False,
+                    "is_verified": False,
+                    "status": "pending",
+                })
+                user.linked_id = None
+                user.is_onboarded = False
+                user.is_verified = False
+                user.status = UserStatus.pending
                 return
 
         name = ROLE_COLLECTIONS[user.role]

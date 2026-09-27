@@ -13,32 +13,7 @@ from pydantic import BaseModel
 
 from app.models.address import AddressType  # noqa: F401  (kept for callers)
 
-OrderStatus = Literal[
-    # Canonical lifecycle statuses (shared by customer, partner, rider, admin).
-    "placed",
-    "pending_partner_acceptance",
-    "partner_accepted",
-    "pickup_rider_assigned",
-    "rider_assigned",
-    "rider_searching",
-    "pickup_rider_accepted",
-    "rider_accepted",
-    "pickup_otp_pending",
-    "picked_up",
-    "at_partner",
-    "processing",
-    "ironing",
-    "ready_for_delivery",
-    "ready",
-    "completed",
-    "delivery_rider_assigned",
-    "delivery_rider_accepted",
-    "dispatch_otp_pending",
-    "out_for_delivery",
-    "delivery_otp_pending",
-    "delivered",
-    "cancelled",
-]
+OrderStatus = str
 
 
 class OrderLine(BaseModel):

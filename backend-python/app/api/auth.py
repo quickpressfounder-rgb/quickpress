@@ -32,7 +32,7 @@ from app.models.user import Role, User, UserStatus
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-async def _issue_session(user: User) -> AuthSessionResponse:
+async def _issue_session(user: User, is_new: bool = False) -> AuthSessionResponse:
     access_token, access_expires = create_access_token(user.id, user.role.value)
     refresh_token, token_id, refresh_expires = create_refresh_token(user.id, user.role.value)
     
@@ -48,6 +48,7 @@ async def _issue_session(user: User) -> AuthSessionResponse:
     asyncio.create_task(_persist_session_background())
 
     account = AccountResponse.from_user(user)
+    account.isNewUser = is_new
 
     # Attach Staff RBAC Permissions & Department Profile
     if user.role in (Role.admin, Role.super_admin, Role.operations, Role.support, Role.finance):
@@ -85,6 +86,18 @@ async def _login_with_firebase(
     identity = verify_id_token(id_token)
     if provider and identity.get("provider") and provider not in str(identity["provider"]):
         raise HTTPException(status_code=400, detail=f"Expected a {provider} sign-in")
+
+    is_new = False
+    try:
+        existing = await users.by_firebase_uid(identity["uid"], role=role)
+        if not existing and identity.get("phone"):
+            existing = await users.by_phone(identity["phone"], role=role)
+        if not existing and identity.get("email"):
+            existing = await users.by_email(identity["email"], role=role)
+        is_new = existing is None
+    except Exception:
+        pass
+
     try:
         user = await users.upsert_from_firebase(
             firebase_uid=identity["uid"],
@@ -102,7 +115,7 @@ async def _login_with_firebase(
                 pass
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-    return await _issue_session(user)
+    return await _issue_session(user, is_new=is_new)
 
 
 def _normalize_phone(phone: str) -> str:
@@ -200,13 +213,14 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
     # 3. Retrieve or provision user with resilient timeouts
     user = None
     try:
-        user = await asyncio.wait_for(users.by_phone(phone, payload.role), timeout=4.0)
+        user = await asyncio.wait_for(users.by_phone(phone, payload.role), timeout=8.0)
     except Exception as exc:
         _log.warning("User by_phone lookup timed out/failed: %s", exc)
 
+    is_new = user is None
     if user is None:
         try:
-            user = await asyncio.wait_for(users.create_phone_user(phone=phone, role=payload.role), timeout=4.0)
+            user = await asyncio.wait_for(users.create_phone_user(phone=phone, role=payload.role), timeout=8.0)
         except Exception as exc:
             _log.warning("create_phone_user timed out/failed: %s", exc)
             user = User(
@@ -214,14 +228,14 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
                 firebase_uid=f"phone-{phone}",
                 role=payload.role,
                 phone=phone,
-                status=UserStatus.active,
+                status=UserStatus.active if payload.role in (Role.customer, Role.admin) else UserStatus.pending,
                 is_verified=payload.role in (Role.customer, Role.admin),
                 is_onboarded=payload.role in (Role.customer, Role.admin),
             )
     else:
         try:
-            await asyncio.wait_for(users._ensure_role_profile(user), timeout=3.0)
-            refreshed = await asyncio.wait_for(users.by_id(user.id), timeout=3.0)
+            await asyncio.wait_for(users._ensure_role_profile(user), timeout=6.0)
+            refreshed = await asyncio.wait_for(users.by_id(user.id), timeout=4.0)
             if refreshed:
                 user = refreshed
         except Exception:
@@ -234,7 +248,7 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
         except Exception:
             pass
 
-    return await _issue_session(user)
+    return await _issue_session(user, is_new=is_new)
 
 
 @router.post("/google", response_model=AuthSessionResponse)

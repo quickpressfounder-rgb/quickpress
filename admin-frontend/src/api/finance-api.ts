@@ -13,35 +13,51 @@ export interface FinancialRules {
     surgeMultiplier: number;
   };
   gst: {
+    enabled?: boolean;
+    pricingMode?: "exclusive" | "inclusive" | string;
     laundryGstRate: number;
     platformGstRate: number;
     deliveryGstRate: number;
+    cgstRate?: number;
+    sgstRate?: number;
+    igstRate?: number;
     defaultState: string;
     quickpressGstin: string;
     tcsRate: number;
     tdsRate: number;
+    categoryTaxOverrides?: Array<{ id: string; category: string; gstRate: number; active: boolean }>;
   };
   commission: {
+    partnerCommissionType?: "tier" | "percentage" | "fixed" | string;
+    partnerCommissionPercent?: number;
+    fixedAmountPerOrder?: number;
+    riderCommissionRate?: number;
+    platformCommissionRate?: number;
     standardRate: number;
     silverRate: number;
     goldRate: number;
     silverThreshold: number;
     goldThreshold: number;
     captainCommissionRate: number;
+    categoryOverrides?: Array<{ id: string; category: string; rate: number; active: boolean }>;
+    cityAreaOverrides?: Array<{ id: string; city: string; area: string; rate: number; active: boolean }>;
   };
   delivery: {
     baseFee: number;
     baseDistanceKm: number;
     perKmRate: number;
+    minimumDeliveryFee?: number;
+    expressDeliveryFee?: number;
     slabs: Array<{ minKm: number; maxKm: number; fee: number }>;
     freeDeliveryThreshold: number;
     subsidyFundingSource: "QUICKPRESS_FUNDED" | "PARTNER_FUNDED" | "SHARED_FUNDED";
     nightSurge: number;
     rainSurge: number;
+    cityAreaPricing?: Array<{ id: string; city: string; area: string; baseFee: number; perKmRate: number; minFee: number; active: boolean }>;
   };
   cancellation: Record<
     string,
-    { cancellationFee: number; refundPct: number; allowCancel: boolean }
+    { cancellationFee: number; refundPct: number; allowCancel: boolean; notes?: string }
   >;
   incentives: {
     candyCrushLevels?: Array<{
@@ -72,12 +88,100 @@ export interface FinancialRules {
     requirePanTcs: boolean;
     tcsRate: number;
     minSettlementPayout: number;
+    partnerSharePercent?: number;
+    platformSharePercent?: number;
+    adjustmentRules?: string;
+  };
+  partnerSettlement?: {
+    cycle: string;
+    payoutDay: string;
+    minSettlementPayout: number;
+    minWithdrawal: number;
+    autoApproveMaxAmount: number;
+    partnerSharePercent: number;
+    platformSharePercent: number;
+    tcsRate: number;
+    tdsRate: number;
+    adjustmentRules: string;
+  };
+  servicePricing?: Array<{
+    id: string;
+    serviceName: string;
+    category: string;
+    city: string;
+    area: string;
+    basePrice: number;
+    unit: string;
+    additionalUnitPrice: number;
+    minQuantity: number;
+    expressPrice: number;
+    effectiveFrom: string;
+    effectiveUntil: string;
+    status: string;
+    active: boolean;
+  }>;
+  fees?: {
+    platformFee: number;
+    platformFeeType: string;
+    handlingFee: number;
+    handlingFeeType: string;
+    convenienceFee: number;
+    convenienceFeeType: string;
+    packagingFee: number;
+    packagingFeeType: string;
+    serviceCharge: number;
+    serviceChargeType: string;
+    otherFees?: Array<{ id: string; name: string; type: string; value: number; active: boolean }>;
+  };
+  discount?: {
+    minOrderValue: number;
+    firstOrderDiscountPercent: number;
+    firstOrderMaxDiscount: number;
+    coupons: Array<{
+      id: string;
+      code: string;
+      title: string;
+      type: "flat" | "percent";
+      discount: number;
+      maxDiscount: number;
+      minOrderValue: number;
+      firstOrderOnly: boolean;
+      citySpecific?: string;
+      usageLimit: number;
+      usedCount?: number;
+      startDate: string;
+      endDate: string;
+      active: boolean;
+    }>;
+  };
+  riderPayout?: {
+    basePay: number;
+    baseDistanceKm: number;
+    perKmRate: number;
+    pickupEarning?: number;
+    deliveryEarning?: number;
+    peakIncentive?: number;
+    expressBonus: number;
+    nightSurge: number;
+    rainSurge: number;
+    captainCommissionRate: number;
+    orderCountIncentives?: Array<{ trips: number; reward: number }>;
+    dailyTargets?: Array<{ targetTrips: number; bonus: number }>;
+    bonusRules?: string;
   };
   expressPickup?: {
     enabled: boolean;
     fee: number;
     partnerSharePercent: number;
     riderSharePercent: number;
+  };
+  versioning?: {
+    version: string;
+    status: string;
+    effectiveFrom: string;
+    effectiveUntil: string;
+    scheduledAt?: string | null;
+    versionHistory?: any[];
   };
 }
 

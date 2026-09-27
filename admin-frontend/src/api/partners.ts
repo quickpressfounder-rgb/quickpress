@@ -54,6 +54,23 @@ export type BackendPartnerItem = {
   resubmittedAt?: string;
   resubmissionCount?: number;
   rejectionReason?: string;
+  logo?: string;
+  ownerPhoto?: string;
+  banner?: string;
+  address?: string;
+  pincode?: string;
+  area?: string;
+  aadhaar?: string;
+  pan?: string;
+  bankName?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  accountHolder?: string;
+  aadhaarFront?: string;
+  aadhaarBack?: string;
+  panCard?: string;
+  chequePhoto?: string;
+  signatureUrl?: string;
 };
 
 export type BackendPartnerListPage = {
@@ -94,10 +111,15 @@ export type Partner360Data = {
     kycStatus: string;
     rating: number;
     joinedDate: string;
+    registrationTimestamp?: string;
+    approvedAt?: string;
+    approvedBy?: string;
     lastActive: string;
+    lastLoginTimestamp?: string;
     tags: string[];
     activeOrdersCount: number;
     isOpen?: boolean;
+    isOnline?: boolean;
     isLive?: boolean;
     operationalHours?: string;
     turnaroundHours?: number;
@@ -106,6 +128,30 @@ export type Partner360Data = {
     resubmittedAt?: string;
     resubmissionCount?: number;
     rejectionReason?: string;
+    logo?: string;
+    ownerPhoto?: string;
+    banner?: string;
+    address?: string;
+    pincode?: string;
+    area?: string;
+    aadhaar?: string;
+    pan?: string;
+    bankName?: string;
+    accountNumber?: string;
+    ifsc?: string;
+    accountHolder?: string;
+    aadhaarFront?: string;
+    aadhaarBack?: string;
+    panCard?: string;
+    chequePhoto?: string;
+    signatureUrl?: string;
+    dob?: string;
+    gender?: string;
+    openingTime?: string;
+    closingTime?: string;
+    servicePincodes?: string[];
+    category?: string;
+    signedAt?: string;
   };
   overview: {
     totalOrders: number;
@@ -243,10 +289,35 @@ export type Partner360Data = {
     accountNumber: string;
     ifsc: string;
     ownerVerified: boolean;
+    bankVerified?: boolean;
+    agreementSigned?: boolean;
+    signedByName?: string;
+    signedAt?: string;
+    agreementVersion?: string;
     resubmitted?: boolean;
     resubmittedAt?: string;
     resubmissionCount?: number;
     rejectionReason?: string;
+    aadhaar?: string;
+    aadhaarMasked?: string;
+    accountHolder?: string;
+    address?: string;
+    pincode?: string;
+    area?: string;
+    logo?: string;
+    ownerPhoto?: string;
+    banner?: string;
+    aadhaarFront?: string;
+    aadhaarBack?: string;
+    panCard?: string;
+    chequePhoto?: string;
+    signatureUrl?: string;
+    dob?: string;
+    gender?: string;
+    openingTime?: string;
+    closingTime?: string;
+    servicePincodes?: string[];
+    category?: string;
   };
   documents: Array<{
     name?: string;
@@ -254,6 +325,7 @@ export type Partner360Data = {
     number: string;
     status: string;
     date: string;
+    url?: string;
   }>;
   ratings: {
     score?: number;
@@ -345,9 +417,12 @@ export async function fetchPartners(page = 1, pageSize = 100, q?: string, status
 
     return {
       ...p,
-      businessName: name,
-      city: cleanCity,
-      phone: cleanPhone,
+      businessName: p.businessName || name,
+      city: p.city || cleanCity,
+      phone: p.phone || cleanPhone,
+      logo: p.logo || p.ownerPhoto || "",
+      ownerPhoto: p.ownerPhoto || p.logo || "",
+      banner: p.banner || "",
       revenue: Number(p.revenue || 0),
       partnerEarnings: Number(p.partnerEarnings || 0),
       commission: Number(p.commission || 0),

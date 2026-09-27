@@ -379,11 +379,19 @@ html, body {
   overscroll-behavior-y: contain;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 input, textarea, select {
   -webkit-user-select: auto;
   user-select: auto;
+}
+
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 
 .pt-safe {
@@ -403,4 +411,29 @@ input, textarea, select {
   display: flex;
   flex-direction: column;
 }
+
+/* ---------- 120 FPS GPU & Containment Optimization Pipeline ---------- */
+.gpu-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+.contain-render {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 100px;
+  contain: layout style paint;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+
 

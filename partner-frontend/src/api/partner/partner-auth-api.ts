@@ -12,7 +12,7 @@ import {
   verifyPhoneOtp,
 } from "../core/auth-service";
 import { delay } from "../core/partner-client";
-import { apiPostJson } from "../core/transport";
+import { apiGetJson, apiPostJson } from "../core/transport";
 import { readSession, setRememberSession, writeSession } from "../core/session-store";
 import { startSessionAutoRefresh } from "../core/session-refresh";
 
@@ -20,15 +20,34 @@ import { startSessionAutoRefresh } from "../core/session-refresh";
 const ROLE: AccountRole = "partner";
 
 function toPartnerSession(session: AuthSession): PartnerSession {
+  const isVerified = Boolean(
+    session.account?.isVerified === true ||
+    (session as any).isVerified === true ||
+    (session as any).kycStatus === "verified" ||
+    (session.account as any)?.kycStatus === "verified" ||
+    (session.account as any)?.status === "approved" ||
+    (session as any).status === "approved"
+  );
+  const isOnboarded = Boolean(
+    session.account?.isOnboarded === true ||
+    (session as any).isOnboarded === true ||
+    isVerified
+  );
+  const status = isVerified
+    ? "active"
+    : (isOnboarded ? ((session.account as any)?.status || (session as any).status || "pending_verification") : "not_registered");
+
   return {
-    partnerId: session.account.linkedId ?? session.account.id,
-    phone: session.account.phone ?? "",
-    email: session.account.email,
-    businessName: session.account.name ?? "",
-    ownerName: (session.account as any)?.ownerName ?? session.account.name ?? "",
+    partnerId: session.account?.linkedId ?? session.account?.id,
+    phone: session.account?.phone ?? "",
+    email: session.account?.email,
+    businessName: session.account?.name ?? "",
+    ownerName: (session.account as any)?.ownerName ?? session.account?.name ?? "",
     city: (session.account as any)?.city ?? "",
-    isVerified: session.account.isVerified,
-    isOnboarded: session.account.isOnboarded,
+    isVerified,
+    isOnboarded,
+    status,
+    kycStatus: (session.account as any)?.kycStatus || (isVerified ? "verified" : (isOnboarded ? "pending" : "not_registered")),
   };
 }
 
@@ -169,22 +188,26 @@ export async function checkPartnerVerificationStatus(): Promise<PartnerVerificat
       res?.status === "active" ||
       res?.status === "approved"
     );
+    const isOnboarded = Boolean(
+      (res?.isOnboarded === true || isVerified) &&
+      res?.status !== "not_registered"
+    );
 
     const bName = res?.businessName || currentSession?.account?.name || "";
     const pId = res?.partnerId || currentSession?.account?.linkedId || "";
-    const activeStatus = isVerified ? "active" : (res?.status || "pending_verification");
+    const activeStatus = isVerified ? "active" : (res?.status || (isOnboarded ? "pending_verification" : "not_registered"));
 
     if (currentSession && currentSession.account) {
       const updatedSession: AuthSession = {
         ...currentSession,
         status: activeStatus,
         isVerified,
-        isOnboarded: true,
+        isOnboarded,
         account: {
           ...currentSession.account,
           status: activeStatus,
           isVerified,
-          isOnboarded: true,
+          isOnboarded,
           linkedId: pId || currentSession.account.linkedId,
           name: bName || currentSession.account.name,
         },
@@ -194,9 +217,9 @@ export async function checkPartnerVerificationStatus(): Promise<PartnerVerificat
 
     return {
       isVerified,
-      isOnboarded: res?.isOnboarded ?? true,
+      isOnboarded,
       status: activeStatus,
-      kycStatus: res?.kycStatus || (isVerified ? "verified" : (activeStatus === "rejected" ? "rejected" : "pending")),
+      kycStatus: res?.kycStatus || (isVerified ? "verified" : (activeStatus === "rejected" ? "rejected" : (isOnboarded ? "pending" : "not_registered"))),
       businessName: bName,
       ownerName: res?.ownerName || "",
       partnerId: pId,
@@ -208,16 +231,21 @@ export async function checkPartnerVerificationStatus(): Promise<PartnerVerificat
     };
   } catch {
     const isAlreadyVerified = Boolean(
-      currentSession?.isVerified ||
-      currentSession?.account?.isVerified ||
-      currentSession?.status === "active" ||
-      currentSession?.account?.status === "active"
+      currentSession?.isVerified === true ||
+      currentSession?.account?.isVerified === true ||
+      currentSession?.status === "approved" ||
+      currentSession?.account?.status === "approved"
+    );
+    const isAlreadyOnboarded = Boolean(
+      (currentSession?.isOnboarded === true || currentSession?.account?.isOnboarded === true || isAlreadyVerified) &&
+      currentSession?.status !== "not_registered" &&
+      currentSession?.account?.status !== "not_registered"
     );
     return {
       isVerified: isAlreadyVerified,
-      isOnboarded: true,
-      status: isAlreadyVerified ? "active" : "pending_verification",
-      kycStatus: isAlreadyVerified ? "verified" : "pending",
+      isOnboarded: isAlreadyOnboarded,
+      status: isAlreadyVerified ? "active" : (isAlreadyOnboarded ? "pending_verification" : "not_registered"),
+      kycStatus: isAlreadyVerified ? "verified" : (isAlreadyOnboarded ? "pending" : "not_registered"),
       businessName: currentSession?.account?.name || "",
       partnerId: currentSession?.account?.linkedId || "",
     };
@@ -335,5 +363,14 @@ export async function verifyPartnerBankAccount(
     source?: string;
     message: string;
   }>("/api/partner/verify/bank", { accountNumber, ifsc, accountHolder });
+}
+
+export async function uploadPartnerDocument(imageOrDataUrl: string, documentType: string, partnerId?: string) {
+  return apiPostJson<{
+    ok: boolean;
+    url: string;
+    documentType: string;
+    field: string;
+  }>("/api/uploads/partner/document", { image: imageOrDataUrl, documentType, partnerId });
 }
 

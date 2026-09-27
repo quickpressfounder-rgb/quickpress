@@ -110,6 +110,18 @@ async def upload_rider_document(payload: dict) -> dict:
     return {"ok": True, "url": url, "documentType": doc_type, "field": doc_type}
 
 
+@router.post("/partner/document")
+async def upload_partner_document(payload: dict) -> dict:
+    image_data = payload.get("image") or payload.get("file") or payload.get("dataUrl") or ""
+    doc_type = payload.get("documentType") or payload.get("type") or "partner_doc"
+    doc_id = payload.get("partnerId") or f"doc-{uuid.uuid4().hex[:8]}"
+    if not image_data:
+        raise HTTPException(status_code=400, detail="Image data is required")
+
+    url = await upload_image(image_data, kind=f"partner_{doc_type}", public_id=f"{doc_id}-{doc_type}")
+    return {"ok": True, "url": url, "documentType": doc_type, "field": doc_type}
+
+
 @router.post("/document")
 async def upload_general_document(payload: dict) -> dict:
     image_data = payload.get("image") or payload.get("file") or payload.get("dataUrl") or ""

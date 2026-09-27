@@ -25,7 +25,7 @@ export const PartnerCard = memo(function PartnerCard({ partner, onOpen }: Props)
     <button
       type="button"
       onClick={() => onOpen(partner.id)}
-      className="card-soft ripple animate-pop w-full overflow-hidden border border-border/80 bg-card p-4 text-left transition-all duration-300 hover:border-primary hover:shadow-soft active:scale-[0.985]"
+      className="contain-render card-soft ripple animate-pop w-full overflow-hidden border border-border/80 bg-card p-4 text-left transition-all duration-300 hover:border-primary hover:shadow-soft active:scale-[0.985]"
     >
       <div className="flex items-start gap-3.5">
         {/* Store Logo / Avatar */}

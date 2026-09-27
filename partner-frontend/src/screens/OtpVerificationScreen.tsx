@@ -24,7 +24,7 @@ import { Toaster } from "@/shared/ui/sonner";
 import { usePartnerContext } from "../context/PartnerContext";
 import { useOtpCountdown } from "../hooks/use-otp-countdown";
 import { partnerRoutes } from "../navigation/partner-routes";
-import { requestOtp, verifyOtp } from "@/api/partner/partner-auth-api";
+import { checkPartnerVerificationStatus, requestOtp, verifyOtp } from "@/api/partner/partner-auth-api";
 import { PartnerAuthHeader } from "../components/PartnerAuthHeader";
 
 export function OtpVerificationScreen() {
@@ -86,11 +86,29 @@ export function OtpVerificationScreen() {
     setBusy(false);
     setVerified(true);
     toast.success("Mobile number verified successfully!");
+
+    // Check ground-truth verification & onboarding status from MongoDB
+    let realIsOnboarded = session.isOnboarded;
+    let realIsVerified = session.isVerified;
+    try {
+      const statusRes = await checkPartnerVerificationStatus();
+      if (statusRes) {
+        realIsOnboarded = Boolean(statusRes.isOnboarded);
+        realIsVerified = Boolean(statusRes.isVerified);
+      }
+    } catch {}
+
+    const resolvedSession = {
+      ...session,
+      isOnboarded: realIsOnboarded,
+      isVerified: realIsVerified,
+    };
+    signIn(resolvedSession);
+
     window.setTimeout(() => {
-      signIn(session);
-      if (session.isOnboarded && session.isVerified) {
+      if (realIsOnboarded && realIsVerified) {
         navigate({ to: partnerRoutes.dashboard });
-      } else if (!session.isOnboarded) {
+      } else if (!realIsOnboarded) {
         navigate({ to: partnerRoutes.registration });
       } else {
         navigate({ to: partnerRoutes.registrationSubmitted });

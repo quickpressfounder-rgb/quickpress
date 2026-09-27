@@ -157,12 +157,14 @@ async def test_cross_project_finance_engine_synchronization():
     assert financial_engine.get_commission_rate(order_count=160) == 0.10
 
     # 5. Check Settlement Engine GST and TCS dynamic calculation
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat()
     await database.collection("customer_orders").insert_one({
         "_id": "ord_sync_test",
         "partnerId": "partner_test_sync",
         "total": 1000.0,
         "status": "delivered",
-        "createdAt": "2026-09-10T12:00:00Z",
+        "createdAt": now_iso,
     })
 
     breakdown = await settlement_engine.compute_cycle_breakdown(

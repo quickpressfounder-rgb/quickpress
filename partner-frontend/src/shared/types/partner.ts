@@ -12,6 +12,8 @@ export type PartnerSession = {
   city?: string;
   isVerified: boolean;
   isOnboarded: boolean;
+  status?: string;
+  kycStatus?: string;
 };
 
 export type BusinessCategory = "laundry" | "dry-clean" | "premium" | "shoe-care";
@@ -34,6 +36,16 @@ export type BusinessRegistrationPayload = {
   phone?: string;
   pan?: string;
   aadhaar?: string;
+  ownerPhoto?: string;
+  aadhaarFront?: string;
+  aadhaarBack?: string;
+  panCard?: string;
+  chequePhoto?: string;
+  alternatePhone?: string;
+  gender?: string;
+  dob?: string;
+  servicePrices?: Record<string, number>;
+  serviceTurnarounds?: Record<string, number>;
   experience?: string;
   pickupRadiusKm?: number;
   deliveryRadiusKm?: number;

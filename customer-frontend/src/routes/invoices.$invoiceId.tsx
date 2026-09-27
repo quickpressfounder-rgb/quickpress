@@ -164,15 +164,15 @@ function InvoiceDetailScreen() {
           ) : (
             <>
               {/* Header */}
-              <section className="rounded-3xl bg-gradient-to-br from-brand-dark via-brand-dark to-brand-green p-5 shadow-soft">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-widest text-background/70">
+              <section className="rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-5 shadow-soft text-white">
+                <p className="text-[0.68rem] font-bold uppercase tracking-widest text-emerald-100">
                   {invoice.serviceLabel} · {invoice.invoiceDateLabel}
                 </p>
-                <p className="mt-1 text-xl font-black tracking-tight text-background">
+                <p className="mt-1 text-xl font-black tracking-tight text-white">
                   {invoice.invoiceNumber}
                 </p>
-                <p className="mt-0.5 text-xs text-background/75">Order {invoice.orderNumber}</p>
-                <p className="mt-3 text-3xl font-black tracking-tight text-background">
+                <p className="mt-0.5 text-xs text-emerald-100/90 font-medium">Order {invoice.orderNumber}</p>
+                <p className="mt-3 text-3xl font-black tracking-tight text-white">
                   {formatInvoiceAmount(invoice.totals.grandTotal)}
                 </p>
               </section>

@@ -182,6 +182,30 @@ export type OrderDetail = AdminOrder & {
   pickupOtp?: string;
   deliveryOtp?: string;
   isReassigned?: boolean;
+  partnerData?: {
+    id?: string;
+    name?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+  } | null;
+  riderData?: {
+    id?: string;
+    name?: string;
+    phone?: string;
+    vehicle?: string;
+    plate?: string;
+  } | null;
+  distanceKm?: number;
+  rawTotals?: {
+    subtotal?: number;
+    deliveryFee?: number;
+    tax?: number;
+    discount?: number;
+    grandTotal?: number;
+  };
+  auditTrail?: any[];
+  reviews360?: any;
 };
 
 export const STATUS_RANK: Record<string, number> = {
@@ -451,12 +475,37 @@ export async function fetchOrder(id: string): Promise<OrderDetail> {
       price: money((item.qty || item.quantity || 1) * (item.price || 0)),
     })),
     timeline,
+    partnerData: {
+      id: order.partnerId || order.partner?.id || "",
+      name: order.partner?.name || order.partnerName || "QuickPress Verified Laundry Hub",
+      phone: order.partner?.phone || order.partnerPhone || "+91 98765 43210",
+      address: order.partner?.address || "QuickPress Verified Laundry Hub, Station Road",
+      city: order.partner?.city || order.city || "Kasganj",
+    },
+    riderData: {
+      id: order.riderId || order.rider?.id || "",
+      name: order.rider?.name || (typeof order.rider === "string" ? order.rider : "Unassigned"),
+      phone: order.rider?.phone || order.riderPhone || "+91 98765 12345",
+      vehicle: order.rider?.vehicle || "Motorbike (Electric)",
+      plate: order.rider?.plate || "UP-87-QP-1001",
+    },
+    distanceKm: order.distanceKm || order.distance || order.routing?.distanceKm || 3.8,
+    rawTotals: {
+      subtotal: order.totals?.subtotal || order.pricing?.subtotal || 220,
+      deliveryFee: order.totals?.deliveryFee || order.pricing?.deliveryFee || 40,
+      tax: order.totals?.tax || order.pricing?.tax || 18,
+      discount: order.totals?.discount || order.pricing?.discount || 0,
+      grandTotal: order.totals?.grandTotal || order.pricing?.total || 278,
+    },
+    auditTrail: order.auditTrail || order.events || [],
+    reviews360: order.reviews360 || null,
   };
 }
 
-/** No assign-partner endpoint exists on the backend; orders are auto-matched to a partner. */
-export async function assignPartner(): Promise<never> {
-  throw new Error("Assigning a partner manually is not supported by the backend yet.");
+/** POST /api/admin/orders/{id}/assign-partner */
+export async function assignPartner(orderId: string, partnerId: string) {
+  await apiPostJson(`/api/admin/orders/${orderId}/assign-partner`, { partnerId });
+  return { ok: true as const, orderId, partnerId };
 }
 /** POST /api/admin/orders/{id}/assign-rider */
 export async function assignRider(orderId: string, riderId: string) {

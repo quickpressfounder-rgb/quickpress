@@ -18,10 +18,14 @@ import {
   Wallet,
   X,
   Route,
+  CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
-import { LiveDeliveryMap, type GoogleMapLayerType, type SurgeHotspot, KASGANJ_SURGE_HOTSPOTS } from "./LiveDeliveryMap";
-import { fetchSurgeZones, type SurgeZonesResponse, type SurgeHotspotData } from "../../api/rider/rider-surge-api";
+import { LiveDeliveryMap, type GoogleMapLayerType } from "./LiveDeliveryMap";
 import { fetchRouteBookingState, type RouteBookingState } from "../../api/rider/rider-route-booking-api";
+import { fetchRiderHistory } from "../../api/rider/rider-orders-api";
+import { CaptainTripDetailView } from "../history/CaptainTripDetailView";
+import type { RiderHistoryEntry } from "../../shared/types/rider";
 import { useLanguage } from "../../lib/i18n";
 import { triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
@@ -52,11 +56,59 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   const { t } = useLanguage();
   const [mapLayer, setMapLayer] = useState<GoogleMapLayerType>("roadmap");
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
-  const [selectedSurge, setSelectedSurge] = useState<SurgeHotspot | null>(null);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
-  const [surgeData, setSurgeData] = useState<SurgeZonesResponse | null>(null);
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [routeBooking, setRouteBooking] = useState<RouteBookingState | null>(null);
+
+  // Last completed trip & detail modal state
+  const [lastTrip, setLastTrip] = useState<RiderHistoryEntry | null>(null);
+  const [selectedTripForDetail, setSelectedTripForDetail] = useState<RiderHistoryEntry | null>(null);
+
+  const sampleDefaultTrip: RiderHistoryEntry = useMemo(
+    () => ({
+      id: "trip-sample-1052",
+      code: "QP1052",
+      status: "completed",
+      outcome: "completed",
+      customerName: "Priya Saxena",
+      customerPhone: "+91 98370 12345",
+      customerAddress: "Station Road, Near Gandhi Murti, Kasganj",
+      partnerName: "CleanWash Express - Soron Gate Hub",
+      partnerPhone: "+91 92587 30561",
+      storeAddress: "Shop 12, Main Soron Gate Market, Kasganj",
+      pickupAddress: "Shop 12, Main Soron Gate Market, Kasganj",
+      dropAddress: "Station Road, Near Gandhi Murti, Kasganj",
+      distanceKm: 2.8,
+      amount: 36.0,
+      baseFare: 30.0,
+      distanceFare: 6.0,
+      surgeBonus: 0.0,
+      tipAmount: 0.0,
+      createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      pickupOtp: "4821",
+      deliveryOtp: "7914",
+      items: [
+        { name: "Premium Dry Clean (Blazer)", quantity: 2, price: 240 },
+        { name: "Steam Ironing (Shirts)", quantity: 5, price: 150 },
+      ],
+    }),
+    []
+  );
+
+  useEffect(() => {
+    let active = true;
+    fetchRiderHistory()
+      .then((history) => {
+        if (active && Array.isArray(history) && history.length > 0) {
+          setLastTrip(history[0]);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const loadRouteBooking = async () => {
     try {
@@ -75,28 +127,6 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Poll live dynamic surge engine
-  useEffect(() => {
-    let isMounted = true;
-    const loadSurge = async () => {
-      try {
-        const res = await fetchSurgeZones(currentCoords?.lat, currentCoords?.lng);
-        if (isMounted) {
-          setSurgeData(res);
-        }
-      } catch {
-        /* Keep existing state */
-      }
-    };
-
-    loadSurge();
-    const interval = setInterval(loadSurge, 25000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [currentCoords?.lat, currentCoords?.lng]);
-
   // Toggle map layer (Day Roadmap -> Night Dark -> Satellite)
   const handleToggleLayer = () => {
     triggerHaptic(40);
@@ -107,18 +137,10 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
     });
   };
 
-  const handleSurgeClick = (surge: SurgeHotspot) => {
-    setSelectedSurge(surge);
-    triggerHaptic(50);
-    toast.info(`${surge.name}: ${surge.multiplier} Surge (+₹${surge.bonus}/ride) 🔥`);
-  };
-
   const memoizedRiderLocation = useMemo(() => {
     if (!currentCoords?.lat || !currentCoords?.lng) return null;
     return { lat: currentCoords.lat, lng: currentCoords.lng, label: "You (Captain)" };
   }, [currentCoords?.lat, currentCoords?.lng]);
-
-  const memoizedSurgeHotspots = useMemo(() => surgeData?.zones || [], [surgeData?.zones]);
 
   return (
     <div className="relative flex flex-col flex-1 w-full h-full bg-white text-zinc-900 select-none overflow-hidden font-sans">
@@ -129,12 +151,11 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           phase="online"
           heightClassName="h-full w-full"
           showControls={false}
-          showSurgePins={true}
-          surgeHotspots={memoizedSurgeHotspots}
+          showSurgePins={false}
+          surgeHotspots={[]}
           isRapidoTheme={true}
           activeLayerOverride={mapLayer}
           onLayerChange={setMapLayer}
-          onSurgeClick={handleSurgeClick}
         />
       </div>
 
@@ -158,64 +179,14 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                   Radar Active
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-500 font-medium truncate max-w-[170px] sm:max-w-[220px]">
-                {surgeData?.isRiderInSurgeZone
-                  ? `⚡ In ${surgeData.currentZone?.name.split(" ")[0]} Surge Zone`
-                  : t("dash.searching", "Searching nearby rides in Kasganj...")}
+              <p className="text-[11px] text-zinc-500 font-medium truncate max-w-[220px] sm:max-w-[280px]">
+                {t("dash.searching", "Searching nearby rides in Kasganj...")}
               </p>
             </div>
           </div>
-
-          {/* Today's Quick Earnings Badge */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = "/wallet";
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs rounded-xl shadow-xs active:scale-95 transition-all"
-            >
-              <Wallet className="size-3.5 text-zinc-300" />
-              <span>₹{todayEarnings.toFixed(0)}</span>
-            </button>
-          </div>
         </div>
 
-        {/* Dynamic Surge Banner: Rider is INSIDE a surge zone */}
-        {surgeData?.isRiderInSurgeZone && surgeData?.currentZone && (
-          <div className="pointer-events-auto animate-in slide-in-from-top-2 duration-200 flex items-center justify-between px-3 py-2 bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 text-white rounded-2xl shadow-lg shadow-red-600/25 font-bold text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="relative flex size-2.5 shrink-0">
-                <span className="absolute inline-flex size-full rounded-full bg-white opacity-75 animate-ping" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-white" />
-              </span>
-              <span className="truncate">
-                🔥 <strong className="font-black">SURGE ACTIVE: +₹{surgeData.activeSurgeBonus}/ride</strong> ({surgeData.activeMultiplier} bonus on every trip)
-              </span>
-            </div>
-            <span className="text-[10px] bg-white/25 px-2 py-0.5 rounded-md font-black shrink-0 ml-2">
-              {surgeData.currentZone.name.split(" ")[0]}
-            </span>
-          </div>
-        )}
 
-        {/* Dynamic Surge Banner: Rider is OUTSIDE, show nearest hotspot recommendation */}
-        {surgeData?.nearestZone && !surgeData.isRiderInSurgeZone && (
-          <div
-            onClick={() => handleSurgeClick(surgeData.nearestZone as any)}
-            className="pointer-events-auto cursor-pointer animate-in slide-in-from-top-2 duration-200 flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 text-zinc-900 rounded-2xl shadow-sm text-xs font-bold active:scale-98 transition-all"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Flame className="size-4 text-amber-600 shrink-0 animate-pulse" />
-              <span className="truncate">
-                ⚡ Hotspot: <strong className="text-zinc-950 font-black">{surgeData.nearestZone.name}</strong> (+₹{surgeData.nearestZone.bonus} Surge)
-              </span>
-            </div>
-            <span className="text-[11px] font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300 shrink-0 ml-2">
-              {surgeData.nearestZone.distanceKm > 0 ? `${surgeData.nearestZone.distanceKm} km` : "Nearby"} ➔
-            </span>
-          </div>
-        )}
 
         {/* Dynamic Route Booking Active Banner */}
         {routeBooking?.isActive && (
@@ -269,36 +240,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           </div>
         )}
 
-        {/* Selected Surge Micro-Banner / Detail Preview */}
-        {selectedSurge && (
-          <div className="pointer-events-auto animate-in slide-in-from-top-2 duration-200 flex items-center justify-between px-3 py-2.5 bg-white/95 backdrop-blur-md border border-amber-300 text-zinc-900 rounded-2xl shadow-lg font-bold text-xs">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="size-7 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 border border-amber-300">
-                <Flame className="size-4 text-amber-600" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-black text-zinc-950 truncate">{selectedSurge.name}</span>
-                  <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.2 rounded font-black">
-                    +{selectedSurge.multiplier}
-                  </span>
-                </div>
-                <p className="text-[10px] text-zinc-500 font-medium">
-                  +₹{selectedSurge.bonus} Extra per Trip
-                  {selectedSurge.ordersWaiting !== undefined && ` · ${selectedSurge.ordersWaiting} orders waiting`}
-                  {selectedSurge.distanceKm !== undefined && ` · ${selectedSurge.distanceKm} km away`}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedSurge(null)}
-              className="p-1 hover:bg-zinc-100 rounded-full active:scale-90 text-zinc-500 ml-2"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        )}
+
       </div>
 
       {/* 3. FLOATING MAP CONTROLS (Right Edge - White & Emerald Green) */}
@@ -434,20 +376,49 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                 </div>
               </div>
 
-              {/* Dynamic Hotspot Advisory */}
-              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-start gap-2.5">
-                <Flame className="size-4 text-[#00C853] shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[11px] font-black text-black">
-                    {surgeData?.isRiderInSurgeZone
-                      ? `🟢 You are inside +₹${surgeData.activeSurgeBonus} Surge Zone!`
-                      : "Live Surge Hotspots Active Near You"}
-                  </p>
-                  <p className="text-[10px] text-black font-medium mt-0.5 leading-relaxed">
-                    {surgeData?.zones && surgeData.zones.length >= 2
-                      ? `${surgeData.zones[0].name} (+₹${surgeData.zones[0].bonus}) & ${surgeData.zones[1].name} (+₹${surgeData.zones[1].bonus}) are experiencing high order demand. Stay within zone for instant matching!`
-                      : "Kasganj Junction Station & Gandhi Murti are experiencing surge demand. Stay within 3 km for instant ride matching!"}
-                  </p>
+              {/* Last Trip & Trip Payment Card (Upgraded with tap-to-view order details) */}
+              <div
+                onClick={() => {
+                  triggerHaptic(35);
+                  setSelectedTripForDetail(lastTrip || sampleDefaultTrip);
+                }}
+                className="p-3.5 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-500 shadow-xs cursor-pointer transition-all active:scale-[0.98] group"
+              >
+                <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-2xs shrink-0">
+                      <CheckCircle2 className="size-3.5" />
+                    </span>
+                    <span className="text-[11px] font-black text-black uppercase tracking-wider truncate">
+                      Last Completed Trip
+                    </span>
+                    <span className="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">
+                      #{lastTrip?.code || "QP1052"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <span className="text-[10px] font-bold text-zinc-500">Trip Payment:</span>
+                    <span className="font-mono text-sm font-black text-emerald-700">
+                      +₹{Number(lastTrip?.amount || 36).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black text-black truncate">
+                      {lastTrip?.partnerName || "CleanWash Express - Soron Gate Hub"} → {lastTrip?.customerName || "Priya Saxena"}
+                    </p>
+                    <p className="text-[10px] text-zinc-600 font-semibold truncate mt-0.5">
+                      {lastTrip?.dropAddress || lastTrip?.customerAddress || "Station Road, Gandhi Murti"} · {lastTrip?.distanceKm || 2.8} km
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-white border border-emerald-300 px-2 py-1 rounded-xl shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-2xs">
+                    <span>View Details</span>
+                    <ChevronRight className="size-3" />
+                  </div>
                 </div>
               </div>
 
@@ -492,6 +463,16 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         }}
         onUpdated={(updated) => setRouteBooking(updated)}
       />
+
+      {/* 7. FULL ORDER / TRIP DETAIL VIEW MODAL */}
+      {selectedTripForDetail && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+          <CaptainTripDetailView
+            trip={selectedTripForDetail}
+            onBack={() => setSelectedTripForDetail(null)}
+          />
+        </div>
+      )}
     </div>
   );
 };

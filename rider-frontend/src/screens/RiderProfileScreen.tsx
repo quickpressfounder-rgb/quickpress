@@ -34,6 +34,7 @@ import {
   Wallet,
   X,
   Zap,
+  Camera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRiderContext } from "../context/RiderContext";
@@ -171,7 +172,7 @@ export function RiderProfileScreen() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const base64 = reader.result as string;
       setProfilePhoto(base64);
       try {
@@ -179,6 +180,11 @@ export function RiderProfileScreen() {
       } catch {}
       triggerHaptic();
       toast.success(t("profile.photoUpdated") || "Profile selfie updated successfully! 📸");
+      try {
+        await updateRiderProfile({ photoUrl: base64, selfieUrl: base64 });
+      } catch (err) {
+        console.warn("Could not save photo to backend:", err);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -256,7 +262,12 @@ export function RiderProfileScreen() {
     navigate({ to: "/auth" });
   };
 
-  const displayPhoto = profilePhoto || profile?.photoUrl || profile?.selfieUrl || localStorage.getItem("qp_rider_profile_photo") || "";
+  const displayPhoto =
+    profilePhoto ||
+    profile?.photoUrl ||
+    profile?.selfieUrl ||
+    (typeof window !== "undefined" ? localStorage.getItem("qp_rider_profile_photo") : null) ||
+    "/captain_profile_real.jpg";
 
   return (
     <div
@@ -308,28 +319,24 @@ export function RiderProfileScreen() {
             <div className="flex items-center gap-3.5 min-w-0">
               {/* Real Registration Photo Avatar with Camera Button */}
               <div className="relative shrink-0">
-                <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-zinc-950 font-black text-2xl shadow-xs overflow-hidden border-2 border-white">
-                  {displayPhoto ? (
-                    <img
-                      src={displayPhoto}
-                      alt={fullName}
-                      className="size-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    fullName.slice(0, 2).toUpperCase()
-                  )}
+                <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-950 font-black text-2xl shadow-xs overflow-hidden border-2 border-emerald-500/30">
+                  <img
+                    src={displayPhoto}
+                    alt={fullName}
+                    className="size-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/captain_profile_real.jpg";
+                    }}
+                  />
                 </div>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-zinc-900 text-white shadow-md hover:bg-zinc-800 active:scale-95 transition-all"
+                  className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md hover:bg-emerald-700 active:scale-95 transition-all border border-white"
                   title="Update Registration Photo"
                   aria-label="Upload Photo"
                 >
-                  <Upload className="size-3 stroke-[2.5]" />
+                  <Camera className="size-3.5 stroke-[2.2]" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -672,12 +679,7 @@ export function RiderProfileScreen() {
 
             <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-bold text-zinc-700">Captain Full Name</label>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                    🔒 Requires Approval
-                  </span>
-                </div>
+                <label className="font-bold text-zinc-700 block mb-1">Captain Full Name</label>
                 <input
                   type="text"
                   required
@@ -708,12 +710,7 @@ export function RiderProfileScreen() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-bold text-zinc-700">Vehicle Plate Number</label>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                    🔒 Requires Approval
-                  </span>
-                </div>
+                <label className="font-bold text-zinc-700 block mb-1">Vehicle Plate Number</label>
                 <input
                   type="text"
                   value={vehicleNumber}
@@ -729,12 +726,7 @@ export function RiderProfileScreen() {
 
                 <div className="space-y-2.5">
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="font-bold text-zinc-700">Account Holder Name</label>
-                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                        🔒 Requires Approval
-                      </span>
-                    </div>
+                    <label className="font-bold text-zinc-700 block mb-1">Account Holder Name</label>
                     <input
                       type="text"
                       value={accountHolder}
@@ -754,12 +746,7 @@ export function RiderProfileScreen() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="font-bold text-zinc-700">Bank Account Number</label>
-                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                        🔒 Requires Approval
-                      </span>
-                    </div>
+                    <label className="font-bold text-zinc-700 block mb-1">Bank Account Number</label>
                     <input
                       type="text"
                       value={accountNumber}
@@ -769,12 +756,7 @@ export function RiderProfileScreen() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="font-bold text-zinc-700">Bank IFSC Code</label>
-                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                        🔒 Requires Approval
-                      </span>
-                    </div>
+                    <label className="font-bold text-zinc-700 block mb-1">Bank IFSC Code</label>
                     <input
                       type="text"
                       value={ifsc}

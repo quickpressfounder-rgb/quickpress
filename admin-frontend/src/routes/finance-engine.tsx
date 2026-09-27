@@ -39,6 +39,10 @@ import {
   TrendingUp,
   Gift,
   Zap,
+  Trash2,
+  Tag,
+  CalendarCheck,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,6 +95,95 @@ import {
 } from "../api/finance-api";
 
 export const DEFAULT_FINANCIAL_RULES: any = {
+  versioning: {
+    version: "v2.5.0",
+    status: "active",
+    effectiveFrom: "2026-01-01T00:00:00Z",
+    effectiveUntil: "2099-12-31T23:59:59Z",
+    scheduledAt: "",
+  },
+  servicePricing: [
+    {
+      id: "svc-wash-fold",
+      serviceName: "Wash & Fold",
+      category: "Laundry",
+      city: "All Cities",
+      area: "All Areas",
+      basePrice: "69",
+      unit: "kg",
+      additionalUnitPrice: "69",
+      minQuantity: "1",
+      expressPrice: "99",
+      effectiveFrom: "2026-01-01",
+      effectiveUntil: "2099-12-31",
+      status: "active",
+      active: true,
+    },
+    {
+      id: "svc-wash-iron",
+      serviceName: "Wash & Steam Iron",
+      category: "Laundry",
+      city: "All Cities",
+      area: "All Areas",
+      basePrice: "99",
+      unit: "kg",
+      additionalUnitPrice: "99",
+      minQuantity: "1",
+      expressPrice: "139",
+      effectiveFrom: "2026-01-01",
+      effectiveUntil: "2099-12-31",
+      status: "active",
+      active: true,
+    },
+    {
+      id: "svc-steam-press",
+      serviceName: "Steam Press",
+      category: "Ironing",
+      city: "All Cities",
+      area: "All Areas",
+      basePrice: "19",
+      unit: "piece",
+      additionalUnitPrice: "19",
+      minQuantity: "3",
+      expressPrice: "29",
+      effectiveFrom: "2026-01-01",
+      effectiveUntil: "2099-12-31",
+      status: "active",
+      active: true,
+    },
+    {
+      id: "svc-dry-clean",
+      serviceName: "Premium Dry Clean",
+      category: "Dry Cleaning",
+      city: "All Cities",
+      area: "All Areas",
+      basePrice: "149",
+      unit: "piece",
+      additionalUnitPrice: "149",
+      minQuantity: "1",
+      expressPrice: "219",
+      effectiveFrom: "2026-01-01",
+      effectiveUntil: "2099-12-31",
+      status: "active",
+      active: true,
+    },
+    {
+      id: "svc-shoe-care",
+      serviceName: "Shoe Spa & Restoration",
+      category: "Shoe Care",
+      city: "All Cities",
+      area: "All Areas",
+      basePrice: "299",
+      unit: "pair",
+      additionalUnitPrice: "299",
+      minQuantity: "1",
+      expressPrice: "399",
+      effectiveFrom: "2026-01-01",
+      effectiveUntil: "2099-12-31",
+      status: "active",
+      active: true,
+    },
+  ],
   pricing: {
     platformFee: "10",
     handlingFee: "15",
@@ -98,26 +191,59 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     expressMultiplier: "1.35",
     surgeMultiplier: "1.0",
   },
+  fees: {
+    platformFee: "10",
+    platformFeeType: "fixed",
+    handlingFee: "15",
+    handlingFeeType: "fixed",
+    convenienceFee: "0",
+    convenienceFeeType: "fixed",
+    packagingFee: "0",
+    packagingFeeType: "fixed",
+    serviceCharge: "0",
+    serviceChargeType: "fixed",
+  },
   gst: {
+    enabled: true,
+    pricingMode: "exclusive",
     laundryGstPercent: "5",
     platformGstPercent: "18",
     deliveryGstPercent: "18",
+    cgstPercent: "2.5",
+    sgstPercent: "2.5",
+    igstPercent: "5.0",
     tcsPercent: "1",
+    tdsPercent: "1",
     quickpressGstin: "09AAECQ1234F1Z5",
     defaultState: "Uttar Pradesh",
+    categoryTaxOverrides: [
+      { id: "tax-dryclean", category: "Dry Cleaning", gstRatePercent: "12", active: true },
+    ],
   },
   commission: {
+    partnerCommissionType: "tier",
     standardPercent: "18",
     silverPercent: "15",
     goldPercent: "12",
     silverThreshold: "100",
     goldThreshold: "300",
+    fixedAmountPerOrder: "0",
     captainCommissionRate: 0.0,
+    platformCommissionPercent: "18",
+    categoryOverrides: [
+      { id: "comm-dryclean", category: "Dry Cleaning", ratePercent: "20", active: true },
+      { id: "comm-shoecare", category: "Shoe Care", ratePercent: "15", active: true },
+    ],
+    cityAreaOverrides: [
+      { id: "comm-kasganj", city: "Kasganj", area: "All Areas", ratePercent: "15", active: true },
+    ],
   },
   delivery: {
     baseFee: "30",
     baseDistanceKm: "2.0",
     perKmRate: "8.0",
+    minimumDeliveryFee: "25",
+    expressDeliveryFee: "40",
     slabs: [
       { minKm: 0.0, maxKm: 2.0, fee: "30" },
       { minKm: 2.0, maxKm: 5.0, fee: "40" },
@@ -129,18 +255,80 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     subsidyFundingSource: "QUICKPRESS_FUNDED",
     nightSurge: "25",
     rainSurge: "20",
+    cityAreaPricing: [
+      { id: "del-kasganj-central", city: "Kasganj", area: "Soron Gate", baseFee: "25", perKmRate: "7.0", minFee: "20", active: true },
+      { id: "del-kasganj-outer", city: "Kasganj", area: "Outer Bypass", baseFee: "35", perKmRate: "9.0", minFee: "30", active: true },
+    ],
+  },
+  discount: {
+    minOrderValue: "99",
+    firstOrderDiscountPercent: "20",
+    firstOrderMaxDiscount: "100",
+    coupons: [
+      {
+        id: "cpn-qp50",
+        code: "QUICK50",
+        title: "₹50 Flat Off",
+        type: "flat",
+        discount: "50",
+        maxDiscount: "50",
+        minOrderValue: "299",
+        firstOrderOnly: false,
+        citySpecific: "All",
+        usageLimit: "5000",
+        usedCount: "342",
+        startDate: "2026-01-01",
+        endDate: "2026-12-31",
+        active: true,
+      },
+      {
+        id: "cpn-fresh20",
+        code: "FRESH20",
+        title: "20% Off on Laundry",
+        type: "percent",
+        discount: "20",
+        maxDiscount: "120",
+        minOrderValue: "399",
+        firstOrderOnly: true,
+        citySpecific: "All",
+        usageLimit: "2000",
+        usedCount: "189",
+        startDate: "2026-01-01",
+        endDate: "2026-12-31",
+        active: true,
+      },
+    ],
   },
   cancellation: {
-    ORDER_PLACED: { cancellationFee: "0", refundPct: "100", allowCancel: true },
-    PARTNER_ACCEPTED: { cancellationFee: "0", refundPct: "100", allowCancel: true },
-    PICKUP_ASSIGNED: { cancellationFee: "20", refundPct: "90", allowCancel: true },
-    PICKUP_ARRIVED: { cancellationFee: "40", refundPct: "80", allowCancel: true },
-    PICKED_UP: { cancellationFee: "60", refundPct: "50", allowCancel: true },
-    AT_STORE: { cancellationFee: "75", refundPct: "40", allowCancel: true },
-    PROCESSING: { cancellationFee: "100", refundPct: "25", allowCancel: true },
-    READY: { cancellationFee: "150", refundPct: "10", allowCancel: false },
-    OUT_FOR_DELIVERY: { cancellationFee: "200", refundPct: "0", allowCancel: false },
-    DELIVERED: { cancellationFee: "0", refundPct: "0", allowCancel: false },
+    processingFee: "0",
+    refundEligibility: "Automated refund to original payment source or instant wallet credit",
+    ORDER_PLACED: { cancellationFee: "0", refundPct: "100", allowCancel: true, notes: "Full instant refund before store acceptance" },
+    PARTNER_ACCEPTED: { cancellationFee: "0", refundPct: "100", allowCancel: true, notes: "Full refund if cancelled before rider dispatch" },
+    PICKUP_ASSIGNED: { cancellationFee: "20", refundPct: "90", allowCancel: true, notes: "₹20 rider dispatch compensation" },
+    PICKUP_ARRIVED: { cancellationFee: "40", refundPct: "80", allowCancel: true, notes: "₹40 rider fuel & door arrival fee" },
+    PICKED_UP: { cancellationFee: "60", refundPct: "50", allowCancel: true, notes: "₹60 transit handling charge" },
+    AT_STORE: { cancellationFee: "75", refundPct: "40", allowCancel: true, notes: "Garment sorting and pre-treatment fee" },
+    PROCESSING: { cancellationFee: "100", refundPct: "25", allowCancel: true, notes: "Detergent & cycle wash expense consumed" },
+    READY: { cancellationFee: "150", refundPct: "10", allowCancel: false, notes: "Laundry finished and packed" },
+    OUT_FOR_DELIVERY: { cancellationFee: "200", refundPct: "0", allowCancel: false, notes: "Non-refundable once in transit" },
+    DELIVERED: { cancellationFee: "0", refundPct: "0", allowCancel: false, notes: "Order completed" },
+  },
+  riderPayout: {
+    basePay: "25",
+    baseDistanceKm: "2.0",
+    perKmRate: "6.0",
+    pickupEarning: "10",
+    deliveryEarning: "15",
+    peakIncentive: "15",
+    expressBonus: "20",
+    nightSurge: "25",
+    rainSurge: "20",
+    captainCommissionRate: 0.0,
+    dailyTargets: [
+      { targetTrips: "10", bonus: "300" },
+      { targetTrips: "20", bonus: "750" },
+    ],
+    bonusRules: "Peak hour orders (18:00 - 22:00) grant +₹15 bonus. 100% completion unlocks daily target bonus.",
   },
   incentives: {
     candyCrushLevels: [
@@ -192,7 +380,24 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     autoApproveMaxAmount: "50000",
     requirePanTcs: true,
     tcsRate: 0.01,
+    tdsRate: 0.01,
     minSettlementPayout: "100",
+    minWithdrawal: "100",
+    partnerSharePercent: "82",
+    platformSharePercent: "18",
+    adjustmentRules: "Late pickup penalties and damage claims are automatically deducted from the weekly cycle payout.",
+  },
+  partnerSettlement: {
+    cycle: "WEEKLY",
+    payoutDay: "WEDNESDAY",
+    autoApproveMaxAmount: "50000",
+    minSettlementPayout: "100",
+    minWithdrawal: "100",
+    partnerSharePercent: "82",
+    platformSharePercent: "18",
+    tcsRate: 0.01,
+    tdsRate: 0.01,
+    adjustmentRules: "Late pickup penalties and damage claims are automatically deducted from the weekly cycle payout.",
   },
   expressPickup: {
     enabled: true,
@@ -204,6 +409,29 @@ export const DEFAULT_FINANCIAL_RULES: any = {
 
 function mapServerRulesToForm(data: FinancialRules): any {
   return {
+    versioning: {
+      version: String(data.versioning?.version ?? "v2.5.0"),
+      status: String(data.versioning?.status ?? "active"),
+      effectiveFrom: String(data.versioning?.effectiveFrom ?? "2026-01-01T00:00:00Z"),
+      effectiveUntil: String(data.versioning?.effectiveUntil ?? "2099-12-31T23:59:59Z"),
+      scheduledAt: String(data.versioning?.scheduledAt ?? ""),
+    },
+    servicePricing: (data.servicePricing || DEFAULT_FINANCIAL_RULES.servicePricing).map((s: any) => ({
+      id: String(s.id ?? `svc-${Date.now()}`),
+      serviceName: String(s.serviceName ?? ""),
+      category: String(s.category ?? "Laundry"),
+      city: String(s.city ?? "All Cities"),
+      area: String(s.area ?? "All Areas"),
+      basePrice: String(s.basePrice ?? "0"),
+      unit: String(s.unit ?? "piece"),
+      additionalUnitPrice: String(s.additionalUnitPrice ?? s.basePrice ?? "0"),
+      minQuantity: String(s.minQuantity ?? "1"),
+      expressPrice: String(s.expressPrice ?? "0"),
+      effectiveFrom: String(s.effectiveFrom ?? "2026-01-01"),
+      effectiveUntil: String(s.effectiveUntil ?? "2099-12-31"),
+      status: String(s.status ?? "active"),
+      active: Boolean(s.active !== false),
+    })),
     pricing: {
       platformFee: String(data.pricing?.platformFee ?? 10),
       handlingFee: String(data.pricing?.handlingFee ?? 15),
@@ -211,26 +439,68 @@ function mapServerRulesToForm(data: FinancialRules): any {
       expressMultiplier: String(data.pricing?.expressMultiplier ?? 1.35),
       surgeMultiplier: String(data.pricing?.surgeMultiplier ?? 1.0),
     },
+    fees: {
+      platformFee: String(data.fees?.platformFee ?? data.pricing?.platformFee ?? 10),
+      platformFeeType: String(data.fees?.platformFeeType ?? "fixed"),
+      handlingFee: String(data.fees?.handlingFee ?? data.pricing?.handlingFee ?? 15),
+      handlingFeeType: String(data.fees?.handlingFeeType ?? "fixed"),
+      convenienceFee: String(data.fees?.convenienceFee ?? 0),
+      convenienceFeeType: String(data.fees?.convenienceFeeType ?? "fixed"),
+      packagingFee: String(data.fees?.packagingFee ?? 0),
+      packagingFeeType: String(data.fees?.packagingFeeType ?? "fixed"),
+      serviceCharge: String(data.fees?.serviceCharge ?? 0),
+      serviceChargeType: String(data.fees?.serviceChargeType ?? "fixed"),
+    },
     gst: {
+      enabled: Boolean(data.gst?.enabled !== false),
+      pricingMode: String(data.gst?.pricingMode ?? "exclusive"),
       laundryGstPercent: String(Math.round((data.gst?.laundryGstRate ?? 0.05) * 10000) / 100),
       platformGstPercent: String(Math.round((data.gst?.platformGstRate ?? 0.18) * 10000) / 100),
       deliveryGstPercent: String(Math.round((data.gst?.deliveryGstRate ?? 0.18) * 10000) / 100),
+      cgstPercent: String(Math.round((data.gst?.cgstRate ?? 0.025) * 10000) / 100),
+      sgstPercent: String(Math.round((data.gst?.sgstRate ?? 0.025) * 10000) / 100),
+      igstPercent: String(Math.round((data.gst?.igstRate ?? 0.05) * 10000) / 100),
       tcsPercent: String(Math.round((data.gst?.tcsRate ?? 0.01) * 10000) / 100),
+      tdsPercent: String(Math.round((data.gst?.tdsRate ?? 0.01) * 10000) / 100),
       quickpressGstin: String(data.gst?.quickpressGstin ?? "09AAECQ1234F1Z5"),
       defaultState: String(data.gst?.defaultState ?? "Uttar Pradesh"),
+      categoryTaxOverrides: (data.gst?.categoryTaxOverrides || DEFAULT_FINANCIAL_RULES.gst.categoryTaxOverrides).map((t: any) => ({
+        id: String(t.id ?? ""),
+        category: String(t.category ?? ""),
+        gstRatePercent: String(Math.round((t.gstRate ?? 0.12) * 10000) / 100),
+        active: Boolean(t.active !== false),
+      })),
     },
     commission: {
+      partnerCommissionType: String(data.commission?.partnerCommissionType ?? "tier"),
       standardPercent: String(Math.round((data.commission?.standardRate ?? 0.18) * 10000) / 100),
       silverPercent: String(Math.round((data.commission?.silverRate ?? 0.15) * 10000) / 100),
       goldPercent: String(Math.round((data.commission?.goldRate ?? 0.12) * 10000) / 100),
       silverThreshold: String(data.commission?.silverThreshold ?? 100),
       goldThreshold: String(data.commission?.goldThreshold ?? 300),
+      fixedAmountPerOrder: String(data.commission?.fixedAmountPerOrder ?? 0),
       captainCommissionRate: data.commission?.captainCommissionRate ?? 0.0,
+      platformCommissionPercent: String(Math.round((data.commission?.platformCommissionRate ?? 0.18) * 10000) / 100),
+      categoryOverrides: (data.commission?.categoryOverrides || DEFAULT_FINANCIAL_RULES.commission.categoryOverrides).map((c: any) => ({
+        id: String(c.id ?? ""),
+        category: String(c.category ?? ""),
+        ratePercent: String(Math.round((c.rate ?? 0.18) * 10000) / 100),
+        active: Boolean(c.active !== false),
+      })),
+      cityAreaOverrides: (data.commission?.cityAreaOverrides || DEFAULT_FINANCIAL_RULES.commission.cityAreaOverrides).map((c: any) => ({
+        id: String(c.id ?? ""),
+        city: String(c.city ?? "Kasganj"),
+        area: String(c.area ?? "All Areas"),
+        ratePercent: String(Math.round((c.rate ?? 0.15) * 10000) / 100),
+        active: Boolean(c.active !== false),
+      })),
     },
     delivery: {
       baseFee: String(data.delivery?.baseFee ?? 30),
       baseDistanceKm: String(data.delivery?.baseDistanceKm ?? 2.0),
       perKmRate: String(data.delivery?.perKmRate ?? 8.0),
+      minimumDeliveryFee: String(data.delivery?.minimumDeliveryFee ?? 25),
+      expressDeliveryFee: String(data.delivery?.expressDeliveryFee ?? 40),
       slabs: (data.delivery?.slabs || DEFAULT_FINANCIAL_RULES.delivery.slabs).map((s: any) => ({
         minKm: s.minKm,
         maxKm: s.maxKm,
@@ -240,6 +510,36 @@ function mapServerRulesToForm(data: FinancialRules): any {
       subsidyFundingSource: data.delivery?.subsidyFundingSource ?? "QUICKPRESS_FUNDED",
       nightSurge: String(data.delivery?.nightSurge ?? 25),
       rainSurge: String(data.delivery?.rainSurge ?? 20),
+      cityAreaPricing: (data.delivery?.cityAreaPricing || DEFAULT_FINANCIAL_RULES.delivery.cityAreaPricing).map((c: any) => ({
+        id: String(c.id ?? ""),
+        city: String(c.city ?? ""),
+        area: String(c.area ?? ""),
+        baseFee: String(c.baseFee ?? 30),
+        perKmRate: String(c.perKmRate ?? 8.0),
+        minFee: String(c.minFee ?? 25),
+        active: Boolean(c.active !== false),
+      })),
+    },
+    discount: {
+      minOrderValue: String(data.discount?.minOrderValue ?? 99),
+      firstOrderDiscountPercent: String(data.discount?.firstOrderDiscountPercent ?? 20),
+      firstOrderMaxDiscount: String(data.discount?.firstOrderMaxDiscount ?? 100),
+      coupons: (data.discount?.coupons || DEFAULT_FINANCIAL_RULES.discount.coupons).map((c: any) => ({
+        id: String(c.id ?? `cpn-${Date.now()}`),
+        code: String(c.code ?? ""),
+        title: String(c.title ?? ""),
+        type: String(c.type ?? "flat"),
+        discount: String(c.discount ?? 0),
+        maxDiscount: String(c.maxDiscount ?? 0),
+        minOrderValue: String(c.minOrderValue ?? 0),
+        firstOrderOnly: Boolean(c.firstOrderOnly),
+        citySpecific: String(c.citySpecific ?? "All"),
+        usageLimit: Number(c.usageLimit ?? 1000),
+        usedCount: Number(c.usedCount ?? 0),
+        startDate: String(c.startDate ?? "2026-01-01"),
+        endDate: String(c.endDate ?? "2026-12-31"),
+        active: Boolean(c.active !== false),
+      })),
     },
     cancellation: Object.fromEntries(
       Object.entries(data.cancellation || DEFAULT_FINANCIAL_RULES.cancellation).map(([stage, val]: [string, any]) => [
@@ -248,9 +548,27 @@ function mapServerRulesToForm(data: FinancialRules): any {
           cancellationFee: String(val.cancellationFee ?? 0),
           refundPct: String(val.refundPct ?? 100),
           allowCancel: Boolean(val.allowCancel),
+          notes: String(val.notes ?? ""),
         },
       ])
     ),
+    riderPayout: {
+      basePay: String(data.riderPayout?.basePay ?? 25),
+      baseDistanceKm: String(data.riderPayout?.baseDistanceKm ?? 2.0),
+      perKmRate: String(data.riderPayout?.perKmRate ?? 6.0),
+      pickupEarning: String(data.riderPayout?.pickupEarning ?? 10),
+      deliveryEarning: String(data.riderPayout?.deliveryEarning ?? 15),
+      peakIncentive: String(data.riderPayout?.peakIncentive ?? 15),
+      expressBonus: String(data.riderPayout?.expressBonus ?? 20),
+      nightSurge: String(data.riderPayout?.nightSurge ?? 25),
+      rainSurge: String(data.riderPayout?.rainSurge ?? 20),
+      captainCommissionRate: data.riderPayout?.captainCommissionRate ?? 0.0,
+      dailyTargets: (data.riderPayout?.dailyTargets || DEFAULT_FINANCIAL_RULES.riderPayout.dailyTargets).map((t: any) => ({
+        targetTrips: String(t.targetTrips ?? 10),
+        bonus: String(t.bonus ?? 300),
+      })),
+      bonusRules: String(data.riderPayout?.bonusRules ?? DEFAULT_FINANCIAL_RULES.riderPayout.bonusRules),
+    },
     incentives: {
       candyCrushLevels: (data.incentives?.candyCrushLevels && data.incentives.candyCrushLevels.length > 0
         ? data.incentives.candyCrushLevels
@@ -299,6 +617,22 @@ function mapServerRulesToForm(data: FinancialRules): any {
       requirePanTcs: Boolean(data.settlement?.requirePanTcs ?? true),
       tcsRate: data.settlement?.tcsRate ?? 0.01,
       minSettlementPayout: String(data.settlement?.minSettlementPayout ?? 100),
+      minWithdrawal: String(data.partnerSettlement?.minWithdrawal ?? 100),
+      partnerSharePercent: String(data.settlement?.partnerSharePercent ?? 82),
+      platformSharePercent: String(data.settlement?.platformSharePercent ?? 18),
+      adjustmentRules: String(data.settlement?.adjustmentRules ?? DEFAULT_FINANCIAL_RULES.settlement.adjustmentRules),
+    },
+    partnerSettlement: {
+      cycle: data.partnerSettlement?.cycle ?? data.settlement?.cycle ?? "WEEKLY",
+      payoutDay: data.partnerSettlement?.payoutDay ?? data.settlement?.payoutDay ?? "WEDNESDAY",
+      autoApproveMaxAmount: String(data.partnerSettlement?.autoApproveMaxAmount ?? 50000),
+      minSettlementPayout: String(data.partnerSettlement?.minSettlementPayout ?? 100),
+      minWithdrawal: String(data.partnerSettlement?.minWithdrawal ?? 100),
+      partnerSharePercent: String(data.partnerSettlement?.partnerSharePercent ?? 82),
+      platformSharePercent: String(data.partnerSettlement?.platformSharePercent ?? 18),
+      tcsRate: data.partnerSettlement?.tcsRate ?? 0.01,
+      tdsRate: data.partnerSettlement?.tdsRate ?? 0.01,
+      adjustmentRules: String(data.partnerSettlement?.adjustmentRules ?? DEFAULT_FINANCIAL_RULES.partnerSettlement.adjustmentRules),
     },
     expressPickup: {
       enabled: Boolean(data.expressPickup?.enabled ?? true),
@@ -311,6 +645,29 @@ function mapServerRulesToForm(data: FinancialRules): any {
 
 function prepareRulesForSave(raw: any): FinancialRules {
   return {
+    versioning: {
+      version: String(raw?.versioning?.version || "v2.5.0"),
+      status: String(raw?.versioning?.status || "active"),
+      effectiveFrom: String(raw?.versioning?.effectiveFrom || "2026-01-01T00:00:00Z"),
+      effectiveUntil: String(raw?.versioning?.effectiveUntil || "2099-12-31T23:59:59Z"),
+      scheduledAt: raw?.versioning?.scheduledAt || null,
+    },
+    servicePricing: (raw?.servicePricing || []).map((s: any) => ({
+      id: String(s.id),
+      serviceName: String(s.serviceName),
+      category: String(s.category),
+      city: String(s.city || "All Cities"),
+      area: String(s.area || "All Areas"),
+      basePrice: Number(s.basePrice) || 0,
+      unit: String(s.unit || "piece"),
+      additionalUnitPrice: Number(s.additionalUnitPrice || s.basePrice) || 0,
+      minQuantity: Number(s.minQuantity) || 1,
+      expressPrice: Number(s.expressPrice) || 0,
+      effectiveFrom: String(s.effectiveFrom || "2026-01-01"),
+      effectiveUntil: String(s.effectiveUntil || "2099-12-31"),
+      status: String(s.status || "active"),
+      active: Boolean(s.active !== false),
+    })),
     pricing: {
       platformFee: Number(raw?.pricing?.platformFee) || 0,
       handlingFee: Number(raw?.pricing?.handlingFee) || 0,
@@ -318,27 +675,68 @@ function prepareRulesForSave(raw: any): FinancialRules {
       expressMultiplier: Number(raw?.pricing?.expressMultiplier) || 1.0,
       surgeMultiplier: Number(raw?.pricing?.surgeMultiplier) || 1.0,
     },
+    fees: {
+      platformFee: Number(raw?.fees?.platformFee ?? raw?.pricing?.platformFee) || 0,
+      platformFeeType: String(raw?.fees?.platformFeeType || "fixed"),
+      handlingFee: Number(raw?.fees?.handlingFee ?? raw?.pricing?.handlingFee) || 0,
+      handlingFeeType: String(raw?.fees?.handlingFeeType || "fixed"),
+      convenienceFee: Number(raw?.fees?.convenienceFee) || 0,
+      convenienceFeeType: String(raw?.fees?.convenienceFeeType || "fixed"),
+      packagingFee: Number(raw?.fees?.packagingFee) || 0,
+      packagingFeeType: String(raw?.fees?.packagingFeeType || "fixed"),
+      serviceCharge: Number(raw?.fees?.serviceCharge) || 0,
+      serviceChargeType: String(raw?.fees?.serviceChargeType || "fixed"),
+    },
     gst: {
+      enabled: Boolean(raw?.gst?.enabled !== false),
+      pricingMode: String(raw?.gst?.pricingMode || "exclusive"),
       laundryGstRate: (parseFloat(raw?.gst?.laundryGstPercent) || 0) / 100,
       platformGstRate: (parseFloat(raw?.gst?.platformGstPercent) || 0) / 100,
       deliveryGstRate: (parseFloat(raw?.gst?.deliveryGstPercent) || 0) / 100,
+      cgstRate: (parseFloat(raw?.gst?.cgstPercent) || 0) / 100,
+      sgstRate: (parseFloat(raw?.gst?.sgstPercent) || 0) / 100,
+      igstRate: (parseFloat(raw?.gst?.igstPercent) || 0) / 100,
       tcsRate: (parseFloat(raw?.gst?.tcsPercent) || 0) / 100,
-      tdsRate: 0.01,
+      tdsRate: (parseFloat(raw?.gst?.tdsPercent) || 0) / 100,
       quickpressGstin: String(raw?.gst?.quickpressGstin || "").trim().toUpperCase(),
       defaultState: String(raw?.gst?.defaultState || "Uttar Pradesh").trim(),
+      categoryTaxOverrides: (raw?.gst?.categoryTaxOverrides || []).map((t: any) => ({
+        id: String(t.id),
+        category: String(t.category),
+        gstRate: (parseFloat(t.gstRatePercent) || 0) / 100,
+        active: Boolean(t.active !== false),
+      })),
     },
     commission: {
+      partnerCommissionType: String(raw?.commission?.partnerCommissionType || "tier"),
       standardRate: (parseFloat(raw?.commission?.standardPercent) || 0) / 100,
       silverRate: (parseFloat(raw?.commission?.silverPercent) || 0) / 100,
       goldRate: (parseFloat(raw?.commission?.goldPercent) || 0) / 100,
       silverThreshold: Number(raw?.commission?.silverThreshold) || 100,
       goldThreshold: Number(raw?.commission?.goldThreshold) || 300,
+      fixedAmountPerOrder: Number(raw?.commission?.fixedAmountPerOrder) || 0,
       captainCommissionRate: 0.0,
+      platformCommissionRate: (parseFloat(raw?.commission?.platformCommissionPercent) || 18) / 100,
+      categoryOverrides: (raw?.commission?.categoryOverrides || []).map((c: any) => ({
+        id: String(c.id),
+        category: String(c.category),
+        rate: (parseFloat(c.ratePercent) || 0) / 100,
+        active: Boolean(c.active !== false),
+      })),
+      cityAreaOverrides: (raw?.commission?.cityAreaOverrides || []).map((c: any) => ({
+        id: String(c.id),
+        city: String(c.city),
+        area: String(c.area),
+        rate: (parseFloat(c.ratePercent) || 0) / 100,
+        active: Boolean(c.active !== false),
+      })),
     },
     delivery: {
       baseFee: Number(raw?.delivery?.baseFee) || 0,
       baseDistanceKm: Number(raw?.delivery?.baseDistanceKm) || 2.0,
       perKmRate: Number(raw?.delivery?.perKmRate) || 8.0,
+      minimumDeliveryFee: Number(raw?.delivery?.minimumDeliveryFee) || 25,
+      expressDeliveryFee: Number(raw?.delivery?.expressDeliveryFee) || 40,
       slabs: (raw?.delivery?.slabs || []).map((s: any) => ({
         minKm: Number(s.minKm) || 0,
         maxKm: Number(s.maxKm) || 0,
@@ -348,6 +746,36 @@ function prepareRulesForSave(raw: any): FinancialRules {
       subsidyFundingSource: raw?.delivery?.subsidyFundingSource || "QUICKPRESS_FUNDED",
       nightSurge: Number(raw?.delivery?.nightSurge) || 0,
       rainSurge: Number(raw?.delivery?.rainSurge) || 0,
+      cityAreaPricing: (raw?.delivery?.cityAreaPricing || []).map((c: any) => ({
+        id: String(c.id),
+        city: String(c.city),
+        area: String(c.area),
+        baseFee: Number(c.baseFee) || 0,
+        perKmRate: Number(c.perKmRate) || 0,
+        minFee: Number(c.minFee) || 0,
+        active: Boolean(c.active !== false),
+      })),
+    },
+    discount: {
+      minOrderValue: Number(raw?.discount?.minOrderValue) || 99,
+      firstOrderDiscountPercent: Number(raw?.discount?.firstOrderDiscountPercent) || 20,
+      firstOrderMaxDiscount: Number(raw?.discount?.firstOrderMaxDiscount) || 100,
+      coupons: (raw?.discount?.coupons || []).map((c: any) => ({
+        id: String(c.id),
+        code: String(c.code).trim().toUpperCase(),
+        title: String(c.title),
+        type: String(c.type) as "flat" | "percent",
+        discount: Number(c.discount) || 0,
+        maxDiscount: Number(c.maxDiscount) || 0,
+        minOrderValue: Number(c.minOrderValue) || 0,
+        firstOrderOnly: Boolean(c.firstOrderOnly),
+        citySpecific: String(c.citySpecific || "All"),
+        usageLimit: Number(c.usageLimit) || 1000,
+        usedCount: Number(c.usedCount) || 0,
+        startDate: String(c.startDate || "2026-01-01"),
+        endDate: String(c.endDate || "2026-12-31"),
+        active: Boolean(c.active !== false),
+      })),
     },
     cancellation: Object.fromEntries(
       Object.entries(raw?.cancellation || {}).map(([stage, val]: [string, any]) => [
@@ -356,9 +784,27 @@ function prepareRulesForSave(raw: any): FinancialRules {
           cancellationFee: Number(val.cancellationFee) || 0,
           refundPct: Number(val.refundPct) || 0,
           allowCancel: Boolean(val.allowCancel),
+          notes: String(val.notes || ""),
         },
       ])
     ),
+    riderPayout: {
+      basePay: Number(raw?.riderPayout?.basePay) || 25,
+      baseDistanceKm: Number(raw?.riderPayout?.baseDistanceKm) || 2.0,
+      perKmRate: Number(raw?.riderPayout?.perKmRate) || 6.0,
+      pickupEarning: Number(raw?.riderPayout?.pickupEarning) || 10,
+      deliveryEarning: Number(raw?.riderPayout?.deliveryEarning) || 15,
+      peakIncentive: Number(raw?.riderPayout?.peakIncentive) || 15,
+      expressBonus: Number(raw?.riderPayout?.expressBonus) || 20,
+      nightSurge: Number(raw?.riderPayout?.nightSurge) || 25,
+      rainSurge: Number(raw?.riderPayout?.rainSurge) || 20,
+      captainCommissionRate: 0.0,
+      dailyTargets: (raw?.riderPayout?.dailyTargets || []).map((t: any) => ({
+        targetTrips: Number(t.targetTrips) || 0,
+        bonus: Number(t.bonus) || 0,
+      })),
+      bonusRules: String(raw?.riderPayout?.bonusRules || ""),
+    },
     incentives: {
       candyCrushLevels: (raw?.incentives?.candyCrushLevels || DEFAULT_FINANCIAL_RULES.incentives.candyCrushLevels).map((l: any, idx: number) => ({
         level: Number(l.level) || idx + 1,
@@ -404,6 +850,21 @@ function prepareRulesForSave(raw: any): FinancialRules {
       requirePanTcs: Boolean(raw?.settlement?.requirePanTcs ?? true),
       tcsRate: 0.01,
       minSettlementPayout: Number(raw?.settlement?.minSettlementPayout) || 100,
+      partnerSharePercent: Number(raw?.settlement?.partnerSharePercent) || 82,
+      platformSharePercent: Number(raw?.settlement?.platformSharePercent) || 18,
+      adjustmentRules: String(raw?.settlement?.adjustmentRules || ""),
+    },
+    partnerSettlement: {
+      cycle: raw?.partnerSettlement?.cycle || raw?.settlement?.cycle || "WEEKLY",
+      payoutDay: raw?.partnerSettlement?.payoutDay || raw?.settlement?.payoutDay || "WEDNESDAY",
+      autoApproveMaxAmount: Number(raw?.partnerSettlement?.autoApproveMaxAmount) || 50000,
+      minSettlementPayout: Number(raw?.partnerSettlement?.minSettlementPayout) || 100,
+      minWithdrawal: Number(raw?.partnerSettlement?.minWithdrawal) || 100,
+      partnerSharePercent: Number(raw?.partnerSettlement?.partnerSharePercent) || 82,
+      platformSharePercent: Number(raw?.partnerSettlement?.platformSharePercent) || 18,
+      tcsRate: 0.01,
+      tdsRate: 0.01,
+      adjustmentRules: String(raw?.partnerSettlement?.adjustmentRules || ""),
     },
     expressPickup: {
       enabled: Boolean(raw?.expressPickup?.enabled ?? true),
@@ -430,10 +891,82 @@ export function FinanceEnginePage() {
     "overview" | "rules" | "loyalty" | "ledger" | "settlements" | "audit"
   >("overview");
 
-  // Sub-tab under rules
+  // Sub-tab under rules (9 Dedicated Modules + Versioning & Legacy Aliases)
   const [rulesSubTab, setRulesSubTab] = useState<
-    "pricing" | "gst" | "commission" | "delivery" | "cancellation" | "incentives" | "penalties" | "settlement"
-  >("pricing");
+    | "service-pricing"
+    | "delivery"
+    | "commission"
+    | "gst"
+    | "fees"
+    | "discount"
+    | "cancellation"
+    | "rider-incentives"
+    | "settlement"
+    | "versioning"
+    | "pricing"
+    | "incentives"
+    | "penalties"
+  >("service-pricing");
+
+  // Dialog & Inline Form States for Dedicated Commercial Modules
+  const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [serviceForm, setServiceForm] = useState({
+    id: "",
+    serviceName: "",
+    category: "Laundry",
+    city: "All Cities",
+    area: "All Areas",
+    basePrice: "69",
+    unit: "kg",
+    additionalUnitPrice: "69",
+    minQuantity: "1",
+    expressPrice: "99",
+    effectiveFrom: "2026-01-01",
+    effectiveUntil: "2099-12-31",
+    active: true,
+  });
+
+  const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
+  const [couponForm, setCouponForm] = useState({
+    id: "",
+    code: "",
+    title: "",
+    type: "flat" as "flat" | "percent",
+    discount: "50",
+    maxDiscount: "50",
+    minOrderValue: "299",
+    firstOrderOnly: false,
+    citySpecific: "All",
+    usageLimit: "1000",
+    startDate: "2026-01-01",
+    endDate: "2026-12-31",
+    active: true,
+  });
+
+  const [newAreaPricing, setNewAreaPricing] = useState({
+    city: "Kasganj",
+    area: "",
+    baseFee: "25",
+    perKmRate: "7.0",
+    minFee: "20",
+  });
+
+  const [newTaxOverride, setNewTaxOverride] = useState({
+    category: "",
+    gstRatePercent: "12",
+  });
+
+  const [newCommOverride, setNewCommOverride] = useState({
+    category: "",
+    ratePercent: "15",
+  });
+
+  const [newCityCommOverride, setNewCityCommOverride] = useState({
+    city: "Kasganj",
+    area: "All Areas",
+    ratePercent: "15",
+  });
 
   // Queries
   const summaryQuery = useQuery({
@@ -518,6 +1051,256 @@ export function FinanceEnginePage() {
       curr[parts[parts.length - 1]] = val;
       return next;
     });
+  };
+
+  // Service Pricing Handlers
+  const handleSaveService = () => {
+    if (!serviceForm.serviceName.trim()) {
+      toast.error("Please enter a service name");
+      return;
+    }
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      const list = next.servicePricing || [];
+      if (editingServiceId) {
+        const idx = list.findIndex((s: any) => s.id === editingServiceId);
+        if (idx >= 0) {
+          list[idx] = { ...serviceForm, id: editingServiceId };
+        }
+      } else {
+        list.push({
+          ...serviceForm,
+          id: `svc-${Date.now()}`,
+          status: "active",
+        });
+      }
+      next.servicePricing = list;
+      return next;
+    });
+    setIsAddServiceOpen(false);
+    setEditingServiceId(null);
+    setServiceForm({
+      id: "",
+      serviceName: "",
+      category: "Laundry",
+      city: "All Cities",
+      area: "All Areas",
+      basePrice: "69",
+      unit: "kg",
+      additionalUnitPrice: "69",
+      minQuantity: "1",
+      expressPrice: "99",
+      effectiveFrom: "2026-01-01",
+      effectiveUntil: "2099-12-31",
+      active: true,
+    });
+    toast.success("Service pricing saved to draft rules. Click 'Save Rule Changes' to apply.");
+  };
+
+  const handleDeleteService = (id: string) => {
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      next.servicePricing = (next.servicePricing || []).filter((s: any) => s.id !== id);
+      return next;
+    });
+    toast.info("Service price rule removed. Remember to commit changes.");
+  };
+
+  // Coupon Handlers
+  const handleSaveCoupon = () => {
+    if (!couponForm.code.trim()) {
+      toast.error("Please enter a coupon code");
+      return;
+    }
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (!next.discount) next.discount = { minOrderValue: "99", coupons: [] };
+      if (!next.discount.coupons) next.discount.coupons = [];
+      const list = next.discount.coupons;
+      const codeUpper = couponForm.code.trim().toUpperCase();
+      const existingIdx = list.findIndex((c: any) => c.code?.toUpperCase() === codeUpper);
+      if (existingIdx >= 0) {
+        list[existingIdx] = { ...couponForm, code: codeUpper, id: list[existingIdx].id || `cpn-${Date.now()}` };
+      } else {
+        list.push({ ...couponForm, code: codeUpper, id: `cpn-${Date.now()}`, usedCount: "0" });
+      }
+      return next;
+    });
+    setIsAddCouponOpen(false);
+    setCouponForm({
+      id: "",
+      code: "",
+      title: "",
+      type: "flat",
+      discount: "50",
+      maxDiscount: "50",
+      minOrderValue: "299",
+      firstOrderOnly: false,
+      citySpecific: "All",
+      usageLimit: "1000",
+      startDate: "2026-01-01",
+      endDate: "2026-12-31",
+      active: true,
+    });
+    toast.success("Coupon added to draft rules. Remember to commit changes.");
+  };
+
+  const handleDeleteCoupon = (id: string) => {
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (next.discount?.coupons) {
+        next.discount.coupons = next.discount.coupons.filter((c: any) => c.id !== id);
+      }
+      return next;
+    });
+    toast.info("Coupon deleted. Remember to commit changes.");
+  };
+
+  // Area Delivery Pricing Handlers
+  const handleAddAreaPricing = () => {
+    if (!newAreaPricing.area.trim()) {
+      toast.error("Please enter an area name");
+      return;
+    }
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (!next.delivery) next.delivery = {};
+      if (!next.delivery.cityAreaPricing) next.delivery.cityAreaPricing = [];
+      next.delivery.cityAreaPricing.push({
+        id: `del-${Date.now()}`,
+        city: newAreaPricing.city,
+        area: newAreaPricing.area.trim(),
+        baseFee: newAreaPricing.baseFee,
+        perKmRate: newAreaPricing.perKmRate,
+        minFee: newAreaPricing.minFee,
+        active: true,
+      });
+      return next;
+    });
+    setNewAreaPricing({ city: "Kasganj", area: "", baseFee: "25", perKmRate: "7.0", minFee: "20" });
+    toast.success("Area delivery rule added.");
+  };
+
+  const handleDeleteAreaPricing = (id: string) => {
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (next.delivery?.cityAreaPricing) {
+        next.delivery.cityAreaPricing = next.delivery.cityAreaPricing.filter((c: any) => c.id !== id);
+      }
+      return next;
+    });
+    toast.info("Area delivery rule removed.");
+  };
+
+  // Category Tax Override Handlers
+  const handleAddTaxOverride = () => {
+    if (!newTaxOverride.category.trim()) {
+      toast.error("Please enter a category name");
+      return;
+    }
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (!next.gst) next.gst = {};
+      if (!next.gst.categoryTaxOverrides) next.gst.categoryTaxOverrides = [];
+      next.gst.categoryTaxOverrides.push({
+        id: `tax-${Date.now()}`,
+        category: newTaxOverride.category.trim(),
+        gstRatePercent: newTaxOverride.gstRatePercent,
+        active: true,
+      });
+      return next;
+    });
+    setNewTaxOverride({ category: "", gstRatePercent: "12" });
+    toast.success("Category tax override added.");
+  };
+
+  const handleDeleteTaxOverride = (id: string) => {
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (next.gst?.categoryTaxOverrides) {
+        next.gst.categoryTaxOverrides = next.gst.categoryTaxOverrides.filter((t: any) => t.id !== id);
+      }
+      return next;
+    });
+    toast.info("Category tax override removed.");
+  };
+
+  // Commission Overrides Handlers
+  const handleAddCommOverride = () => {
+    if (!newCommOverride.category.trim()) {
+      toast.error("Please enter a category name");
+      return;
+    }
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (!next.commission) next.commission = {};
+      if (!next.commission.categoryOverrides) next.commission.categoryOverrides = [];
+      next.commission.categoryOverrides.push({
+        id: `comm-${Date.now()}`,
+        category: newCommOverride.category.trim(),
+        ratePercent: newCommOverride.ratePercent,
+        active: true,
+      });
+      return next;
+    });
+    setNewCommOverride({ category: "", ratePercent: "15" });
+    toast.success("Category commission override added.");
+  };
+
+  const handleDeleteCommOverride = (id: string) => {
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (next.commission?.categoryOverrides) {
+        next.commission.categoryOverrides = next.commission.categoryOverrides.filter((c: any) => c.id !== id);
+      }
+      return next;
+    });
+    toast.info("Category commission override removed.");
+  };
+
+  const handleAddCityCommOverride = () => {
+    if (!newCityCommOverride.city.trim()) {
+      toast.error("Please enter city name");
+      return;
+    }
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (!next.commission) next.commission = {};
+      if (!next.commission.cityAreaOverrides) next.commission.cityAreaOverrides = [];
+      next.commission.cityAreaOverrides.push({
+        id: `comm-${Date.now()}`,
+        city: newCityCommOverride.city.trim(),
+        area: newCityCommOverride.area.trim() || "All Areas",
+        ratePercent: newCityCommOverride.ratePercent,
+        active: true,
+      });
+      return next;
+    });
+    setNewCityCommOverride({ city: "Kasganj", area: "All Areas", ratePercent: "15" });
+    toast.success("City/Area commission override added.");
+  };
+
+  const handleDeleteCityCommOverride = (id: string) => {
+    setIsDirty(true);
+    setEditableRules((prev: any) => {
+      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+      if (next.commission?.cityAreaOverrides) {
+        next.commission.cityAreaOverrides = next.commission.cityAreaOverrides.filter((c: any) => c.id !== id);
+      }
+      return next;
+    });
+    toast.info("City/Area commission override removed.");
   };
 
   // Order Ledger Search
@@ -808,297 +1591,557 @@ export function FinanceEnginePage() {
 
             {/* Sub Tabs */}
             <Tabs value={rulesSubTab} onValueChange={(v) => setRulesSubTab(v as any)}>
-              <TabsList className="flex flex-wrap gap-1 bg-transparent p-0 h-auto">
-                <TabsTrigger value="pricing" className="border font-bold text-xs">Pricing & Fees</TabsTrigger>
-                <TabsTrigger value="gst" className="border font-bold text-xs">GST Engine</TabsTrigger>
-                <TabsTrigger value="commission" className="border font-bold text-xs">Commission Slabs</TabsTrigger>
-                <TabsTrigger value="delivery" className="border font-bold text-xs">Delivery & Distance</TabsTrigger>
-                <TabsTrigger value="cancellation" className="border font-bold text-xs">Cancellation & Refunds</TabsTrigger>
-                <TabsTrigger value="incentives" className="border font-bold text-xs">Incentives</TabsTrigger>
-                <TabsTrigger value="penalties" className="border font-bold text-xs">Late Fees & Penalties</TabsTrigger>
-                <TabsTrigger value="settlement" className="border font-bold text-xs">Settlement Cycle</TabsTrigger>
+              <TabsList className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-1 bg-zinc-100 p-1.5 rounded-xl h-auto border border-zinc-200/80">
+                <TabsTrigger value="service-pricing" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
+                  <Sparkles className="size-3.5 mr-1 text-emerald-600" />
+                  1. Services
+                </TabsTrigger>
+                <TabsTrigger value="delivery" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-sky-700 data-[state=active]:shadow-xs">
+                  <Truck className="size-3.5 mr-1 text-sky-600" />
+                  2. Delivery
+                </TabsTrigger>
+                <TabsTrigger value="commission" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-xs">
+                  <Percent className="size-3.5 mr-1 text-amber-600" />
+                  3. Commission
+                </TabsTrigger>
+                <TabsTrigger value="gst" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs">
+                  <Receipt className="size-3.5 mr-1 text-purple-600" />
+                  4. Tax / GST
+                </TabsTrigger>
+                <TabsTrigger value="fees" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs">
+                  <DollarSign className="size-3.5 mr-1 text-blue-600" />
+                  5. Fees
+                </TabsTrigger>
+                <TabsTrigger value="discount" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-rose-700 data-[state=active]:shadow-xs">
+                  <Gift className="size-3.5 mr-1 text-rose-600" />
+                  6. Coupons
+                </TabsTrigger>
+                <TabsTrigger value="cancellation" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-orange-700 data-[state=active]:shadow-xs">
+                  <RotateCcw className="size-3.5 mr-1 text-orange-600" />
+                  7. Refunds
+                </TabsTrigger>
+                <TabsTrigger value="rider-incentives" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-xs">
+                  <Bike className="size-3.5 mr-1 text-teal-600" />
+                  8. Riders
+                </TabsTrigger>
+                <TabsTrigger value="settlement" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs">
+                  <Building2 className="size-3.5 mr-1 text-indigo-600" />
+                  9. Settlement
+                </TabsTrigger>
+                <TabsTrigger value="versioning" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs">
+                  <Clock className="size-3.5 mr-1 text-zinc-600" />
+                  10. Versioning
+                </TabsTrigger>
               </TabsList>
 
-              {/* 1. PRICING SUB-TAB */}
-              <TabsContent value="pricing" className="mt-4">
-                <SectionCard title="Pricing Engine & Platform Fees">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {/* =========================================================================
+                  MODULE A: SERVICE PRICING ENGINE
+                 ========================================================================= */}
+              <TabsContent value="service-pricing" className="mt-4 space-y-4">
+                <SectionCard
+                  title="A. Master Service Item Pricing Engine"
+                  description="Authoritative catalog rates, minimum billing quantities, additional unit rates, and express surcharges across cities."
+                  actions={
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditingServiceId(null);
+                        setServiceForm({
+                          id: "",
+                          serviceName: "",
+                          category: "Laundry",
+                          city: "All Cities",
+                          area: "All Areas",
+                          basePrice: "69",
+                          unit: "kg",
+                          additionalUnitPrice: "69",
+                          minQuantity: "1",
+                          expressPrice: "99",
+                          effectiveFrom: "2026-01-01",
+                          effectiveUntil: "2099-12-31",
+                          active: true,
+                        });
+                        setIsAddServiceOpen(true);
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1 text-xs"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>Add Service Rule</span>
+                    </Button>
+                  }
+                >
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
+                        <tr>
+                          <th className="p-2.5">Service Name & Category</th>
+                          <th className="p-2.5">City / Area</th>
+                          <th className="p-2.5">Unit</th>
+                          <th className="p-2.5">Base Price (₹)</th>
+                          <th className="p-2.5">Addl. Unit (₹)</th>
+                          <th className="p-2.5">Min Qty</th>
+                          <th className="p-2.5">Express (₹)</th>
+                          <th className="p-2.5">Status</th>
+                          <th className="p-2.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 font-mono text-[11px]">
+                        {(editableRules?.servicePricing || []).map((s: any, idx: number) => (
+                          <tr key={s.id || idx} className="hover:bg-zinc-50 font-sans">
+                            <td className="p-2.5 font-bold text-zinc-900">
+                              <div className="flex items-center gap-1.5">
+                                <span>{s.serviceName}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 font-bold">
+                                  {s.category}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-zinc-600 font-medium">
+                              {s.city} {s.area && s.area !== "All Areas" ? `(${s.area})` : ""}
+                            </td>
+                            <td className="p-2.5 font-bold uppercase">{s.unit}</td>
+                            <td className="p-2.5">
+                              <Input
+                                type="number"
+                                value={s.basePrice ?? ""}
+                                onChange={(e) => {
+                                  setIsDirty(true);
+                                  setEditableRules((prev: any) => {
+                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                    if (next.servicePricing[idx]) next.servicePricing[idx].basePrice = e.target.value;
+                                    return next;
+                                  });
+                                }}
+                                className="w-20 font-mono font-bold h-8"
+                              />
+                            </td>
+                            <td className="p-2.5">
+                              <Input
+                                type="number"
+                                value={s.additionalUnitPrice ?? s.basePrice ?? ""}
+                                onChange={(e) => {
+                                  setIsDirty(true);
+                                  setEditableRules((prev: any) => {
+                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                    if (next.servicePricing[idx]) next.servicePricing[idx].additionalUnitPrice = e.target.value;
+                                    return next;
+                                  });
+                                }}
+                                className="w-20 font-mono font-bold h-8"
+                              />
+                            </td>
+                            <td className="p-2.5">
+                              <Input
+                                type="number"
+                                value={s.minQuantity ?? "1"}
+                                onChange={(e) => {
+                                  setIsDirty(true);
+                                  setEditableRules((prev: any) => {
+                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                    if (next.servicePricing[idx]) next.servicePricing[idx].minQuantity = e.target.value;
+                                    return next;
+                                  });
+                                }}
+                                className="w-16 font-mono font-bold h-8"
+                              />
+                            </td>
+                            <td className="p-2.5">
+                              <Input
+                                type="number"
+                                value={s.expressPrice ?? ""}
+                                onChange={(e) => {
+                                  setIsDirty(true);
+                                  setEditableRules((prev: any) => {
+                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                    if (next.servicePricing[idx]) next.servicePricing[idx].expressPrice = e.target.value;
+                                    return next;
+                                  });
+                                }}
+                                className="w-20 font-mono font-bold h-8 text-amber-600"
+                              />
+                            </td>
+                            <td className="p-2.5">
+                              <Switch
+                                checked={s.active !== false}
+                                onCheckedChange={(checked) => {
+                                  setIsDirty(true);
+                                  setEditableRules((prev: any) => {
+                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                    if (next.servicePricing[idx]) next.servicePricing[idx].active = checked;
+                                    return next;
+                                  });
+                                }}
+                              />
+                            </td>
+                            <td className="p-2.5 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  onClick={() => {
+                                    setEditingServiceId(s.id);
+                                    setServiceForm({
+                                      id: s.id,
+                                      serviceName: s.serviceName,
+                                      category: s.category || "Laundry",
+                                      city: s.city || "All Cities",
+                                      area: s.area || "All Areas",
+                                      basePrice: String(s.basePrice || "0"),
+                                      unit: s.unit || "piece",
+                                      additionalUnitPrice: String(s.additionalUnitPrice || s.basePrice || "0"),
+                                      minQuantity: String(s.minQuantity || "1"),
+                                      expressPrice: String(s.expressPrice || "0"),
+                                      effectiveFrom: s.effectiveFrom || "2026-01-01",
+                                      effectiveUntil: s.effectiveUntil || "2099-12-31",
+                                      active: s.active !== false,
+                                    });
+                                    setIsAddServiceOpen(true);
+                                  }}
+                                  className="h-7 px-2 text-xs font-bold"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  onClick={() => handleDeleteService(s.id)}
+                                  className="h-7 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SectionCard>
+              </TabsContent>
+
+              {/* =========================================================================
+                  MODULE B: DELIVERY & DISTANCE PRICING ENGINE
+                 ========================================================================= */}
+              <TabsContent value="delivery" className="mt-4 space-y-4">
+                <SectionCard title="B. Delivery & Logistics Pricing Engine">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <Label className="text-xs font-bold">Platform Convenience Fee (₹)</Label>
+                      <Label className="text-xs font-bold">Base Delivery Fee (₹)</Label>
                       <Input
                         type="number"
-                        value={editableRules?.pricing?.platformFee ?? ""}
-                        onChange={(e) => updateField("pricing.platformFee", e.target.value)}
+                        value={editableRules?.delivery?.baseFee ?? ""}
+                        onChange={(e) => updateField("delivery.baseFee", e.target.value)}
                         className="mt-1 font-bold"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-bold">Handling & Packaging Fee (₹)</Label>
+                      <Label className="text-xs font-bold">Base Distance Included (km)</Label>
                       <Input
                         type="number"
-                        value={editableRules?.pricing?.handlingFee ?? ""}
-                        onChange={(e) => updateField("pricing.handlingFee", e.target.value)}
+                        step="0.5"
+                        value={editableRules?.delivery?.baseDistanceKm ?? "2.0"}
+                        onChange={(e) => updateField("delivery.baseDistanceKm", e.target.value)}
                         className="mt-1 font-bold"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-bold">Minimum Order Value (₹)</Label>
+                      <Label className="text-xs font-bold">Per-Km Rate after Base (₹)</Label>
                       <Input
                         type="number"
-                        value={editableRules?.pricing?.minimumOrderValue ?? ""}
-                        onChange={(e) => updateField("pricing.minimumOrderValue", e.target.value)}
+                        step="0.5"
+                        value={editableRules?.delivery?.perKmRate ?? "8.0"}
+                        onChange={(e) => updateField("delivery.perKmRate", e.target.value)}
                         className="mt-1 font-bold"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-bold">Express 24-Hr Turnaround Multiplier</Label>
+                      <Label className="text-xs font-bold">Minimum Delivery Floor (₹)</Label>
                       <Input
                         type="number"
-                        step="0.05"
-                        value={editableRules?.pricing?.expressMultiplier ?? ""}
-                        onChange={(e) => updateField("pricing.expressMultiplier", e.target.value)}
+                        value={editableRules?.delivery?.minimumDeliveryFee ?? "25"}
+                        onChange={(e) => updateField("delivery.minimumDeliveryFee", e.target.value)}
                         className="mt-1 font-bold"
                       />
-                      <span className="text-[10px] text-zinc-500">1.35 = +35% on standard laundry price</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Free Delivery Minimum Order (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.delivery?.freeDeliveryThreshold ?? ""}
+                        onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
+                        className="mt-1 font-bold"
+                      />
                     </div>
                     <div>
-                      <Label className="text-xs font-bold">Demand Surge Multiplier</Label>
+                      <Label className="text-xs font-bold">Free Delivery Subsidy Funding Source</Label>
+                      <Select
+                        value={editableRules?.delivery?.subsidyFundingSource ?? "QUICKPRESS_FUNDED"}
+                        onValueChange={(v: any) => updateField("delivery.subsidyFundingSource", v)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="QUICKPRESS_FUNDED">QuickPress Funded (Platform absorbs 100%)</SelectItem>
+                          <SelectItem value="PARTNER_FUNDED">Partner Funded (Store absorbs 100%)</SelectItem>
+                          <SelectItem value="SHARED_FUNDED">Shared 50/50 (Platform 50% / Store 50%)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Express Delivery Fee (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.delivery?.expressDeliveryFee ?? "40"}
+                        onChange={(e) => updateField("delivery.expressDeliveryFee", e.target.value)}
+                        className="mt-1 font-bold text-amber-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Rain Weather Surge (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.delivery?.rainSurge ?? ""}
+                        onChange={(e) => updateField("delivery.rainSurge", e.target.value)}
+                        className="mt-1 font-bold text-sky-600"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Night Late Surge (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.delivery?.nightSurge ?? ""}
+                        onChange={(e) => updateField("delivery.nightSurge", e.target.value)}
+                        className="mt-1 font-bold text-indigo-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Distance Tier Slabs */}
+                  <div className="border rounded-xl p-3 bg-zinc-50 mb-4">
+                    <h4 className="text-xs font-black text-zinc-900 uppercase mb-2">Distance Tier Slabs</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                      {(editableRules?.delivery?.slabs || []).map((slab: any, idx: number) => (
+                        <div key={idx} className="bg-white p-3 rounded-lg border border-zinc-200">
+                          <span className="text-[11px] font-bold text-zinc-600 block mb-1">
+                            {slab.minKm} - {slab.maxKm >= 999 ? "12+ KM" : `${slab.maxKm} KM`}
+                          </span>
+                          <Input
+                            type="number"
+                            value={slab.fee ?? ""}
+                            onChange={(e) => {
+                              setIsDirty(true);
+                              setEditableRules((prev: any) => {
+                                const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                if (!next.delivery.slabs[idx]) next.delivery.slabs[idx] = {};
+                                next.delivery.slabs[idx].fee = e.target.value;
+                                return next;
+                              });
+                            }}
+                            className="font-mono font-bold"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* City & Area Specific Delivery Overrides */}
+                  <div className="border rounded-xl p-3 bg-white space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black text-zinc-900 uppercase">
+                        Area-Wise Delivery Pricing ({editableRules?.delivery?.cityAreaPricing?.length || 0} Areas)
+                      </h4>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
+                          <tr>
+                            <th className="p-2">City</th>
+                            <th className="p-2">Area</th>
+                            <th className="p-2">Base Fee (₹)</th>
+                            <th className="p-2">Per-Km (₹)</th>
+                            <th className="p-2">Min Fee (₹)</th>
+                            <th className="p-2">Active</th>
+                            <th className="p-2 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-mono text-[11px]">
+                          {(editableRules?.delivery?.cityAreaPricing || []).map((c: any, idx: number) => (
+                            <tr key={c.id || idx}>
+                              <td className="p-2 font-sans font-bold">{c.city}</td>
+                              <td className="p-2 font-sans">{c.area}</td>
+                              <td className="p-2">
+                                <Input
+                                  type="number"
+                                  value={c.baseFee ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.delivery.cityAreaPricing[idx]) next.delivery.cityAreaPricing[idx].baseFee = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  className="w-20 font-bold h-7"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <Input
+                                  type="number"
+                                  step="0.5"
+                                  value={c.perKmRate ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.delivery.cityAreaPricing[idx]) next.delivery.cityAreaPricing[idx].perKmRate = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  className="w-20 font-bold h-7"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <Input
+                                  type="number"
+                                  value={c.minFee ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.delivery.cityAreaPricing[idx]) next.delivery.cityAreaPricing[idx].minFee = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  className="w-20 font-bold h-7"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <Switch
+                                  checked={c.active !== false}
+                                  onCheckedChange={(checked) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.delivery.cityAreaPricing[idx]) next.delivery.cityAreaPricing[idx].active = checked;
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              </td>
+                              <td className="p-2 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  onClick={() => handleDeleteAreaPricing(c.id)}
+                                  className="h-6 px-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Quick Add Area Form */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-100">
+                      <Input
+                        placeholder="City (e.g. Kasganj)"
+                        value={newAreaPricing.city}
+                        onChange={(e) => setNewAreaPricing((p) => ({ ...p, city: e.target.value }))}
+                        className="w-28 text-xs font-bold h-8"
+                      />
+                      <Input
+                        placeholder="Area (e.g. Soron Gate)"
+                        value={newAreaPricing.area}
+                        onChange={(e) => setNewAreaPricing((p) => ({ ...p, area: e.target.value }))}
+                        className="w-36 text-xs h-8"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Base (₹)"
+                        value={newAreaPricing.baseFee}
+                        onChange={(e) => setNewAreaPricing((p) => ({ ...p, baseFee: e.target.value }))}
+                        className="w-20 text-xs font-bold h-8"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Per Km"
+                        value={newAreaPricing.perKmRate}
+                        onChange={(e) => setNewAreaPricing((p) => ({ ...p, perKmRate: e.target.value }))}
+                        className="w-20 text-xs font-bold h-8"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Min Fee"
+                        value={newAreaPricing.minFee}
+                        onChange={(e) => setNewAreaPricing((p) => ({ ...p, minFee: e.target.value }))}
+                        className="w-20 text-xs font-bold h-8"
+                      />
+                      <Button
+                        size="xs"
+                        onClick={handleAddAreaPricing}
+                        className="bg-sky-600 hover:bg-sky-700 text-white font-bold h-8 px-3"
+                      >
+                        <Plus className="size-3.5 mr-1" />
+                        Add Area Rule
+                      </Button>
+                    </div>
+                  </div>
+                </SectionCard>
+              </TabsContent>
+
+              {/* =========================================================================
+                  MODULE C: COMMISSION ENGINE
+                 ========================================================================= */}
+              <TabsContent value="commission" className="mt-4 space-y-4">
+                <SectionCard title="C. Marketplace Commission Engine & Slabs">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Commission Calculation Mode</Label>
+                      <Select
+                        value={editableRules?.commission?.partnerCommissionType ?? "tier"}
+                        onValueChange={(v) => updateField("commission.partnerCommissionType", v)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tier">Volume Tiered (Standard / Silver / Gold)</SelectItem>
+                          <SelectItem value="percentage">Flat Percentage Across Store</SelectItem>
+                          <SelectItem value="fixed">Fixed ₹ Flat Fee Per Order</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Platform Retained Commission (%)</Label>
                       <Input
                         type="number"
                         step="0.1"
-                        value={editableRules?.pricing?.surgeMultiplier ?? ""}
-                        onChange={(e) => updateField("pricing.surgeMultiplier", e.target.value)}
-                        className="mt-1 font-bold"
+                        value={editableRules?.commission?.platformCommissionPercent ?? "18"}
+                        onChange={(e) => updateField("commission.platformCommissionPercent", e.target.value)}
+                        className="mt-1 font-bold text-amber-700 font-mono"
                       />
-                      <span className="text-[10px] text-zinc-500">1.0 = normal, 1.2 = +20% peak demand</span>
                     </div>
-                  </div>
-                </SectionCard>
-
-                {/* Express Pickup & Split Configuration */}
-                <SectionCard
-                  title="⚡ Express Pickup & Revenue Sharing (Customer → Partner 20% / Rider 80%)"
-                >
-                  <div className="p-4 rounded-xl border bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20 mb-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500">
-                          <Zap className="w-5 h-5 fill-amber-500" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                            Express 15-Minute Priority Pickup Engine
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black">
-                              {editableRules?.expressPickup?.enabled !== false ? "ACTIVE" : "DISABLED"}
-                            </span>
-                          </h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Customer checkout feature for priority pickup. Charged fee is dynamically routed to Partner (bonus) and Rider (earnings boost).
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Label htmlFor="express-enabled-toggle" className="text-xs font-bold cursor-pointer">
-                          Enable Express
-                        </Label>
-                        <Switch
-                          id="express-enabled-toggle"
-                          checked={editableRules?.expressPickup?.enabled !== false}
-                          onCheckedChange={(checked) => updateField("expressPickup.enabled", checked)}
-                        />
-                      </div>
+                    <div>
+                      <Label className="text-xs font-bold">Fixed Amount Per Order (if Mode = Fixed)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.commission?.fixedAmountPerOrder ?? "0"}
+                        onChange={(e) => updateField("commission.fixedAmountPerOrder", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label className="text-xs font-bold flex items-center gap-1.5">
-                        <IndianRupee className="w-3.5 h-3.5 text-amber-500" />
-                        Customer Express Fee (₹)
-                      </Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.expressPickup?.fee ?? "40"}
-                        onChange={(e) => updateField("expressPickup.fee", e.target.value)}
-                        className="mt-1 font-bold text-amber-600 dark:text-amber-400"
-                        placeholder="40"
-                      />
-                      <span className="text-[10px] text-zinc-500">Charged to customer at checkout bill</span>
-                    </div>
-
-                    <div>
-                      <Label className="text-xs font-bold flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-blue-500" />
-                        Partner (Store) Share (%)
-                      </Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={editableRules?.expressPickup?.partnerSharePercent ?? "20"}
-                        onChange={(e) => updateField("expressPickup.partnerSharePercent", e.target.value)}
-                        className="mt-1 font-bold text-blue-600 dark:text-blue-400"
-                        placeholder="20"
-                      />
-                      <span className="text-[10px] text-zinc-500">Credited directly to Partner order payout</span>
-                    </div>
-
-                    <div>
-                      <Label className="text-xs font-bold flex items-center gap-1.5">
-                        <Bike className="w-3.5 h-3.5 text-emerald-500" />
-                        Rider (Captain) Share (%)
-                      </Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={editableRules?.expressPickup?.riderSharePercent ?? "80"}
-                        onChange={(e) => updateField("expressPickup.riderSharePercent", e.target.value)}
-                        className="mt-1 font-bold text-emerald-600 dark:text-emerald-400"
-                        placeholder="80"
-                      />
-                      <span className="text-[10px] text-zinc-500">Added as instant surge bonus to Captain trip fare</span>
-                    </div>
-                  </div>
-
-                  {/* Live Revenue Split Breakdown Preview */}
-                  {(() => {
-                    const fee = Number(editableRules?.expressPickup?.fee) || 40;
-                    const partnerPct = Number(editableRules?.expressPickup?.partnerSharePercent) ?? 20;
-                    const riderPct = Number(editableRules?.expressPickup?.riderSharePercent) ?? 80;
-                    const partnerAmount = Math.round((fee * (partnerPct / 100)) * 100) / 100;
-                    const riderAmount = Math.round((fee * (riderPct / 100)) * 100) / 100;
-                    const totalPct = partnerPct + riderPct;
-                    const isRatioMismatched = totalPct !== 100;
-
-                    return (
-                      <div className="mt-4 p-4 rounded-xl border bg-muted/40 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold flex items-center gap-1.5 text-foreground">
-                            <Sparkles className="w-4 h-4 text-amber-500" />
-                            Live Revenue Split Preview (Per Express Order)
-                          </span>
-                          {isRatioMismatched ? (
-                            <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-[11px] flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                              Total is {totalPct}% (Expected 100%)
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              100% Balanced Split
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                          <div className="p-3 rounded-lg border bg-background/60">
-                            <div className="text-[11px] text-muted-foreground font-medium">Customer Express Charge</div>
-                            <div className="text-base font-black text-amber-600 dark:text-amber-400 mt-0.5">
-                              ₹{fee.toFixed(2)}
-                            </div>
-                            <div className="text-[10px] text-zinc-500">Collected at checkout</div>
-                          </div>
-
-                          <div className="p-3 rounded-lg border bg-background/60">
-                            <div className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
-                              <Building2 className="w-3 h-3 text-blue-500" />
-                              Partner Bonus ({partnerPct}%)
-                            </div>
-                            <div className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">
-                              +₹{partnerAmount.toFixed(2)}
-                            </div>
-                            <div className="text-[10px] text-zinc-500">Partner Alert: EXPRESS + {partnerPct}% BONUS</div>
-                          </div>
-
-                          <div className="p-3 rounded-lg border bg-background/60">
-                            <div className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
-                              <Bike className="w-3 h-3 text-emerald-500" />
-                              Captain Bonus ({riderPct}%)
-                            </div>
-                            <div className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                              +₹{riderAmount.toFixed(2)}
-                            </div>
-                            <div className="text-[10px] text-zinc-500">Captain Alert: EXPRESS PICKUP + {riderPct}% BONUS</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </SectionCard>
-              </TabsContent>
-
-              {/* 2. GST SUB-TAB */}
-              <TabsContent value="gst" className="mt-4">
-                <SectionCard title="GST Taxation Engine & Compliance">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label className="text-xs font-bold">Laundry Fabric GST Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editableRules?.gst?.laundryGstPercent ?? ""}
-                        onChange={(e) => updateField("gst.laundryGstPercent", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                      <span className="text-[10px] text-zinc-500">Standard 5% under GST Council fabric cleaning codes</span>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Platform / Service Fee GST Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editableRules?.gst?.platformGstPercent ?? ""}
-                        onChange={(e) => updateField("gst.platformGstPercent", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                      <span className="text-[10px] text-zinc-500">Standard 18% on IT and marketplace platform service</span>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Delivery Fee GST Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={editableRules?.gst?.deliveryGstPercent ?? ""}
-                        onChange={(e) => updateField("gst.deliveryGstPercent", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                      <span className="text-[10px] text-zinc-500">18% GST on customer logistics and delivery</span>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Section 194-O TCS Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.001"
-                        value={editableRules?.gst?.tcsPercent ?? ""}
-                        onChange={(e) => updateField("gst.tcsPercent", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                      <span className="text-[10px] text-zinc-500">1% Tax Collected at Source on e-commerce participants</span>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">QuickPress Registered GSTIN</Label>
-                      <Input
-                        value={editableRules?.gst?.quickpressGstin ?? ""}
-                        onChange={(e) => updateField("gst.quickpressGstin", e.target.value)}
-                        className="mt-1 font-mono uppercase font-bold"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Home Operating State (Intra-state CGST/SGST)</Label>
-                      <Input
-                        value={editableRules?.gst?.defaultState ?? ""}
-                        onChange={(e) => updateField("gst.defaultState", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                    </div>
-                  </div>
-                </SectionCard>
-              </TabsContent>
-
-              {/* 3. COMMISSION SLABS SUB-TAB */}
-              <TabsContent value="commission" className="mt-4">
-                <SectionCard title="Commission Slabs & Partner Tiers">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                       <div className="flex items-center justify-between mb-2">
@@ -1164,175 +2207,783 @@ export function FinanceEnginePage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
                     <ShieldCheck className="size-4 shrink-0 text-blue-600" />
                     <span>
-                      <strong>Captain Commission Guarantee:</strong> Delivery Captains are charged <strong>0% commission</strong>.
-                      100% of the customer logistics fare and customer tips are settled directly into the rider&apos;s wallet.
+                      <strong>Captain Commission Guarantee:</strong> Delivery Captains are charged <strong>0.0% commission</strong>.
+                      100% of the customer logistics delivery fee and customer tips are passed directly into the rider&apos;s settlement.
                     </span>
+                  </div>
+
+                  {/* Category Commission Overrides */}
+                  <div className="border rounded-xl p-3 bg-white space-y-3">
+                    <h4 className="text-xs font-black text-zinc-900 uppercase">
+                      Category Commission Overrides ({editableRules?.commission?.categoryOverrides?.length || 0})
+                    </h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
+                          <tr>
+                            <th className="p-2">Category</th>
+                            <th className="p-2">Commission Rate (%)</th>
+                            <th className="p-2">Active</th>
+                            <th className="p-2 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-mono text-[11px]">
+                          {(editableRules?.commission?.categoryOverrides || []).map((c: any, idx: number) => (
+                            <tr key={c.id || idx}>
+                              <td className="p-2 font-sans font-bold">{c.category}</td>
+                              <td className="p-2">
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  value={c.ratePercent ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.commission.categoryOverrides[idx]) next.commission.categoryOverrides[idx].ratePercent = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  className="w-24 font-bold h-7"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <Switch
+                                  checked={c.active !== false}
+                                  onCheckedChange={(checked) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.commission.categoryOverrides[idx]) next.commission.categoryOverrides[idx].active = checked;
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              </td>
+                              <td className="p-2 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  onClick={() => handleDeleteCommOverride(c.id)}
+                                  className="h-6 px-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1 border-t border-zinc-100">
+                      <Input
+                        placeholder="Category (e.g. Dry Cleaning)"
+                        value={newCommOverride.category}
+                        onChange={(e) => setNewCommOverride((p) => ({ ...p, category: e.target.value }))}
+                        className="w-48 text-xs h-8"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Rate %"
+                        value={newCommOverride.ratePercent}
+                        onChange={(e) => setNewCommOverride((p) => ({ ...p, ratePercent: e.target.value }))}
+                        className="w-24 text-xs font-bold h-8"
+                      />
+                      <Button
+                        size="xs"
+                        onClick={handleAddCommOverride}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold h-8 px-3"
+                      >
+                        <Plus className="size-3.5 mr-1" />
+                        Add Category Override
+                      </Button>
+                    </div>
                   </div>
                 </SectionCard>
               </TabsContent>
 
-              {/* 4. DELIVERY & DISTANCE SUB-TAB */}
-              <TabsContent value="delivery" className="mt-4 space-y-4">
-                <SectionCard title="Dynamic Delivery & Distance Engine">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <Label className="text-xs font-bold">Base Delivery Fee (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.baseFee ?? ""}
-                        onChange={(e) => updateField("delivery.baseFee", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
+              {/* =========================================================================
+                  MODULE D: TAX / GST ENGINE
+                 ========================================================================= */}
+              <TabsContent value="gst" className="mt-4 space-y-4">
+                <SectionCard title="D. Statutory Tax & GST Engine (SAC Codes)">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="flex flex-col justify-center p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold">GST Engine Status</Label>
+                        <Switch
+                          checked={editableRules?.gst?.enabled !== false}
+                          onCheckedChange={(checked) => updateField("gst.enabled", checked)}
+                        />
+                      </div>
+                      <span className="text-[10px] text-zinc-500 mt-1">
+                        {editableRules?.gst?.enabled !== false ? "Active tax calculation" : "Tax disabled"}
+                      </span>
                     </div>
+
                     <div>
-                      <Label className="text-xs font-bold">Free Delivery Minimum Order (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.delivery?.freeDeliveryThreshold ?? ""}
-                        onChange={(e) => updateField("delivery.freeDeliveryThreshold", e.target.value)}
-                        className="mt-1 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Free Delivery Subsidy Funding Source</Label>
+                      <Label className="text-xs font-bold">Tax Pricing Display Mode</Label>
                       <Select
-                        value={editableRules?.delivery?.subsidyFundingSource ?? "QUICKPRESS_FUNDED"}
-                        onValueChange={(v: any) => updateField("delivery.subsidyFundingSource", v)}
+                        value={editableRules?.gst?.pricingMode ?? "exclusive"}
+                        onValueChange={(v) => updateField("gst.pricingMode", v)}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="QUICKPRESS_FUNDED">QuickPress Funded (Platform absorbs 100%)</SelectItem>
-                          <SelectItem value="PARTNER_FUNDED">Partner Funded (Store absorbs 100%)</SelectItem>
-                          <SelectItem value="SHARED_FUNDED">Shared 50/50 (Platform 50% / Store 50%)</SelectItem>
+                          <SelectItem value="exclusive">Exclusive (GST added on bill)</SelectItem>
+                          <SelectItem value="inclusive">Inclusive (GST included in prices)</SelectItem>
                         </SelectContent>
                       </Select>
+                      <span className="text-[10px] text-zinc-500">Government compliant invoicing</span>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Laundry Fabric GST Rate (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editableRules?.gst?.laundryGstPercent ?? "5"}
+                        onChange={(e) => updateField("gst.laundryGstPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">5% standard under fabric cleaning</span>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Platform / Service Fee GST (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={editableRules?.gst?.platformGstPercent ?? "18"}
+                        onChange={(e) => updateField("gst.platformGstPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">18% IT / marketplace service</span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <Label className="text-xs font-bold">Rain Surge (₹)</Label>
+                      <Label className="text-xs font-bold">Delivery Fee GST Rate (%)</Label>
                       <Input
                         type="number"
-                        value={editableRules?.delivery?.rainSurge ?? ""}
-                        onChange={(e) => updateField("delivery.rainSurge", e.target.value)}
-                        className="mt-1 font-bold"
+                        step="0.01"
+                        value={editableRules?.gst?.deliveryGstPercent ?? "18"}
+                        onChange={(e) => updateField("gst.deliveryGstPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-bold">Night Surge (₹)</Label>
+                      <Label className="text-xs font-bold">Intra-State CGST Rate (%)</Label>
                       <Input
                         type="number"
-                        value={editableRules?.delivery?.nightSurge ?? ""}
-                        onChange={(e) => updateField("delivery.nightSurge", e.target.value)}
+                        step="0.1"
+                        value={editableRules?.gst?.cgstPercent ?? "2.5"}
+                        onChange={(e) => updateField("gst.cgstPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Intra-State SGST Rate (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={editableRules?.gst?.sgstPercent ?? "2.5"}
+                        onChange={(e) => updateField("gst.sgstPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Inter-State IGST Rate (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={editableRules?.gst?.igstPercent ?? "5.0"}
+                        onChange={(e) => updateField("gst.igstPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Section 194-O TCS Rate (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        value={editableRules?.gst?.tcsPercent ?? "1"}
+                        onChange={(e) => updateField("gst.tcsPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">1% TCS on e-commerce merchants</span>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Section 194C TDS Rate (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        value={editableRules?.gst?.tdsPercent ?? "1"}
+                        onChange={(e) => updateField("gst.tdsPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">1% TDS contractor deduction</span>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Registered QuickPress GSTIN</Label>
+                      <Input
+                        value={editableRules?.gst?.quickpressGstin ?? ""}
+                        onChange={(e) => updateField("gst.quickpressGstin", e.target.value)}
+                        className="mt-1 font-mono uppercase font-bold"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Home Operating State</Label>
+                      <Input
+                        value={editableRules?.gst?.defaultState ?? "Uttar Pradesh"}
+                        onChange={(e) => updateField("gst.defaultState", e.target.value)}
                         className="mt-1 font-bold"
                       />
                     </div>
                   </div>
 
-                  <div className="border rounded-xl p-3 bg-zinc-50">
-                    <h4 className="text-xs font-black text-zinc-900 uppercase mb-2">Distance Tier Slabs</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                      {(editableRules?.delivery?.slabs || []).map((slab: any, idx: number) => (
-                        <div key={idx} className="bg-white p-3 rounded-lg border border-zinc-200">
-                          <span className="text-[11px] font-bold text-zinc-600 block mb-1">
-                            {slab.minKm} - {slab.maxKm >= 999 ? "12+ KM" : `${slab.maxKm} KM`}
-                          </span>
-                          <Input
-                            type="number"
-                            value={slab.fee ?? ""}
-                            onChange={(e) => {
-                              setIsDirty(true);
-                              setEditableRules((prev: any) => {
-                                const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                if (!next.delivery.slabs[idx]) next.delivery.slabs[idx] = {};
-                                next.delivery.slabs[idx].fee = e.target.value;
-                                return next;
-                              });
-                            }}
-                            className="font-mono font-bold"
-                          />
-                        </div>
-                      ))}
+                  {/* Category Tax Overrides */}
+                  <div className="border rounded-xl p-3 bg-white space-y-3">
+                    <h4 className="text-xs font-black text-zinc-900 uppercase">
+                      Category Tax Overrides ({editableRules?.gst?.categoryTaxOverrides?.length || 0})
+                    </h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
+                          <tr>
+                            <th className="p-2">Category</th>
+                            <th className="p-2">GST Rate (%)</th>
+                            <th className="p-2">Active</th>
+                            <th className="p-2 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-mono text-[11px]">
+                          {(editableRules?.gst?.categoryTaxOverrides || []).map((t: any, idx: number) => (
+                            <tr key={t.id || idx}>
+                              <td className="p-2 font-sans font-bold">{t.category}</td>
+                              <td className="p-2">
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  value={t.gstRatePercent ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.gst.categoryTaxOverrides[idx]) next.gst.categoryTaxOverrides[idx].gstRatePercent = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  className="w-24 font-bold h-7"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <Switch
+                                  checked={t.active !== false}
+                                  onCheckedChange={(checked) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (next.gst.categoryTaxOverrides[idx]) next.gst.categoryTaxOverrides[idx].active = checked;
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              </td>
+                              <td className="p-2 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  onClick={() => handleDeleteTaxOverride(t.id)}
+                                  className="h-6 px-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1 border-t border-zinc-100">
+                      <Input
+                        placeholder="Category (e.g. Dry Cleaning)"
+                        value={newTaxOverride.category}
+                        onChange={(e) => setNewTaxOverride((p) => ({ ...p, category: e.target.value }))}
+                        className="w-48 text-xs h-8"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="GST Rate %"
+                        value={newTaxOverride.gstRatePercent}
+                        onChange={(e) => setNewTaxOverride((p) => ({ ...p, gstRatePercent: e.target.value }))}
+                        className="w-28 text-xs font-bold h-8"
+                      />
+                      <Button
+                        size="xs"
+                        onClick={handleAddTaxOverride}
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold h-8 px-3"
+                      >
+                        <Plus className="size-3.5 mr-1" />
+                        Add Tax Override
+                      </Button>
                     </div>
                   </div>
                 </SectionCard>
               </TabsContent>
 
-              {/* 5. CANCELLATION SUB-TAB */}
-              <TabsContent value="cancellation" className="mt-4">
-                <SectionCard title="Stage-Based Order Cancellation & Refund Matrix">
-                  <div className="overflow-x-auto">
+              {/* =========================================================================
+                  MODULE E: PLATFORM & HANDLING FEES (and alias "pricing")
+                 ========================================================================= */}
+              <TabsContent value="fees" className="mt-4 space-y-4">
+                <SectionCard title="E. Platform, Handling & Packaging Fees">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+                      <Label className="text-xs font-bold">Platform Convenience Fee</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={editableRules?.fees?.platformFee ?? editableRules?.pricing?.platformFee ?? "10"}
+                          onChange={(e) => {
+                            updateField("fees.platformFee", e.target.value);
+                            updateField("pricing.platformFee", e.target.value);
+                          }}
+                          className="font-bold font-mono"
+                        />
+                        <Select
+                          value={editableRules?.fees?.platformFeeType ?? "fixed"}
+                          onValueChange={(v) => updateField("fees.platformFeeType", v)}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed ₹</SelectItem>
+                            <SelectItem value="percentage">% of Subtotal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">Platform software & cloud access</span>
+                    </div>
+
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+                      <Label className="text-xs font-bold">Handling & Packaging Fee</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={editableRules?.fees?.handlingFee ?? editableRules?.pricing?.handlingFee ?? "15"}
+                          onChange={(e) => {
+                            updateField("fees.handlingFee", e.target.value);
+                            updateField("pricing.handlingFee", e.target.value);
+                          }}
+                          className="font-bold font-mono"
+                        />
+                        <Select
+                          value={editableRules?.fees?.handlingFeeType ?? "fixed"}
+                          onValueChange={(v) => updateField("fees.handlingFeeType", v)}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed ₹</SelectItem>
+                            <SelectItem value="percentage">% of Subtotal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">Order sorting & dispatch handling</span>
+                    </div>
+
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+                      <Label className="text-xs font-bold">Customer Convenience Fee</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={editableRules?.fees?.convenienceFee ?? "0"}
+                          onChange={(e) => updateField("fees.convenienceFee", e.target.value)}
+                          className="font-bold font-mono"
+                        />
+                        <Select
+                          value={editableRules?.fees?.convenienceFeeType ?? "fixed"}
+                          onValueChange={(v) => updateField("fees.convenienceFeeType", v)}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed ₹</SelectItem>
+                            <SelectItem value="percentage">% of Subtotal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">Online payment processing fee</span>
+                    </div>
+
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+                      <Label className="text-xs font-bold">Packaging Material Charge</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={editableRules?.fees?.packagingFee ?? "0"}
+                          onChange={(e) => updateField("fees.packagingFee", e.target.value)}
+                          className="font-bold font-mono"
+                        />
+                        <Select
+                          value={editableRules?.fees?.packagingFeeType ?? "fixed"}
+                          onValueChange={(v) => updateField("fees.packagingFeeType", v)}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed ₹</SelectItem>
+                            <SelectItem value="percentage">% of Subtotal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">Cloth garment bags & hanger cost</span>
+                    </div>
+
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+                      <Label className="text-xs font-bold">Operational Service Charge</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={editableRules?.fees?.serviceCharge ?? "0"}
+                          onChange={(e) => updateField("fees.serviceCharge", e.target.value)}
+                          className="font-bold font-mono"
+                        />
+                        <Select
+                          value={editableRules?.fees?.serviceChargeType ?? "fixed"}
+                          onValueChange={(v) => updateField("fees.serviceChargeType", v)}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed ₹</SelectItem>
+                            <SelectItem value="percentage">% of Subtotal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">Specialized laundry inspection charge</span>
+                    </div>
+
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
+                      <Label className="text-xs font-bold">Minimum Order Value (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.pricing?.minimumOrderValue ?? "99"}
+                        onChange={(e) => {
+                          updateField("pricing.minimumOrderValue", e.target.value);
+                          updateField("discount.minOrderValue", e.target.value);
+                        }}
+                        className="font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">Cart checkout floor required</span>
+                    </div>
+                  </div>
+
+                  {/* Multipliers */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Express Turnaround Multiplier</Label>
+                      <Input
+                        type="number"
+                        step="0.05"
+                        value={editableRules?.pricing?.expressMultiplier ?? "1.35"}
+                        onChange={(e) => updateField("pricing.expressMultiplier", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">1.35 = +35% on standard laundry price for 24-hr priority</span>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Demand Surge Multiplier</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={editableRules?.pricing?.surgeMultiplier ?? "1.0"}
+                        onChange={(e) => updateField("pricing.surgeMultiplier", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">1.0 = normal, 1.2 = +20% during peak festival volume</span>
+                    </div>
+                  </div>
+
+                  {/* Express Priority Pickup & Revenue Sharing */}
+                  <div className="p-4 rounded-xl border bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500">
+                          <Zap className="w-5 h-5 fill-amber-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                            Express 15-Minute Priority Pickup Engine
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black">
+                              {editableRules?.expressPickup?.enabled !== false ? "ACTIVE" : "DISABLED"}
+                            </span>
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Customer checkout feature for priority pickup. Charged fee is dynamically routed to Partner (bonus) and Rider (earnings boost).
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Label htmlFor="express-enabled-toggle" className="text-xs font-bold cursor-pointer">
+                          Enable Express
+                        </Label>
+                        <Switch
+                          id="express-enabled-toggle"
+                          checked={editableRules?.expressPickup?.enabled !== false}
+                          onCheckedChange={(checked) => updateField("expressPickup.enabled", checked)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-xs font-bold flex items-center gap-1.5">
+                          <IndianRupee className="w-3.5 h-3.5 text-amber-500" />
+                          Customer Express Fee (₹)
+                        </Label>
+                        <Input
+                          type="number"
+                          value={editableRules?.expressPickup?.fee ?? "40"}
+                          onChange={(e) => updateField("expressPickup.fee", e.target.value)}
+                          className="mt-1 font-bold text-amber-600 dark:text-amber-400"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                          Partner (Store) Share (%)
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={editableRules?.expressPickup?.partnerSharePercent ?? "20"}
+                          onChange={(e) => updateField("expressPickup.partnerSharePercent", e.target.value)}
+                          className="mt-1 font-bold text-blue-600 dark:text-blue-400"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-bold flex items-center gap-1.5">
+                          <Bike className="w-3.5 h-3.5 text-emerald-500" />
+                          Rider (Captain) Share (%)
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={editableRules?.expressPickup?.riderSharePercent ?? "80"}
+                          onChange={(e) => updateField("expressPickup.riderSharePercent", e.target.value)}
+                          className="mt-1 font-bold text-emerald-600 dark:text-emerald-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Revenue Split Breakdown */}
+                    {(() => {
+                      const fee = Number(editableRules?.expressPickup?.fee) || 40;
+                      const partnerPct = Number(editableRules?.expressPickup?.partnerSharePercent) ?? 20;
+                      const riderPct = Number(editableRules?.expressPickup?.riderSharePercent) ?? 80;
+                      const partnerAmount = Math.round((fee * (partnerPct / 100)) * 100) / 100;
+                      const riderAmount = Math.round((fee * (riderPct / 100)) * 100) / 100;
+                      const totalPct = partnerPct + riderPct;
+                      const isRatioMismatched = totalPct !== 100;
+
+                      return (
+                        <div className="mt-4 p-3 rounded-xl border bg-white/70 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold flex items-center gap-1.5 text-foreground">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                              Live Express Split Preview
+                            </span>
+                            {isRatioMismatched ? (
+                              <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 font-bold text-[11px] flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" /> Total is {totalPct}% (Expected 100%)
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 font-bold text-[11px] flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> 100% Balanced Split
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <div className="p-2 rounded bg-zinc-50 border">
+                              <span className="text-zinc-500 text-[10px] block">Customer Pays</span>
+                              <strong className="text-amber-600 text-sm">₹{fee.toFixed(2)}</strong>
+                            </div>
+                            <div className="p-2 rounded bg-zinc-50 border">
+                              <span className="text-zinc-500 text-[10px] block">Partner Bonus (+{partnerPct}%)</span>
+                              <strong className="text-blue-600 text-sm">+₹{partnerAmount.toFixed(2)}</strong>
+                            </div>
+                            <div className="p-2 rounded bg-zinc-50 border">
+                              <span className="text-zinc-500 text-[10px] block">Rider Bonus (+{riderPct}%)</span>
+                              <strong className="text-emerald-600 text-sm">+₹{riderAmount.toFixed(2)}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </SectionCard>
+              </TabsContent>
+
+              {/* Legacy Pricing Alias */}
+              <TabsContent value="pricing" className="mt-4">
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 mb-3 flex items-center justify-between">
+                  <span>Redirected to Fees & Charges engine. Configure platform convenience, handling, and express fees here.</span>
+                  <Button size="xs" onClick={() => setRulesSubTab("fees")} className="bg-amber-600 text-white font-bold">
+                    Go to Fees Tab
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* =========================================================================
+                  MODULE F: DISCOUNT & COUPON ENGINE
+                 ========================================================================= */}
+              <TabsContent value="discount" className="mt-4 space-y-4">
+                <SectionCard
+                  title="F. Promotional Discount & Coupon Engine"
+                  description="Cart-level discounts, first-order welcome offers, usage caps, and promo code validation rules."
+                  actions={
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setCouponForm({
+                          id: "",
+                          code: "",
+                          title: "",
+                          type: "flat",
+                          discount: "50",
+                          maxDiscount: "50",
+                          minOrderValue: "299",
+                          firstOrderOnly: false,
+                          citySpecific: "All",
+                          usageLimit: "1000",
+                          startDate: "2026-01-01",
+                          endDate: "2026-12-31",
+                          active: true,
+                        });
+                        setIsAddCouponOpen(true);
+                      }}
+                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-1 text-xs"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>Add Coupon</span>
+                    </Button>
+                  }
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Cart Minimum Order Value (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.discount?.minOrderValue ?? "99"}
+                        onChange={(e) => updateField("discount.minOrderValue", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">Minimum subtotal required to use discounts</span>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">First-Order Welcome Discount (%)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.discount?.firstOrderDiscountPercent ?? "20"}
+                        onChange={(e) => updateField("discount.firstOrderDiscountPercent", e.target.value)}
+                        className="mt-1 font-bold font-mono text-rose-600"
+                      />
+                      <span className="text-[10px] text-zinc-500">Auto-applied for new customer first order</span>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">First-Order Max Discount Cap (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.discount?.firstOrderMaxDiscount ?? "100"}
+                        onChange={(e) => updateField("discount.firstOrderMaxDiscount", e.target.value)}
+                        className="mt-1 font-bold font-mono text-rose-600"
+                      />
+                      <span className="text-[10px] text-zinc-500">Ceiling cap on first-order discount</span>
+                    </div>
+                  </div>
+
+                  {/* Coupons Table */}
+                  <div className="border rounded-xl overflow-hidden bg-white">
                     <table className="w-full text-xs text-left">
                       <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
                         <tr>
-                          <th className="p-2.5">Order Stage</th>
-                          <th className="p-2.5">Cancellation Fee (₹)</th>
-                          <th className="p-2.5">Customer Refund (%)</th>
-                          <th className="p-2.5">Allow Customer Cancel?</th>
+                          <th className="p-2.5">Code</th>
+                          <th className="p-2.5">Title</th>
+                          <th className="p-2.5">Type & Benefit</th>
+                          <th className="p-2.5">Min Order (₹)</th>
+                          <th className="p-2.5">Max Cap (₹)</th>
+                          <th className="p-2.5">Used / Limit</th>
+                          <th className="p-2.5">Audience</th>
+                          <th className="p-2.5">Status</th>
+                          <th className="p-2.5 text-right">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-200">
-                        {Object.entries(editableRules?.cancellation || {}).map(([stage, policy]: [string, any]) => (
-                          <tr key={stage} className="hover:bg-zinc-50">
-                            <td className="p-2.5 font-bold font-mono text-zinc-900">{stage}</td>
-                            <td className="p-2.5">
-                              <Input
-                                type="number"
-                                value={policy.cancellationFee ?? ""}
-                                onChange={(e) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (!next.cancellation[stage]) next.cancellation[stage] = {};
-                                    next.cancellation[stage].cancellationFee = e.target.value;
-                                    return next;
-                                  });
-                                }}
-                                className="w-24 font-mono font-bold h-8"
-                              />
+                      <tbody className="divide-y divide-zinc-200 font-mono text-[11px]">
+                        {(editableRules?.discount?.coupons || []).map((cpn: any, idx: number) => (
+                          <tr key={cpn.id || idx} className="hover:bg-zinc-50 font-sans">
+                            <td className="p-2.5 font-bold font-mono text-rose-700 text-xs">
+                              <span className="px-2 py-0.5 rounded bg-rose-50 border border-rose-200">
+                                {cpn.code}
+                              </span>
+                            </td>
+                            <td className="p-2.5 font-medium">{cpn.title}</td>
+                            <td className="p-2.5 font-mono font-bold">
+                              {cpn.type === "percent" ? `${cpn.discount}% OFF` : `₹${cpn.discount} FLAT`}
+                            </td>
+                            <td className="p-2.5 font-mono">₹{cpn.minOrderValue}</td>
+                            <td className="p-2.5 font-mono">₹{cpn.maxDiscount}</td>
+                            <td className="p-2.5 font-mono">
+                              {cpn.usedCount || 0} / {cpn.usageLimit || "∞"}
                             </td>
                             <td className="p-2.5">
-                              <Input
-                                type="number"
-                                value={policy.refundPct ?? ""}
-                                onChange={(e) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (!next.cancellation[stage]) next.cancellation[stage] = {};
-                                    next.cancellation[stage].refundPct = e.target.value;
-                                    return next;
-                                  });
-                                }}
-                                className="w-24 font-mono font-bold h-8"
-                              />
+                              {cpn.firstOrderOnly ? (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                                  1st Order Only
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                                  All Orders
+                                </span>
+                              )}
                             </td>
                             <td className="p-2.5">
-                              <button
-                                type="button"
-                                onClick={() => {
+                              <Switch
+                                checked={cpn.active !== false}
+                                onCheckedChange={(checked) => {
                                   setIsDirty(true);
                                   setEditableRules((prev: any) => {
                                     const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (!next.cancellation[stage]) next.cancellation[stage] = {};
-                                    next.cancellation[stage].allowCancel = !next.cancellation[stage].allowCancel;
+                                    if (next.discount?.coupons[idx]) next.discount.coupons[idx].active = checked;
                                     return next;
                                   });
                                 }}
-                                className={`px-2.5 py-1 rounded text-xs font-bold ${
-                                  policy.allowCancel
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : "bg-rose-100 text-rose-800"
-                                }`}
+                              />
+                            </td>
+                            <td className="p-2.5 text-right">
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={() => handleDeleteCoupon(cpn.id)}
+                                className="h-7 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                               >
-                                {policy.allowCancel ? "Allowed" : "Blocked"}
-                              </button>
+                                <Trash2 className="size-3.5" />
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -1342,14 +2993,217 @@ export function FinanceEnginePage() {
                 </SectionCard>
               </TabsContent>
 
-              {/* 6. INCENTIVES SUB-TAB: CANDY CRUSH 10-LEVEL LADDER + VOLUME BONUSES */}
-              <TabsContent value="incentives" className="mt-4 space-y-6">
+              {/* =========================================================================
+                  MODULE G: CANCELLATION & REFUND RULES
+                 ========================================================================= */}
+              <TabsContent value="cancellation" className="mt-4 space-y-4">
+                <SectionCard title="G. Stage-Based Order Cancellation & Refund Matrix">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Standard Cancellation Processing Fee (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.cancellation?.processingFee ?? "0"}
+                        onChange={(e) => updateField("cancellation.processingFee", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Automated Refund Policy & SLA</Label>
+                      <Input
+                        value={editableRules?.cancellation?.refundEligibility ?? "Instant wallet credit or 2-4 day bank reversal"}
+                        onChange={(e) => updateField("cancellation.refundEligibility", e.target.value)}
+                        className="mt-1 font-medium text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border rounded-xl bg-white">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
+                        <tr>
+                          <th className="p-2.5">Order Stage</th>
+                          <th className="p-2.5">Cancellation Fee (₹)</th>
+                          <th className="p-2.5">Customer Refund (%)</th>
+                          <th className="p-2.5">Allow Customer Cancel?</th>
+                          <th className="p-2.5">Policy Rationale / Cost Consumption Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200">
+                        {Object.entries(editableRules?.cancellation || {})
+                          .filter(([key]) => key !== "processingFee" && key !== "refundEligibility")
+                          .map(([stage, policy]: [string, any]) => (
+                            <tr key={stage} className="hover:bg-zinc-50">
+                              <td className="p-2.5 font-bold font-mono text-zinc-900">{stage}</td>
+                              <td className="p-2.5">
+                                <Input
+                                  type="number"
+                                  value={policy.cancellationFee ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (!next.cancellation[stage]) next.cancellation[stage] = {};
+                                      next.cancellation[stage].cancellationFee = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  className="w-24 font-mono font-bold h-8"
+                                />
+                              </td>
+                              <td className="p-2.5">
+                                <Input
+                                  type="number"
+                                  value={policy.refundPct ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (!next.cancellation[stage]) next.cancellation[stage] = {};
+                                      next.cancellation[stage].refundPct = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  className="w-24 font-mono font-bold h-8 text-emerald-700"
+                                />
+                              </td>
+                              <td className="p-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (!next.cancellation[stage]) next.cancellation[stage] = {};
+                                      next.cancellation[stage].allowCancel = !next.cancellation[stage].allowCancel;
+                                      return next;
+                                    });
+                                  }}
+                                  className={`px-2.5 py-1 rounded text-xs font-bold ${
+                                    policy.allowCancel
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-rose-100 text-rose-800"
+                                  }`}
+                                >
+                                  {policy.allowCancel ? "Allowed" : "Blocked"}
+                                </button>
+                              </td>
+                              <td className="p-2.5">
+                                <Input
+                                  value={policy.notes ?? ""}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setEditableRules((prev: any) => {
+                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                      if (!next.cancellation[stage]) next.cancellation[stage] = {};
+                                      next.cancellation[stage].notes = e.target.value;
+                                      return next;
+                                    });
+                                  }}
+                                  placeholder="Rationale"
+                                  className="text-xs h-8 text-zinc-600 font-sans"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SectionCard>
+              </TabsContent>
+
+              {/* =========================================================================
+                  MODULE H: RIDER EARNINGS & INCENTIVES (and alias "incentives")
+                 ========================================================================= */}
+              <TabsContent value="rider-incentives" className="mt-4 space-y-6">
+                <SectionCard title="H. Delivery Captain Base Pay & Distance Earnings">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Base Trip Pay (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.riderPayout?.basePay ?? "25"}
+                        onChange={(e) => updateField("riderPayout.basePay", e.target.value)}
+                        className="mt-1 font-bold font-mono text-emerald-700"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Base Distance Included (km)</Label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={editableRules?.riderPayout?.baseDistanceKm ?? "2.0"}
+                        onChange={(e) => updateField("riderPayout.baseDistanceKm", e.target.value)}
+                        className="mt-1 font-bold font-mono"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Per-Km Travel Pay (₹)</Label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        value={editableRules?.riderPayout?.perKmRate ?? "6.0"}
+                        onChange={(e) => updateField("riderPayout.perKmRate", e.target.value)}
+                        className="mt-1 font-bold font-mono text-emerald-700"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Pickup Stop Earning (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.riderPayout?.pickupEarning ?? "10"}
+                        onChange={(e) => updateField("riderPayout.pickupEarning", e.target.value)}
+                        className="mt-1 font-bold font-mono text-emerald-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label className="text-xs font-bold">Delivery Drop Earning (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.riderPayout?.deliveryEarning ?? "15"}
+                        onChange={(e) => updateField("riderPayout.deliveryEarning", e.target.value)}
+                        className="mt-1 font-bold font-mono text-emerald-700"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Peak Rush Hour Incentive (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.riderPayout?.peakIncentive ?? "15"}
+                        onChange={(e) => updateField("riderPayout.peakIncentive", e.target.value)}
+                        className="mt-1 font-bold font-mono text-amber-600"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Rain Weather Bonus Pass-Through (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.riderPayout?.rainSurge ?? "20"}
+                        onChange={(e) => updateField("riderPayout.rainSurge", e.target.value)}
+                        className="mt-1 font-bold font-mono text-sky-600"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold">Night Late Surge Pass-Through (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.riderPayout?.nightSurge ?? "25"}
+                        onChange={(e) => updateField("riderPayout.nightSurge", e.target.value)}
+                        className="mt-1 font-bold font-mono text-indigo-600"
+                      />
+                    </div>
+                  </div>
+                </SectionCard>
+
+                {/* Candy Crush Ladder */}
                 <SectionCard
                   title="Candy Crush 10-Level Captain Milestone Ladder"
                   badge={`${(editableRules?.incentives?.candyCrushLevels || []).length} Levels Active`}
                 >
                   <div className="space-y-4">
-                    {/* Hero Info & Quick Action Bar */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gradient-to-r from-amber-50 via-pink-50 to-emerald-50 rounded-2xl border border-amber-200">
                       <div>
                         <div className="flex items-center gap-2">
@@ -1360,7 +3214,7 @@ export function FinanceEnginePage() {
                         </div>
                         <p className="text-xs text-zinc-600 mt-1 max-w-xl">
                           Admin can configure exact daily delivery targets, milestone names, and cash rewards for each level (1 to 10).
-                          When you save, these rates sync live directly to every Captain's App in Kasganj!
+                          When you save, these rates sync live directly to every Captain&apos;s App!
                         </p>
                       </div>
 
@@ -1378,7 +3232,7 @@ export function FinanceEnginePage() {
                               );
                               return next;
                             });
-                            toast.info("Reset to default 10-level ladder. Click 'Save Financial Rules' to apply.");
+                            toast.info("Reset to default 10-level ladder. Click 'Save Rule Changes' to apply.");
                           }}
                           className="text-xs font-bold bg-white hover:bg-zinc-100"
                         >
@@ -1388,7 +3242,6 @@ export function FinanceEnginePage() {
                       </div>
                     </div>
 
-                    {/* Total Bonus Pool Summary Badge */}
                     <div className="flex items-center justify-between px-3 py-2 bg-zinc-100 rounded-xl text-xs font-bold text-zinc-700">
                       <span>Total Cumulative Bonus Pool (Lvl 1 - 10):</span>
                       <span className="font-mono text-emerald-700 font-black text-sm">
@@ -1400,7 +3253,6 @@ export function FinanceEnginePage() {
                       </span>
                     </div>
 
-                    {/* 10-Level Matrix Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       {(editableRules?.incentives?.candyCrushLevels || []).map((l: any, idx: number) => {
                         const targetTrips = Number(l.target) || 1;
@@ -1431,8 +3283,7 @@ export function FinanceEnginePage() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                              {/* Title Input */}
-                              <div className="sm:col-span-1">
+                              <div>
                                 <Label className="text-[10px] font-bold text-zinc-500">Milestone Title</Label>
                                 <Input
                                   value={l.title ?? ""}
@@ -1445,12 +3296,10 @@ export function FinanceEnginePage() {
                                       return next;
                                     });
                                   }}
-                                  placeholder="Level Title"
                                   className="h-8 text-xs font-bold mt-1"
                                 />
                               </div>
 
-                              {/* Target Deliveries Input */}
                               <div>
                                 <Label className="text-[10px] font-bold text-zinc-500">Target Rides</Label>
                                 <div className="relative mt-1">
@@ -1475,7 +3324,6 @@ export function FinanceEnginePage() {
                                 </div>
                               </div>
 
-                              {/* Cash Reward Input */}
                               <div>
                                 <Label className="text-[10px] font-bold text-zinc-500">Cash Bonus (₹)</Label>
                                 <div className="relative mt-1">
@@ -1507,142 +3355,335 @@ export function FinanceEnginePage() {
                   </div>
                 </SectionCard>
 
-                {/* Merchant Laundry Volume Bonus & Weekly Streak */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Weekly Duty Streak Bonus */}
-                  <SectionCard title="Captain Weekly 6-Day Duty Streak Bonus">
-                    <div className="space-y-3">
-                      <p className="text-xs text-zinc-500">
-                        Rewarded when captain completes minimum daily deliveries across consecutive duty days in a calendar week.
-                      </p>
-                      <div className="grid grid-cols-2 gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-200">
-                        <div>
-                          <Label className="text-xs font-bold text-zinc-600">Weekly Target Trips</Label>
-                          <Input
-                            type="number"
-                            value={editableRules?.incentives?.riderWeeklyStreak?.trips ?? "50"}
-                            onChange={(e) => {
-                              setIsDirty(true);
-                              setEditableRules((prev: any) => {
-                                const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                if (!next.incentives.riderWeeklyStreak) next.incentives.riderWeeklyStreak = {};
-                                next.incentives.riderWeeklyStreak.trips = e.target.value;
-                                return next;
-                              });
-                            }}
-                            className="h-8 font-mono font-bold mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs font-bold text-zinc-600">Mega Reward (₹)</Label>
-                          <Input
-                            type="number"
-                            value={editableRules?.incentives?.riderWeeklyStreak?.reward ?? "800"}
-                            onChange={(e) => {
-                              setIsDirty(true);
-                              setEditableRules((prev: any) => {
-                                const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                if (!next.incentives.riderWeeklyStreak) next.incentives.riderWeeklyStreak = {};
-                                next.incentives.riderWeeklyStreak.reward = e.target.value;
-                                return next;
-                              });
-                            }}
-                            className="h-8 font-mono font-bold mt-1 text-emerald-700"
-                          />
-                        </div>
-                      </div>
+                {/* Duty Streak Bonus */}
+                <SectionCard title="Captain Weekly 6-Day Duty Streak Bonus">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-zinc-50 p-4 rounded-xl border border-zinc-200">
+                    <div>
+                      <Label className="text-xs font-bold text-zinc-700">Weekly Target Trips</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.incentives?.riderWeeklyStreak?.trips ?? "50"}
+                        onChange={(e) => {
+                          setIsDirty(true);
+                          setEditableRules((prev: any) => {
+                            const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                            if (!next.incentives.riderWeeklyStreak) next.incentives.riderWeeklyStreak = {};
+                            next.incentives.riderWeeklyStreak.trips = e.target.value;
+                            return next;
+                          });
+                        }}
+                        className="font-mono font-bold mt-1"
+                      />
                     </div>
-                  </SectionCard>
+                    <div>
+                      <Label className="text-xs font-bold text-zinc-700">Mega Reward (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.incentives?.riderWeeklyStreak?.reward ?? "800"}
+                        onChange={(e) => {
+                          setIsDirty(true);
+                          setEditableRules((prev: any) => {
+                            const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                            if (!next.incentives.riderWeeklyStreak) next.incentives.riderWeeklyStreak = {};
+                            next.incentives.riderWeeklyStreak.reward = e.target.value;
+                            return next;
+                          });
+                        }}
+                        className="font-mono font-bold mt-1 text-emerald-700"
+                      />
+                    </div>
+                  </div>
+                </SectionCard>
+              </TabsContent>
 
-                  {/* Merchant Volume Bonus */}
-                  <SectionCard title="Laundry Merchant Volume Bonuses">
-                    <div className="space-y-2">
-                      {(editableRules?.incentives?.partnerVolume || []).map((t: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-xl border">
-                          <span className="text-xs font-bold">{t.orders} Orders Processed:</span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-bold text-zinc-500">₹</span>
+              {/* Legacy Incentives Alias */}
+              <TabsContent value="incentives" className="mt-4">
+                <div className="p-3 bg-teal-50 rounded-xl border border-teal-200 text-xs text-teal-900 mb-3 flex items-center justify-between">
+                  <span>Redirected to Rider Earnings & Incentives engine.</span>
+                  <Button size="xs" onClick={() => setRulesSubTab("rider-incentives")} className="bg-teal-600 text-white font-bold">
+                    Go to Rider Earnings Tab
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* =========================================================================
+                  MODULE I: PARTNER SETTLEMENT & QUALITY PENALTIES (and alias "penalties")
+                 ========================================================================= */}
+              <TabsContent value="settlement" className="mt-4 space-y-4">
+                <SectionCard title="I. Partner Settlement Escrow & Weekly Disbursals">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Partner Net Processing Share (%)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.partnerSettlement?.partnerSharePercent ?? editableRules?.settlement?.partnerSharePercent ?? "82"}
+                        onChange={(e) => {
+                          updateField("partnerSettlement.partnerSharePercent", e.target.value);
+                          updateField("settlement.partnerSharePercent", e.target.value);
+                        }}
+                        className="mt-1 font-bold text-sky-700 font-mono"
+                      />
+                      <span className="text-[10px] text-zinc-500">Credited to merchant store escrow</span>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Settlement Cycle Frequency</Label>
+                      <Select
+                        value={editableRules?.partnerSettlement?.cycle ?? editableRules?.settlement?.cycle ?? "WEEKLY"}
+                        onValueChange={(v) => {
+                          updateField("partnerSettlement.cycle", v);
+                          updateField("settlement.cycle", v);
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="WEEKLY">Weekly Automated Cycle</SelectItem>
+                          <SelectItem value="BIWEEKLY">Bi-Weekly (1st & 16th)</SelectItem>
+                          <SelectItem value="DAILY">Daily Fast Payout</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Disbursement Payout Day</Label>
+                      <Input
+                        value={editableRules?.partnerSettlement?.payoutDay ?? editableRules?.settlement?.payoutDay ?? "WEDNESDAY"}
+                        onChange={(e) => {
+                          updateField("partnerSettlement.payoutDay", e.target.value);
+                          updateField("settlement.payoutDay", e.target.value);
+                        }}
+                        className="mt-1 font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Auto-Approve Batch Ceiling (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.partnerSettlement?.autoApproveMaxAmount ?? editableRules?.settlement?.autoApproveMaxAmount ?? "50000"}
+                        onChange={(e) => {
+                          updateField("partnerSettlement.autoApproveMaxAmount", e.target.value);
+                          updateField("settlement.autoApproveMaxAmount", e.target.value);
+                        }}
+                        className="mt-1 font-bold font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <Label className="text-xs font-bold">Minimum Settlement Withdrawal (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.partnerSettlement?.minWithdrawal ?? "100"}
+                        onChange={(e) => {
+                          updateField("partnerSettlement.minWithdrawal", e.target.value);
+                          updateField("partnerSettlement.minSettlementPayout", e.target.value);
+                          updateField("settlement.minSettlementPayout", e.target.value);
+                        }}
+                        className="mt-1 font-bold font-mono"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <Label className="text-xs font-bold">Settlement Adjustment & Reconciliation Policy</Label>
+                      <Input
+                        value={editableRules?.partnerSettlement?.adjustmentRules ?? "Late pickup penalties and damage claims are automatically deducted from the weekly cycle payout."}
+                        onChange={(e) => {
+                          updateField("partnerSettlement.adjustmentRules", e.target.value);
+                          updateField("settlement.adjustmentRules", e.target.value);
+                        }}
+                        className="mt-1 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Delay Late Fees & Grace Period */}
+                  <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 mb-4 space-y-2">
+                    <h4 className="text-xs font-black text-zinc-900 uppercase">Operational Delay Late Fees</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <div>
+                        <Label className="text-[11px] font-bold text-zinc-600">Grace Period (min)</Label>
+                        <Input
+                          type="number"
+                          value={editableRules?.lateFee?.gracePeriodMinutes ?? "15"}
+                          onChange={(e) => updateField("lateFee.gracePeriodMinutes", e.target.value)}
+                          className="h-8 font-mono font-bold mt-1"
+                        />
+                      </div>
+                      {(editableRules?.lateFee?.slabs || []).map((slab: any, idx: number) => (
+                        <div key={idx}>
+                          <Label className="text-[11px] font-bold text-zinc-600">
+                            {slab.minDelayMin}-{slab.maxDelayMin >= 9999 ? "60+ min" : `${slab.maxDelayMin} min`} Delay
+                          </Label>
+                          <Input
+                            type="number"
+                            value={slab.fee ?? ""}
+                            onChange={(e) => {
+                              setIsDirty(true);
+                              setEditableRules((prev: any) => {
+                                const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
+                                if (!next.lateFee.slabs[idx]) next.lateFee.slabs[idx] = {};
+                                next.lateFee.slabs[idx].fee = e.target.value;
+                                return next;
+                              });
+                            }}
+                            className="h-8 font-mono font-bold mt-1 text-rose-600"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quality Penalties Matrix */}
+                  <div className="p-3 bg-white rounded-xl border border-zinc-200 space-y-2">
+                    <h4 className="text-xs font-black text-zinc-900 uppercase">Quality Incident Penalties Matrix</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                      {Object.entries(editableRules?.penalties || {}).map(([type, amount]: [string, any]) => (
+                        <div key={type} className="p-2.5 bg-zinc-50 rounded-lg border border-zinc-200">
+                          <Label className="text-[11px] font-bold capitalize text-zinc-700">
+                            {type.replace(/([A-Z])/g, " $1")}
+                          </Label>
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs font-bold text-zinc-400">₹</span>
                             <Input
                               type="number"
-                              value={t.reward ?? ""}
+                              value={amount ?? ""}
                               onChange={(e) => {
                                 setIsDirty(true);
                                 setEditableRules((prev: any) => {
                                   const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                  if (!next.incentives.partnerVolume[idx]) next.incentives.partnerVolume[idx] = {};
-                                  next.incentives.partnerVolume[idx].reward = e.target.value;
+                                  if (!next.penalties) next.penalties = {};
+                                  next.penalties[type] = e.target.value;
                                   return next;
                                 });
                               }}
-                              className="w-24 h-8 font-mono font-bold"
+                              className="font-mono font-bold h-8 text-rose-600"
                             />
                           </div>
                         </div>
                       ))}
                     </div>
-                  </SectionCard>
-                </div>
-              </TabsContent>
-
-              {/* 7. PENALTIES SUB-TAB */}
-              <TabsContent value="penalties" className="mt-4">
-                <SectionCard title="Delay Late Fees & Quality Penalties">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    {Object.entries(editableRules?.penalties || {}).map(([type, amount]: [string, any]) => (
-                      <div key={type} className="p-3 bg-zinc-50 rounded-xl border border-zinc-200">
-                        <Label className="text-xs font-bold capitalize">{type.replace(/([A-Z])/g, " $1")}</Label>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span className="text-xs font-bold text-zinc-500">₹</span>
-                          <Input
-                            type="number"
-                            value={amount ?? ""}
-                            onChange={(e) => {
-                              setIsDirty(true);
-                              setEditableRules((prev: any) => {
-                                const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                if (!next.penalties) next.penalties = {};
-                                next.penalties[type] = e.target.value;
-                                return next;
-                              });
-                            }}
-                            className="font-mono font-bold"
-                          />
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </SectionCard>
               </TabsContent>
 
-              {/* 8. SETTLEMENT SUB-TAB */}
-              <TabsContent value="settlement" className="mt-4">
-                <SectionCard title="Settlement Cycle & Automated Approval Rules">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Legacy Penalties Alias */}
+              <TabsContent value="penalties" className="mt-4">
+                <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-900 mb-3 flex items-center justify-between">
+                  <span>Redirected to Partner Settlement & Quality Penalties module.</span>
+                  <Button size="xs" onClick={() => setRulesSubTab("settlement")} className="bg-indigo-600 text-white font-bold">
+                    Go to Settlement Tab
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* =========================================================================
+                  MODULE J: VERSIONING & SCHEDULED EFFECTIVE DATES
+                 ========================================================================= */}
+              <TabsContent value="versioning" className="mt-4 space-y-4">
+                <SectionCard
+                  title="J. Commercial Rule Versioning & Scheduled Rollouts"
+                  description="Governance controls for release version tagging, immutable timestamps, and future scheduled activations."
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <Label className="text-xs font-bold">Settlement Cycle</Label>
+                      <Label className="text-xs font-bold">Current Rule Version</Label>
                       <Input
-                        value={editableRules?.settlement?.cycle ?? "WEEKLY"}
-                        readOnly
-                        className="mt-1 bg-zinc-100 font-bold"
+                        value={editableRules?.versioning?.version ?? "v2.5.0"}
+                        onChange={(e) => updateField("versioning.version", e.target.value)}
+                        className="mt-1 font-mono font-bold text-emerald-700"
                       />
                     </div>
+
                     <div>
-                      <Label className="text-xs font-bold">Disbursement Payout Day</Label>
+                      <Label className="text-xs font-bold">Rule Lifecycle Status</Label>
+                      <Select
+                        value={editableRules?.versioning?.status ?? "active"}
+                        onValueChange={(v) => updateField("versioning.status", v)}
+                      >
+                        <SelectTrigger className="mt-1 font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active (Serving Live Orders)</SelectItem>
+                          <SelectItem value="draft">Draft (Staged in Admin)</SelectItem>
+                          <SelectItem value="scheduled">Scheduled (Timed Rollout)</SelectItem>
+                          <SelectItem value="expired">Archived / Expired</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold">Effective From</Label>
                       <Input
-                        value={editableRules?.settlement?.payoutDay ?? "WEDNESDAY"}
-                        onChange={(e) => updateField("settlement.payoutDay", e.target.value)}
-                        className="mt-1 font-bold"
+                        value={editableRules?.versioning?.effectiveFrom ?? "2026-01-01T00:00:00Z"}
+                        onChange={(e) => updateField("versioning.effectiveFrom", e.target.value)}
+                        className="mt-1 font-mono text-xs font-bold"
                       />
                     </div>
+
                     <div>
-                      <Label className="text-xs font-bold">Auto-Approve Batch Ceiling (₹)</Label>
+                      <Label className="text-xs font-bold">Effective Until</Label>
                       <Input
-                        type="number"
-                        value={editableRules?.settlement?.autoApproveMaxAmount ?? ""}
-                        onChange={(e) => updateField("settlement.autoApproveMaxAmount", e.target.value)}
-                        className="mt-1 font-bold"
+                        value={editableRules?.versioning?.effectiveUntil ?? "2099-12-31T23:59:59Z"}
+                        onChange={(e) => updateField("versioning.effectiveUntil", e.target.value)}
+                        className="mt-1 font-mono text-xs font-bold"
                       />
                     </div>
+                  </div>
+
+                  {/* Scheduled Rollout Configuration */}
+                  <div className="p-4 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl border border-teal-200 space-y-3">
+                    <div className="flex items-center gap-2 text-teal-900 font-bold text-xs">
+                      <CalendarCheck className="size-4 text-teal-700" />
+                      <span>Scheduled Future Activation Date & Time (Optional)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs font-bold text-zinc-700">Scheduled ISO Timestamp</Label>
+                        <Input
+                          placeholder="e.g. 2026-10-01T00:00:00Z"
+                          value={editableRules?.versioning?.scheduledAt ?? ""}
+                          onChange={(e) => updateField("versioning.scheduledAt", e.target.value)}
+                          className="mt-1 font-mono text-xs font-bold bg-white"
+                        />
+                        <span className="text-[10px] text-zinc-500">
+                          If specified, the engine activates these pricing rules at the scheduled timestamp.
+                        </span>
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const nextVer = `v2.${Date.now().toString().slice(-4)}`;
+                            updateField("versioning.version", nextVer);
+                            updateField("versioning.status", "scheduled");
+                            toast.info(`Created new scheduled version draft: ${nextVer}`);
+                          }}
+                          className="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs"
+                        >
+                          Stage New Release Version
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Audit Notice */}
+                  <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-600 flex items-center justify-between">
+                    <span>
+                      Every update automatically writes an entry to the <strong>financial_audit_logs</strong> collection with admin identity, version hash, and timestamp.
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => setActiveTab("audit")}
+                      className="font-bold text-xs"
+                    >
+                      View Audit Log History
+                    </Button>
                   </div>
                 </SectionCard>
               </TabsContent>
@@ -2219,6 +4260,286 @@ export function FinanceEnginePage() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Add / Edit Service Pricing Modal */}
+        <Dialog open={isAddServiceOpen} onOpenChange={setIsAddServiceOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="size-5 text-emerald-600" />
+                <span>{editingServiceId ? "Edit Service Price Rule" : "Add Service Price Rule"}</span>
+              </DialogTitle>
+              <DialogDescription>
+                Authoritative pricing catalog rule governing checkout totals and partner credit.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 text-xs">
+              <div className="sm:col-span-2">
+                <Label className="text-xs font-bold">Service Name</Label>
+                <Input
+                  value={serviceForm.serviceName}
+                  onChange={(e) => setServiceForm((p) => ({ ...p, serviceName: e.target.value }))}
+                  placeholder="e.g. Wash & Steam Iron"
+                  className="mt-1 font-bold"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Category</Label>
+                <Select
+                  value={serviceForm.category}
+                  onValueChange={(v) => setServiceForm((p) => ({ ...p, category: v }))}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Laundry">Laundry</SelectItem>
+                    <SelectItem value="Ironing">Ironing</SelectItem>
+                    <SelectItem value="Dry Cleaning">Dry Cleaning</SelectItem>
+                    <SelectItem value="Shoe Care">Shoe Care</SelectItem>
+                    <SelectItem value="Special">Special Cleaning</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Billing Unit</Label>
+                <Select
+                  value={serviceForm.unit}
+                  onValueChange={(v) => setServiceForm((p) => ({ ...p, unit: v }))}
+                >
+                  <SelectTrigger className="mt-1 font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kg">Per Kilogram (kg)</SelectItem>
+                    <SelectItem value="piece">Per Piece</SelectItem>
+                    <SelectItem value="pair">Per Pair</SelectItem>
+                    <SelectItem value="set">Per Set</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Base Price (₹)</Label>
+                <Input
+                  type="number"
+                  value={serviceForm.basePrice}
+                  onChange={(e) => setServiceForm((p) => ({ ...p, basePrice: e.target.value }))}
+                  className="mt-1 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Additional Unit Price (₹)</Label>
+                <Input
+                  type="number"
+                  value={serviceForm.additionalUnitPrice}
+                  onChange={(e) => setServiceForm((p) => ({ ...p, additionalUnitPrice: e.target.value }))}
+                  className="mt-1 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Min Quantity</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={serviceForm.minQuantity}
+                  onChange={(e) => setServiceForm((p) => ({ ...p, minQuantity: e.target.value }))}
+                  className="mt-1 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Express Surcharge Price (₹)</Label>
+                <Input
+                  type="number"
+                  value={serviceForm.expressPrice}
+                  onChange={(e) => setServiceForm((p) => ({ ...p, expressPrice: e.target.value }))}
+                  className="mt-1 font-mono font-bold text-amber-600"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">City Territory</Label>
+                <Input
+                  value={serviceForm.city}
+                  onChange={(e) => setServiceForm((p) => ({ ...p, city: e.target.value }))}
+                  placeholder="All Cities or Kasganj"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Area Territory</Label>
+                <Input
+                  value={serviceForm.area}
+                  onChange={(e) => setServiceForm((p) => ({ ...p, area: e.target.value }))}
+                  placeholder="All Areas or Soron Gate"
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="sm:col-span-2 flex items-center justify-between p-2.5 bg-zinc-50 rounded-lg border border-zinc-200 mt-1">
+                <div>
+                  <span className="font-bold text-xs text-zinc-900 block">Service Status</span>
+                  <span className="text-[11px] text-zinc-500">Enable this service in the customer catalog</span>
+                </div>
+                <Switch
+                  checked={serviceForm.active}
+                  onCheckedChange={(checked) => setServiceForm((p) => ({ ...p, active: checked }))}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddServiceOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveService} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                {editingServiceId ? "Update Service Rule" : "Add Service Rule"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Promotional Coupon Modal */}
+        <Dialog open={isAddCouponOpen} onOpenChange={setIsAddCouponOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Gift className="size-5 text-rose-600" />
+                <span>Create Promotional Coupon</span>
+              </DialogTitle>
+              <DialogDescription>
+                Promotional discount code rules enforced authoritatively by the pricing engine.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 text-xs">
+              <div>
+                <Label className="text-xs font-bold">Coupon Code</Label>
+                <Input
+                  value={couponForm.code}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. MONSOON30"
+                  className="mt-1 font-mono uppercase font-black"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Display Title</Label>
+                <Input
+                  value={couponForm.title}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="e.g. 30% Off on Laundry"
+                  className="mt-1 font-medium"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Discount Type</Label>
+                <Select
+                  value={couponForm.type}
+                  onValueChange={(v: any) => setCouponForm((p) => ({ ...p, type: v }))}
+                >
+                  <SelectTrigger className="mt-1 font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="flat">Flat ₹ Discount</SelectItem>
+                    <SelectItem value="percent">Percentage % Off</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">
+                  {couponForm.type === "percent" ? "Discount Rate (%)" : "Flat Discount (₹)"}
+                </Label>
+                <Input
+                  type="number"
+                  value={couponForm.discount}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, discount: e.target.value }))}
+                  className="mt-1 font-mono font-bold text-rose-600"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Max Discount Cap (₹)</Label>
+                <Input
+                  type="number"
+                  value={couponForm.maxDiscount}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, maxDiscount: e.target.value }))}
+                  className="mt-1 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Minimum Order Value (₹)</Label>
+                <Input
+                  type="number"
+                  value={couponForm.minOrderValue}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, minOrderValue: e.target.value }))}
+                  className="mt-1 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Total Usage Limit</Label>
+                <Input
+                  type="number"
+                  value={couponForm.usageLimit}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, usageLimit: e.target.value }))}
+                  className="mt-1 font-mono font-bold"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-lg border border-zinc-200">
+                <div>
+                  <span className="font-bold text-xs text-zinc-900 block">First Order Only?</span>
+                  <span className="text-[10px] text-zinc-500">Limit to new users</span>
+                </div>
+                <Switch
+                  checked={couponForm.firstOrderOnly}
+                  onCheckedChange={(checked) => setCouponForm((p) => ({ ...p, firstOrderOnly: checked }))}
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">Start Date</Label>
+                <Input
+                  type="date"
+                  value={couponForm.startDate}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, startDate: e.target.value }))}
+                  className="mt-1 font-mono"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold">End Date</Label>
+                <Input
+                  type="date"
+                  value={couponForm.endDate}
+                  onChange={(e) => setCouponForm((p) => ({ ...p, endDate: e.target.value }))}
+                  className="mt-1 font-mono"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddCouponOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveCoupon} className="bg-rose-600 hover:bg-rose-700 text-white font-bold">
+                Save Promotional Coupon
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Save Rules Confirmation Modal */}
         <Dialog open={isSaveModalOpen} onOpenChange={setIsSaveModalOpen}>

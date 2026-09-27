@@ -124,7 +124,27 @@ class DynamicSurgeEngine:
         rider_lng: Optional[float] = None,
         radius_km: float = 15.0,
     ) -> Dict[str, Any]:
-        """Computes live surge zones based on actual orders, stores, and rider GPS location."""
+        """Surge pricing is permanently disabled. Returns zero surge and empty zones."""
+        return {
+            "status": "success",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timeShift": "Standard",
+            "riderLocation": {"lat": rider_lat, "lng": rider_lng} if rider_lat and rider_lng else None,
+            "isRiderInSurgeZone": False,
+            "activeSurgeBonus": 0.0,
+            "activeMultiplier": "1.0x",
+            "currentZone": None,
+            "nearestZone": None,
+            "totalZones": 0,
+            "zones": [],
+        }
+
+    async def _disabled_get_dynamic_surge_zones(
+        self,
+        rider_lat: Optional[float] = None,
+        rider_lng: Optional[float] = None,
+        radius_km: float = 15.0,
+    ) -> Dict[str, Any]:
         now = datetime.now()
         time_bonus_boost, time_mult_boost, time_label = self._get_time_factor(now)
 
@@ -309,21 +329,12 @@ class DynamicSurgeEngine:
 
     async def check_location_surge(self, lat: float, lng: float) -> Dict[str, Any]:
         """Fast check for whether a specific pickup/drop point has active surge pricing."""
-        result = await self.get_dynamic_surge_zones(rider_lat=lat, rider_lng=lng)
-        if result["isRiderInSurgeZone"] and result["currentZone"]:
-            return {
-                "hasSurge": True,
-                "bonus": result["currentZone"]["bonus"],
-                "multiplier": result["currentZone"]["multiplier"],
-                "zoneName": result["currentZone"]["name"],
-                "reason": f"Surge Area: {result['currentZone']['name']} ({result['currentZone']['multiplier']})",
-            }
         return {
             "hasSurge": False,
             "bonus": 0.0,
             "multiplier": "1.0x",
             "zoneName": None,
-            "reason": "Normal Traffic",
+            "reason": "Normal Traffic (Surge Disabled)",
         }
 
 

@@ -34,6 +34,7 @@ import { usePartnerContext } from "../context/PartnerContext";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { validateMobile } from "../lib/partner-validation";
 import {
+  checkPartnerVerificationStatus,
   loginWithGoogle,
   rememberPartnerLogin,
   requestOtp,
@@ -106,6 +107,8 @@ export function PartnerAuthScreen() {
     if (hydrating || !session) return;
     if (session.isOnboarded === false) {
       navigate({ to: partnerRoutes.registration });
+    } else if (!session.isVerified) {
+      navigate({ to: partnerRoutes.registrationSubmitted });
     } else {
       navigate({ to: partnerRoutes.dashboard });
     }
@@ -159,11 +162,21 @@ export function PartnerAuthScreen() {
     setGoogleBusy(true);
     try {
       const sess = await loginWithGoogle();
-      signIn(sess);
+      let realIsOnboarded = sess.isOnboarded;
+      let realIsVerified = sess.isVerified;
+      try {
+        const statusRes = await checkPartnerVerificationStatus();
+        if (statusRes) {
+          realIsOnboarded = Boolean(statusRes.isOnboarded);
+          realIsVerified = Boolean(statusRes.isVerified);
+        }
+      } catch {}
+      const resolved = { ...sess, isOnboarded: realIsOnboarded, isVerified: realIsVerified };
+      signIn(resolved);
       toast.success("Signed in with Google");
-      if (!sess.isOnboarded) {
+      if (!realIsOnboarded) {
         navigate({ to: partnerRoutes.registration });
-      } else if (!sess.isVerified) {
+      } else if (!realIsVerified) {
         navigate({ to: partnerRoutes.registrationSubmitted });
       } else {
         navigate({ to: partnerRoutes.dashboard });

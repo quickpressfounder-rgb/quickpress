@@ -22,6 +22,7 @@ import {
   type Charges,
   type Totals,
 } from "./cart-api";
+import { readSession, subscribeSession } from "@/api/core/session-store";
 
 export type CartLine = {
   id: string;
@@ -48,12 +49,24 @@ export type CartSnapshot = {
   error: string | null;
 };
 
-const CART_STORAGE_KEY = "quickpress_cart_cache_v2";
+function getCartStorageKey(): string {
+  if (typeof window === "undefined") return "quickpress_cart_cache_v2_guest";
+  try {
+    const session = readSession("customer");
+    const uid = session?.account?.id;
+    return uid ? `quickpress_cart_cache_v2_${uid}` : "quickpress_cart_cache_v2_guest";
+  } catch {
+    return "quickpress_cart_cache_v2_guest";
+  }
+}
 
 function readLocalLines(): CartLine[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    // Purge legacy unscoped key so old items don't leak across users
+    localStorage.removeItem("quickpress_cart_cache_v2");
+
+    const raw = localStorage.getItem(getCartStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -65,10 +78,11 @@ function readLocalLines(): CartLine[] {
 function saveLocalLines(lines: CartLine[]) {
   if (typeof window === "undefined") return;
   try {
+    const key = getCartStorageKey();
     if (lines.length === 0) {
-      localStorage.removeItem(CART_STORAGE_KEY);
+      localStorage.removeItem(key);
     } else {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(lines));
+      localStorage.setItem(key, JSON.stringify(lines));
     }
   } catch {
     // Ignore storage quota errors
@@ -120,8 +134,8 @@ function computeOptimisticTotals(lines: CartLine[], currentCharges?: Charges, cu
   const itemsTotal = lines.reduce((sum, l) => sum + l.qty * l.price, 0);
   const pickup = currentCharges?.pickup ?? 0;
   const delivery = currentCharges?.delivery ?? 0; // QuickPress Free Delivery
-  const handling = currentCharges?.handling ?? (itemsTotal > 0 ? 5 : 0);
-  const gstRate = currentCharges?.gstRate ?? 0.18;
+  const handling = currentCharges?.handling ?? (itemsTotal > 0 ? 15 : 0);
+  const gstRate = currentCharges?.gstRate || 0.05;
   const gst = Math.round(itemsTotal * gstRate);
   const discount = currentCharges?.discount ?? 0;
   const couponDiscount = currentTotals?.couponDiscount ?? 0;
@@ -185,17 +199,37 @@ function set(patch: Partial<CartSnapshot>) {
   emit();
 }
 
-/** Apply server cart payload without rolling back user's optimistic line quantities */
+/** Apply server cart payload — server is authoritative when not actively debouncing */
 function applyServerCart(cart: CartStateResponse) {
-  // If local snapshot is empty and server has items, adopt server items
-  // Otherwise, keep the user's optimistic lines authoritative for quantities
-  let lines = snapshot.lines;
-  if (lines.length === 0 && cart.items && cart.items.length > 0) {
-    lines = cart.items.map(toLine);
+  const serverLines = (cart.items || []).map(toLine);
+
+  // If the user is actively tapping +/- right at this moment, keep the in-flight debounced line
+  if (syncDebounceTimers.size > 0) {
+    const pendingIds = new Set(syncDebounceTimers.keys());
+    const merged = serverLines.map((sLine) => {
+      if (pendingIds.has(sLine.id)) {
+        const local = snapshot.lines.find((l) => l.id === sLine.id);
+        return local || sLine;
+      }
+      return sLine;
+    });
+    for (const local of snapshot.lines) {
+      if (pendingIds.has(local.id) && !merged.some((m) => m.id === local.id)) {
+        merged.push(local);
+      }
+    }
+    set({
+      lines: merged,
+      charges: cart.charges || snapshot.charges,
+      store: cart.store || snapshot.store,
+      error: null,
+    });
+    return;
   }
 
+  // Authoritative server sync: If server cart is empty, user's cart is empty!
   set({
-    lines,
+    lines: serverLines,
     charges: cart.charges || snapshot.charges,
     store: cart.store || snapshot.store,
     error: null,
@@ -348,4 +382,54 @@ export function clearCartLines() {
   void (async () => {
     for (const id of ids) await deleteCartItem(id).catch(() => undefined);
   })();
+}
+
+let lastUserId: string | null = null;
+
+export function resetCartForAccount() {
+  for (const timer of syncDebounceTimers.values()) {
+    clearTimeout(timer);
+  }
+  syncDebounceTimers.clear();
+
+  const local = readLocalLines();
+  set({ lines: local });
+  void refreshCart();
+}
+
+if (typeof window !== "undefined") {
+  // Purge legacy unscoped key so old items don't leak across users
+  try {
+    localStorage.removeItem("quickpress_cart_cache_v2");
+  } catch {
+    // ignore
+  }
+
+  try {
+    lastUserId = readSession("customer")?.account?.id || null;
+  } catch {
+    lastUserId = null;
+  }
+
+  subscribeSession(() => {
+    try {
+      const newUid = readSession("customer")?.account?.id || null;
+      if (newUid !== lastUserId) {
+        lastUserId = newUid;
+        resetCartForAccount();
+      }
+    } catch {
+      // ignore
+    }
+  });
+
+  window.addEventListener("qp:login-success", () => {
+    try {
+      const newUid = readSession("customer")?.account?.id || null;
+      lastUserId = newUid;
+      resetCartForAccount();
+    } catch {
+      // ignore
+    }
+  });
 }

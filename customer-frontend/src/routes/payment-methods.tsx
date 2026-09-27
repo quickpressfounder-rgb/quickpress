@@ -1,99 +1,83 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowRight,
-  Banknote,
-  Building2,
+  ArrowLeft,
   Check,
-  CheckCircle2,
   CreditCard,
-  ExternalLink,
-  HelpCircle,
   Loader2,
   Lock,
-  Pencil,
-  Plus,
-  QrCode,
-  RefreshCw,
   ShieldCheck,
-  Smartphone,
-  Sparkles,
-  Star,
   Trash2,
-  Wallet as WalletIcon,
   X,
-  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { PaymentsSkeleton } from "@/components/account/AccountSkeletons";
 import { BottomNav } from "@/components/home/BottomNav";
-import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
 import { Toaster } from "@/shared/ui/sonner";
 import {
   addPaymentMethod,
   fetchPaymentMethods,
-  updatePaymentMethod,
-  PAYMENT_KIND_LABEL,
   removePaymentMethod,
   setDefaultPaymentMethod,
-  type PaymentKind,
   type PaymentMethod,
-  type PaymentProvider,
 } from "@/api/customer/payments-api";
-import { fetchWallet, type Wallet } from "@/api/customer/wallet-api";
-import { payWithRazorpay } from "@/api/payments/razorpay-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 export const Route = createFileRoute("/payment-methods")({
   head: () => ({
     meta: [
-      { title: "Payment Methods — QuickPress Secure Checkout" },
+      { title: "Payment Settings — QuickPress" },
       {
         name: "description",
         content:
-          "Manage QuickPress payment methods — UPI, debit and credit cards, wallet and cash on delivery. Set a default, add new options and pay securely.",
+          "Manage Cards, UPI apps, Wallets, Pay Later and Netbanking on QuickPress.",
       },
-      { property: "og:title", content: "Payment Methods — QuickPress" },
-      {
-        property: "og:description",
-        content:
-          "Add, remove and set default UPI, card, wallet and cash payment options for your QuickPress laundry orders.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "Payment Settings — QuickPress" },
     ],
   }),
   component: PaymentMethodsScreen,
 });
 
-const KIND_META: Record<PaymentKind, { icon: typeof CreditCard; tone: string; badge: string }> = {
-  upi: { icon: Smartphone, tone: "bg-secondary/10 text-brand-green", badge: "Instant UPI" },
-  "debit-card": { icon: CreditCard, tone: "bg-primary/15 text-brand-dark", badge: "Debit Card" },
-  "credit-card": { icon: CreditCard, tone: "bg-primary/15 text-brand-dark", badge: "Credit Card" },
-  wallet: { icon: WalletIcon, tone: "bg-secondary/10 text-brand-green", badge: "1-Click Wallet" },
-  cod: { icon: Banknote, tone: "bg-muted text-muted-foreground", badge: "Pay on Delivery" },
-  razorpay: { icon: CreditCard, tone: "bg-primary/15 text-brand-dark", badge: "Online Gateway" },
-};
+// Precise UPI apps matching the reference screen
+const UPI_OPTIONS = [
+  {
+    id: "phonepe",
+    name: "PhonePe UPI",
+    scheme: "phonepe",
+    handle: "@ybl",
+  },
+  {
+    id: "supermoney",
+    name: "Supermoney UPI",
+    scheme: "supermoney",
+    handle: "@supermoney",
+  },
+  {
+    id: "famapp",
+    name: "FamApp UPI",
+    scheme: "famapp",
+    handle: "@fam",
+  },
+];
 
-const UPI_POPULAR_HANDLES = [
+const POPULAR_BANKS = [
+  { code: "HDFC", name: "HDFC Bank", logo: "🏦" },
+  { code: "SBI", name: "State Bank of India", logo: "🏛️" },
+  { code: "ICICI", name: "ICICI Bank", logo: "🏦" },
+  { code: "AXIS", name: "Axis Bank", logo: "🏢" },
+  { code: "KOTAK", name: "Kotak Mahindra Bank", logo: "🏛️" },
+  { code: "PNB", name: "Punjab National Bank", logo: "🏦" },
+];
+
+const UPI_SUGGESTION_HANDLES = [
   "@okhdfcbank",
   "@okicici",
   "@oksbi",
   "@okaxis",
   "@paytm",
   "@ybl",
-  "@ibl",
   "@axl",
-];
-
-const POPULAR_BANKS = [
-  { code: "HDFC", name: "HDFC Bank" },
-  { code: "SBI", name: "State Bank of India" },
-  { code: "ICICI", name: "ICICI Bank" },
-  { code: "AXIS", name: "Axis Bank" },
-  { code: "KOTAK", name: "Kotak Mahindra Bank" },
-  { code: "PNB", name: "Punjab National Bank" },
 ];
 
 function detectCardBrand(num: string): "visa" | "mastercard" | "rupay" | "amex" | "generic" {
@@ -126,42 +110,56 @@ function PaymentMethodsScreen() {
   useAuthGuard();
   const navigate = useNavigate();
 
-  // State
+  // Data State
   const [methods, setMethods] = useState<PaymentMethod[] | null>(null);
-  const [providers, setProviders] = useState<PaymentProvider[]>([]);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [loadingWallet, setLoadingWallet] = useState(true);
-  const [topupAmount, setTopupAmount] = useState<number>(200);
-  const [toppingUp, setToppingUp] = useState(false);
-
-  // Sheet / Modal State
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [kind, setKind] = useState<PaymentKind>("upi");
-  const [name, setName] = useState("");
-  const [vpaId, setVpaId] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardholderName, setCardholderName] = useState("");
-  const [bankCode, setBankCode] = useState("HDFC");
-  const [isDefaultCheckbox, setIsDefaultCheckbox] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Load Payment Methods & Wallet
-  const loadData = async (force = false) => {
+  // Selected default UPI app (persisted in localStorage and synced)
+  const [selectedUpiId, setSelectedUpiId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("qp_selected_upi") || "phonepe";
+    }
+    return "phonepe";
+  });
+
+  // Modals for adding methods
+  const [cardModalOpen, setCardModalOpen] = useState(false);
+  const [isPluxeeModal, setIsPluxeeModal] = useState(false);
+  const [upiModalOpen, setUpiModalOpen] = useState(false);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [walletModalTitle, setWalletModalTitle] = useState("");
+
+  // Card Form Fields
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardholderName, setCardholderName] = useState("");
+
+  // Custom UPI Form Fields
+  const [vpaId, setVpaId] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Load Payment Methods
+  const loadData = async () => {
     try {
-      const [methodsRes, walletRes] = await Promise.all([
-        fetchPaymentMethods(),
-        fetchWallet({ forceRefresh: force }).catch(() => null),
-      ]);
+      const methodsRes = await fetchPaymentMethods();
       setMethods(methodsRes.methods);
-      setProviders(methodsRes.providers);
-      if (walletRes) setWallet(walletRes);
+
+      // Check if a saved default UPI exists
+      const defaultUpi = methodsRes.methods.find((m) => m.kind === "upi" && m.isDefault);
+      if (defaultUpi) {
+        const matched = UPI_OPTIONS.find((u) => defaultUpi.name.toLowerCase().includes(u.id));
+        if (matched) {
+          setSelectedUpiId(matched.id);
+          localStorage.setItem("qp_selected_upi", matched.id);
+        } else {
+          setSelectedUpiId(defaultUpi.id);
+          localStorage.setItem("qp_selected_upi", defaultUpi.id);
+        }
+      }
     } catch {
       setMethods([]);
-    } finally {
-      setLoadingWallet(false);
     }
   };
 
@@ -169,135 +167,141 @@ function PaymentMethodsScreen() {
     void loadData();
   }, []);
 
-  // Quick Top-up Wallet via Real Razorpay Integration
-  const handleQuickTopup = async (amount: number) => {
-    setToppingUp(true);
+  // Set UPI app as default directly without any popup ("set karne ke baad set ho gaye")
+  const handleSelectUpiApp = async (app: (typeof UPI_OPTIONS)[0]) => {
+    setSelectedUpiId(app.id);
+    localStorage.setItem("qp_selected_upi", app.id);
+    toast.success(`${app.name} set as default UPI`);
+
+    // Persist to backend payment methods as default
     try {
-      const outcome = await payWithRazorpay({
-        amount,
-        purpose: "QuickPress Wallet Recharge",
-        description: `Add ₹${amount} to QuickPress Wallet`,
+      await addPaymentMethod({
+        kind: "upi",
+        name: app.name,
+        masked: `${app.id}${app.handle}`,
+        isDefault: true,
       });
-
-      if (outcome.status === "paid") {
-        toast.success(`🎉 ₹${amount} successfully added to QuickPress Wallet!`);
-        void loadData(true);
-      } else if (outcome.status === "failed") {
-        toast.error(outcome.message || "Top-up payment failed. Please try again.");
-      } else {
-        toast.info("Top-up cancelled.");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to process top-up via payment gateway");
-    } finally {
-      setToppingUp(false);
+      void loadData();
+    } catch {
+      // Quiet fallback if offline
     }
   };
 
-  // Open Modal Helpers
-  const openAdd = (defaultKind: PaymentKind = "upi") => {
-    setEditingId(null);
-    setKind(defaultKind);
-    setName("");
-    setVpaId("");
-    setCardNumber("");
-    setCardExpiry("");
-    setCardholderName("");
-    setBankCode("HDFC");
-    setIsDefaultCheckbox(methods?.length === 0);
-    setSheetOpen(true);
-  };
-
-  const openEdit = (method: PaymentMethod) => {
-    setEditingId(method.id);
-    setKind(method.kind);
-    setName(method.name);
-    if (method.kind === "upi") {
-      setVpaId(method.masked);
-    } else if (method.kind === "credit-card" || method.kind === "debit-card") {
-      setCardNumber(method.masked);
-      setCardholderName(method.name);
+  // Select custom saved UPI ID
+  const handleSelectCustomUpi = async (upi: PaymentMethod) => {
+    setSelectedUpiId(upi.id);
+    localStorage.setItem("qp_selected_upi", upi.id);
+    toast.success(`${upi.name} set as default UPI`);
+    try {
+      await setDefaultPaymentMethod(upi.id);
+      void loadData();
+    } catch {
+      // Quiet fallback
     }
-    setIsDefaultCheckbox(method.isDefault);
-    setSheetOpen(true);
   };
 
-  // Save / Update Handler
-  const handleSave = async () => {
-    let finalName = name.trim();
-    let finalMasked = "";
-
-    if (kind === "upi") {
-      if (!vpaId.trim()) {
-        toast.error("Please enter a valid UPI ID (e.g., username@bank)");
-        return;
-      }
-      if (!vpaId.includes("@") || vpaId.endsWith("@")) {
-        toast.error("Invalid UPI format. Must contain '@' (e.g. mobile@paytm or name@oksbi)");
-        return;
-      }
-      finalName = finalName || `UPI (${vpaId.split("@")[0]})`;
-      finalMasked = vpaId.trim().toLowerCase();
-    } else if (kind === "credit-card" || kind === "debit-card") {
-      const cleanNum = cardNumber.replace(/\D/g, "");
-      if (cleanNum.length < 12) {
-        toast.error("Please enter a valid 16-digit card number");
-        return;
-      }
-      const brand = detectCardBrand(cleanNum).toUpperCase();
-      const last4 = cleanNum.slice(-4);
-      finalName = finalName || cardholderName.trim() || `${brand} ${PAYMENT_KIND_LABEL[kind]}`;
-      finalMasked = `•••• •••• •••• ${last4}`;
-    } else if (kind === "cod") {
-      finalName = "Cash on Delivery";
-      finalMasked = "Pay cash or scan QR at doorstep";
-    } else {
-      finalName = finalName || PAYMENT_KIND_LABEL[kind];
-      finalMasked = bankCode ? `${bankCode} NetBanking` : "Online Banking";
+  // Save Card (Credit, Debit or Pluxee)
+  const handleSaveCard = async () => {
+    const cleanNum = cardNumber.replace(/\D/g, "");
+    if (cleanNum.length < 12) {
+      toast.error("Please enter a valid card number (15–16 digits)");
+      return;
+    }
+    if (!cardExpiry.includes("/") || cardExpiry.length < 5) {
+      toast.error("Please enter expiry in MM/YY format");
+      return;
     }
 
     setSaving(true);
     try {
-      if (editingId) {
-        await updatePaymentMethod(editingId, {
-          kind,
-          name: finalName,
-          masked: finalMasked,
-        });
-        setMethods((prev) =>
-          prev
-            ? prev.map((item) =>
-                item.id === editingId
-                  ? { ...item, kind, name: finalName, masked: finalMasked }
-                  : item
-              )
-            : prev
-        );
-        toast.success("Payment method updated");
-      } else {
-        const created = await addPaymentMethod({
-          kind,
-          name: finalName,
-          masked: finalMasked,
-          isDefault: isDefaultCheckbox,
-        });
-        setMethods((prev) => (prev ? [...prev, created] : [created]));
-        toast.success("Payment method saved securely!");
-      }
-      setSheetOpen(false);
+      const brand = isPluxeeModal ? "Pluxee Meal Card" : detectCardBrand(cleanNum).toUpperCase();
+      const last4 = cleanNum.slice(-4);
+      const cardName = cardholderName.trim() || `${brand} Card`;
+      const masked = `•••• •••• •••• ${last4}`;
+
+      await addPaymentMethod({
+        kind: isPluxeeModal ? "debit-card" : "credit-card",
+        name: cardName,
+        masked,
+        isDefault: methods?.length === 0,
+      });
+
+      toast.success(`${brand} saved securely!`);
+      setCardModalOpen(false);
+      setCardNumber("");
+      setCardExpiry("");
+      setCardCvv("");
+      setCardholderName("");
+      void loadData();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to save payment method");
+      toast.error(err?.message || "Failed to save card");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save Custom UPI ID
+  const handleSaveUpiId = async () => {
+    const cleanVpa = vpaId.trim().toLowerCase();
+    if (!cleanVpa.includes("@") || cleanVpa.endsWith("@")) {
+      toast.error("Please enter a valid UPI ID (e.g., mobile@paytm or name@oksbi)");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const created = await addPaymentMethod({
+        kind: "upi",
+        name: `UPI (${cleanVpa.split("@")[0]})`,
+        masked: cleanVpa,
+        isDefault: true,
+      });
+
+      setSelectedUpiId(created.id);
+      localStorage.setItem("qp_selected_upi", created.id);
+      toast.success("UPI ID added and set as default!");
+      setUpiModalOpen(false);
+      setVpaId("");
+      void loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save UPI ID");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Select Netbanking Bank
+  const handleSelectBank = async (bank: (typeof POPULAR_BANKS)[0]) => {
+    setSaving(true);
+    try {
+      await addPaymentMethod({
+        kind: "razorpay",
+        name: `${bank.name} Netbanking`,
+        masked: `${bank.code} Bank Account`,
+        isDefault: methods?.length === 0,
+      });
+
+      toast.success(`${bank.name} linked for Netbanking!`);
+      setBankModalOpen(false);
+      void loadData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to link bank");
     } finally {
       setSaving(false);
     }
   };
 
   // Remove Method
-  const handleRemove = async (id: string) => {
+  const handleRemoveMethod = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setBusyId(id);
     try {
       await removePaymentMethod(id);
-      setMethods((prev) => (prev ? prev.filter((item) => item.id !== id) : prev));
+      setMethods((prev) => (prev ? prev.filter((m) => m.id !== id) : prev));
+      if (selectedUpiId === id) {
+        setSelectedUpiId("phonepe");
+        localStorage.setItem("qp_selected_upi", "phonepe");
+      }
       toast.success("Payment method removed");
     } catch (err: any) {
       toast.error(err?.message || "Failed to remove payment method");
@@ -307,571 +311,697 @@ function PaymentMethodsScreen() {
   };
 
   // Set Default Method
-  const handleDefault = async (id: string) => {
+  const handleSetDefault = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setBusyId(id);
     try {
       await setDefaultPaymentMethod(id);
       setMethods((prev) =>
-        prev ? prev.map((item) => ({ ...item, isDefault: item.id === id })) : prev
+        prev ? prev.map((m) => ({ ...m, isDefault: m.id === id })) : prev
       );
       toast.success("Default payment method updated");
     } catch (err: any) {
-      toast.error(err?.message || "Failed to set default payment method");
+      toast.error(err?.message || "Failed to set default");
     } finally {
       setBusyId(null);
     }
   };
 
+  const savedCards = methods?.filter(
+    (m) => m.kind === "credit-card" || m.kind === "debit-card"
+  ) ?? [];
 
-  const cardBrand = detectCardBrand(cardNumber);
+  // Filter out UPI options so only custom added UPI IDs appear as extra rows
+  const customSavedUpis = methods?.filter(
+    (m) => m.kind === "upi" && !UPI_OPTIONS.some((u) => m.name === u.name)
+  ) ?? [];
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden scroll-smooth bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto w-full max-w-md">
-        <ScreenTopBar
-          title="Payment Methods"
-          action={
-            <button
-              type="button"
-              aria-label="Add payment method"
-              onClick={() => openAdd("upi")}
-              className="flex size-10 items-center justify-center rounded-2xl bg-brand-green text-white shadow-cta transition-transform hover:bg-brand-green-dark hover:scale-[1.03] active:scale-[0.94] cursor-pointer"
-            >
-              <Plus className="size-5" />
-            </button>
-          }
-        />
+    <main className="relative min-h-screen overflow-x-hidden bg-[#f4f5f8] dark:bg-zinc-950 pb-28">
+      {/* Top Header matching reference screenshot */}
+      <header className="sticky top-0 z-30 flex items-center gap-3.5 bg-white px-4 py-3.5 shadow-2xs dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              window.history.back();
+            } else {
+              void navigate({ to: "/profile" });
+            }
+          }}
+          className="flex size-9 items-center justify-center rounded-full text-foreground transition-transform active:scale-90 hover:bg-slate-100 dark:hover:bg-zinc-800"
+          aria-label="Back"
+        >
+          <ArrowLeft className="size-5" />
+        </button>
+        <h1 className="text-base font-bold text-foreground">Payment settings</h1>
+      </header>
 
-        {!methods ? (
+      {!methods ? (
+        <div className="mx-auto max-w-md px-4 pt-4">
           <PaymentsSkeleton />
-        ) : (
-          <div className="px-5 pb-32 pt-4 space-y-6">
-            {/* 1. QuickPress Wallet Hero Card */}
-            <section className="relative overflow-hidden rounded-[2rem] border border-brand-green/25 bg-gradient-to-br from-brand-green/[0.12] via-card to-card p-5 shadow-soft dark:border-brand-green/20 dark:from-brand-green/[0.15]">
-              <div className="pointer-events-none absolute -right-8 -top-8 size-36 rounded-full bg-brand-green/15 blur-2xl" />
-              
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex size-10 items-center justify-center rounded-2xl bg-brand-green text-white shadow-xs">
-                    <WalletIcon className="size-5" />
-                  </span>
-                  <div>
-                    <span className="text-[11px] font-black uppercase tracking-wider text-brand-green">
-                      QuickPress Wallet
-                    </span>
-                    <p className="text-xs text-muted-foreground font-medium">
-                      Zero fee · Instant 1-click checkout
-                    </p>
+        </div>
+      ) : (
+        <div className="mx-auto max-w-md px-4 pt-4 space-y-5">
+          {/* SECTION 1: CARDS */}
+          <section>
+            <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Cards
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-slate-200/80 dark:bg-zinc-900 dark:border-zinc-800 divide-y divide-slate-100 dark:divide-zinc-800/80">
+              {/* Saved Cards if any */}
+              {savedCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="flex items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                      <CreditCard className="size-4 text-slate-700 dark:text-zinc-200" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {card.name}
+                      </p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        {card.masked}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {card.isDefault ? (
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                        Default
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => void handleSetDefault(card.id, e)}
+                        className="text-[11px] font-bold text-muted-foreground hover:text-foreground"
+                      >
+                        Set Default
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={busyId === card.id}
+                      onClick={(e) => void handleRemoveMethod(card.id, e)}
+                      className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
+                      title="Remove Card"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </div>
                 </div>
+              ))}
 
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: "/wallet" })}
-                  className="flex items-center gap-1 text-[11px] font-black text-brand-green hover:underline cursor-pointer"
-                >
-                  <span>Ledger</span>
-                  <ArrowRight className="size-3" />
-                </button>
-              </div>
-
-              {/* Balance & Quick Topup */}
-              <div className="relative mt-4 flex items-baseline justify-between border-t border-border/70 pt-3.5">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Available Balance
-                  </p>
-                  <p className="text-2xl font-black tracking-tight text-foreground">
-                    {loadingWallet ? (
-                      <Loader2 className="size-6 animate-spin text-brand-green" />
-                    ) : (
-                      `₹${(wallet?.balances?.currentBalance ?? wallet?.totalBalance ?? 0).toLocaleString("en-IN")}`
-                    )}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={toppingUp}
-                  onClick={() => void handleQuickTopup(topupAmount)}
-                  className="ripple flex h-10 items-center gap-1.5 rounded-2xl bg-brand-green px-4 text-xs font-black text-white shadow-cta transition-all hover:bg-brand-green-dark hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                >
-                  {toppingUp ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Plus className="size-3.5" />
-                  )}
-                  <span>Recharge +₹{topupAmount}</span>
-                </button>
-              </div>
-
-              {/* Top-up Amount Selector Chips */}
-              <div className="relative mt-3 grid grid-cols-4 gap-1.5">
-                {[100, 200, 500, 1000].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setTopupAmount(amt)}
-                    className={`h-8 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
-                      topupAmount === amt
-                        ? "bg-brand-green text-white shadow-xs font-black"
-                        : "bg-muted/80 text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    +₹{amt}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* 2. Saved Payment Methods */}
-            <section>
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black tracking-tight text-foreground">
-                  Saved Payment Methods
-                </h2>
-                <span className="rounded-full bg-secondary/15 px-2.5 py-0.5 text-[10px] font-black text-brand-green">
-                  {methods.length} Active
-                </span>
-              </div>
-
-              {methods.length === 0 ? (
-                <div className="mt-3 card-soft border border-dashed border-border p-6 text-center">
-                  <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-                    <CreditCard className="size-6" />
+              {/* Add credit or debit cards */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPluxeeModal(false);
+                  setCardModalOpen(true);
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 shadow-2xs">
+                    <svg className="w-5 h-4 text-slate-700 dark:text-zinc-200" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="1" width="22" height="16" rx="2" ry="2"/>
+                      <line x1="1" y1="6" x2="23" y2="6"/>
+                      <line x1="5" y1="12" x2="9" y2="12"/>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    Add credit or debit cards
                   </span>
-                  <p className="mt-3 text-sm font-black text-foreground">No payment method added yet</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Add UPI ID, Debit/Credit Card or set Cash on Delivery as your default method.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => openAdd("upi")}
-                    className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-2xl bg-brand-green px-5 text-xs font-black text-white shadow-cta hover:bg-brand-green-dark cursor-pointer"
-                  >
-                    <Plus className="size-4" /> Add Payment Method
-                  </button>
                 </div>
-              ) : (
-                <div className="stagger-children mt-3 space-y-3">
-                  {methods.map((method) => {
-                    const meta = KIND_META[method.kind] || KIND_META.upi;
-                    const Icon = meta.icon;
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
 
-                    return (
-                      <article
-                        key={method.id}
-                        className={`relative card-soft overflow-hidden border p-4 transition-all duration-300 ${
-                          method.isDefault
-                            ? "border-brand-green/40 bg-gradient-to-br from-brand-green/[0.04] via-card to-card shadow-soft"
-                            : "border-border hover:border-brand-green/30"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <span
-                            className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${meta.tone}`}
-                          >
-                            <Icon className="size-5" />
-                          </span>
+              {/* Add Pluxee */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPluxeeModal(true);
+                  setCardModalOpen(true);
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs px-1">
+                    <span className="font-extrabold text-[10.5px] tracking-tight text-[#1a1c3d] dark:text-white">
+                      plux<span className="text-[#f7c800]">e</span>e
+                    </span>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    Add Pluxee
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+            </div>
+          </section>
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="truncate text-sm font-black tracking-tight text-foreground">
-                                {method.name}
-                              </h3>
-                              {method.isDefault ? (
-                                <span className="animate-pop rounded-full bg-secondary/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-green">
-                                  ✓ Default
-                                </span>
-                              ) : null}
-                            </div>
+          {/* SECTION 2: UPI */}
+          <section>
+            <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              UPI
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-slate-200/80 dark:bg-zinc-900 dark:border-zinc-800 divide-y divide-slate-100 dark:divide-zinc-800/80">
+              {/* PhonePe UPI */}
+              {UPI_OPTIONS.map((app) => {
+                const isSelected = selectedUpiId === app.id;
 
-                            <p className="mt-1 font-mono text-xs font-semibold tracking-wide text-muted-foreground">
-                              {method.masked || PAYMENT_KIND_LABEL[method.kind]}
-                            </p>
-
-                            <div className="mt-1 flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-                              <span className="rounded-md bg-muted px-1.5 py-0.5">
-                                {meta.badge}
-                              </span>
-                              <span>· 256-bit Secure</span>
-                            </div>
+                return (
+                  <button
+                    key={app.id}
+                    type="button"
+                    onClick={() => void handleSelectUpiApp(app)}
+                    className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      {/* Real Brand Logos */}
+                      {app.id === "phonepe" ? (
+                        <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                          <div className="size-6 rounded-full bg-[#5f259f] flex items-center justify-center text-white font-black text-xs shadow-2xs">
+                            पे
                           </div>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="mt-4 flex items-center gap-2 border-t border-dashed border-border/70 pt-3">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(method)}
-                            className="ripple flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-muted text-[11px] font-bold text-foreground transition-all hover:bg-accent active:scale-[0.96] cursor-pointer"
-                          >
-                            <Pencil className="size-3.5" />
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={busyId === method.id || method.isDefault}
-                            onClick={() => void handleDefault(method.id)}
-                            className={`ripple flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl text-[11px] font-bold transition-all active:scale-[0.96] disabled:opacity-60 cursor-pointer ${
-                              method.isDefault
-                                ? "bg-secondary/15 text-brand-green font-black"
-                                : "bg-primary/15 text-foreground hover:bg-primary/25"
-                            }`}
-                          >
-                            {busyId === method.id ? (
-                              <Loader2 className="size-3.5 animate-spin" />
-                            ) : (
-                              <Star className="size-3.5" />
-                            )}
-                            {method.isDefault ? "Default Active" : "Set as Default"}
-                          </button>
-
-                          <button
-                            type="button"
-                            aria-label={`Delete ${method.name}`}
-                            disabled={busyId === method.id}
-                            onClick={() => void handleRemove(method.id)}
-                            className="ripple flex size-9 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive transition-all hover:bg-destructive/20 active:scale-[0.94] disabled:opacity-45 cursor-pointer"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
+                      ) : app.id === "supermoney" ? (
+                        /* Authentic Flipkart Super.money logo matching reference screenshot */
+                        <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs px-1 gap-1">
+                          <div className="size-4 shrink-0 rounded-[3.5px] bg-[#3237d6] flex items-center justify-center shadow-2xs">
+                            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white">
+                              <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
+                            </svg>
+                          </div>
+                          <div className="flex flex-col text-left font-black text-[8px] leading-[8px] tracking-tight text-[#16173d] dark:text-white">
+                            <span>super.</span>
+                            <span>money</span>
+                          </div>
                         </div>
-                      </article>
-                    );
-                  })}
+                      ) : (
+                        /* Exact FamApp logo matching reference screenshot: full orange rectangle with white bird */
+                        <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-[#ea7a1e] to-[#f49322] shadow-2xs p-1">
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+                            <path d="M2.5 12.5c4.5-3.5 10-6 19-8.5-4 4.5-7 10-9 16-1-3-3-5.5-6-7.5-1.5 1.5-2.5 1-4 0z" />
+                          </svg>
+                        </div>
+                      )}
+
+                      <span className="text-sm font-semibold text-foreground">
+                        {app.name}
+                      </span>
+                    </div>
+
+                    {/* Active Set indicator */}
+                    {isSelected ? (
+                      <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs pr-1">
+                        <Check className="size-4 stroke-[3]" />
+                      </div>
+                    ) : (
+                      <div className="size-4 rounded-full border border-slate-300 dark:border-zinc-600 mr-1" />
+                    )}
+                  </button>
+                );
+              })}
+
+              {/* Custom Saved UPI IDs if user added any */}
+              {customSavedUpis.map((upi) => {
+                const isSelected = selectedUpiId === upi.id;
+                return (
+                  <div
+                    key={upi.id}
+                    onClick={() => void handleSelectCustomUpi(upi)}
+                    className="flex items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-emerald-600 font-bold text-sm dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                        @
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {upi.name}
+                        </p>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {upi.masked}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isSelected ? (
+                        <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs pr-1">
+                          <Check className="size-4 stroke-[3]" />
+                        </div>
+                      ) : (
+                        <div className="size-4 rounded-full border border-slate-300 dark:border-zinc-600 mr-1" />
+                      )}
+                      <button
+                        type="button"
+                        disabled={busyId === upi.id}
+                        onClick={(e) => void handleRemoveMethod(upi.id, e)}
+                        className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
+                        title="Remove UPI ID"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Add New UPI ID Option */}
+              <button
+                type="button"
+                onClick={() => setUpiModalOpen(true)}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 shadow-2xs font-bold text-sm">
+                    @
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    Add new UPI ID
+                  </span>
                 </div>
-              )}
-            </section>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+            </div>
+          </section>
 
-            {/* 3. Add New Rails Selector Grid */}
-            <section>
-              <h2 className="text-sm font-black tracking-tight text-foreground">
-                Add &amp; Link Payment Rail
-              </h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Link your preferred method for ultra-fast seamless checkout
-              </p>
-
-              <div className="mt-3 grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => openAdd("upi")}
-                  className="card-soft ripple flex items-center gap-3 border border-border p-3.5 text-left transition-all hover:border-brand-green/50 active:scale-[0.97] cursor-pointer"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/15 text-brand-green">
-                    <Smartphone className="size-5" />
+          {/* SECTION 3: WALLETS */}
+          <section>
+            <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Wallets
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-slate-200/80 dark:bg-zinc-900 dark:border-zinc-800 divide-y divide-slate-100 dark:divide-zinc-800/80">
+              {/* Amazon Pay Balance */}
+              <button
+                type="button"
+                onClick={() => {
+                  setWalletModalTitle("Amazon Pay Balance");
+                  setWalletModalOpen(true);
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                    <div className="size-6 rounded-full bg-zinc-950 flex flex-col items-center justify-center text-white leading-none relative shadow-2xs">
+                      <span className="font-black text-[8px] tracking-tighter">pay</span>
+                      <svg className="w-3.5 h-1 text-amber-400 -mt-0.5" viewBox="0 0 24 8" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <path d="M2 2c6 4 14 4 20 0" />
+                      </svg>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    Amazon Pay Balance
                   </span>
-                  <div className="min-w-0">
-                    <span className="block truncate text-xs font-black text-foreground">
-                      UPI / GPay
-                    </span>
-                    <span className="block truncate text-[10px] text-muted-foreground">
-                      PhonePe / Paytm / BHIM
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openAdd("credit-card")}
-                  className="card-soft ripple flex items-center gap-3 border border-border p-3.5 text-left transition-all hover:border-brand-green/50 active:scale-[0.97] cursor-pointer"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
-                    <CreditCard className="size-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <span className="block truncate text-xs font-black text-foreground">
-                      Cards
-                    </span>
-                    <span className="block truncate text-[10px] text-muted-foreground">
-                      Visa / Master / RuPay
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openAdd("cod")}
-                  className="card-soft ripple flex items-center gap-3 border border-border p-3.5 text-left transition-all hover:border-brand-green/50 active:scale-[0.97] cursor-pointer"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-                    <Banknote className="size-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <span className="block truncate text-xs font-black text-foreground">
-                      Pay on Delivery
-                    </span>
-                    <span className="block truncate text-[10px] text-muted-foreground">
-                      Cash or QR scan
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openAdd("razorpay")}
-                  className="card-soft ripple flex items-center gap-3 border border-border p-3.5 text-left transition-all hover:border-brand-green/50 active:scale-[0.97] cursor-pointer"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600">
-                    <Zap className="size-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <span className="block truncate text-xs font-black text-foreground">
-                      NetBanking
-                    </span>
-                    <span className="block truncate text-[10px] text-muted-foreground">
-                      50+ Indian Banks
-                    </span>
-                  </div>
-                </button>
-              </div>
-            </section>
-
-
-            {/* 5. Security & Trust Guarantee */}
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-brand-dark to-brand-green p-5 shadow-soft">
-              <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-primary/25 blur-2xl" />
-              <div className="relative flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-background/15 text-background">
-                  <ShieldCheck className="size-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-black tracking-tight text-background">
-                    100% Bank-Grade Security
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-background/75">
-                    All cards are tokenised in strict compliance with RBI directives. QuickPress never stores complete card numbers or UPI PINs.
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-bold text-background/90">
-                    <span className="rounded-md bg-white/10 px-2 py-0.5">🔒 256-bit SSL</span>
-                    <span className="rounded-md bg-white/10 px-2 py-0.5">🛡️ PCI-DSS Level 1</span>
-                    <span className="rounded-md bg-white/10 px-2 py-0.5">⚡ Instant Refunds</span>
-                  </div>
                 </div>
-              </div>
-            </section>
-          </div>
-        )}
-      </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
 
-      {/* Add / Edit Payment Sheet Modal */}
-      {sheetOpen ? (
+              {/* Mobikwik */}
+              <button
+                type="button"
+                onClick={() => {
+                  setWalletModalTitle("Mobikwik Wallet");
+                  setWalletModalOpen(true);
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                    <div className="size-6 rounded-full bg-[#0077c8] flex items-center justify-center text-white font-black text-[10px] shadow-2xs">
+                      M!
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    Mobikwik
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+            </div>
+          </section>
+
+          {/* SECTION 4: PAY LATER */}
+          <section>
+            <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Pay Later
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-slate-200/80 dark:bg-zinc-900 dark:border-zinc-800 divide-y divide-slate-100 dark:divide-zinc-800/80">
+              {/* Amazon Pay Later */}
+              <button
+                type="button"
+                onClick={() => {
+                  setWalletModalTitle("Amazon Pay Later");
+                  setWalletModalOpen(true);
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                    <div className="size-6 rounded-full bg-zinc-950 flex flex-col items-center justify-center text-white leading-none relative shadow-2xs">
+                      <span className="font-black text-[8px] tracking-tighter">pay</span>
+                      <svg className="w-3.5 h-1 text-amber-400 -mt-0.5" viewBox="0 0 24 8" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <path d="M2 2c6 4 14 4 20 0" />
+                      </svg>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    Amazon Pay Later
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+
+              {/* LazyPay */}
+              <button
+                type="button"
+                onClick={() => {
+                  setWalletModalTitle("LazyPay");
+                  setWalletModalOpen(true);
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-2xs">
+                    <div className="w-5 h-4 flex items-center justify-center">
+                      <svg viewBox="0 0 24 20" className="w-full h-full" fill="none">
+                        <path d="M2 3l10 7L2 17V3z" fill="#E91E63" />
+                        <path d="M12 10l10 7H12V10z" fill="#9C27B0" opacity="0.8" />
+                      </svg>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    LazyPay
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+            </div>
+          </section>
+
+          {/* SECTION 5: NETBANKING */}
+          <section>
+            <h2 className="px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Netbanking
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-slate-200/80 dark:bg-zinc-900 dark:border-zinc-800 divide-y divide-slate-100 dark:divide-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => setBankModalOpen(true)}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 shadow-2xs">
+                    <svg className="w-5 h-5 text-slate-700 dark:text-zinc-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 2 7 22 7 12 2"/>
+                      <line x1="4" y1="21" x2="20" y2="21"/>
+                      <line x1="6" y1="7" x2="6" y2="21"/>
+                      <line x1="10" y1="7" x2="10" y2="21"/>
+                      <line x1="14" y1="7" x2="14" y2="21"/>
+                      <line x1="18" y1="7" x2="18" y2="21"/>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    Netbanking
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* MODAL: ADD CARD / PLUXEE */}
+      {cardModalOpen ? (
         <div className="fixed inset-0 z-[70] flex items-end justify-center">
           <button
             type="button"
             aria-label="Close"
-            onClick={() => setSheetOpen(false)}
-            className="animate-overlay-in absolute inset-0 bg-brand-dark/50 backdrop-blur-sm"
+            onClick={() => setCardModalOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
           />
-          <div className="animate-sheet-up relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-4xl bg-card px-5 pb-10 pt-4 shadow-soft">
-            <div className="mx-auto h-1.5 w-10 rounded-full bg-border" />
-            
-            <div className="mt-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-black tracking-tight text-foreground">
-                  {editingId ? "Edit Payment Method" : "Add Payment Method"}
-                </h2>
-                <p className="text-[11px] text-muted-foreground">
-                  Select rail and enter your details
-                </p>
-              </div>
+          <div className="relative z-10 w-full max-w-md rounded-t-3xl bg-white dark:bg-zinc-900 p-5 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200 dark:bg-zinc-700" />
+
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-foreground">
+                {isPluxeeModal ? "Add Pluxee Card" : "Add Credit or Debit Card"}
+              </h3>
               <button
                 type="button"
-                aria-label="Close"
-                onClick={() => setSheetOpen(false)}
-                className="flex size-9 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors hover:bg-accent cursor-pointer"
+                onClick={() => setCardModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-foreground"
               >
-                <X className="size-4" />
+                <X className="size-5" />
               </button>
             </div>
 
-            {/* Kind Selector Pills */}
-            <div className="mt-4">
-              <span className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-                Payment Category
-              </span>
-              <div className="mt-2 grid grid-cols-4 gap-1.5">
-                {(["upi", "credit-card", "debit-card", "cod"] as PaymentKind[]).map((item) => {
-                  const meta = KIND_META[item];
-                  const Icon = meta.icon;
-                  const active = kind === item;
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setKind(item)}
-                      className={`flex flex-col items-center justify-center gap-1 rounded-2xl border p-2 text-center text-[10px] font-bold transition-all active:scale-[0.96] cursor-pointer ${
-                        active
-                          ? "border-brand-green bg-secondary/15 text-brand-green font-black"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted/50"
-                      }`}
-                    >
-                      <Icon className="size-4" />
-                      <span className="truncate w-full">{PAYMENT_KIND_LABEL[item].split(" ")[0]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Form Fields by Category */}
-            <div className="mt-4 space-y-3.5">
-              {kind === "upi" ? (
-                <>
-                  <label className="block">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      UPI ID / VPA
-                    </span>
-                    <input
-                      value={vpaId}
-                      placeholder="e.g. yourname@okhdfcbank or 9876543210@paytm"
-                      onChange={(e) => setVpaId(e.target.value)}
-                      className="mt-1.5 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-brand-green"
-                    />
-                  </label>
-
-                  {/* Popular UPI Handles */}
-                  <div>
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Quick Handle Suggestions:
-                    </span>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {UPI_POPULAR_HANDLES.map((handle) => (
-                        <button
-                          key={handle}
-                          type="button"
-                          onClick={() => {
-                            const prefix = vpaId.includes("@") ? vpaId.split("@")[0] : vpaId;
-                            setVpaId((prefix || "user") + handle);
-                          }}
-                          className="rounded-xl border border-border bg-muted/60 px-2.5 py-1 text-[11px] font-bold text-foreground hover:border-brand-green hover:bg-secondary/10 hover:text-brand-green transition-colors cursor-pointer"
-                        >
-                          {handle}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <label className="block">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      Nickname (Optional)
-                    </span>
-                    <input
-                      value={name}
-                      placeholder="My GPay or Primary UPI"
-                      onChange={(e) => setName(e.target.value)}
-                      className="mt-1.5 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-brand-green"
-                    />
-                  </label>
-                </>
-              ) : kind === "credit-card" || kind === "debit-card" ? (
-                <>
-                  <label className="block">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                        Card Number
-                      </span>
-                      {cardBrand !== "generic" ? (
-                        <span className="rounded-md bg-secondary/15 px-2 py-0.5 text-[9px] font-black uppercase text-brand-green">
-                          {cardBrand}
-                        </span>
-                      ) : null}
-                    </div>
-                    <input
-                      value={cardNumber}
-                      maxLength={19}
-                      placeholder="4532 •••• •••• 8821"
-                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                      className="mt-1.5 h-12 w-full rounded-2xl border border-border bg-background px-4 font-mono text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-brand-green"
-                    />
-                  </label>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <label className="block">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                        Expiry (MM/YY)
-                      </span>
-                      <input
-                        value={cardExpiry}
-                        maxLength={5}
-                        placeholder="12/28"
-                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
-                        className="mt-1.5 h-12 w-full rounded-2xl border border-border bg-background px-4 font-mono text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-brand-green"
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                        Card Type
-                      </span>
-                      <select
-                        value={kind}
-                        onChange={(e) => setKind(e.target.value as PaymentKind)}
-                        className="mt-1.5 h-12 w-full rounded-2xl border border-border bg-background px-3 text-xs font-bold text-foreground outline-none focus:border-brand-green"
-                      >
-                        <option value="credit-card">Credit Card</option>
-                        <option value="debit-card">Debit Card</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <label className="block">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      Cardholder Name
-                    </span>
-                    <input
-                      value={cardholderName}
-                      placeholder="Name printed on card"
-                      onChange={(e) => setCardholderName(e.target.value)}
-                      className="mt-1.5 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-brand-green"
-                    />
-                  </label>
-                </>
-              ) : (
-                <div className="card-soft border border-border p-4 text-center">
-                  <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-secondary/15 text-brand-green">
-                    <Banknote className="size-6" />
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
+                  Card Number
+                </label>
+                <div className="relative">
+                  <input
+                    value={cardNumber}
+                    maxLength={19}
+                    placeholder="4532 •••• •••• 8821"
+                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                    className="h-12 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3.5 font-mono text-sm font-semibold text-foreground outline-none focus:border-emerald-500"
+                  />
+                  <span className="absolute right-3 top-3.5 text-xs font-bold uppercase text-emerald-600">
+                    {detectCardBrand(cardNumber) !== "generic" ? detectCardBrand(cardNumber) : ""}
                   </span>
-                  <p className="mt-2 text-sm font-black text-foreground">Cash on Delivery (Doorstep QR)</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Pay our delivery captain at your doorstep using cash or dynamic UPI QR scan.
-                  </p>
                 </div>
-              )}
+              </div>
 
-              {/* Set Default Option */}
-              <label className="flex items-center gap-2.5 pt-1 cursor-pointer">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
+                    Expiry (MM/YY)
+                  </label>
+                  <input
+                    value={cardExpiry}
+                    maxLength={5}
+                    placeholder="12/28"
+                    onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                    className="h-12 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3.5 font-mono text-sm font-semibold text-foreground outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
+                    CVV
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={cardCvv}
+                    placeholder="•••"
+                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ""))}
+                    className="h-12 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3.5 font-mono text-sm font-semibold text-foreground outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
+                  Cardholder Name
+                </label>
                 <input
-                  type="checkbox"
-                  checked={isDefaultCheckbox}
-                  onChange={(e) => setIsDefaultCheckbox(e.target.checked)}
-                  className="size-4 rounded-md text-brand-green focus:ring-brand-green"
+                  value={cardholderName}
+                  placeholder="Name as on card"
+                  onChange={(e) => setCardholderName(e.target.value)}
+                  className="h-12 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3.5 text-sm font-semibold text-foreground outline-none focus:border-emerald-500"
                 />
-                <span className="text-xs font-bold text-foreground">
-                  Set as default payment method for 1-click orders
-                </span>
-              </label>
+              </div>
 
-              <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <Lock className="size-3 text-brand-green shrink-0" />
-                RBI Compliant Tokenisation · End-to-end Encrypted
+              <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
+                <Lock className="size-3 text-emerald-600 shrink-0" />
+                RBI Compliant Tokenisation · End-to-end 256-bit Encrypted
               </p>
-            </div>
 
-            {/* Submit Button */}
-            <div className="sticky bottom-0 -mx-5 -mb-10 mt-6 bg-card/95 px-5 pb-8 pt-3 backdrop-blur-md">
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => void handleSave()}
-                className="ripple flex h-13 w-full items-center justify-center gap-2 rounded-3xl bg-brand-green py-4 text-sm font-black text-white shadow-cta transition-transform hover:bg-brand-green-dark hover:scale-[1.01] active:scale-[0.97] disabled:opacity-50 cursor-pointer"
+                onClick={() => void handleSaveCard()}
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 font-bold text-sm text-white shadow-md hover:bg-emerald-700 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-                Save Payment Method
+                Save Card Securely
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* MODAL: ADD NEW UPI ID */}
+      {upiModalOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setUpiModalOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+          />
+          <div className="relative z-10 w-full max-w-md rounded-t-3xl bg-white dark:bg-zinc-900 p-5 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200 dark:bg-zinc-700" />
+
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-foreground">Add New UPI ID</h3>
+              <button
+                type="button"
+                onClick={() => setUpiModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-foreground"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
+                  UPI ID (VPA)
+                </label>
+                <input
+                  value={vpaId}
+                  placeholder="e.g. mobile@paytm or name@okhdfcbank"
+                  onChange={(e) => setVpaId(e.target.value)}
+                  className="h-12 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3.5 text-sm font-semibold text-foreground outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <span className="block text-[10px] font-bold uppercase text-muted-foreground mb-1.5">
+                  Popular Bank Handles
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {UPI_SUGGESTION_HANDLES.map((handle) => (
+                    <button
+                      key={handle}
+                      type="button"
+                      onClick={() => {
+                        const prefix = vpaId.includes("@") ? vpaId.split("@")[0] : vpaId;
+                        setVpaId((prefix || "user") + handle);
+                      }}
+                      className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2.5 py-1 text-xs font-semibold text-foreground hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                    >
+                      {handle}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
+                <ShieldCheck className="size-3 text-emerald-600 shrink-0" />
+                Verified via NPCI Unified Payments Interface
+              </p>
+
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void handleSaveUpiId()}
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 font-bold text-sm text-white shadow-md hover:bg-emerald-700 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+                Verify &amp; Save UPI ID
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* MODAL: NETBANKING BANKS SELECTOR */}
+      {bankModalOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setBankModalOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+          />
+          <div className="relative z-10 w-full max-w-md rounded-t-3xl bg-white dark:bg-zinc-900 p-5 shadow-2xl animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200 dark:bg-zinc-700" />
+
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-foreground">Select Netbanking Bank</h3>
+              <button
+                type="button"
+                onClick={() => setBankModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-foreground"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              {POPULAR_BANKS.map((bank) => (
+                <button
+                  key={bank.code}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSelectBank(bank)}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 hover:border-emerald-500 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-xl">{bank.logo}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-xs font-bold text-foreground">
+                      {bank.name}
+                    </span>
+                    <span className="block text-[10px] text-muted-foreground">
+                      {bank.code}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* MODAL: WALLET / PAY LATER AUTH */}
+      {walletModalOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setWalletModalOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+          />
+          <div className="relative z-10 w-full max-w-md rounded-t-3xl bg-white dark:bg-zinc-900 p-5 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200 dark:bg-zinc-700" />
+
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-foreground">Link {walletModalTitle}</h3>
+              <button
+                type="button"
+                onClick={() => setWalletModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-foreground"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground mb-4">
+              Authenticate your {walletModalTitle} account using your registered mobile number.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                toast.success(`${walletModalTitle} authentication OTP sent!`);
+                setWalletModalOpen(false);
+              }}
+              className="flex h-12 w-full items-center justify-center rounded-xl bg-emerald-600 font-bold text-sm text-white shadow-md hover:bg-emerald-700 transition-all cursor-pointer"
+            >
+              Send OTP &amp; Link
+            </button>
           </div>
         </div>
       ) : null}

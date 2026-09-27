@@ -1,24 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Check,
   CheckCircle2,
-  Download,
   Eraser,
-  FileCheck2,
   FileText,
-  KeyRound,
-  Loader2,
-  Lock,
   PenTool,
-  RefreshCw,
   Scale,
-  Send,
-  ShieldCheck,
   Sparkles,
   UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { sendPartnerAadhaarOtp, verifyPartnerAadhaarOtp } from "@/api/partner/partner-auth-api";
 
 export interface AgreementSignatureData {
   signatureUrl: string;
@@ -57,12 +47,6 @@ export function PartnerAgreementSignaturePad({
   const [adoptedMode, setAdoptedMode] = useState<"draw" | "adopt">("draw");
   const [consentChecked, setConsentChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<"agreement" | "signature">("signature");
-
-  // Aadhaar E-Sign OTP Verification States
-  const [aadhaarEsignOtpSent, setAadhaarEsignOtpSent] = useState(false);
-  const [aadhaarEsignOtp, setAadhaarEsignOtp] = useState("");
-  const [aadhaarEsignLoading, setAadhaarEsignLoading] = useState(false);
-  const [aadhaarEsignVerified, setAadhaarEsignVerified] = useState(Boolean(aadhaar));
 
   const effectiveSignerName = ownerName || "Authorized Merchant Signatory";
   const rawAadhaar = (aadhaar || "").replace(/\s/g, "");
@@ -237,46 +221,6 @@ export function PartnerAgreementSignaturePad({
     }
   };
 
-  const handleSendAadhaarEsignOtp = async () => {
-    if (!rawAadhaar || rawAadhaar.length < 12) {
-      toast.error("Valid Aadhaar number required for E-Sign");
-      return;
-    }
-    setAadhaarEsignLoading(true);
-    try {
-      await sendPartnerAadhaarOtp(rawAadhaar);
-      setAadhaarEsignOtpSent(true);
-      toast.success(`UIDAI E-Sign OTP sent to Aadhaar registered mobile!`);
-    } catch {
-      setAadhaarEsignOtpSent(true);
-      toast.info("Demo UIDAI E-Sign OTP generated (Code: 123456)");
-    } finally {
-      setAadhaarEsignLoading(false);
-    }
-  };
-
-  const handleVerifyAadhaarEsignOtp = async () => {
-    if (!aadhaarEsignOtp || aadhaarEsignOtp.length < 4) {
-      toast.error("Please enter the 6-digit Aadhaar OTP");
-      return;
-    }
-    setAadhaarEsignLoading(true);
-    try {
-      await verifyPartnerAadhaarOtp(rawAadhaar, aadhaarEsignOtp);
-      setAadhaarEsignVerified(true);
-      setConsentChecked(true);
-      if (!hasDrawn) adoptVerifiedNameSignature();
-      toast.success("Aadhaar E-Sign verified & legally executed! ✓");
-    } catch {
-      setAadhaarEsignVerified(true);
-      setConsentChecked(true);
-      if (!hasDrawn) adoptVerifiedNameSignature();
-      toast.success("Aadhaar E-Sign authenticated! ✓");
-    } finally {
-      setAadhaarEsignLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       {/* Header Tabs */}
@@ -437,67 +381,6 @@ export function PartnerAgreementSignaturePad({
                 <span>{maskedAadhaar} (Verified ✓)</span>
               </div>
             </div>
-          </div>
-
-          {/* Aadhaar OTP E-Sign Verification Box */}
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3.5 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="size-4 text-emerald-700" />
-                <span className="text-xs font-black text-emerald-950">Aadhaar E-Sign Verification</span>
-              </div>
-              {aadhaarEsignVerified ? (
-                <span className="rounded-full bg-emerald-200 text-emerald-900 border border-emerald-400 px-2.5 py-0.5 text-[10px] font-black">
-                  UIDAI OTP Verified ✓
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold text-emerald-800">OTP Auth Required</span>
-              )}
-            </div>
-
-            {!aadhaarEsignVerified ? (
-              <div className="space-y-2">
-                {!aadhaarEsignOtpSent ? (
-                  <button
-                    type="button"
-                    onClick={handleSendAadhaarEsignOtp}
-                    disabled={aadhaarEsignLoading}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-black text-white hover:bg-emerald-500 shadow-sm transition-all cursor-pointer"
-                  >
-                    {aadhaarEsignLoading ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <KeyRound className="size-3.5" />
-                    )}
-                    <span>Send Aadhaar E-Sign OTP to {maskedAadhaar}</span>
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={aadhaarEsignOtp}
-                      onChange={(e) => setAadhaarEsignOtp(e.target.value.replace(/\D/g, ""))}
-                      placeholder="Enter 6-digit Aadhaar OTP"
-                      className="flex-1 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-black text-zinc-900 outline-none placeholder:text-zinc-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyAadhaarEsignOtp}
-                      disabled={aadhaarEsignLoading || aadhaarEsignOtp.length < 4}
-                      className="flex items-center gap-1 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white hover:bg-emerald-500 shadow-sm transition-all cursor-pointer"
-                    >
-                      {aadhaarEsignLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
-                      <span>Verify & Seal</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-[11px] font-medium text-emerald-800">
-                Franchise SLA agreement is cryptographically linked and signed under UIDAI Aadhaar verification ({maskedAadhaar}).
-              </p>
-            )}
           </div>
 
           {/* Legal Consent Checkbox */}

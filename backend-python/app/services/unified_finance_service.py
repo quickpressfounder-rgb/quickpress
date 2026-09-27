@@ -32,7 +32,108 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------
 
 DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
-    # 1. PRICING & PLATFORM FEES
+    # 0. VERSIONING & EFFECTIVE DATES
+    "versioning": {
+        "version": "v2.5.0",
+        "status": "active",  # active | draft | scheduled | expired
+        "effectiveFrom": "2026-01-01T00:00:00Z",
+        "effectiveUntil": "2099-12-31T23:59:59Z",
+        "scheduledAt": None,
+        "versionHistory": [
+            {
+                "version": "v2.4.0",
+                "activatedAt": "2026-01-01T00:00:00Z",
+                "activatedBy": "system",
+                "note": "Initial unified commercial configuration",
+            }
+        ],
+    },
+
+    # 1. SERVICE PRICING MODULE
+    "servicePricing": [
+        {
+            "id": "svc-wash-fold",
+            "serviceName": "Wash & Fold",
+            "category": "Laundry",
+            "city": "All Cities",
+            "area": "All Areas",
+            "basePrice": 69.0,
+            "unit": "kg",
+            "additionalUnitPrice": 69.0,
+            "minQuantity": 1,
+            "expressPrice": 99.0,
+            "effectiveFrom": "2026-01-01T00:00:00Z",
+            "effectiveUntil": "2099-12-31T23:59:59Z",
+            "status": "active",
+            "active": True,
+        },
+        {
+            "id": "svc-wash-iron",
+            "serviceName": "Wash & Steam Iron",
+            "category": "Laundry",
+            "city": "All Cities",
+            "area": "All Areas",
+            "basePrice": 99.0,
+            "unit": "kg",
+            "additionalUnitPrice": 99.0,
+            "minQuantity": 1,
+            "expressPrice": 139.0,
+            "effectiveFrom": "2026-01-01T00:00:00Z",
+            "effectiveUntil": "2099-12-31T23:59:59Z",
+            "status": "active",
+            "active": True,
+        },
+        {
+            "id": "svc-steam-press",
+            "serviceName": "Steam Press",
+            "category": "Ironing",
+            "city": "All Cities",
+            "area": "All Areas",
+            "basePrice": 19.0,
+            "unit": "piece",
+            "additionalUnitPrice": 19.0,
+            "minQuantity": 3,
+            "expressPrice": 29.0,
+            "effectiveFrom": "2026-01-01T00:00:00Z",
+            "effectiveUntil": "2099-12-31T23:59:59Z",
+            "status": "active",
+            "active": True,
+        },
+        {
+            "id": "svc-dry-clean",
+            "serviceName": "Premium Dry Clean",
+            "category": "Dry Cleaning",
+            "city": "All Cities",
+            "area": "All Areas",
+            "basePrice": 149.0,
+            "unit": "piece",
+            "additionalUnitPrice": 149.0,
+            "minQuantity": 1,
+            "expressPrice": 219.0,
+            "effectiveFrom": "2026-01-01T00:00:00Z",
+            "effectiveUntil": "2099-12-31T23:59:59Z",
+            "status": "active",
+            "active": True,
+        },
+        {
+            "id": "svc-shoe-care",
+            "serviceName": "Shoe Spa & Restoration",
+            "category": "Shoe Care",
+            "city": "All Cities",
+            "area": "All Areas",
+            "basePrice": 299.0,
+            "unit": "pair",
+            "additionalUnitPrice": 299.0,
+            "minQuantity": 1,
+            "expressPrice": 399.0,
+            "effectiveFrom": "2026-01-01T00:00:00Z",
+            "effectiveUntil": "2099-12-31T23:59:59Z",
+            "status": "active",
+            "active": True,
+        },
+    ],
+
+    # 2. PRICING & PLATFORM FEES
     "pricing": {
         "platformFee": 10.0,
         "handlingFee": 15.0,
@@ -41,7 +142,22 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "surgeMultiplier": 1.0,     # Normal 1.0x (can be boosted during peak/rain)
     },
 
-    # 1b. EXPRESS PICKUP & REVENUE SPLIT
+    # 2b. PLATFORM & HANDLING FEES ENGINE (EXTENDED)
+    "fees": {
+        "platformFee": 10.0,
+        "platformFeeType": "fixed",     # fixed | percentage
+        "handlingFee": 15.0,
+        "handlingFeeType": "fixed",     # fixed | percentage
+        "convenienceFee": 0.0,
+        "convenienceFeeType": "fixed",
+        "packagingFee": 0.0,
+        "packagingFeeType": "fixed",
+        "serviceCharge": 0.0,
+        "serviceChargeType": "fixed",
+        "otherFees": [],
+    },
+
+    # 2c. EXPRESS PICKUP & REVENUE SPLIT
     "expressPickup": {
         "enabled": True,
         "fee": 40.0,                 # Flat Express Pickup Priority Fee (₹)
@@ -49,42 +165,78 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "riderSharePercent": 80.0,   # 80% to Delivery Captain (+₹32.00)
     },
 
-    # 2. GST TAXATION ENGINE
+    # 3. GST TAXATION ENGINE
     "gst": {
+        "enabled": True,
+        "pricingMode": "exclusive",   # exclusive (tax added on top) | inclusive (tax in price)
         "laundryGstRate": 0.05,       # 5% GST on Laundry Services
         "platformGstRate": 0.18,      # 18% GST on Platform / Convenience Fee
         "deliveryGstRate": 0.18,      # 18% GST on Delivery Services
+        "cgstRate": 0.025,            # 2.5% CGST
+        "sgstRate": 0.025,            # 2.5% SGST
+        "igstRate": 0.05,             # 5.0% IGST (inter-state)
         "defaultState": "Uttar Pradesh",
         "quickpressGstin": "09AAECQ1234F1Z5",
         "tcsRate": 0.01,              # 1% Section 194-O TCS
         "tdsRate": 0.01,              # 1% Section 194-C TDS
+        "categoryTaxOverrides": [
+            {"id": "tax-ov-dryclean", "category": "Dry Cleaning", "gstRate": 0.12, "active": True},
+        ],
     },
 
-    # 3. COMMISSION ENGINE
+    # 4. COMMISSION ENGINE
     "commission": {
-        "standardRate": 0.18,         # 18% (<100 orders/month)
-        "silverRate": 0.15,           # 15% (100-299 orders/month)
-        "goldRate": 0.12,             # 12% (300+ orders/month)
+        "partnerCommissionType": "tier",  # tier | percentage | fixed
+        "standardRate": 0.18,             # 18% (<100 orders/month)
+        "silverRate": 0.15,               # 15% (100-299 orders/month)
+        "goldRate": 0.12,                 # 12% (300+ orders/month)
         "silverThreshold": 100,
-        "captainCommissionRate": 0.0, # 0% commission on delivery captains (100% fare to rider)
+        "goldThreshold": 300,
+        "fixedAmountPerOrder": 0.0,
+        "partnerCommissionPercent": 18.0,
+        "riderCommissionRate": 0.0,       # 0% commission on delivery captains (100% fare to rider)
+        "platformCommissionRate": 0.18,
+        "captainCommissionRate": 0.0,
+        "categoryOverrides": [
+            {"id": "comm-dryclean", "category": "Dry Cleaning", "rate": 0.20, "active": True},
+            {"id": "comm-shoecare", "category": "Shoe Care", "rate": 0.15, "active": True},
+        ],
+        "cityAreaOverrides": [
+            {"id": "comm-kasganj", "city": "Kasganj", "area": "All Areas", "rate": 0.15, "active": True},
+        ],
     },
 
-    # 3b. RIDER PAYOUT ENGINE
+    # 5. RIDER PAYOUT & EARNINGS ENGINE
     "riderPayout": {
         "basePay": 25.0,
         "baseDistanceKm": 2.0,
         "perKmRate": 6.0,
+        "pickupEarning": 10.0,
+        "deliveryEarning": 15.0,
+        "peakIncentive": 15.0,
         "expressBonus": 20.0,
-        "nightSurge": 25.0,
-        "rainSurge": 20.0,
+        "nightSurge": 0.0,
+        "rainSurge": 0.0,
         "captainCommissionRate": 0.0,
+        "orderCountIncentives": [
+            {"trips": 5, "reward": 100.0},
+            {"trips": 10, "reward": 250.0},
+            {"trips": 15, "reward": 450.0},
+        ],
+        "dailyTargets": [
+            {"targetTrips": 10, "bonus": 300.0},
+            {"targetTrips": 20, "bonus": 750.0},
+        ],
+        "bonusRules": "Peak hour orders (18:00 - 22:00) grant +₹15 bonus. 100% completion unlocks daily target bonus.",
     },
 
-    # 4. DELIVERY & DISTANCE ENGINE
+    # 6. DELIVERY & DISTANCE ENGINE
     "delivery": {
         "baseFee": 30.0,
         "baseDistanceKm": 2.0,
         "perKmRate": 8.0,
+        "minimumDeliveryFee": 25.0,
+        "expressDeliveryFee": 40.0,
         "slabs": [
             {"minKm": 0.0, "maxKm": 2.0, "fee": 30.0},
             {"minKm": 2.0, "maxKm": 5.0, "fee": 40.0},
@@ -94,25 +246,72 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         ],
         "freeDeliveryThreshold": 499.0,
         "subsidyFundingSource": "QUICKPRESS_FUNDED",  # QUICKPRESS_FUNDED | PARTNER_FUNDED | SHARED_FUNDED
-        "nightSurge": 25.0,
-        "rainSurge": 20.0,
+        "nightSurge": 0.0,
+        "rainSurge": 0.0,
+        "cityAreaPricing": [
+            {"id": "del-kasganj-central", "city": "Kasganj", "area": "Soron Gate", "baseFee": 25.0, "perKmRate": 7.0, "minFee": 20.0, "active": True},
+            {"id": "del-kasganj-outer", "city": "Kasganj", "area": "Outer Bypass", "baseFee": 35.0, "perKmRate": 9.0, "minFee": 30.0, "active": True},
+        ],
     },
 
-    # 5. CANCELLATION & REFUND POLICY
+    # 7. DISCOUNT & COUPON ENGINE
+    "discount": {
+        "minOrderValue": 99.0,
+        "firstOrderDiscountPercent": 20.0,
+        "firstOrderMaxDiscount": 100.0,
+        "coupons": [
+            {
+                "id": "cpn-qp50",
+                "code": "QUICK50",
+                "title": "₹50 Flat Off",
+                "type": "flat",
+                "discount": 50.0,
+                "maxDiscount": 50.0,
+                "minOrderValue": 299.0,
+                "firstOrderOnly": False,
+                "citySpecific": "All",
+                "usageLimit": 5000,
+                "usedCount": 342,
+                "startDate": "2026-01-01T00:00:00Z",
+                "endDate": "2026-12-31T23:59:59Z",
+                "active": True,
+            },
+            {
+                "id": "cpn-fresh20",
+                "code": "FRESH20",
+                "title": "20% Off on Laundry",
+                "type": "percent",
+                "discount": 20.0,
+                "maxDiscount": 120.0,
+                "minOrderValue": 399.0,
+                "firstOrderOnly": True,
+                "citySpecific": "All",
+                "usageLimit": 2000,
+                "usedCount": 189,
+                "startDate": "2026-01-01T00:00:00Z",
+                "endDate": "2026-12-31T23:59:59Z",
+                "active": True,
+            },
+        ],
+    },
+
+    # 8. CANCELLATION & REFUND POLICY
     "cancellation": {
-        "ORDER_PLACED": {"cancellationFee": 0.0, "refundPct": 100.0, "allowCancel": True},
-        "PARTNER_ACCEPTED": {"cancellationFee": 0.0, "refundPct": 100.0, "allowCancel": True},
-        "PICKUP_ASSIGNED": {"cancellationFee": 20.0, "refundPct": 90.0, "allowCancel": True},
-        "PICKUP_ARRIVED": {"cancellationFee": 40.0, "refundPct": 80.0, "allowCancel": True},
-        "PICKED_UP": {"cancellationFee": 60.0, "refundPct": 50.0, "allowCancel": True},
-        "AT_STORE": {"cancellationFee": 75.0, "refundPct": 40.0, "allowCancel": True},
-        "PROCESSING": {"cancellationFee": 100.0, "refundPct": 25.0, "allowCancel": True},
-        "READY": {"cancellationFee": 150.0, "refundPct": 10.0, "allowCancel": False},
-        "OUT_FOR_DELIVERY": {"cancellationFee": 200.0, "refundPct": 0.0, "allowCancel": False},
-        "DELIVERED": {"cancellationFee": 0.0, "refundPct": 0.0, "allowCancel": False},
+        "processingFee": 0.0,
+        "refundEligibility": "Automated refund to original payment source (online) or instant QuickPress wallet credit",
+        "ORDER_PLACED": {"cancellationFee": 0.0, "refundPct": 100.0, "allowCancel": True, "notes": "Full instant refund before store acceptance"},
+        "PARTNER_ACCEPTED": {"cancellationFee": 0.0, "refundPct": 100.0, "allowCancel": True, "notes": "Full refund if cancelled before rider dispatch"},
+        "PICKUP_ASSIGNED": {"cancellationFee": 20.0, "refundPct": 90.0, "allowCancel": True, "notes": "₹20 rider dispatch compensation"},
+        "PICKUP_ARRIVED": {"cancellationFee": 40.0, "refundPct": 80.0, "allowCancel": True, "notes": "₹40 rider fuel & door arrival fee"},
+        "PICKED_UP": {"cancellationFee": 60.0, "refundPct": 50.0, "allowCancel": True, "notes": "₹60 transit handling charge"},
+        "AT_STORE": {"cancellationFee": 75.0, "refundPct": 40.0, "allowCancel": True, "notes": "Garment sorting and pre-treatment fee"},
+        "PROCESSING": {"cancellationFee": 100.0, "refundPct": 25.0, "allowCancel": True, "notes": "Detergent & cycle wash expense consumed"},
+        "READY": {"cancellationFee": 150.0, "refundPct": 10.0, "allowCancel": False, "notes": "Laundry finished and packed"},
+        "OUT_FOR_DELIVERY": {"cancellationFee": 200.0, "refundPct": 0.0, "allowCancel": False, "notes": "Non-refundable once in transit"},
+        "DELIVERED": {"cancellationFee": 0.0, "refundPct": 0.0, "allowCancel": False, "notes": "Order completed"},
     },
 
-    # 6. INCENTIVES ENGINE
+    # 9. INCENTIVES ENGINE (GAMIFIED + MILESTONES)
     "incentives": {
         "candyCrushLevels": [
             {"level": 1, "title": "Rookie Kickoff", "target": 1, "reward": 25.0, "badge": "🍬", "flavor": "Strawberry Jelly", "description": "Complete 1st delivery today to activate daily streak"},
@@ -139,7 +338,7 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         ],
     },
 
-    # 7. LATE FEE & PENALTY ENGINE
+    # 10. LATE FEE & PENALTY ENGINE
     "lateFee": {
         "gracePeriodMinutes": 15,
         "slabs": [
@@ -160,14 +359,30 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "falseStatusUpdate": 100.0,
     },
 
-    # 8. SETTLEMENT RULES
+    # 11. PARTNER SETTLEMENT RULES
     "settlement": {
-        "cycle": "WEEKLY",          # WEEKLY (Mon-Sun)
+        "cycle": "WEEKLY",          # WEEKLY (Mon-Sun) | DAILY | BIWEEKLY
         "payoutDay": "WEDNESDAY",
         "autoApproveMaxAmount": 50000.0,
         "requirePanTcs": True,
         "tcsRate": 0.01,
+        "tdsRate": 0.01,
         "minSettlementPayout": 100.0,
+        "partnerSharePercent": 82.0,
+        "platformSharePercent": 18.0,
+        "adjustmentRules": "Late pickup penalties and damage claims are automatically deducted from the weekly cycle payout.",
+    },
+    "partnerSettlement": {
+        "cycle": "WEEKLY",
+        "payoutDay": "WEDNESDAY",
+        "minSettlementPayout": 100.0,
+        "minWithdrawal": 100.0,
+        "autoApproveMaxAmount": 50000.0,
+        "partnerSharePercent": 82.0,
+        "platformSharePercent": 18.0,
+        "tcsRate": 0.01,
+        "tdsRate": 0.01,
+        "adjustmentRules": "Late pickup penalties and damage claims are automatically deducted from the weekly cycle payout.",
     },
 }
 
@@ -292,8 +507,8 @@ class UnifiedFinanceService:
                 "goldCommissionThreshold": int(c.get("goldThreshold", 300)),
                 "riderBaseFare": float(rp.get("basePay", 25.0)),
                 "riderPerKmRate": float(rp.get("perKmRate", 6.0)),
-                "riderNightSurge": float(rp.get("nightSurge", 25.0)),
-                "riderRainSurge": float(rp.get("rainSurge", 20.0)),
+                "riderNightSurge": float(rp.get("nightSurge", 0.0)),
+                "riderRainSurge": float(rp.get("rainSurge", 0.0)),
             })
         except Exception as e:
             logger.warning("Failed to sync financial_engine in update_rules: %s", e)
@@ -358,12 +573,16 @@ class UnifiedFinanceService:
         is_member: bool = False,
         customer_state: str = "Uttar Pradesh",
         partner_state: str = "Uttar Pradesh",
+        customer_city: Optional[str] = None,
+        customer_area: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Calculates exact checkout breakdown conforming to TRD section 4, 5, 6, 11, 12, 13."""
         rules = await self.get_active_rules()
         pricing_cfg = rules.get("pricing", {})
+        fees_cfg = rules.get("fees", {})
         gst_cfg = rules.get("gst", {})
         delivery_cfg = rules.get("delivery", {})
+        version_cfg = rules.get("versioning", {})
 
         # A. Items Subtotal
         items_subtotal = 0.0
@@ -376,17 +595,39 @@ class UnifiedFinanceService:
         express_multiplier = float(pricing_cfg.get("expressMultiplier", 1.35)) if is_express else 1.0
         gross_service_value = round(items_subtotal * express_multiplier, 2)
 
-        # B. Delivery Fee calculation based on distance slabs
+        # B. Delivery Fee calculation based on city/area overrides or distance slabs
         base_fee = float(delivery_cfg.get("baseFee", 30.0))
+        per_km = float(delivery_cfg.get("perKmRate", 8.0))
+        min_delivery_fee = float(delivery_cfg.get("minimumDeliveryFee", 25.0))
         calculated_delivery_fee = base_fee
-        slabs = delivery_cfg.get("slabs", [])
-        matched_slab = next((s for s in slabs if s["minKm"] <= distance_km < s["maxKm"]), None)
-        if matched_slab:
-            calculated_delivery_fee = float(matched_slab["fee"])
-        else:
-            per_km = float(delivery_cfg.get("perKmRate", 8.0))
-            base_dist = float(delivery_cfg.get("baseDistanceKm", 2.0))
-            calculated_delivery_fee = round(base_fee + max(0.0, distance_km - base_dist) * per_km, 2)
+
+        # Check city/area override first
+        city_area_matched = False
+        if customer_city or customer_area:
+            city_area_pricing = delivery_cfg.get("cityAreaPricing", [])
+            for cap in city_area_pricing:
+                if cap.get("active", True):
+                    city_match = not cap.get("city") or cap.get("city") == "All Cities" or (customer_city and cap.get("city").lower() in customer_city.lower())
+                    area_match = not cap.get("area") or cap.get("area") == "All Areas" or (customer_area and cap.get("area").lower() in customer_area.lower())
+                    if city_match and area_match:
+                        base_fee = float(cap.get("baseFee", base_fee))
+                        per_km = float(cap.get("perKmRate", per_km))
+                        min_delivery_fee = float(cap.get("minFee", min_delivery_fee))
+                        calculated_delivery_fee = round(base_fee + max(0.0, distance_km - float(delivery_cfg.get("baseDistanceKm", 2.0))) * per_km, 2)
+                        city_area_matched = True
+                        break
+
+        if not city_area_matched:
+            slabs = delivery_cfg.get("slabs", [])
+            matched_slab = next((s for s in slabs if s["minKm"] <= distance_km < s["maxKm"]), None)
+            if matched_slab:
+                calculated_delivery_fee = float(matched_slab["fee"])
+            else:
+                base_dist = float(delivery_cfg.get("baseDistanceKm", 2.0))
+                calculated_delivery_fee = round(base_fee + max(0.0, distance_km - base_dist) * per_km, 2)
+
+        # Enforce minimum delivery fee
+        calculated_delivery_fee = max(calculated_delivery_fee, min_delivery_fee)
 
         # Free Delivery check
         free_thresh = float(delivery_cfg.get("freeDeliveryThreshold", 499.0))
@@ -397,11 +638,29 @@ class UnifiedFinanceService:
             delivery_cfg.get("subsidyFundingSource", "QUICKPRESS_FUNDED") if is_free_delivery else None
         )
 
-        # C. Platform & Handling & Express Fees
-        platform_fee = float(pricing_cfg.get("platformFee", 10.0))
-        handling_fee = float(pricing_cfg.get("handlingFee", 15.0))
-        surge_multiplier = float(pricing_cfg.get("surgeMultiplier", 1.0))
-        surge_fee = round(gross_service_value * max(0.0, surge_multiplier - 1.0), 2)
+        # C. Platform & Handling & Convenience & Packaging & Express Fees
+        def _calc_fee(key: str, default_val: float) -> float:
+            if key in pricing_cfg:
+                fee_val = float(pricing_cfg[key])
+            elif key in fees_cfg:
+                fee_val = float(fees_cfg[key])
+            else:
+                fee_val = float(default_val)
+
+            fee_type = str(fees_cfg.get(f"{key}Type", "fixed")).lower()
+            if fee_type == "percentage":
+                return round(gross_service_value * (fee_val / 100.0), 2)
+            return fee_val
+
+        platform_fee = _calc_fee("platformFee", 10.0)
+        handling_fee = _calc_fee("handlingFee", 15.0)
+        convenience_fee = _calc_fee("convenienceFee", 0.0)
+        packaging_fee = _calc_fee("packagingFee", 0.0)
+        service_charge = _calc_fee("serviceCharge", 0.0)
+
+        # Surge is permanently disabled
+        surge_multiplier = 1.0
+        surge_fee = 0.0
 
         # C2. Express Pickup Priority Fee & Bonus Split
         express_cfg = rules.get("expressPickup", {})
@@ -417,17 +676,45 @@ class UnifiedFinanceService:
         total_discount = effective_coupon_discount
 
         # E. Taxable Value & GST Calculation
-        # Fabric laundry: 5% GST
-        # Platform, Delivery, Handling & Express Fee: 18% GST
-        taxable_laundry = max(0.0, gross_service_value - total_discount)
-        laundry_gst_rate = float(gst_cfg.get("laundryGstRate", 0.05))
-        platform_gst_rate = float(gst_cfg.get("platformGstRate", 0.18))
-        delivery_gst_rate = float(gst_cfg.get("deliveryGstRate", 0.18))
+        # Check if GST is globally enabled
+        gst_enabled = bool(gst_cfg.get("enabled", True))
+        pricing_mode = str(gst_cfg.get("pricingMode", "exclusive")).lower()
 
-        laundry_gst = round(taxable_laundry * laundry_gst_rate, 2)
-        service_fees_taxable = customer_delivery_fee + platform_fee + handling_fee + surge_fee + express_fee
-        service_gst = round(service_fees_taxable * delivery_gst_rate, 2)
-        total_gst = round(laundry_gst + service_gst, 2)
+        taxable_laundry = max(0.0, gross_service_value - total_discount)
+        laundry_gst_rate = float(gst_cfg.get("laundryGstRate", 0.05)) if gst_enabled else 0.0
+        platform_gst_rate = float(gst_cfg.get("platformGstRate", 0.18)) if gst_enabled else 0.0
+        delivery_gst_rate = float(gst_cfg.get("deliveryGstRate", 0.18)) if gst_enabled else 0.0
+
+        service_fees_taxable = (
+            customer_delivery_fee
+            + platform_fee
+            + handling_fee
+            + convenience_fee
+            + packaging_fee
+            + service_charge
+            + surge_fee
+            + express_fee
+        )
+
+        if not gst_enabled:
+            laundry_gst = 0.0
+            service_gst = 0.0
+            total_gst = 0.0
+            customer_payable = round(taxable_laundry + service_fees_taxable, 2)
+        elif pricing_mode == "inclusive":
+            # Tax is decomposed from inclusive rates
+            laundry_gst = round(taxable_laundry - (taxable_laundry / (1.0 + laundry_gst_rate)), 2)
+            service_gst = round(service_fees_taxable - (service_fees_taxable / (1.0 + delivery_gst_rate)), 2)
+            total_gst = round(laundry_gst + service_gst, 2)
+            customer_payable = round(taxable_laundry + service_fees_taxable, 2)
+        else:
+            # Tax is calculated on top (exclusive)
+            laundry_gst = round(taxable_laundry * laundry_gst_rate, 2)
+            service_gst = round(service_fees_taxable * delivery_gst_rate, 2)
+            total_gst = round(laundry_gst + service_gst, 2)
+            customer_payable = round(
+                taxable_laundry + laundry_gst + service_fees_taxable + service_gst, 2
+            )
 
         # Intra-state vs Inter-state GST breakdown
         is_interstate = customer_state.strip().lower() != partner_state.strip().lower()
@@ -440,13 +727,36 @@ class UnifiedFinanceService:
             sgst = round(total_gst - cgst, 2)
             igst = 0.0
 
-        # F. Customer Payable Grand Total
-        customer_payable = round(
-            taxable_laundry + laundry_gst + service_fees_taxable + service_gst, 2
+        # F. Settlement Split (Separate Authoritative Calculations)
+        comm_cfg = rules.get("commission", {})
+        comm_rate = float(comm_cfg.get("standardRate", 0.18))
+        platform_commission = round(taxable_laundry * comm_rate, 2)
+        tcs_deduction = round(taxable_laundry * float(gst_cfg.get("tcsRate", 0.01)), 2)
+        tds_deduction = round(taxable_laundry * float(gst_cfg.get("tdsRate", 0.01)), 2)
+        partner_net_share = round(
+            taxable_laundry - platform_commission - tcs_deduction - tds_deduction + partner_express_bonus, 2
         )
 
+        rider_cfg = rules.get("riderPayout", {})
+        rider_base = float(rider_cfg.get("basePay", 25.0))
+        rider_per_km = float(rider_cfg.get("perKmRate", 6.0))
+        rider_dist_fare = round(max(0.0, distance_km - float(rider_cfg.get("baseDistanceKm", 2.0))) * rider_per_km, 2)
+        rider_net_earnings = round(rider_base + rider_dist_fare + rider_express_bonus, 2)
+
+        gateway_fee = round(customer_payable * 0.0195, 2)
+        platform_net_revenue = round(
+            customer_payable + delivery_subsidy - partner_net_share - rider_net_earnings - total_gst - gateway_fee, 2
+        )
+
+        version_id = str(version_cfg.get("version") or "v2.5.0")
+        eff_from = str(version_cfg.get("effectiveFrom") or "2026-01-01T00:00:00Z")
+        now_iso = datetime.now(timezone.utc).isoformat()
+
         return {
+            # Customer Payable Breakdown
             "itemsSubtotal": round(items_subtotal, 2),
+            "basePrice": round(items_subtotal, 2),
+            "servicePrice": gross_service_value,
             "grossServiceValue": gross_service_value,
             "isExpress": is_express,
             "expressFee": express_fee,
@@ -463,6 +773,9 @@ class UnifiedFinanceService:
             "deliverySubsidySource": delivery_subsidy_source,
             "platformFee": platform_fee,
             "handlingFee": handling_fee,
+            "convenienceFee": convenience_fee,
+            "packagingFee": packaging_fee,
+            "serviceCharge": service_charge,
             "surgeFee": surge_fee,
             "couponCode": coupon_code,
             "couponDiscount": effective_coupon_discount,
@@ -478,8 +791,34 @@ class UnifiedFinanceService:
             "sgst": sgst,
             "igst": igst,
             "totalGst": total_gst,
+            "tax": total_gst,
             "customerPayable": customer_payable,
+            "grandTotal": customer_payable,
+            "finalPayable": customer_payable,
             "currency": "INR",
+
+            # Authoritative Settlement & Revenue Split
+            "settlement": {
+                "platformCommission": platform_commission,
+                "partnerNetShare": partner_net_share,
+                "partnerAmount": partner_net_share,
+                "riderNetEarnings": rider_net_earnings,
+                "riderAmount": rider_net_earnings,
+                "gatewayFee": gateway_fee,
+                "tcsDeduction": tcs_deduction,
+                "tdsDeduction": tds_deduction,
+                "platformNetRevenue": platform_net_revenue,
+            },
+            "commission": platform_commission,
+            "partnerAmount": partner_net_share,
+            "riderAmount": rider_net_earnings,
+            "gatewayFee": gateway_fee,
+
+            # Immutable Snapshot & Governance Metadata
+            "pricingRuleVersionId": version_id,
+            "ruleEffectiveFrom": eff_from,
+            "snapshotTimestamp": now_iso,
+            "isImmutable": True,
         }
 
     # ----------------------------------------------------------------------

@@ -29,6 +29,35 @@ export function OrderActionBar({
         </div>
       );
     }
+    if (
+      order.stage === "ready" ||
+      (order.stage as string) === "ready_for_delivery" ||
+      (order.stage as string) === "delivery_rider_assigned" ||
+      (order.stage as string) === "delivery_rider_2_assigned" ||
+      (order.stage as string) === "dispatch_otp_pending"
+    ) {
+      const isRider2 =
+        (order.stage as string) === "delivery_rider_2_assigned" ||
+        Boolean((order as any)?.reassignmentPool && (order as any).reassignmentPool > 0) ||
+        Boolean((order as any)?.isReassigned);
+
+      return (
+        <div
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl p-3 text-center text-xs font-bold shadow-xs ${
+            isRider2
+              ? "bg-purple-50 border border-purple-300 text-purple-900"
+              : "bg-blue-50 border border-blue-200/80 text-blue-900"
+          }`}
+        >
+          <span className="text-base">{isRider2 ? "🚀" : "🛵"}</span>
+          <span>
+            {isRider2
+              ? "⚡ Rider 1 Breached 2m SLA (-₹20 Penalty). Rider 2 Assigned (+₹20 Bonus Pool). Awaiting store arrival."
+              : "Delivery Captain Dispatched · 2-Minute SLA to reach store & verify Dispatch OTP"}
+          </span>
+        </div>
+      );
+    }
     return null;
   }
 

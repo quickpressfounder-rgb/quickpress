@@ -83,7 +83,7 @@ import {
   type DevicePermissionStatus,
 } from "@/lib/notifications";
 import { switchAppLanguage, DEFAULT_LANGUAGE } from "@/lib/i18n";
-import defaultAvatar from "@/shared/assets/default-avatar.jpg";
+import defaultAvatar from "@/shared/assets/default-avatar.png";
 
 
 
