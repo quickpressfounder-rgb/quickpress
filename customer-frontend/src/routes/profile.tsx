@@ -94,12 +94,7 @@ const THEME_OPTIONS: { id: ThemeMode; label: string; icon: LucideIcon }[] = [
 ];
 
 const NOTIFICATION_ROWS: { id: keyof NotificationPreferences; label: string; note: string }[] = [
-  { id: "orderUpdates", label: "Order updates", note: "Pickup, wash and delivery status" },
-  { id: "deliveryAlerts", label: "Delivery alerts", note: "When your rider is on the way" },
-  { id: "promotions", label: "Offers & promotions", note: "Discounts and cashback deals" },
-  { id: "email", label: "Email", note: "Invoices and receipts" },
-  { id: "sms", label: "SMS", note: "Critical updates only" },
-  { id: "push", label: "Push notifications", note: "On this device" },
+  { id: "push", label: "Push notifications", note: "Pickup, wash, rider arrival & delivery alerts on this device" },
 ];
 
 /** Accessible on/off switch built from the design tokens. */
@@ -1157,13 +1152,6 @@ function ProfileScreen() {
                     action: () => navigate({ to: "/help" }),
                   },
                   {
-                    id: "chat",
-                    label: "Live Chat",
-                    note: "Average reply in 2 min",
-                    icon: MessageCircle,
-                    action: () => navigate({ to: "/help" }),
-                  },
-                  {
                     id: "call",
                     label: "Call Support",
                     note: "1800 123 4567 · 24×7",
@@ -1678,7 +1666,6 @@ function FavouriteStoresPage({ onBack }: { onBack: () => void }) {
    ========================================================================== */
 function NotificationSettingsPage({
   onBack,
-  notificationRows,
   notifications,
   saving,
   onToggleNotification,
@@ -1688,11 +1675,86 @@ function NotificationSettingsPage({
   requestingDevicePerm?: boolean;
   onRequestDevicePermission?: () => Promise<void>;
   onSendTestNotification?: () => void;
-  notificationRows: { id: keyof NotificationPreferences; label: string; note: string }[];
+  notificationRows?: { id: keyof NotificationPreferences; label: string; note: string }[];
   notifications: NotificationPreferences;
   saving: boolean;
   onToggleNotification: (key: keyof NotificationPreferences) => void;
 }) {
+  const [devicePerm, setDevicePerm] = useState<DevicePermissionStatus>(() => getDeviceNotificationPermission());
+  const [toggling, setToggling] = useState(false);
+
+  useEffect(() => {
+    setDevicePerm(getDeviceNotificationPermission());
+  }, []);
+
+  const isPushActive = Boolean(notifications.push && devicePerm === "granted");
+
+  const handleToggleRealPush = async () => {
+    if (toggling || saving) return;
+    setToggling(true);
+
+    try {
+      if (!isPushActive) {
+        // User wants to enable push notifications
+        if (devicePerm === "denied") {
+          toast.error(
+            "Notification permission is blocked in your browser or device settings. Please allow notifications in site settings to receive order alerts."
+          );
+          setToggling(false);
+          return;
+        }
+
+        let currentPerm: DevicePermissionStatus = devicePerm;
+        if (currentPerm !== "granted") {
+          currentPerm = await requestDeviceNotificationPermission();
+          setDevicePerm(currentPerm);
+        }
+
+        if (currentPerm === "granted") {
+          // Register service worker & sync FCM push token with backend
+          try {
+            const { requestPushNotificationPermission } = await import("@/api/core/firebase-messaging");
+            await requestPushNotificationPermission();
+          } catch (fcmErr) {
+            console.debug("FCM token sync notice:", fcmErr);
+          }
+
+          // Play signature order notification sound
+          try {
+            const { playOrderBellNotificationSound } = await import("@/lib/order-success-sound");
+            playOrderBellNotificationSound();
+          } catch {
+            // ignore audio error
+          }
+
+          // Trigger test system notification
+          sendTestNotification(
+            "QuickPress Notifications Active 🔔",
+            "You will now receive live pickup, wash, rider arrival & delivery alerts!"
+          );
+
+          if (!notifications.push) {
+            onToggleNotification("push");
+          }
+          toast.success("Push notifications enabled on this device! 🔔");
+        } else {
+          toast.info("Notification permission was not granted.");
+        }
+      } else {
+        // User wants to disable push notifications
+        if (notifications.push) {
+          onToggleNotification("push");
+        }
+        toast.info("Push notifications turned off on this device.");
+      }
+    } catch (err) {
+      console.error("Failed to toggle notification permission:", err);
+      toast.error("Could not update notification preference.");
+    } finally {
+      setToggling(false);
+    }
+  };
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto w-full max-w-md pb-32">
@@ -1720,44 +1782,28 @@ function NotificationSettingsPage({
 
         {/* Content */}
         <div className="px-5 pt-5 space-y-4">
-
           {/* In-App Channels */}
           <div>
             <h2 className="px-1 text-[11px] font-black uppercase tracking-wider text-muted-foreground mb-2">
               In-App & Message Channels
             </h2>
-            <div className="card-soft overflow-hidden border border-border divide-y divide-border">
-              {notificationRows.map((row) => (
-                <div key={row.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-bold text-foreground">
-                      {row.label}
-                    </span>
-                    <span className="block truncate text-[11px] text-muted-foreground mt-0.5">
-                      {row.note}
-                    </span>
+            <div className="card-soft overflow-hidden border border-border">
+              <div className="flex items-center gap-3 px-4 py-3.5">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-bold text-foreground">
+                    Push notifications
                   </span>
-                  <Toggle
-                    label={row.label}
-                    checked={notifications[row.id]}
-                    disabled={saving}
-                    onChange={() => onToggleNotification(row.id)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Privacy Assurance */}
-          <div className="card-soft flex items-start gap-3 p-4 border border-border">
-            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-brand-green">
-              <ShieldCheck className="size-4" />
-            </span>
-            <div>
-              <p className="text-xs font-bold text-foreground">Zero Spam Guarantee</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                QuickPress sends strictly transactional and critical updates. You have 100% control over all notification channels.
-              </p>
+                  <span className="block text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                    Pickup, wash, rider arrival & delivery alerts on this device
+                  </span>
+                </span>
+                <Toggle
+                  label="Push notifications"
+                  checked={isPushActive}
+                  disabled={saving || toggling}
+                  onChange={handleToggleRealPush}
+                />
+              </div>
             </div>
           </div>
         </div>

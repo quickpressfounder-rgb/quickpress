@@ -166,12 +166,6 @@ function HelpScreen() {
 
   const quickActions = [
     {
-      id: "chat",
-      label: "Live Chat",
-      icon: MessagesSquare,
-      onClick: () => toast.success("Connecting you to a support agent…"),
-    },
-    {
       id: "call",
       label: "Call Support",
       icon: Headphones,
