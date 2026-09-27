@@ -1,8 +1,10 @@
-// QuickPress Customer — Firebase Cloud Messaging Service Worker
-// Listens for background push notifications and handles notification clicks.
-
-importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
+try {
+  importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
+  importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
+} catch (swErr) {
+  // Offline or blocked CDN — native push events below still function
+  console.debug("[FCM-SW] Firebase scripts loaded with notice:", swErr);
+}
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

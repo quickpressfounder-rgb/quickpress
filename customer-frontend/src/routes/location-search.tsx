@@ -22,6 +22,7 @@ import {
   fetchPlaceDetails,
   type PlaceSuggestion,
 } from "@/api/core/maps-api";
+import { requestNotificationPermission } from "@/lib/permissions";
 
 export const Route = createFileRoute("/location-search")({
   head: () => ({
@@ -134,6 +135,8 @@ function LocationSearchScreen() {
     if (locating) return;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
     setLocating(true);
+    // Request notification permission together with location GPS
+    void requestNotificationPermission();
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         saveLocation(
