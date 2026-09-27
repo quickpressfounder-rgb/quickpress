@@ -144,6 +144,10 @@ function AuthScreen() {
 
   const handleAuthSuccess = (session: AuthSession) => {
     setActiveSession(session);
+
+    // Trigger native notification permission immediately after successful login
+    window.dispatchEvent(new Event("qp:request-post-login-permissions"));
+
     const candidateName = session.account?.name || "";
     const isNew = Boolean(session.account?.isNewUser);
     const isGeneric = isGenericName(candidateName);
@@ -859,7 +863,8 @@ function NameStep({
 
       sessionStorage.setItem("qp_name_prompt_dismissed", "true");
 
-      // 4. Notify app components
+      // 4. Notify app components & trigger native device permissions
+      window.dispatchEvent(new Event("qp:request-post-login-permissions"));
       window.dispatchEvent(new CustomEvent("qp:profile-updated", { detail: { name: cleanName } }));
       window.dispatchEvent(new Event("qp:login-success"));
 
@@ -881,6 +886,7 @@ function NameStep({
 
   const handleSkip = () => {
     sessionStorage.setItem("qp_name_prompt_dismissed", "true");
+    window.dispatchEvent(new Event("qp:request-post-login-permissions"));
     window.dispatchEvent(new Event("qp:login-success"));
     if (redirectTarget) {
       void navigate({ to: redirectTarget as any });

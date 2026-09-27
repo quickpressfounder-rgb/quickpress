@@ -28,7 +28,7 @@ export function NotificationManager() {
     }
 
     // Direct native permission request: asks directly from device/mobile/browser settings
-    // without showing any custom in-app popup banners.
+    // ONLY triggered right after login via custom event, NEVER on cold app open.
     const askNativeMobilePermission = async () => {
       try {
         // 1. Capacitor Native Mobile Platform check
@@ -66,30 +66,15 @@ export function NotificationManager() {
       }
     };
 
-    if (current === "default") {
-      // 1. Attempt immediately
+    // Listen only for post-login trigger
+    const handlePostLoginTrigger = () => {
       void askNativeMobilePermission();
+    };
 
-      // 2. Modern mobile browsers require a user gesture (tap/touch) to show the native system dialog.
-      // Attach a one-time gesture trigger so the user's very first tap triggers the OS dialog directly.
-      const handleUserGesture = () => {
-        window.removeEventListener("click", handleUserGesture);
-        window.removeEventListener("touchstart", handleUserGesture);
-        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-          void askNativeMobilePermission();
-        }
-      };
-
-      window.addEventListener("click", handleUserGesture, { once: true });
-      window.addEventListener("touchstart", handleUserGesture, { once: true, passive: true });
-
-      return () => {
-        window.removeEventListener("click", handleUserGesture);
-        window.removeEventListener("touchstart", handleUserGesture);
-      };
-    }
-
-    return undefined;
+    window.addEventListener("qp:request-post-login-permissions", handlePostLoginTrigger);
+    return () => {
+      window.removeEventListener("qp:request-post-login-permissions", handlePostLoginTrigger);
+    };
   }, []);
 
   // Set up Firebase Cloud Messaging (FCM) Foreground Listener with Order Bell Chime

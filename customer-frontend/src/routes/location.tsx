@@ -42,6 +42,20 @@ function LocationScreen() {
   const detect = useCallback(async () => {
     setError(null);
     try {
+      // 1. Ask real native device notification permission right after login
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+        try {
+          const perm = await Notification.requestPermission();
+          if (perm === "granted") {
+            const { requestPushNotificationPermission } = await import("@/api/core/firebase-messaging");
+            void requestPushNotificationPermission();
+          }
+        } catch {
+          // ignore error if user dismisses native dialog
+        }
+      }
+
+      // 2. Ask real native device GPS location permission
       const location = await detectDeviceLocation();
       // Current device location only — the saved default address is untouched.
       saveLocation(location);
