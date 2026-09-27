@@ -10,6 +10,7 @@ import {
   setupForegroundMessageListener,
 } from "@/api/core/firebase-messaging";
 import { playOrderBellNotificationSound } from "@/lib/order-success-sound";
+import { readCachedSettings } from "@/api/customer/settings-api";
 
 export function NotificationManager() {
   const queryClient = useQueryClient();
@@ -81,6 +82,10 @@ export function NotificationManager() {
   useEffect(() => {
     let cleanup: (() => void) | null = null;
     void setupForegroundMessageListener(() => {
+      const cached = readCachedSettings();
+      if (cached?.notifications?.push === false) {
+        return;
+      }
       // Play instant order bell chime sound on incoming push
       playOrderBellNotificationSound();
 
@@ -112,6 +117,10 @@ export function NotificationManager() {
       "rider_assigned",
     ],
     (payload: any) => {
+      const cached = readCachedSettings();
+      if (cached?.notifications?.push === false) {
+        return;
+      }
       const title = payload?.title || payload?.event || "🔔 QuickPress Order Update";
       const message = payload?.message || payload?.description || payload?.text || "Your laundry order has an update.";
       const orderId = payload?.orderId || payload?.id;

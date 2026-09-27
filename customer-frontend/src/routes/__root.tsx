@@ -158,7 +158,7 @@ function RootComponent() {
           new (window as any).google.translate.TranslateElement(
             {
               pageLanguage: "en",
-              includedLanguages: "en,hi",
+              includedLanguages: "en,hi,pa,mr,gu,bn,te,ta,kn,ur",
               autoDisplay: false,
               layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE,
             },

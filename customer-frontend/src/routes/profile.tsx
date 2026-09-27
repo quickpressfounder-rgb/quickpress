@@ -16,7 +16,9 @@ import {
   Headphones,
   Heart,
   HelpCircle,
+  Info,
   LifeBuoy,
+  CheckCircle2,
   Loader2,
   Lock,
   Monitor,
@@ -60,6 +62,7 @@ import {
 
 import { BottomNav } from "@/components/home/BottomNav";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
+import { AboutPage } from "@/components/profile/AboutPage";
 import { Toaster } from "@/shared/ui/sonner";
 import {
   deleteCustomerAccount,
@@ -82,7 +85,7 @@ import {
   sendTestNotification,
   type DevicePermissionStatus,
 } from "@/lib/notifications";
-import { switchAppLanguage, DEFAULT_LANGUAGE } from "@/lib/i18n";
+import { switchAppLanguage, DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from "@/lib/i18n";
 import defaultAvatar from "@/shared/assets/default-avatar.png";
 
 
@@ -275,7 +278,7 @@ function ProfileScreen() {
   const [requestingDevicePerm, setRequestingDevicePerm] = useState(false);
   const [savedServicesOpen, setSavedServicesOpen] = useState(false);
   const [favouriteStoresOpen, setFavouriteStoresOpen] = useState(false);
-  const [legalPrivacyModalOpen, setLegalPrivacyModalOpen] = useState(false);
+  const [aboutModalOpen, setAboutModalOpen] = useState(false);
   const photoInput = useRef<HTMLInputElement | null>(null);
   const settings = useAppSettings();
   const activeLocation = readSavedLocation();
@@ -287,7 +290,7 @@ function ProfileScreen() {
     notificationModalOpen ||
     appearanceModalOpen ||
     languageModalOpen ||
-    legalPrivacyModalOpen;
+    aboutModalOpen;
 
   const closeAllSubpages = useCallback(() => {
     setEditing(false);
@@ -296,7 +299,7 @@ function ProfileScreen() {
     setNotificationModalOpen(false);
     setAppearanceModalOpen(false);
     setLanguageModalOpen(false);
-    setLegalPrivacyModalOpen(false);
+    setAboutModalOpen(false);
   }, []);
 
   // Sync subpage open/close with browser history so hardware/browser back returns to profile menu
@@ -850,12 +853,12 @@ function ProfileScreen() {
     );
   }
 
-  if (legalPrivacyModalOpen) {
+  if (aboutModalOpen) {
     return (
-      <LegalPrivacyPage
+      <AboutPage
         onBack={handleSubpageBack}
         onRequestDelete={() => {
-          setLegalPrivacyModalOpen(false);
+          setAboutModalOpen(false);
           setDeleteOpen(true);
         }}
       />
@@ -1203,11 +1206,11 @@ function ProfileScreen() {
                     action: () => setLanguageModalOpen(true),
                   },
                   {
-                    id: "legal_privacy",
-                    label: "Legal & Privacy",
-                    note: "Privacy Policy, Terms & Data Rights",
-                    icon: ShieldCheck,
-                    action: () => setLegalPrivacyModalOpen(true),
+                    id: "about_legal",
+                    label: "About & Legal",
+                    note: "App info, privacy policy & terms",
+                    icon: Info,
+                    action: () => setAboutModalOpen(true),
                   },
                   {
                     id: "delete",
@@ -2038,161 +2041,4 @@ function LanguageSettingsPage({
   );
 }
 
-/* ==========================================================================
-   FULL PAGE: Legal & Privacy
-   ========================================================================== */
-function LegalPrivacyPage({
-  onBack,
-  onRequestDelete,
-}: {
-  onBack: () => void;
-  onRequestDelete: () => void;
-}) {
-  return (
-    <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto w-full max-w-md pb-32">
-        {/* Top App Bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Back to profile"
-              onClick={onBack}
-              className="flex size-10 items-center justify-center rounded-full bg-muted text-foreground transition-transform active:scale-95 hover:bg-accent"
-            >
-              <ArrowLeft className="size-5" />
-            </button>
-            <div>
-              <h1 className="text-base font-black tracking-tight text-foreground">
-                Legal & Privacy
-              </h1>
-              <p className="text-[11px] font-medium text-muted-foreground">
-                Privacy, policies & data governance
-              </p>
-            </div>
-          </div>
-        </header>
 
-        {/* Content */}
-        <div className="px-5 pt-5 space-y-4">
-          <div>
-            <h2 className="px-1 text-[11px] font-black uppercase tracking-wider text-muted-foreground mb-2">
-              Statutory Documents
-            </h2>
-            <div className="card-soft overflow-hidden border border-border divide-y divide-border">
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "privacy-policy" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">🛡️</span>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Privacy Policy</p>
-                    <p className="text-[11px] text-muted-foreground">How your personal & location data is protected</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "terms-of-service" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">📜</span>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Terms & Conditions</p>
-                    <p className="text-[11px] text-muted-foreground">Garment care, SLAs, and customer agreement</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "cancellation-refund-policy" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">🔄</span>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Cancellation & Refunds</p>
-                    <p className="text-[11px] text-muted-foreground">Order cancellation windows and refund timelines</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "grievance-redressal" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">⚖️</span>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Grievance Redressal & Nodal Officer</p>
-                    <p className="text-[11px] text-muted-foreground">Statutory consumer dispute escalation desk</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Data Protection Standard Card */}
-          <div className="card-soft p-4 border border-border bg-muted/20 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">Data Encryption Standard</span>
-              <span className="text-[10px] font-black text-brand-green bg-secondary/15 px-2.5 py-0.5 rounded-full border border-secondary/20">
-                TLS 1.3 Active
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Your location, phone number, and order records are end-to-end encrypted and strictly used for order pickup and delivery fulfillment. We do not sell or monetize personal customer data.
-            </p>
-          </div>
-
-          {/* Action Cards */}
-          <div>
-            <h2 className="px-1 text-[11px] font-black uppercase tracking-wider text-muted-foreground mb-2">
-              Data Rights & Account Control
-            </h2>
-            <div className="space-y-2.5">
-              <a
-                href="mailto:official.quickpress@gmail.com?subject=Privacy%20and%20Data%20Support%20Request"
-                className="card-soft flex items-center justify-between p-4 border border-border hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">✉️</span>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Request Data / Privacy Support</p>
-                    <p className="text-[11px] text-muted-foreground">Contact our Data Grievance Officer</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </a>
-
-              <button
-                type="button"
-                onClick={onRequestDelete}
-                className="card-soft w-full flex items-center justify-between p-4 border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <Trash2 className="size-4 text-destructive" />
-                  <div>
-                    <p className="text-xs font-bold text-destructive">Request Account Deletion</p>
-                    <p className="text-[11px] text-destructive/80">Permanent data erasure & account closure</p>
-                  </div>
-                </div>
-                <ChevronRight className="size-4 text-destructive/70" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
-}
