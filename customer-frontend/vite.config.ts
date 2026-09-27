@@ -36,5 +36,14 @@ export default defineConfig({
     // Environment files live at the repository root so one .env can configure
     // every app during local development.
     envDir: resolvePath("../"),
+    server: {
+      proxy: {
+        "/api": {
+          target: "http://127.0.0.1:8000",
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
   },
 });

@@ -594,32 +594,28 @@ function OtpStep({
     inputs.current[focusAt]?.focus();
   };
 
-  const verify = () => {
+  const verify = async () => {
     if (code.length !== 6 || verifying) return;
     setVerifying(true);
     setVerifyError(null);
-    // POST /api/auth/phone/verify — Firebase ID token → QuickPress JWT pair.
-    void Promise.all([
-      verifyCustomerOtp(phone, code, referralCode),
-      router.preloadRoute({ to: "/location" }).catch(() => undefined),
-    ])
-      .then(([session]) => {
-        setVerified(true);
-        window.dispatchEvent(new Event("qp:prompt-name"));
-        window.setTimeout(() => {
-          onSuccessSession(session);
-        }, 450);
-      })
-      .catch((cause: unknown) => {
-        setVerifying(false);
-        setDigits(Array(6).fill(""));
-        inputs.current[0]?.focus();
-        setVerifyError(
-          cause instanceof Error && cause.message
-            ? cause.message
-            : "That OTP is incorrect. Please try again.",
-        );
-      });
+    try {
+      const session = await verifyCustomerOtp(phone, code, referralCode);
+      setVerified(true);
+      void router.preloadRoute({ to: "/location" }).catch(() => undefined);
+      window.dispatchEvent(new Event("qp:prompt-name"));
+      window.setTimeout(() => {
+        onSuccessSession(session);
+      }, 450);
+    } catch (cause: unknown) {
+      setVerifying(false);
+      setDigits(Array(6).fill(""));
+      inputs.current[0]?.focus();
+      setVerifyError(
+        cause instanceof Error && cause.message
+          ? cause.message
+          : "That OTP is incorrect. Please try again.",
+      );
+    }
   };
 
   // Blinkit-style: 6 digits complete hote hi auto verify.
