@@ -73,7 +73,7 @@ export function FloatingCartBar({
       <div className="mx-auto w-full max-w-md px-4">
         <Link
           to="/cart"
-          className="group pointer-events-auto relative overflow-hidden flex items-center justify-between gap-3 rounded-2xl bg-white text-zinc-950 border border-zinc-200/90 px-4 py-2.5 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.14)] ring-1 ring-black/5 transition-all duration-300 cursor-pointer active:scale-[0.98] hover:bg-zinc-50/90 hover:border-zinc-300 hover:shadow-[0_16px_40px_-6px_rgba(0,0,0,0.18)]"
+          className="group pointer-events-auto relative overflow-hidden flex items-center justify-between gap-3 rounded-2xl bg-[#006045] text-white border border-[#006045] px-4 py-2.5 shadow-[0_12px_36px_-6px_rgba(0,96,69,0.4)] ring-1 ring-black/10 transition-all duration-300 cursor-pointer active:scale-[0.98] hover:brightness-105 hover:shadow-[0_16px_40px_-6px_rgba(0,96,69,0.5)]"
         >
           {/* Left: Overlapping circular item thumbnails + View Cart text */}
           <div className="flex items-center gap-3 min-w-0 z-10">
@@ -82,7 +82,7 @@ export function FloatingCartBar({
               {displayItems.map((item, idx) => (
                 <div
                   key={item.id}
-                  className="size-9 rounded-full border-2 border-zinc-100 bg-white overflow-hidden shadow-sm flex items-center justify-center shrink-0 ring-1 ring-black/5"
+                  className="size-9 rounded-full border-2 border-[#006045] bg-white overflow-hidden shadow-sm flex items-center justify-center shrink-0 ring-1 ring-white/20"
                   style={{ zIndex: 10 - idx }}
                 >
                   {item.image ? (
@@ -92,7 +92,7 @@ export function FloatingCartBar({
                       className="size-full object-cover"
                     />
                   ) : (
-                    <div className="size-full bg-zinc-100 flex items-center justify-center text-zinc-800 text-[11px] font-black uppercase">
+                    <div className="size-full bg-emerald-50 flex items-center justify-center text-[#006045] text-[11px] font-black uppercase">
                       {item.name.charAt(0)}
                     </div>
                   )}
@@ -103,14 +103,14 @@ export function FloatingCartBar({
             {/* View Cart & Item Count Text */}
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-black text-zinc-950 leading-tight tracking-tight">
+                <p className="text-sm font-black text-white leading-tight tracking-tight">
                   View cart
                 </p>
-                <span className="inline-flex items-center justify-center rounded-full bg-zinc-100 border border-zinc-200/80 px-1.5 py-0.2 text-[10px] font-black text-zinc-800">
+                <span className="inline-flex items-center justify-center rounded-full bg-white/20 border border-white/25 px-1.5 py-0.2 text-[10px] font-black text-white">
                   {count}
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-zinc-500 leading-tight mt-0.5 truncate">
+              <p className="text-[11px] font-medium text-emerald-100/90 leading-tight mt-0.5 truncate">
                 {count === 1 ? "1 item added" : `${count} items in basket`}
               </p>
             </div>
@@ -118,12 +118,12 @@ export function FloatingCartBar({
 
           {/* Right: Subtotal & Chevron Right Arrow with Pill */}
           <div className="flex items-center gap-2 shrink-0 z-10">
-            <div className="rounded-xl bg-zinc-100 hover:bg-zinc-200/80 px-3 py-1.5 border border-zinc-200/80 text-right transition-colors">
-              <span className="text-xs font-black text-zinc-950 tracking-tight">
+            <div className="rounded-xl bg-black/20 hover:bg-black/30 px-3 py-1.5 border border-white/15 text-right transition-colors">
+              <span className="text-xs font-black text-white tracking-tight">
                 ₹{total}
               </span>
             </div>
-            <div className="flex size-7 items-center justify-center rounded-full bg-zinc-950 text-white transition-transform duration-200 group-hover:translate-x-0.5 shadow-xs">
+            <div className="flex size-7 items-center justify-center rounded-full bg-white text-[#006045] transition-transform duration-200 group-hover:translate-x-0.5 shadow-xs">
               <ChevronRight className="size-4 stroke-[3]" />
             </div>
           </div>

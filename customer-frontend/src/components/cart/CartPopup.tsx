@@ -123,7 +123,7 @@ export function CartPopup({ isOpen, onClose }: CartPopupProps) {
               <Link
                 to="/cart"
                 onClick={onClose}
-                className="flex h-12 flex-1 items-center justify-between rounded-2xl bg-[#0c831f] hover:bg-emerald-800 px-5 text-sm font-black text-white shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all cursor-pointer"
+                className="flex h-12 flex-1 items-center justify-between rounded-2xl bg-[#006045] hover:bg-[#004e38] px-5 text-sm font-black text-white shadow-lg shadow-emerald-950/20 active:scale-[0.98] transition-all cursor-pointer"
               >
                 <span>View Full Cart</span>
                 <div className="flex items-center gap-1">
