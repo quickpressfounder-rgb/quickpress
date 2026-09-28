@@ -168,9 +168,10 @@ function HomeScreen() {
     setReordering(orderId);
     try {
       await reorder(orderId);
-      navigate({ to: "/cart" });
+      toast.success("Items added! Proceeding to checkout...");
+      navigate({ to: "/checkout" });
     } catch {
-      navigate({ to: "/cart" });
+      toast.error("Could not reorder. Please try again.");
     } finally {
       setReordering(null);
     }
@@ -688,52 +689,47 @@ function HomeScreen() {
                   </div>
                 </section>
 
-                {/* Membership Banner (Luxury VIP Card Theme) */}
+                {/* Membership Banner (Pure White Minimal Theme) */}
                 <section className="mt-8">
                   {membership?.active && membership.planId !== "free" ? (
-                    /* 1. Active Member Status Banner (Luxury VIP Card) */
-                    <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-zinc-950 via-emerald-950 to-neutral-950 p-5 text-white shadow-[0_16px_40px_-10px_rgba(5,150,105,0.35)]">
-                      <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-500/20 blur-3xl" />
-                      <div className="pointer-events-none absolute -left-10 -bottom-10 size-32 rounded-full bg-amber-400/15 blur-2xl" />
-                      <Crown className="pointer-events-none absolute -bottom-6 -right-5 size-36 text-emerald-400/5 rotate-12 stroke-[1]" />
-
-                      <div className="relative flex items-center justify-between gap-2">
+                    /* 1. Active Member Status Banner (Pure White Minimal) */
+                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 text-zinc-950 shadow-xs transition-shadow hover:shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-zinc-950 shadow-md">
-                            <Crown className="size-4.5 fill-zinc-950 stroke-none" />
+                          <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
+                            <Crown className="size-4.5" />
                           </span>
                           <div>
-                            <p className="text-sm font-black tracking-tight text-white flex items-center gap-1.5">
+                            <p className="text-sm font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
                               {membership.planName} VIP Member
-                              <Sparkles className="size-3.5 text-amber-300" />
                             </p>
-                            <p className="text-[11px] font-medium text-zinc-300">
+                            <p className="text-[11px] font-medium text-zinc-500">
                               {membership.remainingDays} days remaining · Expires {membership.expiresLabel}
                             </p>
                           </div>
                         </div>
-                        <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300 shadow-xs">
-                          ● Active VIP
+                        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                          Active VIP
                         </span>
                       </div>
 
-                      <div className="relative mt-3.5 grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-xs">
-                        <div className="flex items-center gap-2.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 p-3">
-                          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <div className="mt-3.5 grid grid-cols-2 gap-2 border-t border-zinc-100 pt-3 text-xs">
+                        <div className="flex items-center gap-2.5 rounded-xl bg-zinc-50/80 border border-zinc-200/80 p-3">
+                          <span className="size-2 rounded-full bg-emerald-600" />
                           <div className="min-w-0">
                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Orders Balance</p>
-                            <p className="truncate text-xs font-black text-white">
+                            <p className="truncate text-xs font-black text-zinc-950">
                               {membership.quota.remainingOrders > 0
                                 ? `${membership.quota.remainingOrders} / ${membership.quota.totalOrders} left`
                                 : "Unlimited Free"}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 p-3">
-                          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <div className="flex items-center gap-2.5 rounded-xl bg-zinc-50/80 border border-zinc-200/80 p-3">
+                          <span className="size-2 rounded-full bg-emerald-600" />
                           <div className="min-w-0">
                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Weight Quota</p>
-                            <p className="truncate text-xs font-black text-white">
+                            <p className="truncate text-xs font-black text-zinc-950">
                               {membership.quota.remainingWeightKg > 0
                                 ? `${membership.quota.remainingWeightKg} kg left`
                                 : "100% Covered"}
@@ -743,11 +739,11 @@ function HomeScreen() {
                       </div>
 
                       {membership.quota.totalSavings > 0 ? (
-                        <div className="relative mt-2.5 flex items-center justify-between rounded-2xl bg-amber-400/15 border border-amber-400/30 px-3.5 py-2 text-xs">
-                          <span className="text-[11px] font-bold text-amber-200 flex items-center gap-1.5">
-                            <Sparkles className="size-3.5 text-amber-400" /> Total Member Savings:
+                        <div className="mt-2.5 flex items-center justify-between rounded-xl bg-zinc-50 border border-zinc-200/80 px-3.5 py-2 text-xs">
+                          <span className="text-[11px] font-bold text-zinc-700">
+                            Total Member Savings:
                           </span>
-                          <span className="font-black text-amber-300">
+                          <span className="font-black text-zinc-950">
                             ₹{membership.quota.totalSavings.toLocaleString("en-IN")} saved
                           </span>
                         </div>
@@ -756,99 +752,86 @@ function HomeScreen() {
                       <button
                         type="button"
                         onClick={() => void navigate({ to: "/membership" })}
-                        className="group relative mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 text-xs font-black text-zinc-950 shadow-[0_4px_20px_rgba(52,211,153,0.35)] transition-all hover:scale-[1.01] active:scale-[0.985] cursor-pointer"
+                        className="group mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-black text-white shadow-xs transition-all active:scale-[0.985] cursor-pointer"
                       >
                         <span>Manage Plan &amp; View Orders</span>
                         <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
                       </button>
                     </div>
                   ) : (
-                    /* 2. Non-Member Upgrade Banner (Ultra-Attractive VIP Club Card) */
-                    <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-zinc-950 via-emerald-950 to-neutral-950 p-5 sm:p-6 text-white shadow-[0_16px_40px_-10px_rgba(5,150,105,0.35)] transition-all duration-300 hover:shadow-[0_20px_48px_-8px_rgba(5,150,105,0.45)]">
-                      {/* Ambient glows & luxury watermark */}
-                      <div className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-emerald-500/25 blur-3xl animate-pulse" />
-                      <div className="pointer-events-none absolute -left-10 -bottom-10 size-40 rounded-full bg-amber-400/15 blur-2xl" />
-                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent" />
-                      <Crown className="pointer-events-none absolute -bottom-6 -right-5 size-36 text-emerald-400/5 rotate-12 stroke-[1]" />
-
-                      {/* Header Row: Luxury Golden Badge & Price Tag */}
-                      <div className="relative flex items-center justify-between gap-2">
+                    /* 2. Non-Member Upgrade Banner (Pure White Minimal Theme) */
+                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-4.5 sm:p-5 text-zinc-950 shadow-xs transition-all hover:shadow-sm">
+                      {/* Header Row: Clean VIP Badge & Starts Price Tag */}
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-3 py-1 text-[10px] font-black tracking-widest text-zinc-950 uppercase shadow-[0_2px_12px_rgba(245,158,11,0.4)]">
-                            <Crown className="size-3.5 fill-zinc-950 stroke-none" />
+                          <div className="flex items-center gap-1.5 rounded-full bg-zinc-100 border border-zinc-200/80 px-2.5 py-1 text-[10.5px] font-black tracking-wider text-zinc-950 uppercase">
+                            <Crown className="size-3.5 text-zinc-900" />
                             <span>QUICKPRESS VIP</span>
                           </div>
-                          <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
-                            <Sparkles className="size-3 text-emerald-300" /> Exclusive Perks
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[10.5px] font-bold text-zinc-500">
+                            <Sparkles className="size-3 text-zinc-400" /> Exclusive Perks
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 rounded-full bg-emerald-950/80 px-3 py-1 border border-emerald-500/40 text-emerald-300 shadow-inner">
-                          <span className="text-[11px] font-bold text-zinc-300">Starts</span>
-                          <span className="text-xs font-black text-white">₹99</span>
-                          <span className="text-[10px] font-semibold text-emerald-400">/mo</span>
+                        <div className="flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 border border-zinc-200 text-zinc-950">
+                          <span className="text-[10.5px] font-medium text-zinc-500">Starts</span>
+                          <span className="text-xs font-black text-zinc-950">₹99</span>
+                          <span className="text-[10px] font-medium text-zinc-500">/mo</span>
                         </div>
                       </div>
 
                       {/* Headline & Benefit Proposition */}
-                      <div className="relative mt-3.5">
-                        <h3 className="text-lg sm:text-xl font-black tracking-tight text-white leading-tight">
-                          Unlimited{" "}
-                          <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-amber-300 bg-clip-text text-transparent">
-                            ₹0 Delivery
-                          </span>{" "}
-                          &amp;{" "}
-                          <span className="bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
-                            15% OFF
-                          </span>
+                      <div className="mt-3">
+                        <h3 className="text-base sm:text-lg font-black tracking-tight text-zinc-950 leading-tight">
+                          Unlimited ₹0 Delivery &amp; 15% OFF
                         </h3>
-                        <p className="mt-1.5 text-xs text-zinc-300/90 leading-relaxed">
+                        <p className="mt-1 text-xs text-zinc-500 leading-relaxed font-medium">
                           Free doorstep pickup, priority 24h turnaround &amp; instant savings on all your laundry orders.
                         </p>
                       </div>
 
-                      {/* Visual Benefit Pills */}
-                      <div className="relative mt-3.5 grid grid-cols-3 gap-2">
-                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-white/[0.07] backdrop-blur-md border border-white/10 px-2 py-2 text-center sm:text-left">
-                          <Truck className="size-4 shrink-0 text-emerald-400" />
+                      {/* Visual Benefit Pills (3 Clean Minimal Cards) */}
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-zinc-50/80 border border-zinc-200/70 px-2 py-2 text-center sm:text-left transition-colors hover:bg-zinc-100/60">
+                          <Truck className="size-4 shrink-0 text-zinc-700" />
                           <div className="min-w-0">
-                            <p className="text-[11px] font-black text-white leading-none">₹0 Delivery</p>
-                            <p className="mt-0.5 text-[9px] text-zinc-400 truncate">On every order</p>
+                            <p className="text-[11px] font-black text-zinc-950 leading-none">₹0 Delivery</p>
+                            <p className="mt-0.5 text-[9px] text-zinc-500 truncate">On every order</p>
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-white/[0.07] backdrop-blur-md border border-white/10 px-2 py-2 text-center sm:text-left">
-                          <Percent className="size-4 shrink-0 text-amber-300" />
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-zinc-50/80 border border-zinc-200/70 px-2 py-2 text-center sm:text-left transition-colors hover:bg-zinc-100/60">
+                          <Percent className="size-4 shrink-0 text-zinc-700" />
                           <div className="min-w-0">
-                            <p className="text-[11px] font-black text-white leading-none">Extra 15% OFF</p>
-                            <p className="mt-0.5 text-[9px] text-zinc-400 truncate">Auto-discounted</p>
+                            <p className="text-[11px] font-black text-zinc-950 leading-none">Extra 15% OFF</p>
+                            <p className="mt-0.5 text-[9px] text-zinc-500 truncate">Auto-discounted</p>
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-white/[0.07] backdrop-blur-md border border-white/10 px-2 py-2 text-center sm:text-left">
-                          <Zap className="size-4 shrink-0 text-teal-300" />
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-zinc-50/80 border border-zinc-200/70 px-2 py-2 text-center sm:text-left transition-colors hover:bg-zinc-100/60">
+                          <Zap className="size-4 shrink-0 text-zinc-700" />
                           <div className="min-w-0">
-                            <p className="text-[11px] font-black text-white leading-none">2x Priority</p>
-                            <p className="mt-0.5 text-[9px] text-zinc-400 truncate">Fast turnaround</p>
+                            <p className="text-[11px] font-black text-zinc-950 leading-none">2x Priority</p>
+                            <p className="mt-0.5 text-[9px] text-zinc-500 truncate">Fast turnaround</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Glowing Magnetic CTA Button */}
+                      {/* Clean Black CTA Button */}
                       <button
                         type="button"
                         onClick={() => void navigate({ to: "/membership" })}
-                        className="group relative mt-4 flex h-11 sm:h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 text-xs sm:text-sm font-black text-zinc-950 shadow-[0_6px_25px_rgba(52,211,153,0.45)] transition-all duration-300 hover:shadow-[0_8px_32px_rgba(52,211,153,0.65)] hover:scale-[1.01] active:scale-[0.985] cursor-pointer"
+                        className="group mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs sm:text-sm font-black text-white shadow-xs transition-all active:scale-[0.985] cursor-pointer"
                       >
-                        <Crown className="size-4 fill-zinc-950 stroke-none transition-transform group-hover:scale-110" />
+                        <Crown className="size-4 fill-white stroke-none transition-transform group-hover:scale-110" />
                         <span>Join VIP Membership — Save ₹1,500+/yr</span>
                         <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                       </button>
 
                       {/* Micro-Trust Banner */}
-                      <div className="relative mt-2.5 flex items-center justify-between px-1 text-[10px] text-zinc-400 font-medium">
+                      <div className="mt-2.5 flex items-center justify-between px-0.5 text-[10.5px] text-zinc-400 font-medium">
                         <span className="flex items-center gap-1.5">
-                          <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
+                          <span className="size-1.5 rounded-full bg-emerald-500" />
                           <span>5,000+ members enjoying ₹0 deliveries</span>
                         </span>
-                        <span className="text-emerald-400 font-semibold">Cancel anytime</span>
+                        <span className="text-zinc-600 font-semibold">Cancel anytime</span>
                       </div>
                     </div>
                   )}

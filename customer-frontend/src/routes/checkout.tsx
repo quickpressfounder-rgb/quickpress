@@ -515,10 +515,10 @@ export function CheckoutPage() {
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
                 Pickup Speed & Turnaround
               </span>
-              <h3 className="text-xs font-black text-zinc-900 mt-0.5">Choose Pickup Speed</h3>
+              <h3 className="text-xs font-black text-zinc-950 mt-0.5">Choose Pickup Speed</h3>
             </div>
-            <span className="text-[10.5px] text-amber-700 bg-gradient-to-r from-amber-500/15 to-orange-500/10 px-2.5 py-1 rounded-full font-bold border border-amber-300/60 flex items-center gap-1.5 shadow-2xs">
-              <Zap className="size-3 text-amber-600 fill-amber-500" />
+            <span className="text-[10.5px] text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-full font-bold border border-zinc-200/80 flex items-center gap-1.5">
+              <Zap className="size-3 text-zinc-600" />
               <span>15-Min Express Ready</span>
             </span>
           </div>
@@ -532,24 +532,24 @@ export function CheckoutPage() {
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsExpress(false); }}
               className={`relative p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none flex items-center justify-between gap-3 ${
                 !isExpressActive
-                  ? "border-[#0c831f] bg-emerald-50/40 shadow-xs ring-2 ring-emerald-500/10"
-                  : "border-zinc-200 hover:border-zinc-300 bg-white"
+                  ? "border-zinc-950 bg-white shadow-xs ring-1 ring-zinc-950/10"
+                  : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/70 bg-white"
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className={`size-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
                     !isExpressActive
-                      ? "bg-[#0c831f] text-white shadow-xs"
-                      : "bg-zinc-100 text-zinc-500"
+                      ? "bg-zinc-950 text-white shadow-xs"
+                      : "bg-zinc-100 text-zinc-600"
                   }`}
                 >
                   <Clock className="size-5" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-black text-zinc-900">Standard Pickup</p>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                    <p className="text-xs font-black text-zinc-950">Standard Pickup</p>
+                    <span className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                       FREE
                     </span>
                   </div>
@@ -562,7 +562,7 @@ export function CheckoutPage() {
               <div className="shrink-0 flex items-center">
                 <div
                   className={`size-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    !isExpressActive ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300 bg-white"
+                    !isExpressActive ? "border-zinc-950 bg-zinc-950" : "border-zinc-300 bg-white"
                   }`}
                 >
                   {!isExpressActive && <Check className="size-3 text-white stroke-[3]" />}
@@ -586,58 +586,45 @@ export function CheckoutPage() {
                   if (isExpressEnabled) setIsExpress(true);
                 }
               }}
-              className={`relative rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none overflow-hidden ${
+              className={`relative p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none flex items-center justify-between gap-3 ${
                 isExpressActive
-                  ? "border-amber-500 bg-gradient-to-br from-amber-500/10 via-amber-50/40 to-white shadow-md ring-2 ring-amber-500/20"
-                  : "border-amber-200/90 hover:border-amber-400 bg-white"
+                  ? "border-zinc-950 bg-white shadow-xs ring-1 ring-zinc-950/10"
+                  : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/70 bg-white"
               }`}
             >
-              {/* Integrated Top Announcement Strip — never cuts off */}
-              <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-3.5 py-1 text-white text-[9.5px] font-black uppercase tracking-wider flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="size-3 fill-white shrink-0" />
-                  <span>⚡ FASTEST ARRIVAL • 15 MINS DISPATCH</span>
-                </span>
-                <span className="bg-white/20 text-white text-[8.5px] px-1.5 py-0.2 rounded-full font-bold">
-                  PRIORITY
-                </span>
-              </div>
-
-              <div className="p-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`size-10 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
-                      isExpressActive
-                        ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm"
-                        : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    <Zap className="size-5 fill-current" />
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs font-black text-zinc-900">
-                        Express Priority Pickup
-                      </p>
-                      <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
-                        +₹{expressFee}
-                      </span>
-                    </div>
-                    <p className="text-[11px] font-medium text-zinc-600 mt-0.5">
-                      Nearest Captain dispatched in 15 mins • Priority fast wash
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`size-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                    isExpressActive
+                      ? "bg-zinc-950 text-white shadow-xs"
+                      : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
+                  <Zap className="size-5" />
                 </div>
 
-                <div className="shrink-0 flex items-center">
-                  <div
-                    className={`size-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isExpressActive ? "border-amber-500 bg-amber-500" : "border-zinc-300 bg-white"
-                    }`}
-                  >
-                    {isExpressActive && <Check className="size-3 text-white stroke-[3]" />}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-black text-zinc-950">
+                      Express Priority Pickup
+                    </p>
+                    <span className="bg-zinc-900 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
+                      +₹{expressFee}
+                    </span>
                   </div>
+                  <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                    Nearest Captain dispatched in 15 mins • Priority fast wash
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex items-center">
+                <div
+                  className={`size-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                    isExpressActive ? "border-zinc-950 bg-zinc-950" : "border-zinc-300 bg-white"
+                  }`}
+                >
+                  {isExpressActive && <Check className="size-3 text-white stroke-[3]" />}
                 </div>
               </div>
             </div>
@@ -732,126 +719,11 @@ export function CheckoutPage() {
           </div>
         </section>
 
-        {/* SECTION 5: PAYMENT METHOD SELECTION */}
-        <section aria-label="Payment Method" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-              Payment Method
-            </span>
-            <span className="text-[10px] text-zinc-400 font-semibold flex items-center gap-1">
-              <ShieldCheck className="size-3 text-[#0c831f]" />
-              <span>Cashfree 100% Secure</span>
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {/* 1. Online Payment (Cashfree - Direct Gateway) */}
-            <label
-              onClick={() => setPaymentMode("online")}
-              className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${
-                paymentMode === "online"
-                  ? "border-[#0c831f] bg-emerald-50/40 shadow-xs"
-                  : "border-zinc-200 hover:border-zinc-300 bg-white"
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    paymentMode === "online" ? "bg-[#0c831f] text-white" : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
-                  <CreditCard className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-xs font-black text-zinc-900">
-                      Online Payment (UPI, Cards, Wallets)
-                    </p>
-                    <span className="bg-[#0c831f] text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full uppercase">
-                      Recommended
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-medium text-zinc-500 truncate">
-                    PhonePe, Google Pay, Paytm, UPI QR, Cards & Netbanking
-                  </p>
-                </div>
-              </div>
-
-              <div className="shrink-0 ml-2">
-                <div
-                  className={`size-5 rounded-full border-2 flex items-center justify-center ${
-                    paymentMode === "online" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
-                  }`}
-                >
-                  {paymentMode === "online" && <Check className="size-3 text-white stroke-[3]" />}
-                </div>
-              </div>
-            </label>
-
-            {/* 2. Cash on Delivery */}
-            <label
-              onClick={() => {
-                if (grandTotal < 50) {
-                  toast.error("Cash on delivery is not available for orders below ₹50.");
-                  return;
-                }
-                setPaymentMode("cod");
-              }}
-              className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${
-                grandTotal < 50
-                  ? "opacity-50 cursor-not-allowed border-zinc-200 bg-zinc-50"
-                  : paymentMode === "cod"
-                  ? "border-[#0c831f] bg-emerald-50/40 shadow-xs"
-                  : "border-zinc-200 hover:border-zinc-300 bg-white"
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    paymentMode === "cod" ? "bg-[#0c831f] text-white" : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
-                  <Banknote className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-black text-zinc-900">
-                      Cash on Delivery
-                    </p>
-                  </div>
-                  <p className="text-[11px] font-medium text-zinc-500 truncate">
-                    Pay cash or scan QR when clothes are picked up or delivered
-                  </p>
-                </div>
-              </div>
-
-              <div className="shrink-0 ml-2">
-                <div
-                  className={`size-5 rounded-full border-2 flex items-center justify-center ${
-                    paymentMode === "cod" ? "border-[#0c831f] bg-[#0c831f]" : "border-zinc-300"
-                  }`}
-                >
-                  {paymentMode === "cod" && <Check className="size-3 text-white stroke-[3]" />}
-                </div>
-              </div>
-            </label>
-
-            {grandTotal < 50 && (
-              <p className="text-[10.5px] text-red-600 font-medium px-1">
-                * Cash on delivery is not available for orders below ₹50.
-              </p>
-            )}
-          </div>
-        </section>
-
         {/* SECTION 6: BILL DETAILS (Dynamic Breakdown from Finance Engine) */}
         <section aria-label="Bill Breakdown" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
               Bill Details
-            </span>
-            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
-              Admin Finance Engine Active
             </span>
           </div>
 
@@ -966,14 +838,9 @@ export function CheckoutPage() {
                 <Loader2 className="size-4 animate-spin" />
                 <span>Processing...</span>
               </>
-            ) : paymentMode === "cod" ? (
-              <>
-                <span>PLACE CASH ON DELIVERY ORDER</span>
-                <ChevronRight className="size-4.5 stroke-[3]" />
-              </>
             ) : (
               <>
-                <span>PROCEED WITH PAYMENT</span>
+                <span>PROCEED TO PAY</span>
                 <ChevronRight className="size-4.5 stroke-[3]" />
               </>
             )}

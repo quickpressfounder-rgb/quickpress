@@ -311,82 +311,6 @@ function CartPage() {
           </div>
         </section>
 
-        {/* Missed Something? Add-ons */}
-        <section aria-label="Add-on Suggestions" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="size-4 text-amber-500" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-zinc-900">
-                Missed Something?
-              </h2>
-            </div>
-            {primaryPartnerName ? (
-              <span className="text-[10px] font-semibold text-zinc-500">
-                More from {primaryPartnerName}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-1 gap-2">
-            {addonsToShow.map((addon) => {
-              const inCart = cart.lines.find((l) => l.id === addon.id);
-              return (
-                <div
-                  key={addon.id}
-                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-zinc-100 bg-zinc-50/70 hover:bg-zinc-50 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <img
-                      src={addon.image}
-                      alt={addon.name}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/images/services/steam-iron.jpg";
-                      }}
-                      className="size-10 rounded-lg object-cover border border-zinc-200 shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-zinc-900 truncate">{addon.name}</p>
-                      <p className="text-[11px] font-black text-[#0c831f]">
-                        ₹{addon.price} <span className="text-[10px] text-zinc-500 font-normal">/ {addon.unit}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {inCart ? (
-                    <div className="flex h-7 items-center gap-1 rounded-lg border border-zinc-300 bg-white px-1">
-                      <button
-                        type="button"
-                        onClick={() => cart.step(addon.id, -1)}
-                        className="size-5 flex items-center justify-center text-zinc-700 active:scale-90 cursor-pointer"
-                      >
-                        <Minus className="size-3" />
-                      </button>
-                      <span className="w-4 text-center text-xs font-black text-zinc-900">
-                        {inCart.qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => cart.step(addon.id, 1)}
-                        className="size-5 flex items-center justify-center bg-[#0c831f] text-white rounded active:scale-90 cursor-pointer"
-                      >
-                        <Plus className="size-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => cart.add(addon, 1)}
-                      className="flex h-7 items-center gap-1 rounded-lg bg-white border border-[#0c831f] text-[#0c831f] hover:bg-emerald-50 px-2.5 text-xs font-black active:scale-95 transition-transform cursor-pointer"
-                    >
-                      <Plus className="size-3 stroke-[3]" />
-                      <span>Add</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
 
         {/* Special Instructions Note */}
         <section aria-label="Care Instructions" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-2">
@@ -455,9 +379,6 @@ function CartPage() {
             <h2 className="text-xs font-black uppercase tracking-wider text-zinc-500">
               Bill Details
             </h2>
-            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
-              Admin Finance Engine Active
-            </span>
           </div>
 
           <div className="space-y-1.5 text-xs font-medium text-zinc-600">

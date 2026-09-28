@@ -16,7 +16,8 @@ import type { Order, OrderLifecycleStatus, ServiceEntity } from "@/shared/types"
 import { formatOrderDate, formatOrderTime } from "@/shared/utils/order-mappers";
 import { apiGetJson, apiPostJson } from "../core/transport";
 import { CACHE_KEYS, readCache, readStaleCache, writeCache } from "./api/cache";
-import { hydrateCart } from "./cart-store";
+import { hydrateCart, setCartLines, type CartLine } from "./cart-store";
+import { postCartItem } from "./cart-api";
 
 export const HISTORY_API_ENDPOINTS = {
   orders: "/api/orders",
@@ -213,31 +214,108 @@ export function partnerOptions(records: OrderRecord[]): PartnerOption[] {
 
 /**
  * POST /api/orders/{id}/reorder — every line of a past order goes back into
- * the cart. Falls back to POST /api/cart/items when the endpoint is missing.
+ * the cart. Replaces cart lines immediately in local store so checkout page
+ * gets the same items instantly.
  */
-export async function reorder(orderId: string) {
+export async function reorder(
+  orderId: string,
+  fallbackOrder?: {
+    items?: Array<{ id?: string; name: string; price?: number; qty: number; unit?: string; image?: string }>;
+    partnerId?: string;
+    partnerName?: string;
+  },
+) {
+  let linesToSet: CartLine[] = [];
+
+  // Try 1: Call backend reorder endpoint
   try {
-    await apiPostJson<Order>(HISTORY_API_ENDPOINTS.reorder.replace("{id}", orderId), {});
-  } catch {
-    const orders = await apiGetJson<Order[]>(HISTORY_API_ENDPOINTS.orders);
-    const order = orders.find((entry) => entry.code === orderId || entry.id === orderId);
-    if (!order) return { ok: false as const, orderId };
-    for (const line of order.items) {
-      await apiPostJson<unknown>("/api/cart/items", {
-        id: line.id,
-        serviceId: line.id,
-        partnerId: order.partner.id,
-        name: line.name,
-        price: line.price,
-        unit: "per piece",
-        qty: line.qty,
-        image: order.partner.image ?? "",
-      });
+    const res = await apiPostJson<{
+      ok?: boolean;
+      items?: Array<{
+        serviceId?: string;
+        id?: string;
+        name: string;
+        currentPrice?: number;
+        price?: number;
+        qty: number;
+        unit?: string;
+      }>;
+      partnerId?: string;
+      partnerName?: string;
+    }>(HISTORY_API_ENDPOINTS.reorder.replace("{id}", orderId), {});
+
+    if (res && Array.isArray(res.items) && res.items.length > 0) {
+      linesToSet = res.items.map((it) => ({
+        id: it.serviceId || it.id || `srv-${it.name.toLowerCase().replace(/\s+/g, "-")}`,
+        name: it.name,
+        price: it.currentPrice ?? it.price ?? 50,
+        qty: it.qty || 1,
+        unit: it.unit || "per piece",
+        partnerId: res.partnerId,
+        partnerName: res.partnerName,
+      }));
+    }
+  } catch (err) {
+    console.warn("Backend reorder endpoint call failed or not found, falling back to order lookup:", err);
+  }
+
+  // Fallback 1: if backend reorder didn't return lines, check if fallbackOrder was provided
+  if (linesToSet.length === 0 && fallbackOrder?.items && fallbackOrder.items.length > 0) {
+    linesToSet = fallbackOrder.items.map((it) => ({
+      id: it.id || `srv-${it.name.toLowerCase().replace(/\s+/g, "-")}`,
+      name: it.name,
+      price: it.price ?? 50,
+      qty: it.qty || 1,
+      unit: it.unit || "per piece",
+      image: it.image || "",
+      partnerId: fallbackOrder.partnerId,
+      partnerName: fallbackOrder.partnerName,
+    }));
+  }
+
+  // Fallback 2: if still empty, find the order in GET /api/orders
+  if (linesToSet.length === 0) {
+    try {
+      const orders = await apiGetJson<Order[]>(HISTORY_API_ENDPOINTS.orders);
+      const match = orders.find((entry) => entry.code === orderId || entry.id === orderId);
+      if (match && Array.isArray(match.items) && match.items.length > 0) {
+        linesToSet = match.items.map((line) => ({
+          id: line.id || `srv-${line.name.toLowerCase().replace(/\s+/g, "-")}`,
+          name: line.name,
+          price: line.price,
+          qty: line.qty,
+          unit: "per piece",
+          image: match.partner?.image || "",
+          partnerId: match.partner?.id,
+          partnerName: match.partner?.name,
+        }));
+      }
+    } catch (e) {
+      console.warn("Order lookup fallback failed:", e);
     }
   }
-  // Keep the shared cart snapshot in sync before the customer lands on cart.
-  await hydrateCart();
-  return { ok: true as const, orderId };
+
+  if (linesToSet.length > 0) {
+    // 1. Immediately populate local store & localStorage so /checkout has items in 0ms!
+    setCartLines(linesToSet);
+
+    // 2. Sync each item with the server in the background
+    for (const line of linesToSet) {
+      void postCartItem({
+        id: line.id,
+        itemId: line.id,
+        serviceId: line.id,
+        partnerId: line.partnerId,
+        name: line.name,
+        price: line.price,
+        unit: line.unit,
+        qty: line.qty,
+        image: line.image,
+      }).catch(() => undefined);
+    }
+  }
+
+  return { ok: linesToSet.length > 0, orderId };
 }
 
 /** POST /api/orders/{id}/cancel */

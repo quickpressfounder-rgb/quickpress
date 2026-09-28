@@ -384,6 +384,16 @@ export function clearCartLines() {
   })();
 }
 
+/** Replace all cart lines immediately (e.g. for reordering) */
+export function setCartLines(lines: CartLine[]) {
+  for (const timer of syncDebounceTimers.values()) {
+    clearTimeout(timer);
+  }
+  syncDebounceTimers.clear();
+
+  set({ lines });
+}
+
 let lastUserId: string | null = null;
 
 export function resetCartForAccount() {
