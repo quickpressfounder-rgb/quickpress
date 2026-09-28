@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.auth import current_user, require_roles
+from app.core.deps import current_user, require_roles
 from app.db.admin_repositories import (
     admin_customer_repository,
     admin_partner_repository,
