@@ -2879,6 +2879,31 @@ class AdminDashboardRepository:
                 "filterParam": "payouts",
             })
 
+        # 5. Open / Unresolved Support Tickets Alert for Admin Action Center
+        try:
+            open_help_tickets = await database.find_many("support_tickets", {"status": {"$in": ["open", "in-progress", "awaiting-customer"]}})
+            open_admin_tickets = await database.find_many("admin_support_tickets", {"status": {"$in": ["Open", "In progress", "In-progress"]}})
+            all_open_ticket_ids = set()
+            for tk in (open_help_tickets or []):
+                all_open_ticket_ids.add(str(tk.get("_id") or tk.get("id")))
+            for tk in (open_admin_tickets or []):
+                all_open_ticket_ids.add(str(tk.get("_id") or tk.get("id")))
+
+            if len(all_open_ticket_ids) > 0:
+                is_urgent = any(str(tk.get("priority", "")).lower() in ("high", "urgent") for tk in (open_help_tickets or []) + (open_admin_tickets or []))
+                attention_alerts.append({
+                    "id": "unresolved_support_tickets",
+                    "severity": "critical" if is_urgent else "warning",
+                    "title": f"{len(all_open_ticket_ids)} Support Tickets Pending Resolution",
+                    "description": "Customer complaints and order issues requiring helpdesk action",
+                    "count": len(all_open_ticket_ids),
+                    "actionText": "Solve in Support Center",
+                    "actionRoute": "/support",
+                    "filterParam": "open",
+                })
+        except Exception:
+            pass
+
         # ---------------------------------------------------------------------
         # LIVE OPERATIONS BREAKDOWN & 9-STAGE PIPELINE
         # ---------------------------------------------------------------------

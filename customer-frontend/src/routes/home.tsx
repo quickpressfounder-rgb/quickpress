@@ -689,10 +689,9 @@ function HomeScreen() {
                   </div>
                 </section>
 
-                {/* Membership Banner (Pure White Minimal Theme) */}
-                <section className="mt-8">
-                  {membership?.active && membership.planId !== "free" ? (
-                    /* 1. Active Member Status Banner (Pure White Minimal) */
+                {/* Active Member Status Banner (Only visible if user has an active membership plan) */}
+                {membership?.active && membership.planId !== "free" ? (
+                  <section className="mt-8">
                     <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 text-zinc-950 shadow-xs transition-shadow hover:shadow-sm">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5">
@@ -758,84 +757,8 @@ function HomeScreen() {
                         <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
                       </button>
                     </div>
-                  ) : (
-                    /* 2. Non-Member Upgrade Banner (Pure White Minimal Theme) */
-                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-4.5 sm:p-5 text-zinc-950 shadow-xs transition-all hover:shadow-sm">
-                      {/* Header Row: Clean VIP Badge & Starts Price Tag */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1.5 rounded-full bg-zinc-100 border border-zinc-200/80 px-2.5 py-1 text-[10.5px] font-black tracking-wider text-zinc-950 uppercase">
-                            <Crown className="size-3.5 text-zinc-900" />
-                            <span>QUICKPRESS VIP</span>
-                          </div>
-                          <span className="hidden sm:inline-flex items-center gap-1 text-[10.5px] font-bold text-zinc-500">
-                            <Sparkles className="size-3 text-zinc-400" /> Exclusive Perks
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 border border-zinc-200 text-zinc-950">
-                          <span className="text-[10.5px] font-medium text-zinc-500">Starts</span>
-                          <span className="text-xs font-black text-zinc-950">₹99</span>
-                          <span className="text-[10px] font-medium text-zinc-500">/mo</span>
-                        </div>
-                      </div>
-
-                      {/* Headline & Benefit Proposition */}
-                      <div className="mt-3">
-                        <h3 className="text-base sm:text-lg font-black tracking-tight text-zinc-950 leading-tight">
-                          Unlimited ₹0 Delivery &amp; 15% OFF
-                        </h3>
-                        <p className="mt-1 text-xs text-zinc-500 leading-relaxed font-medium">
-                          Free doorstep pickup, priority 24h turnaround &amp; instant savings on all your laundry orders.
-                        </p>
-                      </div>
-
-                      {/* Visual Benefit Pills (3 Clean Minimal Cards) */}
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-zinc-50/80 border border-zinc-200/70 px-2 py-2 text-center sm:text-left transition-colors hover:bg-zinc-100/60">
-                          <Truck className="size-4 shrink-0 text-zinc-700" />
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-black text-zinc-950 leading-none">₹0 Delivery</p>
-                            <p className="mt-0.5 text-[9px] text-zinc-500 truncate">On every order</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-zinc-50/80 border border-zinc-200/70 px-2 py-2 text-center sm:text-left transition-colors hover:bg-zinc-100/60">
-                          <Percent className="size-4 shrink-0 text-zinc-700" />
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-black text-zinc-950 leading-none">Extra 15% OFF</p>
-                            <p className="mt-0.5 text-[9px] text-zinc-500 truncate">Auto-discounted</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-zinc-50/80 border border-zinc-200/70 px-2 py-2 text-center sm:text-left transition-colors hover:bg-zinc-100/60">
-                          <Zap className="size-4 shrink-0 text-zinc-700" />
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-black text-zinc-950 leading-none">2x Priority</p>
-                            <p className="mt-0.5 text-[9px] text-zinc-500 truncate">Fast turnaround</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Clean Black CTA Button */}
-                      <button
-                        type="button"
-                        onClick={() => void navigate({ to: "/membership" })}
-                        className="group mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs sm:text-sm font-black text-white shadow-xs transition-all active:scale-[0.985] cursor-pointer"
-                      >
-                        <Crown className="size-4 fill-white stroke-none transition-transform group-hover:scale-110" />
-                        <span>Join VIP Membership — Save ₹1,500+/yr</span>
-                        <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-                      </button>
-
-                      {/* Micro-Trust Banner */}
-                      <div className="mt-2.5 flex items-center justify-between px-0.5 text-[10.5px] text-zinc-400 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <span className="size-1.5 rounded-full bg-emerald-500" />
-                          <span>5,000+ members enjoying ₹0 deliveries</span>
-                        </span>
-                        <span className="text-zinc-600 font-semibold">Cancel anytime</span>
-                      </div>
-                    </div>
-                  )}
-                </section>
+                  </section>
+                ) : null}
 
                 {/* Recent orders — GET /api/orders/recent */}
                 <section className="mt-8">

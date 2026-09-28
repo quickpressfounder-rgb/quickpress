@@ -45,6 +45,7 @@ Business rules enforced here
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -61,6 +62,8 @@ from app.models.support import (
     TicketReplyPayload,
 )
 from app.models.user import User, utcnow
+
+logger = logging.getLogger(__name__)
 
 CATEGORIES = "faq_categories"
 FAQS = "faqs"
@@ -313,6 +316,60 @@ class SupportRepository:
             author_name="QuickPress Support",
             body=FIRST_RESPONSE,
         )
+
+        # 1. Notify Admin Panel in real time via admin_notifications
+        try:
+            await database.collection("admin_notifications").insert_one({
+                "_id": f"notif-{uuid.uuid4().hex[:12]}",
+                "type": "support_ticket",
+                "title": f"New Support Ticket: {payload.subject.strip()[:60]}",
+                "message": f"Customer {user.name or user.phone or 'Customer'} raised #{document['ticket_number']}: {payload.description.strip()[:90]}",
+                "category": "support",
+                "priority": (payload.priority or "medium").capitalize(),
+                "ticketId": ticket_id,
+                "ticketNumber": document["ticket_number"],
+                "read": False,
+                "createdAt": now,
+            })
+        except Exception as e:
+            logger.warning("Could not dispatch admin_notifications for ticket %s: %s", ticket_id, e)
+
+        # 2. Mirror into admin_support_tickets for instant multi-role visibility
+        try:
+            await database.collection("admin_support_tickets").insert_one({
+                "_id": ticket_id,
+                "id": ticket_id,
+                "ticketNumber": document["ticket_number"],
+                "subject": payload.subject.strip(),
+                "description": payload.description.strip(),
+                "raisedBy": user.name or "Customer",
+                "phone": user.phone or "+91 98719 62596",
+                "email": user.email or "",
+                "userId": user.id,
+                "role": "Customer",
+                "source": "Customer",
+                "priority": (payload.priority or "Medium").capitalize(),
+                "status": "Open",
+                "category": payload.category or "General Issue",
+                "refOrder": payload.orderId or "—",
+                "city": getattr(user, "city", None) or "Kasganj",
+                "assignee": "Himanshu (Lead Admin)",
+                "compensationAmount": 0.0,
+                "createdAt": now,
+                "updatedAt": now,
+                "replies": [
+                    {
+                        "_id": f"msg-{uuid.uuid4().hex[:8]}",
+                        "author": user.name or "Customer",
+                        "role": "Customer",
+                        "body": payload.description.strip(),
+                        "at": now,
+                    }
+                ],
+            })
+        except Exception as e:
+            logger.warning("Could not mirror ticket %s into admin_support_tickets: %s", ticket_id, e)
+
         refreshed = await database.collection(TICKETS).find_one({"_id": ticket_id})
         return await self._to_model(refreshed or document, with_messages=True)
 

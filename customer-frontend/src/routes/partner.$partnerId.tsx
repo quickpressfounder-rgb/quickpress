@@ -246,6 +246,7 @@ function PartnerDetailScreen() {
   const [offline, setOffline] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [cartPopupOpen, setCartPopupOpen] = useState(false);
+  const isPartnerClosed = Boolean(data?.partner && (!data.partner.open || data.partner.status === "closed"));
 
   useEffect(() => {
     setMounted(true);
@@ -327,6 +328,12 @@ function PartnerDetailScreen() {
 
   const step = useCallback(
     (id: string, delta: number) => {
+      if (isPartnerClosed && delta > 0) {
+        toast.error(
+          `${data?.partner?.name || "This store"} is currently closed and not taking orders right now.`
+        );
+        return;
+      }
       setQuantities((prev) => {
         const nextQty = Math.max(0, (prev[id] ?? 0) + delta);
         const updated = { ...prev, [id]: nextQty };
@@ -355,7 +362,7 @@ function PartnerDetailScreen() {
         return updated;
       });
     },
-    [data, partnerId, cart],
+    [data, partnerId, cart, isPartnerClosed],
   );
 
   const summary = useMemo(() => {
@@ -544,6 +551,18 @@ function PartnerDetailScreen() {
                   <HeroStat label="Delivery" value={data.partner.deliveryEta} icon={Clock} />
                   <HeroStat label="Distance" value={`${data.partner.distanceKm} km`} icon={MapPin} />
                 </div>
+
+                {isPartnerClosed ? (
+                  <div className="mt-3.5 flex items-center gap-2.5 rounded-2xl bg-amber-50 border border-amber-200/90 p-3 text-amber-900">
+                    <Clock className="size-4 shrink-0 text-amber-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold leading-tight">Store is Currently Closed</p>
+                      <p className="text-[11px] text-amber-700 leading-tight mt-0.5">
+                        You can browse services &amp; pricing, but ordering is paused until the store reopens.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </section>
 
@@ -620,6 +639,14 @@ function PartnerDetailScreen() {
                               <div className="ml-auto w-28">
                                 <Stepper qty={qty} onStep={(delta) => step(service.id, delta)} />
                               </div>
+                            ) : isPartnerClosed ? (
+                              <button
+                                type="button"
+                                disabled
+                                className="ml-auto flex h-9 items-center gap-1 rounded-2xl bg-zinc-100 text-zinc-400 border border-zinc-200 px-3.5 text-[11px] font-bold cursor-not-allowed opacity-80"
+                              >
+                                Closed
+                              </button>
                             ) : (
                               <button
                                 type="button"
@@ -821,12 +848,12 @@ function PartnerDetailScreen() {
         )}
       </div>
 
-      {/* Sticky bottom bar matching Navbar dimensions & styling */}
-      <FloatingCartBar hasBottomNav={false} />
+      {/* Sticky bottom bar matching Navbar dimensions & styling (hide when service sheet is open) */}
+      {detailService ? null : <FloatingCartBar hasBottomNav={false} />}
 
       {/* Service details sheet */}
       {detailService ? (
-        <div className="fixed inset-0 z-40">
+        <div className="fixed inset-0 z-50">
           <button
             type="button"
             aria-label="Close service details"
@@ -834,7 +861,7 @@ function PartnerDetailScreen() {
             className="animate-overlay-in absolute inset-0 bg-brand-dark/40 backdrop-blur-[2px]"
           />
           <div className="absolute inset-x-0 bottom-0">
-            <div className="animate-sheet-up mx-auto w-full max-w-md rounded-t-[2rem] bg-card p-5 pb-8 shadow-soft">
+            <div className="animate-sheet-up mx-auto w-full max-w-md rounded-t-[2rem] bg-card p-5 pb-12 sm:pb-8 shadow-2xl">
               <span className="mx-auto block h-1.5 w-12 rounded-full bg-border" />
               <div className="mt-5 flex items-center gap-4">
                 <img
@@ -886,27 +913,44 @@ function PartnerDetailScreen() {
                 </div>
               </div>
 
-              <div className="mt-5">
-                <Stepper
-                  large
-                  qty={quantities[detailService.id] ?? 0}
-                  onStep={(delta) => step(detailService.id, delta)}
-                />
-              </div>
+              {isPartnerClosed ? (
+                <div className="mt-5 space-y-2">
+                  <div className="rounded-xl bg-amber-50 border border-amber-200/80 px-3 py-2 text-center text-xs font-semibold text-amber-800">
+                    Store is currently closed and not taking orders
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-3xl bg-zinc-100 text-zinc-400 border border-zinc-200 text-sm font-bold cursor-not-allowed"
+                  >
+                    Store Closed
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-5">
+                    <Stepper
+                      large
+                      qty={quantities[detailService.id] ?? 0}
+                      onStep={(delta) => step(detailService.id, delta)}
+                    />
+                  </div>
 
-              <button
-                type="button"
-                disabled={!detailService.available}
-                onClick={() => {
-                  if ((quantities[detailService.id] ?? 0) === 0) step(detailService.id, 1);
-                  setDetailService(null);
-                }}
-                className="ripple mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-3xl bg-primary text-sm font-bold text-primary-foreground shadow-cta transition-all duration-300 hover:brightness-[1.03] active:scale-[0.985] disabled:opacity-50"
-              >
-                <Plus className="size-4" />
-                Add to cart · ₹
-                {detailService.startingPrice * Math.max(1, quantities[detailService.id] ?? 0)}
-              </button>
+                  <button
+                    type="button"
+                    disabled={!detailService.available}
+                    onClick={() => {
+                      if ((quantities[detailService.id] ?? 0) === 0) step(detailService.id, 1);
+                      setDetailService(null);
+                    }}
+                    className="ripple mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-3xl bg-primary text-sm font-bold text-primary-foreground shadow-cta transition-all duration-300 hover:brightness-[1.03] active:scale-[0.985] disabled:opacity-50"
+                  >
+                    <Plus className="size-4" />
+                    Add to cart · ₹
+                    {detailService.startingPrice * Math.max(1, quantities[detailService.id] ?? 0)}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

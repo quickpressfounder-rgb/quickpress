@@ -233,7 +233,7 @@ function HelpScreen() {
           <HelpSkeleton />
 
         ) : (
-          <div className="px-5 pb-32 pt-4">
+          <div className="px-5 pb-44 pt-4">
             {/* Search */}
             <div className="card-soft flex h-12 items-center gap-2 border border-border px-4">
               <Search className="size-4 shrink-0 text-muted-foreground" />
