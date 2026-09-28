@@ -73,7 +73,10 @@ export function CheckoutPage() {
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
 
-  // Payment mode: Online (Cashfree) vs Cash on Delivery
+  // Payment mode: Online (Cashfree) vs Cash on Delivery with Blinkit methods
+  const [selectedPayment, setSelectedPayment] = useState<
+    "phonepe" | "supermoney" | "famapp" | "upi_custom" | "card" | "wallet" | "cod"
+  >("phonepe");
   const [paymentMode, setPaymentMode] = useState<"online" | "cod">("online");
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
@@ -380,9 +383,9 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 text-zinc-900 font-sans pb-36">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
+    <main className="min-h-screen bg-[#f4f6fb] text-zinc-950 font-sans pb-36">
+      {/* Top Header — Clean Blinkit Minimalist White */}
+      <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-zinc-200/80 shadow-2xs">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -394,94 +397,104 @@ export function CheckoutPage() {
                 navigate({ to: "/cart" });
               }
             }}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-800 transition-colors hover:bg-zinc-200 active:scale-95 cursor-pointer"
           >
-            <ArrowLeft className="size-5" />
+            <ArrowLeft className="size-4.5" />
           </button>
           <div>
-            <h1 className="text-sm font-black text-zinc-900 tracking-tight">Checkout</h1>
-            <p className="text-[11px] font-semibold text-[#0c831f]">
+            <h1 className="text-sm font-black text-zinc-950 tracking-tight">Checkout</h1>
+            <p className="text-[11px] font-bold text-[#0c831f] flex items-center gap-1">
+              <span className="size-1.5 rounded-full bg-[#0c831f]" />
               QuickPress • Express Delivery
             </p>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-md px-4 pt-3 space-y-3">
+      <div className="mx-auto max-w-md px-4 pt-3 space-y-4">
 
-        {/* SECTION 1: PICKUP ADDRESS (Top Location #1) */}
-        <section aria-label="Pickup Address" className="bg-white rounded-2xl p-4 border border-emerald-500/40 shadow-xs space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-[#0c831f] tracking-wide">
-              <MapPin className="size-3" />
-              Pickup Location
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowPickupPicker(true)}
-              className="text-xs font-black text-[#0c831f] hover:underline cursor-pointer"
-            >
-              Change
-            </button>
-          </div>
-
-          {selectedPickup && selectedPickup.line?.trim() ? (
-            <div className="flex items-start gap-2.5 pt-1">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-[#0c831f] shrink-0 mt-0.5">
-                <Home className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-zinc-900">{selectedPickup.label}</p>
-                <p className="text-xs text-zinc-600 leading-relaxed truncate">{selectedPickup.line}</p>
-                <p className="text-[11px] text-zinc-400">
-                  {selectedPickup.city} {selectedPickup.pincode ? `• PIN ${selectedPickup.pincode}` : ""}
-                </p>
-                <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold text-emerald-800">
-                  <span className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    <Zap className="size-3 text-emerald-600" />
-                    Express Fast Dispatch Available
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/70 p-3.5 text-center space-y-2">
-              <p className="text-xs font-bold text-amber-900">No delivery address selected</p>
-              <p className="text-[11px] text-amber-700">Please add your address so our rider can pick up your clothes.</p>
+        {/* SECTION 1: PICKUP ADDRESS */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            Delivery Location
+          </h2>
+          <section aria-label="Pickup Address" className="bg-white rounded-2xl p-4 border border-zinc-200/90 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-[#0c831f] tracking-wide">
+                <MapPin className="size-3" />
+                Pickup Location
+              </span>
               <button
                 type="button"
-                onClick={() => navigate({ to: "/addresses" })}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0c831f] hover:bg-emerald-800 px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform cursor-pointer shadow-xs"
+                onClick={() => setShowPickupPicker(true)}
+                className="text-xs font-black text-[#0c831f] hover:underline cursor-pointer"
               >
-                <Plus className="size-3.5 stroke-[3]" />
-                <span>Add Delivery Address</span>
+                Change
               </button>
             </div>
-          )}
-        </section>
 
-        {/* SECTION 2: DUAL ADDRESS - DELIVERY ADDRESS TOGGLE */}
-        <section aria-label="Delivery Address Option" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={sameAsPickup}
-              onChange={(e) => setSameAsPickup(e.target.checked)}
-              className="size-4.5 rounded text-[#0c831f] focus:ring-[#0c831f] cursor-pointer"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-zinc-900">Delivery address is same as pickup</p>
-              <p className="text-[10px] text-zinc-500">Clothes will be returned to the same location</p>
+            {selectedPickup && selectedPickup.line?.trim() ? (
+              <div className="flex items-start gap-2.5 pt-1">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-[#0c831f] shrink-0 mt-0.5">
+                  <Home className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-black text-zinc-950">{selectedPickup.label}</p>
+                  <p className="text-xs text-zinc-600 leading-relaxed truncate">{selectedPickup.line}</p>
+                  <p className="text-[11px] text-zinc-400">
+                    {selectedPickup.city} {selectedPickup.pincode ? `• PIN ${selectedPickup.pincode}` : ""}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold text-emerald-800">
+                    <span className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <Zap className="size-3 text-emerald-600" />
+                      Express Fast Dispatch Available
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-3.5 text-center space-y-2">
+                <p className="text-xs font-bold text-zinc-900">No delivery address selected</p>
+                <p className="text-[11px] text-zinc-500">Please add your address so our rider can pick up your clothes.</p>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/addresses" })}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#0c831f] hover:bg-emerald-800 px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform cursor-pointer shadow-xs"
+                >
+                  <Plus className="size-3.5 stroke-[3]" />
+                  <span>Add Delivery Address</span>
+                </button>
+              </div>
+            )}
+
+            {/* Same address toggle */}
+            <div className="pt-2 border-t border-zinc-100">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sameAsPickup}
+                  onChange={(e) => setSameAsPickup(e.target.checked)}
+                  className="size-4 rounded text-[#0c831f] focus:ring-[#0c831f] accent-[#0c831f] cursor-pointer"
+                />
+                <span className="text-xs font-bold text-zinc-800">
+                  Return to same location
+                </span>
+              </label>
             </div>
-          </label>
+          </section>
+        </div>
 
-          {/* If separate delivery address is chosen */}
-          {!sameAsPickup ? (
-            <div className="pt-3 border-t border-zinc-100 space-y-2">
+        {/* Separate delivery address if chosen */}
+        {!sameAsPickup ? (
+          <div>
+            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Return Dropoff Address
+            </h2>
+            <section aria-label="Dropoff Address" className="bg-white rounded-2xl p-4 border border-zinc-200/90 shadow-2xs space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-black uppercase text-blue-700 tracking-wide">
                   <MapPin className="size-3" />
-                  Delivery Location
+                  Dropoff Location
                 </span>
                 <button
                   type="button"
@@ -498,58 +511,40 @@ export function CheckoutPage() {
                     <Home className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-zinc-900">{selectedDelivery.label}</p>
+                    <p className="text-xs font-black text-zinc-950">{selectedDelivery.label}</p>
                     <p className="text-xs text-zinc-600 leading-relaxed truncate">{selectedDelivery.line}</p>
                     <p className="text-[11px] text-zinc-400">{selectedDelivery.city}</p>
                   </div>
                 </div>
               ) : null}
-            </div>
-          ) : null}
-        </section>
-
-        {/* SECTION 2.5: PICKUP SPEED & PRIORITY SELECTION */}
-        <section aria-label="Pickup Speed" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
-                Pickup Speed & Turnaround
-              </span>
-              <h3 className="text-xs font-black text-zinc-950 mt-0.5">Choose Pickup Speed</h3>
-            </div>
-            <span className="text-[10.5px] text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-full font-bold border border-zinc-200/80 flex items-center gap-1.5">
-              <Zap className="size-3 text-zinc-600" />
-              <span>15-Min Express Ready</span>
-            </span>
+            </section>
           </div>
+        ) : null}
 
-          <div className="space-y-2.5">
-            {/* 1. Standard Pickup Option */}
+        {/* SECTION 2: PICKUP SPEED & TURNAROUND */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            Pickup Speed & Turnaround
+          </h2>
+          <section aria-label="Pickup Speed" className="bg-white rounded-2xl shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100 overflow-hidden">
+            {/* Standard Pickup */}
             <div
               role="button"
               tabIndex={0}
               onClick={() => setIsExpress(false)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsExpress(false); }}
-              className={`relative p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none flex items-center justify-between gap-3 ${
-                !isExpressActive
-                  ? "border-zinc-950 bg-white shadow-xs ring-1 ring-zinc-950/10"
-                  : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/70 bg-white"
+              className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                !isExpressActive ? "bg-emerald-50/30" : "hover:bg-zinc-50/80 bg-white"
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`size-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                    !isExpressActive
-                      ? "bg-zinc-950 text-white shadow-xs"
-                      : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
+                <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-[#0c831f] border border-emerald-100">
                   <Clock className="size-5" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-xs font-black text-zinc-950">Standard Pickup</p>
-                    <span className="bg-zinc-100 border border-zinc-200 text-zinc-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                    <span className="bg-emerald-100 text-[#0c831f] text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                       FREE
                     </span>
                   </div>
@@ -558,19 +553,16 @@ export function CheckoutPage() {
                   </p>
                 </div>
               </div>
-
-              <div className="shrink-0 flex items-center">
-                <div
-                  className={`size-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    !isExpressActive ? "border-zinc-950 bg-zinc-950" : "border-zinc-300 bg-white"
-                  }`}
-                >
-                  {!isExpressActive && <Check className="size-3 text-white stroke-[3]" />}
-                </div>
+              <div className="shrink-0">
+                {!isExpressActive ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <div className="size-5 rounded-full border-2 border-zinc-300" />
+                )}
               </div>
             </div>
 
-            {/* 2. Express Priority Option */}
+            {/* Express Priority */}
             <div
               role="button"
               tabIndex={0}
@@ -586,29 +578,18 @@ export function CheckoutPage() {
                   if (isExpressEnabled) setIsExpress(true);
                 }
               }}
-              className={`relative p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none flex items-center justify-between gap-3 ${
-                isExpressActive
-                  ? "border-zinc-950 bg-white shadow-xs ring-1 ring-zinc-950/10"
-                  : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/70 bg-white"
+              className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                isExpressActive ? "bg-emerald-50/30" : "hover:bg-zinc-50/80 bg-white"
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`size-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                    isExpressActive
-                      ? "bg-zinc-950 text-white shadow-xs"
-                      : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
-                  <Zap className="size-5" />
+                <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-[#0c831f] border border-emerald-100">
+                  <Zap className="size-5 fill-current" />
                 </div>
-
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-black text-zinc-950">
-                      Express Priority Pickup
-                    </p>
-                    <span className="bg-zinc-900 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
+                    <p className="text-xs font-black text-zinc-950">Express Priority Pickup</p>
+                    <span className="bg-[#0c831f] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
                       +₹{expressFee}
                     </span>
                   </div>
@@ -617,67 +598,60 @@ export function CheckoutPage() {
                   </p>
                 </div>
               </div>
-
-              <div className="shrink-0 flex items-center">
-                <div
-                  className={`size-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    isExpressActive ? "border-zinc-950 bg-zinc-950" : "border-zinc-300 bg-white"
-                  }`}
-                >
-                  {isExpressActive && <Check className="size-3 text-white stroke-[3]" />}
-                </div>
+              <div className="shrink-0">
+                {isExpressActive ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <div className="size-5 rounded-full border-2 border-zinc-300" />
+                )}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        {/* SECTION 3: CUSTOMER CONTACT DETAILS */}
-        <section aria-label="Customer Details" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
-          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+        {/* SECTION 3: CONTACT DETAILS */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
             Contact Details
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className="relative">
-              <User className="absolute left-3 top-2.5 size-4 text-zinc-400" />
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Full Name"
-                className="w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-900 placeholder:font-normal focus:border-[#0c831f] focus:outline-hidden"
-              />
+          </h2>
+          <section aria-label="Customer Details" className="bg-white rounded-2xl p-4 border border-zinc-200/90 shadow-2xs space-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 size-4 text-zinc-400" />
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Full Name"
+                  className="w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-900 placeholder:font-normal focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden"
+                />
+              </div>
+              <div className="relative">
+                <Phone className="absolute left-3 top-2.5 size-4 text-zinc-400" />
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="10-digit Phone"
+                  className="w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-900 placeholder:font-normal focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden"
+                />
+              </div>
             </div>
-            <div className="relative">
-              <Phone className="absolute left-3 top-2.5 size-4 text-zinc-400" />
-              <input
-                type="tel"
-                maxLength={10}
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="10-digit Phone"
-                className="w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-900 placeholder:font-normal focus:border-[#0c831f] focus:outline-hidden"
-              />
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        {/* SECTION 4: ITEMS SELECTED & QUANTITY STEPPER */}
-        <section aria-label="Items Review" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-              Items Selected ({cart.count})
-            </span>
-            <span className="text-xs font-black text-[#0c831f]">
-              ₹{itemsSubtotal}
-            </span>
-          </div>
-
-          <div className="space-y-2">
+        {/* SECTION 4: ITEMS SELECTED */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500 flex items-center justify-between">
+            <span>Items Selected ({cart.count})</span>
+            <span className="text-[#0c831f] font-bold">₹{itemsSubtotal}</span>
+          </h2>
+          <section aria-label="Items Review" className="bg-white rounded-2xl shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100 overflow-hidden">
             {cart.lines.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-zinc-100 bg-zinc-50/50"
+                className="flex items-center justify-between gap-3 p-3 sm:p-3.5 bg-white hover:bg-zinc-50/70 transition-colors"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-black text-zinc-900">{item.name}</p>
@@ -686,9 +660,8 @@ export function CheckoutPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Stepper with 0ms instant response */}
-                  <div className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-1 shadow-2xs">
                     <button
                       type="button"
                       aria-label="Decrease quantity"
@@ -710,108 +683,418 @@ export function CheckoutPage() {
                     </button>
                   </div>
 
-                  <span className="text-xs font-black text-zinc-900 min-w-12 text-right">
+                  <span className="text-xs font-black text-zinc-900 min-w-12 text-right tabular-nums">
                     ₹{item.price * item.qty}
                   </span>
                 </div>
               </div>
             ))}
-          </div>
-        </section>
+          </section>
+        </div>
 
-        {/* SECTION 6: BILL DETAILS (Dynamic Breakdown from Finance Engine) */}
-        <section aria-label="Bill Breakdown" className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs space-y-2.5">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-              Bill Details
-            </span>
-          </div>
-
-          <div className="space-y-1.5 text-xs font-medium text-zinc-600">
-            <div className="flex justify-between">
-              <span>Items Total</span>
-              <span className="font-bold text-zinc-900">₹{itemsSubtotal}</span>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span>Delivery Partner Fee</span>
-              <div className="flex items-center gap-1.5">
-                {isFreeDelivery ? (
-                  <>
-                    <span className="text-[10px] line-through text-zinc-400">₹{baseDeliveryFee}</span>
-                    <span className="font-black text-[#0c831f] text-[10px] uppercase">FREE</span>
-                  </>
+        {/* SECTION 5: PAYMENT METHOD (Blinkit Inset Grouped Theme Matching Screenshot) */}
+        <section aria-label="Payment Method" className="space-y-3.5">
+          {/* CARDS */}
+          <div>
+            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Cards
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100">
+              {/* Add credit or debit cards */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("card");
+                  setPaymentMode("online");
+                }}
+                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
+                  selectedPayment === "card" ? "bg-emerald-50/30" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-2xs">
+                    <CreditCard className="size-5 text-zinc-700" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                    Add credit or debit cards
+                  </span>
+                </div>
+                {selectedPayment === "card" ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
                 ) : (
-                  <span className="font-bold text-zinc-900">₹{deliveryFee}</span>
+                  <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
                 )}
-              </div>
-            </div>
+              </button>
 
-            <div className="flex justify-between">
-              <span>Handling & Packaging</span>
-              <span className="font-bold text-zinc-900">₹{handlingFee}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Platform Convenience Fee</span>
-              <span className="font-bold text-zinc-900">₹{platformFee}</span>
-            </div>
-
-            {isExpressActive ? (
-              <div className="flex justify-between items-center text-amber-800 font-bold bg-amber-50/80 px-2 py-1.5 rounded-lg border border-amber-200">
-                <span className="flex items-center gap-1.5">
-                  <Zap className="size-3.5 text-amber-600 fill-amber-500" />
-                  ⚡ Express 15-Min Priority Pickup
-                </span>
-                <span className="font-black text-amber-700">+₹{expressFee}</span>
-              </div>
-            ) : null}
-
-            <div className="flex justify-between">
-              <span>GST & Taxes (5% Laundry + 18% Fees)</span>
-              <span className="font-bold text-zinc-900">₹{gst}</span>
-            </div>
-
-            {couponDiscount > 0 ? (
-              <div className="flex justify-between text-[#0c831f] font-bold">
-                <span>Coupon ({couponCode})</span>
-                <span>-₹{couponDiscount}</span>
-              </div>
-            ) : null}
-
-            <div className="border-t border-zinc-200 pt-2.5 flex justify-between items-center text-sm font-black text-zinc-900">
-              <span>Grand Total</span>
-              <span className="text-base text-zinc-900 font-black">₹{grandTotal}</span>
+              {/* Add Pluxee */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("card");
+                  setPaymentMode("online");
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer bg-white"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-2xs px-1">
+                    <span className="font-black text-[10.5px] tracking-tight text-[#1a1c3d]">
+                      plux<span className="text-[#f7c800]">e</span>e
+                    </span>
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                    Add Pluxee
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
             </div>
           </div>
 
-          {savings > 0 ? (
-            <div className="rounded-xl bg-emerald-50 p-2 text-center text-xs font-black text-[#0c831f] border border-emerald-100">
-              🎉 Total Savings: ₹{savings}
+          {/* UPI */}
+          <div>
+            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              UPI
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100">
+              {/* PhonePe UPI */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("phonepe");
+                  setPaymentMode("online");
+                }}
+                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
+                  selectedPayment === "phonepe" ? "bg-emerald-50/30" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-2xs">
+                    <div className="size-6 rounded-full bg-[#5f259f] flex items-center justify-center text-white font-black text-xs shadow-2xs">
+                      पे
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
+                      PhonePe UPI
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium">Instant UPI Auto-Pay / QR</span>
+                  </div>
+                </div>
+                {selectedPayment === "phonepe" ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <div className="size-5 rounded-full border-2 border-zinc-300" />
+                )}
+              </button>
+
+              {/* Supermoney UPI */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("supermoney");
+                  setPaymentMode("online");
+                }}
+                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
+                  selectedPayment === "supermoney" ? "bg-emerald-50/30" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-2xs px-1 gap-1">
+                    <div className="size-4 shrink-0 rounded-[3.5px] bg-[#3237d6] flex items-center justify-center shadow-2xs">
+                      <Sparkles className="w-2.5 h-2.5 text-white" />
+                    </div>
+                    <div className="flex flex-col text-left font-black text-[8px] leading-[8px] tracking-tight text-[#16173d]">
+                      <span>super.</span>
+                      <span>money</span>
+                    </div>
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                    Supermoney UPI
+                  </span>
+                </div>
+                {selectedPayment === "supermoney" ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <div className="size-5 rounded-full border-2 border-zinc-300" />
+                )}
+              </button>
+
+              {/* FamApp UPI */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("famapp");
+                  setPaymentMode("online");
+                }}
+                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
+                  selectedPayment === "famapp" ? "bg-emerald-50/30" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-[#ea7a1e] to-[#f49322] shadow-2xs p-1">
+                    <Zap className="w-5 h-5 text-white fill-white" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                    FamApp UPI
+                  </span>
+                </div>
+                {selectedPayment === "famapp" ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <div className="size-5 rounded-full border-2 border-zinc-300" />
+                )}
+              </button>
+
+              {/* Add new UPI ID */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("upi_custom");
+                  setPaymentMode("online");
+                }}
+                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
+                  selectedPayment === "upi_custom" ? "bg-emerald-50/30" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 shadow-2xs">
+                    <span className="text-base font-bold">@</span>
+                  </div>
+                  <div>
+                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
+                      Add new UPI ID / Google Pay / Paytm
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium">GPay, Paytm, BHIM & more</span>
+                  </div>
+                </div>
+                {selectedPayment === "upi_custom" ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+                )}
+              </button>
             </div>
-          ) : null}
+          </div>
+
+          {/* WALLETS */}
+          <div>
+            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Wallets
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100">
+              {/* QuickPress Wallet */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("wallet");
+                  setPaymentMode("online");
+                }}
+                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
+                  selectedPayment === "wallet" ? "bg-emerald-50/30" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-emerald-50 text-[#0c831f] shadow-2xs">
+                    <Wallet className="size-4.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
+                      QuickPress Wallet
+                    </span>
+                    <span className="text-[10px] text-[#0c831f] font-bold">
+                      Balance: ₹{walletBalance}
+                    </span>
+                  </div>
+                </div>
+                {selectedPayment === "wallet" ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <div className="size-5 rounded-full border-2 border-zinc-300" />
+                )}
+              </button>
+
+              {/* Amazon Pay Balance */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("wallet");
+                  setPaymentMode("online");
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer bg-white"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-950 text-white shadow-2xs px-1">
+                    <span className="font-black text-[10px] tracking-tight">pay</span>
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                    Amazon Pay Balance
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+
+              {/* Mobikwik */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment("wallet");
+                  setPaymentMode("online");
+                }}
+                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer bg-white"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-[#0089e0] text-white shadow-2xs px-1">
+                    <span className="font-black text-[10px] tracking-tight">M!</span>
+                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                    Mobikwik
+                  </span>
+                </div>
+                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
+              </button>
+            </div>
+          </div>
+
+          {/* PAY ON DELIVERY */}
+          <div>
+            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Pay on Delivery
+            </h2>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90">
+              <button
+                type="button"
+                onClick={() => {
+                  if (grandTotal < 50) {
+                    toast.error("Cash on delivery is not available for orders below ₹50.");
+                    return;
+                  }
+                  setSelectedPayment("cod");
+                  setPaymentMode("cod");
+                }}
+                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
+                  grandTotal < 50 ? "opacity-50 cursor-not-allowed bg-zinc-50" : selectedPayment === "cod" ? "bg-emerald-50/30" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-2xs">
+                    <Banknote className="size-5 text-[#0c831f]" />
+                  </div>
+                  <div>
+                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
+                      Cash on Delivery / Scan on Pickup
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-medium">
+                      Pay cash or scan QR when rider arrives
+                    </span>
+                  </div>
+                </div>
+                {selectedPayment === "cod" ? (
+                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                ) : (
+                  <div className="size-5 rounded-full border-2 border-zinc-300" />
+                )}
+              </button>
+            </div>
+          </div>
         </section>
 
-        {/* Trust Badge */}
-        <div className="flex items-center justify-center gap-2 py-2 text-center text-xs font-medium text-zinc-400">
-          <ShieldCheck className="size-4 text-[#0c831f]" />
-          <span>100% Quality & Hygiene Assured by QuickPress</span>
+        {/* SECTION 6: BILL DETAILS */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            Bill Details
+          </h2>
+          <section aria-label="Bill Breakdown" className="bg-white rounded-2xl p-4 border border-zinc-200/90 shadow-2xs space-y-2.5">
+            <div className="space-y-1.5 text-xs font-medium text-zinc-600">
+              <div className="flex justify-between">
+                <span>Items Total</span>
+                <span className="font-bold text-zinc-900">₹{itemsSubtotal}</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span>Delivery Partner Fee</span>
+                <div className="flex items-center gap-1.5">
+                  {isFreeDelivery ? (
+                    <>
+                      <span className="text-[10px] line-through text-zinc-400">₹{baseDeliveryFee}</span>
+                      <span className="font-black text-[#0c831f] text-[10px] uppercase">FREE</span>
+                    </>
+                  ) : (
+                    <span className="font-bold text-zinc-900">₹{deliveryFee}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Handling &amp; Packaging</span>
+                <span className="font-bold text-zinc-900">₹{handlingFee}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Platform Convenience Fee</span>
+                <span className="font-bold text-zinc-900">₹{platformFee}</span>
+              </div>
+
+              {isExpressActive ? (
+                <div className="flex justify-between items-center text-emerald-900 font-bold bg-emerald-50/80 px-2 py-1.5 rounded-lg border border-emerald-200">
+                  <span className="flex items-center gap-1.5">
+                    <Zap className="size-3.5 text-[#0c831f] fill-[#0c831f]" />
+                    ⚡ Express 15-Min Priority Pickup
+                  </span>
+                  <span className="font-black text-[#0c831f]">+₹{expressFee}</span>
+                </div>
+              ) : null}
+
+              <div className="flex justify-between">
+                <span>GST &amp; Taxes (5% Laundry + 18% Fees)</span>
+                <span className="font-bold text-zinc-900">₹{gst}</span>
+              </div>
+
+              {couponDiscount > 0 ? (
+                <div className="flex justify-between text-[#0c831f] font-bold">
+                  <span>Coupon ({couponCode})</span>
+                  <span>-₹{couponDiscount}</span>
+                </div>
+              ) : null}
+
+              <div className="border-t border-zinc-200 pt-2.5 flex justify-between items-center text-sm font-black text-zinc-900">
+                <span>Grand Total</span>
+                <span className="text-base text-zinc-950 font-black">₹{grandTotal}</span>
+              </div>
+            </div>
+
+            {savings > 0 ? (
+              <div className="rounded-xl bg-emerald-50 p-2 text-center text-xs font-black text-[#0c831f] border border-emerald-200">
+                🎉 Total Savings: ₹{savings}
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        {/* SECTION 7: TRUST & CANCELLATION */}
+        <div className="rounded-2xl bg-white border border-zinc-200/90 p-3.5 shadow-2xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-zinc-800">
+            <ShieldCheck className="size-4 text-[#0c831f] shrink-0" />
+            <span>100% Safe &amp; Secure Payments • Cashfree Certified</span>
+          </div>
+          <p className="text-[10.5px] text-zinc-500 leading-relaxed">
+            Cancellation Policy: Orders can be cancelled anytime before rider pickup dispatch for an instant 100% refund.
+          </p>
         </div>
       </div>
 
-      {/* SECTION 7: STICKY BOTTOM ACTION BAR */}
-      <aside className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200 p-4 shadow-xl">
+      {/* SECTION 8: STICKY BOTTOM ACTION BAR */}
+      <aside className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200/90 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         {/* Pre-order Legal Disclosure */}
-        <p className="pb-2.5 text-center text-[11px] leading-relaxed text-zinc-500">
+        <p className="pb-2.5 text-center text-[10.5px] leading-relaxed text-zinc-500">
           By placing this order, you agree to the QuickPress{" "}
           <Link
             to="/legal/$docSlug"
             params={{ docSlug: "terms-of-service" }}
             className="font-bold text-zinc-800 underline hover:text-[#0c831f]"
           >
-            Terms & Conditions
+            Terms &amp; Conditions
           </Link>{" "}
-          and acknowledge our{" "}
+          and{" "}
           <Link
             to="/legal/$docSlug"
             params={{ docSlug: "privacy-policy" }}
@@ -824,29 +1107,60 @@ export function CheckoutPage() {
         <div className="mx-auto max-w-md flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">To Pay</p>
-            <p className="text-xl font-black text-zinc-900 leading-tight">₹{grandTotal}</p>
+            <p className="text-xl font-black text-zinc-950 leading-tight tabular-nums">₹{grandTotal}</p>
           </div>
 
           <button
             type="button"
             disabled={placingOrder}
             onClick={handleProceedToPayOrOrder}
-            className="flex-1 flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0c831f] hover:bg-emerald-800 disabled:opacity-50 text-white font-black text-sm shadow-md active:scale-98 transition-all cursor-pointer"
+            className="flex-1 flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0c831f] hover:bg-[#0a701a] disabled:opacity-50 text-white font-black text-xs sm:text-sm shadow-md active:scale-98 transition-all cursor-pointer"
           >
             {placingOrder ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
                 <span>Processing...</span>
               </>
+            ) : selectedPayment === "cod" ? (
+              <>
+                <span>PAY ON DELIVERY • ₹{grandTotal}</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
+              </>
+            ) : selectedPayment === "phonepe" ? (
+              <>
+                <span>PAY VIA PHONEPE • ₹{grandTotal}</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
+              </>
+            ) : selectedPayment === "supermoney" ? (
+              <>
+                <span>PAY VIA SUPERMONEY • ₹{grandTotal}</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
+              </>
+            ) : selectedPayment === "famapp" ? (
+              <>
+                <span>PAY VIA FAMAPP • ₹{grandTotal}</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
+              </>
+            ) : selectedPayment === "card" ? (
+              <>
+                <span>PAY VIA CARD • ₹{grandTotal}</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
+              </>
+            ) : selectedPayment === "wallet" ? (
+              <>
+                <span>PAY VIA WALLET • ₹{grandTotal}</span>
+                <ChevronRight className="size-4.5 stroke-[3]" />
+              </>
             ) : (
               <>
-                <span>PROCEED TO PAY</span>
+                <span>PROCEED TO PAY • ₹{grandTotal}</span>
                 <ChevronRight className="size-4.5 stroke-[3]" />
               </>
             )}
           </button>
         </div>
       </aside>
+
 
       {/* Address Picker Modal (Pickup) */}
       {showPickupPicker ? (
