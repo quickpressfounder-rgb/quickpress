@@ -50,7 +50,7 @@ CATEGORIES: List[Dict[str, Any]] = [
     {"_id": "c6", "title": "Curtain Cleaning", "description": "Home fabrics", "icon": "blinds", "image": "/images/services/curtain-cleaning.jpg", "sortOrder": 6},
     {"_id": "c7", "title": "Blanket Cleaning", "description": "Bulky care", "icon": "bed-double", "image": "/images/services/blanket-cleaning.jpg", "sortOrder": 7},
     {"_id": "c8", "title": "Carpet Cleaning", "description": "Fibre deep wash", "icon": "layout-grid", "image": "/images/services/carpet-cleaning.jpg", "sortOrder": 8},
-    {"_id": "c9", "title": "Bag & Leather Cleaning", "description": "Handbags, jackets & leather care", "icon": "briefcase", "image": "/images/services/shoe-cleaning.jpg", "sortOrder": 9},
+    {"_id": "c9", "title": "Bag & Leather Cleaning", "description": "Handbags, jackets & leather care", "icon": "briefcase", "image": "/images/services/bag-leather-cleaning.jpg", "sortOrder": 9},
 ]
 
 SERVICES: List[Dict[str, Any]] = [
@@ -96,8 +96,8 @@ SERVICES: List[Dict[str, Any]] = [
     {"_id": "s-home-carpet", "name": "Carpet / Rug Deep Shampoo", "categoryId": "c8", "unit": "per carpet", "price": 449, "image": "/images/services/carpet-cleaning.jpg", "description": "Industrial fibre deep shampoo wash and stain extraction.", "badge": None, "popular": False, "discountPercent": 0, "processingTime": "48 hrs"},
 
     # 👜 7. Bag & Leather Cleaning
-    {"_id": "s-exp-laundry", "name": "Leather Jacket & Coat Spa", "categoryId": "c9", "unit": "per piece", "price": 499, "image": "/images/services/shoe-cleaning.jpg", "description": "Deep conditioning, stain removal and leather nourishment.", "badge": "Special Care", "popular": True, "discountPercent": 10, "processingTime": "72 hrs"},
-    {"_id": "s-exp-iron", "name": "Luxury Handbag & Purse Spa", "categoryId": "c9", "unit": "per piece", "price": 399, "image": "/images/services/shoe-cleaning.jpg", "description": "Interior sanitization, strap conditioning and hardware polish.", "badge": "Popular", "popular": False, "discountPercent": 0, "processingTime": "48 hrs"},
+    {"_id": "s-exp-laundry", "name": "Leather Jacket & Coat Spa", "categoryId": "c9", "unit": "per piece", "price": 499, "image": "/images/services/bag-leather-cleaning.jpg", "description": "Deep conditioning, stain removal and leather nourishment.", "badge": "Special Care", "popular": True, "discountPercent": 10, "processingTime": "72 hrs"},
+    {"_id": "s-exp-iron", "name": "Luxury Handbag & Purse Spa", "categoryId": "c9", "unit": "per piece", "price": 399, "image": "/images/services/bag-leather-cleaning.jpg", "description": "Interior sanitization, strap conditioning and hardware polish.", "badge": "Popular", "popular": False, "discountPercent": 0, "processingTime": "48 hrs"},
 ]
 
 OFFERS: List[Dict[str, Any]] = [

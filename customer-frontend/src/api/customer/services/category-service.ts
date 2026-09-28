@@ -26,7 +26,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: "c6", title: "Curtain Cleaning", description: "Home fabrics", icon: "blinds", image: "/images/services/curtain-cleaning.jpg", sortOrder: 6, status: "active" },
   { id: "c7", title: "Blanket Cleaning", description: "Bulky care", icon: "bed-double", image: "/images/services/blanket-cleaning.jpg", sortOrder: 7, status: "active" },
   { id: "c8", title: "Carpet Cleaning", description: "Fibre deep wash", icon: "layout-grid", image: "/images/services/carpet-cleaning.jpg", sortOrder: 8, status: "active" },
-  { id: "c9", title: "Bag & Leather Cleaning", description: "Handbags, jackets & leather care", icon: "briefcase", image: "/images/services/shoe-cleaning.jpg", sortOrder: 9, status: "active" },
+  { id: "c9", title: "Bag & Leather Cleaning", description: "Handbags, jackets & leather care", icon: "briefcase", image: "/images/services/bag-leather-cleaning.jpg", sortOrder: 9, status: "active" },
 ];
 
 export function fetchCategories(options: { forceRefresh?: boolean | undefined; signal?: AbortSignal | undefined } = {}) {

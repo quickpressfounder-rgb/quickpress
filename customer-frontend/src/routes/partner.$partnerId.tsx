@@ -57,6 +57,7 @@ import curtainImg from "@/shared/assets/item-curtain.jpg";
 import blanketImg from "@/shared/assets/item-blanket.jpg";
 import carpetImg from "@/shared/assets/item-carpet.jpg";
 import expressImg from "@/shared/assets/item-express.jpg";
+import bagLeatherImg from "@/shared/assets/item-bag-leather.jpg";
 
 function resolvePartnerCover(cover?: string | null): string {
   if (!cover) return store1;
@@ -83,19 +84,16 @@ function resolveServiceImage(title?: string | null, img?: string | null): string
     return img;
   }
   const t = (title || "").toLowerCase();
-  if (t.includes("wash") || t.includes("fold") || t.includes("laundry") && !t.includes("premium") && !t.includes("express")) {
-    if (!t.includes("express") && !t.includes("premium")) return washFoldImg;
-  }
-  if (t.includes("dry") || t.includes("clean") && !t.includes("shoe") && !t.includes("curtain") && !t.includes("carpet") && !t.includes("blanket")) {
-    if (!t.includes("shoe") && !t.includes("curtain") && !t.includes("carpet") && !t.includes("blanket")) return dryCleanImg;
-  }
+  if (t.includes("bag") || t.includes("leather") || t.includes("handbag") || t.includes("jacket")) return bagLeatherImg;
+  if (t.includes("premium") || t.includes("saree") || t.includes("luxury")) return premiumImg;
   if (t.includes("steam") || t.includes("iron")) return steamIronImg;
-  if (t.includes("premium") || t.includes("saree")) return premiumImg;
   if (t.includes("shoe") || t.includes("sneaker")) return shoesImg;
   if (t.includes("curtain")) return curtainImg;
   if (t.includes("blanket") || t.includes("quilt")) return blanketImg;
   if (t.includes("carpet") || t.includes("rug")) return carpetImg;
   if (t.includes("express")) return expressImg;
+  if (t.includes("dry") || (t.includes("clean") && !t.includes("wash"))) return dryCleanImg;
+  if (t.includes("wash") || t.includes("fold") || t.includes("laundry")) return washFoldImg;
   if (img && (img.startsWith("/") || img.startsWith("http") || img.startsWith("data:"))) return img;
   return washFoldImg;
 }
