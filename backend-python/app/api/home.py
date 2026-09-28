@@ -325,6 +325,47 @@ async def get_recommendations() -> list[dict]:
     ]
 
 
+def format_real_order_status(raw: str) -> str:
+    if not raw:
+        return "Order Placed"
+    r = str(raw).strip().lower().replace("-", "_").replace(" ", "_")
+    mapping = {
+        "placed": "Order Placed",
+        "order_placed": "Order Placed",
+        "pending": "Order Placed",
+        "pending_partner_acceptance": "Awaiting Confirmation",
+        "partner_accepted": "Store Accepted",
+        "accepted": "Accepted",
+        "pickup_rider_assigned": "Pickup Driver Assigned",
+        "pickup_assigned": "Pickup Driver Assigned",
+        "pickup_rider_accepted": "Driver On The Way",
+        "driver_arrived": "Driver Arrived",
+        "pickup_otp": "Pickup Verification",
+        "picked_up": "Picked Up",
+        "pickup_completed": "Picked Up",
+        "in_store": "Received at Store",
+        "processing": "Washing & Cleaning",
+        "cleaning": "Washing & Cleaning",
+        "washing": "Washing",
+        "ironing": "Ironing & Pressing",
+        "ready": "Ready for Delivery",
+        "ready_for_delivery": "Ready for Delivery",
+        "delivery_rider_assigned": "Delivery Driver Assigned",
+        "delivery_assigned": "Delivery Driver Assigned",
+        "delivery_rider_accepted": "Out for Delivery",
+        "out_for_delivery": "Out for Delivery",
+        "delivery_otp": "Delivery Verification",
+        "delivered": "Delivered",
+        "completed": "Delivered",
+        "cancelled": "Cancelled",
+        "canceled": "Cancelled",
+        "failed": "Cancelled",
+    }
+    if r in mapping:
+        return mapping[r]
+    return raw.replace("_", " ").title()
+
+
 @router.get("/orders/recent")
 async def get_recent_orders(user: Optional[User] = Depends(optional_user)) -> list[dict]:
     if user:
@@ -335,23 +376,29 @@ async def get_recent_orders(user: Optional[User] = Depends(optional_user)) -> li
                 result = []
                 for o in orders[:5]:
                     if hasattr(o, "id"):
+                        raw_status = str(getattr(o, "status", "")).strip()
+                        status_str = format_real_order_status(raw_status)
                         result.append({
                             "id": o.id,
                             "reference": getattr(o, "code", o.id[:8]),
                             "title": getattr(o.partner, "name", "Laundry Order") if hasattr(o, "partner") else "Laundry Order",
                             "items": f"{len(getattr(o, 'items', []))} items",
                             "placed": str(getattr(o, "createdAt", "Recently"))[:10],
-                            "status": "Delivered" if getattr(o, "status", "") in ("delivered", "completed") else "In progress",
+                            "status": status_str,
+                            "rawStatus": raw_status,
                             "total": float(getattr(o.totals, "grandTotal", 0) if hasattr(o, "totals") else 0),
                         })
                     elif isinstance(o, dict):
+                        raw_status = str(o.get("status") or "").strip()
+                        status_str = format_real_order_status(raw_status)
                         result.append({
                             "id": o.get("id") or o.get("_id"),
                             "reference": o.get("code") or (o.get("id") or o.get("_id"))[:8],
                             "title": (o.get("partner") or {}).get("name") or "Laundry Order",
                             "items": f"{len(o.get('items', []))} items",
                             "placed": str(o.get("createdAt") or "Recently")[:10],
-                            "status": "Delivered" if o.get("status") in ("delivered", "completed") else "In progress",
+                            "status": status_str,
+                            "rawStatus": raw_status,
                             "total": float(o.get("totals", {}).get("grandTotal") or o.get("total") or 0),
                         })
                 return result

@@ -19,10 +19,13 @@ import { apiGetJson } from "@/api/core/transport";
 
 import type { Category, Partner, PopularService } from "./home-api";
 import {
+  CACHE_KEYS,
   readScopedCache,
+  readStaleCache,
   readStaleScopedCache,
   writeScopedCache,
 } from "./api/cache";
+import { DEFAULT_CATEGORIES } from "./services/category-service";
 
 export const SERVICE_LISTING_ENDPOINTS = {
   /** GET /api/services — every service category. */
@@ -274,35 +277,62 @@ export async function fetchServiceListing(
 ): Promise<ServiceListingResult> {
   const cityKey = (query.city || readLocation()?.city || "all").toLowerCase().trim();
   const cacheKey = `${serviceId}:${cityKey}`;
+  const fallbackCat = DEFAULT_CATEGORIES.find((c) => c.id === serviceId);
+
   try {
-    const [categories, popularServices, partners] = await Promise.all([
-      apiGetJson<Category[]>("/api/categories", { signal: options.signal }),
-      apiGetJson<PopularService[]>("/api/services/popular", { signal: options.signal }),
-      fetchPartnerCards(query, options),
+    const [categoriesRes, popularServicesRes, partnersRes] = await Promise.allSettled([
+      apiGetJson<Category[]>("/api/categories", { signal: options.signal }).catch(() => DEFAULT_CATEGORIES),
+      apiGetJson<PopularService[]>("/api/services/popular", { signal: options.signal }).catch(() => []),
+      fetchPartnerCards(query, options).catch((err) => {
+        const homePartners = (readStaleCache<Partner[]>(CACHE_KEYS.partners) || []) as any[];
+        if (homePartners.length > 0) return homePartners;
+        throw err;
+      }),
     ]);
 
-    const category = categories.find((item: Category) => item.id === serviceId);
+    const categories =
+      categoriesRes.status === "fulfilled" && Array.isArray(categoriesRes.value)
+        ? categoriesRes.value
+        : DEFAULT_CATEGORIES;
+    const popularServices =
+      popularServicesRes.status === "fulfilled" && Array.isArray(popularServicesRes.value)
+        ? popularServicesRes.value
+        : [];
+    const partners =
+      partnersRes.status === "fulfilled" && Array.isArray(partnersRes.value)
+        ? partnersRes.value
+        : ((readStaleCache<Partner[]>(CACHE_KEYS.partners) || []) as any[]);
+
+    const category = categories.find((item: Category) => item.id === serviceId) ?? fallbackCat;
     const popular = popularServices.find((item: PopularService) => item.id === serviceId);
-    const prices = partners.map((partner) => partner.minPrice).filter((price) => price > 0);
+    const prices = partners.map((partner: any) => partner.minPrice).filter((price: any) => price > 0);
 
     const data: ServiceListingData = {
       service: {
         id: serviceId,
-        title: category?.title ?? popular?.title ?? "Laundry Services",
+        title: category?.title ?? popular?.title ?? fallbackCat?.title ?? "Laundry Services",
         description:
           category?.description ??
+          fallbackCat?.description ??
           "Nearby QuickPress partners offering this service with doorstep pickup and delivery.",
-        image: category?.image ?? partners[0]?.image ?? "",
-        startingPrice: popular?.price ?? (prices.length > 0 ? Math.min(...prices) : 0),
+        image: category?.image ?? fallbackCat?.image ?? partners[0]?.image ?? "",
+        startingPrice: popular?.price ?? (prices.length > 0 ? Math.min(...prices) : 49),
       },
       partners,
     };
 
-    // Only the unfiltered response is worth caching as an offline fallback.
-    if (Object.keys(query).length <= 1) writeScopedCache("partner-list", cacheKey, data);
+    // Cache under multiple keys for instant access
+    if (Object.keys(query).length <= 1) {
+      writeScopedCache("partner-list", cacheKey, data);
+      writeScopedCache("partner-list", `${serviceId}:all`, data);
+      writeScopedCache("partner-list", `${serviceId}:initial`, data);
+    }
     return { data, fromCache: false };
   } catch (error) {
-    const stale = readStaleScopedCache<ServiceListingData>("partner-list", cacheKey);
+    const stale =
+      readStaleScopedCache<ServiceListingData>("partner-list", cacheKey) ||
+      readStaleScopedCache<ServiceListingData>("partner-list", `${serviceId}:all`) ||
+      readStaleScopedCache<ServiceListingData>("partner-list", `${serviceId}:initial`);
     if (stale) return { data: stale, fromCache: true };
     throw error;
   }

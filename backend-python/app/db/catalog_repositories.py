@@ -6,6 +6,7 @@ Documents live in MongoDB (`banners`, `categories`, `services`,
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -321,9 +322,27 @@ class CatalogRepository:
         profiles = await self._approved_partner_profiles()
         cards: List[PartnerCardResponse] = []
 
+        partner_ids = [str(p["_id"]) for p in profiles if p.get("_id")]
+        if not partner_ids:
+            return []
+
+        all_services_docs, all_settings_docs = await asyncio.gather(
+            database.find_many("partner_services", {"partnerId": {"$in": partner_ids}}),
+            database.find_many("partner_settings", {"_id": {"$in": partner_ids}}),
+        )
+
+        services_by_partner: Dict[str, list] = {}
+        for s in all_services_docs:
+            p_id = str(s.get("partnerId") or "")
+            services_by_partner.setdefault(p_id, []).append(s)
+
+        settings_by_partner: Dict[str, dict] = {
+            str(s.get("_id") or ""): s for s in all_settings_docs
+        }
+
         for p in profiles:
             pid = str(p["_id"])
-            services_docs = await database.find_many("partner_services", {"partnerId": pid})
+            services_docs = services_by_partner.get(pid, [])
             active_services = [
                 s for s in services_docs
                 if s.get("isActive", True) is not False
@@ -331,7 +350,7 @@ class CatalogRepository:
                 and not s.get("pendingApproval", False)
                 and s.get("approvalStatus", "approved") == "approved"
             ]
-            settings = await database.find_one("partner_settings", {"_id": pid}) or {}
+            settings = settings_by_partner.get(pid, {})
 
             reviews_count = int(
                 p.get("totalOrders")

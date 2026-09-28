@@ -22,6 +22,7 @@ import {
   Shirt,
   Sparkles,
   Star,
+  Truck,
   WashingMachine,
   Wallet,
   Zap,
@@ -43,7 +44,6 @@ import {
   DEFAULT_CATEGORIES,
   fetchCategories,
   fetchHomeSections,
-  fetchOffers,
   fetchPartners,
   fetchPopularServices,
   fetchRecentOrders,
@@ -187,7 +187,6 @@ function HomeScreen() {
     ? sections.categories.data
     : DEFAULT_CATEGORIES;
   const popular = sections.popular.data ?? [];
-  const offers = sections.offers.data ?? [];
   const recentOrders = sections.recentOrders.data ?? [];
   const rawPartners = sections.partners.data ?? [];
   const partners = useMemo(() => {
@@ -689,50 +688,52 @@ function HomeScreen() {
                   </div>
                 </section>
 
-                {/* Membership Banner (Clean White Card Theme) */}
+                {/* Membership Banner (Luxury VIP Card Theme) */}
                 <section className="mt-8">
                   {membership?.active && membership.planId !== "free" ? (
-                    /* 1. Active Member Status Banner (Clean White & Emerald Accent Card) */
-                    <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-white p-5 shadow-soft dark:border-primary/25 dark:bg-zinc-900">
-                      <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-primary/10 blur-2xl" />
-                      <div className="pointer-events-none absolute -left-10 -bottom-10 size-32 rounded-full bg-emerald-500/10 blur-2xl" />
+                    /* 1. Active Member Status Banner (Luxury VIP Card) */
+                    <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-zinc-950 via-emerald-950 to-neutral-950 p-5 text-white shadow-[0_16px_40px_-10px_rgba(5,150,105,0.35)]">
+                      <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-500/20 blur-3xl" />
+                      <div className="pointer-events-none absolute -left-10 -bottom-10 size-32 rounded-full bg-amber-400/15 blur-2xl" />
+                      <Crown className="pointer-events-none absolute -bottom-6 -right-5 size-36 text-emerald-400/5 rotate-12 stroke-[1]" />
 
                       <div className="relative flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <span className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
-                            <Crown className="size-4" />
+                          <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-zinc-950 shadow-md">
+                            <Crown className="size-4.5 fill-zinc-950 stroke-none" />
                           </span>
                           <div>
-                            <p className="text-xs font-black tracking-tight text-foreground">
+                            <p className="text-sm font-black tracking-tight text-white flex items-center gap-1.5">
                               {membership.planName} VIP Member
+                              <Sparkles className="size-3.5 text-amber-300" />
                             </p>
-                            <p className="text-[10px] font-semibold text-muted-foreground">
+                            <p className="text-[11px] font-medium text-zinc-300">
                               {membership.remainingDays} days remaining · Expires {membership.expiresLabel}
                             </p>
                           </div>
                         </div>
-                        <span className="rounded-full bg-secondary/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-green">
-                          Active
+                        <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300 shadow-xs">
+                          ● Active VIP
                         </span>
                       </div>
 
-                      <div className="relative mt-3.5 grid grid-cols-2 gap-2 border-t border-dashed border-border/80 pt-3 text-xs">
-                        <div className="card-soft flex items-center gap-2 bg-muted/40 p-2.5">
-                          <span className="size-2 rounded-full bg-brand-green" />
+                      <div className="relative mt-3.5 grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-xs">
+                        <div className="flex items-center gap-2.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 p-3">
+                          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-muted-foreground">Orders Balance</p>
-                            <p className="truncate text-xs font-black text-foreground">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Orders Balance</p>
+                            <p className="truncate text-xs font-black text-white">
                               {membership.quota.remainingOrders > 0
                                 ? `${membership.quota.remainingOrders} / ${membership.quota.totalOrders} left`
                                 : "Unlimited Free"}
                             </p>
                           </div>
                         </div>
-                        <div className="card-soft flex items-center gap-2 bg-muted/40 p-2.5">
-                          <span className="size-2 rounded-full bg-brand-green" />
+                        <div className="flex items-center gap-2.5 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/10 p-3">
+                          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-muted-foreground">Weight Quota</p>
-                            <p className="truncate text-xs font-black text-foreground">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Weight Quota</p>
+                            <p className="truncate text-xs font-black text-white">
                               {membership.quota.remainingWeightKg > 0
                                 ? `${membership.quota.remainingWeightKg} kg left`
                                 : "100% Covered"}
@@ -742,11 +743,11 @@ function HomeScreen() {
                       </div>
 
                       {membership.quota.totalSavings > 0 ? (
-                        <div className="relative mt-2.5 flex items-center justify-between rounded-2xl bg-secondary/15 px-3.5 py-2 text-xs text-foreground">
-                          <span className="text-[11px] font-bold text-brand-green">
-                            🎉 Total Member Savings:
+                        <div className="relative mt-2.5 flex items-center justify-between rounded-2xl bg-amber-400/15 border border-amber-400/30 px-3.5 py-2 text-xs">
+                          <span className="text-[11px] font-bold text-amber-200 flex items-center gap-1.5">
+                            <Sparkles className="size-3.5 text-amber-400" /> Total Member Savings:
                           </span>
-                          <span className="font-black text-brand-green">
+                          <span className="font-black text-amber-300">
                             ₹{membership.quota.totalSavings.toLocaleString("en-IN")} saved
                           </span>
                         </div>
@@ -755,107 +756,102 @@ function HomeScreen() {
                       <button
                         type="button"
                         onClick={() => void navigate({ to: "/membership" })}
-                        className="ripple relative mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-brand-green text-xs font-extrabold text-white shadow-cta transition-transform hover:bg-brand-green-dark hover:scale-[1.01] active:scale-[0.985] cursor-pointer"
+                        className="group relative mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 text-xs font-black text-zinc-950 shadow-[0_4px_20px_rgba(52,211,153,0.35)] transition-all hover:scale-[1.01] active:scale-[0.985] cursor-pointer"
                       >
-                        Manage Plan &amp; View Orders
-                        <ArrowRight className="size-3.5" />
+                        <span>Manage Plan &amp; View Orders</span>
+                        <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
                       </button>
                     </div>
                   ) : (
-                    /* 2. Non-Member Upgrade Banner (Compact & Clean Design) */
-                    <div className="relative overflow-hidden rounded-2xl border border-brand-green/20 bg-gradient-to-br from-brand-green/[0.08] via-background to-background p-4 shadow-xs dark:border-brand-green/25 dark:from-brand-green/[0.12] dark:via-card dark:to-card">
-                      {/* Ambient soft glow accents */}
-                      <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-brand-green/10 blur-2xl" />
+                    /* 2. Non-Member Upgrade Banner (Ultra-Attractive VIP Club Card) */
+                    <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-zinc-950 via-emerald-950 to-neutral-950 p-5 sm:p-6 text-white shadow-[0_16px_40px_-10px_rgba(5,150,105,0.35)] transition-all duration-300 hover:shadow-[0_20px_48px_-8px_rgba(5,150,105,0.45)]">
+                      {/* Ambient glows & luxury watermark */}
+                      <div className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-emerald-500/25 blur-3xl animate-pulse" />
+                      <div className="pointer-events-none absolute -left-10 -bottom-10 size-40 rounded-full bg-amber-400/15 blur-2xl" />
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent" />
+                      <Crown className="pointer-events-none absolute -bottom-6 -right-5 size-36 text-emerald-400/5 rotate-12 stroke-[1]" />
 
-                      {/* Header Row: Title & Price Tag */}
+                      {/* Header Row: Luxury Golden Badge & Price Tag */}
                       <div className="relative flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="flex size-7 items-center justify-center rounded-full bg-secondary/20 text-brand-green">
-                            <Crown className="size-3.5 stroke-[2.2]" />
-                          </span>
-                          <span className="text-[11px] font-black uppercase tracking-wider text-black dark:text-white">
-                            QUICKPRESS VIP
+                          <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-3 py-1 text-[10px] font-black tracking-widest text-zinc-950 uppercase shadow-[0_2px_12px_rgba(245,158,11,0.4)]">
+                            <Crown className="size-3.5 fill-zinc-950 stroke-none" />
+                            <span>QUICKPRESS VIP</span>
+                          </div>
+                          <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
+                            <Sparkles className="size-3 text-emerald-300" /> Exclusive Perks
                           </span>
                         </div>
-                        <span className="rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[11px] font-black text-brand-green">
-                          From ₹99/mo
-                        </span>
+                        <div className="flex items-center gap-1 rounded-full bg-emerald-950/80 px-3 py-1 border border-emerald-500/40 text-emerald-300 shadow-inner">
+                          <span className="text-[11px] font-bold text-zinc-300">Starts</span>
+                          <span className="text-xs font-black text-white">₹99</span>
+                          <span className="text-[10px] font-semibold text-emerald-400">/mo</span>
+                        </div>
                       </div>
 
-                      {/* Headline & Concise Benefit */}
-                      <div className="relative mt-2">
-                        <h3 className="text-sm font-black tracking-tight text-foreground sm:text-base">
-                          Unlimited ₹0 Delivery &amp; 15% OFF
+                      {/* Headline & Benefit Proposition */}
+                      <div className="relative mt-3.5">
+                        <h3 className="text-lg sm:text-xl font-black tracking-tight text-white leading-tight">
+                          Unlimited{" "}
+                          <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-amber-300 bg-clip-text text-transparent">
+                            ₹0 Delivery
+                          </span>{" "}
+                          &amp;{" "}
+                          <span className="bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
+                            15% OFF
+                          </span>
                         </h3>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Free doorstep pickup, delivery &amp; priority turnaround
+                        <p className="mt-1.5 text-xs text-zinc-300/90 leading-relaxed">
+                          Free doorstep pickup, priority 24h turnaround &amp; instant savings on all your laundry orders.
                         </p>
                       </div>
 
-                      {/* Compact Action Button */}
+                      {/* Visual Benefit Pills */}
+                      <div className="relative mt-3.5 grid grid-cols-3 gap-2">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-white/[0.07] backdrop-blur-md border border-white/10 px-2 py-2 text-center sm:text-left">
+                          <Truck className="size-4 shrink-0 text-emerald-400" />
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black text-white leading-none">₹0 Delivery</p>
+                            <p className="mt-0.5 text-[9px] text-zinc-400 truncate">On every order</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-white/[0.07] backdrop-blur-md border border-white/10 px-2 py-2 text-center sm:text-left">
+                          <Percent className="size-4 shrink-0 text-amber-300" />
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black text-white leading-none">Extra 15% OFF</p>
+                            <p className="mt-0.5 text-[9px] text-zinc-400 truncate">Auto-discounted</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-1 sm:gap-2 rounded-xl bg-white/[0.07] backdrop-blur-md border border-white/10 px-2 py-2 text-center sm:text-left">
+                          <Zap className="size-4 shrink-0 text-teal-300" />
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black text-white leading-none">2x Priority</p>
+                            <p className="mt-0.5 text-[9px] text-zinc-400 truncate">Fast turnaround</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Glowing Magnetic CTA Button */}
                       <button
                         type="button"
                         onClick={() => void navigate({ to: "/membership" })}
-                        className="ripple relative mt-3 flex h-9.5 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-green px-4 text-xs font-black text-white shadow-cta transition-transform hover:bg-brand-green-dark hover:scale-[1.005] active:scale-[0.985] cursor-pointer"
+                        className="group relative mt-4 flex h-11 sm:h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 text-xs sm:text-sm font-black text-zinc-950 shadow-[0_6px_25px_rgba(52,211,153,0.45)] transition-all duration-300 hover:shadow-[0_8px_32px_rgba(52,211,153,0.65)] hover:scale-[1.01] active:scale-[0.985] cursor-pointer"
                       >
-                        <Crown className="size-3.5" />
-                        <span>Join VIP Membership</span>
-                        <ArrowRight className="size-3.5 ml-0.5" />
+                        <Crown className="size-4 fill-zinc-950 stroke-none transition-transform group-hover:scale-110" />
+                        <span>Join VIP Membership — Save ₹1,500+/yr</span>
+                        <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                       </button>
+
+                      {/* Micro-Trust Banner */}
+                      <div className="relative mt-2.5 flex items-center justify-between px-1 text-[10px] text-zinc-400 font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
+                          <span>5,000+ members enjoying ₹0 deliveries</span>
+                        </span>
+                        <span className="text-emerald-400 font-semibold">Cancel anytime</span>
+                      </div>
                     </div>
                   )}
-                </section>
-
-
-
-                {/* Offers — GET /api/offers */}
-                <section className="mt-8">
-                  <SectionHeading
-                    title="Offers for you"
-                    action="All coupons"
-                    onAction={() => void navigate({ to: "/offers" })}
-                  />
-                  <SectionStatus
-                    error={sections.offers.error}
-                    empty={!sections.offers.loading && (sections.offers.data?.length ?? 0) === 0}
-                    emptyLabel="No offers running right now."
-                    onRetry={() => void retry()}
-                  />
-                  <div className="stagger-children no-scrollbar -mx-5 mt-4 flex gap-3 overflow-x-auto px-5 pb-1">
-                    {offers.map((offer, index) => {
-                      const Icon =
-                        offer.kind === "cashback" ? Wallet : offer.kind === "festival" ? Percent : Gift;
-                      return (
-                        <button
-                          key={`${offer.id}-${index}`}
-                          type="button"
-                          onClick={() => {
-                            void navigator.clipboard?.writeText(offer.code);
-                            toast.success(`Coupon code "${offer.code}" copied!`, { duration: 500 });
-                          }}
-                          className="card-soft w-64 shrink-0 border border-dashed border-primary/50 p-4 text-left transition-all duration-300 active:scale-[0.97]"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="flex size-10 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
-                              <Icon className="size-5" />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-foreground">{offer.title}</p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {offer.description}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-3 flex items-center justify-between border-t border-dashed border-border pt-3">
-                            <span className="rounded-lg bg-muted px-2 py-1 text-[11px] font-bold tracking-wider text-foreground">
-                              {offer.code}
-                            </span>
-                            <span className="text-xs font-semibold text-brand-green">Copy Code</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
                 </section>
 
                 {/* Recent orders — GET /api/orders/recent */}
@@ -885,12 +881,17 @@ function HomeScreen() {
                               <p className="mt-0.5 text-xs text-muted-foreground">{order.placed}</p>
                             </div>
                             <span
-                              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${String(order.status) === "Delivered"
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : String(order.status) === "Cancelled"
-                                    ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                    : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                                }`}
+                              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                                String(order.status).toLowerCase().includes("delivered") || String(order.status).toLowerCase().includes("completed")
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                                  : String(order.status).toLowerCase().includes("cancel") || String(order.status).toLowerCase().includes("fail")
+                                    ? "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
+                                    : String(order.status).toLowerCase().includes("out for delivery")
+                                      ? "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800"
+                                      : String(order.status).toLowerCase().includes("wash") || String(order.status).toLowerCase().includes("clean") || String(order.status).toLowerCase().includes("press")
+                                        ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800"
+                                        : "bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+                              }`}
                             >
                               {order.status}
                             </span>
@@ -937,19 +938,19 @@ function HomeScreen() {
                   </div>
                 </section>
 
-                {/* Brand watermark footer */}
-                <section className="mt-12 -mx-4 select-none bg-muted/60 px-5 pb-10 pt-12">
+                {/* Brand watermark footer (Pure White Background) */}
+                <section className="mt-12 -mx-4 select-none bg-white dark:bg-zinc-950 px-5 pb-10 pt-12">
                   <h2 className="text-[2.6rem] font-black leading-[0.95] tracking-tight text-muted-foreground/35">
                     India&rsquo;s freshest
                     <br />
                     laundry app <span className="text-primary/35">🧺</span>
                   </h2>
-                  <div className="mt-8 h-px w-full bg-border/70" />
+                  <div className="mt-8 h-px w-full bg-border/40" />
                   <p className="mt-6 text-3xl font-black tracking-tight text-muted-foreground/25">
                     QuickPress
                   </p>
                   <p className="mt-6 text-[11px] font-medium tracking-wide text-muted-foreground/70">
-                    Made In India · Crafted by Utter Pradesh 🚩
+                    Made In India · Crafted by Uttar Pradesh 🚩
                   </p>
                 </section>
               </>

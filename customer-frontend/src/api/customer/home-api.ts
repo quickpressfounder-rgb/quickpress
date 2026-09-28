@@ -111,7 +111,8 @@ export type RecentOrder = {
   title: string;
   items: string;
   placed: string;
-  status: "In progress" | "Delivered";
+  status: string;
+  rawStatus?: string;
   total: number;
 };
 

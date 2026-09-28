@@ -56,9 +56,13 @@ function resolveCategoryServiceImage(title?: string | null, img?: string | null)
 }
 
 import {
+  CACHE_KEYS,
   readScopedCache,
+  readStaleCache,
   readStaleScopedCache,
 } from "@/api/customer/api/cache";
+import { DEFAULT_CATEGORIES } from "@/api/customer/services/category-service";
+import type { Partner } from "@/api/customer/home-api";
 
 export const Route = createFileRoute("/services/$serviceId")({
   head: () => ({
@@ -84,8 +88,43 @@ function ServiceListingScreen() {
   const navigate = useNavigate();
   const { serviceId } = Route.useParams();
   const activeLocation = readSavedLocation();
+
+  const fallbackCategory = useMemo(() => {
+    return (
+      DEFAULT_CATEGORIES.find((c) => c.id === serviceId) ?? {
+        id: serviceId,
+        title: "Laundry Services",
+        description: "Delicate & everyday fabrics care",
+        icon: "washing-machine",
+        image: "",
+        sortOrder: 1,
+        status: "active",
+      }
+    );
+  }, [serviceId]);
+
   const [data, setData] = useState<ServiceListingData | null>(() => {
-    return readStaleScopedCache<ServiceListingData>("partner-list", `${serviceId}:initial`);
+    const cityKey = (activeLocation?.city || "all").toLowerCase().trim();
+    const cached =
+      readStaleScopedCache<ServiceListingData>("partner-list", `${serviceId}:${cityKey}`) ||
+      readStaleScopedCache<ServiceListingData>("partner-list", `${serviceId}:all`) ||
+      readStaleScopedCache<ServiceListingData>("partner-list", `${serviceId}:initial`);
+    if (cached) return cached;
+
+    const homePartners = (readStaleCache<Partner[]>(CACHE_KEYS.partners) || []) as any[];
+    if (homePartners.length > 0) {
+      return {
+        service: {
+          id: serviceId,
+          title: fallbackCategory.title,
+          description: fallbackCategory.description,
+          image: fallbackCategory.image || "",
+          startingPrice: 49,
+        },
+        partners: homePartners,
+      };
+    }
+    return null;
   });
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
@@ -198,10 +237,10 @@ function ServiceListingScreen() {
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">
-              {data?.service.title ?? "Laundry partners"}
+              {data?.service.title ?? fallbackCategory.title}
             </h1>
             <p className="truncate text-[11px] text-muted-foreground">
-              {data ? `Starting at ₹${data.service.startingPrice}` : "Loading nearby stores…"}
+              {data ? `Starting at ₹${data.service.startingPrice}` : fallbackCategory.description}
             </p>
           </div>
           <button
