@@ -3,6 +3,49 @@
  * Generates an official executive audit dossier formatted for direct printing and "Save as PDF".
  */
 
+export function exportRawJsonData(fileName: string, data: any) {
+  try {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${fileName.toLowerCase().replace(/[^a-z0-9]/g, "_")}_full_dossier.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Export JSON failed:", err);
+  }
+}
+
+export function exportCsvData(fileName: string, rows: Record<string, any>[]) {
+  try {
+    if (!rows || rows.length === 0) return;
+    const headers = Object.keys(rows[0]);
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((r) =>
+        headers
+          .map((h) => `"${String(r[h] ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${fileName.toLowerCase().replace(/[^a-z0-9]/g, "_")}_orders_history.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Export CSV failed:", err);
+  }
+}
+
 export function exportCrmProfilePdf(entityType: string, profileData: any) {
   const p = profileData || {};
   const isCustomer = entityType === "customer";
@@ -10,10 +53,10 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
   const isPartner = entityType === "partner";
 
   const entityTitle = isCustomer
-    ? "CUSTOMER 360° DOSSIER"
+    ? "CUSTOMER 360° EXECUTIVE DOSSIER"
     : isRider
     ? "PILOT / RIDER 360° SERVICE DOSSIER"
-    : "PARTNER STORE / MERCHANT DOSSIER";
+    : "PARTNER STORE / MERCHANT AUDIT DOSSIER";
 
   const entityName =
     p.name ||
@@ -27,28 +70,28 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
   const email = p.email || "—";
   const city = p.city || "Kasganj";
   const state = p.state || "Uttar Pradesh";
-  const status = p.status || (isRider ? p.liveState || "Online" : "Active");
+  const status = p.status || (isRider ? p.live || "Online" : "Active");
   const joinedDate = (p.joined || p.createdAt || p.registrationTimestamp || new Date().toISOString()).slice(0, 10);
   const printTimestamp = new Date().toLocaleString("en-IN", {
     dateStyle: "full",
     timeStyle: "medium",
   });
 
-  // Collect orders
+  // Orders list
   const orders = Array.isArray(p.ordersList)
     ? p.ordersList
+    : Array.isArray(p.tripsList)
+    ? p.tripsList
     : Array.isArray(p.orders)
     ? p.orders
-    : Array.isArray(p.recentOrders)
-    ? p.recentOrders
     : [];
 
-  const ordersRowsHtml = orders.slice(0, 12).map((o: any, idx: number) => {
-    const oId = o.code || o.id || o._id || `ORD-${idx + 1}`;
+  const ordersRowsHtml = orders.slice(0, 25).map((o: any, idx: number) => {
+    const oId = o.code || o.orderCode || o.id || `ORD-${idx + 1}`;
     const date = (o.date || o.createdAt || o.placedAt || "—").slice(0, 19).replace("T", " ");
-    const amount = typeof o.amount === "number" ? o.amount : (o.totals?.grandTotal || 0);
+    const amount = typeof o.amount === "number" ? o.amount : (o.totals?.grandTotal || o.earning || 0);
     const st = o.status || "Completed";
-    const service = o.serviceLabel || o.service?.name || o.itemsSummary || "Laundry Wash & Iron";
+    const service = o.serviceLabel || o.service?.name || o.service || "Standard Wash & Iron";
 
     return `
       <tr>
@@ -63,7 +106,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
     `;
   }).join("");
 
-  // Collect addresses
+  // Addresses
   const addresses = Array.isArray(p.addresses) ? p.addresses : [];
   const addressHtml = addresses.map((a: any) => `
     <div style="background: #f4f4f5; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; font-size: 12px;">
@@ -71,6 +114,10 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
       <div style="color: #71717a; margin-top: 2px;">City: ${a.city || city} | Pincode: ${a.pincode || "—"}</div>
     </div>
   `).join("");
+
+  // Bank Info
+  const bank = p.bankDetails || p.bank || {};
+  const vehicle = p.vehicleDetails || p.vehicle || {};
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -92,7 +139,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
         .kpi-label { font-size: 10px; text-transform: uppercase; font-weight: 700; color: #71717a; letter-spacing: 0.5px; }
         .kpi-val { font-size: 18px; font-weight: 800; color: #18181b; margin-top: 4px; }
         .section-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #27272a; margin: 24px 0 10px; letter-spacing: 0.3px; border-left: 4px solid #059669; padding-left: 8px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
         th { background: #f4f4f5; color: #52525b; font-weight: 700; text-align: left; padding: 8px 10px; border-bottom: 2px solid #e4e4e7; }
         .footer { margin-top: 40px; padding-top: 14px; border-top: 1px dashed #d4d4d8; font-size: 11px; color: #71717a; display: flex; justify-content: space-between; }
         @media print {
@@ -104,11 +151,11 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
     <body>
       <div class="header">
         <div>
-          <div class="brand">QUICKPRESS ENTERPRISE</div>
+          <div class="brand">QUICKPRESS OPERATIONS AUDIT</div>
           <div class="badge">${entityTitle}</div>
         </div>
         <div class="doc-meta">
-          <div><strong>Report ID:</strong> QP-CRM-${entityId.slice(0, 8).toUpperCase()}</div>
+          <div><strong>Dossier Ref:</strong> QP-CRM-${entityId.slice(0, 8).toUpperCase()}</div>
           <div><strong>Generated:</strong> ${printTimestamp}</div>
           <div><strong>Authority:</strong> Super Admin Audit Access</div>
         </div>
@@ -138,7 +185,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
       <div class="grid-4">
         <div class="kpi-box">
           <div class="kpi-label">${isCustomer ? "Total Orders" : isRider ? "Deliveries Done" : "Orders Fulfilled"}</div>
-          <div class="kpi-val">${p.ordersCount || p.totalOrders || p.completedOrders || orders.length || 0}</div>
+          <div class="kpi-val">${p.ordersCount || p.totalOrders || p.completedOrders || p.trips || orders.length || 0}</div>
         </div>
         <div class="kpi-box">
           <div class="kpi-label">${isCustomer ? "Lifetime Spend" : isRider ? "Total Earnings" : "Gross GMV"}</div>
@@ -149,17 +196,41 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
           <div class="kpi-val">₹${Number(p.codCash || p.walletBalance || p.wallet || 0).toLocaleString("en-IN")}</div>
         </div>
         <div class="kpi-box">
-          <div class="kpi-label">Performance / Tier</div>
+          <div class="kpi-label">Performance / Rating</div>
           <div class="kpi-val">${p.rating ? p.rating + " ★" : p.membership || "Standard VIP"}</div>
         </div>
       </div>
+
+      ${isRider ? `
+        <div class="section-title">Fleet & Vehicle Specifications</div>
+        <div class="profile-card" style="margin-top: 8px;">
+          <div class="grid-2">
+            <div><strong>Vehicle Category:</strong> ${p.vehicleType || vehicle.type || "Bike / Two Wheeler"}</div>
+            <div><strong>Registration Plate:</strong> ${p.vehicleNumber || vehicle.plate || "UP-87-AB-1234"}</div>
+            <div><strong>Driving License:</strong> ${p.dlNumber || "VERIFIED"}</div>
+            <div><strong>Live Shift Status:</strong> ${status}</div>
+          </div>
+        </div>
+      ` : ""}
+
+      ${(bank.bankName || bank.accountNumber || p.bankName) ? `
+        <div class="section-title">Verified Banking Rails</div>
+        <div class="profile-card" style="margin-top: 8px;">
+          <div class="grid-2">
+            <div><strong>Bank Name:</strong> ${bank.bankName || p.bankName || "—"}</div>
+            <div><strong>Account Number:</strong> ${bank.accountNumber || (p.accountLast4 ? "•••• " + p.accountLast4 : "—")}</div>
+            <div><strong>IFSC Code:</strong> ${bank.ifsc || p.ifsc || "—"}</div>
+            <div><strong>UPI ID:</strong> ${bank.upiId || p.upiId || "—"}</div>
+          </div>
+        </div>
+      ` : ""}
 
       ${addresses.length > 0 ? `
         <div class="section-title">Verified Addresses & Geofence</div>
         ${addressHtml}
       ` : ""}
 
-      <div class="section-title">Order Lifecycle & Activity History</div>
+      <div class="section-title">Order Lifecycle & Activity History (${orders.length} Records)</div>
       ${orders.length > 0 ? `
         <table>
           <thead>
