@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 
 import { DeliveryAnimation } from "@/components/DeliveryAnimation";
 import { OrderSuccessSkeleton } from "@/components/order/OrderSkeleton";
+import { FlipkartSuccessCelebration } from "@/components/order/FlipkartSuccessCelebration";
 import { fetchOrder, type OrderSummary } from "@/api/customer/order-api";
 import { fetchInvoiceForOrder } from "@/api/customer/invoice-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
@@ -55,6 +56,7 @@ function OrderSuccessScreen() {
   const navigate = useNavigate();
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(true);
   const [invoiceBusy, setInvoiceBusy] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
@@ -178,6 +180,20 @@ function OrderSuccessScreen() {
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950 scroll-smooth">
+      {/* Flipkart-style Full Screen Green Order Success Celebration */}
+      {showCelebration ? (
+        <FlipkartSuccessCelebration
+          grandTotal={order?.totals?.grandTotal || 0}
+          orderId={order?.id || orderId}
+          pickupSlot={order?.pickup?.slot || "15-30 mins"}
+          storeName={order?.storeName || "QuickPress Partner Store"}
+          onViewDetails={() => setShowCelebration(false)}
+          onTrackOrder={() => {
+            void navigate({ to: "/track/$orderId", params: { orderId } });
+          }}
+        />
+      ) : null}
+
       <div className="relative mx-auto w-full max-w-md">
         <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <span className="size-10 shrink-0" />

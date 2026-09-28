@@ -16,6 +16,7 @@ import {
   Plus,
   QrCode,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Trash2,
   User,
@@ -26,6 +27,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { useCart } from "@/hooks/useCart";
+import { BlinkitPaymentDrawer } from "@/components/payment/BlinkitPaymentDrawer";
 import {
   fetchAddresses,
   fetchPaymentMethods,
@@ -73,11 +75,8 @@ export function CheckoutPage() {
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
 
-  // Payment mode: Online (Cashfree) vs Cash on Delivery with Blinkit methods
-  const [selectedPayment, setSelectedPayment] = useState<
-    "phonepe" | "supermoney" | "famapp" | "upi_custom" | "card" | "wallet" | "cod"
-  >("phonepe");
-  const [paymentMode, setPaymentMode] = useState<"online" | "cod">("online");
+  // Payment mode & drawer
+  const [showPaymentDrawer, setShowPaymentDrawer] = useState<boolean>(false);
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
   // Status
@@ -187,8 +186,8 @@ export function CheckoutPage() {
     ? selectedPickup
     : addresses.find((a) => a.id === deliveryAddressId) || addresses[0];
 
-  // Direct Action: Triggers Cashfree Checkout directly for Online, or places COD
-  const handleProceedToPayOrOrder = async () => {
+  // Validate details and open Payment Selection Drawer
+  const handleProceedToPayment = () => {
     if (cart.lines.length === 0) {
       toast.error("Your cart is empty.");
       navigate({ to: "/home" });
@@ -220,43 +219,8 @@ export function CheckoutPage() {
       return;
     }
 
-    // 1. CASH ON DELIVERY FLOW
-    if (paymentMode === "cod") {
-      if (grandTotal < 50) {
-        toast.error("Cash on delivery is not available for orders below ₹50.");
-        return;
-      }
-      await handleSelectCod();
-      return;
-    }
-
-    // 2. DIRECT ONLINE PAYMENT VIA CASHFREE
-    if (placingOrder) return;
-    setPlacingOrder(true);
-
-    try {
-      toast.info("Opening Cashfree Secure Gateway...");
-      const outcome = await payWithCashfree({
-        amount: grandTotal,
-        purpose: "QuickPress Laundry Order",
-        customerName: customerName.trim(),
-        customerPhone: cleanPhone,
-      });
-
-      if (outcome.status === "success") {
-        toast.success("Payment Successful! 💳 Placing your order...");
-        await handlePaymentSuccess("cashfree", outcome.paymentId);
-      } else if (outcome.status === "user_dropped") {
-        toast.error("Payment cancelled. Order has NOT been placed.");
-      } else {
-        toast.error(outcome.reason || "Payment rejected. Order has NOT been placed.");
-      }
-    } catch (err: any) {
-      console.error("[Checkout] Cashfree error:", err);
-      toast.error(err?.message || "Payment could not be processed. Order has NOT been placed.");
-    } finally {
-      setPlacingOrder(false);
-    }
+    // Open Blinkit Grouped Payment Options Drawer
+    setShowPaymentDrawer(true);
   };
 
   // Called ONLY when Online Payment (UPI / Card / Netbanking / Wallet) is 100% verified
@@ -692,311 +656,34 @@ export function CheckoutPage() {
           </section>
         </div>
 
-        {/* SECTION 5: PAYMENT METHOD (Blinkit Inset Grouped Theme Matching Screenshot) */}
-        <section aria-label="Payment Method" className="space-y-3.5">
-          {/* CARDS */}
-          <div>
-            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-              Cards
-            </h2>
-            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100">
-              {/* Add credit or debit cards */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("card");
-                  setPaymentMode("online");
-                }}
-                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
-                  selectedPayment === "card" ? "bg-emerald-50/30" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-2xs">
-                    <CreditCard className="size-5 text-zinc-700" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                    Add credit or debit cards
-                  </span>
-                </div>
-                {selectedPayment === "card" ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
-                )}
-              </button>
-
-              {/* Add Pluxee */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("card");
-                  setPaymentMode("online");
-                }}
-                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer bg-white"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-2xs px-1">
-                    <span className="font-black text-[10.5px] tracking-tight text-[#1a1c3d]">
-                      plux<span className="text-[#f7c800]">e</span>e
-                    </span>
-                  </div>
-                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                    Add Pluxee
-                  </span>
-                </div>
-                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
-              </button>
+        {/* SECTION 5: PAYMENT METHOD SELECTOR (Opens Blinkit Drawer on click) */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            Payment Method
+          </h2>
+          <div
+            onClick={handleProceedToPayment}
+            className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-zinc-200/90 shadow-2xs cursor-pointer hover:bg-zinc-50/80 active:scale-99 transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-emerald-50 border border-emerald-200/70 text-[#0c831f] flex items-center justify-center shadow-2xs">
+                <Smartphone className="size-5 stroke-[2.5]" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-black text-zinc-900 leading-tight">
+                  Choose Payment Option
+                </p>
+                <p className="text-[10.5px] font-medium text-zinc-400">
+                  PhonePe, Supermoney, UPI, Cards, Wallets, Pay on Delivery
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-black text-[#0c831f]">
+              <span>Select</span>
+              <ChevronRight className="size-4 stroke-[3]" />
             </div>
           </div>
-
-          {/* UPI */}
-          <div>
-            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-              UPI
-            </h2>
-            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100">
-              {/* PhonePe UPI */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("phonepe");
-                  setPaymentMode("online");
-                }}
-                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
-                  selectedPayment === "phonepe" ? "bg-emerald-50/30" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-2xs">
-                    <div className="size-6 rounded-full bg-[#5f259f] flex items-center justify-center text-white font-black text-xs shadow-2xs">
-                      पे
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
-                      PhonePe UPI
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-medium">Instant UPI Auto-Pay / QR</span>
-                  </div>
-                </div>
-                {selectedPayment === "phonepe" ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-300" />
-                )}
-              </button>
-
-              {/* Supermoney UPI */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("supermoney");
-                  setPaymentMode("online");
-                }}
-                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
-                  selectedPayment === "supermoney" ? "bg-emerald-50/30" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-2xs px-1 gap-1">
-                    <div className="size-4 shrink-0 rounded-[3.5px] bg-[#3237d6] flex items-center justify-center shadow-2xs">
-                      <Sparkles className="w-2.5 h-2.5 text-white" />
-                    </div>
-                    <div className="flex flex-col text-left font-black text-[8px] leading-[8px] tracking-tight text-[#16173d]">
-                      <span>super.</span>
-                      <span>money</span>
-                    </div>
-                  </div>
-                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                    Supermoney UPI
-                  </span>
-                </div>
-                {selectedPayment === "supermoney" ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-300" />
-                )}
-              </button>
-
-              {/* FamApp UPI */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("famapp");
-                  setPaymentMode("online");
-                }}
-                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
-                  selectedPayment === "famapp" ? "bg-emerald-50/30" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-[#ea7a1e] to-[#f49322] shadow-2xs p-1">
-                    <Zap className="w-5 h-5 text-white fill-white" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                    FamApp UPI
-                  </span>
-                </div>
-                {selectedPayment === "famapp" ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-300" />
-                )}
-              </button>
-
-              {/* Add new UPI ID */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("upi_custom");
-                  setPaymentMode("online");
-                }}
-                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
-                  selectedPayment === "upi_custom" ? "bg-emerald-50/30" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 shadow-2xs">
-                    <span className="text-base font-bold">@</span>
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
-                      Add new UPI ID / Google Pay / Paytm
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-medium">GPay, Paytm, BHIM & more</span>
-                  </div>
-                </div>
-                {selectedPayment === "upi_custom" ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* WALLETS */}
-          <div>
-            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-              Wallets
-            </h2>
-            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100">
-              {/* QuickPress Wallet */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("wallet");
-                  setPaymentMode("online");
-                }}
-                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
-                  selectedPayment === "wallet" ? "bg-emerald-50/30" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-emerald-50 text-[#0c831f] shadow-2xs">
-                    <Wallet className="size-4.5" />
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
-                      QuickPress Wallet
-                    </span>
-                    <span className="text-[10px] text-[#0c831f] font-bold">
-                      Balance: ₹{walletBalance}
-                    </span>
-                  </div>
-                </div>
-                {selectedPayment === "wallet" ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-300" />
-                )}
-              </button>
-
-              {/* Amazon Pay Balance */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("wallet");
-                  setPaymentMode("online");
-                }}
-                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer bg-white"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-950 text-white shadow-2xs px-1">
-                    <span className="font-black text-[10px] tracking-tight">pay</span>
-                  </div>
-                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                    Amazon Pay Balance
-                  </span>
-                </div>
-                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
-              </button>
-
-              {/* Mobikwik */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment("wallet");
-                  setPaymentMode("online");
-                }}
-                className="flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer bg-white"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-[#0089e0] text-white shadow-2xs px-1">
-                    <span className="font-black text-[10px] tracking-tight">M!</span>
-                  </div>
-                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                    Mobikwik
-                  </span>
-                </div>
-                <span className="text-lg font-bold text-[#e05260] pr-1">+</span>
-              </button>
-            </div>
-          </div>
-
-          {/* PAY ON DELIVERY */}
-          <div>
-            <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-              Pay on Delivery
-            </h2>
-            <div className="overflow-hidden rounded-2xl bg-white shadow-2xs border border-zinc-200/90">
-              <button
-                type="button"
-                onClick={() => {
-                  if (grandTotal < 50) {
-                    toast.error("Cash on delivery is not available for orders below ₹50.");
-                    return;
-                  }
-                  setSelectedPayment("cod");
-                  setPaymentMode("cod");
-                }}
-                className={`flex w-full items-center justify-between p-3.5 sm:p-4 hover:bg-zinc-50/80 transition-colors text-left cursor-pointer ${
-                  grandTotal < 50 ? "opacity-50 cursor-not-allowed bg-zinc-50" : selectedPayment === "cod" ? "bg-emerald-50/30" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-2xs">
-                    <Banknote className="size-5 text-[#0c831f]" />
-                  </div>
-                  <div>
-                    <span className="text-xs sm:text-sm font-bold text-zinc-900 block">
-                      Cash on Delivery / Scan on Pickup
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-medium">
-                      Pay cash or scan QR when rider arrives
-                    </span>
-                  </div>
-                </div>
-                {selectedPayment === "cod" ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-300" />
-                )}
-              </button>
-            </div>
-          </div>
-        </section>
+        </div>
 
         {/* SECTION 6: BILL DETAILS */}
         <div>
@@ -1113,47 +800,17 @@ export function CheckoutPage() {
           <button
             type="button"
             disabled={placingOrder}
-            onClick={handleProceedToPayOrOrder}
+            onClick={handleProceedToPayment}
             className="flex-1 flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0c831f] hover:bg-[#0a701a] disabled:opacity-50 text-white font-black text-xs sm:text-sm shadow-md active:scale-98 transition-all cursor-pointer"
           >
             {placingOrder ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : selectedPayment === "cod" ? (
-              <>
-                <span>PAY ON DELIVERY • ₹{grandTotal}</span>
-                <ChevronRight className="size-4.5 stroke-[3]" />
-              </>
-            ) : selectedPayment === "phonepe" ? (
-              <>
-                <span>PAY VIA PHONEPE • ₹{grandTotal}</span>
-                <ChevronRight className="size-4.5 stroke-[3]" />
-              </>
-            ) : selectedPayment === "supermoney" ? (
-              <>
-                <span>PAY VIA SUPERMONEY • ₹{grandTotal}</span>
-                <ChevronRight className="size-4.5 stroke-[3]" />
-              </>
-            ) : selectedPayment === "famapp" ? (
-              <>
-                <span>PAY VIA FAMAPP • ₹{grandTotal}</span>
-                <ChevronRight className="size-4.5 stroke-[3]" />
-              </>
-            ) : selectedPayment === "card" ? (
-              <>
-                <span>PAY VIA CARD • ₹{grandTotal}</span>
-                <ChevronRight className="size-4.5 stroke-[3]" />
-              </>
-            ) : selectedPayment === "wallet" ? (
-              <>
-                <span>PAY VIA WALLET • ₹{grandTotal}</span>
-                <ChevronRight className="size-4.5 stroke-[3]" />
+                <span>Processing Order...</span>
               </>
             ) : (
               <>
-                <span>PROCEED TO PAY • ₹{grandTotal}</span>
+                <span>PROCEED TO PAYMENT • ₹{grandTotal}</span>
                 <ChevronRight className="size-4.5 stroke-[3]" />
               </>
             )}
@@ -1197,6 +854,18 @@ export function CheckoutPage() {
           onClose={() => setShowDeliveryPicker(false)}
         />
       ) : null}
+
+      {/* Blinkit Grouped Payment Drawer */}
+      <BlinkitPaymentDrawer
+        isOpen={showPaymentDrawer}
+        onClose={() => setShowPaymentDrawer(false)}
+        grandTotal={grandTotal}
+        customerName={customerName}
+        customerPhone={customerPhone}
+        walletBalance={walletBalance}
+        onPaymentSuccess={handlePaymentSuccess}
+        onSelectCod={handleSelectCod}
+      />
     </main>
   );
 }

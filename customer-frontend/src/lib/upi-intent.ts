@@ -37,11 +37,11 @@ export function isMobileDevice(): boolean {
   return isMobileUa || (isTouch && window.innerWidth < 768);
 }
 
-export type UpiAppTarget = "phonepe" | "gpay" | "paytm" | "cred" | "any";
+export type UpiAppTarget = "phonepe" | "supermoney" | "famapp" | "gpay" | "paytm" | "cred" | "any";
 
 /**
  * Directly launches the requested UPI App on the user's mobile device.
- * Bypasses intermediate gateway popups and goes straight into PhonePe/GPay/Paytm!
+ * Bypasses intermediate gateway popups and goes straight into PhonePe/Supermoney/FamApp/GPay/Paytm!
  */
 export function launchDirectUpiApp(target: UpiAppTarget, upiUri: string): void {
   if (typeof window === "undefined") return;
@@ -57,6 +57,14 @@ export function launchDirectUpiApp(target: UpiAppTarget, upiUri: string): void {
       case "phonepe":
         // Direct PhonePe Android intent - launches PhonePe directly without intermediary gateway
         finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.phonepe.app;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
+        break;
+      case "supermoney":
+        // Direct Supermoney Android intent
+        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=in.supermoney.android;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
+        break;
+      case "famapp":
+        // Direct FamApp Android intent
+        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.famorganizer;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
         break;
       case "gpay":
         // Direct Google Pay Android intent
@@ -80,6 +88,12 @@ export function launchDirectUpiApp(target: UpiAppTarget, upiUri: string): void {
     switch (target) {
       case "phonepe":
         finalUrl = `phonepe://pay?${queryPart}`;
+        break;
+      case "supermoney":
+        finalUrl = `supermoney://pay?${queryPart}`;
+        break;
+      case "famapp":
+        finalUrl = `fampay://pay?${queryPart}`;
         break;
       case "gpay":
         finalUrl = `tez://upi/pay?${queryPart}`;
