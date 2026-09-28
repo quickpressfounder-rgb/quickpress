@@ -14,6 +14,7 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CitiesRouteImport } from './routes/cities'
 import { Route as CouponsRouteImport } from './routes/coupons'
+import { Route as CrmRouteImport } from './routes/crm'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EmailsRouteImport } from './routes/emails'
@@ -53,6 +54,11 @@ const CitiesRoute = CitiesRouteImport.update({
 const CouponsRoute = CouponsRouteImport.update({
   id: '/coupons',
   path: '/coupons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRoute = CrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersRoute = CustomersRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/cities': typeof CitiesRoute
   '/coupons': typeof CouponsRoute
+  '/crm': typeof CrmRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/emails': typeof EmailsRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/cities': typeof CitiesRoute
   '/coupons': typeof CouponsRoute
+  '/crm': typeof CrmRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/emails': typeof EmailsRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/cities': typeof CitiesRoute
   '/coupons': typeof CouponsRoute
+  '/crm': typeof CrmRoute
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/emails': typeof EmailsRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cities'
     | '/coupons'
+    | '/crm'
     | '/customers'
     | '/dashboard'
     | '/emails'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cities'
     | '/coupons'
+    | '/crm'
     | '/customers'
     | '/dashboard'
     | '/emails'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cities'
     | '/coupons'
+    | '/crm'
     | '/customers'
     | '/dashboard'
     | '/emails'
@@ -273,6 +285,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CitiesRoute: typeof CitiesRoute
   CouponsRoute: typeof CouponsRoute
+  CrmRoute: typeof CrmRoute
   CustomersRoute: typeof CustomersRoute
   DashboardRoute: typeof DashboardRoute
   EmailsRoute: typeof EmailsRoute
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/coupons'
       fullPath: '/coupons'
       preLoaderRoute: typeof CouponsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm': {
+      id: '/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof CrmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers': {
@@ -441,6 +461,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CitiesRoute: CitiesRoute,
   CouponsRoute: CouponsRoute,
+  CrmRoute: CrmRoute,
   CustomersRoute: CustomersRoute,
   DashboardRoute: DashboardRoute,
   EmailsRoute: EmailsRoute,

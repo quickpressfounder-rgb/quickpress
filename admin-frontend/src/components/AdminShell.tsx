@@ -45,7 +45,7 @@ import type { Account, AuthSession } from "@/shared/types";
 const NAV_GROUPS = [
   {
     title: "OPERATIONS",
-    items: ["dashboard", "orders", "customers", "partners", "riders"],
+    items: ["dashboard", "crm", "orders", "customers", "partners", "riders"],
   },
   {
     title: "CATALOG & NETWORK",
@@ -112,6 +112,7 @@ export function canAccessModule(moduleId: string, account?: Account | null): boo
     support: ["helpdesk", "support", "tickets"],
     staff: ["staff", "rbac", "team", "security"],
     settings: ["settings", "governance", "platform"],
+    crm: ["crm", "customers", "partners", "riders", "users", "operations"],
     orders: ["orders", "dispatch", "live"],
     customers: ["customers", "users"],
     partners: ["partners", "stores", "merchants"],

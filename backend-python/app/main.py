@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.addresses import router as addresses_router
 from app.api.health import router as health_router
 from app.api.admin import router as admin_router
+from app.api.admin_crm import router as admin_crm_router
 from app.api.admin_emails import router as admin_emails_router
 from app.api.email_tracking import router as email_tracking_router
 from app.api.email_templates_api import router as email_templates_router
@@ -206,6 +207,8 @@ def create_app() -> FastAPI:
     app.include_router(rider_router, prefix=settings.api_prefix)
     # Sprint 5.2: admin domain — dashboard, orders, customers, partners, riders.
     app.include_router(admin_router, prefix=settings.api_prefix)
+    # QuickPress Enterprise CRM & Geo-Intelligence (360 lookup, live pulse, leaderboard)
+    app.include_router(admin_crm_router, prefix=settings.api_prefix)
     # QuickPress Email Surveillance, Tracking, Template Studio & Campaigns
     app.include_router(email_templates_router, prefix=settings.api_prefix)
     app.include_router(email_campaigns_router, prefix=settings.api_prefix)

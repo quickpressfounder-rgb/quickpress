@@ -16,6 +16,7 @@ import {
   Wallet,
   Landmark,
   Mail,
+  Compass,
 } from "lucide-react";
 
 /** Central route map for the QuickPress Admin console. */
@@ -23,6 +24,7 @@ export const adminRoutes = {
   auth: "/auth",
   forgotPassword: "/forgot-password",
   dashboard: "/dashboard",
+  crm: "/crm",
   orders: "/orders",
   customers: "/customers",
   partners: "/partners",
@@ -43,6 +45,7 @@ export const adminRoutes = {
 
 export const adminNavItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: adminRoutes.dashboard },
+  { id: "crm", label: "Enterprise CRM & Geo", icon: Compass, to: adminRoutes.crm },
   { id: "orders", label: "Orders", icon: ClipboardList, to: adminRoutes.orders },
   { id: "customers", label: "Customers", icon: Users, to: adminRoutes.customers },
   { id: "partners", label: "Partners", icon: Building2, to: adminRoutes.partners },
