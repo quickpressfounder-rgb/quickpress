@@ -45,6 +45,7 @@ import {
   type TrackingData,
 } from "@/api/customer/order-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { formatOrderTime } from "@/shared/utils/order-mappers";
 
 export const Route = createFileRoute("/track/$orderId")({
   head: () => ({
@@ -229,8 +230,22 @@ function TrackOrderScreen() {
   const [cancelling, setCancelling] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [activeOrders, setActiveOrders] = useState<OrderDetail[]>([]);
+  const [deviceLocation, setDeviceLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
+
+  // Capture real-time customer GPS location for live map if address coordinates are missing
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setDeviceLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
+    }
+  }, []);
 
   /* GET /api/orders/{id} + /tracking — polled every 20s until the order is
      delivered or cancelled, so the timeline advances from real backend data. */
@@ -289,7 +304,7 @@ function TrackOrderScreen() {
 
   const steps = detail?.timeline ?? tracking?.steps ?? [];
   const stageIndex = detail?.stageIndex ?? tracking?.stageIndex ?? 0;
-  const cancelled = detail?.cancelled ?? false;
+  const cancelled = detail?.cancelled ?? (detail?.status === "cancelled") ?? false;
   const cancellable = detail?.cancellable ?? false;
 
   const progress = useMemo(
@@ -298,6 +313,38 @@ function TrackOrderScreen() {
   );
 
   const current = steps[Math.min(stageIndex, Math.max(steps.length - 1, 0))];
+
+  // Journey steps: When cancelled, progress fills completely up to Order Cancelled step
+  const journeySteps = useMemo(() => {
+    if (!cancelled) {
+      return steps.map((s, idx) => ({
+        ...s,
+        done: idx < stageIndex,
+        active: idx === stageIndex,
+        isCancelled: false,
+      }));
+    }
+    // When cancelled, take completed steps up to stageIndex (minimum step 0)
+    const priorSteps = steps.slice(0, Math.max(1, stageIndex + 1)).map((s) => ({
+      ...s,
+      done: true,
+      active: false,
+      isCancelled: false,
+    }));
+    const cancelStep = {
+      id: "order_cancelled",
+      label: "Order Cancelled",
+      description:
+        (detail as any)?.cancellationReason ||
+        detail?.cancelledReason ||
+        "Order was cancelled per platform SLA response guarantee.",
+      time: (detail as any)?.cancelledAt ? formatOrderTime((detail as any).cancelledAt) : "Cancelled",
+      done: false,
+      active: true,
+      isCancelled: true,
+    };
+    return [...priorSteps, cancelStep];
+  }, [steps, cancelled, stageIndex, detail]);
 
   /** POST /api/orders/{id}/cancel — reason is mandatory. */
   const doCancel = async () => {
@@ -416,6 +463,10 @@ function TrackOrderScreen() {
                     const custLng = Number((detail?.address as any)?.longitude);
                     const hasCustLocation = Boolean(custLat && custLng && !isNaN(custLat) && !isNaN(custLng));
 
+                    // Use real-time device location if address coords are not yet populated
+                    const effectiveCustLat = hasCustLocation ? custLat : (deviceLocation?.lat ?? partnerLat ?? 28.5355);
+                    const effectiveCustLng = hasCustLocation ? custLng : (deviceLocation?.lng ?? partnerLng ?? 77.3910);
+
                     const riderCoord = hasRiderLocation
                       ? { lat: riderLat, lng: riderLng, label: "Delivery Captain (Live)" }
                       : null;
@@ -424,9 +475,12 @@ function TrackOrderScreen() {
                       ? { lat: partnerLat, lng: partnerLng, label: (detail?.partner as any)?.name || "QuickPress Store" }
                       : null;
 
-                    const custCoord = hasCustLocation
-                      ? { lat: custLat, lng: custLng, label: "Your Location", sublabel: (detail?.address as any)?.street || "" }
-                      : null;
+                    const custCoord = {
+                      lat: effectiveCustLat,
+                      lng: effectiveCustLng,
+                      label: "Your Delivery Location",
+                      sublabel: (detail?.address as any)?.street || (detail?.address as any)?.line || "Doorstep Delivery",
+                    };
 
                     return (
                       <LiveDeliveryMap
@@ -477,21 +531,36 @@ function TrackOrderScreen() {
                     <Navigation className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p key={current?.id || "status"} className="animate-pop text-sm font-bold text-foreground">
-                      {current?.label || "Processing"}
+                    <p key={cancelled ? "cancelled" : (current?.id || "status")} className="animate-pop text-sm font-bold text-foreground">
+                      {cancelled ? "Order Cancelled" : (current?.label || "Processing")}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{tracking.liveNote}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {cancelled
+                        ? ((detail as any)?.cancellationReason || detail?.cancelledReason || "Order was cancelled per platform SLA guarantee.")
+                        : tracking.liveNote}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
-                    style={{ width: `${progress}%` }}
+                    className={`h-full rounded-full transition-all duration-700 ease-out ${
+                      cancelled ? "bg-rose-500" : "bg-primary"
+                    }`}
+                    style={{ width: cancelled ? "100%" : `${progress}%` }}
                   />
                 </div>
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                  Step {stageIndex + 1} of {steps.length}
-                </p>
+                <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.14em]">
+                  {cancelled ? (
+                    <span className="text-rose-600 font-black">Order Cancelled</span>
+                  ) : (
+                    <span className="text-muted-foreground">Step {stageIndex + 1} of {steps.length}</span>
+                  )}
+                  {cancelled && (
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold lowercase tracking-normal">
+                      💳 refund processed
+                    </span>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -745,49 +814,70 @@ function TrackOrderScreen() {
             <section className="mt-8">
               <SectionHeading title="Order journey" />
               <div className="mt-4">
-                {steps.map((step, index) => {
-                  const done = index < stageIndex;
-                  const active = index === stageIndex && !cancelled;
-                  const last = index === steps.length - 1;
+                {journeySteps.map((step, index) => {
+                  const isLast = index === journeySteps.length - 1;
                   return (
                     <div key={step.id} className="flex gap-3">
                       <div className="flex flex-col items-center">
                         <span
                           className={`flex size-8 shrink-0 items-center justify-center rounded-full transition-all duration-500 ${
-                            done
-                              ? "bg-brand-green text-background"
-                              : active
-                                ? "animate-pop bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground"
+                            step.isCancelled
+                              ? "bg-rose-600 text-white shadow-sm ring-4 ring-rose-100 dark:ring-rose-950/60"
+                              : step.done
+                                ? "bg-brand-green text-background"
+                                : step.active
+                                  ? "animate-pop bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {done ? (
+                          {step.isCancelled ? (
+                            <span className="text-sm font-black">✕</span>
+                          ) : step.done ? (
                             <Check className="size-4" />
-                          ) : active ? (
+                          ) : step.active ? (
                             <Loader2 className="size-4 animate-spin" />
                           ) : (
                             <Clock className="size-3.5" />
                           )}
                         </span>
-                        {!last ? (
+                        {!isLast ? (
                           <span
                             className={`w-0.5 flex-1 rounded-full transition-colors duration-500 ${
-                              done ? "bg-brand-green/50" : "bg-border"
+                              cancelled
+                                ? "bg-rose-500"
+                                : step.done
+                                  ? "bg-brand-green/50"
+                                  : "bg-border"
                             }`}
                           />
                         ) : null}
                       </div>
-                      <div className={`min-w-0 flex-1 ${last ? "pb-0" : "pb-6"}`}>
+                      <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-6"}`}>
                         <p
                           className={`text-sm font-bold ${
-                            done || active ? "text-foreground" : "text-muted-foreground"
+                            step.isCancelled
+                              ? "text-rose-600 dark:text-rose-400 font-black"
+                              : step.done || step.active
+                                ? "text-foreground"
+                                : "text-muted-foreground"
                           }`}
                         >
                           {step.label}
                         </p>
-                        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                        <p
+                          className={`mt-0.5 text-[11px] leading-relaxed ${
+                            step.isCancelled
+                              ? "text-rose-800 dark:text-rose-300 font-medium"
+                              : "text-muted-foreground"
+                          }`}
+                        >
                           {step.description}
                         </p>
+                        {step.isCancelled ? (
+                          <p className="mt-1 text-[10.5px] font-bold text-emerald-700 dark:text-emerald-400">
+                            💳 Refund status: Complete / Credited to QuickPress Wallet
+                          </p>
+                        ) : null}
                         <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           {step.time}
                         </p>
@@ -795,26 +885,6 @@ function TrackOrderScreen() {
                     </div>
                   );
                 })}
-                {cancelled && (
-                  <div className="mt-4 flex gap-3 rounded-2xl border-2 border-rose-500/40 bg-rose-500/10 p-3.5">
-                    <div className="flex flex-col items-center">
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white font-bold text-xs">
-                        ✕
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-black text-rose-950 dark:text-rose-200">
-                        Order Cancelled
-                      </p>
-                      <p className="mt-0.5 text-[11px] font-medium text-rose-800 dark:text-rose-300">
-                        {(detail as any)?.cancellationReason || detail?.cancelledReason || "Order was cancelled per platform SLA response guarantee."}
-                      </p>
-                      <p className="mt-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
-                        💳 Refund status: Complete / Credited to QuickPress Wallet
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
             </section>
 
@@ -972,71 +1042,7 @@ function TrackOrderScreen() {
               </section>
             ) : null}
 
-            {/* Transparent Rupee Split & Ethical Commission Breakdown */}
-            <section className="mt-4">
-              <div className="rounded-2xl border border-brand-green/25 bg-gradient-to-br from-brand-green/5 via-background to-background p-4 shadow-sm">
-                <div className="flex items-center justify-between border-b border-border/80 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-7 items-center justify-center rounded-xl bg-brand-green text-background font-black text-xs shadow-xs">
-                      ₹
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-black tracking-tight text-foreground">
-                        Where Does Your Payment Go?
-                      </h3>
-                      <p className="text-[10px] font-semibold text-muted-foreground">
-                        100% Ethical & Fair Payout Transparency
-                      </p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-brand-green/10 px-2 py-0.5 text-[9px] font-black text-brand-green border border-brand-green/20">
-                    Verified Split
-                  </span>
-                </div>
 
-                <div className="mt-3 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-blue-500" />
-                      <span>Local Store Partner (Care & Washing)</span>
-                    </span>
-                    <span className="font-bold text-foreground">
-                      ₹{Math.max(1, Math.round(((detail?.totals?.itemsTotal || 149) * 0.84) * 100) / 100).toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-emerald-500" />
-                      <span>Delivery Captain (100% Fare Payout)</span>
-                    </span>
-                    <span className="font-bold text-foreground">
-                      ₹{Math.max(35, Number((detail?.totals?.delivery || 45) + (detail?.totals?.pickup || 0))).toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-amber-500" />
-                      <span>Govt GST & Statutory Taxes</span>
-                    </span>
-                    <span className="font-bold text-foreground">
-                      ₹{Number(detail?.totals?.gst || 12.5).toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-purple-500" />
-                      <span>QuickPress Platform & Safety</span>
-                    </span>
-                    <span className="font-bold text-foreground">
-                      ₹{Math.max(15, Number((detail?.totals?.handling || 15) + Math.round(((detail?.totals?.itemsTotal || 149) * 0.15) * 100) / 100)).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </section>
 
             {/* Pickup & Delivery Schedule */}
             {detail?.pickup || detail?.delivery ? (

@@ -88,13 +88,11 @@ export function LiveDeliveryMap({
           attributionControl: false,
         });
 
-        L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-          {
-            maxZoom: 19,
-            subdomains: "abcd",
-          }
-        ).addTo(map);
+        // Crisp Google Roadmap Layer (No watermark, crisp street view)
+        L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+          maxZoom: 20,
+          subdomains: ["mt0", "mt1", "mt2", "mt3"],
+        }).addTo(map);
 
         mapInstanceRef.current = map;
         setMapReady(true);

@@ -46,6 +46,23 @@ export function FlipkartSuccessCelebration({
 }: FlipkartSuccessCelebrationProps) {
   const [particles, setParticles] = useState<ConfettiParticle[]>([]);
   const [showContent, setShowContent] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+
+  const handleDismiss = () => {
+    if (isExiting) return;
+    setIsExiting(true);
+    window.setTimeout(() => {
+      onViewDetails?.();
+    }, 280);
+  };
+
+  const handleTrack = () => {
+    if (isExiting) return;
+    setIsExiting(true);
+    window.setTimeout(() => {
+      onTrackOrder?.();
+    }, 180);
+  };
 
   useEffect(() => {
     // 1. Play Flipkart-style audio chime
@@ -87,7 +104,10 @@ export function FlipkartSuccessCelebration({
     let dismissTimer: NodeJS.Timeout | null = null;
     if (autoDismissMs && onViewDetails) {
       dismissTimer = setTimeout(() => {
-        onViewDetails();
+        setIsExiting(true);
+        window.setTimeout(() => {
+          onViewDetails();
+        }, 280);
       }, autoDismissMs);
     }
 
@@ -101,7 +121,9 @@ export function FlipkartSuccessCelebration({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#0c831f] via-[#09781d] to-[#065b16] text-white select-none overflow-hidden animate-in fade-in duration-300"
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#0c831f] via-[#09781d] to-[#065b16] text-white select-none overflow-hidden transition-all duration-300 ${
+        isExiting ? "opacity-0 scale-95 pointer-events-none" : "animate-in fade-in opacity-100 scale-100"
+      }`}
     >
       {/* CSS Floating Confetti Particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -258,7 +280,7 @@ export function FlipkartSuccessCelebration({
         {onTrackOrder ? (
           <button
             type="button"
-            onClick={onTrackOrder}
+            onClick={handleTrack}
             className="w-full h-13 rounded-2xl bg-white hover:bg-emerald-50 text-[#0c831f] font-black text-sm shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
           >
             <Navigation className="size-4.5 stroke-[2.5]" />
@@ -270,7 +292,7 @@ export function FlipkartSuccessCelebration({
         {onViewDetails ? (
           <button
             type="button"
-            onClick={onViewDetails}
+            onClick={handleDismiss}
             className="w-full py-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer"
           >
             <span>View Complete Order Summary &amp; Bill</span>

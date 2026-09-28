@@ -56,7 +56,18 @@ function OrderSuccessScreen() {
   const navigate = useNavigate();
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [copied, setCopied] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(true);
+  // Only show celebration on initial order placement; remember in sessionStorage so returning from tracking page never triggers popup again
+  const [showCelebration, setShowCelebration] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const alreadySeen = sessionStorage.getItem(`celebration_seen_${orderId}`);
+      if (alreadySeen) return false;
+      sessionStorage.setItem(`celebration_seen_${orderId}`, "true");
+      return true;
+    } catch {
+      return true;
+    }
+  });
   const [invoiceBusy, setInvoiceBusy] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
@@ -187,8 +198,13 @@ function OrderSuccessScreen() {
           orderId={order?.id || orderId}
           pickupSlot={order?.pickup?.slot || "15-30 mins"}
           storeName={order?.storeName || "QuickPress Partner Store"}
+          autoDismissMs={2500}
           onViewDetails={() => setShowCelebration(false)}
           onTrackOrder={() => {
+            try {
+              sessionStorage.setItem(`celebration_seen_${orderId}`, "true");
+            } catch {}
+            setShowCelebration(false);
             void navigate({ to: "/track/$orderId", params: { orderId } });
           }}
         />
