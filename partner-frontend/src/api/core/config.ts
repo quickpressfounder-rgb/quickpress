@@ -31,18 +31,42 @@ function readString(key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+const PRODUCTION_API_URL = "https://quickpress-api-production.up.railway.app";
+
 export function apiBaseUrl(): string {
-  const custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-  if (custom) return custom;
+  let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
+  if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
+    custom = custom.replace("quickpress-api-production-3292.up.railway.app", "quickpress-api-production.up.railway.app");
+  }
 
   if (typeof window !== "undefined") {
+    const isHttps = window.location.protocol === "https:";
+    const host = window.location.hostname;
+
+    if (isHttps) {
+      if (custom && custom.startsWith("https://")) {
+        return custom;
+      }
+      return PRODUCTION_API_URL;
+    }
+
+    if (host === "localhost" || host === "127.0.0.1") {
+      if (custom && !custom.includes("railway.app")) {
+        return custom;
+      }
+      return "http://localhost:8000";
+    }
+
     const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
     if (globalBase && typeof globalBase === "string") {
-      return globalBase.trim().replace(/\/+$/, "");
+      const cleaned = globalBase.trim().replace(/\/+$/, "");
+      return cleaned.replace("-3292", "");
     }
   }
 
-  return "https://quickpress-api-production-3292.up.railway.app";
+  if (custom && custom.startsWith("https://")) return custom;
+
+  return PRODUCTION_API_URL;
 }
 
 export function appEnvironment(): AppEnvironment {
