@@ -13,6 +13,7 @@ import {
 
 import { HIGH_VALUE_THRESHOLD, type ManagedOrder, type OrderStage } from "../data/partner-orders-mock";
 import { subscribePartnerOrders } from "@/lib/partner-socket";
+import { hasActiveSessionToken } from "@/api/core/session-store";
 
 /* ------------------------------------------------------------------ */
 /* Filter / sort vocabulary                                            */
@@ -287,9 +288,10 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
 
   const load = useCallback(
     async (opts: { refreshing?: boolean; silent?: boolean } = {}) => {
-      // Do not fetch orders or ring alarm if on registration/auth/splash pages
-      if (!isOperationalRoute()) {
+      // Do not fetch orders or ring alarm if on registration/auth/splash pages or unauthenticated
+      if (!isOperationalRoute() || !hasActiveSessionToken("partner")) {
         stopOrderAlarm();
+        setIsLoading(false);
         return;
       }
 
@@ -386,11 +388,14 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
 
   // Initial load
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (hasActiveSessionToken("partner") && isOperationalRoute()) {
+      void load();
+    }
+  }, [load, isOperationalRoute]);
 
   // Real-time Socket.IO subscription for 0ms latency live order events
   useEffect(() => {
+    if (!hasActiveSessionToken("partner")) return;
     const unsub = subscribePartnerOrders((data) => {
       console.log("[PartnerOrdersContext] ⚡ Socket order event:", data);
       void load({ silent: true });
@@ -400,11 +405,14 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
 
   // Gentle background safety poll (every 10s instead of thrashing every 3s)
   useEffect(() => {
+    if (!hasActiveSessionToken("partner")) return;
     const pollInterval = setInterval(() => {
-      void load({ silent: true });
+      if (hasActiveSessionToken("partner") && isOperationalRoute()) {
+        void load({ silent: true });
+      }
     }, 10000);
     return () => clearInterval(pollInterval);
-  }, [load]);
+  }, [load, isOperationalRoute]);
 
   // Stop alarm on unmount
   useEffect(() => {

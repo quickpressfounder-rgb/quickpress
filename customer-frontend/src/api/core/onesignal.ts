@@ -8,7 +8,9 @@
  * 4. High-priority foreground notification listener & alarm triggers.
  */
 
-export const ONESIGNAL_APP_ID = "184bda82-7c5b-4319-a977-4fcffbcca270";
+export const ONESIGNAL_APP_ID =
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_ONESIGNAL_APP_ID) ||
+  "";
 
 declare global {
   interface Window {
@@ -24,11 +26,15 @@ let isInitialized = false;
  */
 export function initOneSignal(): void {
   if (typeof window === "undefined" || isInitialized) return;
+  if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.includes("184bda82")) {
+    return;
+  }
   isInitialized = true;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function (OneSignal: any) {
     try {
+      if (!OneSignal || typeof OneSignal.init !== "function") return;
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
         allowLocalhostAsSecureOrigin: true,

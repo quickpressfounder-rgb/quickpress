@@ -18,7 +18,12 @@ export function LanguageSelectionModal({
   const isOpen = forcedIsOpen !== undefined ? forcedIsOpen : isLanguageModalOpen;
   const handleClose = customOnClose || closeLanguageModal;
 
+  const [mounted, setMounted] = useState(false);
   const [selectedLang, setSelectedLang] = useState<LanguageCode>(language);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -26,7 +31,7 @@ export function LanguageSelectionModal({
     }
   }, [isOpen, language]);
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
   const handleConfirm = () => {
     setLanguage(selectedLang);

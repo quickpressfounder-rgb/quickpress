@@ -31,37 +31,43 @@ function readString(key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+const PRODUCTION_API_URL = "https://quickpress-api-production.up.railway.app";
+
 export function apiBaseUrl(): string {
   let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-
-  // If in browser and accessed via LAN IP / custom hostname (e.g. 10.68.250.159), dynamically rewrite localhost
-  // so mobile devices or remote browsers on same Wi-Fi reach the host's backend directly
-  if (typeof window !== "undefined" && window.location?.hostname) {
-    const host = window.location.hostname;
-    if (host !== "localhost" && host !== "127.0.0.1") {
-      if (custom.includes("localhost")) {
-        custom = custom.replace("localhost", host);
-      } else if (custom.includes("127.0.0.1")) {
-        custom = custom.replace("127.0.0.1", host);
-      } else if (!custom) {
-        return `http://${host}:8000`;
-      }
-    }
+  if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
+    custom = custom.replace("-3292", "");
   }
-
-  if (custom) return custom;
 
   if (typeof window !== "undefined") {
-    const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
-    if (globalBase && typeof globalBase === "string") {
-      return globalBase.trim().replace(/\/+$/, "");
+    const isHttps = window.location.protocol === "https:";
+    const host = window.location.hostname;
+
+    if (isHttps) {
+      if (custom && custom.startsWith("https://")) {
+        return custom;
+      }
+      return PRODUCTION_API_URL;
     }
-    if (window.location?.hostname) {
-      return `http://${window.location.hostname}:8000`;
+
+    if (host === "localhost" || host === "127.0.0.1") {
+      return custom || "http://localhost:8000";
     }
+
+    // LAN IP check
+    const isPrivateIp = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
+    if (isPrivateIp) {
+      if (custom.includes("localhost")) return custom.replace("localhost", host);
+      if (custom.includes("127.0.0.1")) return custom.replace("127.0.0.1", host);
+      return `http://${host}:8000`;
+    }
+
+    if (custom && custom.startsWith("https://")) return custom;
+    return PRODUCTION_API_URL;
   }
 
-  return "http://localhost:8000";
+  if (custom && custom.startsWith("https://")) return custom;
+  return PRODUCTION_API_URL;
 }
 
 export function appEnvironment(): AppEnvironment {

@@ -24,6 +24,7 @@ import {
   type ShopStatistics,
   type ShopStatusId,
 } from "../data/partner-shop-mock";
+import { hasActiveSessionToken } from "@/api/core/session-store";
 
 export type ShopEditableFields = Pick<
   ShopProfile,
@@ -155,6 +156,10 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (!hasActiveSessionToken("partner")) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -223,7 +228,11 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void load();
+    if (hasActiveSessionToken("partner")) {
+      void load();
+    } else {
+      setIsLoading(false);
+    }
   }, [load]);
 
   const refresh = useCallback(() => load(), [load]);

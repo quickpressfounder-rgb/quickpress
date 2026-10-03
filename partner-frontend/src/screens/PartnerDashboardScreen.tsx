@@ -42,6 +42,7 @@ import { usePartnerOrders } from "../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../hooks/use-order-action-handler";
 import { usePartnerContext } from "../context/PartnerContext";
 import { useLanguage } from "../lib/i18n";
+import { hasActiveSessionToken } from "@/api/core/session-store";
 
 const STATUS_TO_LIVE: Record<string, LiveOrder["status"]> = {
   new: "pending",
@@ -105,29 +106,41 @@ export function PartnerDashboardScreen() {
   const { handleAction, sheetNode, overlay } = useOrderActionHandler();
   const { t, language } = useLanguage();
 
-  const cached = useMemo(getCachedDashboard, []);
+  const [shop, setShop] = useState<DashboardShop | null>(null);
+  const [summary, setSummary] = useState<DashboardSummaryCard | null>(null);
+  const [quickStats, setQuickStats] = useState<QuickStat[]>([]);
+  const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [trackingOrder, setTrackingOrder] = useState<LiveOrder | null>(null);
 
-  const [shop, setShop] = useState<DashboardShop | null>(() => {
-    if (cached.shop) return cached.shop;
-    if (session?.businessName) {
-      return {
+  // Restore cached dashboard data strictly after hydration to prevent React error #418
+  useEffect(() => {
+    const cached = getCachedDashboard();
+    if (cached.shop) {
+      setShop(cached.shop);
+    } else if (session?.businessName) {
+      setShop({
         shopName: session.businessName,
         partnerName: session.ownerName || "Partner",
         logoInitials: (session.businessName || "QP").slice(0, 2).toUpperCase(),
         isVerified: session.isVerified,
         notifications: 0,
-      };
+      });
     }
-    return null;
-  });
-  const [summary, setSummary] = useState<DashboardSummaryCard | null>(cached.summary);
-  const [quickStats, setQuickStats] = useState<QuickStat[]>(cached.quickStats);
-  const [earnings, setEarnings] = useState<EarningsSummary | null>(cached.earnings);
-  const [isLoading, setIsLoading] = useState(() => !cached.shop && !cached.summary && !session);
-  const [error, setError] = useState<string | null>(null);
-  const [trackingOrder, setTrackingOrder] = useState<LiveOrder | null>(null);
+    if (cached.summary) setSummary(cached.summary);
+    if (cached.quickStats && cached.quickStats.length > 0) setQuickStats(cached.quickStats);
+    if (cached.earnings) setEarnings(cached.earnings);
+    if (cached.shop || cached.summary) {
+      setIsLoading(false);
+    }
+  }, [session]);
 
   const load = useCallback(async () => {
+    if (!hasActiveSessionToken("partner")) {
+      navigate({ to: partnerRoutes.auth });
+      return;
+    }
     if (!shop && !summary) setIsLoading(true);
     setError(null);
     try {
@@ -219,7 +232,9 @@ export function PartnerDashboardScreen() {
   }, [navigate, shop, summary]);
 
   useEffect(() => {
-    void load();
+    if (hasActiveSessionToken("partner")) {
+      void load();
+    }
   }, [load]);
 
   const refresh = useCallback(async () => {

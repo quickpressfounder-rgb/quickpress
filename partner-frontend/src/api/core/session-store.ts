@@ -128,7 +128,24 @@ export function clearSession(role: string = activeRole): void {
 }
 
 export function readToken(role: string = activeRole): string | null {
-  return readSession(role)?.token ?? null;
+  const direct = readSession(role)?.token;
+  if (direct && typeof direct === "string" && direct.trim()) return direct.trim();
+  if (typeof window !== "undefined") {
+    const raw =
+      window.localStorage.getItem(`qp_${role}_token`) ||
+      window.localStorage.getItem("qp_partner_token") ||
+      window.localStorage.getItem("qp_access_token") ||
+      window.sessionStorage.getItem(`qp_${role}_token`) ||
+      window.sessionStorage.getItem("qp_partner_token");
+    if (raw && typeof raw === "string" && raw.trim()) return raw.trim();
+  }
+  return null;
+}
+
+/** Returns true if a valid authentication token is present in memory or web storage. */
+export function hasActiveSessionToken(role: string = activeRole): boolean {
+  const tok = readToken(role);
+  return Boolean(tok && tok.length > 10);
 }
 
 /** Access-token expiry for this role, or null when there is no session. */
@@ -145,3 +162,4 @@ export function subscribeSession(listener: () => void): () => void {
     listeners.delete(listener);
   };
 }
+

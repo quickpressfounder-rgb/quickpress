@@ -2,14 +2,16 @@
  * OneSignal Web & Mobile Push Notification Engine — QuickPress Partner.
  *
  * Provides:
- * 1. Client initialization with App ID 184bda82-7c5b-4319-a977-4fcffbcca270
- * 2. User identification (login / logout) mapping to Backend Partner ID.
- * 3. High-priority foreground notification listener & continuous Zomato siren alarm trigger.
+ * 1. Safe Client initialization guarded against unconfigured web push origins
+ * 2. Partner user identification (login / logout) mapping
+ * 3. High-priority foreground notification listener & continuous Zomato siren alarm trigger
  */
 
 import { startOrderAlarm } from "@/lib/order-alarm";
 
-export const ONESIGNAL_APP_ID = "184bda82-7c5b-4319-a977-4fcffbcca270";
+export const ONESIGNAL_APP_ID =
+  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_ONESIGNAL_APP_ID) ||
+  "";
 
 declare global {
   interface Window {
@@ -19,17 +21,25 @@ declare global {
 }
 
 let isInitialized = false;
+let isConfiguredForWebPush = false;
 
 /**
  * Initializes OneSignal Web SDK for Partner Hub.
  */
 export function initOneSignal(): void {
   if (typeof window === "undefined" || isInitialized) return;
+
+  // If App ID is missing or is the placeholder ID without web push configured, skip gracefully
+  if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.includes("184bda82")) {
+    return;
+  }
   isInitialized = true;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function (OneSignal: any) {
     try {
+      if (!OneSignal || typeof OneSignal.init !== "function") return;
+
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
         allowLocalhostAsSecureOrigin: true,
@@ -38,8 +48,10 @@ export function initOneSignal(): void {
         },
       });
 
+      isConfiguredForWebPush = true;
+
       // When an incoming order notification is received in foreground, ring the Zomato alarm!
-      OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+      OneSignal?.Notifications?.addEventListener?.("foregroundWillDisplay", (event: any) => {
         try {
           const notif = event?.notification;
           const data = notif?.additionalData || {};
@@ -51,20 +63,30 @@ export function initOneSignal(): void {
           if (isOrder) {
             startOrderAlarm(data?.orderCode || data?.orderId);
           }
-        } catch (err) {
-          console.warn("[OneSignal-Partner] Foreground alarm trigger error:", err);
+        } catch {
+          // Quiet
         }
       });
 
       // Listen for subscription changes and sync with backend
-      OneSignal.User.PushSubscription.addEventListener("change", async (event: any) => {
-        const subscriptionId = event?.current?.id;
-        if (subscriptionId) {
-          await syncPlayerIdWithBackend(subscriptionId);
+      OneSignal?.User?.PushSubscription?.addEventListener?.("change", async (event: any) => {
+        try {
+          const subscriptionId = event?.current?.id;
+          if (subscriptionId) {
+            await syncPlayerIdWithBackend(subscriptionId);
+          }
+        } catch {
+          // Quiet
         }
       });
-    } catch (err) {
-      console.warn("[OneSignal-Partner] Init warning:", err);
+    } catch (err: any) {
+      isConfiguredForWebPush = false;
+      const msg = String(err?.message || err);
+      if (msg.includes("not configured for web push")) {
+        // App not configured for web push in OneSignal console; suppress cleanly
+        return;
+      }
+      console.warn("[OneSignal-Partner] Init note:", err);
     }
   });
 }
@@ -74,7 +96,10 @@ export function initOneSignal(): void {
  */
 async function syncPlayerIdWithBackend(playerId: string): Promise<void> {
   try {
-    const token = localStorage.getItem("qp_partner_token") || sessionStorage.getItem("qp_partner_token") || localStorage.getItem("qp_access_token");
+    const token =
+      localStorage.getItem("qp_partner_token") ||
+      sessionStorage.getItem("qp_partner_token") ||
+      localStorage.getItem("qp_access_token");
     if (!token) return;
 
     await fetch("/api/notifications/onesignal/player-id", {
@@ -95,18 +120,24 @@ async function syncPlayerIdWithBackend(playerId: string): Promise<void> {
  */
 export async function onesignalLogin(partnerId: string): Promise<void> {
   if (typeof window === "undefined" || !partnerId) return;
+  if (!isConfiguredForWebPush && (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.includes("184bda82"))) {
+    return;
+  }
 
   initOneSignal();
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function (OneSignal: any) {
     try {
-      await OneSignal.login(partnerId);
-      const subscriptionId = OneSignal.User?.PushSubscription?.id;
-      if (subscriptionId) {
-        await syncPlayerIdWithBackend(subscriptionId);
+      if (!isConfiguredForWebPush) return;
+      if (OneSignal && typeof OneSignal.login === "function") {
+        await OneSignal.login(partnerId);
+        const subscriptionId = OneSignal.User?.PushSubscription?.id;
+        if (subscriptionId) {
+          await syncPlayerIdWithBackend(subscriptionId);
+        }
       }
-    } catch (err) {
-      console.warn("[OneSignal-Partner] Login error:", err);
+    } catch {
+      // Gracefully prevent unhandled login crashes if OneSignal backend is unconfigured
     }
   });
 }
@@ -116,13 +147,16 @@ export async function onesignalLogin(partnerId: string): Promise<void> {
  */
 export async function onesignalLogout(): Promise<void> {
   if (typeof window === "undefined") return;
+  if (!isConfiguredForWebPush) return;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function (OneSignal: any) {
     try {
-      await OneSignal.logout();
-    } catch (err) {
-      console.warn("[OneSignal-Partner] Logout error:", err);
+      if (OneSignal && typeof OneSignal.logout === "function") {
+        await OneSignal.logout();
+      }
+    } catch {
+      // Quiet
     }
   });
 }
@@ -131,13 +165,17 @@ export async function onesignalLogout(): Promise<void> {
  * Requests push notification permission from the partner.
  */
 export async function requestOneSignalPermission(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined" || !isConfiguredForWebPush) return false;
 
   initOneSignal();
   return new Promise((resolve) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function (OneSignal: any) {
       try {
+        if (!OneSignal?.Notifications?.requestPermission) {
+          resolve(false);
+          return;
+        }
         const permission = await OneSignal.Notifications.requestPermission();
         resolve(permission === true || permission === "granted");
       } catch {

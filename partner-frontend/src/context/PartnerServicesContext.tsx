@@ -18,6 +18,7 @@ import {
   type ServiceIconKey,
   type ServiceOffer,
 } from "../data/partner-services-mock";
+import { hasActiveSessionToken } from "@/api/core/session-store";
 
 /* ------------------------------------------------------------------ */
 /* Filter / sort vocabulary                                            */
@@ -190,14 +191,17 @@ function writeCachedServices(list: ManagedService[]) {
 }
 
 export function PartnerServicesProvider({ children }: { children: ReactNode }) {
-  const [services, setServices] = useState<ManagedService[]>(() => readCachedServices());
+  const [services, setServices] = useState<ManagedService[]>([]);
   const [offers, setOffers] = useState<ServiceOffer[]>([]);
-  const [isLoading, setIsLoading] = useState(() => readCachedServices().length === 0);
+  const [isLoading, setIsLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (readCachedServices().length === 0) setIsLoading(true);
+    if (!hasActiveSessionToken("partner")) {
+      setIsLoading(false);
+      return;
+    }
     setError(null);
     try {
       const items = await fetchPartnerServices();
@@ -212,7 +216,13 @@ export function PartnerServicesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void load();
+    const cached = readCachedServices();
+    if (cached.length > 0) {
+      setServices(cached);
+    }
+    if (hasActiveSessionToken("partner")) {
+      void load();
+    }
   }, [load]);
 
   const refresh = useCallback(() => load(), [load]);

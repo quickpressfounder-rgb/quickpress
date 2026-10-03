@@ -17,7 +17,7 @@ import {
 } from "@/api/partner/partner-auth-api";
 import { toggleStoreStatus, fetchPartnerProfile } from "@/api/partner/partner-profile-api";
 import { initPartnerSocket, subscribePartnerStatus } from "@/lib/partner-socket";
-import { readSession, writeSession } from "@/api/core/session-store";
+import { hasActiveSessionToken, readSession, writeSession } from "@/api/core/session-store";
 
 type PartnerContextValue = {
   session: PartnerSession | null;
@@ -49,14 +49,10 @@ function getStoredPhone(): string {
 const PartnerContext = createContext<PartnerContextValue | null>(null);
 
 export function PartnerProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<PartnerSession | null>(getStoredPartnerSession);
-  const [phone, setPhoneState] = useState(() => getStoredPartnerSession()?.phone || getStoredPhone());
-  const [hydrating, setHydrating] = useState(() => !getStoredPartnerSession());
-  const [isOnline, setIsOnlineState] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(ONLINE_STORAGE_KEY);
-    return stored !== null ? stored === "1" : true;
-  });
+  const [session, setSession] = useState<PartnerSession | null>(null);
+  const [phone, setPhoneState] = useState("");
+  const [hydrating, setHydrating] = useState(true);
+  const [isOnline, setIsOnlineState] = useState<boolean>(true);
 
   const setPhone = useCallback((newPhone: string) => {
     setPhoneState(newPhone);
@@ -74,6 +70,22 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   // Auto login: stored QuickPress JWT + live Firebase user → signed in.
   useEffect(() => {
     let active = true;
+
+    // Synchronize stored session after hydration without mismatching SSR
+    const initialSession = getStoredPartnerSession();
+    if (initialSession) {
+      setSession(initialSession);
+      if (initialSession.phone) setPhoneState(initialSession.phone);
+    } else {
+      const ph = getStoredPhone();
+      if (ph) setPhoneState(ph);
+    }
+
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem(ONLINE_STORAGE_KEY);
+      if (stored !== null) setIsOnlineState(stored === "1");
+    }
+
     void restorePartnerSession()
       .then((restored) => {
         if (!active) return;
@@ -93,7 +105,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
 
   // Sync real store status from backend on session restore
   useEffect(() => {
-    if (!session) return;
+    if (!session || !hasActiveSessionToken("partner")) return;
     let active = true;
     void fetchPartnerProfile()
       .then((prof) => {
@@ -115,7 +127,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
 
   // Realtime Socket.IO listener for store status
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !session || !hasActiveSessionToken("partner")) return;
     initPartnerSocket();
     const unsub = subscribePartnerStatus((data) => {
       if (data && typeof data.isOnline === "boolean") {
@@ -126,7 +138,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
       }
     });
     return unsub;
-  }, []);
+  }, [session]);
 
   // Listen to custom cross-window / cross-screen store status events
   useEffect(() => {

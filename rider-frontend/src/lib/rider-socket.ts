@@ -14,14 +14,26 @@ const orderListeners = new Set<(order: any) => void>();
 const walletListeners = new Set<(wallet: any) => void>();
 const notificationListeners = new Set<(notif: any) => void>();
 
+const PRODUCTION_SOCKET_URL = "https://quickpress-api-production.up.railway.app";
+
 function getSocketUrl(): string {
-  if (typeof window === "undefined") return "http://localhost:8000";
+  if (typeof window === "undefined") return PRODUCTION_SOCKET_URL;
   const custom = import.meta.env["VITE_SOCKET_URL"] || import.meta.env["VITE_API_BASE_URL"];
   if (custom && typeof custom === "string" && custom.trim()) {
-    return custom.trim().replace(/\/+$/, "");
+    let clean = custom.trim().replace(/\/+$/, "");
+    if (clean.includes("quickpress-api-production-3292.up.railway.app")) {
+      clean = clean.replace("-3292", "");
+    }
+    if (clean.startsWith("http://") && window.location.protocol === "https:") {
+      return clean.replace("http://", "https://");
+    }
+    return clean;
   }
   const host = window.location.hostname || "localhost";
-  return `http://${host}:8000`;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return "http://localhost:8000";
+  }
+  return PRODUCTION_SOCKET_URL;
 }
 
 function joinRiderRooms(s: Socket) {

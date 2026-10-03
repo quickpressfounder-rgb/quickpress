@@ -62,6 +62,13 @@ async function httpRequest<T>(
 
   const token = options.anonymous ? null : readToken();
 
+  // If requesting a protected partner endpoint without any session token, reject early to prevent 401 spam
+  if (!token && !options.anonymous && path.startsWith("/api/partner/") && !path.includes("/auth")) {
+    clearTimeout(timeout);
+    external?.removeEventListener("abort", forward);
+    throw new ApiError("unauthorized", "Partner is not authenticated", 401);
+  }
+
   try {
     const response = await fetch(`${apiBaseUrl()}${withQuery(path, options.params)}`, {
       method,

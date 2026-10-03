@@ -1749,21 +1749,24 @@ function translateText(text: string, lang: LanguageCode): string {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLangState] = useState<LanguageCode>(() => {
-    if (typeof window !== "undefined") {
-      const saved = window.localStorage.getItem(STORAGE_KEY) as LanguageCode;
-      if (saved && TRANSLATIONS[saved]) return saved;
-    }
-    return "en";
-  });
+  const [language, setLangState] = useState<LanguageCode>("en");
+  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
 
-  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(() => {
-    if (typeof window !== "undefined") {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY) as LanguageCode;
+      if (saved && TRANSLATIONS[saved]) {
+        setLangState(saved);
+      }
       const alreadyChosen = window.localStorage.getItem(FIRST_TIME_KEY);
-      return !alreadyChosen;
+      if (!alreadyChosen) {
+        setIsLanguageModalOpen(true);
+      }
+    } catch {
+      /* ignore */
     }
-    return false;
-  });
+  }, []);
 
   const setLanguage = (newLang: LanguageCode) => {
     if (TRANSLATIONS[newLang]) {
