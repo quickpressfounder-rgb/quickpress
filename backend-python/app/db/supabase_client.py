@@ -647,8 +647,8 @@ class SupabaseDatabase:
         """Returns database connection pool utilization and query performance telemetry."""
         active = 0
         free = 0
-        max_size = 20
-        min_size = 2
+        max_size = 4
+        min_size = 1
         if self._pool is not None and not self._pool._closed:
             try:
                 active = self._pool.get_size() - self._pool.get_idle_size()
@@ -684,12 +684,12 @@ class SupabaseDatabase:
                 ssl_mode = "require" if ("supabase" in self.database_url or "pooler" in self.database_url or "sslmode=require" in self.database_url) else None
                 self._pool = await asyncpg.create_pool(
                     self.database_url,
-                    min_size=2,
-                    max_size=20,
+                    min_size=1,
+                    max_size=4,
                     max_inactive_connection_lifetime=300.0,
                     statement_cache_size=0,
-                    command_timeout=25.0,
-                    timeout=20.0,
+                    command_timeout=15.0,
+                    timeout=12.0,
                     ssl=ssl_mode,
                 )
                 self._loop = current_loop

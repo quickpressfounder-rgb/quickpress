@@ -610,12 +610,10 @@ class PartnerOrderRepository:
         }
         res = await self._transition(partner_id, order_id, lifecycle.PARTNER_ACCEPTED, changes=changes)
 
-        # Trigger automatic nearby rider search and offer dispatch upon Partner Acceptance
+        # Trigger automatic nearby rider search and offer dispatch upon Partner Acceptance asynchronously
+        import asyncio
         from app.services.smart_2ride_engine import smart_2ride_engine
-        try:
-            await smart_2ride_engine.create_ride_1_pickup(order_id)
-        except Exception as e:
-            logger.error("Auto rider dispatch failed for order %s: %s", order_id, e)
+        asyncio.create_task(smart_2ride_engine.create_ride_1_pickup(order_id))
 
         return res
 

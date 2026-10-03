@@ -54,12 +54,120 @@ export function setAudioLanguage(lang: "hi-IN" | "en-IN"): void {
   window.localStorage.setItem(AUDIO_LANG_KEY, lang);
 }
 
+// Cached Blob URL for synthesized metallic bell chime WAV
+let cachedBellWavUrl: string | null = null;
+
+function getBellChimeUrl(): string {
+  if (cachedBellWavUrl) return cachedBellWavUrl;
+  try {
+    const sampleRate = 22050;
+    const duration = 1.4;
+    const numSamples = Math.floor(sampleRate * duration);
+    const buffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buffer);
+
+    const writeStr = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+      }
+    };
+
+    writeStr(0, "RIFF");
+    view.setUint32(4, 36 + numSamples * 2, true);
+    writeStr(8, "WAVE");
+    writeStr(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(22, 1, true); // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true); // 16-bit
+    writeStr(36, "data");
+    view.setUint32(40, numSamples * 2, true);
+
+    let offset = 44;
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      let sample = 0;
+      // Strike 1: C6 (1046 Hz)
+      if (t >= 0 && t < 0.5) {
+        const dt = t;
+        const decay = Math.exp(-dt * 6.5);
+        sample += (Math.sin(2 * Math.PI * 1046.5 * dt) * 0.55 + Math.sin(2 * Math.PI * 2093.0 * dt) * 0.25) * decay;
+      }
+      // Strike 2: G5 (784 Hz)
+      if (t >= 0.22 && t < 0.75) {
+        const dt = t - 0.22;
+        const decay = Math.exp(-dt * 6.5);
+        sample += (Math.sin(2 * Math.PI * 783.99 * dt) * 0.55 + Math.sin(2 * Math.PI * 1568.0 * dt) * 0.25) * decay;
+      }
+      // Strike 3: C6 (1046 Hz)
+      if (t >= 0.55 && t < 1.05) {
+        const dt = t - 0.55;
+        const decay = Math.exp(-dt * 6.5);
+        sample += (Math.sin(2 * Math.PI * 1046.5 * dt) * 0.55 + Math.sin(2 * Math.PI * 2093.0 * dt) * 0.25) * decay;
+      }
+      // Strike 4: A5 (880 Hz)
+      if (t >= 0.77 && t < 1.35) {
+        const dt = t - 0.77;
+        const decay = Math.exp(-dt * 6.5);
+        sample += (Math.sin(2 * Math.PI * 880.0 * dt) * 0.55 + Math.sin(2 * Math.PI * 1760.0 * dt) * 0.25) * decay;
+      }
+      const intSample = Math.max(-1, Math.min(1, sample)) * 32767;
+      view.setInt16(offset, intSample, true);
+      offset += 2;
+    }
+
+    const blob = new Blob([buffer], { type: "audio/wav" });
+    cachedBellWavUrl = URL.createObjectURL(blob);
+    return cachedBellWavUrl;
+  } catch {
+    return "";
+  }
+}
+
+let isGlobalUnlockerInstalled = false;
+
+/** Installs global one-shot interaction listeners on window to warm up audio on first touch */
+export function installGlobalAudioUnlocker(): void {
+  if (typeof window === "undefined" || isGlobalUnlockerInstalled) return;
+  isGlobalUnlockerInstalled = true;
+
+  const onUserInteraction = () => {
+    unlockAudioContext();
+    window.removeEventListener("pointerdown", onUserInteraction);
+    window.removeEventListener("touchstart", onUserInteraction);
+    window.removeEventListener("click", onUserInteraction);
+    window.removeEventListener("keydown", onUserInteraction);
+  };
+
+  window.addEventListener("pointerdown", onUserInteraction, { passive: true });
+  window.addEventListener("touchstart", onUserInteraction, { passive: true });
+  window.addEventListener("click", onUserInteraction, { passive: true });
+  window.addEventListener("keydown", onUserInteraction, { passive: true });
+}
+
 export function unlockAudioContext(): void {
   if (typeof window === "undefined") return;
   try {
     const ctx = getAudioContext();
     if (ctx && ctx.state === "suspended") {
       void ctx.resume();
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // Pre-instantiate and prime HTML5 Audio element
+  try {
+    if (!activeBellAudio) {
+      const url = getBellChimeUrl();
+      if (url) {
+        activeBellAudio = new Audio(url);
+        activeBellAudio.preload = "auto";
+        activeBellAudio.volume = 1.0;
+      }
     }
   } catch {
     /* ignore */
@@ -108,8 +216,6 @@ function triggerBellStrike(
   masterVolume: number = 0.5
 ) {
   const now = ctx.currentTime + timeOffset;
-  // Overtones for an authentic metallic bell ring:
-  // Fundamental, octave, minor third octave, super octave
   const harmonics = [
     { ratio: 1.0, gain: 0.6 },
     { ratio: 2.0, gain: 0.35 },
@@ -126,7 +232,6 @@ function triggerBellStrike(
       osc.type = "sine";
       osc.frequency.setValueAtTime(baseFreq * ratio, now);
 
-      // Sharp transient bell attack and exponential acoustic decay
       gainNode.gain.setValueAtTime(0.001, now);
       gainNode.gain.linearRampToValueAtTime(gain * masterVolume, now + 0.005);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
@@ -173,20 +278,36 @@ export function playOrderAlertSound() {
   try {
     stopOrderAlertSound();
 
+    // Engine 1: Web Audio API Oscillator synthesizer
     const ctx = getAudioContext();
     if (ctx) {
       if (ctx.state === "suspended") {
         void ctx.resume();
       }
-      // Play first cycle immediately
       playBellCycle(ctx);
 
-      // Repeat bell rhythm every 1.4 seconds until stopped
       activeBellInterval = setInterval(() => {
         if (!ctx || ctx.state === "closed") return;
         playBellCycle(ctx);
         triggerHaptic([350, 150, 350, 150, 600, 300]);
       }, 1400);
+    }
+
+    // Engine 2: Native HTML5 Audio with embedded WAV chime (Guaranteed fallback when AudioContext is suspended)
+    try {
+      const chimeUrl = getBellChimeUrl();
+      if (chimeUrl) {
+        if (!activeBellAudio) {
+          activeBellAudio = new Audio(chimeUrl);
+        } else {
+          activeBellAudio.src = chimeUrl;
+        }
+        activeBellAudio.loop = true;
+        activeBellAudio.volume = 1.0;
+        void activeBellAudio.play().catch(() => {});
+      }
+    } catch {
+      /* ignore audio element errors */
     }
 
     // Auto-stop after 30 seconds safety timeout if not interacted

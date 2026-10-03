@@ -139,11 +139,13 @@ function RootShell({ children }: { children: ReactNode }) {
 import { GlobalOrderDispatchListener } from "@/components/orders/GlobalOrderDispatchListener";
 import { CapacitorBackHandler } from "@/components/common/CapacitorBackHandler";
 import { Toaster } from "@/shared/ui/sonner";
+import { installGlobalAudioUnlocker } from "@/lib/captain-audio";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
+    installGlobalAudioUnlocker();
     import("@/api/core/onesignal").then((m) => m.initOneSignal()).catch(() => {});
   }, []);
 

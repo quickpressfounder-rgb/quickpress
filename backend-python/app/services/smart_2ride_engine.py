@@ -901,12 +901,12 @@ class Smart2RideEngine:
                 if len(active_rides) >= 1:
                     continue
 
-                # Floating COD Cash Limit Check (Finance Security)
+                # Floating COD Cash Limit Check (Only applicable for Cash-on-Delivery Delivery Rides, NOT Pickup Rides)
                 floating_cash = float(rider.get("floatingCash") or rider.get("cashInHand") or 0.0)
-                max_cod_limit = float(rider.get("maxCodLimit") or 3000.0)
+                max_cod_limit = float(rider.get("maxCodLimit") or 50000.0)
                 if floating_cash >= max_cod_limit:
                     logger.info(
-                        "Captain %s floating COD cash (₹%.2f) reached or exceeded limit (₹%.2f). Skipping new dispatch.",
+                        "Captain %s floating COD cash (₹%.2f) reached limit (₹%.2f). Skipping new dispatch.",
                         r_id,
                         floating_cash,
                         max_cod_limit,
@@ -1021,95 +1021,6 @@ class Smart2RideEngine:
             )
             return
 
-        # ---------------------------------------------------------------------
-        # DIRECT AUTO-ASSIGNMENT TO NEAREST ONLINE CAPTAIN
-        # ---------------------------------------------------------------------
-        if ranked_riders:
-            best_rider, best_dist = ranked_riders[0]
-            r_id = str(best_rider.get("_id") or best_rider.get("riderId") or best_rider.get("id") or "")
-            if r_id:
-                try:
-                    logger.info("Direct Auto-Assign: Instantly assigning Ride %s to closest Captain %s (dist=%.2f km)", ride_id, r_id, best_dist)
-                    assigned_ride = await self.handle_rider_accept(ride_id, r_id)
-
-                    r_phone = str(best_rider.get("phone") or "").replace("+", "").strip()
-                    r_uid = str(best_rider.get("userId") or "").strip()
-                    assign_payload = {
-                        "type": "direct_trip_assigned",
-                        "event": "order.trip_assigned",
-                        "rideId": ride_id,
-                        "orderId": order_id,
-                        "orderCode": ride.get("orderCode"),
-                        "rideType": ride_type,
-                        "riderId": r_id,
-                        "status": "assigned",
-                        "orderStatus": "pickup_rider_accepted" if ride_type == "pickup" else "delivery_rider_accepted",
-                        "distanceKm": round(best_dist, 1),
-                        "pickupDistanceKm": round(best_dist, 1),
-                        "fare": ride.get("fare") or ride.get("estimatedEarning", 45),
-                        "estimatedEarning": ride.get("estimatedEarning", 45),
-                        "pickupTitle": target_loc.get("contactName") or "Customer Pickup",
-                        "pickupAddress": target_loc.get("address") or "Customer Pickup Location",
-                        "dropTitle": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
-                        "dropAddress": (ride.get("dropLocation") or {}).get("address") or "Store Drop Location",
-                        "customerName": target_loc.get("contactName") or "Customer",
-                        "customerPhone": target_loc.get("contactPhone") or "",
-                        "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
-                        "partnerPhone": (ride.get("dropLocation") or {}).get("contactPhone") or "",
-                        "isExpress": bool(ride.get("isExpress")),
-                        "riderExpressBonus": float(ride.get("riderExpressBonus") or 0.0),
-                        "pickupOtp": (ride.get("otp") or {}).get("pickup", {}).get("code"),
-                        "handoverOtp": (ride.get("otp") or {}).get("handover", {}).get("code"),
-                        "dispatchOtp": (ride.get("otp") or {}).get("handover", {}).get("code"),
-                        "assignedAt": now,
-                        "autoAssigned": True,
-                    }
-
-                    # Direct targeted socket events so Captain's bell starts ringing immediately
-                    for r_room in [f"rider:{r_id}", f"rider:{r_phone}", f"rider:+{r_phone}", f"rider:{r_uid}"]:
-                        if r_room:
-                            await sio.emit("order.trip_assigned", assign_payload, room=r_room)
-                            await sio.emit("order.rider_assigned", assign_payload, room=r_room)
-                            await sio.emit(EVENT_ORDER_RIDER_OFFER, assign_payload, room=r_room)
-                    await sio.emit("order.trip_assigned", assign_payload, room="riders")
-                    await sio.emit("order.rider_assigned", assign_payload, room="riders")
-                    await sio.emit(EVENT_ORDER_RIDER_OFFER, assign_payload, room="riders")
-
-                    # Send High-Priority In-App & Push Notification
-                    notif_title = f"🔔 Naya Trip Assign Hua! (#{ride.get('orderCode')})"
-                    notif_msg = f"Order #{ride.get('orderCode')} ({round(best_dist, 1)} km door). Kamai: ₹{ride.get('estimatedEarning', 45)}! Kripya turant pickup ke liye niklein."
-                    await database.collection(NOTIFICATIONS_COLLECTION).update_one(
-                        {"_id": f"notif-assign-{ride_id}-{r_id}"},
-                        {
-                            "$set": {
-                                "riderId": r_id,
-                                "orderId": order_id,
-                                "rideId": ride_id,
-                                "type": "direct_trip_assigned",
-                                "title": notif_title,
-                                "message": notif_msg,
-                                "createdAt": now,
-                                "read": False,
-                            }
-                        },
-                        upsert=True,
-                    )
-                    try:
-                        from app.services.order_notifications import _dispatch_external_pushes
-                        await _dispatch_external_pushes(
-                            r_id,
-                            title=notif_title,
-                            body=notif_msg,
-                            deep_link="/orders",
-                            data={"orderId": str(order_id), "rideId": str(ride_id), "type": "direct_trip_assigned"},
-                            role="rider",
-                        )
-                    except Exception:
-                        pass
-                    return
-                except Exception as auto_err:
-                    logger.error("Direct auto-assignment to rider %s failed: %s. Falling back to broadcast offers.", r_id, auto_err)
-
         timeout_sec = 900  # 15 minutes offer validity matching SLA
         expires_at = (
             (datetime.now(timezone.utc) + timedelta(seconds=timeout_sec))
@@ -1118,7 +1029,7 @@ class Smart2RideEngine:
             .replace("+00:00", "Z")
         )
 
-        # Fallback: Broadcast offers to ALL eligible riders simultaneously
+        # Broadcast offers to ALL eligible nearby online riders simultaneously (Flash Broadcast)
         dispatched_count = 0
         for best_rider, best_dist in ranked_riders:
             r_id = str(best_rider.get("_id") or best_rider.get("riderId") or best_rider.get("id") or "")
@@ -1200,42 +1111,67 @@ class Smart2RideEngine:
                 upsert=True,
             )
 
-            # Send real-time socket offer to rider across all possible room identifiers
-            await sio.emit(EVENT_ORDER_RIDER_OFFER, offer_doc, room=f"rider:{r_id}")
+            # Send real-time socket offer to rider across all possible room identifiers and aliases
+            socket_rooms = [f"rider:{r_id}"]
             r_phone = str(best_rider.get("phone") or "").replace("+", "").strip()
             if r_phone:
-                await sio.emit(EVENT_ORDER_RIDER_OFFER, offer_doc, room=f"rider:{r_phone}")
-                await sio.emit(EVENT_ORDER_RIDER_OFFER, offer_doc, room=f"rider:+{r_phone}")
+                socket_rooms.extend([f"rider:{r_phone}", f"rider:+{r_phone}"])
             r_uid = str(best_rider.get("userId") or "").strip()
             if r_uid:
-                await sio.emit(EVENT_ORDER_RIDER_OFFER, offer_doc, room=f"rider:{r_uid}")
+                socket_rooms.append(f"rider:{r_uid}")
+
+            for s_room in socket_rooms:
+                await sio.emit(EVENT_ORDER_RIDER_OFFER, offer_doc, room=s_room)
+                await sio.emit("order.rider_offer", offer_doc, room=s_room)
+                await sio.emit("new_order_offer", offer_doc, room=s_room)
+                await sio.emit("order.offer", offer_doc, room=s_room)
+                await sio.emit("dispatch.offer", offer_doc, room=s_room)
+                await sio.emit("order.trip_assigned", {**offer_doc, "autoAssigned": False}, room=s_room)
+
+            # High-priority external push notification
+            try:
+                from app.services.order_notifications import _dispatch_external_pushes
+                await _dispatch_external_pushes(
+                    r_id,
+                    title=notif_title,
+                    body=notif_msg,
+                    deep_link="/orders",
+                    data={"orderId": str(order_id), "rideId": str(ride_id), "type": "new_order_offer"},
+                    role="rider",
+                )
+            except Exception:
+                pass
+
             dispatched_count += 1
 
-        # Also emit to global riders channel with complete details so any connected captain immediately gets the alert
-        await sio.emit(
-            EVENT_ORDER_RIDER_OFFER,
-            {
-                "offerId": f"off-{ride_id}-broadcast",
-                "rideId": ride_id,
-                "orderId": order_id,
-                "orderCode": ride.get("orderCode"),
-                "rideType": ride_type,
-                "type": ride_type,
-                "fare": ride.get("fare") or ride.get("estimatedEarning", 45),
-                "estimatedEarning": ride.get("estimatedEarning", 45),
-                "pickupAddress": target_loc.get("address") or "Customer Pickup Location",
-                "dropAddress": (ride.get("dropLocation") or {}).get("address") or "QuickPress Store",
-                "pickupTitle": (ride.get("pickupLocation") or {}).get("contactName") or "Pickup",
-                "dropTitle": (ride.get("dropLocation") or {}).get("contactName") or "Drop",
-                "customerName": target_loc.get("contactName") or "Customer",
-                "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
-                "distanceKm": round(float(ride.get("distanceKm") or 2.0), 1),
-                "isExpress": bool(ride.get("isExpress")),
-                "riderExpressBonus": float(ride.get("riderExpressBonus") or 0.0),
-                "createdAt": now,
-            },
-            room="riders",
-        )
+        # Also emit to global riders channel with complete details so any connected captain immediately gets the alert & bell
+        broadcast_payload = {
+            "offerId": f"off-{ride_id}-broadcast",
+            "rideId": ride_id,
+            "orderId": order_id,
+            "orderCode": ride.get("orderCode"),
+            "rideType": ride_type,
+            "type": ride_type,
+            "fare": ride.get("fare") or ride.get("estimatedEarning", 45),
+            "estimatedEarning": ride.get("estimatedEarning", 45),
+            "pickupAddress": target_loc.get("address") or "Customer Pickup Location",
+            "dropAddress": (ride.get("dropLocation") or {}).get("address") or "QuickPress Store",
+            "pickupTitle": (ride.get("pickupLocation") or {}).get("contactName") or "Pickup",
+            "dropTitle": (ride.get("dropLocation") or {}).get("contactName") or "Drop",
+            "customerName": target_loc.get("contactName") or "Customer",
+            "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
+            "distanceKm": round(float(ride.get("distanceKm") or 2.0), 1),
+            "isExpress": bool(ride.get("isExpress")),
+            "riderExpressBonus": float(ride.get("riderExpressBonus") or 0.0),
+            "createdAt": now,
+            "autoAssigned": False,
+        }
+        await sio.emit(EVENT_ORDER_RIDER_OFFER, broadcast_payload, room="riders")
+        await sio.emit("order.rider_offer", broadcast_payload, room="riders")
+        await sio.emit("new_order_offer", broadcast_payload, room="riders")
+        await sio.emit("order.offer", broadcast_payload, room="riders")
+        await sio.emit("dispatch.offer", broadcast_payload, room="riders")
+        await sio.emit("order.trip_assigned", broadcast_payload, room="riders")
 
         # Log Automation Event: Auto-Dispatch Broadcast
         try:
