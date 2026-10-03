@@ -83,14 +83,15 @@ export type HomeSections = {
 };
 
 import { CACHE_KEYS, clearCache, readStaleCache } from "../api/cache";
+import { getDefaultLocation, readLocation } from "../location";
 
 export const IDLE_SECTION: SectionState<never> = { data: null, loading: true, error: null };
 
 export function initialSections(): HomeSections {
   const cachedProfile = readStaleCache<Profile>(CACHE_KEYS.profile);
-  const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location);
+  const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location) || readLocation() || getDefaultLocation();
   const cachedBanners = readStaleCache<Banner[]>(CACHE_KEYS.banners);
-  const cachedCategories = readStaleCache<Category[]>(CACHE_KEYS.categories);
+  const cachedCategories = readStaleCache<Category[]>(CACHE_KEYS.categories) || DEFAULT_CATEGORIES;
   const cachedPartners = readStaleCache<Partner[]>(CACHE_KEYS.partners);
   const cachedPopular = readStaleCache<PopularService[]>(CACHE_KEYS.popular);
   const cachedRecommendations = readStaleCache<Recommendation[]>(CACHE_KEYS.recommendations);
@@ -100,9 +101,9 @@ export function initialSections(): HomeSections {
 
   return {
     profile: { data: cachedProfile, loading: !cachedProfile, error: null },
-    location: { data: cachedLocation, loading: !cachedLocation, error: null },
+    location: { data: cachedLocation, loading: false, error: null },
     banners: { data: cachedBanners, loading: !cachedBanners, error: null },
-    categories: { data: cachedCategories, loading: !cachedCategories, error: null },
+    categories: { data: cachedCategories, loading: false, error: null },
     partners: { data: cachedPartners, loading: !cachedPartners, error: null },
     popular: { data: cachedPopular, loading: !cachedPopular, error: null },
     recommendations: { data: cachedRecommendations, loading: !cachedRecommendations, error: null },

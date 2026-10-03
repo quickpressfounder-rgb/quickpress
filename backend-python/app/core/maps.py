@@ -238,7 +238,18 @@ async def geocode(address: str) -> Dict[str, Any]:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Address not found")
 
 
+_REVERSE_GEOCODE_CACHE: Dict[str, Dict[str, Any]] = {}
+
+
 async def reverse_geocode(latitude: float, longitude: float) -> Dict[str, Any]:
+    # Fast round to 3 decimals (~100m) to serve from local memory cache in 0ms
+    cache_key = f"{round(latitude, 3)},{round(longitude, 3)}"
+    if cache_key in _REVERSE_GEOCODE_CACHE:
+        cached = dict(_REVERSE_GEOCODE_CACHE[cache_key])
+        cached["latitude"] = latitude
+        cached["longitude"] = longitude
+        return cached
+
     key = get_settings().maps_server_key
     if key:
         try:
@@ -248,10 +259,13 @@ async def reverse_geocode(latitude: float, longitude: float) -> Dict[str, Any]:
                 mapped = _map_geocode_result(data["results"][0])
                 mapped["latitude"] = latitude
                 mapped["longitude"] = longitude
+                _REVERSE_GEOCODE_CACHE[cache_key] = mapped
                 return mapped
         except Exception:
             pass
-    return await _fallback_reverse_geocode(latitude, longitude)
+    fallback = await _fallback_reverse_geocode(latitude, longitude)
+    _REVERSE_GEOCODE_CACHE[cache_key] = fallback
+    return fallback
 
 
 # --------------------------------------------------------------------------

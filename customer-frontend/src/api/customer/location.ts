@@ -57,10 +57,48 @@ export function getDefaultLocation(): SavedLocation {
  * operational service hub (Kasganj) so store listings, pricing, and serviceability
  * never break.
  */
+const GEOCODE_CACHE = new Map<string, SavedLocation>();
+
+function getGeocodeCacheKey(lat: number, lng: number): string {
+  return `${lat.toFixed(3)},${lng.toFixed(3)}`;
+}
+
+/**
+ * Reverse geocode coordinates into a readable area/city.
+ *
+ * Checks in-memory cache and sessionStorage first (<1ms) to eliminate redundant
+ * network requests for the same or proximate coordinates.
+ *
+ * Primary source is the backend Google Maps proxy (`/api/maps/reverse-geocode`,
+ * server key). If backend proxy or Maps is unavailable, falls back to the default
+ * operational service hub (Kasganj) so store listings, pricing, and serviceability
+ * never break.
+ */
 export async function reverseGeocode(
   latitude: number,
   longitude: number,
 ): Promise<SavedLocation> {
+  const cacheKey = getGeocodeCacheKey(latitude, longitude);
+
+  // 1. Fast in-memory cache
+  if (GEOCODE_CACHE.has(cacheKey)) {
+    return GEOCODE_CACHE.get(cacheKey)!;
+  }
+
+  // 2. Fast session cache
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const stored = window.sessionStorage.getItem(`qp_geo_${cacheKey}`);
+      if (stored) {
+        const parsed = JSON.parse(stored) as SavedLocation;
+        GEOCODE_CACHE.set(cacheKey, parsed);
+        return parsed;
+      }
+    } catch {
+      /* ignore storage error */
+    }
+  }
+
   const fallback: SavedLocation = {
     ...DEFAULT_OPERATIONAL_LOCATION,
     latitude,
@@ -72,18 +110,27 @@ export async function reverseGeocode(
     if (result && (result.area || result.city || result.formattedAddress)) {
       const area = result.area || result.formattedAddress?.split(",")?.[0] || fallback.area;
       const city = result.city && result.city.trim() ? result.city.trim() : fallback.city;
-      return {
+      const resolved: SavedLocation = {
         area,
         city,
         state: result.state ?? fallback.state,
         latitude,
         longitude,
       };
+
+      GEOCODE_CACHE.set(cacheKey, resolved);
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        try {
+          window.sessionStorage.setItem(`qp_geo_${cacheKey}`, JSON.stringify(resolved));
+        } catch {}
+      }
+      return resolved;
     }
   } catch (err) {
     console.warn("[Location] Reverse geocode proxy warning, using fallback:", err);
   }
 
+  GEOCODE_CACHE.set(cacheKey, fallback);
   return fallback;
 }
 
@@ -110,12 +157,14 @@ export class GeoError extends Error {
 export type DeviceLocation = { latitude: number; longitude: number; accuracy?: number };
 
 /**
- * Robust 2-Phase Device Location Acquisition:
+ * High-Speed 3-Tier Device Location Acquisition:
  *
- * Phase 1: High Accuracy GPS (satellites) with 5s timeout.
- * Phase 2: If Phase 1 times out or errors (common indoors or on mobile),
- *          immediately try Network/Cell/Wi-Fi positioning (enableHighAccuracy: false).
- *          Network triangulation returns in <500ms on mobile devices.
+ * Tier 1: Check existing device cached fix (maximumAge: 5 minutes, timeout: 1200ms).
+ *         If browser has any recent fix, this returns in <100ms.
+ * Tier 2: Fast network/cell triangulation (enableHighAccuracy: false, timeout: 2500ms).
+ * Tier 3: High-accuracy satellite GPS (enableHighAccuracy: true, timeout: 3000ms).
+ *
+ * If permissions are denied, fails immediately without lingering timeouts.
  */
 export async function getCurrentDeviceLocation(
   options: { timeoutMs?: number; enableHighAccuracy?: boolean } = {},
@@ -124,47 +173,66 @@ export async function getCurrentDeviceLocation(
     throw new GeoError("UNSUPPORTED");
   }
 
-  // Phase 1: High Accuracy attempt
+  // Tier 1: Instant cached position test (sub-second response)
   try {
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+    const cachedPos = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: options.enableHighAccuracy ?? true,
-        timeout: options.timeoutMs ? Math.min(options.timeoutMs, 5000) : 5000,
-        maximumAge: 30000,
+        enableHighAccuracy: false,
+        timeout: 1200,
+        maximumAge: 300000, // up to 5 min old fix
+      });
+    });
+    return {
+      latitude: cachedPos.coords.latitude,
+      longitude: cachedPos.coords.longitude,
+      accuracy: cachedPos.coords.accuracy,
+    };
+  } catch (tier1Err: any) {
+    if (tier1Err?.code === 1 /* PERMISSION_DENIED */) {
+      throw new GeoError("PERMISSION_DENIED");
+    }
+  }
+
+  // Tier 2: Fast Network/Cell-tower Triangulation
+  try {
+    const networkPos = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: options.enableHighAccuracy ?? false,
+        timeout: options.timeoutMs ? Math.min(options.timeoutMs, 2500) : 2500,
+        maximumAge: 60000,
       });
     });
 
     return {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      accuracy: position.coords.accuracy,
+      latitude: networkPos.coords.latitude,
+      longitude: networkPos.coords.longitude,
+      accuracy: networkPos.coords.accuracy,
     };
-  } catch (phase1Err: any) {
-    // If permission was explicitly denied by user, stop here
-    if (phase1Err?.code === 1 /* PERMISSION_DENIED */) {
+  } catch (tier2Err: any) {
+    if (tier2Err?.code === 1) {
       throw new GeoError("PERMISSION_DENIED");
     }
 
-    // Phase 2: Fast Network/Cell-tower Triangulation
+    // Tier 3: High-Accuracy GPS satellite attempt (3s)
     try {
-      const networkPos = await new Promise<GeolocationPosition>((resolve, reject) => {
+      const gpsPos = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: false,
-          timeout: 6000,
-          maximumAge: 120000,
+          enableHighAccuracy: true,
+          timeout: 3000,
+          maximumAge: 30000,
         });
       });
 
       return {
-        latitude: networkPos.coords.latitude,
-        longitude: networkPos.coords.longitude,
-        accuracy: networkPos.coords.accuracy,
+        latitude: gpsPos.coords.latitude,
+        longitude: gpsPos.coords.longitude,
+        accuracy: gpsPos.coords.accuracy,
       };
-    } catch (phase2Err: any) {
-      if (phase2Err?.code === 1) {
+    } catch (tier3Err: any) {
+      if (tier3Err?.code === 1) {
         throw new GeoError("PERMISSION_DENIED");
       }
-      if (phase2Err?.code === 3 || phase1Err?.code === 3) {
+      if (tier3Err?.code === 3 || tier2Err?.code === 3) {
         throw new GeoError("TIMEOUT");
       }
       throw new GeoError("POSITION_UNAVAILABLE");
@@ -191,3 +259,4 @@ export async function detectDeviceLocation(fallbackToDefault = false): Promise<S
     throw err;
   }
 }
+
