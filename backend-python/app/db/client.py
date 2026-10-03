@@ -294,9 +294,18 @@ class Database:
         if mongo_uri:
             try:
                 from motor.motor_asyncio import AsyncIOMotorClient
-                client = AsyncIOMotorClient(mongo_uri, serverSelectionTimeoutMS=2000)
+                client = AsyncIOMotorClient(
+                    mongo_uri,
+                    minPoolSize=15,
+                    maxPoolSize=150,
+                    maxIdleTimeMS=45000,
+                    waitQueueTimeoutMS=5000,
+                    serverSelectionTimeoutMS=2500,
+                    connectTimeoutMS=4000,
+                    socketTimeoutMS=10000,
+                )
                 # Verify ping
-                await asyncio.wait_for(client.admin.command("ping"), timeout=2.0)
+                await asyncio.wait_for(client.admin.command("ping"), timeout=2.5)
                 self._client = client
                 self._db = client[settings.mongodb_db_name]
                 self._engine = "mongodb"

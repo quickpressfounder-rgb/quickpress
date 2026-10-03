@@ -17,10 +17,29 @@ if __name__ == "__main__":
         port = 8000
 
     print(f"Starting QuickPress API on 0.0.0.0:{port} with high-throughput engine...")
+
+    loop_engine = "auto"
+    try:
+        import uvloop  # noqa: F401
+        loop_engine = "uvloop"
+    except ImportError:
+        pass
+
+    http_engine = "auto"
+    try:
+        import httptools  # noqa: F401
+        http_engine = "httptools"
+    except ImportError:
+        pass
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=port,
-        timeout_keep_alive=65,
+        loop=loop_engine,
+        http=http_engine,
+        timeout_keep_alive=75,
+        limit_concurrency=2048,
+        backlog=4096,
         access_log=False,
     )
