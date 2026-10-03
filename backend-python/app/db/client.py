@@ -1,8 +1,8 @@
 """Database abstraction.
 
-Primary database is MongoDB Atlas (Motor). When MONGODB_URI is empty — e.g. a
-preview environment with no outbound Mongo access — the exact same repository
-interface is served by an in-memory store, so application code never branches.
+Primary database is Supabase PostgreSQL (asyncpg). When DATABASE_URL is empty —
+e.g. a preview environment with no outbound database access — the exact same
+repository interface is served by an in-memory store, so application code never branches.
 """
 
 from __future__ import annotations
@@ -288,33 +288,6 @@ class Database:
                     else:
                         if is_production:
                             raise RuntimeError(f"FATAL: Production database connection to Supabase failed: {err}") from err
-
-        # 2. Connect to MongoDB if configured
-        mongo_uri = (getattr(settings, "mongodb_uri", None) or "").strip()
-        if mongo_uri:
-            try:
-                from motor.motor_asyncio import AsyncIOMotorClient
-                client = AsyncIOMotorClient(
-                    mongo_uri,
-                    minPoolSize=15,
-                    maxPoolSize=150,
-                    maxIdleTimeMS=45000,
-                    waitQueueTimeoutMS=5000,
-                    serverSelectionTimeoutMS=2500,
-                    connectTimeoutMS=4000,
-                    socketTimeoutMS=10000,
-                )
-                # Verify ping
-                await asyncio.wait_for(client.admin.command("ping"), timeout=2.5)
-                self._client = client
-                self._db = client[settings.mongodb_db_name]
-                self._engine = "mongodb"
-                self._fallback_in_memory = False
-                logging.getLogger(__name__).info("Connected to MongoDB successfully.")
-                return
-            except Exception as err:
-                if is_production:
-                    raise RuntimeError(f"FATAL: Production database connection failed: {err}") from err
 
         if is_production:
             raise RuntimeError("FATAL: Production database connection failed: No database reachable in production.")

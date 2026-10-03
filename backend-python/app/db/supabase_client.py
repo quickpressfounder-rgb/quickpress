@@ -684,8 +684,8 @@ class SupabaseDatabase:
                 ssl_mode = "require" if ("supabase" in self.database_url or "pooler" in self.database_url or "sslmode=require" in self.database_url) else None
                 self._pool = await asyncpg.create_pool(
                     self.database_url,
-                    min_size=1,
-                    max_size=4,
+                    min_size=2,
+                    max_size=20,
                     max_inactive_connection_lifetime=300.0,
                     statement_cache_size=0,
                     command_timeout=25.0,
