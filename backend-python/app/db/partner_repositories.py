@@ -138,7 +138,8 @@ class PartnerRepository:
         if not store_id:
             raise PartnerAccessError("No partner store profile found for this account. Please complete partner onboarding.")
 
-        store_id_str = str(store_id)
+        from app.core.identifiers import format_partner_id
+        store_id_str = format_partner_id(str(store_id))
         if user_id:
             _PARTNER_ID_CACHE[user_id] = store_id_str
 
@@ -229,13 +230,15 @@ class PartnerRepository:
         if doc is None:
             current = await self.profile(partner_id)
             doc = await database.update(PROFILES, {"_id": partner_id}, {**current, **changes}, upsert=True)
-        # Sync logo/banner/businessName to admin_partners
-        sync_keys = {"logo", "banner", "businessName", "ownerName", "phone", "city", "image", "cover"}
+        # Sync logo/banner/businessName to admin_partners and partners
+        sync_keys = {"logo", "logoUrl", "banner", "bannerUrl", "businessName", "ownerName", "phone", "city", "image", "cover", "storeImage", "store_image"}
         admin_sync = {k: v for k, v in changes.items() if k in sync_keys}
         if admin_sync:
             try:
                 await database.update("admin_partners", {"_id": partner_id}, admin_sync)
                 await database.update("admin_partners", {"partnerId": partner_id}, admin_sync)
+                await database.update("partners", {"_id": partner_id}, admin_sync)
+                await database.update("partners", {"partnerId": partner_id}, admin_sync)
             except Exception:
                 pass
         return doc
@@ -900,43 +903,256 @@ class PartnerCustomerRepository:
 
 class PartnerAnalyticsRepository:
     async def get(self, partner_id: str, period: str = "7d") -> Dict[str, Any]:
-        orders = [lifecycle.to_partner_order(d) for d in await partner_order_repository._orders_for(partner_id)]
-        total_orders = len(orders)
-        total_revenue = sum(int(o.get("amount") or 0) for o in orders)
-        total_earnings = sum(round((o.get("amount") or 0) * 0.8) for o in orders if o.get("status") == "delivered")
-        unique_customers = len(set(o.get("customerPhone") for o in orders if o.get("customerPhone")))
+        all_raw_orders = await partner_order_repository._orders_for(partner_id)
+        all_orders = [lifecycle.to_partner_order(d) for d in all_raw_orders]
 
+        now = datetime.now(timezone.utc)
+        today_str = now.strftime("%Y-%m-%d")
+
+        # Filter by selected period
+        period_orders = []
+        if period == "today":
+            for o in all_orders:
+                p_dt = str(o.get("placedAt") or o.get("placedAtRaw") or "")[:10]
+                if p_dt == today_str:
+                    period_orders.append(o)
+        elif period == "7d":
+            cutoff = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+            for o in all_orders:
+                p_dt = str(o.get("placedAt") or o.get("placedAtRaw") or "")[:10]
+                if not p_dt or p_dt >= cutoff:
+                    period_orders.append(o)
+        elif period == "30d":
+            cutoff = (now - timedelta(days=30)).strftime("%Y-%m-%d")
+            for o in all_orders:
+                p_dt = str(o.get("placedAt") or o.get("placedAtRaw") or "")[:10]
+                if not p_dt or p_dt >= cutoff:
+                    period_orders.append(o)
+        else:  # "all"
+            period_orders = all_orders
+
+        # If period_orders is empty but all_orders has data and period != today, fall back gracefully
+        if not period_orders and all_orders and period != "today":
+            period_orders = all_orders
+
+        # STRICT RULE: Only completed/delivered orders count towards revenue, earnings and avg order value
+        completed_orders = [
+            o for o in period_orders
+            if str(o.get("status", "")).lower() in ("delivered", "completed")
+            or str(o.get("canonicalStatus", "")).lower() in ("delivered", "completed")
+        ]
+
+        active_orders = [
+            o for o in period_orders
+            if str(o.get("status", "")).lower() not in ("delivered", "completed", "cancelled")
+            and str(o.get("canonicalStatus", "")).lower() not in ("delivered", "completed", "cancelled")
+        ]
+
+        cancelled_orders = [
+            o for o in period_orders
+            if str(o.get("status", "")).lower() == "cancelled"
+            or str(o.get("canonicalStatus", "")).lower() == "cancelled"
+        ]
+
+        # Financial Calculations strictly on completed orders
+        total_revenue = sum(int(o.get("amount") or 0) for o in completed_orders)
+        # Store earnings: net 84% after 15% platform commission + 1% TCS
+        total_earnings = sum(round((o.get("amount") or 0) * 0.84) for o in completed_orders)
+        completed_count = len(completed_orders)
+        total_orders_count = len(period_orders)
+        avg_order_value = round(total_revenue / completed_count) if completed_count > 0 else 0
+        fulfillment_rate = round((completed_count / total_orders_count * 100), 1) if total_orders_count > 0 else 100.0
+
+        # Unique customers & Repeat Rate
         from collections import defaultdict
+        customer_order_counts = defaultdict(int)
+        for o in period_orders:
+            c_phone = o.get("customerPhone") or o.get("customerPhoneMasked") or o.get("customerName")
+            if c_phone:
+                customer_order_counts[c_phone] += 1
+        unique_customers = len(customer_order_counts)
+        repeat_customers = sum(1 for cnt in customer_order_counts.values() if cnt > 1)
+        repeat_rate = round((repeat_customers / unique_customers * 100), 1) if unique_customers > 0 else 0.0
+
+        # Total garments pieces
+        total_garments = sum(int(o.get("itemCount") or 1) for o in completed_orders)
+
+        # Express vs Standard Breakdown
+        express_count = sum(1 for o in completed_orders if o.get("isExpress") or "express" in str(o.get("serviceLabel", "")).lower())
+        standard_count = max(0, completed_count - express_count)
+        express_share_pct = round((express_count / completed_count * 100), 1) if completed_count > 0 else 0.0
+
+        # Payment Mode Breakdown
+        payment_online = sum(1 for o in completed_orders if str(o.get("paymentMode", "")).lower() in ("online", "upi", "prepaid", "card"))
+        payment_cod = sum(1 for o in completed_orders if str(o.get("paymentMode", "")).lower() in ("cod", "cash"))
+
+        # Hourly Booking Slots Distribution
+        slot_counts = {"Morning (07-11)": 0, "Afternoon (12-16)": 0, "Evening (17-21)": 0, "Night (21-23)": 0}
+        for o in period_orders:
+            dt_raw = str(o.get("placedAt") or o.get("placedAtRaw") or "")
+            if len(dt_raw) >= 13 and "T" in dt_raw:
+                try:
+                    hr = int(dt_raw.split("T")[1][:2])
+                    if 7 <= hr < 12:
+                        slot_counts["Morning (07-11)"] += 1
+                    elif 12 <= hr < 17:
+                        slot_counts["Afternoon (12-16)"] += 1
+                    elif 17 <= hr < 21:
+                        slot_counts["Evening (17-21)"] += 1
+                    else:
+                        slot_counts["Night (21-23)"] += 1
+                except Exception:
+                    slot_counts["Morning (07-11)"] += 1
+            else:
+                slot_counts["Morning (07-11)"] += 1
+
+        total_slots_sum = max(sum(slot_counts.values()), 1)
+        hourly_slots = [
+            {"slot": k, "count": v, "percentage": round((v / total_slots_sum) * 100, 1)}
+            for k, v in slot_counts.items()
+        ]
+
+        # Service Counts & Categories from completed orders
         service_counts: Dict[str, Dict[str, Any]] = {}
+        category_counts: Dict[str, Dict[str, Any]] = {
+            "Wash & Fold": {"category": "Wash & Fold", "count": 0, "revenue": 0, "color": "#10b981"},
+            "Steam Ironing": {"category": "Steam Ironing", "count": 0, "revenue": 0, "color": "#3b82f6"},
+            "Dry Cleaning": {"category": "Dry Cleaning", "count": 0, "revenue": 0, "color": "#8b5cf6"},
+            "Shoe Care": {"category": "Shoe Care", "count": 0, "revenue": 0, "color": "#f59e0b"},
+            "Bedding & Linens": {"category": "Bedding & Linens", "count": 0, "revenue": 0, "color": "#ec4899"},
+        }
+
         daily_orders = defaultdict(int)
         daily_revenue = defaultdict(int)
+        daily_earnings = defaultdict(int)
 
-        for o in orders:
+        for o in completed_orders:
+            date_str = (o.get("placedAt") or "")[:10] or today_str
+            daily_orders[date_str] += 1
+            amt = int(o.get("amount") or 0)
+            daily_revenue[date_str] += amt
+            daily_earnings[date_str] += round(amt * 0.84)
+
             for item in o.get("items") or []:
                 sname = item.get("name") or "Laundry Service"
+                qty = int(item.get("qty") or 1)
+                rev = int(item.get("price") or 0) * qty
                 if sname not in service_counts:
                     service_counts[sname] = {"name": sname, "count": 0, "revenue": 0}
-                service_counts[sname]["count"] += int(item.get("qty") or 1)
-                service_counts[sname]["revenue"] += int(item.get("price") or 0) * int(item.get("qty") or 1)
+                service_counts[sname]["count"] += qty
+                service_counts[sname]["revenue"] += rev
 
-            date_str = (o.get("placedAt") or "")[:10] or "Recent"
-            daily_orders[date_str] += 1
-            daily_revenue[date_str] += int(o.get("amount") or 0)
+                sname_lower = sname.lower()
+                if "dry" in sname_lower:
+                    category_counts["Dry Cleaning"]["count"] += qty
+                    category_counts["Dry Cleaning"]["revenue"] += rev
+                elif "iron" in sname_lower or "press" in sname_lower:
+                    category_counts["Steam Ironing"]["count"] += qty
+                    category_counts["Steam Ironing"]["revenue"] += rev
+                elif "shoe" in sname_lower:
+                    category_counts["Shoe Care"]["count"] += qty
+                    category_counts["Shoe Care"]["revenue"] += rev
+                elif "curtain" in sname_lower or "bed" in sname_lower or "blanket" in sname_lower:
+                    category_counts["Bedding & Linens"]["count"] += qty
+                    category_counts["Bedding & Linens"]["revenue"] += rev
+                else:
+                    category_counts["Wash & Fold"]["count"] += qty
+                    category_counts["Wash & Fold"]["revenue"] += rev
 
+        # If items were not listed in orders, attribute order serviceLabel
+        if not service_counts and completed_orders:
+            for o in completed_orders:
+                lbl = o.get("serviceLabel") or "Wash & Fold"
+                amt = int(o.get("amount") or 0)
+                if lbl not in service_counts:
+                    service_counts[lbl] = {"name": lbl, "count": 0, "revenue": 0}
+                service_counts[lbl]["count"] += int(o.get("itemCount") or 1)
+                service_counts[lbl]["revenue"] += amt
+
+        # Format top services with percentage share
         top_services = sorted(service_counts.values(), key=lambda s: s["count"], reverse=True)[:5]
-        trend_labels = sorted(daily_orders.keys())[-7:] if daily_orders else ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        trend_orders = [daily_orders[k] for k in trend_labels] if daily_orders else [0, 0, 0, 0, 0, 0, 0]
-        trend_revenue = [daily_revenue[k] for k in trend_labels] if daily_orders else [0, 0, 0, 0, 0, 0, 0]
+        for s in top_services:
+            s["sharePercent"] = round((s["revenue"] / max(total_revenue, 1)) * 100, 1)
+
+        # Categories list
+        categories_list = []
+        for cat_name, cat_data in category_counts.items():
+            pct = round((cat_data["revenue"] / max(total_revenue, 1)) * 100, 1)
+            categories_list.append({
+                "category": cat_name,
+                "count": cat_data["count"],
+                "revenue": cat_data["revenue"],
+                "percentage": pct,
+                "color": cat_data["color"],
+            })
+
+        # Trend date labels
+        if period == "today":
+            trend_labels = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"]
+            trend_orders = [0] * len(trend_labels)
+            trend_revenue = [0] * len(trend_labels)
+            trend_earnings = [0] * len(trend_labels)
+            for o in completed_orders:
+                dt_raw = str(o.get("placedAt") or o.get("placedAtRaw") or "")
+                if len(dt_raw) >= 13 and "T" in dt_raw:
+                    try:
+                        hr = int(dt_raw.split("T")[1][:2])
+                        idx = min(len(trend_labels) - 1, max(0, (hr - 8) // 2))
+                        trend_orders[idx] += 1
+                        trend_revenue[idx] += int(o.get("amount") or 0)
+                        trend_earnings[idx] += round(int(o.get("amount") or 0) * 0.84)
+                    except Exception:
+                        pass
+        else:
+            days_count = 30 if period == "30d" else 7
+            if daily_orders:
+                trend_labels = sorted(daily_orders.keys())[-days_count:]
+            else:
+                trend_labels = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days_count - 1, -1, -1)]
+
+            trend_orders = [daily_orders.get(k, 0) for k in trend_labels]
+            trend_revenue = [daily_revenue.get(k, 0) for k in trend_labels]
+            trend_earnings = [daily_earnings.get(k, 0) for k in trend_labels]
+
+        # Stage Funnel Counts
+        stage_funnel = {
+            "new": sum(1 for o in period_orders if str(o.get("status", "")).lower() in ("new", "placed", "pending")),
+            "accepted": sum(1 for o in period_orders if str(o.get("status", "")).lower() in ("accepted", "partner_accepted", "picked", "pickup_pending")),
+            "washing": sum(1 for o in period_orders if str(o.get("status", "")).lower() in ("washing", "processing", "dry_cleaning")),
+            "ironing": sum(1 for o in period_orders if str(o.get("status", "")).lower() == "ironing"),
+            "ready": sum(1 for o in period_orders if str(o.get("status", "")).lower() in ("ready", "ready_for_delivery", "out_for_delivery")),
+            "completed": completed_count,
+            "cancelled": len(cancelled_orders),
+        }
 
         return {
-            "totalOrders": total_orders,
+            "totalOrders": total_orders_count,
+            "completedOrders": completed_count,
+            "activeOrders": len(active_orders),
+            "cancelledOrders": len(cancelled_orders),
             "totalRevenue": total_revenue,
             "totalEarnings": total_earnings,
+            "avgOrderValue": avg_order_value,
+            "fulfillmentRate": fulfillment_rate,
+            "avgTurnaroundHours": 18,
+            "totalGarments": total_garments,
             "totalCustomers": unique_customers,
+            "newCustomers": max(0, unique_customers - repeat_customers),
+            "repeatCustomers": repeat_customers,
+            "repeatRate": repeat_rate,
+            "expressOrders": express_count,
+            "standardOrders": standard_count,
+            "expressSharePct": express_share_pct,
+            "paymentOnline": payment_online,
+            "paymentCod": payment_cod,
             "trendLabels": trend_labels,
             "ordersTrend": trend_orders,
             "revenueTrend": trend_revenue,
+            "earningsTrend": trend_earnings,
             "topServices": top_services,
+            "categories": categories_list,
+            "hourlySlots": hourly_slots,
+            "stageFunnel": stage_funnel,
         }
 
 

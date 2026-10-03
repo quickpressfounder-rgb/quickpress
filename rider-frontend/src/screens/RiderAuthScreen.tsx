@@ -36,13 +36,7 @@ export function RiderAuthScreen() {
   useEffect(() => {
     const sess = readSession("rider") || readSession();
     if (sess && sess.token) {
-      if (isRiderApproved(sess)) {
-        navigate({ to: "/dashboard", replace: true });
-      } else if (isRiderOnboarded(sess)) {
-        navigate({ to: "/verification", replace: true });
-      } else {
-        navigate({ to: "/registration", replace: true });
-      }
+      navigate({ to: "/dashboard", replace: true });
     }
   }, [navigate]);
 

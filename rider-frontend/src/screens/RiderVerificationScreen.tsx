@@ -462,7 +462,7 @@ export function RiderVerificationScreen() {
                   { id: "dl", name: "Driving License (DL)", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
                   { id: "rc", name: "Vehicle RC Certificate", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
                   { id: "selfie", name: "Live Profile Selfie Photo", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
-                  { id: "bank", name: "Bank Account & UPI Details", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
+                  { id: "bank", name: "Bank Account Details", status: isApproved ? "verified" : isRejected ? "rejected" : "submitted" },
                 ]
             ).map((doc) => {
               const iconMap: Record<string, any> = {

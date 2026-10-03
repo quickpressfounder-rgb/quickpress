@@ -14,8 +14,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from app.core.http_cache import CACHE_SHORT_LIVED, CACHE_STATIC_CATALOG, apply_cache_headers
 from app.db.service_repositories import services_repository
 from app.models.cart import (
     RelatedServiceResponse,
@@ -66,8 +67,10 @@ async def _document_or_404(service_id: str) -> dict:
 @router.get("/services/{service_id}", response_model=ServiceDetailResponse)
 async def get_service(
     service_id: str,
+    response: Response,
     city: Optional[str] = None,
 ) -> ServiceDetailResponse:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     detail = await services_repository.service_detail(service_id, city=city)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
@@ -77,13 +80,16 @@ async def get_service(
 @router.get("/services/{service_id}/partners", response_model=list[ServicePartnerResponse])
 async def get_service_partners(
     service_id: str,
+    response: Response,
     city: Optional[str] = None,
 ) -> list[ServicePartnerResponse]:
+    apply_cache_headers(response, CACHE_SHORT_LIVED)
     document = await _document_or_404(service_id)
     return await services_repository.service_partners(document, city=city)
 
 
 @router.get("/services/{service_id}/related", response_model=list[RelatedServiceResponse])
-async def get_related_services(service_id: str) -> list[RelatedServiceResponse]:
+async def get_related_services(service_id: str, response: Response) -> list[RelatedServiceResponse]:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     document = await _document_or_404(service_id)
     return await services_repository.related_services(document)

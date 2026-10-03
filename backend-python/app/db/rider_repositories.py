@@ -100,7 +100,8 @@ class RiderProfileRepository:
                 rider_id = linked
         if not rider_id:
             rider_id = getattr(user, "id", "")
-        return str(rider_id)
+        from app.core.identifiers import format_captain_id
+        return format_captain_id(str(rider_id))
 
     async def link_account(self, user_id: str, rider_id: str) -> None:
         await database.update("riders", {"user_id": user_id}, {"rider_id": rider_id}, upsert=True)
@@ -208,23 +209,34 @@ class RiderDeliveryRepository:
     """
 
     async def _orders_for(self, rider_id: str) -> List[Dict[str, Any]]:
+        target_ids = {rider_id, rider_id.lower(), rider_id.upper()}
+        if rider_id.upper().startswith("CAP-"):
+            target_ids.add(f"rdr-{rider_id[4:].lower()}")
+            target_ids.add(f"rdr-{rider_id[4:]}")
+        elif rider_id.lower().startswith("rdr-"):
+            target_ids.add(f"CAP-{rider_id[4:].upper()}")
+            target_ids.add(f"cap-{rider_id[4:].lower()}")
+
+        def _is_my_rider(val: Any) -> bool:
+            return bool(val and str(val) in target_ids)
+
         # 1. Orders already assigned or claimed by this rider in customer_orders
         all_orders = await database.find_many(lifecycle.ORDERS, {})
         assigned_docs = [
             d
             for d in all_orders
-            if (d.get("rider") or {}).get("id") == rider_id
-            or d.get("riderId") == rider_id
-            or d.get("rider_id") == rider_id
-            or d.get("assignedRiderId") == rider_id
-            or (d.get("originalRiderId") == rider_id and not d.get("riderDeliveryOptOut"))
-            or (d.get("reassignment") and (d.get("reassignment", {}).get("assignedTransferRiderId") == rider_id or (d.get("reassignment", {}).get("originalRiderId") == rider_id and not d.get("riderDeliveryOptOut"))))
+            if _is_my_rider((d.get("rider") or {}).get("id"))
+            or _is_my_rider(d.get("riderId"))
+            or _is_my_rider(d.get("rider_id"))
+            or _is_my_rider(d.get("assignedRiderId"))
+            or (_is_my_rider(d.get("originalRiderId")) and not d.get("riderDeliveryOptOut"))
+            or (d.get("reassignment") and (_is_my_rider(d.get("reassignment", {}).get("assignedTransferRiderId")) or (_is_my_rider(d.get("reassignment", {}).get("originalRiderId")) and not d.get("riderDeliveryOptOut"))))
         ]
         assigned_ids = {str(d.get("_id") or "") for d in assigned_docs}
 
         # Also check rides assigned to this rider in rides collection
         try:
-            assigned_rides = await database.find_many("rides", {"$or": [{"riderId": rider_id}, {"assignedRiderId": rider_id}]})
+            assigned_rides = await database.find_many("rides", {"$or": [{"riderId": {"$in": list(target_ids)}}, {"assignedRiderId": {"$in": list(target_ids)}}]})
             for ar in (assigned_rides or []):
                 roid = ar.get("orderId")
                 if roid and roid not in assigned_ids:
@@ -239,7 +251,7 @@ class RiderDeliveryRepository:
         now_iso = lifecycle.now_iso()
         offers = await database.find_many(
             "rider_offers",
-            {"riderId": rider_id, "status": "pending"},
+            {"riderId": {"$in": list(target_ids)}, "status": "pending"},
         )
         offer_order_ids = [
             str(o.get("orderId") or "")

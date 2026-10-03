@@ -258,36 +258,37 @@ export const RiderStoreDispatchDisplay: React.FC<RiderStoreDispatchDisplayProps>
   };
 
   return (
-    <div className="rounded-2xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-4 shadow-md space-y-3.5">
+    <div className="rounded-2xl border border-neutral-200/90 bg-white text-neutral-900 p-3.5 shadow-sm space-y-2.5">
+      {/* Header Row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-xl bg-white/20 text-white border border-white/30">
-            <ShieldCheck className="size-4.5" />
+          <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+            <ShieldCheck className="size-4" />
           </span>
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200 block">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block leading-tight">
               Store Handover Dispatch Code
             </span>
-            <h4 className="text-xs font-black text-white">
+            <h4 className="text-xs font-black text-neutral-900 leading-tight">
               Tell this 4-Digit Code to Store Partner
             </h4>
           </div>
         </div>
-        <span className="rounded-full bg-white/20 border border-white/30 px-2.5 py-0.5 text-[10px] font-black text-white">
+        <span className="rounded-full bg-neutral-100 border border-neutral-200 px-2 py-0.5 text-[9px] font-bold text-neutral-600">
           Handshake
         </span>
       </div>
 
-      <p className="text-[11.5px] text-emerald-100 font-medium leading-snug">
-        You are at <b>{storeName}</b>. Speak this code aloud to store staff to release the packed order:
+      <p className="text-[11px] text-neutral-600 font-medium leading-tight">
+        You are at <b className="text-neutral-900 font-bold">{storeName}</b>. Speak this code aloud to store staff to release the packed order:
       </p>
 
-      {/* Giant 4 Digit Card Display */}
-      <div className="flex justify-center items-center gap-2.5 sm:gap-3 py-1">
+      {/* Compact 4 Digit Display (White / Neutral Clean Pills) */}
+      <div className="flex justify-center items-center gap-2 py-0.5">
         {cleanCode.split("").map((digit, idx) => (
           <div
             key={idx}
-            className="w-13 h-14 sm:w-14 sm:h-15 flex items-center justify-center rounded-2xl bg-white text-emerald-950 font-mono text-2xl sm:text-3xl font-black shadow-lg border-2 border-white/80"
+            className="w-11 h-12 flex items-center justify-center rounded-xl bg-neutral-50 text-neutral-900 font-mono text-2xl font-black shadow-2xs border border-neutral-300"
           >
             {digit}
           </div>
@@ -295,28 +296,29 @@ export const RiderStoreDispatchDisplay: React.FC<RiderStoreDispatchDisplayProps>
       </div>
 
       {/* Action Buttons: Speak Out & Copy */}
-      <div className="flex items-center justify-center gap-2 pt-1">
+      <div className="flex items-center justify-center gap-2 pt-0.5">
         <button
           type="button"
           onClick={handleSpeak}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-xs font-black text-white active:scale-95 transition-all shadow-xs"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-black text-emerald-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
         >
-          <Volume2 className="size-3.5" />
+          <Volume2 className="size-3.5 text-emerald-600" />
           <span>Speak Code (बोलकर बताएं)</span>
         </button>
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-xs font-black text-white active:scale-95 transition-all shadow-xs"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-xs font-bold text-neutral-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
         >
-          <Copy className="size-3.5" />
+          <Copy className="size-3.5 text-neutral-600" />
           <span>Copy</span>
         </button>
       </div>
 
       {storeAddress && (
-        <div className="p-2 rounded-xl bg-black/20 border border-white/10 text-[10.5px] text-emerald-100 flex items-center justify-between">
-          <span className="truncate">📍 {storeAddress}</span>
+        <div className="p-1.5 rounded-lg bg-neutral-50 border border-neutral-200 text-[10px] font-medium text-neutral-600 flex items-center gap-1">
+          <span>📍</span>
+          <span className="truncate">{storeAddress}</span>
         </div>
       )}
     </div>

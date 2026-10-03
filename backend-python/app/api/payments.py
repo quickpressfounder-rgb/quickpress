@@ -85,6 +85,19 @@ async def delete_payment_method(
 async def create_payment(
     payload: CreatePaymentPayload, user: User = Depends(current_user)
 ) -> CreatePaymentResponse:
+    idemp_key = payload.paymentReference or (f"{payload.orderId}:{payload.amount}:{payload.method}" if payload.orderId else None)
+    if idemp_key:
+        from app.core.idempotency import idempotency_engine
+        idemp = await idempotency_engine.acquire("payment", f"{user.id}:{idemp_key}")
+        if idemp.is_duplicate:
+            if idemp.is_processing:
+                raise HTTPException(
+                    status_code=409,
+                    detail="A payment transaction with this reference is currently processing. Please wait.",
+                )
+            if idemp.cached_data:
+                return CreatePaymentResponse.model_validate(idemp.cached_data)
+
     try:
         payment, wallet = await wallet_repository.create_payment(
             user,
@@ -94,14 +107,31 @@ async def create_payment(
             payload.purpose,
             payload.paymentReference,
         )
-    except WalletError as error:
-        raise _fail(error) from error
-    return CreatePaymentResponse(
+    except Exception as error:
+        if idemp_key:
+            from app.core.idempotency import idempotency_engine
+            await idempotency_engine.release("payment", f"{user.id}:{idemp_key}")
+        if isinstance(error, WalletError):
+            raise _fail(error) from error
+        raise
+
+    res = CreatePaymentResponse(
         ok=True,
         message="Payment recorded." if payment.status == "paid" else "Payment created.",
         payment=payment,
         wallet=wallet,
     )
+
+    if idemp_key:
+        try:
+            from app.core.idempotency import idempotency_engine
+            await idempotency_engine.complete(
+                "payment", f"{user.id}:{idemp_key}", res.model_dump(mode="json")
+            )
+        except Exception:
+            pass
+
+    return res
 
 
 @router.get("/payments", response_model=List[PaymentRecord])

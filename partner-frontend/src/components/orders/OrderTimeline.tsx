@@ -58,9 +58,6 @@ export function OrderTimeline({
           <p className="mt-1.5 text-[11px] font-semibold text-destructive/90 leading-relaxed">
             {cancelReason || "This order was cancelled and closed."}
           </p>
-          <p className="mt-2 rounded-xl bg-white/90 p-2 text-[10.5px] font-bold text-emerald-800 border border-emerald-200">
-            💳 100% Refund credited back to Customer Wallet
-          </p>
         </div>
       )}
 

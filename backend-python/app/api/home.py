@@ -14,12 +14,20 @@ token; the catalog reads stay public so the Home screen renders for guests.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.deps import current_user
+from app.core.http_cache import (
+    CACHE_LONG_LIVED,
+    CACHE_PRIVATE,
+    CACHE_SHORT_LIVED,
+    CACHE_STATIC_CATALOG,
+    apply_cache_headers,
+)
 from app.core.security import decode_token
 from app.db.catalog_repositories import catalog
 from app.db.client import database
@@ -75,17 +83,20 @@ async def optional_user(
 
 
 @router.get("/banners", response_model=list[BannerResponse])
-async def get_banners() -> list[BannerResponse]:
+async def get_banners(response: Response) -> list[BannerResponse]:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     return await catalog.banners()
 
 
 @router.get("/categories", response_model=list[CategoryResponse])
-async def get_categories() -> list[CategoryResponse]:
+async def get_categories(response: Response) -> list[CategoryResponse]:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     return await catalog.categories()
 
 
 @router.get("/services", response_model=list[ServiceCardResponse])
 async def get_services(
+    response: Response,
     categoryId: Optional[str] = Query(default=None),
     popular: bool = Query(default=False),
     city: Optional[str] = Query(default=None),
@@ -93,6 +104,7 @@ async def get_services(
     lat: Optional[float] = Query(default=None),
     lng: Optional[float] = Query(default=None),
 ) -> list[ServiceCardResponse]:
+    apply_cache_headers(response, CACHE_SHORT_LIVED)
     return await catalog.services(
         category_id=categoryId,
         popular_only=popular,
@@ -105,11 +117,13 @@ async def get_services(
 
 @router.get("/services/popular", response_model=list[ServiceCardResponse])
 async def get_popular_services(
+    response: Response,
     city: Optional[str] = Query(default=None),
     area: Optional[str] = Query(default=None),
     lat: Optional[float] = Query(default=None),
     lng: Optional[float] = Query(default=None),
 ) -> list[ServiceCardResponse]:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     return await catalog.services(
         popular_only=True,
         city=city,
@@ -121,12 +135,14 @@ async def get_popular_services(
 
 @router.get("/partners/nearby", response_model=list[PartnerCardResponse])
 async def get_nearby_partners(
+    response: Response,
     city: Optional[str] = Query(default=None),
     lat: Optional[float] = Query(default=None),
     lng: Optional[float] = Query(default=None),
     area: Optional[str] = Query(default=None),
     limit: int = Query(default=10),
 ) -> list[PartnerCardResponse]:
+    apply_cache_headers(response, CACHE_SHORT_LIVED)
     return await catalog.partners(city=city, lat=lat, lng=lng, area=area, limit=limit)
 
 
@@ -264,7 +280,8 @@ async def apply_coupon_endpoint(
 
 
 @router.get("/app-meta")
-async def get_app_meta() -> dict:
+async def get_app_meta(response: Response) -> dict:
+    apply_cache_headers(response, CACHE_LONG_LIVED)
     return {
         "appVersion": "1.0.0",
         "memberSince": "Aug 2026",
@@ -274,12 +291,14 @@ async def get_app_meta() -> dict:
 
 
 @router.get("/location", response_model=LocationResponse)
-async def get_location() -> LocationResponse:
+async def get_location(response: Response) -> LocationResponse:
+    apply_cache_headers(response, CACHE_LONG_LIVED)
     return DEFAULT_LOCATION
 
 
 @router.get("/home", response_model=HomeResponse)
 async def get_home(
+    response: Response,
     city: Optional[str] = Query(default=None),
     area: Optional[str] = Query(default=None),
     lat: Optional[float] = Query(default=None),
@@ -287,11 +306,14 @@ async def get_home(
     user: Optional[User] = Depends(optional_user),
 ) -> HomeResponse:
     """Single round-trip payload behind the Customer Home screen."""
-    banners = await catalog.banners()
-    categories = await catalog.categories()
-    services = await catalog.services(city=city, area=area, lat=lat, lng=lng)
-    partners = await catalog.partners(city=city, area=area, lat=lat, lng=lng)
-    offers = await catalog.offers()
+    # Parallel concurrent I/O: Execute all 5 catalog fetches at the same time
+    banners, categories, services, partners, offers = await asyncio.gather(
+        catalog.banners(),
+        catalog.categories(),
+        catalog.services(city=city, area=area, lat=lat, lng=lng),
+        catalog.partners(city=city, area=area, lat=lat, lng=lng),
+        catalog.offers(),
+    )
 
     current_loc = LocationResponse(
         area=area or "Awas Vikas",
@@ -300,6 +322,9 @@ async def get_home(
         latitude=lat,
         longitude=lng,
     ) if (city or area or lat or lng) else DEFAULT_LOCATION
+
+    # Edge and browser cache policy: public cache for guests, private for logged-in users
+    apply_cache_headers(response, CACHE_PRIVATE if user else CACHE_SHORT_LIVED)
 
     return HomeResponse(
         profile=_profile(user) if user else GUEST_PROFILE,
@@ -316,7 +341,8 @@ async def get_home(
 
 
 @router.get("/recommendations")
-async def get_recommendations() -> list[dict]:
+async def get_recommendations(response: Response) -> list[dict]:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     return [
         {"id": "rec-1", "title": "5-Shirt Steam Iron Combo", "reason": "Based on your recent dry cleaning", "price": 199, "icon": "shirt"},
         {"id": "rec-2", "title": "Weekend Bedding Refresh", "reason": "Popular in your neighbourhood", "price": 449, "icon": "bed"},

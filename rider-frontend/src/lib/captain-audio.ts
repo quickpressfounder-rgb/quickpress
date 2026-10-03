@@ -96,71 +96,121 @@ export function triggerHaptic(pattern: number | number[] = [100, 50, 100]) {
   }
 }
 
+let activeBellInterval: any = null;
+let activeBellAudio: HTMLAudioElement | null = null;
+
+// Synthesize a realistic, resonant metallic bell strike with harmonics
+function triggerBellStrike(
+  ctx: AudioContext,
+  baseFreq: number,
+  timeOffset: number = 0,
+  duration: number = 0.55,
+  masterVolume: number = 0.5
+) {
+  const now = ctx.currentTime + timeOffset;
+  // Overtones for an authentic metallic bell ring:
+  // Fundamental, octave, minor third octave, super octave
+  const harmonics = [
+    { ratio: 1.0, gain: 0.6 },
+    { ratio: 2.0, gain: 0.35 },
+    { ratio: 2.76, gain: 0.25 },
+    { ratio: 4.07, gain: 0.15 },
+    { ratio: 5.4, gain: 0.08 },
+  ];
+
+  harmonics.forEach(({ ratio, gain }) => {
+    try {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(baseFreq * ratio, now);
+
+      // Sharp transient bell attack and exponential acoustic decay
+      gainNode.gain.setValueAtTime(0.001, now);
+      gainNode.gain.linearRampToValueAtTime(gain * masterVolume, now + 0.005);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.05);
+    } catch {
+      /* ignore node errors */
+    }
+  });
+}
+
+// Generate two-cycle bell chime ("Ding-Dong... Ding-Dang...")
+function playBellCycle(ctx: AudioContext) {
+  if (!ctx || ctx.state === "closed") return;
+  if (ctx.state === "suspended") {
+    void ctx.resume();
+  }
+
+  // Strike 1: High C6 (Ding!)
+  triggerBellStrike(ctx, 1046.5, 0.0, 0.45, 0.55);
+  // Strike 2: G5 (Dong!)
+  triggerBellStrike(ctx, 783.99, 0.22, 0.55, 0.55);
+
+  // Strike 3: High C6 (Ding!)
+  triggerBellStrike(ctx, 1046.5, 0.55, 0.45, 0.55);
+  // Strike 4: A5 (Dang!)
+  triggerBellStrike(ctx, 880.0, 0.77, 0.6, 0.55);
+}
+
 /**
- * Loud pulsing dual-tone siren for incoming order dispatch.
- * Alerts the rider immediately even while riding in loud traffic!
+ * Loud, continuous ringing bell chime for assigned trips & incoming dispatches.
+ * Emulates the unmistakable Swiggy/Zomato/Uber delivery captain bell ringtone!
  */
 export function playOrderAlertSound() {
   if (isAudioMuted()) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
 
-  triggerHaptic([200, 100, 200, 100, 400]);
+  unlockAudioContext();
+  triggerHaptic([350, 150, 350, 150, 600, 300]);
 
   try {
     stopOrderAlertSound();
 
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    osc1.type = "sawtooth";
-    osc2.type = "sine";
-
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    // Initial frequencies (A5 & D6)
-    osc1.frequency.setValueAtTime(880, ctx.currentTime);
-    osc2.frequency.setValueAtTime(1174.66, ctx.currentTime);
-
-    gainNode.gain.setValueAtTime(0.35, ctx.currentTime);
-
-    // Pulse siren rhythm
-    let high = false;
-    activeSirenInterval = setInterval(() => {
-      if (!ctx || ctx.state === "closed") return;
-      const now = ctx.currentTime;
-      high = !high;
-      if (high) {
-        osc1.frequency.exponentialRampToValueAtTime(1318.51, now + 0.1); // E6
-        osc2.frequency.exponentialRampToValueAtTime(1760.0, now + 0.1); // A6
-      } else {
-        osc1.frequency.exponentialRampToValueAtTime(880.0, now + 0.1); // A5
-        osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.1); // D6
+    const ctx = getAudioContext();
+    if (ctx) {
+      if (ctx.state === "suspended") {
+        void ctx.resume();
       }
-    }, 180);
+      // Play first cycle immediately
+      playBellCycle(ctx);
 
-    osc1.start();
-    osc2.start();
+      // Repeat bell rhythm every 1.4 seconds until stopped
+      activeBellInterval = setInterval(() => {
+        if (!ctx || ctx.state === "closed") return;
+        playBellCycle(ctx);
+        triggerHaptic([350, 150, 350, 150, 600, 300]);
+      }, 1400);
+    }
 
-    activeSirenOsc1 = osc1;
-    activeSirenOsc2 = osc2;
-
-    // Auto-stop after 12 seconds if not accepted
+    // Auto-stop after 30 seconds safety timeout if not interacted
     setTimeout(() => {
       stopOrderAlertSound();
-    }, 12000);
+    }, 30000);
   } catch (err) {
     console.warn("Audio synthesis error:", err);
   }
 }
 
+/** Alias for playOrderAlertSound focusing on direct assignment */
+export function playTripAssignedBell() {
+  playOrderAlertSound();
+}
+
 /**
- * Stop siren when order is accepted or rejected.
+ * Stop bell ringtone when trip is acknowledged, navigated, or accepted.
  */
 export function stopOrderAlertSound() {
+  if (activeBellInterval) {
+    clearInterval(activeBellInterval);
+    activeBellInterval = null;
+  }
   if (activeSirenInterval) {
     clearInterval(activeSirenInterval);
     activeSirenInterval = null;
@@ -176,6 +226,13 @@ export function stopOrderAlertSound() {
       activeSirenOsc2.stop();
     } catch {}
     activeSirenOsc2 = null;
+  }
+  if (activeBellAudio) {
+    try {
+      activeBellAudio.pause();
+      activeBellAudio.currentTime = 0;
+    } catch {}
+    activeBellAudio = null;
   }
 }
 
@@ -324,6 +381,17 @@ export function speakOrderAlert(fare: number, pickupTitle?: string, dropTitle?: 
   const text = isHi
     ? `नया ऑर्डर! किराया ${fare} रुपये। ${pickupTitle ? pickupTitle + " से पिकअप करें।" : "जल्दी स्वीकार करें।"}`
     : `New order! Earning ${fare} rupees. ${pickupTitle ? "Pickup from " + pickupTitle : "Accept now."}`;
+  speakText(text);
+}
+
+/**
+ * Spoken alert when a trip is DIRECTLY ASSIGNED to the captain.
+ */
+export function speakTripAssigned(fare: number, pickupTitle?: string) {
+  const isHi = getAudioLanguage().startsWith("hi");
+  const text = isHi
+    ? `नया ट्रिप असाइन हो गया है! किराया ${fare} रुपये। तुरंत पिकअप के लिए रवाना हों।`
+    : `New trip assigned! Earning ${fare} rupees. Head to pickup immediately.`;
   speakText(text);
 }
 

@@ -78,7 +78,20 @@ async function httpRequest<T>(
     if (response.status === 401) throw new ApiError("unauthorized", "Session expired", 401);
     if (response.status === 404) throw new ApiError("not-found", `${path} not found`, 404);
     if (!response.ok) {
-      throw new ApiError("http", `${method} ${path} failed with ${response.status}`, response.status);
+      let message = `${method} ${path} failed with ${response.status}`;
+      try {
+        const errorJson = await response.json();
+        if (errorJson && typeof errorJson === "object") {
+          if (typeof errorJson.detail === "string") {
+            message = errorJson.detail;
+          } else if (typeof errorJson.message === "string") {
+            message = errorJson.message;
+          } else if (Array.isArray(errorJson.detail) && errorJson.detail[0]?.msg) {
+            message = errorJson.detail[0].msg;
+          }
+        }
+      } catch {}
+      throw new ApiError("http", message, response.status);
     }
     if (response.status === 204) return undefined as T;
 

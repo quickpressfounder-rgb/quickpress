@@ -19,6 +19,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, st
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.deps import bearer_scheme, current_user, require_roles
+from app.core.redis_cache import hybrid_cache
 
 
 def now_iso() -> str:
@@ -1423,6 +1424,7 @@ async def create_coupon(payload: CouponPayload, user: User = Depends(current_use
     data = payload.model_dump(exclude_unset=True)
     coupon = await coupon_repository.create(data)
     await audit_repository.log(await _actor(user), "coupon.create", coupon["_id"])
+    await hybrid_cache.delete("catalog:offers")
     return coupon
 
 
@@ -1432,6 +1434,7 @@ async def update_coupon(coupon_id: str, payload: CouponPayload, user: User = Dep
     if coupon is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")
     await audit_repository.log(await _actor(user), "coupon.update", coupon_id)
+    await hybrid_cache.delete("catalog:offers")
     return coupon
 
 
@@ -1442,6 +1445,7 @@ async def update_coupon_status(coupon_id: str, payload: dict, user: User = Depen
     if coupon is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")
     await audit_repository.log(await _actor(user), "coupon.status", coupon_id, {"status": status_val})
+    await hybrid_cache.delete("catalog:offers")
     return coupon
 
 
@@ -1451,6 +1455,7 @@ async def delete_coupon(coupon_id: str, user: User = Depends(current_user)):
     if not removed:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")
     await audit_repository.log(await _actor(user), "coupon.delete", coupon_id)
+    await hybrid_cache.delete("catalog:offers")
     return {"ok": True}
 
 
@@ -1464,6 +1469,7 @@ async def list_banners(user: User = Depends(current_user)):
 async def create_banner(payload: dict, user: User = Depends(current_user)):
     banner = await banner_repository.create(payload)
     await audit_repository.log(await _actor(user), "banner.create", banner["_id"])
+    await hybrid_cache.delete("catalog:banners")
     return banner
 
 
@@ -1473,6 +1479,7 @@ async def update_banner(banner_id: str, payload: dict, user: User = Depends(curr
     if banner is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found")
     await audit_repository.log(await _actor(user), "banner.update", banner_id)
+    await hybrid_cache.delete("catalog:banners")
     return banner
 
 
@@ -1482,6 +1489,7 @@ async def delete_banner(banner_id: str, user: User = Depends(current_user)):
     if not removed:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Banner not found")
     await audit_repository.log(await _actor(user), "banner.delete", banner_id)
+    await hybrid_cache.delete("catalog:banners")
     return {"ok": True}
 
 

@@ -81,6 +81,35 @@ export default defineConfig({
     optimizeDeps: {
       exclude: ["@capacitor/app", "@capacitor/core", "@capacitor/android"],
     },
+    build: {
+      target: "es2022",
+      cssCodeSplit: true,
+      assetsInlineLimit: 4096,
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes("node_modules")) {
+              if (id.includes("react") || id.includes("react-dom") || id.includes("scheduler")) {
+                return "vendor-react";
+              }
+              if (id.includes("@tanstack")) {
+                return "vendor-tanstack";
+              }
+              if (id.includes("lucide-react") || id.includes("@radix-ui")) {
+                return "vendor-ui";
+              }
+              if (id.includes("socket.io-client")) {
+                return "vendor-socket";
+              }
+              if (id.includes("recharts")) {
+                return "vendor-charts";
+              }
+            }
+          },
+        },
+      },
+    },
     resolve: {
       alias: [
         // "@/..." must point at the Partner app source, not the legacy ./src app.

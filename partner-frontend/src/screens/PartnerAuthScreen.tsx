@@ -145,8 +145,7 @@ export function PartnerAuthScreen() {
       await requestOtp(digits);
       setPhone(digits);
       setSent(true);
-      toast.success("Verification code sent to your phone");
-      window.setTimeout(() => navigate({ to: partnerRoutes.otp }), 600);
+      window.setTimeout(() => navigate({ to: partnerRoutes.otp }), 300);
     } catch (cause) {
       const msg =
         cause instanceof Error ? cause.message : "Unable to connect to server. Please try again.";
@@ -173,7 +172,6 @@ export function PartnerAuthScreen() {
       } catch {}
       const resolved = { ...sess, isOnboarded: realIsOnboarded, isVerified: realIsVerified };
       signIn(resolved);
-      toast.success("Signed in with Google");
       if (!realIsOnboarded) {
         navigate({ to: partnerRoutes.registration });
       } else if (!realIsVerified) {

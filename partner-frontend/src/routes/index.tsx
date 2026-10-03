@@ -100,18 +100,10 @@ function PartnerSplashScreen() {
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-white px-6 text-[#111827] select-none font-sans">
-      {/* Soft brand glow background ambience */}
-      <div className="pointer-events-none absolute -top-32 left-1/2 size-[30rem] -translate-x-1/2 rounded-full bg-emerald-500/5 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-40 left-1/2 size-[26rem] -translate-x-1/2 rounded-full bg-emerald-600/5 blur-3xl" />
-
       <div
         className="relative flex flex-col items-center transition-opacity duration-500"
         style={{ opacity: visible ? 1 : 0 }}
       >
-        {/* Expanding pulse rings behind brand mark */}
-        <span className="pointer-events-none absolute size-44 rounded-full border-2 border-[#F4B400]/25 splash-ring" />
-        <span className="pointer-events-none absolute size-44 rounded-full border-2 border-[#16A34A]/25 splash-ring [animation-delay:1.3s]" />
-
         {/* Wordmark + Partner Badge */}
         <div className="splash-mark relative flex flex-col items-center">
           <div className="flex items-center gap-2">

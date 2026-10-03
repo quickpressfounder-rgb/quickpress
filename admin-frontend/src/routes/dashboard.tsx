@@ -43,7 +43,6 @@ import { toast } from "sonner";
 
 import { AdminShell } from "../components/AdminShell";
 import { AdminLivePanel } from "../components/AdminLivePanel";
-import { AdminLiveMap } from "../components/AdminLiveMap";
 import { DataTable, SectionCard, StatusPill } from "../components/AdminUI";
 import { OrdersBarChart, RevenueAreaChart } from "../components/AdminCharts";
 import {
@@ -819,26 +818,6 @@ export function DashboardPage() {
             </div>
           </SectionCard>
         </div>
-
-        {/* =========================================================================
-            SECTION 11: LIVE OPERATIONS MAP (COMPACT EMBED + LINK TO FULL MAP)
-        ========================================================================= */}
-        <SectionCard
-          title="Live Operations Map"
-          description="Real-time GPS telemetry from active rider devices and partner pickup hubs"
-          actions={
-            <button
-              type="button"
-              onClick={() => navigate({ to: adminRoutes.riders })}
-              className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"
-            >
-              <span>Open Full Live Map</span>
-              <ExternalLink className="size-3" />
-            </button>
-          }
-        >
-          <AdminLiveMap className="h-64" />
-        </SectionCard>
 
         {/* =========================================================================
             SECTION 12: ORDERS + REVENUE TREND CHART

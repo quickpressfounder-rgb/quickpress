@@ -149,8 +149,8 @@ export const CandyCrushMilestoneMap: React.FC<CandyCrushMilestoneMapProps> = ({
         <div className="absolute -right-6 -bottom-6 size-28 bg-white/10 rounded-full blur-xl pointer-events-none" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="size-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-inner">
-              👑
+            <div className="size-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+              <Trophy className="size-5 text-white" />
             </div>
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-amber-100">
@@ -161,7 +161,7 @@ export const CandyCrushMilestoneMap: React.FC<CandyCrushMilestoneMapProps> = ({
               </h3>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full bg-white text-amber-800 text-xs font-black shadow-sm font-mono">
+          <span className="px-2.5 py-1 rounded-full bg-white text-amber-900 text-xs font-bold shadow-xs">
             10 Levels
           </span>
         </div>
@@ -340,7 +340,7 @@ export const CandyCrushMilestoneMap: React.FC<CandyCrushMilestoneMapProps> = ({
                     </span>
 
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[11px] font-black text-emerald-700 font-mono">
+                      <span className="text-[11px] font-bold text-emerald-700">
                         +₹{lvl.reward.toFixed(0)}
                       </span>
                       <span className="text-[10px] text-zinc-400 font-bold">•</span>
@@ -432,7 +432,7 @@ export const CandyCrushMilestoneMap: React.FC<CandyCrushMilestoneMapProps> = ({
             <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-zinc-600">Cash Incentive:</span>
-                <span className="text-xl font-black font-mono text-emerald-700">
+                <span className="text-xl font-bold text-emerald-700">
                   +₹{selectedLevel.reward.toFixed(0)}
                 </span>
               </div>

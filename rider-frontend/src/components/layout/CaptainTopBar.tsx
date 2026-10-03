@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Bell, MapPin, Menu, Volume2, VolumeX } from "lucide-react";
+import { Bell, Menu, Volume2, VolumeX } from "lucide-react";
 import { useLanguage } from "../../lib/i18n";
-import { isAudioMuted, toggleAudioMuted } from "../../lib/captain-audio";
+import { isAudioMuted, toggleAudioMuted, triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
 
 interface CaptainTopBarProps {
@@ -25,9 +25,15 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
   const [muted, setMuted] = useState(() => isAudioMuted());
 
   const handleToggleSound = () => {
+    triggerHaptic(30);
     const next = toggleAudioMuted();
     setMuted(next);
     toast.info(next ? "Audio Alerts Muted 🔇" : "Audio Alerts Active 🔊");
+  };
+
+  const handleDutyClick = () => {
+    triggerHaptic(45);
+    onToggleDuty();
   };
 
   return (
@@ -38,9 +44,12 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
       {/* Left: Hamburger Menu */}
       <button
         type="button"
-        onClick={onOpenDrawer}
+        onClick={() => {
+          triggerHaptic(25);
+          onOpenDrawer();
+        }}
         aria-label="Open Navigation Menu"
-        className="flex items-center justify-center size-9 -ml-1 text-zinc-800 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all"
+        className="flex items-center justify-center size-9 -ml-1 text-zinc-800 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer"
       >
         <Menu className="size-5 stroke-[2.2]" />
       </button>
@@ -49,26 +58,34 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
       <button
         type="button"
         disabled={loading}
-        onClick={onToggleDuty}
-        className={`relative flex items-center justify-between h-9 px-3 min-w-[132px] rounded-full transition-all duration-300 border shadow-xs ${
+        onClick={handleDutyClick}
+        className={`relative flex items-center justify-between h-9 px-3 min-w-[136px] rounded-full transition-all duration-300 border shadow-xs ${
           isOnline
-            ? "bg-emerald-50 border-emerald-400 text-emerald-900 ring-2 ring-emerald-500/15"
+            ? "bg-emerald-50 border-emerald-400 text-emerald-900 ring-2 ring-emerald-500/20"
             : "bg-zinc-100 border-zinc-200 text-zinc-600 hover:bg-zinc-150"
         } ${loading ? "opacity-75 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
       >
-        <span className="text-[11px] font-black tracking-wider uppercase">
-          {loading ? "Updating..." : isOnline ? t("dash.onDuty", "ON DUTY") : t("dash.offDuty", "OFF DUTY")}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {isOnline && (
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-600" />
+            </span>
+          )}
+          <span className="text-[11px] font-black tracking-wider uppercase">
+            {loading ? "Updating..." : isOnline ? t("dash.onDuty", "ON DUTY") : t("dash.offDuty", "OFF DUTY")}
+          </span>
+        </div>
 
         {/* Switch Toggle Dot */}
         <div
           className={`flex items-center justify-center size-6 rounded-full transition-all duration-300 shadow-2xs ${
             isOnline
-              ? "bg-emerald-600 text-white shadow-emerald-600/30 ml-2"
+              ? "bg-emerald-600 text-white shadow-emerald-600/40 ml-2"
               : "bg-zinc-400 text-white ml-2"
           }`}
         >
-          <div className="size-2 rounded-full bg-white" />
+          <div className="size-2 rounded-full bg-white shadow-xs" />
         </div>
       </button>
 
@@ -79,7 +96,7 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
           type="button"
           onClick={handleToggleSound}
           aria-label={muted ? "Unmute Audio" : "Mute Audio"}
-          className={`relative flex items-center justify-center size-8.5 rounded-xl transition-all active:scale-95 ${
+          className={`relative flex items-center justify-center size-8.5 rounded-xl transition-all active:scale-95 cursor-pointer ${
             muted
               ? "bg-rose-50 text-rose-600 hover:bg-rose-100"
               : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
@@ -96,9 +113,12 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
         {/* Notifications Bell */}
         <button
           type="button"
-          onClick={onOpenNotifications}
+          onClick={() => {
+            triggerHaptic(25);
+            if (onOpenNotifications) onOpenNotifications();
+          }}
           aria-label="Notifications"
-          className="relative flex items-center justify-center size-8.5 text-zinc-700 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all"
+          className="relative flex items-center justify-center size-8.5 text-zinc-700 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer"
         >
           <Bell className="size-4.5 stroke-[2.2]" />
           {notificationCount > 0 && (

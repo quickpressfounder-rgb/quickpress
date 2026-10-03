@@ -685,6 +685,9 @@ async def update_settings(
     payload: BusinessSettingsUpdate, partner_id: str = Depends(_partner_id)
 ) -> BusinessSettingsResponse:
     data = payload.model_dump(exclude_unset=True)
+    if "isStoreOpen" in data or "isOpen" in data or "acceptingNewOrders" in data:
+        is_online_flag = bool(data.get("isStoreOpen", data.get("isOpen", data.get("acceptingNewOrders", True))))
+        await partner_repository.toggle_status(partner_id, is_online_flag)
     doc = await partner_repository.update_settings(partner_id, data)
     from app.services.partner_activity_logger import log_partner_activity
     import asyncio
@@ -1750,6 +1753,34 @@ async def update_bank_details(payload: dict, partner_id: str = Depends(_partner_
     }
 
 
+@router.post("/kyc/change-request")
+@router.patch("/kyc")
+@router.put("/kyc")
+async def submit_kyc_change_request(payload: dict, partner_id: str = Depends(_partner_id)) -> dict:
+    from app.services.approval_engine import approval_engine
+    allowed = (
+        "businessName", "ownerName", "phone", "email",
+        "pan", "panCard", "aadhaar", "aadhaarFront", "aadhaarBack",
+        "bankName", "accountHolder", "accountNumber", "ifsc", "chequePhoto",
+        "gstin", "address", "city", "area", "pincode"
+    )
+    updates = {k: v for k, v in payload.items() if k in allowed and v is not None}
+    reason = str(payload.get("reason") or "Partner requested KYC and document update")
+    req = await approval_engine.submit_change_request(
+        partner_id=partner_id,
+        request_type="kyc_update",
+        payload=updates,
+        reason=reason,
+    )
+    return {
+        "ok": True,
+        "pendingApproval": True,
+        "message": "KYC & Document update submitted for Admin Verification and Approval.",
+        "requestId": req["requestId"],
+        "updates": updates,
+    }
+
+
 @router.get("/approval-requests")
 async def list_my_approval_requests(partner_id: str = Depends(_partner_id)) -> dict:
     """Returns partner's pending, approved, and rejected change requests."""
@@ -1910,6 +1941,77 @@ async def download_settlement_statement(
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "data": data,
     }
+
+
+@router.get("/finance/statement/{cycle_id}/pdf")
+async def get_settlement_statement_pdf(
+    cycle_id: str,
+    token: Optional[str] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+) -> Response:
+    """Streams official Merchant Settlement Statement PDF."""
+    user: Optional[User] = None
+    tok = credentials.credentials if isinstance(credentials, HTTPAuthorizationCredentials) and credentials.credentials else (token if isinstance(token, str) else None)
+    if tok:
+        try:
+            user = await current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=tok))
+        except Exception:
+            pass
+
+    partner_id = "PRT-527735"
+    if user:
+        try:
+            partner_id = await partner_repository.resolve_partner_id(user)
+        except Exception:
+            pass
+
+    from app.services.settlement_engine import settlement_engine
+    from app.services.invoice_pdf_generator import generate_settlement_statement_pdf
+
+    data = await settlement_engine.compute_cycle_breakdown(partner_id, cycle_id)
+    pdf_bytes = generate_settlement_statement_pdf(data)
+    clean_cycle = cycle_id.replace("cycle-", "").replace("month-", "")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="QuickPress-Settlement-{clean_cycle}-{partner_id}.pdf"'},
+    )
+
+
+@router.get("/finance/statement/{cycle_id}/excel")
+@router.get("/finance/statement/{cycle_id}/csv")
+async def get_settlement_statement_excel(
+    cycle_id: str,
+    token: Optional[str] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+) -> Response:
+    """Streams official Merchant Settlement Statement in Excel / CSV format (UTF-8 BOM)."""
+    user: Optional[User] = None
+    tok = credentials.credentials if isinstance(credentials, HTTPAuthorizationCredentials) and credentials.credentials else (token if isinstance(token, str) else None)
+    if tok:
+        try:
+            user = await current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=tok))
+        except Exception:
+            pass
+
+    partner_id = "PRT-527735"
+    if user:
+        try:
+            partner_id = await partner_repository.resolve_partner_id(user)
+        except Exception:
+            pass
+
+    from app.services.settlement_engine import settlement_engine
+    from app.services.invoice_pdf_generator import generate_settlement_statement_csv
+
+    data = await settlement_engine.compute_cycle_breakdown(partner_id, cycle_id)
+    csv_text = generate_settlement_statement_csv(data)
+    clean_cycle = cycle_id.replace("cycle-", "").replace("month-", "")
+    return Response(
+        content=csv_text.encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="QuickPress-Settlement-{clean_cycle}-{partner_id}.csv"'},
+    )
 
 
 @router.post("/finance/statement/{cycle_id}/email")
@@ -2164,5 +2266,78 @@ async def get_commission_invoice_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="QuickPress-Commission-{period_key}-{partner_suffix}.pdf"'},
     )
+
+
+@router.get("/finance/commission-invoices/{period_key}/excel")
+@router.get("/finance/commission-invoices/{period_key}/csv")
+async def get_commission_invoice_excel(
+    period_key: str,
+    token: Optional[str] = None,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+) -> Response:
+    """Streams official GST Commission Tax Invoice in Excel / CSV format (for GSTR-2B / ITC claim)."""
+    user: Optional[User] = None
+    tok = credentials.credentials if isinstance(credentials, HTTPAuthorizationCredentials) and credentials.credentials else (token if isinstance(token, str) else None)
+    if tok:
+        try:
+            user = await current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=tok))
+        except Exception:
+            pass
+
+    partner_id = "PRT-527735"
+    if user:
+        try:
+            partner_id = await partner_repository.resolve_partner_id(user)
+        except Exception:
+            pass
+
+    profile = await database.find_one("partner_profiles", {"_id": partner_id}) or {}
+    orders = await database.find_many(
+        "customer_orders",
+        {
+            "$or": [
+                {"partner.id": partner_id},
+                {"partnerId": partner_id},
+                {"partner_id": partner_id},
+            ],
+            "status": {"$nin": ["cancelled", "rejected"]},
+        },
+    )
+    month_orders = [o for o in orders if str(o.get("createdAt") or o.get("placedAt") or "")[:7] in (period_key, "")]
+    m_gross = sum(float(o.get("totals", {}).get("grandTotal") or o.get("amount") or 0) for o in (month_orders or orders))
+    comm_val = round(m_gross * 0.15, 2)
+    cgst_val = round(comm_val * 0.09, 2)
+    sgst_val = round(comm_val * 0.09, 2)
+
+    try:
+        m_dt = datetime.strptime(period_key, "%Y-%m")
+        period_name = m_dt.strftime("%B %Y")
+    except Exception:
+        period_name = period_key
+
+    from app.services.invoice_pdf_generator import generate_commission_invoice_csv
+
+    partner_suffix = (partner_id.replace("PRT-", "") if partner_id else "527735")[-6:]
+    payload = {
+        "invoice_number": f"INV/QP/COMM/{period_key.replace('-', '')}/{partner_suffix}",
+        "date": datetime.now(timezone.utc).strftime("%d-%b-%Y"),
+        "period": period_name,
+        "partner_name": profile.get("businessName") or "Shree Krishna Lundary",
+        "partner_id": partner_id,
+        "partner_gst": profile.get("gstin") or "Unregistered / Composition",
+        "partner_city": profile.get("city") or "Kasganj, Uttar Pradesh",
+        "order_count": len(month_orders or orders),
+        "gross_sales": m_gross,
+        "commission_amount": comm_val,
+        "cgst": cgst_val,
+        "sgst": sgst_val,
+    }
+    csv_text = generate_commission_invoice_csv(payload)
+    return Response(
+        content=csv_text.encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="QuickPress-Commission-{period_key}-{partner_suffix}.csv"'},
+    )
+
 
 

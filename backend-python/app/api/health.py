@@ -43,6 +43,12 @@ async def health() -> dict:
     }
 
 
+@router.get("/health/db-metrics", summary="Database pool & query APM metrics")
+async def db_metrics() -> dict:
+    """Returns database connection pool utilization and query execution telemetry."""
+    return database.get_pool_metrics()
+
+
 # ---------------------------------------------------------------------------
 # GET /countries  (mounted at /api/countries)
 # India is the only supported market for Phase 1. The list is static data —

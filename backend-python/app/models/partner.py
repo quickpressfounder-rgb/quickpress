@@ -84,6 +84,27 @@ class PartnerProfileResponse(BaseModel):
     address: Optional[str] = None
     area: Optional[str] = None
     gallery: List[str] = []
+    pan: Optional[str] = None
+    panCard: Optional[str] = None
+    aadhaar: Optional[str] = None
+    aadhaarFront: Optional[str] = None
+    aadhaarBack: Optional[str] = None
+    bankName: Optional[str] = None
+    accountHolder: Optional[str] = None
+    accountNumber: Optional[str] = None
+    ifsc: Optional[str] = None
+    chequePhoto: Optional[str] = None
+    signatureUrl: Optional[str] = None
+    signedByName: Optional[str] = None
+    signedAt: Optional[str] = None
+    agreementVersion: Optional[str] = None
+    kycStatus: Optional[str] = None
+    isOnboarded: Optional[bool] = None
+    pincode: Optional[str] = None
+    state: Optional[str] = None
+    ownerPhoto: Optional[str] = None
+    hasPendingApproval: Optional[bool] = False
+    pendingChangesCount: Optional[int] = 0
 
     def model_post_init(self, __context: any) -> None:
         if not self.id:

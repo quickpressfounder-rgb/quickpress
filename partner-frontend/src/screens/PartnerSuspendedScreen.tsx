@@ -24,6 +24,7 @@ import { Toaster } from "@/shared/ui/sonner";
 import { apiGetJson, apiPostJson } from "@/api/core/transport";
 import { usePartnerContext } from "../context/PartnerContext";
 import { partnerRoutes } from "../navigation/partner-routes";
+import { formatPartnerId } from "../lib/format-ids";
 
 export function PartnerSuspendedScreen() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export function PartnerSuspendedScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const partnerId = useMemo(() => {
-    return session?.partnerId || session?.businessName || "QP-STORE-0000";
+    return formatPartnerId(session?.partnerId);
   }, [session]);
 
   const fetchSuspensionDetails = async (silent = false) => {

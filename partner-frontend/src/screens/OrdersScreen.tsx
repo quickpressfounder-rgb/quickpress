@@ -94,7 +94,7 @@ export function OrdersScreen() {
       {/* ========================================================================= */}
       <div className="min-h-screen bg-[#F4F5F7] pb-28 text-zinc-900 md:hidden">
         {/* Sticky Filter Header with Search & Horizontal Stage Pills */}
-        <header className="sticky top-0 z-20 bg-white px-4 pt-3 pb-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <header className="sticky top-0 z-20 bg-white/95 dark:bg-card/95 backdrop-blur-2xl border-b border-slate-200/80 dark:border-border/60 px-4 pt-3 pb-2.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)]">
           {/* Search Box */}
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
@@ -127,8 +127,8 @@ export function OrdersScreen() {
                   onClick={() => setFilterTab(tab.id)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 ${
                     isActive
-                      ? "bg-zinc-950 text-white shadow-sm"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30"
+                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-emerald-300"
                   }`}
                 >
                   <span>{tab.label}</span>
@@ -161,7 +161,7 @@ export function OrdersScreen() {
               <button
                 type="button"
                 onClick={isSearching ? resetSearch : () => void refresh()}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-zinc-950 px-4 py-2 text-xs font-black text-white shadow-sm active:scale-95"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-black text-white shadow-sm shadow-emerald-600/25 active:scale-95 transition-all"
               >
                 <RotateCcw className="size-3" />
                 <span>{isSearching ? "Reset filter" : "Refresh Orders"}</span>
@@ -199,8 +199,8 @@ export function OrdersScreen() {
                   onClick={() => setFilterTab(tab.id)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 ${
                     isActive
-                      ? "bg-zinc-950 text-white shadow-xs"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30"
+                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-emerald-300"
                   }`}
                 >
                   <span>{tab.label}</span>

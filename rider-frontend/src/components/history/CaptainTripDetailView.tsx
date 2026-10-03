@@ -554,7 +554,7 @@ export const CaptainTripDetailView: React.FC<CaptainTripDetailViewProps> = ({
               <div className="p-2.5 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center gap-2 mt-2">
                 <ShieldCheck className="size-4 text-emerald-700 shrink-0" />
                 <p className="text-[10px] text-emerald-950 font-medium">
-                  Payout transferred directly to your Daily UPI Bank Account. Zero commission deducted.
+                  Payout transferred directly to your Daily Bank Account. Zero commission deducted.
                 </p>
               </div>
             </div>

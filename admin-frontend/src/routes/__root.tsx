@@ -37,12 +37,12 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error("Root boundary caught error:", error);
   const router = useRouter();
+  const errorMsg = String(error?.message || error || "");
 
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
 
     // Automatic recovery for stale bundle chunk / CDN cache mismatch errors
-    const errorMsg = String(error?.message || error || "");
     if (
       errorMsg.includes("positive") ||
       errorMsg.includes("Failed to fetch dynamically imported module") ||
@@ -60,7 +60,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         window.location.reload();
       }
     }
-  }, [error]);
+  }, [error, errorMsg]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 text-white">

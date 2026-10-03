@@ -13,9 +13,10 @@ token and is scoped to `current_user`.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.core.deps import current_user
+from app.core.http_cache import CACHE_STATIC_CATALOG, apply_cache_headers
 from app.db.support_repositories import SupportError, support_repository
 from app.models.support import (
     CreateTicketPayload,
@@ -32,14 +33,17 @@ router = APIRouter(tags=["help"])
 
 @router.get("/help/faqs", response_model=FaqListResponse)
 async def list_faqs(
+    response: Response,
     category: str | None = Query(default=None, alias="category"),
     q: str | None = None,
 ) -> FaqListResponse:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     return await support_repository.faqs(category_id=category, q=q)
 
 
 @router.get("/help/categories", response_model=FaqCategoriesResponse)
-async def list_categories() -> FaqCategoriesResponse:
+async def list_categories(response: Response) -> FaqCategoriesResponse:
+    apply_cache_headers(response, CACHE_STATIC_CATALOG)
     return await support_repository.categories()
 
 

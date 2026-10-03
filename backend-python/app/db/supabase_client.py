@@ -15,7 +15,10 @@ import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 import uuid
 
-import asyncpg
+try:
+    import asyncpg
+except ImportError:
+    asyncpg = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -166,8 +169,126 @@ def _sort_key(val: Any) -> Any:
     return str(val).lower()
 
 
+_CACHEABLE_STATIC_COLLECTIONS = {
+    "banners",
+    "categories",
+    "counters",
+    "admin_settings",
+    "faq_categories",
+    "faqs",
+    "admin_cities",
+}
+
+
+def _compile_filter(
+    collection: str, query: Dict[str, Any]
+) -> Tuple[Optional[str], List[Any]]:
+    """Compiles a MongoDB-style query into a parameterized PostgreSQL JSONB WHERE clause."""
+    if not query:
+        return "collection = $1", [collection]
+
+    params: List[Any] = [collection]
+    conditions: List[str] = ["collection = $1"]
+
+    def _compile_clause(key: str, val: Any) -> Optional[str]:
+        nonlocal params
+        # 1. Primary key lookup: _id or id
+        if key in ("_id", "id"):
+            if isinstance(val, (str, int)):
+                params.append(f"{collection}:{val}")
+                return f"id = ${len(params)}"
+            elif isinstance(val, dict) and "$in" in val and isinstance(val["$in"], (list, tuple)):
+                params.append([f"{collection}:{str(x)}" for x in val["$in"]])
+                return f"id = ANY(${len(params)}::text[])"
+            return None
+
+        # 2. $or operator
+        if key == "$or" and isinstance(val, list):
+            or_parts = []
+            for subq in val:
+                if not isinstance(subq, dict):
+                    return None
+                sub_parts = []
+                for sk, sv in subq.items():
+                    sc = _compile_clause(sk, sv)
+                    if sc is None:
+                        return None
+                    sub_parts.append(sc)
+                if sub_parts:
+                    or_parts.append("(" + " AND ".join(sub_parts) + ")")
+            return "(" + " OR ".join(or_parts) + ")" if or_parts else None
+
+        # 3. $and operator
+        if key == "$and" and isinstance(val, list):
+            and_parts = []
+            for subq in val:
+                if not isinstance(subq, dict):
+                    return None
+                for sk, sv in subq.items():
+                    sc = _compile_clause(sk, sv)
+                    if sc is None:
+                        return None
+                    and_parts.append(sc)
+            return "(" + " AND ".join(and_parts) + ")" if and_parts else None
+
+        # JSON path extraction: nested keys like "address.city" -> data->'address'->>'city'
+        path_parts = key.split(".")
+        if len(path_parts) == 1:
+            json_field = f"data->>'{path_parts[0]}'"
+        else:
+            intermediates = "->".join(f"'{p}'" for p in path_parts[:-1])
+            json_field = f"data->{intermediates}->>'{path_parts[-1]}'"
+
+        # 4. Operator dictionaries
+        if isinstance(val, dict):
+            sub_clauses = []
+            for op, op_val in val.items():
+                if op == "$eq":
+                    params.append(str(op_val) if not isinstance(op_val, (int, float, bool)) else op_val)
+                    sub_clauses.append(f"{json_field} = ${len(params)}")
+                elif op == "$ne":
+                    params.append(str(op_val))
+                    sub_clauses.append(f"({json_field} IS DISTINCT FROM ${len(params)})")
+                elif op == "$in" and isinstance(op_val, (list, tuple)):
+                    params.append([str(x) for x in op_val])
+                    sub_clauses.append(f"{json_field} = ANY(${len(params)}::text[])")
+                elif op == "$nin" and isinstance(op_val, (list, tuple)):
+                    params.append([str(x) for x in op_val])
+                    sub_clauses.append(f"(NOT ({json_field} = ANY(${len(params)}::text[])))")
+                elif op == "$exists":
+                    if bool(op_val):
+                        sub_clauses.append(f"({json_field} IS NOT NULL)")
+                    else:
+                        sub_clauses.append(f"({json_field} IS NULL)")
+                elif op in ("$gt", "$gte", "$lt", "$lte"):
+                    op_symbol = {"$gt": ">", "$gte": ">=", "$lt": "<", "$lte": "<="}[op]
+                    if isinstance(op_val, (int, float)):
+                        params.append(float(op_val))
+                        sub_clauses.append(f"({json_field})::numeric {op_symbol} ${len(params)}")
+                    else:
+                        params.append(str(op_val))
+                        sub_clauses.append(f"{json_field} {op_symbol} ${len(params)}")
+                else:
+                    return None
+            return " AND ".join(sub_clauses) if sub_clauses else None
+
+        # 5. Scalar equality
+        if val is None:
+            return f"({json_field} IS NULL)"
+        params.append(str(val) if not isinstance(val, (int, float, bool)) else val)
+        return f"{json_field} = ${len(params)}"
+
+    for k, v in query.items():
+        clause = _compile_clause(k, v)
+        if clause is None:
+            return None, []
+        conditions.append(clause)
+
+    return " AND ".join(conditions), params
+
+
 class SupabaseCursor:
-    """Async cursor mimicking PyMongo/Motor cursor for Supabase PostgreSQL."""
+    """Async cursor mimicking PyMongo/Motor cursor with SQL pushdown for Supabase PostgreSQL."""
 
     def __init__(self, collection: SupabaseCollection, query: Dict[str, Any]) -> None:
         self._collection = collection
@@ -194,13 +315,47 @@ class SupabaseCursor:
         return self
 
     async def to_list(self, length: Optional[int] = None) -> List[Dict[str, Any]]:
+        lim = self._limit if self._limit is not None else length
+
+        # Try pushdown to PostgreSQL with ORDER BY, OFFSET, LIMIT
+        where_clause, params = _compile_filter(self._collection._name, self._query)
+        if where_clause is not None:
+            try:
+                order_by_parts = []
+                for key, direction in self._sort_fields:
+                    dir_str = "ASC" if direction >= 0 else "DESC"
+                    if key in ("_id", "id"):
+                        order_by_parts.append(f"id {dir_str}")
+                    else:
+                        order_by_parts.append(f"data->>'{key}' {dir_str}")
+
+                order_sql = f" ORDER BY {', '.join(order_by_parts)}" if order_by_parts else ""
+                limit_offset_sql = ""
+
+                cur_params = list(params)
+                if self._skip:
+                    cur_params.append(self._skip)
+                    limit_offset_sql += f" OFFSET ${len(cur_params)}"
+
+                if lim is not None:
+                    cur_params.append(lim)
+                    limit_offset_sql += f" LIMIT ${len(cur_params)}"
+
+                sql = f"SELECT data FROM quickpress_documents WHERE {where_clause}{order_sql}{limit_offset_sql}"
+                pool = await self._collection._db.get_pool()
+                async with pool.acquire() as conn:
+                    rows = await conn.fetch(sql, *cur_params)
+                    return [json.loads(r["data"]) for r in rows]
+            except Exception as e:
+                logger.debug("SQL cursor execution fallback to memory: %s", e)
+
+        # Fallback to in-memory cursor
         docs = await self._collection.find_many(self._query)
         if self._sort_fields:
             for key, direction in reversed(self._sort_fields):
                 docs.sort(key=lambda d: _sort_key(_get_nested(d, key)), reverse=(direction < 0))
         if self._skip:
             docs = docs[self._skip:]
-        lim = self._limit if self._limit is not None else length
         if lim is not None:
             docs = docs[:lim]
         return docs
@@ -209,6 +364,8 @@ class SupabaseCursor:
 class SupabaseCollection:
     """PostgreSQL-backed document collection in Supabase with sub-millisecond write-through caching."""
 
+    CACHE_TTL: float = 3.0
+
     def __init__(self, db: Any, name: str) -> None:
         self._db = db
         self._name = name
@@ -216,13 +373,9 @@ class SupabaseCollection:
         self._cache_ts: float = 0.0
 
     async def _fetch_all(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
-        if not force_refresh and self._cache is not None:
+        now = time.time()
+        if not force_refresh and self._cache is not None and (now - self._cache_ts) < self.CACHE_TTL:
             return list(self._cache)
-
-        if not force_refresh and getattr(self._db, "_is_preloaded", False):
-            self._cache = []
-            self._cache_ts = time.time()
-            return []
 
         try:
             pool = await self._db.get_pool()
@@ -293,17 +446,66 @@ class SupabaseCollection:
         return SupabaseCursor(self, query or {})
 
     async def find_one(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        # 1. Check local cache first if available
+        if self._cache is not None:
+            for d in self._cache:
+                if _matches(d, query):
+                    return dict(d)
+
+        # 2. Targeted SQL lookup (O(1) index hit)
+        where_clause, params = _compile_filter(self._name, query)
+        if where_clause is not None:
+            try:
+                pool = await self._db.get_pool()
+                async with pool.acquire() as conn:
+                    sql = f"SELECT data FROM quickpress_documents WHERE {where_clause} LIMIT 1"
+                    row = await conn.fetchrow(sql, *params)
+                    if row:
+                        return json.loads(row["data"])
+                    return None
+            except Exception as e:
+                logger.debug("Targeted SQL find_one fallback: %s", e)
+
+        # 3. Fallback to memory
         docs = await self._fetch_all()
         for d in docs:
             if _matches(d, query):
-                return d
+                return dict(d)
         return None
 
     async def find_many(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+        if self._cache is not None and not query:
+            return list(self._cache)
+
+        where_clause, params = _compile_filter(self._name, query)
+        if where_clause is not None:
+            try:
+                pool = await self._db.get_pool()
+                async with pool.acquire() as conn:
+                    sql = f"SELECT data FROM quickpress_documents WHERE {where_clause}"
+                    rows = await conn.fetch(sql, *params)
+                    return [json.loads(r["data"]) for r in rows]
+            except Exception as e:
+                logger.debug("Targeted SQL find_many fallback: %s", e)
+
         docs = await self._fetch_all()
         return [d for d in docs if _matches(d, query)]
 
     async def count_documents(self, query: Dict[str, Any]) -> int:
+        if self._cache is not None and not query:
+            return len(self._cache)
+
+        where_clause, params = _compile_filter(self._name, query)
+        if where_clause is not None:
+            try:
+                pool = await self._db.get_pool()
+                async with pool.acquire() as conn:
+                    sql = f"SELECT count(*) FROM quickpress_documents WHERE {where_clause}"
+                    count = await conn.fetchval(sql, *params)
+                    return int(count or 0)
+            except Exception as e:
+                logger.debug("Targeted SQL count_documents fallback: %s", e)
+
         docs = await self._fetch_all()
         return sum(1 for d in docs if _matches(d, query))
 
@@ -319,9 +521,8 @@ class SupabaseCollection:
     async def update_one(
         self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False
     ) -> Any:
-        docs = await self._fetch_all()
-        matched = [d for d in docs if _matches(d, query)]
-        if not matched:
+        target = await self.find_one(query)
+        if not target:
             if upsert:
                 new_doc = dict(query)
                 if "$set" in update:
@@ -329,23 +530,19 @@ class SupabaseCollection:
                 else:
                     new_doc.update(update)
                 await self._save_doc(new_doc)
+                return new_doc
             return None
-        target = matched[0]
-        if "$set" in update:
-            for k, v in update["$set"].items():
-                _set_nested(target, k, v)
-        else:
-            target.update(update)
+
+        _apply_update(target, update)
         await self._save_doc(target)
         return target
 
     async def update_many(self, query: Dict[str, Any], update: Dict[str, Any]) -> int:
-        docs = await self._fetch_all()
-        matched = [d for d in docs if _matches(d, query)]
-        for doc in matched:
+        docs = await self.find_many(query)
+        for doc in docs:
             _apply_update(doc, update)
             await self._save_doc(doc)
-        return len(matched)
+        return len(docs)
 
     async def find_one_and_update(
         self,
@@ -354,9 +551,8 @@ class SupabaseCollection:
         return_document: Any = None,
         upsert: bool = False,
     ) -> Optional[Dict[str, Any]]:
-        docs = await self._fetch_all()
-        matched = [d for d in docs if _matches(d, query)]
-        if not matched:
+        target = await self.find_one(query)
+        if not target:
             if not upsert:
                 return None
             target = dict(query)
@@ -367,36 +563,62 @@ class SupabaseCollection:
             await self._save_doc(target)
             return dict(target)
 
-        target = matched[0]
         _apply_update(target, update)
         await self._save_doc(target)
         return dict(target)
 
     async def delete_one(self, query: Dict[str, Any]) -> int:
-        docs = await self._fetch_all()
-        target = next((d for d in docs if _matches(d, query)), None)
+        # Check by id directly
+        doc_id = None
+        if "_id" in query and isinstance(query["_id"], (str, int)):
+            doc_id = str(query["_id"])
+        elif "id" in query and isinstance(query["id"], (str, int)):
+            doc_id = str(query["id"])
+
+        if doc_id:
+            await self._delete_doc_id(doc_id)
+            return 1
+
+        target = await self.find_one(query)
         if target:
-            doc_id = target.get("id") or target.get("_id")
-            if doc_id:
-                await self._delete_doc_id(str(doc_id))
+            target_id = target.get("id") or target.get("_id")
+            if target_id:
+                await self._delete_doc_id(str(target_id))
                 return 1
         return 0
 
     async def delete_many(self, query: Dict[str, Any]) -> int:
         if not query:
-            # Delete all documents in this collection directly in SQL
             count = len(self._cache or [])
             self._cache = []
             self._cache_ts = time.time()
             try:
                 pool = await self._db.get_pool()
                 async with pool.acquire() as conn:
-                    await conn.execute(
+                    res = await conn.execute(
                         "DELETE FROM quickpress_documents WHERE collection = $1", self._name
                     )
+                    # Extract count from response 'DELETE N'
+                    if res and " " in res:
+                        count = int(res.split(" ")[-1])
             except Exception as e:
                 logger.warning(f"Delete all error for {self._name}: {e}")
             return count
+
+        where_clause, params = _compile_filter(self._name, query)
+        if where_clause is not None:
+            try:
+                pool = await self._db.get_pool()
+                async with pool.acquire() as conn:
+                    res = await conn.execute(
+                        f"DELETE FROM quickpress_documents WHERE {where_clause}", *params
+                    )
+                    count = int(res.split(" ")[-1]) if (res and " " in res) else 0
+                    if self._cache is not None:
+                        self._cache = [d for d in self._cache if not _matches(d, query)]
+                    return count
+            except Exception as e:
+                logger.debug("Targeted SQL delete_many fallback: %s", e)
 
         docs = await self._fetch_all()
         matched = [d for d in docs if _matches(d, query)]
@@ -416,7 +638,36 @@ class SupabaseDatabase:
         self._pool_lock: Optional[asyncio.Lock] = None
         self._collections: Dict[str, SupabaseCollection] = {}
         self._is_preloaded: bool = False
-        self.semaphore = asyncio.Semaphore(20)
+        self.semaphore = asyncio.Semaphore(50)
+        self._total_queries: int = 0
+        self._slow_queries: int = 0
+        self._total_query_time_ms: float = 0.0
+
+    def get_pool_metrics(self) -> Dict[str, Any]:
+        """Returns database connection pool utilization and query performance telemetry."""
+        active = 0
+        free = 0
+        max_size = 20
+        min_size = 2
+        if self._pool is not None and not self._pool._closed:
+            try:
+                active = self._pool.get_size() - self._pool.get_idle_size()
+                free = self._pool.get_idle_size()
+                max_size = self._pool.get_max_size()
+                min_size = self._pool.get_min_size()
+            except Exception:
+                pass
+        avg_time = (self._total_query_time_ms / self._total_queries) if self._total_queries > 0 else 0.0
+        return {
+            "engine": "supabase-postgresql",
+            "min_pool_size": min_size,
+            "max_pool_size": max_size,
+            "active_connections": active,
+            "idle_connections": free,
+            "total_queries": self._total_queries,
+            "slow_queries": self._slow_queries,
+            "avg_query_time_ms": round(avg_time, 2),
+        }
 
     async def get_pool(self) -> asyncpg.Pool:
         current_loop = asyncio.get_running_loop()
@@ -434,32 +685,27 @@ class SupabaseDatabase:
                 self._pool = await asyncpg.create_pool(
                     self.database_url,
                     min_size=1,
-                    max_size=5,
+                    max_size=4,
+                    max_inactive_connection_lifetime=300.0,
                     statement_cache_size=0,
-                    command_timeout=30,
-                    timeout=25.0,
+                    command_timeout=25.0,
+                    timeout=20.0,
                     ssl=ssl_mode,
                 )
                 self._loop = current_loop
             return self._pool
 
     async def preload_cache(self) -> None:
-        """Preload all documents from Supabase PostgreSQL in a single fast query."""
+        """Preload static reference collections from Supabase PostgreSQL in a single fast query."""
         for attempt in range(4):
             try:
                 pool = await self.get_pool()
                 async with pool.acquire() as conn:
-                    # Ensure table exists
-                    await conn.execute("""
-                        CREATE TABLE IF NOT EXISTS quickpress_documents (
-                            id TEXT PRIMARY KEY,
-                            collection TEXT NOT NULL,
-                            data JSONB NOT NULL,
-                            updated_at TIMESTAMPTZ DEFAULT NOW()
-                        );
-                        CREATE INDEX IF NOT EXISTS idx_qp_docs_collection ON quickpress_documents(collection);
-                    """)
-                    rows = await conn.fetch("SELECT collection, data FROM quickpress_documents")
+                    # Preload ONLY small static reference collections to keep memory usage lightweight
+                    rows = await conn.fetch(
+                        "SELECT collection, data FROM quickpress_documents WHERE collection = ANY($1::text[])",
+                        list(_CACHEABLE_STATIC_COLLECTIONS),
+                    )
                     coll_map: Dict[str, List[Dict[str, Any]]] = {}
                     for r in rows:
                         c_name = r["collection"]
@@ -469,7 +715,7 @@ class SupabaseDatabase:
                         coll._cache = doc_list
                         coll._cache_ts = time.time()
                     self._is_preloaded = True
-                    logger.info("Successfully cached %d documents across %d collections from Supabase.", len(rows), len(coll_map))
+                    logger.info("Successfully preloaded %d static documents across %d collections from Supabase.", len(rows), len(coll_map))
                     return
             except Exception as e:
                 logger.warning("Cache preload attempt %d warning: %s", attempt + 1, repr(e))
@@ -496,8 +742,14 @@ class SupabaseDatabase:
                     updated_at TIMESTAMPTZ DEFAULT NOW()
                 );
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_collection ON quickpress_documents(collection);
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_collection_id ON quickpress_documents(collection, id);
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_gin ON quickpress_documents USING gin (data jsonb_path_ops);
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_status ON quickpress_documents (collection, (data->>'status'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_user_id ON quickpress_documents (collection, (data->>'userId'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_phone ON quickpress_documents (collection, (data->>'phone'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_created_at ON quickpress_documents (collection, (data->>'createdAt'));
             """)
-        logger.info("Connected to Supabase PostgreSQL and initialized schema.")
+        logger.info("Connected to Supabase PostgreSQL and initialized optimized schema + JSONB indexes.")
         asyncio.create_task(self._safe_preload_cache())
 
     async def disconnect(self) -> None:

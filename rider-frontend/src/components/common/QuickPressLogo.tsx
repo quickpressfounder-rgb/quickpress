@@ -31,9 +31,9 @@ export const QuickPressLogo: React.FC<QuickPressLogoProps> = ({
     <div className={`flex flex-col items-center select-none ${className}`}>
       {/* Official QuickPress Logo Image (Black Quick + Green Press) */}
       <img
-        src="/quickpress-brand-logo.png"
+        src="/quickpress-brand-logo-transparent.png"
         alt="QuickPress"
-        className={`${imageHeights[size]} w-auto object-contain pointer-events-none drop-shadow-2xs`}
+        className={`${imageHeights[size]} w-auto object-contain pointer-events-none bg-transparent`}
       />
 
       {/* Subtitle Badge */}

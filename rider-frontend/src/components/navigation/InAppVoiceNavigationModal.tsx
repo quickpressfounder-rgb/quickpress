@@ -21,6 +21,9 @@ import {
   ZoomOut,
   Layers,
   ChevronRight,
+  List,
+  ExternalLink,
+  CheckCircle2,
 } from "lucide-react";
 import {
   voiceNavEngine,
@@ -82,6 +85,7 @@ export function InAppVoiceNavigationModal({
   const [routeSteps, setRouteSteps] = useState<NavigationStep[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([]);
   const [routeSource, setRouteSource] = useState<string>("google");
+  const [showStepsSheet, setShowStepsSheet] = useState<boolean>(false);
 
   const currentRiderPos = riderCoords || { lat: 27.8118, lng: 78.6477 };
 
@@ -253,20 +257,20 @@ export function InAppVoiceNavigationModal({
           subdomains: ["mt0", "mt1", "mt2", "mt3"],
         }).addTo(map);
 
-        // Custom Rapido Captain Scooter Marker (Directional Beam + Compass)
+        // Custom Rapido Captain Scooter Marker (Directional Beam + White Navigation Pod)
         const riderIcon = L.divIcon({
           className: "custom-rapido-captain-marker",
           html: `
             <div class="relative flex items-center justify-center w-14 h-14">
               <!-- Radar Pulse Ring -->
-              <div class="absolute w-14 h-14 rounded-full bg-[#00C853]/25 animate-ping"></div>
-              <div class="absolute w-10 h-10 rounded-full bg-emerald-500/30"></div>
+              <div class="absolute w-14 h-14 rounded-full bg-emerald-500/20 animate-ping"></div>
+              <div class="absolute w-10 h-10 rounded-full bg-emerald-500/25"></div>
               
               <!-- Directional Cone / Scooter Body that rotates -->
-              <div class="nav-captain-bike-inner relative w-10 h-10 rounded-full bg-slate-900 border-2 border-white shadow-2xl flex items-center justify-center transition-transform duration-300" style="transform: rotate(${bearing}deg)">
+              <div class="nav-captain-bike-inner relative w-10 h-10 rounded-full bg-white border-2 border-emerald-600 shadow-xl flex items-center justify-center transition-transform duration-300" style="transform: rotate(${bearing}deg)">
                 <!-- Forward Direction Arrow Pip -->
-                <div class="absolute -top-1 w-2.5 h-2.5 bg-[#00C853] rotate-45 border border-white shadow-xs"></div>
-                <span class="text-white text-base font-black">🛵</span>
+                <div class="absolute -top-1 w-2.5 h-2.5 bg-emerald-600 rotate-45 border border-white shadow-xs"></div>
+                <span class="text-base">🛵</span>
               </div>
             </div>
           `,
@@ -274,17 +278,17 @@ export function InAppVoiceNavigationModal({
           iconAnchor: [28, 28],
         });
 
-        // Custom Target Destination Pin (High Contrast Pin)
+        // Custom Target Destination Pin (White Theme Pin)
         const destIcon = L.divIcon({
           className: "custom-nav-dest-marker",
           html: `
             <div class="relative flex flex-col items-center justify-center">
-              <div class="px-2.5 py-1 rounded-lg bg-slate-950 text-white font-black text-[11px] shadow-xl border border-white/40 whitespace-nowrap mb-1">
-                📍 ${targetName}
+              <div class="px-2.5 py-1 rounded-xl bg-white text-neutral-900 font-black text-[11px] shadow-xl border border-neutral-300 whitespace-nowrap mb-1 flex items-center gap-1">
+                <span class="text-rose-500 font-bold">📍</span> ${targetName}
               </div>
               <div class="relative flex items-center justify-center w-10 h-10">
-                <div class="absolute w-10 h-10 rounded-full bg-rose-500/30 animate-pulse"></div>
-                <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-sm font-black">
+                <div class="absolute w-10 h-10 rounded-full bg-rose-500/25 animate-pulse"></div>
+                <div class="w-8 h-8 rounded-full bg-rose-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-black">
                   🎯
                 </div>
               </div>
@@ -373,6 +377,29 @@ export function InAppVoiceNavigationModal({
     }
   };
 
+  // Zoom to fit entire route overview
+  const handleFitRouteOverview = () => {
+    triggerHaptic(30);
+    if (mapInstanceRef.current && routeCoordinates.length >= 2) {
+      import("leaflet").then(({ default: L }) => {
+        const bounds = L.latLngBounds(routeCoordinates);
+        mapInstanceRef.current.fitBounds(bounds, {
+          padding: [50, 50],
+          maxZoom: 17,
+        });
+      });
+    }
+  };
+
+  // Launch native/external Google Maps app
+  const handleLaunchExternalGoogleMaps = () => {
+    triggerHaptic(40);
+    const origin = currentRiderPos ? `${currentRiderPos.lat},${currentRiderPos.lng}` : "";
+    const destination = `${targetCoords.lat},${targetCoords.lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=two-wheeler`;
+    window.open(url, "_blank");
+  };
+
   // Zoom Controls
   const handleZoomIn = () => {
     triggerHaptic(30);
@@ -393,55 +420,58 @@ export function InAppVoiceNavigationModal({
     }
   };
 
-  // Render High-Contrast Rapido Maneuver Icon
-  const renderManeuverIcon = () => {
-    switch (currentManeuver) {
+  // Render Maneuver Icon
+  const renderManeuverIcon = (
+    maneuver: ManeuverType = currentManeuver,
+    className = "w-8 h-8 text-emerald-600"
+  ) => {
+    switch (maneuver) {
       case "turn-right":
-        return <CornerUpRight className="w-11 h-11 text-[#00C853] animate-pulse stroke-[2.75]" />;
+        return <CornerUpRight className={`${className} animate-pulse stroke-[2.75]`} />;
       case "turn-left":
-        return <CornerUpLeft className="w-11 h-11 text-[#00C853] animate-pulse stroke-[2.75]" />;
+        return <CornerUpLeft className={`${className} animate-pulse stroke-[2.75]`} />;
       case "slight-right":
-        return <CornerDownRight className="w-11 h-11 text-[#00C853] stroke-[2.5]" />;
+        return <CornerDownRight className={`${className} stroke-[2.5]`} />;
       case "slight-left":
-        return <CornerDownLeft className="w-11 h-11 text-[#00C853] stroke-[2.5]" />;
+        return <CornerDownLeft className={`${className} stroke-[2.5]`} />;
       case "u-turn":
-        return <RotateCcw className="w-11 h-11 text-amber-400 stroke-[2.5]" />;
+        return <RotateCcw className={`${className} text-amber-500 stroke-[2.5]`} />;
       case "arrived":
-        return <MapPin className="w-11 h-11 text-rose-500 animate-bounce stroke-[2.5]" />;
+        return <MapPin className={`${className} text-rose-500 animate-bounce stroke-[2.5]`} />;
       case "depart":
       case "straight":
       default:
-        return <Navigation className="w-11 h-11 text-[#00C853] -rotate-45 stroke-[2.5]" />;
+        return <Navigation className={`${className} -rotate-45 stroke-[2.5]`} />;
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col overflow-hidden text-zinc-950 font-sans animate-in fade-in duration-200 select-none">
-      {/* 1. TOP RAPIDO TURN-BY-TURN HUD HEADER (Deep Navy Slate & Emerald Glow) */}
-      <header className="relative z-30 bg-slate-900 border-b border-slate-800 text-white px-4 pt-3 pb-3.5 shadow-2xl">
-        {/* Top Control Bar: Phase, Language, Mute, Close */}
-        <div className="flex items-center justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-2">
+    <div className="fixed inset-0 z-[9999] bg-white flex flex-col overflow-hidden text-neutral-900 font-sans select-none animate-in fade-in duration-200">
+      {/* 1. TOP WHITE THEME TURN-BY-TURN HUD HEADER */}
+      <header className="relative z-30 bg-white border-b border-neutral-200 text-neutral-900 px-3.5 pt-3 pb-3 shadow-xs">
+        {/* Top Control Bar: Back, Phase Pill, Language, Audio, External Google Maps */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-200 transition-all border border-slate-700"
+              className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 active:scale-95 flex items-center justify-center text-neutral-800 transition-all border border-neutral-200 shrink-0 cursor-pointer"
               title="Exit In-App Navigation"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
             </button>
-            <div>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wider uppercase bg-emerald-500/15 text-[#00C853] border border-emerald-500/30">
-                <Radio className="w-3 h-3 animate-ping" />
-                {phaseLabel}
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide uppercase bg-emerald-50 text-emerald-800 border border-emerald-200 truncate">
+                <Radio className="w-3 h-3 text-emerald-600 animate-pulse" />
+                <span className="truncate">{phaseLabel}</span>
               </span>
             </div>
           </div>
 
-          {/* Quick Voice & Language Controls */}
-          <div className="flex items-center gap-2">
+          {/* Quick Voice, Language & External Navigation Controls */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleToggleLanguage}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-black text-emerald-400 border border-slate-700 flex items-center gap-1 active:scale-95 transition-all shadow-xs"
+              className="px-2.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-800 border border-neutral-200 flex items-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer"
               title="Switch Hindi / English voice guidance"
             >
               <span>{language.startsWith("hi") ? "🇮🇳 हिन्दी" : "🇬🇧 English"}</span>
@@ -449,118 +479,212 @@ export function InAppVoiceNavigationModal({
 
             <button
               onClick={handleToggleMute}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border active:scale-95 ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border active:scale-95 cursor-pointer shadow-2xs ${
                 isMuted
-                  ? "bg-rose-950/60 border-rose-800 text-rose-400"
-                  : "bg-emerald-950/60 border-emerald-600 text-[#00C853]"
+                  ? "bg-rose-50 border-rose-200 text-rose-600"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
               }`}
               title={isMuted ? "Unmute Voice" : "Mute Voice"}
             >
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              {isMuted ? <VolumeX className="w-4.5 h-4.5" /> : <Volume2 className="w-4.5 h-4.5 text-emerald-600" />}
+            </button>
+
+            <button
+              onClick={handleLaunchExternalGoogleMaps}
+              className="w-9 h-9 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#4285F4] flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
+              title="Open External Google Maps"
+            >
+              <ExternalLink className="w-4 h-4 text-blue-600" />
             </button>
           </div>
         </div>
 
-        {/* Big Turn Instruction Banner (Rapido Style) */}
-        <div className="flex items-center gap-3.5 bg-slate-800/90 rounded-2xl p-3 border border-slate-700/80 shadow-inner">
+        {/* Clean White Turn Instruction Banner */}
+        <div className="flex items-center gap-3 bg-neutral-50 rounded-2xl p-3 border border-neutral-200/90 shadow-xs">
           {/* Turn Maneuver Icon */}
-          <div className="w-16 h-16 rounded-2xl bg-slate-950 border border-slate-700 flex items-center justify-center shrink-0 shadow-md">
-            {renderManeuverIcon()}
+          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-xs">
+            {renderManeuverIcon(currentManeuver, "w-8 h-8 text-emerald-600")}
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
+              <span className="text-2xl sm:text-3xl font-black font-sans tracking-tight text-neutral-950">
                 {distanceMeters > 1000 ? `${distanceKm} km` : `${distanceMeters} m`}
               </span>
-              <span className="text-[11px] font-black text-[#00C853] uppercase tracking-wider">
-                {isArrived ? "Arrived 📍" : "Next Maneuver"}
+              <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                {isArrived ? "Arrived 📍" : "Next Turn"}
               </span>
             </div>
 
-            <p className="text-sm font-bold text-slate-100 line-clamp-1 mt-0.5 leading-snug">
+            <p className="text-xs sm:text-sm font-bold text-neutral-900 line-clamp-1 mt-0.5 leading-snug">
               {currentInstruction}
             </p>
-            {currentStreet ? (
-              <p className="text-xs font-semibold text-slate-400 truncate mt-0.5">
+            {currentStreet && (
+              <p className="text-[11px] font-semibold text-neutral-500 truncate mt-0.5">
                 On: {currentStreet}
               </p>
-            ) : null}
+            )}
           </div>
 
           {/* Repeat Voice Guidance Button */}
           <button
             onClick={handleRepeatVoice}
-            className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-700 active:scale-90 flex items-center justify-center text-[#00C853] border border-slate-700 shrink-0 shadow-sm"
+            className="w-10 h-10 rounded-xl bg-white hover:bg-neutral-100 active:scale-90 flex items-center justify-center text-emerald-600 border border-neutral-200 shrink-0 shadow-2xs cursor-pointer"
             title="Repeat voice prompt"
           >
-            <Mic className="w-4 h-4 text-[#00C853]" />
+            <Mic className="w-4 h-4 text-emerald-600" />
           </button>
         </div>
       </header>
 
-      {/* 2. CENTER MAP CANVAS WITH GOOGLE MAPS TILES & LIVE TELEMETRY */}
-      <main className="relative flex-1 w-full bg-slate-900 overflow-hidden">
+      {/* 2. CENTER MAP CANVAS WITH WHITE/LIGHT THEME CONTROLS */}
+      <main className="relative flex-1 w-full bg-neutral-100 overflow-hidden">
         <div ref={mapContainerRef} className="w-full h-full" />
 
-        {/* Floating Re-center & Map Controls (Right Side) */}
-        <div className="absolute right-4 bottom-5 z-[400] flex flex-col gap-2">
-          {/* Zoom In/Out */}
+        {/* Floating Map Controls (Right Side) */}
+        <div className="absolute right-3.5 bottom-4 z-[400] flex flex-col gap-2">
+          {/* Fit Route Overview */}
           <button
-            onClick={handleZoomIn}
-            className="w-11 h-11 rounded-2xl bg-slate-900/95 backdrop-blur-md border border-slate-700 text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform"
-            title="Zoom In"
+            onClick={handleFitRouteOverview}
+            className="w-10 h-10 rounded-xl bg-white/95 backdrop-blur-md border border-neutral-200 text-neutral-800 shadow-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            title="Fit Route Overview"
           >
-            <ZoomIn className="w-5 h-5 text-slate-200" />
+            <Compass className="w-4.5 h-4.5 text-neutral-700" />
           </button>
+
+          {/* Route Steps List Toggle */}
           <button
-            onClick={handleZoomOut}
-            className="w-11 h-11 rounded-2xl bg-slate-900/95 backdrop-blur-md border border-slate-700 text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform"
-            title="Zoom Out"
+            onClick={() => setShowStepsSheet((prev) => !prev)}
+            className="w-10 h-10 rounded-xl bg-white/95 backdrop-blur-md border border-neutral-200 text-neutral-800 shadow-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer relative"
+            title="View Turn-by-Turn Steps"
           >
-            <ZoomOut className="w-5 h-5 text-slate-200" />
+            <List className="w-4.5 h-4.5 text-blue-600" />
+            {routeSteps.length > 0 && (
+              <span className="absolute -top-1 -right-1 size-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center shadow-xs">
+                {routeSteps.length}
+              </span>
+            )}
           </button>
+
+          {/* Zoom In / Out */}
+          <div className="flex flex-col bg-white/95 backdrop-blur-md border border-neutral-200 rounded-xl shadow-md overflow-hidden">
+            <button
+              onClick={handleZoomIn}
+              className="w-10 h-10 flex items-center justify-center text-neutral-800 hover:bg-neutral-100 active:scale-90 transition-transform border-b border-neutral-150 cursor-pointer"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-4.5 h-4.5" />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-10 h-10 flex items-center justify-center text-neutral-800 hover:bg-neutral-100 active:scale-90 transition-transform cursor-pointer"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-4.5 h-4.5" />
+            </button>
+          </div>
 
           {/* Re-center GPS on Rider */}
           <button
             onClick={handleRecenter}
-            className="w-12 h-12 rounded-2xl bg-white text-slate-950 border border-slate-300 shadow-2xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            className="w-11 h-11 rounded-2xl bg-white text-neutral-900 border-2 border-emerald-500 shadow-xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
             title="Recenter GPS Location"
           >
-            <Locate className="w-6 h-6 text-[#00C853]" />
+            <Locate className="w-5 h-5 text-emerald-600" />
           </button>
         </div>
 
-        {/* Live Speedometer & Routing Badge (Bottom Left) */}
-        <div className="absolute left-4 bottom-5 z-[400] flex items-center gap-2">
-          <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl px-3.5 py-2 shadow-2xl flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#00C853] animate-ping" />
+        {/* Live Speedometer (Bottom Left) */}
+        <div className="absolute left-3.5 bottom-4 z-[400] flex items-center gap-2">
+          <div className="bg-white/95 backdrop-blur-md border border-neutral-200 rounded-2xl px-3 py-1.5 shadow-md flex items-center gap-2">
+            <div className="size-2 rounded-full bg-[#00C853] animate-ping" />
             <div>
-              <div className="text-xl font-black text-white leading-none font-mono">{userSpeedKmh}</div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">km/h</div>
+              <div className="text-lg font-black text-neutral-950 leading-none font-sans">{userSpeedKmh}</div>
+              <div className="text-[9px] font-black text-neutral-500 uppercase tracking-wider">km/h</div>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/90 backdrop-blur-xs rounded-xl border border-slate-700 text-[10px] font-black text-slate-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>{routeSource === "google" ? "Google Routes" : routeSource === "osrm" ? "OSRM Street" : "Road Grid"}</span>
-          </div>
+          {routeSteps.length > 0 && (
+            <button
+              onClick={() => setShowStepsSheet(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white/95 backdrop-blur-xs rounded-xl border border-neutral-200 text-[11px] font-bold text-neutral-800 shadow-md active:scale-95 transition-all cursor-pointer"
+            >
+              <List className="w-3.5 h-3.5 text-blue-600" />
+              <span>{routeSteps.length} Steps</span>
+            </button>
+          )}
         </div>
+
+        {/* Full Turn-by-Turn Route Steps Sheet (Slide Up Drawer) */}
+        {showStepsSheet && (
+          <div className="absolute inset-0 z-[500] bg-black/40 backdrop-blur-2xs flex flex-col justify-end animate-in fade-in duration-200">
+            <div className="w-full max-h-[70vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
+              {/* Sheet Header */}
+              <div className="p-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50">
+                <div className="flex items-center gap-2">
+                  <div className="size-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
+                    <List className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-neutral-900 leading-tight">
+                      Route Directions ({routeSteps.length} Steps)
+                    </h3>
+                    <p className="text-[11px] font-semibold text-neutral-500">
+                      Total: {distanceKm} km · Est. {etaMinutes} mins
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowStepsSheet(false)}
+                  className="size-8 rounded-full bg-neutral-200/80 hover:bg-neutral-300 flex items-center justify-center text-neutral-700 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Steps Scroll Area */}
+              <div className="flex-1 overflow-y-auto p-4 divide-y divide-neutral-150 space-y-1">
+                {routeSteps.map((step, idx) => (
+                  <div key={step.id || idx} className="py-2.5 flex items-start gap-3">
+                    <div className="size-8 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center shrink-0 mt-0.5">
+                      {renderManeuverIcon(step.maneuver, "w-4.5 h-4.5 text-neutral-700")}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-neutral-900 leading-snug">
+                        {language.startsWith("hi") ? step.instructionHi : step.instructionEn}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-mono">
+                          {step.distanceMeters > 1000 ? `${(step.distanceMeters / 1000).toFixed(1)} km` : `${step.distanceMeters} m`}
+                        </span>
+                        {step.streetName && (
+                          <span className="text-[10px] text-neutral-500 truncate">
+                            {step.streetName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* 3. BOTTOM COCKPIT DRAWER (Dark High-Contrast Layout & Rapido Action Controls) */}
-      <footer className="relative z-30 bg-white border-t border-zinc-300 px-4 pt-3.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.15)] text-zinc-950">
-        {/* Destination & Target Summary (Dark Bold Text) */}
+      {/* 3. BOTTOM COCKPIT DRAWER (Pure White Theme & Full Controls) */}
+      <footer className="relative z-30 bg-white border-t border-neutral-200 px-4 pt-3.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] text-neutral-900">
+        {/* Destination & Target Summary */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs font-black text-[#00A844] mb-0.5">
-              <MapPin className="w-4 h-4 shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs font-black text-emerald-700 mb-0.5">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{phaseLabel}: {targetName}</span>
             </div>
-            <h3 className="text-base font-black text-zinc-950 truncate leading-tight">
+            <h3 className="text-base font-black text-neutral-950 truncate leading-tight">
               {targetName}
             </h3>
-            <p className="text-xs font-bold text-zinc-800 truncate mt-0.5 leading-snug">
+            <p className="text-xs font-medium text-neutral-600 truncate mt-0.5 leading-snug">
               {targetAddress}
             </p>
           </div>
@@ -569,7 +693,7 @@ export function InAppVoiceNavigationModal({
           {targetPhone && (
             <button
               onClick={handleCall}
-              className="w-12 h-12 rounded-2xl bg-[#00C853] hover:bg-[#00B248] active:scale-95 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0 border border-emerald-400"
+              className="size-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white flex items-center justify-center shadow-md shrink-0 cursor-pointer"
               title="Call Target"
             >
               <Phone className="w-5 h-5 fill-white" />
@@ -577,21 +701,21 @@ export function InAppVoiceNavigationModal({
           )}
         </div>
 
-        {/* Trip Stats Matrix (High Contrast Dark Text) */}
-        <div className="grid grid-cols-3 gap-2.5 mb-3.5">
-          <div className="bg-zinc-100 border border-zinc-300 rounded-xl p-2.5 text-center">
-            <div className="text-[10px] font-black text-zinc-600 uppercase tracking-wide">Distance</div>
-            <div className="text-base font-black text-zinc-950 font-mono mt-0.5">{distanceKm} km</div>
+        {/* Trip Stats Matrix */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-2 text-center">
+            <div className="text-[9px] font-black text-neutral-500 uppercase tracking-wide">Distance</div>
+            <div className="text-sm font-black text-neutral-950 font-mono mt-0.5">{distanceKm} km</div>
           </div>
 
-          <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 text-center">
-            <div className="text-[10px] font-black text-emerald-800 uppercase tracking-wide">Est. Time</div>
-            <div className="text-base font-black text-emerald-950 font-mono mt-0.5">{etaMinutes} mins</div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2 text-center">
+            <div className="text-[9px] font-black text-emerald-700 uppercase tracking-wide">Est. Time</div>
+            <div className="text-sm font-black text-emerald-950 font-mono mt-0.5">{etaMinutes} mins</div>
           </div>
 
-          <div className="bg-zinc-100 border border-zinc-300 rounded-xl p-2.5 text-center">
-            <div className="text-[10px] font-black text-zinc-600 uppercase tracking-wide">Voice Guide</div>
-            <div className="text-xs font-black text-zinc-950 mt-1">
+          <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-2 text-center">
+            <div className="text-[9px] font-black text-neutral-500 uppercase tracking-wide">Voice Guide</div>
+            <div className="text-xs font-bold text-neutral-900 mt-0.5">
               {isMuted ? "Muted 🔇" : "Active 🔊"}
             </div>
           </div>
@@ -605,15 +729,15 @@ export function InAppVoiceNavigationModal({
               onArrived();
               onClose();
             }}
-            className="w-full py-4 px-4 rounded-2xl bg-[#00C853] hover:bg-[#00B248] active:scale-[0.98] text-white font-black text-sm tracking-wider uppercase shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 border border-emerald-400 transition-all cursor-pointer"
+            className="w-full py-3.5 px-4 rounded-2xl bg-[#00C853] hover:bg-[#00B248] active:scale-[0.98] text-white font-black text-sm tracking-wider uppercase shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 border border-emerald-400 transition-all cursor-pointer"
           >
-            <Sparkles className="w-5 h-5" />
-            Arrived at Destination • Proceed
+            <Sparkles className="w-4.5 h-4.5" />
+            <span>Arrived at Destination • Proceed</span>
           </button>
         ) : (
           <button
             onClick={onClose}
-            className="w-full py-3.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 active:scale-[0.98] text-white font-black text-sm tracking-wider uppercase flex items-center justify-center gap-2 transition-all cursor-pointer"
+            className="w-full py-3 px-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] text-white font-black text-sm tracking-wider uppercase flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
             Exit In-App Navigation
           </button>

@@ -46,6 +46,8 @@ async def _store_on_role_profile(user: User, field: str, url: str) -> None:
             updates["logoUrl"] = url
             updates["logo"] = url
             updates["image"] = url
+            updates["storeImage"] = url
+            updates["store_image"] = url
         elif field in ("banner_url", "banner"):
             updates["banner_url"] = url
             updates["bannerUrl"] = url

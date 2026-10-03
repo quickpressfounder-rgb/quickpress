@@ -17,6 +17,7 @@ import { fetchUnreadCount } from "../api/rider/rider-notifications-api";
 import { CaptainHomeOfflineScreen } from "../components/home/CaptainHomeOfflineScreen";
 import { CaptainOnlineMapView } from "../components/map/CaptainOnlineMapView";
 import { RiderBottomNav } from "../components/RiderBottomNav";
+import { formatCaptainId } from "../lib/format-ids";
 import { useLanguage } from "../lib/i18n";
 import {
   playDutyToggleSound,
@@ -42,8 +43,22 @@ export function RiderDashboardScreen() {
   const [dutyLoading, setDutyLoading] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [todayDeliveries, setTodayDeliveries] = useState(0);
-  const [captainName, setCaptainName] = useState(session?.fullName || "Captain");
-  const [captainId, setCaptainId] = useState(session?.riderId || "");
+  const [captainName, setCaptainName] = useState(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("qp_rider_government_name");
+      if (cached) return cached;
+    }
+    const name = session?.fullName;
+    return name && name !== "Delivery Captain" && name !== "Delivery Partner" ? name : "";
+  });
+  const [captainId, setCaptainId] = useState(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("qp_rider_id");
+      if (cached) return formatCaptainId(cached);
+    }
+    const rid = session?.riderId;
+    return rid && rid !== "CAP-100101" && rid !== "CP-9821" ? formatCaptainId(rid) : "";
+  });
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [savedActiveOrder, setSavedActiveOrder] = useState<any>(null);
@@ -70,8 +85,14 @@ export function RiderDashboardScreen() {
       ]);
 
       if (profileRes) {
-        setCaptainName(profileRes.fullName || profileRes.name || "Captain");
-        setCaptainId(profileRes.riderId || profileRes.id || "");
+        const pName = profileRes.fullName || profileRes.name;
+        if (pName && pName !== "Delivery Captain" && pName !== "Delivery Partner") {
+          setCaptainName(pName);
+        }
+        const pId = profileRes.riderId || profileRes.id || session?.riderId;
+        if (pId && pId !== "CAP-100101" && pId !== "CP-9821") {
+          setCaptainId(formatCaptainId(pId));
+        }
         setOnline(Boolean(profileRes.isOnline));
       }
 
@@ -147,14 +168,19 @@ export function RiderDashboardScreen() {
 
     const unsubscribe = subscribeRiderOffers((rawOffer: any) => {
       unlockAudioContext();
-      triggerHaptic([200, 100, 200, 100, 400]);
+      triggerHaptic([350, 150, 350, 150, 600, 300]);
       playOrderAlertSound();
       const fare = Number(rawOffer?.fare || rawOffer?.estimatedEarning || 45);
+      const isAutoAssigned = Boolean(rawOffer?.autoAssigned || rawOffer?.isAssigned || rawOffer?.status === "assigned");
       const pickupTitle = rawOffer?.pickupTitle || rawOffer?.partnerName || "पिकअप हब";
       const dropTitle = rawOffer?.dropTitle || rawOffer?.customerName || "कस्टमर लोकेशन";
       speakOrderAlert(fare, pickupTitle, dropTitle);
       setPendingOrdersCount((prev) => prev + 1);
-      toast.info(`🚨 New Order (₹${fare})! Switching to Orders...`);
+      toast.success(
+        isAutoAssigned
+          ? `🔔 Trip Assigned (₹${fare})! Switching to Trips...`
+          : `🚨 New Order (₹${fare})! Switching to Orders...`
+      );
       // Auto-switch to the Orders tab as requested by user
       navigate({ to: "/orders" });
     });
@@ -282,7 +308,7 @@ export function RiderDashboardScreen() {
         </div>
       )}
 
-      {/* 4. Strictly 2-Tab Bottom Navigation with live badge count on Orders */}
+      {/* 4. 4-Tab Captain Bottom Navigation with live badge count on Orders */}
       <RiderBottomNav active="dashboard" ordersBadgeCount={pendingOrdersCount} />
     </div>
   );

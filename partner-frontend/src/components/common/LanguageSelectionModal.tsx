@@ -20,6 +20,12 @@ export function LanguageSelectionModal({
 
   const [selectedLang, setSelectedLang] = useState<LanguageCode>(language);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedLang(language);
+    }
+  }, [isOpen, language]);
+
   if (!isOpen) return null;
 
   const handleConfirm = () => {

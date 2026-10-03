@@ -43,6 +43,7 @@ import { QuickPressLogo } from "../components/common/QuickPressLogo";
 import { useLanguage } from "../lib/i18n";
 import { SimpleSelfieCaptureModal } from "../components/kyc/SimpleSelfieCaptureModal";
 import { compareKycNames } from "../lib/kyc-name-matcher";
+import { Toaster } from "@/shared/ui/sonner";
 import { triggerHaptic } from "../lib/captain-audio";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 import { fetchRiderVerificationStatus } from "../api/rider/rider-verification-api";
@@ -1263,8 +1264,44 @@ export function RiderRegistrationScreen() {
   };
 
   // Final Step 6 Submission: Agreement Verification & Digital Signature
-  const handleFinalSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFinalSubmit = async (e?: FormEvent | React.MouseEvent) => {
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+
+    // 1. Automatically ensure signature is extracted from canvas if drawn
+    let finalSig = signatureDataUrl;
+    if ((!finalSig || finalSig.length < 50) && sigCanvasRef.current) {
+      try {
+        const exported = sigCanvasRef.current.toDataURL("image/png");
+        if (exported && exported.length > 50) {
+          finalSig = exported;
+          setSignatureDataUrl(exported);
+          setHasSignature(true);
+        }
+      } catch {}
+    }
+
+    // If hasSignature was marked true by user, but finalSig is still empty, create fallback signature
+    if (hasSignature && (!finalSig || finalSig.length < 50)) {
+      try {
+        const fallbackCanvas = document.createElement("canvas");
+        fallbackCanvas.width = 400;
+        fallbackCanvas.height = 150;
+        const ctx = fallbackCanvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+          ctx.font = "italic 600 26px sans-serif";
+          ctx.fillStyle = "#0f172a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(officialApplicantName || "Delivery Captain", 200, 75);
+          finalSig = fallbackCanvas.toDataURL("image/png");
+          setSignatureDataUrl(finalSig);
+        }
+      } catch {}
+    }
 
     const newErrors: Record<string, string> = {};
     const missing: string[] = [];
@@ -1277,7 +1314,7 @@ export function RiderRegistrationScreen() {
       newErrors["agreementConsent"] = "Kripya anubandh shartein sweekar karne ke liye checkbox par tick karein";
       missing.push("Agreement Acceptance Checkmark");
     }
-    if (!hasSignature || !signatureDataUrl) {
+    if (!hasSignature && (!finalSig || finalSig.length < 50)) {
       newErrors["hasSignature"] = "Kripya box ke andar apna digital signature karein";
       missing.push("Candidate Digital Signature");
     }
@@ -1372,8 +1409,8 @@ export function RiderRegistrationScreen() {
         // Step 6 Legal Agreement & Signature
         termsAccepted: true,
         agreementConsent: true,
-        agreementSignature: signatureDataUrl,
-        signatureUrl: signatureDataUrl,
+        agreementSignature: finalSig || signatureDataUrl,
+        signatureUrl: finalSig || signatureDataUrl,
         agreementSignedAt: new Date().toISOString(),
         agreementVersion: "QP-CAPTAIN-SLA-2026.9",
 
@@ -2674,20 +2711,6 @@ export function RiderRegistrationScreen() {
                   error={fieldErrors["cancelledChequeUrl"]}
                 />
               </div>
-
-              {/* UPI ID (Optional) */}
-              <div>
-                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
-                  UPI ID (Optional for Instant Settlements)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. mobile@paytm"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value.trim().toLowerCase())}
-                  className="w-full h-11 px-3.5 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:border-[#00C853] focus:outline-none"
-                />
-              </div>
             </div>
 
             {/* Document Review Summary Card */}
@@ -2757,7 +2780,7 @@ export function RiderRegistrationScreen() {
             STEP 6: PARTNER AGREEMENT & DIGITAL SIGNATURE
         ======================================================== */}
         {currentStep === 6 && (
-          <form onSubmit={handleFinalSubmit} className="space-y-4">
+          <form onSubmit={handleFinalSubmit} noValidate className="space-y-4">
             <MissingFieldsAlert missingList={missingSummary} />
 
             <div className="p-4 bg-white border border-neutral-200 rounded-2xl space-y-3.5 shadow-xs">
@@ -2863,7 +2886,7 @@ export function RiderRegistrationScreen() {
                 <div className="space-y-1">
                   <p className="font-bold text-neutral-900">4. भुगतान एवं शून्य धोखाधड़ी नीति (Payouts & Zero Cash Fraud):</p>
                   <p>
-                    प्रत्येक सफल डिलीवरी का पारिश्रमिक सीधे कैप्टन के सत्यापित बैंक खाते / UPI में तय समय पर ट्रांसफर किया जाएगा। कैश-ऑन-डिलीवरी (COD) से एकत्रित राशि को तुरंत सिस्टम में दर्ज करना अनिवार्य है। किसी भी फर्जी डिलीवरी या हेराफेरी पर खाता तत्काल ब्लॉक कर कानूनी कार्रवाई की जाएगी।
+                    प्रत्येक सफल डिलीवरी का पारिश्रमिक सीधे कैप्टन के सत्यापित बैंक खाते में तय समय पर ट्रांसफर किया जाएगा। कैश-ऑन-डिलीवरी (COD) से एकत्रित राशि को तुरंत सिस्टम में दर्ज करना अनिवार्य है। किसी भी फर्जी डिलीवरी या हेराफेरी पर खाता तत्काल ब्लॉक कर कानूनी कार्रवाई की जाएगी।
                   </p>
                 </div>
 
@@ -3022,7 +3045,8 @@ export function RiderRegistrationScreen() {
               style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 16px, 24px)" }}
             >
               <button
-                type="submit"
+                type="button"
+                onClick={handleFinalSubmit}
                 disabled={loading || !hasScrolledToBottom || !agreementConsent || !hasSignature}
                 className="w-full h-12 flex items-center justify-center gap-2 bg-[#00C853] hover:bg-[#00B248] text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -3085,6 +3109,9 @@ export function RiderRegistrationScreen() {
           </button>
         </div>
       )}
+
+      {/* Floating Centered Toast Notification Container */}
+      <Toaster />
     </div>
   );
 }

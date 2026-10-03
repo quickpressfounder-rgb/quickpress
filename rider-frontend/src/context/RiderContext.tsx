@@ -45,10 +45,21 @@ export function RiderProvider({ children }: { children: ReactNode }) {
       const stored = readSession("rider") || readSession();
       if (stored) {
         const acc = (stored as any).account || stored;
+        const rawName = acc.name ?? acc.fullName ?? (stored as any).fullName;
+        const cleanName =
+          rawName && rawName !== "Delivery Captain" && rawName !== "Delivery Partner"
+            ? rawName
+            : (typeof window !== "undefined" ? localStorage.getItem("qp_rider_government_name") || "" : "");
+        const rawId = acc.linkedId ?? acc.id ?? (stored as any).riderId ?? (stored as any).id;
+        const cleanId =
+          rawId && rawId !== "CP-9821" && rawId !== "CAP-100101"
+            ? rawId
+            : (typeof window !== "undefined" ? localStorage.getItem("qp_rider_id") || "" : "");
+
         return {
-          riderId: acc.linkedId ?? acc.id ?? (stored as any).riderId ?? (stored as any).id ?? "CP-9821",
-          phone: acc.phone ?? (stored as any).phone ?? "",
-          fullName: acc.name ?? acc.fullName ?? (stored as any).fullName ?? "Delivery Captain",
+          riderId: cleanId,
+          phone: acc.phone ?? (stored as any).phone ?? (typeof window !== "undefined" ? localStorage.getItem("qp_rider_phone") || "" : ""),
+          fullName: cleanName,
           isVerified: Boolean(acc.isVerified ?? acc.is_verified ?? (stored as any).isVerified ?? (stored as any).is_verified),
           isOnboarded: Boolean(acc.isOnboarded ?? acc.is_onboarded ?? (stored as any).isOnboarded ?? (stored as any).is_onboarded ?? true),
           isNewRider: !Boolean(acc.isOnboarded ?? acc.is_onboarded ?? (stored as any).isOnboarded ?? (stored as any).is_onboarded ?? true),

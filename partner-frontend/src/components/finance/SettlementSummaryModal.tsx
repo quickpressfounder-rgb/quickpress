@@ -3,6 +3,8 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  FileSpreadsheet,
+  FileText,
   HelpCircle,
   Mail,
   Package,
@@ -16,10 +18,12 @@ import { toast } from "sonner";
 
 import {
   type SettlementBreakdown,
-  downloadSettlementReport,
+  downloadSettlementPdfBlob,
+  downloadSettlementExcelBlob,
   emailSettlementReport,
   fetchSettlementBreakdown,
 } from "@/api/partner/partner-finance-api";
+import { formatPartnerId } from "@/lib/format-ids";
 
 interface SettlementSummaryModalProps {
   cycleId: string;
@@ -30,7 +34,6 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
   const [activeSubTab, setActiveSubTab] = useState<"summary" | "orders" | "expenses">("summary");
   const [data, setData] = useState<SettlementBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
   const [emailing, setEmailing] = useState(false);
 
   // Accordion open/close states
@@ -59,24 +62,30 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
     };
   }, [cycleId]);
 
-  const handleDownload = async () => {
-    setDownloading(true);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    setDownloadingPdf(true);
     try {
-      const res = await downloadSettlementReport(cycleId);
-      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-        JSON.stringify(res.data, null, 2)
-      )}`;
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.setAttribute("href", jsonString);
-      downloadAnchor.setAttribute("download", res.filename || `QuickPress_Settlement_${cycleId}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      toast.success("Settlement statement downloaded successfully!");
+      await downloadSettlementPdfBlob(cycleId);
+      toast.success("Settlement statement PDF downloaded successfully!");
     } catch {
-      toast.error("Failed to download settlement report");
+      toast.error("Failed to download settlement statement PDF");
     } finally {
-      setDownloading(false);
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    setDownloadingExcel(true);
+    try {
+      await downloadSettlementExcelBlob(cycleId);
+      toast.success("Settlement statement Excel/CSV downloaded successfully!");
+    } catch {
+      toast.error("Failed to download settlement statement Excel");
+    } finally {
+      setDownloadingExcel(false);
     }
   };
 
@@ -111,7 +120,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                 {data?.businessName || "QuickPress Laundry Store"}
               </h1>
               <p className="truncate text-[11px] font-semibold text-zinc-500">
-                ID: {data?.partnerId || "22391793"} • {data?.city || "Kasganj Locality"}, {data?.city || "Kasganj"}
+                ID: {formatPartnerId(data?.partnerId)} • {data?.city || "Kasganj Locality"}, {data?.city || "Kasganj"}
               </p>
             </div>
           </div>
@@ -177,21 +186,32 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                 <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xs">
                   <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
                     <h2 className="text-sm font-black text-zinc-900">Settlement summary</h2>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={handleDownload}
-                        disabled={downloading}
-                        className="flex size-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-transform"
-                        title="Download Statement"
+                        onClick={handleDownloadPdf}
+                        disabled={downloadingPdf}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-red-200 bg-red-50 text-[11px] font-bold text-red-700 hover:bg-red-100 active:scale-95 transition-all"
+                        title="Download PDF Statement"
                       >
-                        <Download className="size-3.5" />
+                        <FileText className="size-3 text-red-600" />
+                        <span>{downloadingPdf ? "..." : "PDF"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadExcel}
+                        disabled={downloadingExcel}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all"
+                        title="Download Excel / CSV Statement"
+                      >
+                        <FileSpreadsheet className="size-3 text-emerald-600" />
+                        <span>{downloadingExcel ? "..." : "Excel"}</span>
                       </button>
                       <button
                         type="button"
                         onClick={handleEmail}
                         disabled={emailing}
-                        className="flex size-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-transform"
+                        className="flex size-7 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-transform"
                         title="Email Statement"
                       >
                         <Mail className="size-3.5" />
@@ -228,14 +248,18 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                           <span className="flex items-center gap-1">Total GST collected from customers <HelpCircle className="size-2.5 text-zinc-400" /></span>
                           <span className="font-semibold text-zinc-700">₹{data.netOrderValueA.totalGstCollected.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-rose-600">
-                          <span className="flex items-center gap-1">Restaurant discount (Promos) <HelpCircle className="size-2.5 text-zinc-400" /></span>
-                          <span className="font-semibold">-₹{data.netOrderValueA.restaurantDiscountPromos.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-rose-600">
-                          <span className="flex items-center gap-1">Restaurant discount (Flat offs, Freebies, Gold) <HelpCircle className="size-2.5 text-zinc-400" /></span>
-                          <span className="font-semibold">-₹{data.netOrderValueA.restaurantDiscountFlat.toFixed(2)}</span>
-                        </div>
+                        {data.netOrderValueA.restaurantDiscountPromos > 0 ? (
+                          <div className="flex justify-between text-rose-600">
+                            <span className="flex items-center gap-1">Promotional Discounts & Coupons <HelpCircle className="size-2.5 text-zinc-400" /></span>
+                            <span className="font-semibold">-₹{data.netOrderValueA.restaurantDiscountPromos.toFixed(2)}</span>
+                          </div>
+                        ) : null}
+                        {data.netOrderValueA.restaurantDiscountFlat > 0 ? (
+                          <div className="flex justify-between text-rose-600">
+                            <span className="flex items-center gap-1">Store Direct Offers & Credits <HelpCircle className="size-2.5 text-zinc-400" /></span>
+                            <span className="font-semibold">-₹{data.netOrderValueA.restaurantDiscountFlat.toFixed(2)}</span>
+                          </div>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -296,13 +320,13 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                       <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-500 font-medium">
                         <div className="flex justify-between">
                           <span className="flex items-center gap-1">
-                            Platform Commission ({data.orderLevelDeductionsC.commissionRatePct}%) <HelpCircle className="size-2.5 text-zinc-400" />
+                            Platform Service Fee ({data.orderLevelDeductionsC.commissionRatePct || 15}%) <HelpCircle className="size-2.5 text-zinc-400" />
                           </span>
                           <span className="font-semibold text-rose-600">-₹{data.orderLevelDeductionsC.platformCommission.toFixed(2)}</span>
                         </div>
                         {data.orderLevelDeductionsC.damagePenalty > 0 && (
                           <div className="flex justify-between text-rose-600">
-                            <span className="flex items-center gap-1">Garment Damage Claim Compensation</span>
+                            <span className="flex items-center gap-1">Garment Care Claim Compensation</span>
                             <span className="font-semibold">-₹{data.orderLevelDeductionsC.damagePenalty.toFixed(2)}</span>
                           </div>
                         )}
@@ -326,15 +350,15 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                     {openD && (
                       <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-500 font-medium">
                         <div className="flex justify-between">
-                          <span className="flex items-center gap-1">GST on service and payment mechanism fees @18% <HelpCircle className="size-2.5 text-zinc-400" /></span>
+                          <span className="flex items-center gap-1">GST on service fee @18% <HelpCircle className="size-2.5 text-zinc-400" /></span>
                           <span className="font-semibold text-rose-600">-₹{data.taxDeductionsD.gstOnServiceFees18.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="flex items-center gap-1">TDS 194O (1%) <HelpCircle className="size-2.5 text-zinc-400" /></span>
+                          <span className="flex items-center gap-1">TDS u/s 194-O (1%) <HelpCircle className="size-2.5 text-zinc-400" /></span>
                           <span className="font-semibold text-rose-600">-₹{data.taxDeductionsD.tds194o.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="flex items-center gap-1">GST paid by QuickPress on behalf of partner u/s 9(5) <HelpCircle className="size-2.5 text-zinc-400" /></span>
+                          <span className="flex items-center gap-1">TCS collected by QuickPress u/s 9(5) <HelpCircle className="size-2.5 text-zinc-400" /></span>
                           <span className="font-semibold text-zinc-700">₹{data.taxDeductionsD.tcsGst.toFixed(2)}</span>
                         </div>
                       </div>
@@ -349,7 +373,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                       className="flex w-full items-center justify-between text-left text-xs font-black text-zinc-900"
                     >
                       <div className="flex items-center gap-1">
-                        <span>Investments in growth (E)</span>
+                        <span>Featured Store & Growth (E)</span>
                         {openE ? <ChevronUp className="size-3.5 text-zinc-400" /> : <ChevronDown className="size-3.5 text-zinc-400" />}
                       </div>
                       <span>₹{data.investmentsInGrowthE.total.toFixed(2)}</span>
@@ -357,7 +381,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                     {openE && (
                       <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-500 font-medium">
                         <div className="flex justify-between">
-                          <span className="flex items-center gap-1">Online ordering ads (including 18% GST) <HelpCircle className="size-2.5 text-zinc-400" /></span>
+                          <span className="flex items-center gap-1">QuickPress Local Store Visibility & Spotlight <HelpCircle className="size-2.5 text-zinc-400" /></span>
                           <span className="font-semibold text-zinc-700">₹{data.investmentsInGrowthE.onlineOrderingAds.toFixed(2)}</span>
                         </div>
                       </div>
@@ -372,7 +396,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                       className="flex w-full items-center justify-between text-left text-xs font-black text-zinc-900"
                     >
                       <div className="flex items-center gap-1">
-                        <span>Supplies / Packaging spend (F)</span>
+                        <span>Laundry Supplies & Packaging (F)</span>
                         {openF ? <ChevronUp className="size-3.5 text-zinc-400" /> : <ChevronDown className="size-3.5 text-zinc-400" />}
                       </div>
                       <span>₹{data.suppliesSpendF.total.toFixed(2)}</span>
@@ -380,7 +404,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                     {openF && (
                       <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-500 font-medium">
                         <div className="flex justify-between">
-                          <span className="flex items-center gap-1">Spends on QuickPress Packaging & Tags <HelpCircle className="size-2.5 text-zinc-400" /></span>
+                          <span className="flex items-center gap-1">Garment Care Covers, Eco Bags & Tag Rolls <HelpCircle className="size-2.5 text-zinc-400" /></span>
                           <span className="font-semibold text-zinc-700">₹{data.suppliesSpendF.packagingAndTags.toFixed(2)}</span>
                         </div>
                       </div>

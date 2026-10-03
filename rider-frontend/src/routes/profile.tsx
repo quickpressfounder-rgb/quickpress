@@ -3,6 +3,7 @@ import { RiderProfileScreen } from "../screens/RiderProfileScreen";
 import { requireRiderAuth } from "../lib/auth-guard";
 
 export const Route = createFileRoute("/profile")({
+  ssr: false,
   beforeLoad: () => {
     requireRiderAuth();
   },

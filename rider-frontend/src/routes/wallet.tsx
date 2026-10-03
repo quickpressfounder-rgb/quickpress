@@ -11,7 +11,7 @@ export const Route = createFileRoute("/wallet")({
       { title: "Earnings & Wallet — QuickPress Captain" },
       {
         name: "description",
-        content: "QuickPress Captain Wallet, Instant UPI Settlements, and Earnings Passbook",
+        content: "QuickPress Captain Wallet, Direct Bank Settlements, and Earnings Passbook",
       },
     ],
   }),

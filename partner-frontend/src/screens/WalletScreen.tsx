@@ -4,6 +4,8 @@ import {
   ArrowUpRight,
   Banknote,
   Clock3,
+  Download,
+  FileText,
   Landmark,
   Loader2,
   Wallet as WalletIcon,
@@ -101,6 +103,29 @@ export function WalletScreen() {
                   delay={45}
                 />
               </div>
+            </div>
+
+            {/* Quick Action: Monthly Settlement & GST Invoices */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-xs">
+                  <FileText className="size-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-zinc-900">Monthly Settlement Statement & GST Invoices</h3>
+                  <p className="text-xs text-zinc-500">
+                    Download bank reconciliation statements (PDF/Excel) & monthly GST commission tax invoices.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.earnings })}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 text-xs font-black text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-xs"
+              >
+                <Download className="size-4" />
+                <span>Download Statements</span>
+              </button>
             </div>
 
             {/* Transactions Ledger */}

@@ -8,6 +8,7 @@ Supports:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any, List, Optional, Tuple
@@ -23,16 +24,26 @@ _in_memory_limiter = SlidingWindowRateLimiter()
 
 # Shared persistent async HTTP client for Upstash REST calls
 _upstash_http_client: Optional[httpx.AsyncClient] = None
+_upstash_client_loop: Any = None
 
 
 def _get_upstash_client() -> Optional[httpx.AsyncClient]:
     """Returns or creates persistent httpx client for Upstash REST API."""
-    global _upstash_http_client
+    global _upstash_http_client, _upstash_client_loop
     settings = get_settings()
     if not settings.upstash_redis_rest_url.strip() or not settings.upstash_redis_rest_token.strip():
         return None
 
-    if _upstash_http_client is None or _upstash_http_client.is_closed:
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if (
+        _upstash_http_client is None
+        or _upstash_http_client.is_closed
+        or _upstash_client_loop != current_loop
+    ):
         _upstash_http_client = httpx.AsyncClient(
             base_url=settings.upstash_redis_rest_url.rstrip("/"),
             headers={
@@ -42,6 +53,7 @@ def _get_upstash_client() -> Optional[httpx.AsyncClient]:
             timeout=2.5,
             limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
         )
+        _upstash_client_loop = current_loop
     return _upstash_http_client
 
 

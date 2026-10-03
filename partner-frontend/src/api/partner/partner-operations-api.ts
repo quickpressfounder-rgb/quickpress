@@ -175,7 +175,7 @@ export async function deleteOffer(offerId: string): Promise<void> {
 // 6. Approval & Verification Requests
 export type PartnerApprovalRequest = {
   requestId: string;
-  requestType: "profile_update" | "bank_update" | "pan_update" | "service_create" | "service_update";
+  requestType: "profile_update" | "bank_update" | "pan_update" | "kyc_update" | "service_create" | "service_update";
   businessName: string;
   status: "pending" | "approved" | "rejected";
   requestedChanges: Record<string, any>;
@@ -189,4 +189,32 @@ export type PartnerApprovalRequest = {
 export async function fetchPartnerApprovalRequests(): Promise<PartnerApprovalRequest[]> {
   const res = await apiGetJson<{ ok: boolean; requests: PartnerApprovalRequest[] }>("/api/partner/approval-requests");
   return res?.requests || [];
+}
+
+export async function submitKycChangeRequest(payload: {
+  businessName?: string;
+  ownerName?: string;
+  phone?: string;
+  email?: string;
+  pan?: string;
+  panCard?: string;
+  aadhaar?: string;
+  aadhaarFront?: string;
+  aadhaarBack?: string;
+  bankName?: string;
+  accountHolder?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  chequePhoto?: string;
+  gstin?: string;
+  address?: string;
+  city?: string;
+  area?: string;
+  pincode?: string;
+  reason?: string;
+}): Promise<{ ok: boolean; pendingApproval: boolean; message: string; requestId: string; updates: any }> {
+  return await apiPostJson<{ ok: boolean; pendingApproval: boolean; message: string; requestId: string; updates: any }>(
+    "/api/partner/kyc/change-request",
+    payload
+  );
 }

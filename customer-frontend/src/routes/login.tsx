@@ -868,8 +868,6 @@ function NameStep({
       window.dispatchEvent(new CustomEvent("qp:profile-updated", { detail: { name: cleanName } }));
       window.dispatchEvent(new Event("qp:login-success"));
 
-      toast.success(`Welcome to QuickPress, ${cleanName}! 🎉`);
-
       // 5. Navigate to destination
       if (redirectTarget) {
         void navigate({ to: redirectTarget as any });

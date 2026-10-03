@@ -111,21 +111,11 @@ export function readSession(role: string = activeRole): AuthSession | null {
 
 export function writeSession(session_: AuthSession, role: string = activeRole): void {
   memory.set(role, session_);
-  const store = targetStorage(role);
-  if (store) {
-    try {
-      store.setItem(storageKey(role), JSON.stringify(session_));
-    } catch {
-      /* ignore */
-    }
-  }
-  // When "remember me" is off, make sure no long-lived copy survives.
-  if (!isSessionRemembered(role) && store !== local()) {
-    try {
-      local()?.removeItem(storageKey(role));
-    } catch {
-      /* ignore */
-    }
+  try {
+    local()?.setItem(storageKey(role), JSON.stringify(session_));
+    session()?.setItem(storageKey(role), JSON.stringify(session_));
+  } catch {
+    /* ignore */
   }
   for (const listener of listeners) listener();
 }

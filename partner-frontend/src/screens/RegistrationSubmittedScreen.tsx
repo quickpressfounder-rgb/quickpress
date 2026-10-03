@@ -29,6 +29,7 @@ import {
   checkPartnerVerificationStatus,
   logout,
 } from "@/api/partner/partner-auth-api";
+import { formatPartnerId } from "../lib/format-ids";
 
 export function RegistrationSubmittedScreen() {
   const navigate = useNavigate();
@@ -185,7 +186,7 @@ export function RegistrationSubmittedScreen() {
 
             {partnerId ? (
               <p className="mt-2 text-[0.7rem] font-semibold text-muted-foreground">
-                Partner ID · <span className="font-mono text-foreground">{partnerId}</span>
+                Partner ID · <span className="font-mono text-foreground">{formatPartnerId(partnerId)}</span>
               </p>
             ) : null}
           </section>
@@ -215,7 +216,7 @@ export function RegistrationSubmittedScreen() {
               <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-border bg-card/60 px-3 py-1.5 text-[0.72rem] font-semibold text-muted-foreground shadow-sm">
                 <Store className="size-3.5 text-primary" />
                 <span>Application ID:</span>
-                <span className="font-mono font-bold text-foreground">{partnerId}</span>
+                <span className="font-mono font-bold text-foreground">{formatPartnerId(partnerId)}</span>
               </div>
             ) : null}
           </section>

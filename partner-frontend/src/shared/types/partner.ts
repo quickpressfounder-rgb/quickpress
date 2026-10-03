@@ -183,6 +183,27 @@ export type PartnerProfile = {
   isVerified?: boolean;
   status?: string;
   gallery?: string[];
+  pan?: string;
+  panCard?: string;
+  aadhaar?: string;
+  aadhaarFront?: string;
+  aadhaarBack?: string;
+  bankName?: string;
+  accountHolder?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  chequePhoto?: string;
+  signatureUrl?: string;
+  signedByName?: string;
+  signedAt?: string;
+  agreementVersion?: string;
+  kycStatus?: string;
+  isOnboarded?: boolean;
+  pincode?: string;
+  state?: string;
+  ownerPhoto?: string;
+  hasPendingApproval?: boolean;
+  pendingChangesCount?: number;
 };
 
 export type BusinessSettings = {

@@ -48,6 +48,19 @@ def _place_order_response(order: OrderResponse) -> PlaceOrderResponse:
 async def place_order(
     payload: PlaceOrderPayload, user: User = Depends(current_user)
 ) -> PlaceOrderResponse:
+    if payload.idempotencyKey:
+        from app.core.idempotency import idempotency_engine
+        idemp = await idempotency_engine.acquire("order", f"{user.id}:{payload.idempotencyKey}")
+        if idemp.is_duplicate:
+            if idemp.is_processing:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A transaction with this idempotency key is currently processing. Please do not double submit.",
+                )
+            if idemp.cached_data:
+                cached_order = OrderResponse.model_validate(idemp.cached_data)
+                return _place_order_response(cached_order)
+
     duplicate = await order_repository.find_recent_duplicate(user.id, payload.idempotencyKey)
     if duplicate is not None:
         # Same request replayed — return the original order instead of a new one.
@@ -60,6 +73,9 @@ async def place_order(
             else await address_repository.default(user.id)
         )
         if saved is None:
+            if payload.idempotencyKey:
+                from app.core.idempotency import idempotency_engine
+                await idempotency_engine.release("order", f"{user.id}:{payload.idempotencyKey}")
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Select a pickup address before placing the order",
@@ -76,8 +92,13 @@ async def place_order(
 
     try:
         order = await order_repository.create(user, payload)
-    except ValueError as error:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error))
+    except Exception as error:
+        if payload.idempotencyKey:
+            from app.core.idempotency import idempotency_engine
+            await idempotency_engine.release("order", f"{user.id}:{payload.idempotencyKey}")
+        if isinstance(error, ValueError):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error))
+        raise
     return _place_order_response(order)
 
 

@@ -130,6 +130,34 @@ class PartnerApprovalEngine:
             await database.update(PROFILES_COLLECTION, {"_id": partner_id}, pan_patch, upsert=True)
             await database.update(ADMIN_PARTNERS_COLLECTION, {"_id": partner_id}, pan_patch, upsert=True)
 
+        # 3b. Comprehensive KYC & Documents Update
+        elif req_type == "kyc_update":
+            allowed_fields = (
+                "businessName", "ownerName", "phone", "email",
+                "pan", "panCard", "aadhaar", "aadhaarFront", "aadhaarBack",
+                "bankName", "accountHolder", "accountNumber", "ifsc", "chequePhoto",
+                "gstin", "address", "city", "area", "pincode"
+            )
+            kyc_patch = {k: v for k, v in changes.items() if k in allowed_fields and v is not None}
+            if kyc_patch:
+                kyc_patch["updatedAt"] = now_iso
+                kyc_patch["isVerified"] = True
+                kyc_patch["kycStatus"] = "verified"
+                await database.update(PROFILES_COLLECTION, {"_id": partner_id}, kyc_patch, upsert=True)
+                await database.update(PROFILES_COLLECTION, {"partnerId": partner_id}, kyc_patch)
+                await database.update(ADMIN_PARTNERS_COLLECTION, {"_id": partner_id}, kyc_patch, upsert=True)
+                await database.update(ADMIN_PARTNERS_COLLECTION, {"partnerId": partner_id}, kyc_patch)
+                if any(k in kyc_patch for k in ("bankName", "accountNumber", "ifsc", "accountHolder")):
+                    bank_sub = {
+                        "bankName": kyc_patch.get("bankName") or "",
+                        "accountHolder": kyc_patch.get("accountHolder") or "",
+                        "accountNumber": kyc_patch.get("accountNumber") or "",
+                        "ifsc": kyc_patch.get("ifsc") or "",
+                        "isVerified": True,
+                        "updatedAt": now_iso,
+                    }
+                    await database.update("partner_bank_accounts", {"_id": partner_id}, {**bank_sub, "partnerId": partner_id}, upsert=True)
+
         # 4. Service Creation
         elif req_type == "service_create":
             svc_id = req.get("targetId") or f"svc-{random.randint(100000, 999999)}"

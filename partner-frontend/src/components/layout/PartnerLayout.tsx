@@ -7,7 +7,7 @@ import { PartnerSidebar } from "./PartnerSidebar";
 import { PartnerDesktopTopBar } from "./PartnerDesktopTopBar";
 import { PartnerBottomNav } from "../PartnerBottomNav";
 import { partnerRoutes, type PartnerTabId } from "../../navigation/partner-routes";
-import { fetchPartnerProfile, toggleStoreStatus } from "../../api/partner/partner-profile-api";
+import { fetchPartnerProfile, getCachedPartnerProfile, toggleStoreStatus } from "../../api/partner/partner-profile-api";
 import { usePartnerContext } from "../../context/PartnerContext";
 
 export function PartnerLayout({
@@ -30,6 +30,19 @@ export function PartnerLayout({
   const navigate = useNavigate();
   const { session, hydrating, isOnline, toggleOnline, signOut } = usePartnerContext();
   const [shopName, setShopName] = useState<string>(() => session?.businessName || (session as any)?.name || "QuickPress Partner");
+  const [shopLogo, setShopLogo] = useState<string>(() => {
+    const cached = getCachedPartnerProfile();
+    return (
+      cached?.logo ||
+      cached?.logoUrl ||
+      cached?.storeImage ||
+      cached?.image ||
+      (session as any)?.storeImage ||
+      (session as any)?.logoUrl ||
+      (session as any)?.logo ||
+      ""
+    );
+  });
 
   // Strict Auth Guard: If not logged in, redirect to login screen
   useEffect(() => {
@@ -42,9 +55,13 @@ export function PartnerLayout({
     if (!session) return;
     let alive = true;
     fetchPartnerProfile()
-      .then((p) => {
+      .then((p: any) => {
         if (!alive) return;
         setShopName(p.businessName || p.ownerName || "QuickPress Partner");
+        const found = p.logo || p.logoUrl || p.storeImage || p.image;
+        if (found) {
+          setShopLogo(found);
+        }
       })
       .catch(() => {});
     return () => {
@@ -52,12 +69,26 @@ export function PartnerLayout({
     };
   }, [session]);
 
+  // Listen to live profile and logo updates
+  useEffect(() => {
+    const handleProfileUpdate = (e: any) => {
+      const updated = e.detail;
+      if (!updated) return;
+      if (updated.businessName) setShopName(updated.businessName);
+      const found = updated.logo || updated.logoUrl || updated.storeImage || updated.image;
+      if (found) setShopLogo(found);
+    };
+    window.addEventListener("qp:partner-profile-updated", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("qp:partner-profile-updated", handleProfileUpdate);
+    };
+  }, []);
+
   const handleToggleStatus = async () => {
     try {
       await toggleOnline();
-      toast.success(!isOnline ? "Store is now Online & Accepting Orders" : "Store is now Offline");
     } catch {
-      toast.error("Failed to update store status");
+      toast.error("Failed to update status");
     }
   };
 
@@ -87,6 +118,7 @@ export function PartnerLayout({
       {/* Desktop Left Sidebar (>= md) */}
       <PartnerSidebar
         shopName={shopName}
+        shopLogo={shopLogo}
         isOnline={isOnline}
         onToggleStatus={handleToggleStatus}
         onLogout={handleLogout}
@@ -99,8 +131,10 @@ export function PartnerLayout({
           title={title}
           subtitle={subtitle}
           shopName={shopName}
+          shopLogo={shopLogo}
           isOnline={isOnline}
           onToggleStatus={handleToggleStatus}
+          onLogout={handleLogout}
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
         />

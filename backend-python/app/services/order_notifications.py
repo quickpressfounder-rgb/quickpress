@@ -6,6 +6,7 @@ upon order creation and lifecycle status transitions.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
@@ -22,6 +23,59 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+async def _dispatch_external_pushes(
+    recipient_id: str,
+    *,
+    title: str,
+    body: str,
+    deep_link: str,
+    data: Dict[str, Any],
+    role: str = "customer",
+) -> None:
+    """Dispatches OneSignal, FCM, and Native WebPush concurrently without blocking or crashing."""
+    if not recipient_id:
+        return
+
+    async def _safe_onesignal():
+        try:
+            from app.core.onesignal import send_onesignal_notification
+            await send_onesignal_notification(
+                recipient_id,
+                title=title,
+                body=body,
+                data=data,
+                url=deep_link,
+            )
+        except Exception:
+            pass
+
+    async def _safe_fcm():
+        try:
+            from app.core.fcm import send_fcm_push
+            await send_fcm_push(
+                recipient_id,
+                title=title,
+                body=body,
+                data=data,
+            )
+        except Exception:
+            pass
+
+    async def _safe_webpush():
+        try:
+            from app.core.webpush import send_native_webpush
+            await send_native_webpush(
+                recipient_id,
+                title=title,
+                body=body,
+                data=data,
+            )
+        except Exception:
+            pass
+
+    await asyncio.gather(_safe_onesignal(), _safe_fcm(), _safe_webpush(), return_exceptions=True)
+
+
 async def send_customer_notification(
     user_id: str,
     *,
@@ -31,7 +85,7 @@ async def send_customer_notification(
     order_id: Optional[str] = None,
     order_code: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Insert an in-app notification and trigger real FCM push for the customer."""
+    """Insert an in-app notification and trigger concurrent real FCM push for the customer."""
     if not user_id:
         return {}
     doc = {
@@ -50,41 +104,15 @@ async def send_customer_notification(
     }
     await database.collection("notifications").insert_one(doc)
 
-    # Real OneSignal, FCM & Native WebPush dispatch with deep link
     deep_link = f"/track/{order_id}" if order_id else "/history"
-    try:
-        from app.core.onesignal import send_onesignal_notification
-        await send_onesignal_notification(
-            user_id,
-            title=title,
-            body=description,
-            data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "kind": kind},
-            url=deep_link,
-        )
-    except Exception:
-        pass
-
-    try:
-        from app.core.fcm import send_fcm_push
-        await send_fcm_push(
-            user_id,
-            title=title,
-            body=description,
-            data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "kind": kind},
-        )
-    except Exception:
-        pass
-
-    try:
-        from app.core.webpush import send_native_webpush
-        await send_native_webpush(
-            user_id,
-            title=title,
-            body=description,
-            data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "kind": kind},
-        )
-    except Exception:
-        pass
+    await _dispatch_external_pushes(
+        user_id,
+        title=title,
+        body=description,
+        deep_link=deep_link,
+        data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "kind": kind},
+        role="customer",
+    )
 
     return doc
 
@@ -98,7 +126,7 @@ async def send_partner_notification(
     order_id: Optional[str] = None,
     order_code: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Insert an in-app notification and trigger real FCM push for the partner."""
+    """Insert an in-app notification and trigger concurrent real FCM push for the partner."""
     if not partner_id:
         return {}
     now = _now_iso()
@@ -122,39 +150,14 @@ async def send_partner_notification(
     await database.collection("notifications").insert_one(doc)
 
     deep_link = f"/orders/{order_id}" if order_id else "/orders"
-    try:
-        from app.core.onesignal import send_onesignal_notification
-        await send_onesignal_notification(
-            partner_id,
-            title=title,
-            body=description,
-            data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "role": "partner", "kind": kind},
-            url=deep_link,
-        )
-    except Exception:
-        pass
-
-    try:
-        from app.core.fcm import send_fcm_push
-        await send_fcm_push(
-            partner_id,
-            title=title,
-            body=description,
-            data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "role": "partner", "kind": kind},
-        )
-    except Exception:
-        pass
-
-    try:
-        from app.core.webpush import send_native_webpush
-        await send_native_webpush(
-            partner_id,
-            title=title,
-            body=description,
-            data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "role": "partner"},
-        )
-    except Exception:
-        pass
+    await _dispatch_external_pushes(
+        partner_id,
+        title=title,
+        body=description,
+        deep_link=deep_link,
+        data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "role": "partner", "kind": kind},
+        role="partner",
+    )
 
     return doc
 
@@ -200,39 +203,14 @@ async def send_rider_notification(
     )
 
     deep_link = f"/deliveries/{order_id}" if order_id else "/deliveries"
-    try:
-        from app.core.onesignal import send_onesignal_notification
-        await send_onesignal_notification(
-            rider_id,
-            title=title,
-            body=message,
-            data={"orderId": str(order_id or ""), "url": deep_link, "role": "rider", "kind": "rider-assigned"},
-            url=deep_link,
-        )
-    except Exception:
-        pass
-
-    try:
-        from app.core.fcm import send_fcm_push
-        await send_fcm_push(
-            rider_id,
-            title=title,
-            body=message,
-            data={"orderId": str(order_id or ""), "url": deep_link, "role": "rider", "kind": "rider-assigned"},
-        )
-    except Exception:
-        pass
-
-    try:
-        from app.core.webpush import send_native_webpush
-        await send_native_webpush(
-            rider_id,
-            title=title,
-            body=message,
-            data={"orderId": str(order_id or ""), "url": deep_link, "role": "rider"},
-        )
-    except Exception:
-        pass
+    await _dispatch_external_pushes(
+        rider_id,
+        title=title,
+        body=message,
+        deep_link=deep_link,
+        data={"orderId": str(order_id or ""), "url": deep_link, "role": "rider", "kind": "rider-assigned"},
+        role="rider",
+    )
 
     return doc
 
@@ -264,7 +242,7 @@ async def send_admin_notification(
 
 
 async def dispatch_order_created_notifications(order: Dict[str, Any]) -> None:
-    """Dispatches notifications when an order is first placed."""
+    """Dispatches notifications across roles concurrently when an order is first placed."""
     try:
         user_id = str(order.get("userId") or (order.get("customer") or {}).get("id") or "")
         code = str(order.get("code") or order.get("_id") or "")
@@ -277,35 +255,44 @@ async def dispatch_order_created_notifications(order: Dict[str, Any]) -> None:
         partner_id = str(partner.get("id") or order.get("partner_id") or order.get("partnerId") or "")
         partner_name = str(partner.get("name") or "Store Partner")
 
+        tasks = []
         # 1. Customer Notification
         if user_id:
-            await send_customer_notification(
-                user_id,
-                kind="order-new",
-                title=f"Order #{code} Placed Successfully",
-                description=f"Your order of ₹{grand_total} has been confirmed. Waiting for {partner_name} to accept.",
-                order_id=order_id,
-                order_code=code,
+            tasks.append(
+                send_customer_notification(
+                    user_id,
+                    kind="order-new",
+                    title=f"Order #{code} Placed Successfully",
+                    description=f"Your order of ₹{grand_total} has been confirmed. Waiting for {partner_name} to accept.",
+                    order_id=order_id,
+                    order_code=code,
+                )
             )
 
         # 2. Partner Notification
         if partner_id:
-            await send_partner_notification(
-                partner_id,
-                title=f"New Order #{code} Received!",
-                description=f"New laundry order of ₹{grand_total} from {customer_name}. Please accept or reject.",
-                kind="order-new",
-                order_id=order_id,
-                order_code=code,
+            tasks.append(
+                send_partner_notification(
+                    partner_id,
+                    title=f"New Order #{code} Received!",
+                    description=f"New laundry order of ₹{grand_total} from {customer_name}. Please accept or reject.",
+                    kind="order-new",
+                    order_id=order_id,
+                    order_code=code,
+                )
             )
 
         # 3. Admin Notification
-        await send_admin_notification(
-            title=f"New Order #{code} Placed",
-            description=f"Customer {customer_name} placed order #{code} for ₹{grand_total} with {partner_name}.",
-            order_id=order_id,
-            order_code=code,
+        tasks.append(
+            send_admin_notification(
+                title=f"New Order #{code} Placed",
+                description=f"Customer {customer_name} placed order #{code} for ₹{grand_total} with {partner_name}.",
+                order_id=order_id,
+                order_code=code,
+            )
         )
+
+        await asyncio.gather(*tasks, return_exceptions=True)
     except Exception as e:
         # Notifications should never crash the main transaction
         print(f"[Notifications] Error dispatching order created: {e}")
@@ -344,25 +331,34 @@ async def dispatch_order_transition_notifications(
 
         # ---------------- PARTNER_ACCEPTED ----------------
         if target == "partner_accepted":
+            tasks = []
             if user_id:
-                await send_customer_notification(
-                    user_id,
-                    kind="partner-accepted",
+                tasks.append(
+                    send_customer_notification(
+                        user_id,
+                        kind="partner-accepted",
+                        title=f"Order #{code} Accepted",
+                        description=f"{partner_name} has accepted your order and is preparing for pickup.",
+                        order_id=order_id,
+                        order_code=code,
+                    )
+                )
+            tasks.append(
+                send_admin_notification(
                     title=f"Order #{code} Accepted",
-                    description=f"{partner_name} has accepted your order and is preparing for pickup.",
+                    description=f"{partner_name} accepted order #{code}.",
                     order_id=order_id,
                     order_code=code,
                 )
-            await send_admin_notification(
-                title=f"Order #{code} Accepted",
-                description=f"{partner_name} accepted order #{code}.",
-                order_id=order_id,
-                order_code=code,
             )
-            # Instantly dispatch order offer to nearby riders in the same city upon partner acceptance
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Instantly offload order offer dispatch to background worker queue
             try:
+                from app.core.async_queue import async_task_queue
                 from app.services.smart_2ride_engine import smart_2ride_engine
-                await smart_2ride_engine.create_ride_1_pickup(order_id)
+
+                async_task_queue.enqueue(smart_2ride_engine.create_ride_1_pickup, order_id)
             except Exception as dispatch_err:
                 print(f"[RiderDispatch] Auto dispatch on partner_accepted error: {dispatch_err}")
 

@@ -4,6 +4,7 @@ import { RiderSidebar } from "./RiderSidebar";
 import { RiderDesktopTopBar } from "./RiderDesktopTopBar";
 import { RiderBottomNav, type RiderTabId } from "../RiderBottomNav";
 import { useRiderContext } from "../../context/RiderContext";
+import { readSession } from "../../api/core/session-store";
 
 export function RiderLayout({
   children,
@@ -25,13 +26,22 @@ export function RiderLayout({
   const navigate = useNavigate();
   const { session, hydrating, isOnline, setOnline, signOut } = useRiderContext();
 
-  const captainName = session?.fullName || "Delivery Captain";
-  const captainId = session?.riderId || "CP-9821";
+  const captainName =
+    session?.fullName && session.fullName !== "Delivery Captain" && session.fullName !== "Delivery Partner"
+      ? session.fullName
+      : (typeof window !== "undefined" ? localStorage.getItem("qp_rider_government_name") || "" : "");
+  const captainId =
+    session?.riderId && session.riderId !== "CP-9821" && session.riderId !== "CAP-100101"
+      ? session.riderId
+      : (typeof window !== "undefined" ? localStorage.getItem("qp_rider_id") || "" : "");
 
   // Strict Auth Guard: If not logged in and hydration finished, redirect to /auth
   useEffect(() => {
     if (!hydrating && !session) {
-      void navigate({ to: "/auth" });
+      const stored = readSession("rider") || readSession();
+      if (!stored || !stored.token) {
+        void navigate({ to: "/auth" });
+      }
     }
   }, [hydrating, session, navigate]);
 

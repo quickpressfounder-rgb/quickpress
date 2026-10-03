@@ -156,17 +156,17 @@ export function PartnerIncomingOrderAlertModal({
   const progressPercent = Math.min(100, Math.max(0, (countdown / PARTNER_SLA_SECONDS) * 100));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-gradient-to-b from-zinc-900 via-zinc-950 to-black text-white shadow-2xl border border-amber-500/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white dark:bg-card text-foreground shadow-2xl border-2 border-emerald-500/30 animate-in zoom-in-95 duration-200">
         {/* Top Header Bar */}
-        <div className="relative px-6 pt-5 pb-4 bg-gradient-to-r from-amber-600/30 via-orange-600/20 to-amber-500/30 border-b border-white/10">
+        <div className="relative px-6 pt-5 pb-4 bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 text-white border-b border-emerald-500/20">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <span className="relative flex size-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full size-3.5 bg-amber-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-80" />
+                <span className="relative inline-flex rounded-full size-3.5 bg-amber-400" />
               </span>
-              <span className="text-xs font-black uppercase tracking-widest text-amber-400">
+              <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
                 New Incoming Laundry Order
               </span>
             </div>
@@ -175,17 +175,17 @@ export function PartnerIncomingOrderAlertModal({
               <button
                 type="button"
                 onClick={toggleMute}
-                className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-zinc-300 hover:bg-white/20 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white hover:bg-white/30 transition-all cursor-pointer backdrop-blur-xs"
                 title={isMuted ? "Unmute siren" : "Mute siren"}
               >
-                {isMuted ? <VolumeX className="size-3.5 text-rose-400" /> : <Volume2 className="size-3.5 text-amber-400 animate-pulse" />}
+                {isMuted ? <VolumeX className="size-3.5 text-rose-200" /> : <Volume2 className="size-3.5 text-amber-300 animate-pulse" />}
                 <span>{isMuted ? "Muted" : "Ringing"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex items-center justify-center size-7 rounded-full bg-white/15 text-zinc-300 hover:bg-white/25 hover:text-white transition-all cursor-pointer"
+                className="flex items-center justify-center size-8 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all cursor-pointer"
                 title="Back to Dashboard / Dismiss Alert"
                 aria-label="Back to Dashboard"
               >
@@ -195,15 +195,15 @@ export function PartnerIncomingOrderAlertModal({
           </div>
 
           {/* Countdown Progress Bar */}
-          <div className="mt-3">
-            <div className="flex justify-between text-[11px] font-bold text-zinc-400 mb-1">
+          <div className="mt-3.5">
+            <div className="flex justify-between text-[11px] font-bold text-emerald-100 mb-1.5">
               <span>5-Minute SLA Guarantee:</span>
-              <span className="text-amber-400 font-mono font-black">{formattedCountdown} remaining</span>
+              <span className="text-amber-300 font-mono font-black">{formattedCountdown} remaining</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-black/20">
               <div
                 className={`h-full transition-all duration-1000 rounded-full ${
-                  countdown < 60 ? "bg-rose-500" : countdown < 120 ? "bg-amber-500" : "bg-emerald-500"
+                  countdown < 60 ? "bg-rose-400" : countdown < 120 ? "bg-amber-300" : "bg-gradient-to-r from-emerald-300 to-amber-300"
                 }`}
                 style={{ width: `${progressPercent}%` }}
               />
@@ -212,26 +212,26 @@ export function PartnerIncomingOrderAlertModal({
         </div>
 
         {/* Modal Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Highlight Earnings & Items Card */}
-          <div className="flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 p-4">
+          <div className="flex items-center justify-between rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 p-4">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
                 Estimated Net Store Earnings
               </span>
-              <div className="text-3xl font-black text-amber-400 tracking-tight">
+              <div className="text-3xl sm:text-4xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">
                 ₹{order.estimatedEarnings}
               </div>
             </div>
 
             <div className="text-right">
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-black text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-xs font-black text-white shadow-xs">
                 <Package className="size-3.5" />
                 <span>{order.itemsCount || order.items.length} Items</span>
               </span>
               {order.expressDelivery && (
-                <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-amber-400">
-                  ⚡ Express 12-Hr
+                <div className="mt-1 text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  ⚡ Express Order
                 </div>
               )}
             </div>
@@ -239,24 +239,24 @@ export function PartnerIncomingOrderAlertModal({
 
           {/* ⚡ Express Priority Alert Banner */}
           {(order.isExpress || order.expressDelivery) && (
-            <div className="rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-500/30 via-orange-500/25 to-amber-500/20 p-4 shadow-xl animate-pulse">
+            <div className="rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-50 to-amber-100/70 dark:from-amber-950/30 dark:to-amber-900/20 p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="size-10 rounded-2xl bg-amber-500/40 flex items-center justify-center text-amber-300 shrink-0 border border-amber-400/50">
-                    <Zap className="size-6 fill-amber-400" />
+                  <span className="size-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Zap className="size-5 fill-current" />
                   </span>
                   <div>
-                    <span className="text-sm font-black text-amber-300 tracking-wide block uppercase">
-                      ⚡ EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 20}% BONUS
+                    <span className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-200 tracking-wide block uppercase">
+                      ⚡ EXPRESS + EXPRESS CHARGES KA {order.expressPartnerSharePercent || 50}% BONUS
                     </span>
-                    <span className="text-xs text-zinc-200">
+                    <span className="text-xs font-medium text-amber-800/90 dark:text-amber-300/80">
                       Priority express order! Surcharge bonus credited directly to your store payout.
                     </span>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] font-bold text-zinc-300 block uppercase">Bonus</span>
-                  <span className="text-xl font-black text-amber-300">
+                  <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 block uppercase">Bonus</span>
+                  <span className="text-xl font-black text-amber-700 dark:text-amber-400">
                     +₹{order.partnerExpressBonus || Math.round((order.expressFee || 40) * 0.2)}
                   </span>
                 </div>
@@ -265,41 +265,45 @@ export function PartnerIncomingOrderAlertModal({
           )}
 
           {/* Customer & Location */}
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+          <div className="rounded-2xl bg-slate-50 dark:bg-muted/40 border border-slate-200 dark:border-border p-4 space-y-3">
             <div className="flex items-start gap-3">
-              <MapPin className="size-5 shrink-0 text-amber-400 mt-0.5" />
-              <div>
-                <div className="text-xs font-bold text-zinc-400">Customer Pickup Address:</div>
-                <div className="text-sm font-semibold text-zinc-100 leading-snug">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 mt-0.5">
+                <MapPin className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Customer Pickup Address:
+                </div>
+                <div className="text-sm font-bold text-foreground leading-snug mt-0.5">
                   {order.pickupAddress}
                 </div>
-                <div className="mt-1 text-xs font-bold text-zinc-300">
-                  Customer: <span className="text-white font-black">{order.customerName}</span>
+                <div className="mt-1 text-xs font-semibold text-muted-foreground">
+                  Customer: <span className="font-bold text-foreground">{order.customerName}</span>
                 </div>
               </div>
             </div>
 
             {order.pickupSlot && (
-              <div className="flex items-center gap-2 pt-2 border-t border-white/10 text-xs text-zinc-400">
-                <Clock className="size-4 text-zinc-400" />
-                <span>Pickup Slot: <strong className="text-zinc-200">{order.pickupSlot}</strong></span>
+              <div className="flex items-center gap-2 pt-2.5 border-t border-border/60 text-xs text-muted-foreground">
+                <Clock className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Pickup Slot: <strong className="text-foreground">{order.pickupSlot}</strong></span>
               </div>
             )}
           </div>
 
           {/* Laundry Services Breakdown */}
           <div className="space-y-2">
-            <div className="text-xs font-black uppercase tracking-wider text-zinc-400">
+            <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">
               Service Items ({order.items.length})
             </div>
-            <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1">
+            <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
               {order.items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs border border-white/5"
+                  className="flex items-center justify-between rounded-xl bg-white dark:bg-card px-3.5 py-2.5 text-xs font-bold border border-slate-200/80 dark:border-border shadow-2xs"
                 >
-                  <span className="font-semibold text-zinc-200">{item.name}</span>
-                  <span className="font-mono font-bold text-amber-400">
+                  <span className="font-bold text-foreground">{item.name}</span>
+                  <span className="font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
                     x{item.quantity} {item.unit || "pcs"}
                   </span>
                 </div>
@@ -309,8 +313,8 @@ export function PartnerIncomingOrderAlertModal({
 
           {/* Reject Reason Form (if open) */}
           {showRejectBox && (
-            <div className="space-y-2 rounded-2xl bg-rose-950/40 border border-rose-500/30 p-3 animate-in fade-in">
-              <label className="text-[11px] font-bold text-rose-300">
+            <div className="space-y-2 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 p-3.5 animate-in fade-in">
+              <label className="text-[11px] font-bold text-rose-800 dark:text-rose-300">
                 Select or Enter Reason for Rejection:
               </label>
               <input
@@ -318,18 +322,18 @@ export function PartnerIncomingOrderAlertModal({
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="e.g. Store at max capacity / Steam press boiler maintenance"
-                className="w-full rounded-xl bg-black/50 border border-rose-500/40 px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-rose-400"
+                className="w-full rounded-xl bg-white dark:bg-card border border-rose-300 dark:border-rose-700 px-3 py-2 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-rose-500"
               />
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2.5 pt-2">
             <button
               type="button"
               onClick={handleAccept}
               disabled={isAccepting || countdown === 0}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 font-black text-sm uppercase tracking-wider text-black shadow-lg shadow-amber-500/25 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+              className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-600 hover:from-emerald-700 hover:to-emerald-800 font-black text-sm uppercase tracking-wider text-white shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
             >
               <CheckCircle2 className="size-5 stroke-[2.5]" />
               <span>{isAccepting ? "Accepting Order..." : "ACCEPT ORDER NOW"}</span>
@@ -340,7 +344,7 @@ export function PartnerIncomingOrderAlertModal({
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/5 text-xs font-bold text-zinc-300 hover:bg-white/10 hover:text-white active:scale-[0.98] transition-all cursor-pointer"
+                  className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 dark:border-border bg-white dark:bg-card text-xs font-bold text-slate-700 dark:text-foreground hover:bg-slate-50 dark:hover:bg-muted active:scale-[0.98] transition-all cursor-pointer"
                 >
                   <ArrowLeft className="size-3.5" />
                   <span>Back to Dashboard</span>
@@ -349,7 +353,7 @@ export function PartnerIncomingOrderAlertModal({
                 <button
                   type="button"
                   onClick={() => setShowRejectBox(true)}
-                  className="flex h-11 flex-1 items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/10 text-xs font-bold text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 active:scale-[0.98] transition-all cursor-pointer"
+                  className="flex h-11 flex-1 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-700 active:scale-[0.98] transition-all cursor-pointer"
                 >
                   Reject Order
                 </button>
@@ -367,7 +371,7 @@ export function PartnerIncomingOrderAlertModal({
                 <button
                   type="button"
                   onClick={() => setShowRejectBox(false)}
-                  className="flex h-11 px-4 items-center justify-center rounded-2xl border border-white/10 text-xs font-bold text-zinc-400 hover:bg-white/10 cursor-pointer"
+                  className="flex h-11 px-4 items-center justify-center rounded-2xl border border-slate-300 dark:border-border text-xs font-bold text-muted-foreground hover:bg-muted cursor-pointer"
                 >
                   Cancel
                 </button>

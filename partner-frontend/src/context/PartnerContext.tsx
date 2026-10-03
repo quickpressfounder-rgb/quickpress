@@ -128,6 +128,18 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, []);
 
+  // Listen to custom cross-window / cross-screen store status events
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleCustomStatus = (e: any) => {
+      if (e?.detail && typeof e.detail.isOnline === "boolean") {
+        setIsOnlineState(e.detail.isOnline);
+      }
+    };
+    window.addEventListener("qp:partner-status-updated", handleCustomStatus);
+    return () => window.removeEventListener("qp:partner-status-updated", handleCustomStatus);
+  }, []);
+
   // Token refresh: keeps the access token valid while the app stays open.
   useEffect(() => startPartnerAutoRefresh(), []);
 
@@ -136,6 +148,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       try {
         window.localStorage.setItem(ONLINE_STORAGE_KEY, next ? "1" : "0");
+        window.dispatchEvent(new CustomEvent("qp:partner-status-updated", { detail: { isOnline: next } }));
       } catch {}
     }
     try {

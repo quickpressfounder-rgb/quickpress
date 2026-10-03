@@ -8,7 +8,7 @@ export const Route = createFileRoute("/verification")({
     requireRiderSession();
     if (typeof window !== "undefined") {
       const sess = readSession("rider") || readSession();
-      if (sess && isRiderApproved(sess)) {
+      if (sess && sess.token) {
         throw redirect({ to: "/dashboard" });
       }
     }

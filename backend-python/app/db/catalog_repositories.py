@@ -10,6 +10,7 @@ import asyncio
 import uuid
 from typing import Any, Dict, List, Optional
 
+from app.core.redis_cache import hybrid_cache
 from app.db.catalog_seed import SEED
 from app.db.client import database
 from app.models.catalog import (
@@ -50,12 +51,20 @@ class CatalogRepository:
                     {"$set": {k: v for k, v in document.items() if k != "_id"}},
                     upsert=True,
                 )
+        await hybrid_cache.delete_pattern("catalog:*")
 
     async def banners(self) -> List[BannerResponse]:
+        cached = await hybrid_cache.get("catalog:banners")
+        if cached is not None and isinstance(cached, list):
+            try:
+                return [BannerResponse(**item) for item in cached]
+            except Exception:
+                pass
+
         docs = await database.find_many("banners", sort_key="priority")
         if not docs:
             docs = SEED.get("banners", [])
-        return [
+        result = [
             BannerResponse(
                 id=str(d.get("_id") or d.get("id") or "b1"),
                 eyebrow=str(d.get("eyebrow") or d.get("badge") or d.get("tagline") or ""),
@@ -71,9 +80,18 @@ class CatalogRepository:
             )
             for d in docs
         ]
+        await hybrid_cache.set("catalog:banners", [b.model_dump() for b in result], ttl_seconds=600)
+        return result
 
 
     async def categories(self) -> List[CategoryResponse]:
+        cached = await hybrid_cache.get("catalog:categories")
+        if cached is not None and isinstance(cached, list):
+            try:
+                return [CategoryResponse(**item) for item in cached]
+            except Exception:
+                pass
+
         try:
             docs = await database.find_many("categories", sort_key="sortOrder")
         except Exception:
@@ -113,6 +131,7 @@ class CatalogRepository:
                 )
                 for c in SEED.get("categories", [])
             ]
+        await hybrid_cache.set("catalog:categories", [c.model_dump() for c in res], ttl_seconds=600)
         return res
 
     async def services(
@@ -125,6 +144,14 @@ class CatalogRepository:
         lat: Optional[float] = None,
         lng: Optional[float] = None,
     ) -> List[ServiceCardResponse]:
+        cache_key = f"catalog:services:{city or ''}:{area or ''}:{category_id or ''}:{popular_only}"
+        cached = await hybrid_cache.get(cache_key)
+        if cached is not None and isinstance(cached, list):
+            try:
+                return [ServiceCardResponse(**item) for item in cached]
+            except Exception:
+                pass
+
         # 1. Fetch approved live partners
         all_approved = await self._approved_partner_profiles()
         if not all_approved:
@@ -285,6 +312,7 @@ class CatalogRepository:
         if popular_only:
             cards = [card for card in cards if card.popular]
 
+        await hybrid_cache.set(cache_key, [c.model_dump() for c in cards], ttl_seconds=120)
         return cards
 
     # ------------------------------------------------------------------
@@ -763,6 +791,13 @@ class CatalogRepository:
         return results
 
     async def offers(self) -> List[OfferResponse]:
+        cached = await hybrid_cache.get("catalog:offers")
+        if cached is not None and isinstance(cached, list):
+            try:
+                return [OfferResponse(**item) for item in cached]
+            except Exception:
+                pass
+
         docs = await database.find_many("admin_coupons")
         active_docs = [
             d
@@ -772,7 +807,7 @@ class CatalogRepository:
         
         if not active_docs:
             # High-value default active coupons
-            return [
+            default_offers = [
                 OfferResponse(
                     id="coupon-welcome-50",
                     code="WELCOME50",
@@ -834,6 +869,8 @@ class CatalogRepository:
                     minOrder=399,
                 ),
             ]
+            await hybrid_cache.set("catalog:offers", [o.model_dump() for o in default_offers], ttl_seconds=300)
+            return default_offers
 
         results: List[OfferResponse] = []
         for d in active_docs:
@@ -861,6 +898,7 @@ class CatalogRepository:
                     banner=None,
                 )
             )
+        await hybrid_cache.set("catalog:offers", [o.model_dump() for o in results], ttl_seconds=300)
         return results
 
     async def offers_page(self, user_id: Optional[str] = None) -> OffersPageResponse:

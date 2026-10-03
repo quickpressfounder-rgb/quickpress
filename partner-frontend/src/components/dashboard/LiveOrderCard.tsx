@@ -8,7 +8,7 @@ export type LiveOrder = {
   pickupTime: string;
   services: string[];
   amount: number;
-  status: "pending" | "accepted" | "pickup" | "washing" | "ironing" | "ready" | "delivered";
+  status: "pending" | "accepted" | "pickup" | "washing" | "ironing" | "ready" | "delivered" | "cancelled";
 };
 
 const STATUS_STYLE: Record<LiveOrder["status"], string> = {
@@ -19,6 +19,7 @@ const STATUS_STYLE: Record<LiveOrder["status"], string> = {
   ironing: "bg-cyan-50 text-cyan-800 border border-cyan-300",
   ready: "bg-emerald-50 text-emerald-800 border border-emerald-300",
   delivered: "bg-zinc-100 text-zinc-600 border border-zinc-200",
+  cancelled: "bg-rose-50 text-rose-700 border border-rose-200",
 };
 
 const STATUS_LABEL_MAP: Record<LiveOrder["status"], string> = {
@@ -29,6 +30,7 @@ const STATUS_LABEL_MAP: Record<LiveOrder["status"], string> = {
   ironing: "Ironing",
   ready: "Ready for Delivery",
   delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 /**
@@ -186,7 +188,7 @@ export function LiveOrderCard({
           <button
             type="button"
             onClick={() => onView(order)}
-            className="flex items-center gap-1 rounded-xl bg-zinc-900 px-3 py-2 text-xs font-black text-white transition-all hover:bg-black active:scale-95"
+            className="flex items-center gap-1 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-black text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-95 cursor-pointer"
           >
             View Details <ChevronRight className="size-3.5" />
           </button>

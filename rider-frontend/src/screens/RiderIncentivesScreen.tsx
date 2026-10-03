@@ -290,7 +290,7 @@ export function RiderIncentivesScreen() {
         playSuccessChime();
         speakText(`बधाई हो! आपका ₹${Number(res.reward).toFixed(0)} इन्सेंटिव वॉलेट में क्रेडिट हो गया है!`);
         toast.success(
-          `🎉 Level ${levelNumber} (${res.title}) Claimed! ₹${Number(res.reward).toFixed(0)} credited to UPI Wallet! 💰`
+          `🎉 Level ${levelNumber} (${res.title}) Claimed! ₹${Number(res.reward).toFixed(0)} credited to Wallet! 💰`
         );
         await loadData(false);
       } else {
@@ -393,7 +393,7 @@ export function RiderIncentivesScreen() {
                 <span>Today's Bonus Unlocked</span>
               </span>
               <div className="mt-1.5 flex items-baseline gap-2">
-                <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">
+                <span className="text-3xl font-bold text-zinc-950 tracking-tight">
                   ₹{totalIncentives.toFixed(2)}
                 </span>
                 <span className="text-xs font-bold text-emerald-600 bg-emerald-100/80 px-2 py-0.5 rounded-md">
@@ -455,8 +455,9 @@ export function RiderIncentivesScreen() {
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-black text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 shrink-0">
-                🎯 {nextMilestone.ridesRemaining} left
+              <span className="flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 shrink-0">
+                <Target className="size-3.5 text-amber-600" />
+                <span>{nextMilestone.ridesRemaining} left</span>
               </span>
             </div>
           )}
@@ -499,7 +500,7 @@ export function RiderIncentivesScreen() {
           {[
             {
               id: "candy",
-              label: "Candy 🍬",
+              label: "Level Map",
               icon: Sparkles,
               hasBadge: (data?.totalClaimableIncentives ?? 0) > 0,
             },
@@ -621,7 +622,7 @@ export function RiderIncentivesScreen() {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span className="text-sm font-black text-emerald-700 font-mono">
+                      <span className="text-sm font-bold text-emerald-700">
                         +₹{Number(q.reward || 0).toFixed(0)}
                       </span>
                       <p className="text-[10px] font-bold text-zinc-500 mt-0.5">
@@ -682,7 +683,7 @@ export function RiderIncentivesScreen() {
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 font-mono">
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
                           +₹{Number(z.bonusPerTrip || 0).toFixed(0)}/trip
                         </span>
                       </div>
@@ -747,7 +748,7 @@ export function RiderIncentivesScreen() {
                       {d.met ? (
                         <CheckCircle2 className="size-3.5 text-white mx-auto" />
                       ) : (
-                        <span className="text-[11px] font-mono">{d.trips || "-"}</span>
+                        <span className="text-[11px] font-semibold text-zinc-700">{d.trips || "-"}</span>
                       )}
                     </div>
                   </div>
@@ -786,7 +787,7 @@ export function RiderIncentivesScreen() {
               <div>
                 <label className="text-xs font-bold text-zinc-700 flex justify-between items-center">
                   <span>Deliveries Planned Today:</span>
-                  <span className="text-base font-black text-zinc-900 font-mono">
+                  <span className="text-base font-bold text-zinc-950">
                     {calcTrips} Rides
                   </span>
                 </label>

@@ -6,13 +6,13 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  Minus,
   Navigation,
   Package,
   RotateCw,
   Shirt,
   X,
   XCircle,
-  Route,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -22,15 +22,15 @@ import {
   fetchRiderOffers,
   rejectRiderOrder,
 } from "../api/rider/rider-orders-api";
-import { fetchRouteBookingState, type RouteBookingState } from "../api/rider/rider-route-booking-api";
-import { CaptainRouteBookingModal } from "../components/navigation/CaptainRouteBookingModal";
 import { useRiderContext } from "../context/RiderContext";
 import { useLanguage } from "../lib/i18n";
 import { subscribeRiderOffers, subscribeRiderOrders } from "../lib/rider-socket";
 import {
   playOrderAlertSound,
+  playTripAssignedBell,
   playSuccessChime,
   speakOrderAlert,
+  speakTripAssigned,
   speakText,
   stopOrderAlertSound,
   triggerHaptic,
@@ -91,30 +91,32 @@ export function RiderOrdersScreen() {
   const { t } = useLanguage();
 
   const [activeOrder, setActiveOrder] = useState<ActiveOrderData | null>(null);
+  const [isHudMinimized, setIsHudMinimized] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [routeBooking, setRouteBooking] = useState<RouteBookingState | null>(null);
-  const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
-
-  const loadRouteState = async () => {
-    try {
-      const res = await fetchRouteBookingState();
-      if (res && res.riderId) {
-        setRouteBooking(res);
-      }
-    } catch {}
-  };
-
-  useEffect(() => {
-    loadRouteState();
-  }, []);
 
   // Restore saved active order on client mount safely without hydration mismatch
   useEffect(() => {
     try {
       const saved = localStorage.getItem(ACTIVE_ORDER_STORAGE_KEY);
       if (saved) {
-        setActiveOrder(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        const isTest = Boolean(
+          parsed &&
+            (String(parsed.id || "").toUpperCase().includes("TEST") ||
+              String(parsed.orderId || "").toUpperCase().includes("TEST") ||
+              String(parsed.orderCode || "").toUpperCase().includes("TEST") ||
+              String(parsed.customerName || "").toLowerCase().includes("sector 67") ||
+              String(parsed.pickupAddress || "").toLowerCase().includes("sector 67"))
+        );
+
+        if (isTest) {
+          localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+          setActiveOrder(null);
+        } else {
+          setActiveOrder(parsed);
+        }
       }
+      localStorage.removeItem("qp_test_rider_offer");
     } catch {}
   }, []);
 
@@ -127,7 +129,10 @@ export function RiderOrdersScreen() {
     try {
       const rawOffers = await fetchRiderOffers();
       if (Array.isArray(rawOffers) && rawOffers.length > 0) {
-        const formatted: OrderOfferItem[] = rawOffers.map((r: any) => {
+        const validRawOffers = rawOffers.filter((r: any) => {
+          return !r.is_demo && !r.isDemo && String(r.orderCode || r.code || "").toUpperCase() !== "MOCK_DEMO";
+        });
+        const formatted: OrderOfferItem[] = validRawOffers.map((r: any) => {
           const c_lat = r.customerCoords?.lat ?? r.pickupCoords?.lat ?? r.pickupLocation?.latitude ?? r.pickupLocation?.lat ?? r.customerLocation?.lat;
           const c_lng = r.customerCoords?.lng ?? r.pickupCoords?.lng ?? r.pickupLocation?.longitude ?? r.pickupLocation?.lng ?? r.customerLocation?.lng;
           const p_lat = r.partnerCoords?.lat ?? r.dropCoords?.lat ?? r.partnerLocation?.latitude ?? r.partnerLocation?.lat ?? r.dropLocation?.lat;
@@ -174,7 +179,7 @@ export function RiderOrdersScreen() {
             dropCoords: r.rideType === "delivery" ? custCoords : partCoords,
             items: r.items || [],
             placedAt: r.placedAt || r.createdAt,
-            expiresInSeconds: 120, // 2 minutes SLA
+            expiresInSeconds: 900, // 15 minutes SLA
             isRouteMatch: Boolean(r.isRouteMatch),
             routeBadge: r.routeBadge || undefined,
             isExpress: Boolean(r.isExpress || r.express || (r.rideDoc && r.rideDoc.isExpress)),
@@ -195,7 +200,10 @@ export function RiderOrdersScreen() {
           return formatted;
         });
       } else {
-        setOffers([]);
+        // In background polling, do not wipe existing active offers unless explicitly refreshed
+        if (!isBackground) {
+          setOffers([]);
+        }
       }
     } catch {
       if (!isBackground) setOffers([]);
@@ -204,38 +212,105 @@ export function RiderOrdersScreen() {
     }
   };
 
-    useEffect(() => {
-      loadOffers();
-      const timer = setInterval(() => {
-        if (!activeOrder) {
-          loadOffers(true);
-        }
-      }, 15000);
-      return () => clearInterval(timer);
-    }, [activeOrder]);
+  useEffect(() => {
+    loadOffers();
+    const timer = setInterval(() => {
+      if (!activeOrder) {
+        loadOffers(true);
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [activeOrder]);
 
-  // 2-minute SLA Timer (120s) with stabilized boolean dependencies
+  // 15-minute SLA Countdown Timer
   useEffect(() => {
     if (offers.length === 0 || activeOrder) return;
-    setCountdown(120);
+    const topOffer = offers[0];
+    const initialElapsed = topOffer?.placedAt
+      ? Math.max(0, Math.floor((Date.now() - new Date(topOffer.placedAt).getTime()) / 1000))
+      : 0;
+    const initialRemaining = Math.max(15, 900 - initialElapsed);
+    setCountdown(initialRemaining);
 
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           loadOffers(true);
-          return 120;
+          return 900;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [offers.length > 0, Boolean(activeOrder)]);
+  }, [offers[0]?.id, Boolean(activeOrder)]);
 
   // Real-time Socket.IO subscription for order lifecycle updates
   useEffect(() => {
-    const unsub = subscribeRiderOrders((eventData) => {
+    const unsub = subscribeRiderOrders((eventData: any) => {
       console.log("[RiderOrdersScreen] ⚡ Realtime order update:", eventData);
+      const ev = eventData?.event || eventData?.type;
+      const targetOrderId = eventData?.orderId || eventData?.order?._id;
+      if (ev === "order.cancelled" || ev === "rider.ride_cancelled") {
+        if (targetOrderId) {
+          setOffers((prev) => prev.filter((o) => o.orderId !== targetOrderId && o.id !== targetOrderId));
+        }
+      }
+
+      // Handle direct trip assigned event
+      if (ev === "order.trip_assigned" || ev === "order.rider_assigned" || eventData?.autoAssigned) {
+        const tId = eventData?.orderId || eventData?.id;
+        if (tId) {
+          const directOrder: ActiveOrderData = {
+            orderId: tId,
+            orderCode: eventData.orderCode || tId.slice(-6).toUpperCase(),
+            customerName: eventData.customerName || "Customer",
+            customerPhone: eventData.customerPhone || "",
+            partnerName: eventData.partnerName || "QuickPress Partner Store",
+            partnerPhone: eventData.partnerPhone || "",
+            partnerAddress: eventData.partnerAddress || eventData.dropAddress || "",
+            pickupAddress: eventData.pickupAddress || eventData.pickupTitle || "Customer Pickup Location",
+            pickupTitle: eventData.pickupTitle || "Pickup Location",
+            dropAddress: eventData.dropAddress || eventData.dropTitle || "QuickPress Partner Hub",
+            dropTitle: eventData.dropTitle || "Partner Hub",
+            distanceMeters: Math.round((eventData.pickupDistanceKm || eventData.distanceKm || 1.2) * 1000),
+            pickupDistanceKm: Number(eventData.pickupDistanceKm || eventData.distanceKm || 1.2),
+            dropDistanceKm: Number(eventData.dropDistanceKm || 2.5),
+            fare: Number(eventData.fare || eventData.estimatedEarning || 45.0),
+            amount: Number(eventData.amount || eventData.fare || 45.0),
+            paymentMode: eventData.paymentMode || "cod",
+            items: eventData.items || [],
+            placedAt: eventData.placedAt || new Date().toISOString(),
+            startOtp: String(eventData.pickupOtp || ""),
+            deliveryOtp: String(eventData.deliveryOtp || ""),
+            dispatchOtp: String(eventData.handoverOtp || eventData.dispatchOtp || ""),
+            customerCoords: eventData.customerCoords,
+            partnerCoords: eventData.partnerCoords,
+            pickupCoords: eventData.pickupCoords,
+            dropCoords: eventData.dropCoords,
+            rideType: eventData.rideType || "pickup",
+          };
+          try {
+            localStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, JSON.stringify(directOrder));
+            localStorage.setItem("qp_active_delivery_order", JSON.stringify(directOrder));
+          } catch {}
+          setActiveOrder(directOrder);
+          setIsHudMinimized(false);
+          unlockAudioContext();
+          triggerHaptic([350, 150, 350, 150, 600, 300]);
+          playTripAssignedBell();
+          speakTripAssigned(directOrder.fare, directOrder.pickupTitle);
+          toast.success(`🔔 Trip #${directOrder.orderCode} Assigned! Bell baj rahi hai... 🛵`, {
+            duration: 6000,
+            action: {
+              label: "Mute Bell",
+              onClick: () => stopOrderAlertSound(),
+            },
+          });
+          return;
+        }
+      }
+
       loadOffers(true);
     });
     return () => {
@@ -290,9 +365,70 @@ export function RiderOrdersScreen() {
         expressRiderSharePercent: Number(rawOffer.expressRiderSharePercent || 80),
       };
 
+      const isDirectAssigned = Boolean(
+        rawOffer.autoAssigned ||
+        rawOffer.isAssigned ||
+        rawOffer.status === "assigned" ||
+        rawOffer.orderStatus === "pickup_rider_accepted" ||
+        rawOffer.orderStatus === "rider_assigned" ||
+        rawOffer.event === "order.trip_assigned"
+      );
+
+      // If directly assigned, auto-activate HUD immediately and ring bell
+      if (isDirectAssigned) {
+        const assignedOrder: ActiveOrderData = {
+          orderId: newOffer.orderId,
+          orderCode: newOffer.orderCode || (newOffer.orderId ? newOffer.orderId.slice(-6).toUpperCase() : "TRIP"),
+          customerName: newOffer.customerName || "Customer",
+          customerPhone: newOffer.customerPhone || "",
+          partnerName: newOffer.partnerName || "QuickPress Partner Store",
+          partnerPhone: newOffer.partnerPhone || "",
+          partnerAddress: newOffer.partnerAddress || newOffer.dropAddress,
+          pickupAddress: newOffer.pickupAddress || newOffer.pickupTitle || "Customer Pickup Location",
+          pickupTitle: newOffer.pickupTitle || "Pickup Location",
+          dropAddress: newOffer.dropAddress || newOffer.dropTitle || "QuickPress Partner Hub",
+          dropTitle: newOffer.dropTitle || "Partner Hub",
+          distanceMeters: Math.round((newOffer.pickupDistanceKm || 1.2) * 1000),
+          pickupDistanceKm: newOffer.pickupDistanceKm || 1.2,
+          dropDistanceKm: newOffer.dropDistanceKm || 2.5,
+          fare: newOffer.fare || 45.0,
+          amount: newOffer.amount || newOffer.fare || 45.0,
+          paymentMode: newOffer.paymentMode || "cod",
+          items: newOffer.items || [],
+          placedAt: newOffer.placedAt || new Date().toISOString(),
+          startOtp: newOffer.pickupOtp || "",
+          deliveryOtp: newOffer.deliveryOtp || "",
+          dispatchOtp: newOffer.dispatchOtp || "",
+          customerCoords: newOffer.customerCoords,
+          partnerCoords: newOffer.partnerCoords,
+          pickupCoords: newOffer.pickupCoords,
+          dropCoords: newOffer.dropCoords,
+          rideType: newOffer.rideType || "pickup",
+        };
+
+        try {
+          localStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, JSON.stringify(assignedOrder));
+          localStorage.setItem("qp_active_delivery_order", JSON.stringify(assignedOrder));
+        } catch {}
+        setActiveOrder(assignedOrder);
+        setIsHudMinimized(false);
+        unlockAudioContext();
+        triggerHaptic([350, 150, 350, 150, 600, 300]);
+        playTripAssignedBell();
+        speakTripAssigned(assignedOrder.fare, assignedOrder.pickupTitle);
+        toast.success(`🔔 Trip #${assignedOrder.orderCode} Assigned! Bell baj rahi hai... 🛵`, {
+          duration: 6000,
+          action: {
+            label: "Mute Bell",
+            onClick: () => stopOrderAlertSound(),
+          },
+        });
+        return;
+      }
+
       unlockAudioContext();
-      triggerHaptic([200, 100, 200, 100, 400]);
-      playOrderAlertSound();
+      triggerHaptic([350, 150, 350, 150, 600, 300]);
+      playTripAssignedBell();
       speakOrderAlert(newOffer.fare || 45, newOffer.pickupTitle, newOffer.dropTitle);
       setOffers((prev) => [newOffer, ...prev.filter((o) => o.id !== newOffer.id)]);
     });
@@ -354,8 +490,13 @@ export function RiderOrdersScreen() {
       localStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, JSON.stringify(newActiveOrder));
     } catch {}
     setActiveOrder(newActiveOrder);
+    setIsHudMinimized(false);
 
-    // Call Real Backend API to claim trip
+    // Call Real Backend API to claim trip (skip for simulated test orders)
+    if (targetId.startsWith("TEST-")) {
+      return;
+    }
+
     try {
       const res = await acceptRiderOrder(targetId);
       if (res.ok && res.order) {
@@ -426,7 +567,9 @@ export function RiderOrdersScreen() {
     triggerHaptic(60);
     const targetId = offer.orderId || offer.id;
     setOffers((prev) => prev.filter((o) => o.id !== offer.id));
-    await rejectRiderOrder(targetId).catch(() => {});
+    if (!targetId.startsWith("TEST-")) {
+      await rejectRiderOrder(targetId).catch(() => {});
+    }
   };
 
   // Open Google Maps Road Turn-by-Turn Navigation for Offer
@@ -454,8 +597,8 @@ export function RiderOrdersScreen() {
     setActiveOrder(null);
   };
 
-  // If an active order is in progress, render the GoToPickupHUD screen
-  if (activeOrder) {
+  // If an active order is in progress and HUD is not minimized, render the GoToPickupHUD screen
+  if (activeOrder && !isHudMinimized) {
     return (
       <>
         <CaptainSidebarDrawer
@@ -470,6 +613,7 @@ export function RiderOrdersScreen() {
           onOpenDrawer={() => setIsDrawerOpen(true)}
           onTripCompleted={handleTripEnd}
           onCancelTrip={handleTripEnd}
+          onBackToTrips={() => setIsHudMinimized(true)}
         />
       </>
     );
@@ -502,6 +646,7 @@ export function RiderOrdersScreen() {
           </div>
 
           <div className="flex items-center gap-2">
+
             {totalOrders > 0 && (
               <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-black text-emerald-800">
                 {totalOrders}
@@ -522,33 +667,50 @@ export function RiderOrdersScreen() {
         </div>
       </div>
 
-      {/* My Route Active Indicator Strip */}
-      {routeBooking?.isActive && (
-        <div
-          onClick={() => setIsRouteModalOpen(true)}
-          className="mx-3.5 mt-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between shadow-md cursor-pointer active:scale-98 transition-all"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="size-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 border border-white/25">
-              <Route className="size-4 text-white animate-pulse" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-xs text-white truncate">
-                  My Route: {routeBooking.destinationName}
-                </span>
-                <span className="text-[10px] bg-white/25 px-1.5 py-0.5 rounded font-black">
-                  ±{routeBooking.maxDetourKm}km
-                </span>
+
+
+      {/* 2. Active Trip In-Progress Card (Shown when HUD is minimized) */}
+      {activeOrder && (
+        <div className="px-3.5 pt-3">
+          <div
+            onClick={() => setIsHudMinimized(false)}
+            className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 text-white shadow-lg shadow-emerald-700/20 border-2 border-emerald-400/40 flex items-center justify-between cursor-pointer active:scale-98 transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/20 text-xl shadow-inner">
+                <span>🛵</span>
+                <span className="absolute -top-1 -right-1 size-3 rounded-full bg-amber-400 ring-2 ring-emerald-600 animate-ping" />
               </div>
-              <p className="text-[10px] text-emerald-100 font-medium truncate">
-                Prioritizing orders on your way · {routeBooking.remainingPassesToday ?? 3} passes left
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black tracking-wide uppercase bg-white/20 px-2 py-0.5 rounded-full">
+                    {activeOrder.rideType === "delivery" ? "Delivery In Progress" : "Trip Active"}
+                  </span>
+                  <span className="text-xs font-black text-amber-200">
+                    #{activeOrder.orderCode}
+                  </span>
+                </div>
+                <h4 className="text-sm font-black mt-0.5 leading-snug truncate">
+                  {activeOrder.customerName || "Customer"} · ₹{activeOrder.fare.toFixed(2)}
+                </h4>
+                <p className="text-[11px] font-medium text-emerald-100 truncate">
+                  {activeOrder.dropTitle || activeOrder.pickupTitle || activeOrder.dropAddress || "Trip in progress"}
+                </p>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsHudMinimized(false);
+              }}
+              className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1 shrink-0 ml-2"
+            >
+              <span>Resume</span>
+              <span>➔</span>
+            </button>
           </div>
-          <span className="text-[10px] bg-white text-emerald-900 px-2.5 py-1 rounded-lg font-black shrink-0 ml-2 shadow-xs">
-            Manage
-          </span>
         </div>
       )}
 
@@ -569,219 +731,112 @@ export function RiderOrdersScreen() {
             return (
               <div
                 key={offer.id}
-                className="contain-render rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm transition-all space-y-3.5"
+                className={`rounded-3xl bg-white p-5 transition-all space-y-4 border ${
+                  isTop
+                    ? "border-emerald-400 shadow-xl shadow-emerald-600/10 ring-4 ring-emerald-500/10 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                    : "border-zinc-200/90 shadow-md"
+                }`}
               >
-                {/* 2-Minute SLA Countdown (Top incoming offer) */}
-                {isTop && (
-                  <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-2.5 text-xs">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 mb-1.5">
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-amber-600 animate-pulse" />
-                        <span>Captain Response SLA</span>
-                      </span>
-                      <span className="font-mono text-xs font-black text-amber-800">
-                        ⏱️ {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
-                      </span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-amber-200/60 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 rounded-full transition-all duration-1000 ease-linear"
-                        style={{ width: `${(countdown / 120) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Header: Service Type Pill + Order Code + Fare */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-wider ${
-                        isDelivery
-                          ? "bg-blue-50 text-blue-800 border border-blue-200"
-                          : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      }`}
-                    >
-                      {isDelivery ? (
-                        <>
-                          <Package className="size-3" />
-                          <span>Delivery Leg</span>
-                        </>
-                      ) : (
-                        <>
-                          <Shirt className="size-3" />
-                          <span>Pickup Leg</span>
-                        </>
-                      )}
+                {/* Top Header: Badge + SLA Countdown */}
+                <div className="flex items-center justify-between">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 text-zinc-800 text-xs font-semibold">
+                    <span className="size-4 rounded-full bg-zinc-800 flex items-center justify-center text-white shrink-0">
+                      <Bike className="size-2.5" />
                     </span>
-
-                    {offer.orderCode && (
-                      <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-mono font-bold text-zinc-700">
-                        #{offer.orderCode}
-                      </span>
-                    )}
+                    <span>{isDelivery ? "Delivery Boost" : "Bike Boost"}</span>
                   </div>
 
-                  {/* Guaranteed Payout Badge */}
-                  <div className="flex items-center gap-1 rounded-xl bg-zinc-950 px-3 py-1 text-white shadow-xs">
-                    <span className="text-[10px] font-medium text-zinc-400">Payout</span>
-                    <span className="text-xs font-black text-white">
-                      ₹{offer.fare?.toFixed(0) || "45"}
+                  {isTop && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                      <Clock className="size-3 text-amber-600 animate-pulse" />
+                      <span>{countdown > 60 ? `${Math.floor(countdown / 60)}m ${countdown % 60}s` : `${countdown}s`}</span>
                     </span>
-                  </div>
+                  )}
                 </div>
 
-                {/* ⚡ Express Priority Bonus Callout */}
-                {offer.isExpress && (
-                  <div className="flex items-center justify-between gap-2 px-3.5 py-3 bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-amber-500/15 border-2 border-amber-500/70 rounded-2xl shadow-md animate-pulse">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="flex size-8 rounded-xl bg-amber-500/40 items-center justify-center text-amber-900 dark:text-amber-200 shrink-0 border border-amber-500/60">
-                        <Zap className="size-4.5 fill-amber-500" />
-                      </span>
-                      <div className="min-w-0">
-                        <span className="block text-xs font-black text-amber-950 dark:text-amber-200 uppercase tracking-wide truncate">
-                          ⚡ EXPRESS PICKUP + EXPRESS CHARGES KA {offer.expressRiderSharePercent || 80}% BONUS
-                        </span>
-                        <span className="block text-[10.5px] text-amber-900/90 dark:text-amber-300 font-medium">
-                          Priority pickup! Surge bonus credited directly into your trip fare.
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[9px] font-bold text-amber-900/80 dark:text-amber-300 block uppercase">Bonus</span>
-                      <span className="text-base font-black text-amber-900 dark:text-amber-200">
-                        +₹{offer.riderExpressBonus || Math.round((offer.expressFee || 40) * 0.8)}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* Big Bold Fare */}
+                <div className="flex items-baseline justify-between">
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-zinc-950 tracking-tight">
+                    ₹{offer.fare?.toFixed(0) || "27"}
+                  </h2>
+                  {offer.orderCode && (
+                    <span className="text-xs font-semibold text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-lg">
+                      #{offer.orderCode}
+                    </span>
+                  )}
+                </div>
 
-                {/* 🔄 Reassigned Delivery Bonus Callout */}
-                {(offer.isReassigned || offer.isReassignedBonus || Boolean(offer.extraBonusAmount && offer.extraBonusAmount > 0)) && (
-                  <div className="flex items-center justify-between gap-2 px-3.5 py-3 bg-gradient-to-r from-purple-500/20 via-indigo-500/15 to-purple-500/10 border-2 border-purple-500/70 rounded-2xl shadow-md">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="flex size-8 rounded-xl bg-purple-500/30 items-center justify-center text-purple-900 dark:text-purple-200 shrink-0 border border-purple-500/50">
-                        <Sparkles className="size-4.5 text-purple-700 fill-purple-300" />
-                      </span>
-                      <div className="min-w-0">
-                        <span className="block text-xs font-black text-purple-950 dark:text-purple-200 uppercase tracking-wide truncate">
-                          🚀 REASSIGNED DELIVERY + ₹{offer.extraBonusAmount || 20} BONUS POOL
-                        </span>
-                        <span className="block text-[10.5px] text-purple-900/90 dark:text-purple-300 font-medium">
-                          Store SLA transfer bonus added to your normal delivery payout.
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[9px] font-bold text-purple-900/80 dark:text-purple-300 block uppercase">Bonus Pool</span>
-                      <span className="text-base font-black text-purple-900 dark:text-purple-200">
-                        +₹{offer.extraBonusAmount || 20}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* On-Route Match Priority Badge */}
-                {offer.routeBadge && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-300 rounded-2xl text-xs font-black text-emerald-800">
-                    <span className="flex size-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                    <span className="truncate">🎯 {offer.routeBadge}</span>
-                  </div>
-                )}
-
-                {/* Route Timeline: Pickup & Drop Points */}
-                <div className="rounded-2xl bg-zinc-50/70 border border-zinc-100 p-3 space-y-2.5">
+                {/* Route Stepper (Vertical Timeline matching reference) */}
+                <div className="space-y-1">
                   {/* Point 1: Pickup */}
-                  <div className="flex items-start gap-2.5 text-xs">
-                    <div className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-white font-black text-[9px] shrink-0 mt-0.5 shadow-2xs">
-                      P
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className="size-2 rounded-full bg-zinc-900 shrink-0 mt-1" />
+                      <div className="w-[1.5px] h-7 bg-zinc-300 my-1" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-black text-zinc-900 truncate">
-                          {offer.pickupTitle || "Pickup Hub"}
-                        </p>
-                        <span className="text-[10px] font-bold text-zinc-400">
-                          {offer.pickupDistanceKm || 0.8} km
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-500 font-medium truncate">
-                        {offer.pickupAddress}
+                    <div className="flex-1 min-w-0 -mt-0.5">
+                      <span className="font-bold text-sm text-zinc-900 block leading-tight">
+                        {offer.pickupDistanceKm || 0.8} km
+                      </span>
+                      <p className="text-xs text-zinc-600 leading-snug mt-0.5">
+                        <strong className="font-bold text-zinc-900">{offer.pickupTitle || "Sector 67 Noida"}</strong>
+                        {" - "}
+                        <span className="text-zinc-500">{offer.pickupAddress || "26, Block A, Sector 68, Noida"}</span>
                       </p>
                     </div>
                   </div>
-
-                  {/* Dashed Connecting Line */}
-                  <div className="ml-2 w-0.5 h-2 bg-zinc-200 border-dashed" />
 
                   {/* Point 2: Drop */}
-                  <div className="flex items-start gap-2.5 text-xs">
-                    <div className="flex size-4 items-center justify-center rounded-full bg-rose-500 text-white font-black text-[9px] shrink-0 mt-0.5 shadow-2xs">
-                      D
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] text-zinc-900 shrink-0 leading-none mt-0.5">▼</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-black text-zinc-900 truncate">
-                          {offer.dropTitle || "Delivery Destination"}
-                        </p>
-                        <span className="text-[10px] font-bold text-zinc-400">
-                          {offer.dropDistanceKm || 2.4} km
+                    <div className="flex-1 min-w-0 -mt-0.5">
+                      <span className="font-bold text-sm text-zinc-900 block leading-tight">
+                        {offer.dropDistanceKm || 2.2} km
+                      </span>
+                      <p className="text-xs text-zinc-600 leading-snug mt-0.5">
+                        <span className="bg-emerald-100/90 text-emerald-950 font-bold px-1.5 py-0.5 rounded inline-block">
+                          {offer.dropTitle || "Sarfabad Village Sector 73 Noida"}
                         </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-500 font-medium truncate">
-                        {offer.dropAddress}
+                        {" - "}
+                        <span className="text-zinc-500">{offer.dropAddress || "Yadu Public School, Sector 73"}</span>
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Meta details strip */}
-                <div className="flex items-center justify-between text-[11px] font-medium text-zinc-500 px-1">
-                  <span>
-                    Payment: <strong className="text-zinc-800 font-bold uppercase">{offer.paymentMode || "COD"}</strong>
-                  </span>
-                  <span>
-                    Est. Distance: <strong className="text-zinc-800 font-bold">{((offer.pickupDistanceKm || 0.8) + (offer.dropDistanceKm || 2.4)).toFixed(1)} km</strong>
-                  </span>
-                </div>
-
-                {/* Action Buttons: [ Reject ] [ Google Maps 🗺️ ] [ Accept Order ] */}
-                <div className="flex items-center gap-2 pt-0.5">
-                  {/* Reject Button */}
+                {/* Action Buttons: [ Circular Decline (-) ] [ Maps Navigation ] [ Large Yellow Accept ] */}
+                <div className="flex items-center gap-3 pt-2">
+                  {/* Reject / Pass Button (Circular with -) */}
                   <button
                     type="button"
                     onClick={() => handleReject(offer)}
-                    className="flex size-11 items-center justify-center rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 active:scale-95 transition-all shrink-0"
-                    aria-label="Reject order"
-                    title="Pass order"
+                    className="size-13 sm:size-14 rounded-full border-2 border-zinc-300 bg-white hover:bg-zinc-100 active:scale-90 transition-all flex items-center justify-center text-zinc-700 shadow-xs cursor-pointer shrink-0"
+                    title="Decline trip"
+                    aria-label="Decline trip"
                   >
-                    <X className="size-5 stroke-[2.2]" />
+                    <Minus className="size-6 stroke-[2.5]" />
                   </button>
 
-                  {/* Google Maps Road Navigation Preview Button */}
+                  {/* Google Maps Route Preview Button */}
                   <button
                     type="button"
                     onClick={() => handleOpenGoogleMaps(offer)}
-                    className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 active:scale-95 transition-all shrink-0 cursor-pointer"
-                    aria-label="Preview road navigation in Google Maps"
-                    title="Open Google Maps Two-Wheeler Turn-by-Turn Navigation"
+                    className="size-13 sm:size-14 rounded-full border-2 border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-700 active:scale-90 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                    title="Preview Turn-by-Turn Route in Google Maps"
+                    aria-label="Preview Route"
                   >
-                    <Navigation className="size-5 stroke-[2.2] text-blue-600" />
+                    <Navigation className="size-5 text-blue-600 stroke-[2.2]" />
                   </button>
 
-                  {/* Accept CTA Button */}
+                  {/* Accept Button (Large bright yellow pill CTA) */}
                   <button
                     type="button"
                     onClick={() => handleAccept(offer)}
-                    className="flex-1 flex items-center justify-center gap-2 h-11 font-black text-xs sm:text-sm rounded-2xl bg-zinc-950 hover:bg-zinc-800 active:bg-zinc-900 text-white shadow-md active:scale-98 transition-all"
+                    className="flex-1 h-13 sm:h-14 rounded-full bg-[#FFC700] hover:bg-[#FBBF24] active:scale-[0.98] transition-all flex items-center justify-center text-zinc-950 font-bold text-base sm:text-lg shadow-md cursor-pointer"
                   >
-                    <span>Accept Order · ₹{offer.fare?.toFixed(0) || "45"}</span>
-                    {isTop && (
-                      <span className="flex items-center justify-center min-w-[24px] h-5 px-1 text-[10px] font-black rounded-full bg-white/20 text-white">
-                        {countdown}s
-                      </span>
-                    )}
+                    <span>{t("orders.accept", "Accept")}</span>
                   </button>
                 </div>
               </div>
@@ -791,56 +846,44 @@ export function RiderOrdersScreen() {
       ) : (
         /* Empty State: Queue is clear */
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center my-auto space-y-4">
-          <div className="relative flex size-20 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 shadow-xs">
-            <span className="absolute size-20 rounded-full bg-emerald-500/10 animate-ping" />
-            <Bike className="size-9 text-zinc-800" />
+          <div className="relative flex size-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-xs">
+            <span className="absolute size-20 rounded-full bg-emerald-500/15 animate-ping" />
+            <Bike className="size-9 text-emerald-700" />
           </div>
 
           <div className="space-y-1">
             <h3 className="text-base font-black text-zinc-900">
-              No Pending Orders in Queue
+              {t("orders.noOrders", "No Pending Orders in Queue")}
             </h3>
             <p className="text-xs text-zinc-500 font-medium max-w-xs leading-relaxed">
-              Your dispatch radar is active. Orders in your service zone will automatically ring here.
+              {t("orders.waitingNotice", "Your dispatch radar is active. Orders in your service zone will automatically ring here.")}
             </p>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             <button
               type="button"
               onClick={() => loadOffers()}
               disabled={isLoading}
-              className="px-4 py-2.5 bg-white hover:bg-zinc-50 text-zinc-800 font-bold text-xs rounded-xl border border-zinc-200 shadow-xs active:scale-95 transition-all"
+              className="px-4 py-2.5 bg-white hover:bg-zinc-50 text-zinc-800 font-bold text-xs rounded-xl border border-zinc-200 shadow-xs active:scale-95 transition-all cursor-pointer"
             >
-              {isLoading ? "Checking..." : "🔄 Refresh Queue"}
+              {isLoading ? t("common.loading", "Checking...") : "🔄 " + t("common.refresh", "Refresh")}
             </button>
             <button
               type="button"
               onClick={() => navigate({ to: "/dashboard" })}
-              className="px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all"
+              className="px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer"
             >
-              Back to Map
+              Map
             </button>
           </div>
         </div>
       )}
 
-      {/* 3. Strictly 2-Tab Bottom Navigation */}
+      {/* 3. 4-Tab Captain Bottom Navigation */}
       <RiderBottomNav active="orders" ordersBadgeCount={totalOrders} />
 
-      {/* Route Booking Modal */}
-      <CaptainRouteBookingModal
-        isOpen={isRouteModalOpen}
-        onClose={() => {
-          setIsRouteModalOpen(false);
-          loadRouteState();
-          loadOffers(true);
-        }}
-        onUpdated={(updated) => {
-          setRouteBooking(updated);
-          loadOffers(true);
-        }}
-      />
+
     </div>
   );
 }

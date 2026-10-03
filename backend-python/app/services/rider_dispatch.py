@@ -607,6 +607,27 @@ class RiderDispatchEngine:
         lifecycle.assert_rider(order, rider_id)
 
         now = lifecycle.now_iso()
+        current_status = lifecycle.order_status(order)
+
+        # Self-healing: if order is still in pickup stages, auto-mark pickup completed
+        if current_status in (
+            lifecycle.PICKUP_RIDER_ACCEPTED,
+            lifecycle.RIDER_ACCEPTED,
+            lifecycle.RIDER_GOING_TO_PICKUP,
+            lifecycle.PICKUP_OTP_PENDING,
+            lifecycle.PICKUP_OTP_VERIFIED,
+        ):
+            await database.collection(lifecycle.ORDERS).update_one(
+                {"_id": lifecycle.order_id_of(order)},
+                {
+                    "$set": {
+                        "pickedUpAt": order.get("pickedUpAt") or now,
+                        "otp.pickup.verified": True,
+                        "otp.pickup.verifiedAt": now,
+                    }
+                }
+            )
+
         updated = await lifecycle.transition(
             order_id,
             lifecycle.AT_PARTNER,
@@ -615,10 +636,24 @@ class RiderDispatchEngine:
             metadata={"droppedAt": now},
             changes={
                 "droppedAtPartnerAt": now,
+                "pickedUpAt": order.get("pickedUpAt") or now,
                 "assignedRiderId": rider_id,
                 "originalRiderId": rider_id,
                 "custody": "partner",
             },
+        )
+
+        # Mark pickup ride as completed
+        from app.services.smart_2ride_engine import RIDES_COLLECTION
+        await database.collection(RIDES_COLLECTION).update_many(
+            {"orderId": lifecycle.order_id_of(order), "rideType": "pickup"},
+            {
+                "$set": {
+                    "status": "COMPLETED",
+                    "droppedAtStoreAt": now,
+                    "updatedAt": now,
+                }
+            }
         )
 
         await broadcast_order_event(

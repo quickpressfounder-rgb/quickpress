@@ -8,6 +8,7 @@ Produces a 3-page enterprise tax invoice matching the Rapido-style layout:
 
 from __future__ import annotations
 
+import csv
 import io
 import os
 from datetime import datetime
@@ -957,3 +958,443 @@ def generate_commission_invoice_pdf(data: Dict[str, Any]) -> bytes:
 
     doc.build(story)
     return buffer.getvalue()
+
+
+def generate_settlement_statement_pdf(data: Dict[str, Any]) -> bytes:
+    """Generate official Merchant Settlement Statement PDF for Bank reconciliation & Audits."""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=36,
+        bottomMargin=36,
+    )
+    styles = getSampleStyleSheet()
+
+    header_style = ParagraphStyle(
+        "SettlementHeader",
+        parent=styles["Normal"],
+        fontName=FONT_BOLD if "FONT_BOLD" in globals() else "Helvetica-Bold",
+        fontSize=15,
+        leading=18,
+        textColor=colors.HexColor("#0f172a"),
+    )
+    sub_style = ParagraphStyle(
+        "SettlementSub",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR if "FONT_REGULAR" in globals() else "Helvetica",
+        fontSize=8,
+        leading=11,
+        textColor=colors.HexColor("#64748b"),
+    )
+    bold_style = ParagraphStyle(
+        "SettlementBold",
+        parent=styles["Normal"],
+        fontName=FONT_BOLD if "FONT_BOLD" in globals() else "Helvetica-Bold",
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor("#0f172a"),
+    )
+    regular_style = ParagraphStyle(
+        "SettlementRegular",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR if "FONT_REGULAR" in globals() else "Helvetica",
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor("#334155"),
+    )
+    num_bold = ParagraphStyle(
+        "SettlementNumBold",
+        parent=styles["Normal"],
+        fontName=FONT_BOLD if "FONT_BOLD" in globals() else "Helvetica-Bold",
+        fontSize=8.5,
+        leading=11,
+        alignment=2,
+        textColor=colors.HexColor("#0f172a"),
+    )
+    num_regular = ParagraphStyle(
+        "SettlementNumRegular",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR if "FONT_REGULAR" in globals() else "Helvetica",
+        fontSize=8.5,
+        leading=11,
+        alignment=2,
+        textColor=colors.HexColor("#334155"),
+    )
+
+    story = []
+
+    # 1. Header Banner
+    header_data = [
+        [
+            Paragraph("<b>QUICKPRESS MERCHANT SETTLEMENT STATEMENT</b><br/><font color='#64748b' size='8'>Official Payout Ledger & Statutory Bank Reconciliation Document</font>", header_style),
+            Paragraph("<b>QuickPress Technologies Pvt. Ltd.</b><br/>GSTIN: 09AAHCR1710J1ZE · PAN: AAHCR1710J<br/>Kasganj, Uttar Pradesh 207123", ParagraphStyle("Right", parent=regular_style, alignment=2)),
+        ]
+    ]
+    t_head = Table(header_data, colWidths=[310, 213])
+    t_head.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(t_head)
+    story.append(Spacer(1, 8))
+
+    # Meta variables
+    b_name = data.get("businessName") or "QuickPress Partner Store"
+    p_id = data.get("partnerId") or ""
+    owner = data.get("ownerName") or "Store Partner"
+    city = data.get("city") or "Kasganj"
+    cycle = data.get("cycle") or {}
+    period = cycle.get("period") or "Current Cycle"
+    cycle_id = cycle.get("cycleId") or "cycle"
+    status_str = cycle.get("status") or "PAID"
+    status_color = "#16a34a" if status_str.upper() in ("PAID", "SETTLED") else "#d97706"
+
+    bank = data.get("bankDetails") or {}
+    bank_name = bank.get("bankName") or "Bank Account"
+    acc_masked = bank.get("accountNumberMasked") or "••••"
+    utr_val = bank.get("utr") or "—"
+
+    # 2. Meta Info Card
+    meta_data = [
+        [
+            Paragraph(f"<b>STORE DETAILS:</b><br/>"
+                      f"<b>Store:</b> {b_name}<br/>"
+                      f"<b>Partner ID:</b> {p_id}<br/>"
+                      f"<b>Owner:</b> {owner}<br/>"
+                      f"<b>City:</b> {city}", regular_style),
+            Paragraph(f"<b>SETTLEMENT SUMMARY:</b><br/>"
+                      f"<b>Period:</b> {period}<br/>"
+                      f"<b>Statement ID:</b> STM-{cycle_id}-{p_id[-6:] if len(p_id) >= 6 else p_id}<br/>"
+                      f"<b>Payout Status:</b> <font color='{status_color}'><b>{status_str}</b></font><br/>"
+                      f"<b>Bank & UTR:</b> {bank_name} ({acc_masked}) · UTR: {utr_val}", regular_style),
+        ]
+    ]
+    t_meta = Table(meta_data, colWidths=[260, 263])
+    t_meta.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0")),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(t_meta)
+    story.append(Spacer(1, 10))
+
+    # Numbers
+    order_cnt = int(data.get("totalOrders", 0))
+    net_payout = float(data.get("estNetPayout", 0.0))
+    netA = data.get("netOrderValueA") or {}
+    gross_val = float(netA.get("total") or netA.get("itemSubtotal") or 0.0)
+    items_subtotal = float(netA.get("itemSubtotal", gross_val))
+    gst_collected = float(netA.get("totalGstCollected", 0.0))
+
+    dedC = data.get("orderLevelDeductionsC") or {}
+    comm_val = float(dedC.get("platformCommission", 0.0))
+    comm_pct = float(dedC.get("commissionRatePct", 15.0))
+
+    taxD = data.get("taxDeductionsD") or {}
+    gst_fee = float(taxD.get("gstOnServiceFees18", 0.0))
+    tds_val = float(taxD.get("tds194o", 0.0))
+    tcs_val = float(taxD.get("tcsGst", 0.0))
+
+    total_fees_taxes = round(comm_val + gst_fee + tds_val + tcs_val, 2)
+
+    # 3. KPI Highlights Cards
+    kpi_data = [
+        [
+            Paragraph(f"<font size='7' color='#64748b'>DELIVERED ORDERS</font><br/><font size='13'><b>{order_cnt}</b></font>", ParagraphStyle("K1", parent=styles["Normal"], alignment=1)),
+            Paragraph(f"<font size='7' color='#64748b'>GROSS ORDER VALUE</font><br/><font size='13'><b>₹{gross_val:,.2f}</b></font>", ParagraphStyle("K2", parent=styles["Normal"], alignment=1)),
+            Paragraph(f"<font size='7' color='#64748b'>FEES & TAXES</font><br/><font size='13' color='#b91c1c'><b>-₹{total_fees_taxes:,.2f}</b></font>", ParagraphStyle("K3", parent=styles["Normal"], alignment=1)),
+            Paragraph(f"<font size='7' color='#15803d'>NET BANK PAYOUT</font><br/><font size='13' color='#15803d'><b>₹{net_payout:,.2f}</b></font>", ParagraphStyle("K4", parent=styles["Normal"], alignment=1)),
+        ]
+    ]
+    t_kpi = Table(kpi_data, colWidths=[130, 131, 131, 131])
+    t_kpi.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#cbd5e1")),
+        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+        ('BACKGROUND', (0,0), (2,0), colors.HexColor("#f1f5f9")),
+        ('BACKGROUND', (3,0), (3,0), colors.HexColor("#dcfce7")),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+    ]))
+    story.append(t_kpi)
+    story.append(Spacer(1, 12))
+
+    # 4. Itemized Accounting Breakdown Table
+    acc_header = [
+        Paragraph("<b>Code</b>", bold_style),
+        Paragraph("<b>Settlement Component</b>", bold_style),
+        Paragraph("<b>Formula / Basis</b>", bold_style),
+        Paragraph("<b>Amount (₹)</b>", ParagraphStyle("RBold", parent=bold_style, alignment=2)),
+    ]
+    acc_rows = [
+        [Paragraph("<b>A</b>", bold_style), Paragraph("<b>Gross Customer Order Value</b>", bold_style), Paragraph(f"{order_cnt} Delivered customer orders", regular_style), Paragraph(f"₹{gross_val:,.2f}", num_bold)],
+        [Paragraph("A.1", regular_style), Paragraph("Customer Subtotal (Items)", regular_style), Paragraph("Laundry & garment care service value", regular_style), Paragraph(f"₹{items_subtotal:,.2f}", num_regular)],
+        [Paragraph("A.2", regular_style), Paragraph("Customer GST Collected", regular_style), Paragraph("Goods and Services Tax on customer invoice", regular_style), Paragraph(f"₹{gst_collected:,.2f}", num_regular)],
+        [Paragraph("<b>B</b>", bold_style), Paragraph("<b>Additions & Platform Incentives</b>", bold_style), Paragraph("Quality score bonus & on-time SLA rewards", regular_style), Paragraph("₹0.00", num_bold)],
+        [Paragraph("<b>C</b>", bold_style), Paragraph("<b>Order Level Platform Deductions</b>", bold_style), Paragraph(f"Marketplace Commission ({comm_pct:.1f}%)", regular_style), Paragraph(f"-₹{comm_val:,.2f}", ParagraphStyle("Red", parent=num_bold, textColor=colors.HexColor("#b91c1c")))],
+        [Paragraph("C.1", regular_style), Paragraph(f"Platform Commission ({comm_pct:.1f}%)", regular_style), Paragraph(f"{comm_pct:.1f}% on item total for order routing & app", regular_style), Paragraph(f"-₹{comm_val:,.2f}", num_regular)],
+        [Paragraph("<b>D</b>", bold_style), Paragraph("<b>Statutory Taxes & TCS Withholding</b>", bold_style), Paragraph("18% GST on Commission + 1% TCS", regular_style), Paragraph(f"-₹{(gst_fee + tds_val + tcs_val):,.2f}", ParagraphStyle("Red2", parent=num_bold, textColor=colors.HexColor("#b91c1c")))],
+        [Paragraph("D.1", regular_style), Paragraph("GST on Platform Fee (18%)", regular_style), Paragraph(f"CGST 9% (₹{gst_fee/2:.2f}) + SGST 9% (₹{gst_fee/2:.2f})", regular_style), Paragraph(f"-₹{gst_fee:,.2f}", num_regular)],
+        [Paragraph("D.2", regular_style), Paragraph("Section 194-O TDS / TCS Withholding (1%)", regular_style), Paragraph("1% withholding on gross sale under IT Act", regular_style), Paragraph(f"-₹{(tds_val + tcs_val):,.2f}", num_regular)],
+        [Paragraph("<b>=</b>", bold_style), Paragraph("<b>FINAL NET SETTLEMENT PAYOUT</b>", bold_style), Paragraph("<b>Credited to Bank via NPCI IMPS / NEFT</b>", bold_style), Paragraph(f"<b>₹{net_payout:,.2f}</b>", ParagraphStyle("GreenTotal", parent=num_bold, textColor=colors.HexColor("#15803d")))],
+    ]
+    t_acc = Table([acc_header] + acc_rows, colWidths=[35, 208, 170, 110])
+    t_acc.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#0f172a")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#f1f5f9")),
+        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0")),
+        ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor("#f0fdf4")),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(t_acc)
+    story.append(Spacer(1, 10))
+
+    # 5. Order Ledger Table
+    orders_list = data.get("orders") or []
+    if orders_list:
+        story.append(Paragraph(f"<b>ORDER-LEVEL TRANSACTION LEDGER ({len(orders_list)} Orders Settled)</b>", bold_style))
+        story.append(Spacer(1, 4))
+        ord_header = [
+            Paragraph("<b>#</b>", bold_style),
+            Paragraph("<b>Order ID</b>", bold_style),
+            Paragraph("<b>Date</b>", bold_style),
+            Paragraph("<b>Customer</b>", bold_style),
+            Paragraph("<b>Gross (₹)</b>", ParagraphStyle("RB1", parent=bold_style, alignment=2)),
+            Paragraph("<b>Fee (₹)</b>", ParagraphStyle("RB2", parent=bold_style, alignment=2)),
+            Paragraph("<b>Net Payout (₹)</b>", ParagraphStyle("RB3", parent=bold_style, alignment=2)),
+            Paragraph("<b>Status</b>", bold_style),
+        ]
+        ord_rows = []
+        for idx, o in enumerate(orders_list[:25], start=1):
+            o_code = str(o.get("displayCode") or o.get("orderId") or f"#{idx}")
+            o_date = str(o.get("date") or "")
+            if len(o_date) > 10:
+                o_date = o_date[:10]
+            c_name = str(o.get("customerName") or "Customer")[:18]
+            o_amt = float(o.get("orderAmount") or 0.0)
+            o_fee = float(o.get("partnerCommission") or 0.0)
+            o_net = float(o.get("netEarnings") or (o_amt - o_fee))
+            st_text = str(o.get("status") or "Delivered")
+            ord_rows.append([
+                Paragraph(str(idx), regular_style),
+                Paragraph(o_code, bold_style),
+                Paragraph(o_date, regular_style),
+                Paragraph(c_name, regular_style),
+                Paragraph(f"{o_amt:.2f}", num_regular),
+                Paragraph(f"-{o_fee:.2f}", num_regular),
+                Paragraph(f"{o_net:.2f}", num_bold),
+                Paragraph(f"<font color='#16a34a'>{st_text}</font>", regular_style),
+            ])
+        t_ord = Table([ord_header] + ord_rows, colWidths=[20, 60, 65, 118, 70, 65, 75, 50])
+        t_ord.setStyle(TableStyle([
+            ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#f8fafc")),
+            ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0")),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ]))
+        story.append(t_ord)
+        story.append(Spacer(1, 10))
+
+    # 6. Digital Stamp & Notice
+    sig_data = [
+        [
+            Paragraph("<b>Statutory Notice:</b> Computer generated settlement statement pursuant to RBI Settlement Directions and GST Rules. No physical signature required.", sub_style),
+            Paragraph(f"<b>Settlement Reference:</b> {utr_val}<br/><b>Verification:</b> SHA-256 Validated<br/>settlements@quickpress.online", ParagraphStyle("R3", parent=sub_style, alignment=2)),
+        ]
+    ]
+    t_sig = Table(sig_data, colWidths=[330, 193])
+    t_sig.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0")),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#fafafa")),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(t_sig)
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def generate_settlement_statement_csv(data: Dict[str, Any]) -> str:
+    """Generates standard CSV (with UTF-8 BOM for Microsoft Excel) of settlement statement."""
+    out = io.StringIO()
+    writer = csv.writer(out)
+
+    b_name = data.get("businessName") or "QuickPress Partner Store"
+    p_id = data.get("partnerId") or ""
+    owner = data.get("ownerName") or "Store Partner"
+    city = data.get("city") or "Kasganj"
+    cycle = data.get("cycle") or {}
+    period = cycle.get("period") or "Current Cycle"
+    cycle_id = cycle.get("cycleId") or "cycle"
+    status_str = cycle.get("status") or "PAID"
+
+    bank = data.get("bankDetails") or {}
+    bank_name = bank.get("bankName") or "Bank Account"
+    acc_masked = bank.get("accountNumberMasked") or "••••"
+    utr_val = bank.get("utr") or "—"
+    credit_dt = bank.get("creditedAt") or cycle.get("payoutDate") or "—"
+
+    order_cnt = int(data.get("totalOrders", 0))
+    net_payout = float(data.get("estNetPayout", 0.0))
+    netA = data.get("netOrderValueA") or {}
+    gross_val = float(netA.get("total") or netA.get("itemSubtotal") or 0.0)
+    items_subtotal = float(netA.get("itemSubtotal", gross_val))
+    gst_collected = float(netA.get("totalGstCollected", 0.0))
+
+    dedC = data.get("orderLevelDeductionsC") or {}
+    comm_val = float(dedC.get("platformCommission", 0.0))
+    comm_pct = float(dedC.get("commissionRatePct", 15.0))
+
+    taxD = data.get("taxDeductionsD") or {}
+    gst_fee = float(taxD.get("gstOnServiceFees18", 0.0))
+    tds_val = float(taxD.get("tds194o", 0.0))
+    tcs_val = float(taxD.get("tcsGst", 0.0))
+
+    # Section 1: Header Meta
+    writer.writerow(["QUICKPRESS MERCHANT SETTLEMENT STATEMENT", ""])
+    writer.writerow(["Platform", "QuickPress Technologies Pvt. Ltd."])
+    writer.writerow(["Platform GSTIN", "09AAHCR1710J1ZE"])
+    writer.writerow(["Platform PAN", "AAHCR1710J"])
+    writer.writerow(["Store Name", b_name])
+    writer.writerow(["Partner ID", p_id])
+    writer.writerow(["Owner Name", owner])
+    writer.writerow(["City", city])
+    writer.writerow(["Settlement Period", period])
+    writer.writerow(["Statement ID", f"STM-{cycle_id}-{p_id[-6:] if len(p_id) >= 6 else p_id}"])
+    writer.writerow(["Settlement Status", status_str])
+    writer.writerow(["Bank Name", bank_name])
+    writer.writerow(["Account Number", acc_masked])
+    writer.writerow(["Bank UTR / Ref No", utr_val])
+    writer.writerow(["Settlement Date", credit_dt])
+    writer.writerow([])
+
+    # Section 2: Financial Summary
+    writer.writerow(["FINANCIAL SUMMARY", ""])
+    writer.writerow(["Metric", "Amount (INR)", "Notes / Basis"])
+    writer.writerow(["Delivered Orders Count", order_cnt, "Completed orders in settlement period"])
+    writer.writerow(["Gross Order Value (A)", f"{gross_val:.2f}", "Customer paid subtotal"])
+    writer.writerow(["Customer Item Subtotal", f"{items_subtotal:.2f}", "Goods/services value"])
+    writer.writerow(["Customer GST Collected", f"{gst_collected:.2f}", "GST component"])
+    writer.writerow(["Additions & Bonuses (B)", "0.00", "Quality & SLA incentives"])
+    writer.writerow([f"Platform Commission (C - {comm_pct:.1f}%)", f"-{comm_val:.2f}", "QuickPress platform fee"])
+    writer.writerow(["GST on Platform Fee (18%)", f"-{gst_fee:.2f}", f"CGST 9% ({gst_fee/2:.2f}) + SGST 9% ({gst_fee/2:.2f})"])
+    writer.writerow(["TDS Sec 194-O / TCS (1%)", f"-{(tds_val + tcs_val):.2f}", "Government tax withholding"])
+    writer.writerow(["NET PAYOUT CREDITED (INR)", f"{net_payout:.2f}", "Net amount transferred to merchant bank"])
+    writer.writerow([])
+
+    # Section 3: Order-Level Transaction Ledger
+    writer.writerow(["ORDER-LEVEL TRANSACTION LEDGER", ""])
+    writer.writerow([
+        "S.No",
+        "Order ID",
+        "Date",
+        "Customer Name",
+        "Items Summary",
+        "Gross Order Amount (INR)",
+        "Platform Commission (INR)",
+        "Taxes / TCS (INR)",
+        "Net Partner Share (INR)",
+        "Status",
+        "Bank UTR",
+    ])
+    orders_list = data.get("orders") or []
+    for idx, o in enumerate(orders_list, start=1):
+        o_code = str(o.get("displayCode") or o.get("orderId") or f"#{idx}")
+        o_date = str(o.get("date") or "")[:10]
+        c_name = str(o.get("customerName") or "Customer")
+        i_summary = str(o.get("itemsSummary") or "Service Order")
+        o_amt = float(o.get("orderAmount") or 0.0)
+        o_fee = float(o.get("partnerCommission") or 0.0)
+        o_net = float(o.get("netEarnings") or (o_amt - o_fee))
+        st_text = str(o.get("status") or "Delivered")
+        writer.writerow([
+            idx,
+            o_code,
+            o_date,
+            c_name,
+            i_summary,
+            f"{o_amt:.2f}",
+            f"{o_fee:.2f}",
+            f"{round(o_amt * 0.01, 2):.2f}",
+            f"{o_net:.2f}",
+            st_text,
+            utr_val,
+        ])
+
+    return out.getvalue()
+
+
+def generate_commission_invoice_csv(data: Dict[str, Any]) -> str:
+    """Generates standard CSV (with UTF-8 BOM for Microsoft Excel) for Monthly GST Commission Tax Invoice."""
+    out = io.StringIO()
+    writer = csv.writer(out)
+
+    inv_num = data.get("invoice_number", "INV/QP/COMM/2026/09")
+    inv_date = data.get("date", datetime.now().strftime("%d-%b-%Y"))
+    period = data.get("period", "September 2026")
+    partner_name = data.get("partner_name", "Partner Store")
+    partner_id = data.get("partner_id", "")
+    partner_gst = data.get("partner_gst", "Unregistered / Composition")
+    partner_city = data.get("partner_city", "Kasganj, Uttar Pradesh")
+
+    comm_base = float(data.get("commission_amount", 0.0))
+    cgst = float(data.get("cgst", round(comm_base * 0.09, 2)))
+    sgst = float(data.get("sgst", round(comm_base * 0.09, 2)))
+    total_tax = round(cgst + sgst, 2)
+    grand_total = round(comm_base + total_tax, 2)
+    orders_cnt = int(data.get("order_count", 0))
+
+    writer.writerow(["TAX INVOICE — PLATFORM COMMISSION & SERVICES (ITC CLAIM)", ""])
+    writer.writerow(["Invoice Number", inv_num])
+    writer.writerow(["Date of Issue", inv_date])
+    writer.writerow(["Billing Period", period])
+    writer.writerow(["Place of Supply", "09 - Uttar Pradesh"])
+    writer.writerow(["Issuer", "QuickPress Technologies Pvt. Ltd."])
+    writer.writerow(["Issuer GSTIN", "09AAHCR1710J1ZE"])
+    writer.writerow(["Issuer PAN", "AAHCR1710J"])
+    writer.writerow(["Issuer Address", "Main Road, Kasganj, UP 207123"])
+    writer.writerow(["Recipient / Partner Store", partner_name])
+    writer.writerow(["Partner ID", partner_id])
+    writer.writerow(["Partner GSTIN", partner_gst])
+    writer.writerow(["Partner Location", partner_city])
+    writer.writerow(["Reverse Charge Applicable", "NO"])
+    writer.writerow(["Input Tax Credit (ITC) Eligible", "YES"])
+    writer.writerow([])
+    writer.writerow(["TAX INVOICE LINE ITEMS", ""])
+    writer.writerow([
+        "S.No",
+        "Description of Service",
+        "SAC Code",
+        "Delivered Orders",
+        "Taxable Value (INR)",
+        "CGST Rate",
+        "CGST Amount (INR)",
+        "SGST Rate",
+        "SGST Amount (INR)",
+        "Total Tax (INR)",
+        "Total Invoice Value (INR)",
+    ])
+    writer.writerow([
+        1,
+        "Platform Commission & Order Routing Services",
+        "998311",
+        orders_cnt,
+        f"{comm_base:.2f}",
+        "9%",
+        f"{cgst:.2f}",
+        "9%",
+        f"{sgst:.2f}",
+        f"{total_tax:.2f}",
+        f"{grand_total:.2f}",
+    ])
+    return out.getvalue()

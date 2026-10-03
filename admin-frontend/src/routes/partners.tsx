@@ -1481,7 +1481,7 @@ function PartnersPage() {
                           <Building2 className="size-3.5 text-emerald-600" />
                           <span>Settlement Bank Account</span>
                         </h4>
-                        <DetailRow label="Bank Name" value={profile.header.bankName || "State Bank of India"} />
+                        <DetailRow label="Bank Name" value={profile.header.bankName || "—"} />
                         <DetailRow label="Account Holder" value={profile.header.accountHolder || profile.header.ownerName} />
                         <DetailRow label="Account Number" value={profile.header.accountNumber || "—"} />
                         <DetailRow label="IFSC Code" value={profile.header.ifsc || "—"} />
@@ -1530,7 +1530,7 @@ function PartnersPage() {
                         </div>
 
                         <div className="pt-2 mt-2 border-t border-zinc-200 flex items-center justify-between text-[11px]">
-                          <span className="text-zinc-500 font-mono">Proof: {profile.header.bankName || "State Bank of India"}</span>
+                          <span className="text-zinc-500 font-mono">Proof: {profile.header.bankName || "Bank Verification Proof"}</span>
                           {profile.header.chequePhoto && (
                             <button
                               type="button"

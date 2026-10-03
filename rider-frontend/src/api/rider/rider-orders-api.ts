@@ -143,15 +143,45 @@ export async function startDelivery(orderId: string, otp?: string) {
  * If the rider is still marked "ready for delivery" the backend advances the
  * order to out-for-delivery first, so one tap always works.
  */
-export async function confirmDelivery(orderId: string, otp: string) {
+export async function confirmDelivery(
+  orderId: string,
+  otp: string,
+  options?: { garmentVerified?: boolean; verifiedPieces?: number; notes?: string }
+) {
+  const payload = {
+    otp,
+    garmentVerified: options?.garmentVerified ?? true,
+    verifiedPieces: options?.verifiedPieces,
+    notes: options?.notes,
+  };
   try {
-    const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/deliver`, { otp });
+    const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/deliver`, payload);
     return { ok: true as const, orderId, order };
   } catch (err) {
-    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/deliver`, { otp }, `Deliver order ${orderId}`);
+    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/deliver`, payload, `Deliver order ${orderId}`);
     const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
     return { ok: true as const, orderId, order: (cached ? { ...cached, status: "delivered" as any } : null) as any };
   }
+}
+
+/** Checkpoint 2: Rider confirms garment piece count with customer at doorstep before OTP verification. */
+export async function confirmDoorstepGarments(
+  orderId: string,
+  options?: { verifiedPieces?: number; notes?: string }
+) {
+  return apiPostJson<{
+    ok: boolean;
+    doorstepDelivery: {
+      verified: boolean;
+      verifiedAt: string;
+      verifiedBy: string;
+      piecesDelivered: number;
+      expectedPieces: number;
+      hasDiscrepancy: boolean;
+      notes: string;
+      customerConfirmed: boolean;
+    };
+  }>(`/api/rider/orders/${orderId}/confirm-doorstep-garments`, options || {});
 }
 
 import { readSession } from "../core/session-store";

@@ -13,6 +13,7 @@ import {
   Clock,
   DollarSign,
   FileText,
+  Globe,
   Headphones,
   HelpCircle,
   History,
@@ -120,11 +121,14 @@ export function ZomatoHubView() {
 
   const { orders, counts, refresh: refreshOrders, verifyDispatchOtp } = usePartnerOrders();
   const { handleAction, sheetNode, overlay, busy } = useOrderActionHandler();
-  const { t } = useLanguage();
+  const { t, openLanguageModal } = useLanguage();
 
   const [activeFilterTab, setActiveFilterTab] = useState<PartnerOrderFilterTab>("active");
   const [shopName, setShopName] = useState(() =>
     session?.businessName || cachedProfile?.businessName || cachedProfile?.ownerName || "QuickPress Laundry Store"
+  );
+  const [shopLogo, setShopLogo] = useState<string>(() =>
+    (session as any)?.storeImage || (session as any)?.logoUrl || (session as any)?.logo || cachedProfile?.logo || cachedProfile?.storeImage || ""
   );
   const [locationName, setLocationName] = useState(() =>
     cachedProfile?.city || session?.city || "Kasganj"
@@ -184,6 +188,9 @@ export function ZomatoHubView() {
       if (profile) {
         setShopName(profile.businessName || profile.ownerName || session?.businessName || "QuickPress Laundry Store");
         setLocationName(profile.city ? `${profile.city}` : (session?.city || "Kasganj"));
+        if (profile.storeImage || profile.logoUrl) {
+          setShopLogo(profile.storeImage || profile.logoUrl);
+        }
       }
       if (summary) {
         setTodayOrdersCount(
@@ -204,9 +211,8 @@ export function ZomatoHubView() {
   const handleToggleStore = async () => {
     try {
       await toggleOnline();
-      toast.success(!isOnline ? "Store is now Online & Accepting Orders" : "Store is now Offline");
     } catch {
-      toast.error("Failed to update store status");
+      toast.error("Failed to update status");
     }
   };
 
@@ -234,48 +240,107 @@ export function ZomatoHubView() {
 
   return (
     <div className="min-h-screen bg-[#F4F5F7] pb-28 text-zinc-900">
-      {/* Top Header: Showing data for */}
-      <header className="sticky top-0 z-20 bg-white px-4 pt-3.5 pb-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black tracking-wider text-zinc-400 uppercase">
-              SHOWING DATA FOR
-            </p>
-            <h1 className="truncate text-base font-black tracking-tight text-zinc-900">
-              {shopName}
-            </h1>
-            <p className="text-xs font-semibold text-zinc-500">{locationName}</p>
+      {/* Top Header: Premium QuickPress Brand Style */}
+      <header className="sticky top-0 z-30 bg-white/95 dark:bg-card/95 backdrop-blur-2xl border-b border-slate-200/80 dark:border-border/60 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] px-4 pt-3 pb-2.5 transition-all">
+        <div className="flex items-center justify-between gap-2.5">
+          {/* Store Logo & Details */}
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <Link
+              to={partnerRoutes.shop}
+              title="Shop Profile & Photos"
+              className="relative shrink-0 active:scale-95 transition-transform"
+            >
+              <div className="size-11 rounded-2xl overflow-hidden border-2 border-emerald-500/25 bg-emerald-50 dark:bg-zinc-800 shadow-2xs flex items-center justify-center">
+                {shopLogo ? (
+                  <img
+                    src={shopLogo}
+                    alt={shopName}
+                    className="size-full object-cover"
+                    onError={() => setShopLogo("")}
+                  />
+                ) : (
+                  <Store className="size-5 text-emerald-600" />
+                )}
+              </div>
+              {/* Online/Offline status pulse dot on avatar */}
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-white dark:ring-zinc-900 ${
+                  isOnline ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+              >
+                {isOnline ? (
+                  <span className="absolute inset-0 size-full rounded-full bg-emerald-400 animate-ping opacity-75" />
+                ) : null}
+              </span>
+            </Link>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  QuickPress
+                </span>
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 text-[9px] font-black text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                  <CheckCircle2 className="size-2.5 fill-emerald-600 text-white" />
+                  <span>Verified</span>
+                </span>
+              </div>
+              <h1 className="truncate text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                {shopName}
+              </h1>
+              <p className="flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-zinc-400 truncate mt-0.5">
+                <MapPin className="size-3 text-emerald-600 shrink-0" />
+                <span>{locationName}</span>
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right Action Controls: Online Switcher, Language & Notifications */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={handleToggleStore}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition-all active:scale-95 shadow-xs cursor-pointer ${
                 isOnline
-                  ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
-                  : "border border-zinc-200 bg-zinc-100 text-zinc-600"
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/90 dark:bg-zinc-800 dark:text-zinc-300"
               }`}
             >
-              <span
-                className={`size-2 rounded-full ${
-                  isOnline ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"
-                }`}
-              />
+              <span className="relative flex size-2">
+                {isOnline ? (
+                  <>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-white" />
+                  </>
+                ) : (
+                  <span className="size-2 rounded-full bg-amber-500" />
+                )}
+              </span>
               <span>{isOnline ? "Online" : "Offline"}</span>
-              <ChevronRight className="size-3" />
+              <ChevronRight className="size-3 stroke-[2.5]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={openLanguageModal}
+              title="Change Language"
+              className="flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all cursor-pointer dark:bg-card dark:border-border/80 dark:text-zinc-300"
+            >
+              <Globe className="size-4 text-emerald-600" />
             </button>
 
             <Link
               to={partnerRoutes.notifications}
-              className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 active:scale-95"
+              title="Notifications"
+              className="relative flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all dark:bg-card dark:border-border/80 dark:text-zinc-300"
             >
               <Bell className="size-4" />
+              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-900" />
             </Link>
 
             <Link
               to={partnerRoutes.settings}
-              className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 active:scale-95"
+              title="Settings"
+              className="flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all dark:bg-card dark:border-border/80 dark:text-zinc-300"
             >
               <Menu className="size-4" />
             </Link>
@@ -283,7 +348,7 @@ export function ZomatoHubView() {
         </div>
 
         {/* Canonical Order Status Filter Pills Bar */}
-        <div className="no-scrollbar mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="no-scrollbar mt-3 flex items-center gap-2 overflow-x-auto pb-0.5">
           {FILTER_TABS.map((tab) => {
             const isActive = activeFilterTab === tab.id;
             return (
@@ -291,16 +356,16 @@ export function ZomatoHubView() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveFilterTab(tab.id)}
-                className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 ${
+                className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                   isActive
-                    ? "bg-zinc-950 text-white shadow-xs"
-                    : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
+                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 scale-102"
+                    : "border border-slate-200/90 bg-white text-slate-700 hover:border-emerald-300 dark:bg-card dark:border-border/80 dark:text-zinc-300"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                    isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-700"
+                    isActive ? "bg-white/25 text-white" : "bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300"
                   }`}
                 >
                   {tab.count}
@@ -910,7 +975,7 @@ export function ZomatoHubView() {
                     });
                     setSelectedManageOrder(null);
                   }}
-                  className="w-full rounded-2xl bg-zinc-950 py-3 text-xs font-black text-white active:scale-95"
+                  className="w-full rounded-2xl bg-emerald-600 hover:bg-emerald-700 py-3 text-xs font-black text-white shadow-md shadow-emerald-600/25 active:scale-95 transition-all"
                 >
                   View Full Order Details →
                 </button>
@@ -921,11 +986,8 @@ export function ZomatoHubView() {
                 <button
                   type="button"
                   onClick={() => {
-                    toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
                     if (selectedManageOrder.customerPhone && !selectedManageOrder.customerPhone.includes("••")) {
                       window.open(`tel:${selectedManageOrder.customerPhone.replace(/\s/g, "")}`);
-                    } else {
-                      toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
                     }
                   }}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50/70 py-2.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 cursor-pointer"
@@ -945,8 +1007,8 @@ export function ZomatoHubView() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => toast.info("Captain not assigned yet for this order")}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-50 py-2.5 text-xs font-bold text-zinc-500 hover:bg-zinc-100 active:scale-95 cursor-pointer"
+                    title="Captain not assigned yet for this order"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-50 py-2.5 text-xs font-bold text-zinc-500 opacity-60 cursor-not-allowed"
                   >
                     <Bike className="size-3.5 text-zinc-400" />
                     <span>Call Captain</span>

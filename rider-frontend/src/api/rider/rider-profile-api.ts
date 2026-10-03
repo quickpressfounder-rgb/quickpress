@@ -17,6 +17,16 @@ export interface RiderProfile {
   rcNumber?: string;
   aadhaar?: string;
   pan?: string;
+  aadhaarFront?: string;
+  aadhaarBack?: string;
+  panCard?: string;
+  dlFront?: string;
+  dlBack?: string;
+  rcFront?: string;
+  rcBack?: string;
+  signatureUrl?: string;
+  dob?: string;
+  gender?: string;
   bankName: string;
   accountNumber?: string;
   accountLast4: string;
@@ -42,22 +52,29 @@ export interface RiderProfile {
   }>;
 }
 
+export type RiderProfileDetail = RiderProfile;
+
 export async function fetchRiderProfile(): Promise<RiderProfile> {
   const res = await apiGetJson<any>("/api/rider/profile");
-  const rawName = res.fullName || res.name || "";
+  const rawName = res.fullName || res.name || res.verifiedGovernmentName || "";
   const cleanName =
     rawName === "Delivery Partner" || rawName === "Delivery Captain" ? "" : rawName;
+  const localGovtName =
+    typeof window !== "undefined"
+      ? localStorage.getItem("qp_rider_government_name") || ""
+      : "";
+  const effectiveName = cleanName || localGovtName;
   const photo = res.selfieUrl || res.photoUrl || res.avatar || "";
 
   if (photo && typeof window !== "undefined") {
     window.localStorage.setItem("qp_rider_profile_photo", photo);
   }
 
-  return {
+  const profileData: RiderProfile = {
     id: res.id || res._id || res.riderId || "",
     riderId: res.riderId || res._id || "",
-    fullName: cleanName,
-    name: cleanName,
+    fullName: effectiveName,
+    name: effectiveName,
     phone: res.phone || res.mobile || "",
     email: res.email && res.email !== "—" ? res.email : "",
     city: res.city && res.city !== "—" ? res.city : "Kasganj",
@@ -68,8 +85,18 @@ export async function fetchRiderProfile(): Promise<RiderProfile> {
     vehicleNumber: res.vehicleNumber && res.vehicleNumber !== "—" ? res.vehicleNumber : "",
     dlNumber: res.dlNumber || res.license || "",
     rcNumber: res.rcNumber || "",
-    aadhaar: res.aadhaar ? `•••• •••• ${String(res.aadhaar).slice(-4)}` : "",
+    aadhaar: res.aadhaar ? (String(res.aadhaar).includes("•") || String(res.aadhaar).includes("X") ? res.aadhaar : `•••• •••• ${String(res.aadhaar).slice(-4)}`) : "",
     pan: res.pan || "",
+    aadhaarFront: res.aadhaarFront || "",
+    aadhaarBack: res.aadhaarBack || "",
+    panCard: res.panCard || res.panUrl || "",
+    dlFront: res.dlFront || "",
+    dlBack: res.dlBack || "",
+    rcFront: res.rcFront || res.rcUrl || "",
+    rcBack: res.rcBack || "",
+    signatureUrl: res.signatureUrl || "",
+    dob: res.dob || "",
+    gender: res.gender || "",
     bankName: res.bankName || "",
     accountNumber: res.accountNumber || "",
     accountLast4: res.accountLast4 || (res.accountNumber ? String(res.accountNumber).slice(-4) : ""),
@@ -90,10 +117,26 @@ export async function fetchRiderProfile(): Promise<RiderProfile> {
     pendingBankChangeRequest: res.pendingBankChangeRequest || null,
     documents: Array.isArray(res.documents) ? res.documents : [],
   };
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("qp_rider_profile_cache", JSON.stringify(profileData));
+    } catch {}
+  }
+
+  return profileData;
 }
 
 export async function updateRiderProfile(patch: Record<string, any>) {
-  return apiPatchJson<{ ok: boolean; requiresApproval?: boolean; message?: string; pendingChangeRequest?: any }>("/api/rider/profile", patch);
+  const result = await apiPatchJson<{ ok: boolean; requiresApproval?: boolean; message?: string; pendingChangeRequest?: any }>("/api/rider/profile", patch);
+  if (typeof window !== "undefined") {
+    try {
+      const prev = localStorage.getItem("qp_rider_profile_cache");
+      const obj = prev ? JSON.parse(prev) : {};
+      localStorage.setItem("qp_rider_profile_cache", JSON.stringify({ ...obj, ...patch }));
+    } catch {}
+  }
+  return result;
 }
 
 export interface RiderBankAccount {
@@ -119,5 +162,9 @@ export async function fetchWorkSettings() {
 
 export async function updateWorkSettings(settings: Record<string, any>) {
   return apiPatchJson<{ ok: boolean }>("/api/rider/work-settings", settings);
+}
+
+export async function deleteRiderAccount(dob: string): Promise<{ ok: boolean; message?: string }> {
+  return apiPostJson<{ ok: boolean; message?: string }>("/api/rider/delete-account", { dob });
 }
 

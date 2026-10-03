@@ -170,19 +170,19 @@ export function RiderLeaderboardScreen() {
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 text-center">
             <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
               <p className="text-[10px] text-zinc-500 font-bold uppercase">Completed Trips</p>
-              <p className="text-sm font-black text-zinc-900 font-mono mt-0.5">
+              <p className="text-sm font-black text-zinc-900 mt-0.5 tracking-tight">
                 {myRank?.trips ?? 0} Rides
               </p>
             </div>
             <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
               <p className="text-[10px] text-zinc-500 font-bold uppercase">Estimated Pay</p>
-              <p className="text-sm font-black text-emerald-600 font-mono mt-0.5">
+              <p className="text-sm font-black text-emerald-600 mt-0.5 tracking-tight">
                 ₹{Number(myRank?.earnings ?? 0).toFixed(0)}
               </p>
             </div>
             <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
               <p className="text-[10px] text-zinc-500 font-bold uppercase">Gap to Next Rank</p>
-              <p className="text-sm font-black text-amber-600 font-mono mt-0.5">
+              <p className="text-sm font-black text-amber-600 mt-0.5 tracking-tight">
                 {myRank?.gapToNextRank ?? 0} Trips
               </p>
             </div>
@@ -221,7 +221,7 @@ export function RiderLeaderboardScreen() {
                   <p className="text-xs font-bold text-zinc-900 truncate max-w-[85px]">
                     {rank2.name.replace(" (You)", "")}
                   </p>
-                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md tracking-tight">
                     {rank2.trips} Trips
                   </span>
                   <div className="w-full h-16 bg-zinc-100 rounded-t-2xl flex flex-col items-center justify-center border-t-2 border-zinc-300 p-1">
@@ -256,7 +256,7 @@ export function RiderLeaderboardScreen() {
                   <p className="text-xs font-black text-zinc-900 truncate max-w-[95px]">
                     {rank1.name.replace(" (You)", "")}
                   </p>
-                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md tracking-tight">
                     {rank1.trips} Trips
                   </span>
                   <div className="w-full h-22 bg-amber-50 rounded-t-2xl flex flex-col items-center justify-center border-t-2 border-amber-400 p-1 shadow-2xs">
@@ -288,7 +288,7 @@ export function RiderLeaderboardScreen() {
                   <p className="text-xs font-bold text-zinc-900 truncate max-w-[85px]">
                     {rank3.name.replace(" (You)", "")}
                   </p>
-                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md tracking-tight">
                     {rank3.trips} Trips
                   </span>
                   <div className="w-full h-12 bg-amber-50/60 rounded-t-2xl flex flex-col items-center justify-center border-t-2 border-amber-300 p-1">
@@ -326,7 +326,7 @@ export function RiderLeaderboardScreen() {
               <p className="text-[10px] text-zinc-500 font-medium">Top 3 Captains win cash prizes directly into wallet</p>
             </div>
           </div>
-          <span className="font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">
+          <span className="font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">
             Active 🎯
           </span>
         </div>
@@ -404,10 +404,10 @@ export function RiderLeaderboardScreen() {
 
                     {/* Right Score */}
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-black text-zinc-900 font-mono">
+                      <p className="text-xs font-black text-zinc-900 tracking-tight">
                         {captain.trips} Trips
                       </p>
-                      <p className="text-[10px] text-emerald-600 font-mono font-bold">
+                      <p className="text-[10px] text-emerald-600 font-bold tracking-tight">
                         ₹{Number(captain.earnings || 0).toFixed(0)}
                       </p>
                     </div>

@@ -15,30 +15,163 @@ export function Toaster({ ...props }: ToasterProps) {
   }
 
   return (
-    <Sonner
-      position="top-center"
-      duration={2200}
-      visibleToasts={2}
-      closeButton={false}
-      richColors
-      className="toaster group"
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast font-sans !rounded-full !py-2.5 !px-4 !shadow-[0_12px_32px_rgba(0,0,0,0.18)] !border !backdrop-blur-xl transition-all duration-300 text-xs font-black tracking-tight",
-          success:
-            "!bg-gradient-to-r !from-emerald-600 !to-emerald-500 !text-white !border-emerald-400/50 !shadow-[0_10px_35px_rgba(16,185,129,0.4)]",
-          error:
-            "!bg-gradient-to-r !from-rose-600 !to-rose-500 !text-white !border-rose-400/50 !shadow-[0_10px_35px_rgba(244,63,94,0.4)]",
-          info:
-            "!bg-gradient-to-r !from-zinc-900 !to-zinc-800 !text-white !border-zinc-700 !shadow-lg",
-          warning:
-            "!bg-gradient-to-r !from-amber-500 !to-amber-400 !text-black !border-amber-300 !shadow-[0_10px_35px_rgba(245,158,11,0.4)]",
-          title: "!text-xs !font-black !tracking-tight",
-          description: "!text-[11px] !opacity-90 !font-semibold",
-        },
-      }}
-      {...props}
-    />
+    <>
+      <style>{`
+        [data-sonner-toaster],
+        [data-sonner-toaster][data-x-position="center"],
+        [data-sonner-toaster][data-x-position="left"],
+        [data-sonner-toaster][data-x-position="right"] {
+          position: fixed !important;
+          bottom: 24px !important;
+          top: auto !important;
+          left: 0 !important;
+          right: 0 !important;
+          width: 100% !important;
+          max-width: 100vw !important;
+          margin: 0 auto !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          pointer-events: none !important;
+          z-index: 999999 !important;
+          transform: none !important;
+        }
+
+        [data-sonner-toaster] ol {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+          padding: 0 16px !important;
+          box-sizing: border-box !important;
+          list-style: none !important;
+          pointer-events: none !important;
+        }
+
+        [data-sonner-toast],
+        [data-sonner-toaster] [data-sonner-toast],
+        [data-sonner-toaster] [data-sonner-toast][data-x-position="center"],
+        [data-sonner-toaster] [data-sonner-toast][data-x-position="left"],
+        [data-sonner-toaster] [data-sonner-toast][data-x-position="right"] {
+          position: relative !important;
+          left: auto !important;
+          right: auto !important;
+          top: auto !important;
+          bottom: auto !important;
+          width: auto !important;
+          max-width: min(calc(100vw - 32px), 440px) !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+          display: inline-flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+          background: #18181b !important;
+          color: #ffffff !important;
+          border: 1px solid rgba(255, 255, 255, 0.15) !important;
+          border-radius: 9999px !important;
+          box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+          padding: 10px 22px !important;
+          pointer-events: auto !important;
+          box-sizing: border-box !important;
+        }
+
+        [data-sonner-toast] [data-content] {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+          width: auto !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+        }
+
+        [data-sonner-toast] [data-title] {
+          color: #ffffff !important;
+          font-weight: 700 !important;
+          font-size: 13px !important;
+          letter-spacing: -0.01em !important;
+          text-align: center !important;
+          line-height: 1.35 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+        }
+
+        [data-sonner-toast] [data-description] {
+          color: #e4e4e7 !important;
+          font-weight: 600 !important;
+          font-size: 12px !important;
+          text-align: center !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          margin-top: 2px !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }
+
+        /* Completely remove all icons */
+        [data-sonner-toast] [data-icon],
+        [data-sonner-toast] svg {
+          display: none !important;
+          visibility: hidden !important;
+          width: 0 !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        [data-sonner-toast] [data-button],
+        [data-sonner-toast] [data-close-button] {
+          display: none !important;
+        }
+      `}</style>
+      <Sonner
+        position="bottom-center"
+        duration={2500}
+        visibleToasts={1}
+        closeButton={false}
+        className="toaster group"
+        icons={{
+          success: null,
+          error: null,
+          info: null,
+          warning: null,
+          loading: null,
+        }}
+        toastOptions={{
+          duration: 2500,
+          style: {
+            backgroundColor: "#18181b",
+            background: "#18181b",
+            color: "#ffffff",
+            borderRadius: "9999px",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            boxShadow: "0 16px 36px -4px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.3)",
+            padding: "10px 22px",
+            width: "auto",
+            maxWidth: "min(calc(100vw - 32px), 440px)",
+            margin: "0 auto",
+            textAlign: "center",
+            fontSize: "13px",
+            fontWeight: "700",
+          },
+          classNames: {
+            toast: "!bg-[#18181b] !text-white !rounded-full !border !border-white/15 !shadow-2xl !py-2.5 !px-5 !text-center !mx-auto",
+            title: "!text-white !font-bold !text-[13px] !text-center !m-0 !whitespace-normal !break-words",
+            description: "!text-zinc-200 !font-semibold !text-xs !text-center !m-0 !whitespace-normal !break-words",
+            icon: "!hidden hidden",
+          },
+        }}
+        {...props}
+      />
+    </>
   );
 }

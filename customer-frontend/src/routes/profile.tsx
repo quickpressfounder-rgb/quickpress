@@ -507,7 +507,6 @@ function ProfileScreen() {
     await logout();
     setLoggingOut(false);
     setLogoutOpen(false);
-    toast.success("You've been logged out");
     navigate({ to: "/home" });
   };
 

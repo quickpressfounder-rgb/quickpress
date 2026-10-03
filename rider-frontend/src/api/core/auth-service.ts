@@ -102,18 +102,23 @@ export async function fetchCurrentUser(): Promise<AuthSession["account"]> {
 
 /** POST /api/auth/refresh — rotates the access token using the refresh token. */
 export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSession | null> {
-  const current = readSession(role(explicitRole));
-  if (!current?.refreshToken) return null;
+  const target = role(explicitRole);
+  const current = readSession(target);
+  if (!current?.refreshToken) return current || null;
   try {
     const next = await apiPostJson<AuthSession>(
       AUTH_ENDPOINTS.refresh,
       { refresh_token: current.refreshToken },
-      { anonymous: true },
+      { anonymous: true, timeoutMs: 15000 },
     );
     return persist(next);
-  } catch {
-    clearSession(role(explicitRole));
-    return null;
+  } catch (err: any) {
+    if (err instanceof ApiError && (err.status === 401 || err.kind === "unauthorized")) {
+      clearSession(target);
+      return null;
+    }
+    // Network timeout / restart: preserve current session
+    return current;
   }
 }
 
@@ -135,21 +140,18 @@ export async function restoreSession(explicitRole?: AccountRole): Promise<AuthSe
   try {
     const account = await fetchCurrentUser();
     if (!account || !account.id) {
-      clearSession(target);
-      return null;
+      return stored;
     }
     return persist({ ...stored, account });
   } catch (error: any) {
-    if (error instanceof ApiError && (error.kind === "unauthorized" || error.status === 401 || error.status === 403 || error.status === 404)) {
+    if (error instanceof ApiError && (error.status === 401 || error.kind === "unauthorized")) {
+      const refreshed = await refreshSession(target);
+      if (refreshed) return refreshed;
       clearSession(target);
       return null;
     }
-    const refreshed = await refreshSession(target);
-    if (!refreshed) {
-      clearSession(target);
-      return null;
-    }
-    return refreshed;
+    // Keep user logged in across restarts and network glitches
+    return stored;
   }
 }
 

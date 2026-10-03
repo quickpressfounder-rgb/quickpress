@@ -102,16 +102,16 @@ export function IncomingOrderModal({
       <div className="relative w-full max-w-lg overflow-hidden rounded-t-[2rem] sm:rounded-3xl border border-border/60 bg-card shadow-2xl animate-in slide-in-from-bottom duration-300">
         
         {/* Animated Sound Ring Banner */}
-        <div className="relative overflow-hidden bg-primary px-6 py-4 text-primary-foreground">
+        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 px-6 py-4 text-white">
           <div className="absolute -right-6 -top-6 size-28 rounded-full bg-white/20 blur-xl pointer-events-none" />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-black/20 text-white shadow-inner animate-bounce">
+              <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-white shadow-inner animate-bounce">
                 <Bell className="size-5 fill-current" />
               </span>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-primary-foreground/90 flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-red-500 animate-ping inline-block" />
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-100 flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-amber-400 animate-ping inline-block" />
                   New Incoming Order
                 </p>
                 <h3 className="text-lg font-black tracking-tight text-white">
@@ -123,10 +123,10 @@ export function IncomingOrderModal({
             {/* Countdown Badge & Back Button */}
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-end">
-                <span className="flex items-center gap-1 rounded-full bg-black/30 px-3 py-1 text-xs font-black text-white font-mono">
+                <span className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-black text-white font-mono">
                   <Clock className="size-3.5" /> {formattedCountdown} left
                 </span>
-                <span className="text-[10px] font-semibold text-primary-foreground/80 mt-0.5">
+                <span className="text-[10px] font-semibold text-emerald-100 mt-0.5">
                   5 Min Store SLA
                 </span>
               </div>
@@ -137,7 +137,7 @@ export function IncomingOrderModal({
                   stopOrderAlarm();
                   onDismiss();
                 }}
-                className="flex size-8 items-center justify-center rounded-full bg-black/30 text-white/90 hover:bg-black/50 hover:text-white transition-all cursor-pointer"
+                className="flex size-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-all cursor-pointer"
                 title="Back to Dashboard / Dismiss Alert"
                 aria-label="Back to Dashboard"
               >

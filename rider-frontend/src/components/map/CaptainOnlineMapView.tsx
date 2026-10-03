@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
+  Bike,
   ChevronDown,
   ChevronUp,
   Crosshair,
@@ -17,12 +19,10 @@ import {
   TrendingUp,
   Wallet,
   X,
-  Route,
   CheckCircle2,
   ChevronRight,
 } from "lucide-react";
 import { LiveDeliveryMap, type GoogleMapLayerType } from "./LiveDeliveryMap";
-import { fetchRouteBookingState, type RouteBookingState } from "../../api/rider/rider-route-booking-api";
 import { fetchRiderHistory } from "../../api/rider/rider-orders-api";
 import { CaptainTripDetailView } from "../history/CaptainTripDetailView";
 import type { RiderHistoryEntry } from "../../shared/types/rider";
@@ -30,7 +30,6 @@ import { useLanguage } from "../../lib/i18n";
 import { triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
 import { CaptainSupportModal } from "../support/CaptainSupportModal";
-import { CaptainRouteBookingModal } from "../navigation/CaptainRouteBookingModal";
 
 interface CaptainOnlineMapViewProps {
   currentCoords: { lat: number; lng: number } | null;
@@ -53,79 +52,38 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   onOpenWorkZoneInfo,
   onOpenOrders,
 }) => {
+  const navigate = useNavigate();
   const { t } = useLanguage();
   const [mapLayer, setMapLayer] = useState<GoogleMapLayerType>("roadmap");
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
-  const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
-  const [routeBooking, setRouteBooking] = useState<RouteBookingState | null>(null);
 
-  // Last completed trip & detail modal state
+  // Last completed trip & detail modal state (Real orders only)
   const [lastTrip, setLastTrip] = useState<RiderHistoryEntry | null>(null);
   const [selectedTripForDetail, setSelectedTripForDetail] = useState<RiderHistoryEntry | null>(null);
-
-  const sampleDefaultTrip: RiderHistoryEntry = useMemo(
-    () => ({
-      id: "trip-sample-1052",
-      code: "QP1052",
-      status: "completed",
-      outcome: "completed",
-      customerName: "Priya Saxena",
-      customerPhone: "+91 98370 12345",
-      customerAddress: "Station Road, Near Gandhi Murti, Kasganj",
-      partnerName: "CleanWash Express - Soron Gate Hub",
-      partnerPhone: "+91 92587 30561",
-      storeAddress: "Shop 12, Main Soron Gate Market, Kasganj",
-      pickupAddress: "Shop 12, Main Soron Gate Market, Kasganj",
-      dropAddress: "Station Road, Near Gandhi Murti, Kasganj",
-      distanceKm: 2.8,
-      amount: 36.0,
-      baseFare: 30.0,
-      distanceFare: 6.0,
-      surgeBonus: 0.0,
-      tipAmount: 0.0,
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
-      pickupOtp: "4821",
-      deliveryOtp: "7914",
-      items: [
-        { name: "Premium Dry Clean (Blazer)", quantity: 2, price: 240 },
-        { name: "Steam Ironing (Shirts)", quantity: 5, price: 150 },
-      ],
-    }),
-    []
-  );
 
   useEffect(() => {
     let active = true;
     fetchRiderHistory()
       .then((history) => {
-        if (active && Array.isArray(history) && history.length > 0) {
-          setLastTrip(history[0]);
+        if (!active) return;
+        if (Array.isArray(history) && history.length > 0) {
+          const completed =
+            history.find((t) => t.outcome === "completed" || t.status === "completed") || history[0];
+          setLastTrip(completed || null);
+        } else {
+          setLastTrip(null);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (active) setLastTrip(null);
+      });
     return () => {
       active = false;
     };
   }, []);
 
-  const loadRouteBooking = async () => {
-    try {
-      const res = await fetchRouteBookingState();
-      if (res && res.riderId) {
-        setRouteBooking(res);
-      }
-    } catch {
-      /* Keep existing state */
-    }
-  };
 
-  useEffect(() => {
-    loadRouteBooking();
-    const interval = setInterval(loadRouteBooking, 20000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Toggle map layer (Day Roadmap -> Night Dark -> Satellite)
   const handleToggleLayer = () => {
@@ -188,38 +146,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
 
 
-        {/* Dynamic Route Booking Active Banner */}
-        {routeBooking?.isActive && (
-          <div
-            onClick={() => {
-              triggerHaptic(40);
-              setIsRouteModalOpen(true);
-            }}
-            className="pointer-events-auto cursor-pointer animate-in slide-in-from-top-2 duration-200 flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-2xl shadow-lg shadow-emerald-600/30 font-bold text-xs active:scale-98 transition-all"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="size-7 rounded-xl bg-white/20 flex items-center justify-center shrink-0 border border-white/25">
-                <Route className="size-4 text-white animate-pulse" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-black text-white truncate">
-                    My Route: {routeBooking.destinationName || "Active Destination"}
-                  </span>
-                  <span className="text-[10px] bg-white/25 text-white px-1.5 py-0.5 rounded font-black">
-                    ±{routeBooking.maxDetourKm}km
-                  </span>
-                </div>
-                <p className="text-[10px] text-emerald-100 font-medium truncate">
-                  Targeted orders on route · {routeBooking.remainingPassesToday ?? 3} passes left
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] bg-white text-emerald-800 px-2.5 py-1 rounded-lg font-black shrink-0 ml-2 shadow-xs">
-              Manage ➔
-            </span>
-          </div>
-        )}
+
 
         {/* Floating Pending Orders Alert Banner (if pending orders exist) */}
         {pendingOrdersCount > 0 && (
@@ -259,28 +186,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           <Crosshair className="size-5.5" />
         </button>
 
-        {/* My Route Booking Engine Button */}
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic(40);
-            setIsRouteModalOpen(true);
-          }}
-          className={`relative flex size-11 items-center justify-center rounded-2xl backdrop-blur-md shadow-lg border active:scale-90 transition-transform cursor-pointer ${
-            routeBooking?.isActive
-              ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-600/30 ring-2 ring-emerald-400/50"
-              : "bg-white/95 text-zinc-700 border-zinc-200 hover:bg-zinc-50"
-          }`}
-          title={routeBooking?.isActive ? `Route Mode: ${routeBooking.destinationName}` : "My Route Booking"}
-        >
-          <Route className="size-5" />
-          {routeBooking?.isActive && (
-            <span className="absolute -top-1 -right-1 flex size-3">
-              <span className="absolute inline-flex size-full rounded-full bg-emerald-300 opacity-75 animate-ping" />
-              <span className="relative inline-flex size-3 rounded-full bg-emerald-400 border-2 border-white" />
-            </span>
-          )}
-        </button>
+
 
         {/* Day / Night / Satellite Mode Switcher */}
         <button
@@ -332,23 +238,23 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             <div className="w-10 h-1 rounded-full bg-zinc-300 mb-2" />
             <div className="w-full flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                <span className="font-mono font-black text-black text-sm">
+                <span className="font-bold text-zinc-950 text-base tracking-tight">
                   ₹{todayEarnings.toFixed(0)}
                 </span>
-                <span className="text-[11px] text-black font-semibold">
+                <span className="text-[11px] text-zinc-700 font-medium">
                   · {todayDeliveries} {todayDeliveries === 1 ? "Trip" : "Trips"} Today
                 </span>
-                <span className="text-[10px] font-black text-[#00C853] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                <span className="text-[10px] font-semibold text-[#00C853] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                   0% Commission
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 text-[11px] font-black text-black">
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-zinc-700">
                 <span>{isDrawerExpanded ? "Collapse" : "Live Details"}</span>
                 {isDrawerExpanded ? (
-                  <ChevronDown className="size-3.5 text-black" />
+                  <ChevronDown className="size-3.5 text-zinc-600" />
                 ) : (
-                  <ChevronUp className="size-3.5 text-black" />
+                  <ChevronUp className="size-3.5 text-zinc-600" />
                 )}
               </div>
             </div>
@@ -356,15 +262,15 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
           {/* Expanded Drawer Details (Metrics + Hotspot Advisory) */}
           {isDrawerExpanded && (
-            <div className="px-4 pb-4 space-y-3 text-xs border-t border-zinc-100 pt-3 animate-in fade-in duration-200 text-black">
+            <div className="px-4 pb-4 space-y-3 text-xs border-t border-zinc-100 pt-3 animate-in fade-in duration-200 text-zinc-900">
               {/* Daily Target Progress Bar */}
               <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-bold text-black">
-                  <span className="flex items-center gap-1 text-black">
+                <div className="flex items-center justify-between text-[11px] font-medium text-zinc-900">
+                  <span className="flex items-center gap-1.5 text-zinc-800">
                     <Target className="size-3.5 text-[#00C853]" />
-                    <span>Daily Target: 5 Rides for ₹100 Bonus</span>
+                    <span>Daily Target: 5 rides for ₹100 bonus</span>
                   </span>
-                  <span className="font-mono text-black font-black">
+                  <span className="text-zinc-900 font-bold text-xs">
                     {Math.min(5, todayDeliveries)}/5 Done
                   </span>
                 </div>
@@ -376,71 +282,87 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                 </div>
               </div>
 
-              {/* Last Trip & Trip Payment Card (Upgraded with tap-to-view order details) */}
-              <div
-                onClick={() => {
-                  triggerHaptic(35);
-                  setSelectedTripForDetail(lastTrip || sampleDefaultTrip);
-                }}
-                className="p-3.5 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-500 shadow-xs cursor-pointer transition-all active:scale-[0.98] group"
-              >
-                <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-2xs shrink-0">
-                      <CheckCircle2 className="size-3.5" />
-                    </span>
-                    <span className="text-[11px] font-black text-black uppercase tracking-wider truncate">
-                      Last Completed Trip
-                    </span>
-                    <span className="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">
-                      #{lastTrip?.code || "QP1052"}
-                    </span>
+              {/* Last Trip & Trip Payment Card (Real Orders Only or Clean Empty State) */}
+              {lastTrip ? (
+                <div
+                  onClick={() => {
+                    triggerHaptic(35);
+                    setSelectedTripForDetail(lastTrip);
+                  }}
+                  className="p-3.5 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60 rounded-2xl border border-emerald-300 hover:border-emerald-500 shadow-xs cursor-pointer transition-all active:scale-[0.98] group"
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-xs shadow-2xs shrink-0">
+                        <CheckCircle2 className="size-3.5" />
+                      </span>
+                      <span className="text-[11px] font-bold text-zinc-900 truncate">
+                        Last Completed Trip
+                      </span>
+                      <span className="text-[11px] font-medium text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">
+                        #{lastTrip.code || lastTrip.id?.slice(-6) || "TRIP"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <span className="text-[11px] text-zinc-500 font-normal">Trip Payment:</span>
+                      <span className="text-sm font-bold text-emerald-700">
+                        +₹{Number(lastTrip.amount || 0).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                    <span className="text-[10px] font-bold text-zinc-500">Trip Payment:</span>
-                    <span className="font-mono text-sm font-black text-emerald-700">
-                      +₹{Number(lastTrip?.amount || 36).toFixed(2)}
-                    </span>
+                  <div className="pt-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold text-zinc-900 truncate">
+                        {lastTrip.partnerName || "Store"} → {lastTrip.customerName || "Customer"}
+                      </p>
+                      <p className="text-[10px] text-zinc-600 truncate mt-0.5">
+                        {lastTrip.dropAddress || lastTrip.customerAddress || "Completed Delivery"} {lastTrip.distanceKm ? `· ${lastTrip.distanceKm} km` : ""}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-white border border-emerald-300 px-2 py-1 rounded-xl shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-2xs">
+                      <span>View Details</span>
+                      <ChevronRight className="size-3" />
+                    </div>
                   </div>
                 </div>
-
-                <div className="pt-2 flex items-center justify-between gap-2">
+              ) : (
+                <div className="p-3 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 flex items-center gap-3">
+                  <div className="size-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                    <Bike className="size-4" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-black text-black truncate">
-                      {lastTrip?.partnerName || "CleanWash Express - Soron Gate Hub"} → {lastTrip?.customerName || "Priya Saxena"}
-                    </p>
-                    <p className="text-[10px] text-zinc-600 font-semibold truncate mt-0.5">
-                      {lastTrip?.dropAddress || lastTrip?.customerAddress || "Station Road, Gandhi Murti"} · {lastTrip?.distanceKm || 2.8} km
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-white border border-emerald-300 px-2 py-1 rounded-xl shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-2xs">
-                    <span>View Details</span>
-                    <ChevronRight className="size-3" />
+                    <p className="text-xs font-semibold text-zinc-800">No completed trips yet</p>
+                    <p className="text-[10px] text-zinc-500">Your completed rides and earnings will show here.</p>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Quick Links */}
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => {
-                    window.location.href = "/wallet";
+                    triggerHaptic(25);
+                    navigate({ to: "/wallet" });
                   }}
-                  className="p-2.5 bg-white hover:bg-emerald-50 rounded-xl text-center font-black text-[11px] text-black border border-emerald-200 shadow-xs active:scale-95 transition-all"
+                  className="flex items-center justify-center gap-1.5 p-2.5 bg-white hover:bg-emerald-50 rounded-xl font-medium text-xs text-zinc-800 border border-emerald-200 shadow-xs active:scale-95 transition-all cursor-pointer"
                 >
-                  💰 View Full Passbook
+                  <Wallet className="size-4 text-emerald-600" />
+                  <span>View Passbook</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    window.location.href = "/incentives";
+                    triggerHaptic(25);
+                    navigate({ to: "/incentives" });
                   }}
-                  className="p-2.5 bg-white hover:bg-emerald-50 rounded-xl text-center font-black text-[11px] text-black border border-emerald-200 shadow-xs active:scale-95 transition-all"
+                  className="flex items-center justify-center gap-1.5 p-2.5 bg-white hover:bg-emerald-50 rounded-xl font-medium text-xs text-zinc-800 border border-emerald-200 shadow-xs active:scale-95 transition-all cursor-pointer"
                 >
-                  🎯 View All Slabs
+                  <TrendingUp className="size-4 text-emerald-600" />
+                  <span>View All Slabs</span>
                 </button>
               </div>
             </div>
@@ -454,15 +376,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         onClose={() => setIsSupportModalOpen(false)}
       />
 
-      {/* 6. MY ROUTE BOOKING ENGINE MODAL */}
-      <CaptainRouteBookingModal
-        isOpen={isRouteModalOpen}
-        onClose={() => {
-          setIsRouteModalOpen(false);
-          loadRouteBooking();
-        }}
-        onUpdated={(updated) => setRouteBooking(updated)}
-      />
+
 
       {/* 7. FULL ORDER / TRIP DETAIL VIEW MODAL */}
       {selectedTripForDetail && (

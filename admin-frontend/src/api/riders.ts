@@ -1,5 +1,6 @@
 /** GET/POST/PUT /api/admin/riders/* — live riders from the shared backend. */
 import { apiDeleteJson, apiGetJson, apiPostJson, apiPutJson } from "@/api/core/transport";
+import { formatCaptainId } from "../lib/format-ids";
 
 export type AdminRider = {
   id: string;
@@ -191,7 +192,7 @@ export type Rider360Data = {
 };
 
 function toAdminRider(row: any): AdminRider {
-  const riderId = String(row.id || row._id || row.riderId || "RDR-UNKNOWN");
+  const riderId = formatCaptainId(row.code || row.riderId || row.id || row._id);
   const name = row.name || row.fullName || row.displayName || "QuickPress Delivery Rider";
   const phone = row.phone || row.mobile || "—";
   const email = row.email || "—";

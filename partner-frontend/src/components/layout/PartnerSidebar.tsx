@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   Bell,
@@ -26,29 +27,42 @@ import { useLanguage } from "../../lib/i18n";
 
 export function PartnerSidebar({
   shopName,
+  shopLogo,
   isOnline,
   onToggleStatus,
   onLogout,
 }: {
   shopName?: string;
+  shopLogo?: string;
   isOnline?: boolean;
   onToggleStatus?: () => void;
   onLogout?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { language, openLanguageModal } = useLanguage();
+  const { language, openLanguageModal, t } = useLanguage();
+  const [logoFailed, setLogoFailed] = useState(false);
+  const [bottomLogoFailed, setBottomLogoFailed] = useState(false);
+
+  useEffect(() => {
+    setLogoFailed(false);
+    setBottomLogoFailed(false);
+  }, [shopLogo]);
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r border-border/80 bg-card/95 backdrop-blur-md transition-all duration-300 md:flex lg:w-72">
-      {/* Partner Store Header */}
+      {/* Partner Store Header with Real Store Image */}
       <div className="flex h-20 items-center gap-3 border-b border-border/60 px-5">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/20 text-brand-dark border border-primary/30 shadow-xs font-black text-sm tracking-tight">
-          {(shopName || "Partner Store")
-            .split(" ")
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((w) => w[0].toUpperCase())
-            .join("") || "PS"}
+        <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl border-2 border-emerald-500/30 shadow-sm bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-base group">
+          {shopLogo && !logoFailed ? (
+            <img
+              src={shopLogo}
+              alt={shopName || "QuickPress Store"}
+              className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={() => setLogoFailed(true)}
+            />
+          ) : (
+            <Store className="size-5.5 text-white" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <h2
@@ -58,9 +72,9 @@ export function PartnerSidebar({
             {shopName || "Partner Store"}
           </h2>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="size-1.5 rounded-full bg-brand-green shrink-0" />
-            <p className="text-[11px] font-semibold text-muted-foreground truncate">
-              Verified Partner
+            <span className="size-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+            <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate flex items-center gap-1">
+              <span>✓</span> {t("common.verifiedPartner", "Verified Partner")}
             </p>
           </div>
         </div>
@@ -77,10 +91,10 @@ export function PartnerSidebar({
             />
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                Store Status
+                {t("common.storeStatus", "Store Status")}
               </p>
               <p className="text-xs font-bold text-foreground">
-                {isOnline ? "Accepting Orders" : "Store Closed"}
+                {isOnline ? t("common.acceptingOrders", "Accepting Orders") : t("common.storeClosed", "Store Closed")}
               </p>
             </div>
           </div>
@@ -104,11 +118,12 @@ export function PartnerSidebar({
       {/* Navigation List */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 scrollbar-thin">
         <div className="px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground/70">
-          Operations
+          {t("nav.operations", "Operations")}
         </div>
         {partnerOperationsLinks.map((link) => {
           const isActive = pathname === link.to || (link.to !== "/dashboard" && pathname.startsWith(`${link.to}/`));
           const Icon = link.icon;
+          const translatedLabel = t(`nav.${link.id}`, link.label);
           return (
             <Link
               key={link.id}
@@ -124,17 +139,18 @@ export function PartnerSidebar({
                   isActive ? "text-brand-dark" : "text-muted-foreground group-hover:text-foreground"
                 }`}
               />
-              <span className="flex-1 truncate">{link.label}</span>
+              <span className="flex-1 truncate">{translatedLabel}</span>
             </Link>
           );
         })}
 
         <div className="pt-3 px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground/70">
-          Management
+          {t("nav.management", "Management")}
         </div>
         {partnerManagementLinks.map((link) => {
           const isActive = pathname === link.to || (link.to !== "/dashboard" && pathname.startsWith(`${link.to}/`));
           const Icon = link.icon;
+          const translatedLabel = t(`nav.${link.id}`, link.label);
           return (
             <Link
               key={link.id}
@@ -150,7 +166,7 @@ export function PartnerSidebar({
                   isActive ? "text-brand-dark" : "text-muted-foreground group-hover:text-foreground"
                 }`}
               />
-              <span className="flex-1 truncate">{link.label}</span>
+              <span className="flex-1 truncate">{translatedLabel}</span>
             </Link>
           );
         })}
@@ -165,10 +181,12 @@ export function PartnerSidebar({
           className="flex w-full items-center justify-between rounded-2xl border border-border/80 bg-muted/40 p-2.5 transition-colors hover:bg-muted active:scale-[0.98] cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <Globe className="size-4 text-amber-500" />
-            <span className="text-xs font-bold text-foreground">Language / भाषा</span>
+            <Globe className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold text-foreground">
+              {t("common.language", "Language / भाषा")}
+            </span>
           </div>
-          <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-700 dark:text-amber-300">
+          <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-300">
             {language}
           </span>
         </button>
@@ -177,24 +195,35 @@ export function PartnerSidebar({
           to={partnerRoutes.profile}
           className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-muted"
         >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-brand-dark font-bold text-xs">
-            {shopName ? shopName.slice(0, 2).toUpperCase() : "QP"}
+          <div className="relative size-9 shrink-0 overflow-hidden rounded-xl border border-emerald-500/20 bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-xs">
+            {shopLogo && !bottomLogoFailed ? (
+              <img
+                src={shopLogo}
+                alt={shopName || "Partner Account"}
+                className="size-full object-cover"
+                onError={() => setBottomLogoFailed(true)}
+              />
+            ) : (
+              <span>{(shopName || "QP").slice(0, 2).toUpperCase()}</span>
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-bold text-foreground">
               {shopName || "Partner Account"}
             </p>
-            <p className="text-[10px] text-muted-foreground">Manage profile</p>
+            <p className="text-[10px] text-muted-foreground">
+              {t("common.manageProfile", "Manage profile")}
+            </p>
           </div>
         </Link>
 
         <button
           type="button"
           onClick={onLogout}
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-destructive transition-colors hover:bg-destructive/10"
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-destructive transition-colors hover:bg-destructive/10 cursor-pointer"
         >
           <LogOut className="size-4" />
-          <span>Sign out</span>
+          <span>{t("common.signOut", "Sign out")}</span>
         </button>
       </div>
     </aside>

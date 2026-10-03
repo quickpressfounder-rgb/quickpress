@@ -14,6 +14,7 @@ Est. Net Payout = (A + B - C - D - E - F)
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 import random
@@ -103,11 +104,38 @@ class SettlementEngine:
             or {}
         )
         join_dt = self._extract_partner_join_date(profile)
-        cycles = self.get_weekly_cycles(join_date=join_dt)
-        matched_cycle = next((c for c in cycles if c["cycleId"] == cycle_id), None)
+        matched_cycle = None
+        if cycle_id and (cycle_id.startswith("month-") or re.match(r"^\d{4}-\d{2}$", cycle_id)):
+            clean_m = cycle_id.replace("month-", "")
+            try:
+                m_dt = datetime.strptime(clean_m, "%Y-%m")
+                if m_dt.month == 12:
+                    next_m = m_dt.replace(year=m_dt.year + 1, month=1, day=1)
+                else:
+                    next_m = m_dt.replace(month=m_dt.month + 1, day=1)
+                last_day = (next_m - timedelta(days=1)).day
+                cycle_start = f"{clean_m}-01"
+                cycle_end = f"{clean_m}-{last_day:02d}"
+                is_curr = (clean_m == datetime.now(timezone.utc).strftime("%Y-%m"))
+                matched_cycle = {
+                    "cycleId": f"month-{clean_m}",
+                    "title": m_dt.strftime("Monthly Settlement — %B %Y"),
+                    "period": m_dt.strftime("%B %Y"),
+                    "startDate": cycle_start,
+                    "endDate": cycle_end,
+                    "payoutDate": (next_m + timedelta(days=2)).strftime("%d %b'%y"),
+                    "status": "PAID" if not is_curr else "ACCRUING",
+                    "isCurrent": is_curr,
+                }
+            except Exception:
+                matched_cycle = None
+
         if not matched_cycle:
-            unfiltered_cycles = self.get_weekly_cycles()
-            matched_cycle = next((c for c in unfiltered_cycles if c["cycleId"] == cycle_id), cycles[0])
+            cycles = self.get_weekly_cycles(join_date=join_dt)
+            matched_cycle = next((c for c in cycles if c["cycleId"] == cycle_id), None)
+            if not matched_cycle:
+                unfiltered_cycles = self.get_weekly_cycles()
+                matched_cycle = next((c for c in unfiltered_cycles if c["cycleId"] == cycle_id), cycles[0])
         
         # Fetch actual customer orders for this partner
         all_orders = await database.find_many("customer_orders")
@@ -132,17 +160,15 @@ class SettlementEngine:
                 return bool(matched_cycle.get("isCurrent"))
             return cycle_start <= dt <= cycle_end
 
-        # If current cycle, take active/delivered orders in current cycle window; if past cycle, take delivered/completed
-        if matched_cycle.get("isCurrent"):
-            cycle_orders = [
-                o for o in partner_orders
-                if _is_order_in_cycle(o) and str(o.get("status", "")).lower() != "cancelled"
-            ]
-        else:
-            cycle_orders = [
-                o for o in partner_orders
-                if _is_order_in_cycle(o) and str(o.get("status", "")).lower() in ("delivered", "completed")
-            ]
+        # Strictly count and calculate ONLY completed / delivered orders for settlements
+        cycle_orders = [
+            o for o in partner_orders
+            if _is_order_in_cycle(o) and (
+                str(o.get("status", "")).lower() in ("delivered", "completed")
+                or str(o.get("stage", "")).lower() in ("delivered", "completed")
+                or str(o.get("canonicalStatus", "")).lower() in ("delivered", "completed")
+            )
+        ]
 
         order_count = len(cycle_orders)
         # Fetch live active finance rules
@@ -151,6 +177,16 @@ class SettlementEngine:
         laundry_gst_rate = float(fin_rules.get("gst", {}).get("laundryGstRate", 0.05))
         platform_gst_rate = float(fin_rules.get("gst", {}).get("platformGstRate", 0.18))
         tcs_rate = float(fin_rules.get("gst", {}).get("tcsRate", 0.01))
+
+        # Standard QuickPress laundry partner commission is 15%
+        comm_rate = 0.15
+        partner_comm = profile.get("commissionRate") or profile.get("commission_rate")
+        if partner_comm is not None:
+            try:
+                p_rate = float(partner_comm)
+                comm_rate = (p_rate / 100.0) if p_rate > 1.0 else p_rate
+            except Exception:
+                comm_rate = 0.15
 
         if order_count == 0:
             gross_items = 0.0
@@ -163,7 +199,6 @@ class SettlementEngine:
             tds_194h_credit = 0.0
             tds_194c_credit = 0.0
             additions_total = 0.0
-            comm_rate = financial_engine.get_commission_rate(0)
             platform_commission = 0.0
             damage_penalty = 0.0
             cancellation_fee = 0.0
@@ -212,7 +247,6 @@ class SettlementEngine:
             additions_total = round(target_incentive + quality_bonus + tds_194h_credit + tds_194c_credit, 2)
 
             # --- (C) Order Level Deductions ---
-            comm_rate = financial_engine.get_commission_rate(order_count)
             platform_commission = round(net_order_value * comm_rate, 2)
             damage_penalty = 0.0
             cancellation_fee = 0.0
@@ -404,6 +438,32 @@ class SettlementEngine:
                     "orderCount": past_calc["totalOrders"],
                 })
 
+        # Generate available months from partner join date up to current month
+        months_list = []
+        curr_dt = datetime.now(timezone.utc)
+        start_year = join_dt.year if join_dt else curr_dt.year
+        start_month = join_dt.month if join_dt else curr_dt.month
+        y, m = curr_dt.year, curr_dt.month
+        while y > start_year or (y == start_year and m >= start_month):
+            m_dt = datetime(y, m, 1)
+            months_list.append({
+                "cycleId": f"month-{m_dt.strftime('%Y-%m')}",
+                "period": m_dt.strftime("%B %Y"),
+                "monthKey": m_dt.strftime("%Y-%m"),
+            })
+            if m == 1:
+                y -= 1
+                m = 12
+            else:
+                m -= 1
+
+        if not months_list:
+            months_list.append({
+                "cycleId": f"month-{curr_dt.strftime('%Y-%m')}",
+                "period": curr_dt.strftime("%B %Y"),
+                "monthKey": curr_dt.strftime("%Y-%m"),
+            })
+
         return {
             "currentCycle": {
                 "cycleId": "current",
@@ -415,6 +475,7 @@ class SettlementEngine:
             },
             "pastCycles": past_summaries,
             "filterOptions": [c["period"] for c in past_summaries],
+            "months": months_list,
         }
 
     async def settle_order_on_completion(self, order: Dict[str, Any]) -> Dict[str, Any]:

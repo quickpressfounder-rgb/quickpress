@@ -26,6 +26,7 @@ import { usePartnerResource } from "../hooks/use-partner-resource";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { fetchBusinessSettings, updateBusinessSettings } from "@/api/partner/partner-profile-api";
 import type { BusinessSettings } from "@/shared/types/partner";
+import { usePartnerContext } from "../context/PartnerContext";
 
 /**
  * High-contrast iOS toggle switch component
@@ -78,15 +79,34 @@ function SwitchToggle({
 
 export function BusinessSettingsScreen() {
   const navigate = useNavigate();
+  const { isOnline, setOnline } = usePartnerContext();
   const { data: settings, setData } = usePartnerResource(fetchBusinessSettings);
   const [closeAccountOpen, setCloseAccountOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
+  // Synchronize effective store open state with global isOnline
+  const isStoreEffectivelyOpen = settings !== null && typeof settings?.isStoreOpen === "boolean"
+    ? (settings.isStoreOpen && isOnline)
+    : isOnline;
+
   const patch = async (next: Partial<BusinessSettings>, message: string) => {
     if (!settings) return;
-    setData({ ...settings, ...next });
-    await updateBusinessSettings(next);
-    toast.success(message);
+    const nextSettings = { ...settings, ...next };
+    setData(nextSettings);
+
+    // If isStoreOpen is being changed, sync with global PartnerContext immediately
+    if (typeof next.isStoreOpen === "boolean") {
+      await setOnline(next.isStoreOpen);
+    } else if (typeof next.acceptingNewOrders === "boolean" && !next.acceptingNewOrders) {
+      await setOnline(false);
+    }
+
+    try {
+      await updateBusinessSettings(next);
+      toast.success(message);
+    } catch {
+      toast.error("Failed to save setting");
+    }
   };
 
   const handleGoBack = () => {
@@ -133,17 +153,17 @@ export function BusinessSettingsScreen() {
           {settings && (
             <span
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
-                settings.isStoreOpen
+                isStoreEffectivelyOpen
                   ? "border border-emerald-300 bg-emerald-50 text-emerald-800 shadow-2xs"
                   : "border border-zinc-200 bg-zinc-100 text-zinc-600"
               }`}
             >
               <span
                 className={`size-2 rounded-full ${
-                  settings.isStoreOpen ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"
+                  isStoreEffectivelyOpen ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"
                 }`}
               />
-              {settings.isStoreOpen ? "Online" : "Offline"}
+              {isStoreEffectivelyOpen ? "Online" : "Offline"}
             </span>
           )}
         </header>
@@ -160,12 +180,12 @@ export function BusinessSettingsScreen() {
               <div
                 onClick={() =>
                   void patch(
-                    { isStoreOpen: !settings.isStoreOpen },
-                    !settings.isStoreOpen ? "Store opened" : "Store closed"
+                    { isStoreOpen: !isStoreEffectivelyOpen },
+                    !isStoreEffectivelyOpen ? "Store opened" : "Store closed"
                   )
                 }
                 className={`flex items-center justify-between rounded-2xl border-2 p-4 transition-all cursor-pointer shadow-xs ${
-                  settings.isStoreOpen
+                  isStoreEffectivelyOpen
                     ? "border-emerald-500 bg-gradient-to-br from-emerald-50/90 via-white to-white"
                     : "border-zinc-300 bg-white"
                 }`}
@@ -173,17 +193,17 @@ export function BusinessSettingsScreen() {
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
                   <div
                     className={`flex size-11 shrink-0 items-center justify-center rounded-xl shadow-xs transition-colors ${
-                      settings.isStoreOpen ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-500"
+                      isStoreEffectivelyOpen ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-500"
                     }`}
                   >
                     <Power className="size-5.5" strokeWidth={2.4} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-black text-zinc-900 leading-tight">
-                      {settings.isStoreOpen ? "Store is ONLINE" : "Store is OFFLINE"}
+                      {isStoreEffectivelyOpen ? "Store is ONLINE" : "Store is OFFLINE"}
                     </p>
                     <p className="mt-0.5 text-xs font-medium text-zinc-500 leading-snug">
-                      {settings.isStoreOpen
+                      {isStoreEffectivelyOpen
                         ? "Accepting customer laundry orders"
                         : "Orders paused. Switch ON to accept orders"}
                     </p>
@@ -192,7 +212,7 @@ export function BusinessSettingsScreen() {
 
                 <SwitchToggle
                   label="Store Open"
-                  checked={settings.isStoreOpen}
+                  checked={isStoreEffectivelyOpen}
                   onChange={(next) =>
                     void patch({ isStoreOpen: next }, next ? "Store opened" : "Store closed")
                   }
@@ -502,24 +522,28 @@ export function BusinessSettingsScreen() {
                   <div
                     onClick={() =>
                       void patch(
-                        { isStoreOpen: !settings.isStoreOpen },
-                        !settings.isStoreOpen ? "Store opened" : "Store closed"
+                        { isStoreOpen: !isStoreEffectivelyOpen },
+                        !isStoreEffectivelyOpen ? "Store opened" : "Store closed"
                       )
                     }
                     className="flex items-center justify-between p-4 rounded-2xl border border-zinc-200/80 hover:border-zinc-300 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                      <span className={`flex size-10 items-center justify-center rounded-xl transition-colors ${
+                        isStoreEffectivelyOpen ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400"
+                      }`}>
                         <Power className="size-5" />
                       </span>
                       <div>
                         <p className="text-sm font-black text-zinc-900">Store Open</p>
-                        <p className="text-xs text-zinc-500">Customers can place orders now</p>
+                        <p className="text-xs text-zinc-500">
+                          {isStoreEffectivelyOpen ? "Customers can place orders now" : "Store is closed. Orders paused"}
+                        </p>
                       </div>
                     </div>
                     <SwitchToggle
                       label="Store Open"
-                      checked={settings.isStoreOpen}
+                      checked={isStoreEffectivelyOpen}
                       onChange={(next) =>
                         void patch({ isStoreOpen: next }, next ? "Store opened" : "Store closed")
                       }

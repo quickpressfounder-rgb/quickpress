@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DeliveriesRouteImport } from './routes/deliveries'
+import { Route as GuidelinesRouteImport } from './routes/guidelines'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as IncentivesRouteImport } from './routes/incentives'
 import { Route as InstructionRouteImport } from './routes/instruction'
@@ -25,6 +27,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OtpRouteImport } from './routes/otp'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegistrationRouteImport } from './routes/registration'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as VerificationRouteImport } from './routes/verification'
 import { Route as WalletRouteImport } from './routes/wallet'
 
@@ -46,6 +49,16 @@ const DashboardRoute = DashboardRouteImport.update({
 const DeliveriesRoute = DeliveriesRouteImport.update({
   id: '/deliveries',
   path: '/deliveries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidelinesRoute = GuidelinesRouteImport.update({
+  id: '/guidelines',
+  path: '/guidelines',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -108,6 +121,11 @@ const RegistrationRoute = RegistrationRouteImport.update({
   path: '/registration',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VerificationRoute = VerificationRouteImport.update({
   id: '/verification',
   path: '/verification',
@@ -124,6 +142,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/deliveries': typeof DeliveriesRoute
+  '/guidelines': typeof GuidelinesRoute
+  '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
   '/incentives': typeof IncentivesRoute
   '/instruction': typeof InstructionRoute
@@ -136,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/otp': typeof OtpRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
+  '/support': typeof SupportRoute
   '/verification': typeof VerificationRoute
   '/wallet': typeof WalletRoute
 }
@@ -144,6 +165,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/deliveries': typeof DeliveriesRoute
+  '/guidelines': typeof GuidelinesRoute
+  '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
   '/incentives': typeof IncentivesRoute
   '/instruction': typeof InstructionRoute
@@ -156,6 +179,7 @@ export interface FileRoutesByTo {
   '/otp': typeof OtpRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
+  '/support': typeof SupportRoute
   '/verification': typeof VerificationRoute
   '/wallet': typeof WalletRoute
 }
@@ -165,6 +189,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/deliveries': typeof DeliveriesRoute
+  '/guidelines': typeof GuidelinesRoute
+  '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
   '/incentives': typeof IncentivesRoute
   '/instruction': typeof InstructionRoute
@@ -177,6 +203,7 @@ export interface FileRoutesById {
   '/otp': typeof OtpRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
+  '/support': typeof SupportRoute
   '/verification': typeof VerificationRoute
   '/wallet': typeof WalletRoute
 }
@@ -187,6 +214,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/deliveries'
+    | '/guidelines'
+    | '/help'
     | '/history'
     | '/incentives'
     | '/instruction'
@@ -199,6 +228,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/profile'
     | '/registration'
+    | '/support'
     | '/verification'
     | '/wallet'
   fileRoutesByTo: FileRoutesByTo
@@ -207,6 +237,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/deliveries'
+    | '/guidelines'
+    | '/help'
     | '/history'
     | '/incentives'
     | '/instruction'
@@ -219,6 +251,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/profile'
     | '/registration'
+    | '/support'
     | '/verification'
     | '/wallet'
   id:
@@ -227,6 +260,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/deliveries'
+    | '/guidelines'
+    | '/help'
     | '/history'
     | '/incentives'
     | '/instruction'
@@ -239,6 +274,7 @@ export interface FileRouteTypes {
     | '/otp'
     | '/profile'
     | '/registration'
+    | '/support'
     | '/verification'
     | '/wallet'
   fileRoutesById: FileRoutesById
@@ -248,6 +284,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   DeliveriesRoute: typeof DeliveriesRoute
+  GuidelinesRoute: typeof GuidelinesRoute
+  HelpRoute: typeof HelpRoute
   HistoryRoute: typeof HistoryRoute
   IncentivesRoute: typeof IncentivesRoute
   InstructionRoute: typeof InstructionRoute
@@ -260,6 +298,7 @@ export interface RootRouteChildren {
   OtpRoute: typeof OtpRoute
   ProfileRoute: typeof ProfileRoute
   RegistrationRoute: typeof RegistrationRoute
+  SupportRoute: typeof SupportRoute
   VerificationRoute: typeof VerificationRoute
   WalletRoute: typeof WalletRoute
 }
@@ -292,6 +331,20 @@ declare module '@tanstack/react-router' {
       path: '/deliveries'
       fullPath: '/deliveries'
       preLoaderRoute: typeof DeliveriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guidelines': {
+      id: '/guidelines'
+      path: '/guidelines'
+      fullPath: '/guidelines'
+      preLoaderRoute: typeof GuidelinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -378,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegistrationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/verification': {
       id: '/verification'
       path: '/verification'
@@ -400,6 +460,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   DeliveriesRoute: DeliveriesRoute,
+  GuidelinesRoute: GuidelinesRoute,
+  HelpRoute: HelpRoute,
   HistoryRoute: HistoryRoute,
   IncentivesRoute: IncentivesRoute,
   InstructionRoute: InstructionRoute,
@@ -412,6 +474,7 @@ const rootRouteChildren: RootRouteChildren = {
   OtpRoute: OtpRoute,
   ProfileRoute: ProfileRoute,
   RegistrationRoute: RegistrationRoute,
+  SupportRoute: SupportRoute,
   VerificationRoute: VerificationRoute,
   WalletRoute: WalletRoute,
 }

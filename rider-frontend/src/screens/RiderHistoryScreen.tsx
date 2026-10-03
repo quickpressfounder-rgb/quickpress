@@ -23,8 +23,10 @@ import type { RiderHistoryEntry } from "../shared/types/rider";
 import { triggerHaptic } from "../lib/captain-audio";
 import { RiderBottomNav } from "../components/RiderBottomNav";
 import { CaptainTripDetailView } from "../components/history/CaptainTripDetailView";
+import { useLanguage } from "../lib/i18n";
 
 export function RiderHistoryScreen() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<RiderHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,13 +120,13 @@ export function RiderHistoryScreen() {
           </button>
           <div>
             <h1 className="text-base font-black text-zinc-900 tracking-tight leading-tight flex items-center gap-1.5">
-              <span>{selectedTrip ? "Trip Details & Receipt" : "Order & Trip History"}</span>
+              <span>{selectedTrip ? "Trip Details & Receipt" : t("history.title", "Order & Trip History")}</span>
               <span className="flex size-2 rounded-full bg-emerald-500" />
             </h1>
             <p className="text-[11px] font-semibold text-zinc-500">
               {selectedTrip
                 ? `Order #${selectedTrip.code || selectedTrip.id.slice(-6).toUpperCase()}`
-                : `${orders.length} Completed Trips · Verified Payouts`}
+                : `${orders.length} ${t("history.completed", "Delivered")} · ${t("dash.zeroCommission", "Zero Commission")}`}
             </p>
           </div>
         </div>
@@ -135,7 +137,7 @@ export function RiderHistoryScreen() {
             onClick={() => loadHistory(true)}
             disabled={refreshing || loading}
             className="size-8.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-700 active:scale-90 transition-all cursor-pointer"
-            title="Refresh History"
+            title={t("common.refresh", "Refresh History")}
           >
             <RotateCw
               className={`size-4 ${refreshing || loading ? "animate-spin text-emerald-600" : ""}`}
@@ -165,27 +167,27 @@ export function RiderHistoryScreen() {
           style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
         >
           {/* Payout Hero Summary Banner */}
-          <div className="p-4 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-3xl shadow-lg shadow-emerald-600/20 space-y-2">
+          <div className="p-4 bg-white border border-zinc-200/90 rounded-3xl shadow-xs space-y-2 text-zinc-900">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-100 uppercase tracking-wide flex items-center gap-1.5">
-                <History className="size-3.5" />
-                <span>Completed Delivery Summary</span>
+              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wide flex items-center gap-1.5">
+                <History className="size-3.5 text-zinc-700" />
+                <span>{t("history.summary", "Completed Delivery Summary")}</span>
               </span>
-              <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-md">
-                {orders.length} Total Trips
+              <span className="text-[10px] font-bold bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200">
+                {orders.length} {t("history.totalTrips", "Total Trips")}
               </span>
             </div>
 
             <div className="flex items-baseline justify-between pt-1">
               <div>
-                <p className="text-[11px] text-emerald-100">Total Lifetime Payout</p>
-                <h2 className="text-2xl font-black font-mono">
+                <p className="text-[11px] text-zinc-500 font-medium">{t("history.lifetimePayout", "Total Lifetime Payout")}</p>
+                <h2 className="text-3xl font-black text-zinc-950 tracking-tight">
                   ₹{totalEarnings.toFixed(0)}
                 </h2>
               </div>
               <div className="text-right">
-                <span className="text-[11px] font-black text-white bg-white/20 px-2.5 py-1 rounded-lg">
-                  {completedCount} Delivered
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                  {completedCount} {t("history.delivered", "Delivered")}
                 </span>
               </div>
             </div>
@@ -205,7 +207,7 @@ export function RiderHistoryScreen() {
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
-              All ({orders.length})
+              {t("history.allTrips", "All")} ({orders.length})
             </button>
             <button
               type="button"
@@ -219,7 +221,7 @@ export function RiderHistoryScreen() {
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
-              Delivered ({completedCount})
+              {t("history.delivered", "Delivered")} ({completedCount})
             </button>
             <button
               type="button"
@@ -233,7 +235,7 @@ export function RiderHistoryScreen() {
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
-              Cancelled ({cancelledCount})
+              {t("history.cancelled", "Cancelled")} ({cancelledCount})
             </button>
           </div>
 
@@ -245,10 +247,10 @@ export function RiderHistoryScreen() {
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-black text-zinc-900">
-                  {filter === "all" ? "No Delivery Records Found" : `No ${filter} trips found`}
+                  {filter === "all" ? t("history.noHistory", "No Delivery Records Found") : `No ${filter} trips found`}
                 </p>
                 <p className="text-xs text-zinc-500 font-medium max-w-xs mx-auto leading-relaxed">
-                  Your accepted trips from the dispatch queue will automatically be recorded here with complete OTP logs and payout receipts.
+                  {t("history.noHistorySub", "Your accepted trips from the dispatch queue will automatically be recorded here with complete OTP logs and payout receipts.")}
                 </p>
               </div>
               <button
@@ -256,8 +258,7 @@ export function RiderHistoryScreen() {
                 onClick={() => navigate({ to: "/orders" })}
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs active:scale-95 transition-all cursor-pointer"
               >
-                <span>Go to Live Orders</span>
-                <span>➔</span>
+                <span>{t("nav.orders", "Trips")} ➔</span>
               </button>
             </div>
           ) : (
@@ -277,7 +278,7 @@ export function RiderHistoryScreen() {
                     {/* Header: Code + Status + Amount */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono text-xs font-black bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded-lg border border-zinc-200">
+                        <span className="text-xs font-black bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded-lg border border-zinc-200 tracking-wide">
                           #{order.code || order.id.slice(-6).toUpperCase()}
                         </span>
                         <span
@@ -290,18 +291,18 @@ export function RiderHistoryScreen() {
                           {isCompleted ? (
                             <>
                               <CheckCircle2 className="size-3 text-emerald-600" />
-                              <span>Delivered</span>
+                              <span>{t("history.delivered", "Delivered")}</span>
                             </>
                           ) : (
                             <>
                               <XCircle className="size-3 text-rose-600" />
-                              <span>Cancelled</span>
+                              <span>{t("history.cancelled", "Cancelled")}</span>
                             </>
                           )}
                         </span>
                       </div>
 
-                      <span className="text-xs font-black font-mono text-emerald-700">
+                      <span className="text-sm font-black text-emerald-700 tracking-tight">
                         +₹{Number(order.amount || 0).toFixed(0)}
                       </span>
                     </div>

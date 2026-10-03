@@ -84,6 +84,16 @@ export async function fetchDashboardSummary(): Promise<DashboardSummary> {
 }
 
 export async function setStoreOpen(isOpen: boolean) {
-  await apiRequest<BusinessSettings>("PUT", "/api/partner/settings", { body: { isStoreOpen: isOpen } });
+  const { toggleStoreStatus } = await import("./partner-profile-api");
+  await Promise.all([
+    apiRequest<BusinessSettings>("PUT", "/api/partner/settings", { body: { isStoreOpen: isOpen, acceptingNewOrders: isOpen } }),
+    toggleStoreStatus(isOpen).catch(() => null),
+  ]);
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem("qp.partner.isOnline", isOpen ? "1" : "0");
+      window.dispatchEvent(new CustomEvent("qp:partner-status-updated", { detail: { isOnline: isOpen } }));
+    } catch {}
+  }
   return { ok: true as const, isOpen };
 }

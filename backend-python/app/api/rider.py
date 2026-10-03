@@ -13,12 +13,12 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 
 logger = logging.getLogger(__name__)
 
 from app.core.deps import current_user, optional_user, require_roles
-from app.core.identifiers import generate_rider_id
+from app.core.identifiers import generate_rider_id, format_captain_id, format_partner_id
 from app.db.client import database
 from app.db.repositories import users
 from app.db.rider_repositories import (
@@ -521,7 +521,8 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
     is_resubmission = bool(existing_profile)
     if existing_profile:
         rider_id = str(existing_profile.get("riderId") or existing_profile.get("_id") or existing_profile.get("rider_id") or rider_id)
-    elif not rider_id:
+        rider_id = format_captain_id(rider_id)
+    elif not rider_id or not str(rider_id).upper().startswith("CAP-"):
         rider_id = await generate_rider_id()
 
     rider_id_str = str(rider_id)
@@ -868,7 +869,7 @@ async def submit_registration(body: dict) -> dict:
 
     is_resubmission = bool(existing_profile)
     if existing_profile:
-        rider_id = str(existing_profile.get("riderId") or existing_profile.get("_id") or existing_profile.get("rider_id") or requested_id)
+        rider_id = format_captain_id(str(existing_profile.get("riderId") or existing_profile.get("_id") or existing_profile.get("rider_id") or requested_id))
         resub_count = int(existing_profile.get("resubmissionCount") or 0) + 1
     else:
         rider_id = await generate_rider_id()
@@ -1415,8 +1416,20 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
     reg_photo = profile.get("selfieUrl") or profile.get("photoUrl") or profile.get("avatar") or user_photo or ""
 
     pub = _public(profile)
-    pub.setdefault("id", rider_id or user.id)
-    pub.setdefault("riderId", rider_id or user.id)
+    raw_rid = str(profile.get("riderId") or profile.get("_id") or profile.get("id") or rider_id or user.id or "")
+    clean_rid = format_captain_id(raw_rid)
+    pub["id"] = clean_rid
+    pub["riderId"] = clean_rid
+    pub["code"] = clean_rid
+
+    # Persist clean CAP-6DIGIT code in database if not already updated
+    if profile.get("_id") and (profile.get("riderId") != clean_rid or not profile.get("code")):
+        try:
+            await database.update("rider_profiles", {"_id": profile["_id"]}, {"riderId": clean_rid, "code": clean_rid})
+            await database.update("riders", {"user_id": user.id}, {"rider_id": clean_rid}, upsert=True)
+        except Exception:
+            pass
+
     pub.setdefault("status", profile.get("status") or ("active" if is_user_verified else ("pending" if is_user_onboarded else "unregistered")))
     pub.setdefault("isVerified", bool(profile.get("isVerified", False) or is_user_verified))
     pub.setdefault("isOnboarded", bool(profile.get("isOnboarded", is_user_onboarded)))
@@ -1452,6 +1465,16 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
     pub["rcNumber"] = profile.get("rcNumber") or profile.get("vehicleNumber") or ""
     pub["aadhaar"] = profile.get("aadhaar") or ""
     pub["pan"] = profile.get("pan") or ""
+    pub["aadhaarFront"] = profile.get("aadhaarFront") or ""
+    pub["aadhaarBack"] = profile.get("aadhaarBack") or ""
+    pub["panCard"] = profile.get("panCard") or profile.get("panUrl") or ""
+    pub["dlFront"] = profile.get("dlFront") or ""
+    pub["dlBack"] = profile.get("dlBack") or ""
+    pub["rcFront"] = profile.get("rcFront") or ""
+    pub["rcBack"] = profile.get("rcBack") or ""
+    pub["signatureUrl"] = profile.get("signatureUrl") or ""
+    pub["dob"] = profile.get("dob") or ""
+    pub["gender"] = profile.get("gender") or ""
     pub.setdefault("isOnline", False)
     pub.setdefault("onlineMinutes", 0)
     pub.setdefault("suspensionReason", getattr(user, "suspensionReason", None))
@@ -1459,6 +1482,64 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
     pub.setdefault("appealDetails", getattr(user, "appealDetails", ""))
     pub.setdefault("appealSubmittedAt", getattr(user, "appealSubmittedAt", ""))
     return pub
+
+
+@router.post("/delete-account")
+@router.delete("/account")
+async def delete_rider_account(body: dict = Body(default={}), user: User = Depends(current_user)) -> dict:
+    dob_input = str(body.get("dob") or "").strip()
+    if not dob_input:
+        raise HTTPException(status_code=400, detail="Account delete karne ke liye Date of Birth (DOB) darj karna anivarya hai.")
+
+    rider_id = await _rider_id(user)
+    profile = await rider_profile_repository.get(rider_id) if rider_id else None
+    if profile is None and rider_id:
+        profile = await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+    if profile is None and user.phone:
+        clean_phone = user.phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+        profile = await database.find_one("rider_profiles", {
+            "$or": [
+                {"phone": user.phone},
+                {"phone": clean_phone},
+                {"phone": f"+91{clean_phone}"},
+                {"userId": user.id},
+            ]
+        })
+
+    def normalize_dob(d: str) -> str:
+        d = d.replace("/", "-").strip()
+        parts = d.split("-")
+        if len(parts) == 3:
+            # DD-MM-YYYY -> YYYY-MM-DD
+            if len(parts[0]) == 2 and len(parts[2]) == 4:
+                return f"{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+            # YYYY-MM-DD
+            if len(parts[0]) == 4 and len(parts[1]) <= 2:
+                return f"{parts[0]}-{parts[1].zfill(2)}-{parts[2].zfill(2)}"
+        return d
+
+    registered_dob = str((profile.get("dob") if profile else "") or getattr(user, "dob", "") or "").strip()
+    if registered_dob:
+        if normalize_dob(dob_input) != normalize_dob(registered_dob):
+            raise HTTPException(
+                status_code=400,
+                detail="Galat Date of Birth! Kripya registered Date of Birth darj karein."
+            )
+    else:
+        norm = normalize_dob(dob_input)
+        if len(norm) < 8:
+            raise HTTPException(status_code=400, detail="Kripya sahi Date of Birth darj karein.")
+
+    # Permanently delete rider profile and user records
+    if rider_id:
+        await database.delete_many("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+        await database.delete_many("riders", {"$or": [{"user_id": user.id}, {"rider_id": rider_id}]})
+        await database.delete_many("rider_locations", {"$or": [{"rider_id": rider_id}, {"riderId": rider_id}]})
+        await database.delete_many("rider_bank_accounts", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+    if user.id:
+        await database.delete_one("users", {"_id": user.id})
+
+    return {"ok": True, "message": "Captain account successfully deleted."}
 
 
 # --------------------------------------------------------------------------
@@ -1531,19 +1612,16 @@ async def get_rider_support() -> dict:
     settings = await admin_settings_repository.get(scope="global") or {}
     platform_info = settings.get("platform") or {}
 
-    helpline_phone = platform_info.get("supportPhone") or settings.get("supportPhone") or "+91 92587 30561"
-    if not helpline_phone or "90000 00000" in helpline_phone or "9000000000" in helpline_phone:
-        helpline_phone = "+91 92587 30561"
+    helpline_phone = platform_info.get("supportPhone") or settings.get("supportPhone") or "1800 012 3456"
+    if not helpline_phone or "90000 00000" in helpline_phone or "9000000000" in helpline_phone or "92587 30561" in helpline_phone or "99978 74502" in helpline_phone or "9997874502" in helpline_phone:
+        helpline_phone = "1800 012 3456"
     support_email = platform_info.get("supportEmail") or settings.get("supportEmail") or "support@quickpress.app"
-    clean_digits = "".join(ch for ch in helpline_phone if ch.isdigit())
-    if len(clean_digits) == 10:
-        clean_digits = f"91{clean_digits}"
 
     return {
         "ok": True,
         "helplinePhone": helpline_phone,
         "supportEmail": support_email,
-        "whatsappUrl": f"https://wa.me/{clean_digits}?text=Hi%20QuickPress%20Support,%20I%20am%20a%20Captain%20needing%20assistance",
+        "whatsappUrl": "",
         "emergencySosNumber": "112",
         "workingHours": "24 Hours · 7 Days a Week (24/7)",
         "hubAddress": settings.get("business", {}).get("address") or "QuickPress Express Hub, Kasganj, Uttar Pradesh 207123",
@@ -2220,7 +2298,7 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
         pass
     possible_rider_ids.discard("")
     now_dt = datetime.now(timezone.utc)
-    from app.services.smart_2ride_engine import normalize_city_name
+    from app.services.smart_2ride_engine import normalize_city_name, is_city_match, extract_clean_city
     rider_city_norm = "kasganj"
     rider_pincodes = set()
     try:
@@ -2232,7 +2310,7 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
                     possible_rider_ids.add(str(val))
             rc = profile.get("city") or profile.get("preferredCity") or profile.get("operatingCity")
             if rc:
-                rider_city_norm = normalize_city_name(rc) or "kasganj"
+                rider_city_norm = extract_clean_city(rc) or normalize_city_name(rc) or "kasganj"
             pins = profile.get("operatingPincodes") or profile.get("pincodes") or []
             if profile.get("pincode"):
                 pins.append(profile.get("pincode"))
@@ -2251,32 +2329,28 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
     )
     all_raw = list(offers) + list(alt_offers)
 
-    # Check active rides in SEARCHING_RIDER or OFFER_SENT state strictly in Captain's city
+    # Check active rides in SEARCHING_RIDER or OFFER_SENT state in Captain's operational area
     open_rides = await database.find_many(
         RIDES_COLLECTION,
         {"status": {"$in": ["SEARCHING_RIDER", "OFFER_SENT", "NO_RIDER_FOUND"]}}
     )
     for r in open_rides:
         attempted = list(r.get("attemptedRiderIds") or [])
-        offered_to = str(r.get("offeredRiderId") or "")
-        is_targeted = not offered_to or offered_to in possible_rider_ids
         not_attempted = not any(pid in attempted for pid in possible_rider_ids)
-        if is_targeted and not_attempted:
-            # Enforce same city match
+        if not_attempted:
             r_city_raw = str(r.get("city") or (r.get("pickupLocation") or {}).get("city") or "").strip()
             if not r_city_raw:
                 ord_for_r = await database.find_one("customer_orders", {"_id": r.get("orderId")})
                 if ord_for_r:
                     r_city_raw = str((ord_for_r.get("address") or {}).get("city") or ord_for_r.get("city") or "")
-            norm_r_city = normalize_city_name(r_city_raw or "Kasganj")
-            if norm_r_city and rider_city_norm:
-                if norm_r_city != rider_city_norm and norm_r_city not in rider_city_norm and rider_city_norm not in norm_r_city:
-                    continue
+            norm_r_city = extract_clean_city(r_city_raw) or normalize_city_name(r_city_raw or "Kasganj")
+            if not is_city_match(rider_city_norm, norm_r_city, r_city_raw):
+                continue
 
             p_loc = r.get("pickupLocation") or {}
             d_loc = r.get("dropLocation") or {}
             created_at = r.get("createdAt") or now_iso
-            exp_iso = (now_dt + timedelta(seconds=60)).isoformat()
+            exp_iso = (now_dt + timedelta(minutes=15)).isoformat()
 
             all_raw.append({
                 "_id": f"off-{r.get('_id')}-{rider_id}",
@@ -2303,19 +2377,21 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
             })
 
     # Scan active unassigned customer orders for auto-dispatch to online Captains
+    # Only orders that have been ACCEPTED by Partner (or ready for delivery) are eligible
     pending_customer_orders = await database.find_many(
         "customer_orders",
         {
             "status": {
                 "$in": [
-                    "placed",
-                    "pending_partner_acceptance",
                     "partner_accepted",
                     "pickup_rider_assigned",
                     "rider_searching",
+                    "rider_pickup_assigning",
                     "ready",
                     "ready_for_delivery",
                     "delivery_rider_assigned",
+                    "delivery_rider_assigning",
+                    "delivery_reassignment_required",
                 ]
             },
             "$or": [{"riderId": None}, {"riderId": ""}, {"rider": None}],
@@ -2327,16 +2403,15 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
             continue
         c_addr = cord.get("address") if isinstance(cord.get("address"), dict) else {}
         order_city_raw = str(c_addr.get("city") or cord.get("city") or "").strip()
-        norm_ord_city = normalize_city_name(order_city_raw or "Kasganj")
+        norm_ord_city = extract_clean_city(order_city_raw) or normalize_city_name(order_city_raw or "Kasganj")
 
-        # Strict City Match: must be same city as rider
-        if norm_ord_city and rider_city_norm:
-            if norm_ord_city != rider_city_norm and norm_ord_city not in rider_city_norm and rider_city_norm not in norm_ord_city:
-                continue
+        # Flexible Territory / City Match
+        if not is_city_match(rider_city_norm, norm_ord_city, order_city_raw, (cord.get("partner") or {}).get("address", "")):
+            continue
 
         p_info = cord.get("partner") or {}
         partner_name = p_info.get("name") or p_info.get("storeName") or cord.get("partnerName") or "QuickPress Partner Store"
-        is_delivery_leg = str(cord.get("status") or "") in ("ready", "ready_for_delivery", "delivery_rider_assigned")
+        is_delivery_leg = str(cord.get("status") or "") in ("ready", "ready_for_delivery", "delivery_rider_assigned", "delivery_rider_assigning")
         ride_type = "delivery" if is_delivery_leg else "pickup"
         pickup_addr = (p_info.get("address") or f"{partner_name}, {norm_ord_city.title()}") if is_delivery_leg else (c_addr.get("line") or c_addr.get("address") or "Customer Pickup Location")
         drop_addr = (c_addr.get("line") or c_addr.get("address") or "Customer Delivery Location") if is_delivery_leg else (p_info.get("address") or f"{partner_name}, {norm_ord_city.title()}")
@@ -2364,7 +2439,7 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
             "partnerName": partner_name,
             "partnerPhone": p_info.get("phone") or "",
             "createdAt": cord.get("createdAt") or now_iso,
-            "expiresAt": (now_dt + timedelta(seconds=60)).isoformat(),
+            "expiresAt": (now_dt + timedelta(minutes=15)).isoformat(),
         })
 
     # Deduplicate and strictly validate against active customer orders
@@ -2390,13 +2465,12 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
             continue
 
         order_status = str(real_order.get("status") or "").lower()
-        # Strictly ignore demo / test orders
-        if (
-            str(real_order.get("code") or "").upper() in ("QP-8BD3", "DEMO", "TEST")
-            or "test" in str((real_order.get("customer") or {}).get("name") or "").lower()
-            or bool(real_order.get("is_demo") or real_order.get("is_test"))
-        ):
+        # Ignore mock / demo orders only if explicit flag set or code is QP-8BD3 demo
+        if bool(real_order.get("is_demo") or real_order.get("is_test")):
             continue
+        if str(real_order.get("code") or "").upper() in ("QP-8BD3", "MOCK_DEMO"):
+            continue
+
         # Strictly ignore orders that are terminal or already collected
         if order_status in (
             "delivered",
@@ -2412,28 +2486,33 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
         ):
             continue
 
-        # Strict City Match check against real customer order
+        # Territory / City Match check against real customer order
         cust_addr = real_order.get("address") or {}
-        real_ord_city = normalize_city_name(cust_addr.get("city") or real_order.get("city") or "Kasganj")
-        if real_ord_city and rider_city_norm:
-            if real_ord_city != rider_city_norm and real_ord_city not in rider_city_norm and rider_city_norm not in real_ord_city:
-                continue
-
-        # If order already has a rider assigned, it is not an open offer
-        if real_order.get("riderId") or real_order.get("rider") or order_status in ("pickup_rider_accepted", "rider_assigned"):
+        real_ord_city = extract_clean_city(cust_addr.get("city") or real_order.get("city") or "Kasganj") or normalize_city_name(cust_addr.get("city") or real_order.get("city") or "Kasganj")
+        if not is_city_match(rider_city_norm, real_ord_city, str(cust_addr.get("city") or "")):
             continue
 
-        # Check expiration - if order is still actively waiting for a rider, extend validity
-        exp = off.get("expiresAt")
-        if exp and exp <= now_iso:
-            if order_status in ("placed", "pending_partner_acceptance", "partner_accepted", "pickup_rider_assigned", "rider_searching", "ready", "ready_for_delivery") and not real_order.get("riderId"):
-                off["expiresAt"] = (now_dt + timedelta(seconds=60)).isoformat()
-            else:
-                continue
-
-        order_status = str(real_order.get("status") or "").lower()
-        if order_status in ("delivered", "completed", "cancelled", "rejected"):
+        # If order already has a rider assigned, check if it was assigned to THIS rider
+        ord_rider_id = str(real_order.get("riderId") or (real_order.get("rider") or {}).get("id") or "")
+        is_assigned_to_this_rider = bool(ord_rider_id and ord_rider_id in possible_rider_ids)
+        if ord_rider_id and not is_assigned_to_this_rider:
             continue
+        if order_status in ("pickup_rider_accepted", "rider_accepted", "rider_assigned") and not is_assigned_to_this_rider:
+            continue
+
+        if is_assigned_to_this_rider:
+            off["isAssigned"] = True
+            off["autoAssigned"] = True
+            off["status"] = "assigned"
+
+        # Active unassigned order offer validity: always keep alive while waiting for rider
+        is_unassigned = not real_order.get("riderId") and not real_order.get("rider")
+        if is_unassigned and order_status not in ("delivered", "completed", "cancelled", "rejected"):
+            off["expiresAt"] = (now_dt + timedelta(minutes=15)).isoformat()
+        else:
+            exp = off.get("expiresAt")
+            if exp and str(exp) <= now_iso:
+                continue
 
         # Populate accurate real order customer & store details
         cust_addr = real_order.get("address") or {}
@@ -2862,14 +2941,24 @@ async def deliver_order(
     otp = payload.get("otp") or payload.get("code")
     r_lat = payload.get("latitude") or payload.get("lat")
     r_lng = payload.get("longitude") or payload.get("lng")
+    garment_verified = payload.get("garmentVerified", True)
+    verified_pieces = payload.get("verifiedPieces")
     from app.services.smart_2ride_engine import smart_2ride_engine
     try:
         return await smart_2ride_engine.verify_delivery_otp(
-            order_id, str(otp or ""), rider_id, rider_lat=r_lat, rider_lng=r_lng
+            order_id,
+            str(otp or ""),
+            rider_id,
+            rider_lat=r_lat,
+            rider_lng=r_lng,
+            garment_verified=garment_verified,
+            verified_pieces=verified_pieces,
         )
     except (PermissionError, ValueError) as err:
         logger.warning(f"smart_2ride_engine.verify_delivery_otp failed for {order_id} otp={otp}: {err}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
+
+
     except LookupError as lkp_err:
         logger.info(f"Order {order_id} not in 2ride engine, falling back to delivery repository: {lkp_err}")
         # Fallback to standard delivery repository transition if not tracked by 2ride engine
@@ -2887,6 +2976,50 @@ async def deliver_order(
         except Exception as err:
             logger.warning(f"rider_delivery_repository.deliver failed for {order_id}: {err}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
+
+
+@router.post("/orders/{order_id}/confirm-doorstep-garments")
+async def confirm_doorstep_garments(
+    order_id: str, body: dict | None = None, user: User = Depends(current_user)
+) -> dict:
+    """Checkpoint 2: Rider confirms garment piece count with customer at doorstep before OTP verification."""
+    rider_id = await _rider_id(user)
+    payload = body or {}
+    verified_pieces = payload.get("verifiedPieces")
+    notes = payload.get("notes") or ""
+
+    order = await lifecycle.find_order(order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Order {order_id} not found")
+
+    canonical_id = lifecycle.order_id_of(order)
+    now = lifecycle.now_iso()
+    intake_info = (order.get("garmentVerification") or {}).get("storeIntake") or {}
+    expected_pieces = intake_info.get("totalReceivedPieces") or sum(
+        int(it.get("quantity") or it.get("qty") or 1) for it in (order.get("items") or [])
+    )
+    final_pieces = int(verified_pieces) if verified_pieces is not None else expected_pieces
+
+    doorstep_record = {
+        "verified": True,
+        "verifiedAt": now,
+        "verifiedBy": rider_id,
+        "piecesDelivered": final_pieces,
+        "expectedPieces": expected_pieces,
+        "hasDiscrepancy": bool(final_pieces != expected_pieces or notes),
+        "notes": notes,
+        "customerConfirmed": True,
+    }
+    await database.collection("customer_orders").update_one(
+        {"_id": canonical_id},
+        {
+            "$set": {
+                "garmentVerification.doorstepDelivery": doorstep_record,
+                "doorstepPiecesVerified": True,
+            }
+        },
+    )
+    return {"ok": True, "doorstepDelivery": doorstep_record}
 
 
 @router.post("/orders/{order_id}/unable-to-deliver")

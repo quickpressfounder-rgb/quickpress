@@ -1,12 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   Bike,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   Clock,
+  Home,
   Crosshair,
   DollarSign,
   ExternalLink,
@@ -21,10 +24,12 @@ import {
   CornerUpRight,
   CornerUpLeft,
   Package,
+  PackageCheck,
   Phone,
   PhoneCall,
   Send,
   ShieldCheck,
+  Shirt,
   Sparkles,
   Star,
   Timer,
@@ -46,6 +51,7 @@ import {
   speakDispatchOtpVerified,
   speakCustomerDeliveryOtpPrompt,
   speakPickupOtpPrompt,
+  stopOrderAlertSound,
   triggerHaptic,
   unlockAudioContext,
 } from "../../lib/captain-audio";
@@ -61,7 +67,6 @@ import { RiderHandoverWaitingCard } from "../orders/RiderHandoverWaitingCard";
 import { CaptainReviewModal } from "./CaptainReviewModal";
 import { pushRiderLocation } from "../../api/rider/rider-dashboard-api";
 import { SwipeActionButton } from "../common/SwipeActionButton";
-import { OrderJourneyStepper } from "./OrderJourneyStepper";
 import { RiderCustomerOtpInput, RiderStoreDispatchDisplay } from "./RiderOtpCard";
 
 import {
@@ -70,6 +75,7 @@ import {
   confirmArrivalAtPickup,
   confirmPickup,
   confirmDelivery,
+  confirmDoorstepGarments,
   confirmDropAtPartner,
   startDelivery,
 } from "../../api/rider/rider-orders-api";
@@ -111,6 +117,7 @@ export interface ActiveOrderData {
   amount?: number;
   placedAt?: string;
   items?: any[];
+  garmentVerification?: any;
   processingEstimateMinutes?: number;
   estimatedReadyAt?: string;
   processingStartedAt?: string;
@@ -121,6 +128,7 @@ interface GoToPickupHUDProps {
   onOpenDrawer?: () => void;
   onTripCompleted?: () => void;
   onCancelTrip?: () => void;
+  onBackToTrips?: () => void;
 }
 
 type TripStage = "en_route_pickup" | "arrived_pickup" | "in_trip" | "store_processing" | "ready_pickup_store" | "handover_waiting" | "completed";
@@ -130,7 +138,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   onOpenDrawer,
   onTripCompleted,
   onCancelTrip,
+  onBackToTrips,
 }) => {
+  const navigate = useNavigate();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
   const mapEngineRef = useRef<"google" | "leaflet" | null>(null);
@@ -169,6 +179,20 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     return s === "out_for_delivery" || s === "in_trip" || s === "picked_up";
   });
   const [customerDeliveryOtpDigits, setCustomerDeliveryOtpDigits] = useState<string[]>(["", "", "", ""]);
+  // Initial doorstep pieces calculation
+  const initialDoorstepPieces = (() => {
+    const intakePieces = (order as any)?.garmentVerification?.storeIntake?.totalReceivedPieces;
+    if (typeof intakePieces === "number" && intakePieces > 0) return intakePieces;
+    if (Array.isArray(order.items) && order.items.length > 0) {
+      const sum = order.items.reduce((acc: number, it: any) => acc + Number(it.quantity || it.qty || 1), 0);
+      if (sum > 0) return sum;
+    }
+    return 5;
+  })();
+  const [doorstepPieces, setDoorstepPieces] = useState<number>(initialDoorstepPieces);
+  const [isGarmentVerified, setIsGarmentVerified] = useState<boolean>(true);
+  const [doorstepNotes, setDoorstepNotes] = useState<string>("");
+  const [showDiscrepancyInput, setShowDiscrepancyInput] = useState<boolean>(false);
   const [showUnableModal, setShowUnableModal] = useState(false);
   const [isVerifyingHandover, setIsVerifyingHandover] = useState(false);
   const [handoverVerifyOtpDigits, setHandoverVerifyOtpDigits] = useState<string[]>(["", "", "", ""]);
@@ -250,6 +274,34 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     return mins * 60;
   });
 
+  // Handle Back to Trips page without cancelling the trip
+  const handleBack = useCallback(() => {
+    triggerHaptic(40);
+    if (onBackToTrips) {
+      onBackToTrips();
+    } else {
+      navigate({ to: "/orders" });
+    }
+  }, [onBackToTrips, navigate]);
+
+  useEffect(() => {
+    // Intercept browser / Android back button so it backs out to /orders without resetting the trip
+    try {
+      window.history.pushState({ hudActive: true }, "");
+    } catch {}
+
+    const onPopState = () => {
+      if (onBackToTrips) {
+        onBackToTrips();
+      }
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [onBackToTrips]);
+
   // Ticking countdown timer when stage === "store_processing"
   useEffect(() => {
     if (stage !== "store_processing") return;
@@ -270,9 +322,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  // Load dispatch OTP for Rider 2
+  // Load dispatch OTP for Rider 2 (skip for simulated test orders)
   useEffect(() => {
-    if (order.orderId) {
+    if (order.orderId && !order.orderId.startsWith("TEST-")) {
       fetchDispatchOtp(order.orderId)
         .then((res) => {
           if (res?.dispatchOtp) setCaptainDispatchOtp(res.dispatchOtp);
@@ -300,7 +352,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Fallback heartbeat poll while at partner store for partner verification
   useEffect(() => {
-    if (stage !== "arrived_pickup" || (!isHandoverRide && !isStorePickupForDelivery)) return;
+    if (stage !== "arrived_pickup" || (!isHandoverRide && !isStorePickupForDelivery) || order.orderId?.startsWith("TEST-")) return;
     const interval = setInterval(async () => {
       try {
         const res = await fetchDispatchOtp(order.orderId);
@@ -322,7 +374,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Fallback heartbeat poll while in "store_processing" waiting for partner to finish cleaning
   useEffect(() => {
-    if (stage !== "store_processing" || !order.orderId) return;
+    if (stage !== "store_processing" || !order.orderId || order.orderId.startsWith("TEST-")) return;
     const interval = setInterval(async () => {
       try {
         const res = await fetchDispatchOtp(order.orderId);
@@ -437,8 +489,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }
   };
 
-  // Live Device GPS Coordinates for Captain
+  // Live Device GPS Coordinates for Captain (Hydrated with real GPS / cached location)
   const [captainCoords, setCaptainCoords] = useState<{ lat: number; lng: number }>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("qp_rider_last_gps");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.lat && parsed?.lng) return parsed;
+        }
+      } catch {}
+    }
     return (
       order.customerCoords ||
       order.partnerCoords ||
@@ -447,10 +508,58 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     );
   });
 
-  // Track Captain's real-time device GPS coordinates via Singleton Engine
+  // Track Captain's real-time device GPS coordinates via Singleton Engine & native Geolocation
   useEffect(() => {
     riderLocationEngine.setActiveOrder(order.orderId);
+    riderLocationEngine.setOnline(true);
+
+    const unsubscribe = riderLocationEngine.subscribe((loc) => {
+      if (loc.lat && loc.lng && (loc.lat !== 27.8118 || loc.lng !== 78.6477)) {
+        setCaptainCoords({ lat: loc.lat, lng: loc.lng });
+        try {
+          localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat: loc.lat, lng: loc.lng }));
+        } catch {}
+      }
+    });
+
+    let watchId: number | null = null;
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (lat && lng) {
+            setCaptainCoords({ lat, lng });
+            try {
+              localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat, lng }));
+            } catch {}
+          }
+        },
+        (err) => console.warn("GPS initial error:", err),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+      );
+
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (lat && lng) {
+            setCaptainCoords({ lat, lng });
+            try {
+              localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat, lng }));
+            } catch {}
+          }
+        },
+        (err) => console.warn("GPS watch error:", err),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
+      );
+    }
+
     return () => {
+      unsubscribe();
+      if (watchId !== null && typeof window !== "undefined" && "geolocation" in navigator) {
+        navigator.geolocation.clearWatch(watchId);
+      }
       riderLocationEngine.setActiveOrder(null);
     };
   }, [order.orderId]);
@@ -492,6 +601,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         ? (partnerStoreAddress || "Partner Store Kasganj")
         : (order.dropAddress || order.pickupAddress || "Customer Delivery Address");
 
+  const distanceRemainingKm =
+    distanceMeters > 0
+      ? distanceMeters / 1000
+      : currentLeg === "store_to_customer"
+      ? (order.dropDistanceKm ?? 2.2)
+      : (order.pickupDistanceKm ?? 0.8);
+
   const pickupCoords = customerCoords;
   const dropCoords = storeCoords;
 
@@ -511,70 +627,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     return `${String(mins).padStart(2, "0")}:${String(rem).padStart(2, "0")}`;
   };
 
-  // Initialize Google Maps JavaScript API (with Leaflet fallback)
+  // Initialize Real Google Roadmap Tiles via Leaflet (Zero Watermark, 100% Real Roads & Buildings)
   useEffect(() => {
     let isMounted = true;
 
     async function initMap() {
       if (typeof window === "undefined" || !mapContainerRef.current) return;
 
-      // 1. Primary: Official Google Maps JavaScript API
-      if (isGoogleMapsConfigured()) {
-        try {
-          const isGoogleReady = await loadGoogleMaps();
-          const google = (window as any).google;
-
-          if (isMounted && isGoogleReady && google?.maps?.Map && mapContainerRef.current) {
-            const center = pickupCoords;
-            const gMap = new google.maps.Map(mapContainerRef.current, {
-              center: { lat: center.lat, lng: center.lng },
-              zoom: 16,
-              disableDefaultUI: true,
-              gestureHandling: "greedy",
-              clickableIcons: false,
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: false,
-              zoomControl: false,
-            });
-
-            try {
-              const trafficLayer = new google.maps.TrafficLayer();
-              trafficLayer.setMap(gMap);
-            } catch {}
-
-            googleMapInstanceRef.current = gMap;
-            mapEngineRef.current = "google";
-
-            setTimeout(() => {
-              if (isMounted && gMap && google?.maps?.event) {
-                google.maps.event.trigger(gMap, "resize");
-              }
-            }, 150);
-            setTimeout(() => {
-              if (isMounted && gMap && google?.maps?.event) {
-                google.maps.event.trigger(gMap, "resize");
-              }
-            }, 500);
-
-            if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
-              const ro = new ResizeObserver(() => {
-                if (isMounted && gMap && google?.maps?.event) {
-                  google.maps.event.trigger(gMap, "resize");
-                }
-              });
-              ro.observe(mapContainerRef.current);
-            }
-
-            await updateGoogleMapLayers(google, gMap, stage, currentLeg);
-            return;
-          }
-        } catch (err) {
-          console.warn("Google Maps SDK failed, falling back to Leaflet:", err);
-        }
-      }
-
-      // 2. Secondary Fallback: Leaflet with Google Maps Tiles
       try {
         const leafletModule = await import("leaflet");
         const L = leafletModule.default || leafletModule;
@@ -589,7 +648,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           mapInstanceRef.current = null;
         }
 
-        const center = pickupCoords;
+        const center = captainCoords || pickupCoords;
         const map = L.map(mapContainerRef.current, {
           center: [center.lat, center.lng],
           zoom: 16,
@@ -597,7 +656,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           attributionControl: false,
         });
 
-        // Google Maps High-Resolution Roadmap Tiles
+        // Genuine Google Maps High-Resolution Roadmap Tiles (Zero Watermark, no billing errors)
         L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
           maxZoom: 20,
           subdomains: ["mt0", "mt1", "mt2", "mt3"],
@@ -627,10 +686,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           ro.observe(mapContainerRef.current);
         }
 
-        // Render markers & street route initially
-        updateMapLayers(L, map, stage, currentLeg);
+        // Render markers & real street route initially
+        await updateMapLayers(L, map, stage, currentLeg);
       } catch (err) {
-        console.warn("Leaflet map initialization notice:", err);
+        console.warn("Real map initialization notice:", err);
       }
     }
 
@@ -903,15 +962,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Recenter GPS on Captain Location
   const handleRecenter = () => {
+    triggerHaptic(40);
+    if (mapInstanceRef.current && captainCoords) {
+      mapInstanceRef.current.setView([captainCoords.lat, captainCoords.lng], 17, {
+        animate: true,
+      });
+      toast.info("Map centered on your real location 📍");
+      return;
+    }
     if (mapEngineRef.current === "google" && googleMapInstanceRef.current) {
       googleMapInstanceRef.current.panTo({ lat: captainCoords.lat, lng: captainCoords.lng });
       googleMapInstanceRef.current.setZoom(17);
-      toast.info("Google Map centered on your location 📍");
-      return;
-    }
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([captainCoords.lat, captainCoords.lng], 16);
       toast.info("Map centered on your location 📍");
+      return;
     }
   };
 
@@ -960,11 +1023,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           ? storeCoords
           : customerCoords
         : customerCoords;
+    stopOrderAlertSound();
     launchTurnByTurnGoogleMaps(dest, captainCoords, activeDestTitle);
   };
 
   // In-App GPS Navigation Mode (No External Google Maps Redirect)
   const handleStartInAppNavigation = () => {
+    stopOrderAlertSound();
     unlockAudioContext();
     triggerHaptic();
     setIsInAppNavActive(true);
@@ -976,6 +1041,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Action Handlers
   const handleMarkArrived = () => {
+    stopOrderAlertSound();
     unlockAudioContext();
     triggerHaptic();
     playArrivalChime();
@@ -986,7 +1052,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     toast.success("You have arrived at Pickup location! 📍 Customer notified.");
 
     // Real backend notification
-    if (order.orderId) {
+    if (order.orderId && !order.orderId.startsWith("TEST-")) {
       confirmArrivalAtPickup(order.orderId).catch(() => {});
     }
   };
@@ -1000,8 +1066,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       return;
     }
 
-    // Call Real Backend verification first
-    if (order.orderId) {
+    // Call Real Backend verification first (skip for simulated test orders)
+    if (order.orderId && !order.orderId.startsWith("TEST-")) {
       try {
         await confirmPickup(order.orderId, otpToVerify);
       } catch (err: any) {
@@ -1092,7 +1158,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         localStorage.setItem("qp_active_rider_order", JSON.stringify(updatedOrder));
       } catch {}
 
-      if (order.orderId) {
+      if (order.orderId && !order.orderId.startsWith("TEST-")) {
         try {
           await confirmDropAtPartner(order.orderId, false);
         } catch (e) {
@@ -1108,9 +1174,22 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         return;
       }
 
-      if (order.orderId) {
+      if (order.orderId && !order.orderId.startsWith("TEST-")) {
         try {
-          await confirmDelivery(order.orderId, enteredOtp);
+          await confirmDoorstepGarments(order.orderId, {
+            verifiedPieces: doorstepPieces,
+            notes: doorstepNotes,
+          });
+        } catch (e) {
+          console.warn("confirmDoorstepGarments error:", e);
+        }
+
+        try {
+          await confirmDelivery(order.orderId, enteredOtp, {
+            garmentVerified: isGarmentVerified,
+            verifiedPieces: doorstepPieces,
+            notes: doorstepNotes,
+          });
         } catch (e: any) {
           const msg = (e?.message || "").toLowerCase();
           if (msg.includes("already") || msg.includes("delivered") || msg.includes("completed")) {
@@ -1187,28 +1266,130 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     toast.success("Message sent to customer 💬");
   };
 
+  // 6-Step Upgraded QuickPress Lifecycle Stepper
+  const isEnRoute = stage === "en_route_pickup";
+  const isAtPickup = stage === "arrived_pickup" && !isStorePickupForDelivery;
+  const isDroppedAtStoreOrProcessing =
+    stage === "store_processing" || (stage === "in_trip" && currentLeg === "pickup_to_store");
+  const isAtStoreHandover =
+    stage === "ready_pickup_store" || (stage === "arrived_pickup" && isStorePickupForDelivery);
+  const isOutForDelivery = stage === "in_trip" && currentLeg === "store_to_customer";
+  const isTripCompleted = stage === "completed";
+
+  const timelineSteps = [
+    {
+      id: "accept",
+      label: "Accept",
+      hindi: "स्वीकार",
+      isDone: true,
+      isActive: false,
+      icon: CheckCircle2,
+    },
+    {
+      id: "reach",
+      label: isStorePickupForDelivery ? "At Store" : "Reach",
+      hindi: isStorePickupForDelivery ? "स्टोर पहुंचे" : "पहुंचे",
+      isDone: !isEnRoute,
+      isActive: isEnRoute,
+      icon: MapPin,
+    },
+    {
+      id: "pickup",
+      label: isStorePickupForDelivery ? "Collect" : "Pickup",
+      hindi: isStorePickupForDelivery ? "कलेक्ट" : "कपड़े लिए",
+      isDone: stage === "in_trip" || stage === "store_processing" || stage === "ready_pickup_store" || isTripCompleted,
+      isActive: isAtPickup,
+      icon: KeyRound,
+    },
+    {
+      id: "wash",
+      label: "Wash/SLA",
+      hindi: "धुलाई",
+      isDone: isAtStoreHandover || isOutForDelivery || isTripCompleted,
+      isActive: isDroppedAtStoreOrProcessing,
+      icon: Sparkles,
+    },
+    {
+      id: "dispatch",
+      label: "Dispatch",
+      hindi: "कोड",
+      isDone: isOutForDelivery || isTripCompleted,
+      isActive: isAtStoreHandover,
+      icon: ShieldCheck,
+    },
+    {
+      id: "delivered",
+      label: "Delivered",
+      hindi: "सफल डिलीवरी",
+      isDone: isTripCompleted,
+      isActive: isOutForDelivery,
+      icon: PackageCheck,
+    },
+  ];
+
+  const activeStepIndex = isTripCompleted
+    ? 6
+    : isOutForDelivery
+    ? 6
+    : isAtStoreHandover
+    ? 5
+    : isDroppedAtStoreOrProcessing
+    ? 4
+    : isAtPickup
+    ? 3
+    : isEnRoute
+    ? 2
+    : 1;
+
+  const currentStagePillText = isTripCompleted
+    ? "🎉 Order Successfully Completed"
+    : isOutForDelivery
+    ? "🛵 En Route to Customer Delivery"
+    : isAtStoreHandover
+    ? "🤝 At Store · Give 4-Digit Dispatch Code"
+    : isDroppedAtStoreOrProcessing
+    ? "🧺 Store Washing & Steam Ironing (SLA)"
+    : isAtPickup
+    ? "📍 At Pickup · Verify Customer OTP"
+    : isEnRoute
+    ? (isStorePickupForDelivery ? "📦 Heading to Partner Store" : "🚲 Heading to Customer Pickup")
+    : "⚡ Order Accepted & Ready";
+
+  const progressPercentage = Math.round(((activeStepIndex - 1) / 5) * 100);
+
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-white shadow-2xl overflow-hidden text-neutral-900 select-none">
-      {/* 1. Top Navigation Bar (Exact Match: ☰ Go to Pickup Zone 📞) */}
+    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-white shadow-2xl overflow-y-auto text-neutral-900 select-none pb-24 overscroll-contain">
+      {/* 1. Top Navigation Bar (Back Button + Menu + Title + Call) */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3 bg-white border-b border-neutral-100 shadow-xs"
+        className="sticky top-0 z-30 flex items-center justify-between px-3.5 pb-2.5 bg-white/95 backdrop-blur-md border-b border-neutral-100 shadow-xs"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
       >
-        {/* Hamburger Menu Button */}
-        <button
-          type="button"
-          onClick={onOpenDrawer}
-          className="flex items-center justify-center w-10 h-10 -ml-1 text-neutral-900 rounded-full hover:bg-neutral-100 active:scale-95 transition-transform"
-          aria-label="Open Navigation Drawer"
-        >
-          <Menu className="w-6 h-6 stroke-[2.4]" />
-        </button>
+        {/* Back Button (Returns to Trips List while keeping trip active) & Drawer */}
+        <div className="flex items-center gap-0.5 -ml-1">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center justify-center w-9 h-9 text-neutral-800 rounded-full hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer"
+            aria-label="Back to Trips"
+            title="Back to Trips (Trip Active Rahegi)"
+          >
+            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+          </button>
+          <button
+            type="button"
+            onClick={onOpenDrawer}
+            className="flex items-center justify-center w-9 h-9 text-neutral-800 rounded-full hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer"
+            aria-label="Open Navigation Drawer"
+          >
+            <Menu className="w-5 h-5 stroke-[2.4]" />
+          </button>
+        </div>
 
         {/* Screen Title */}
-        <h1 className={`text-base font-black tracking-tight ${isDeliveryRide ? "text-blue-950" : "text-neutral-950"}`}>
-          {stage === "en_route_pickup" && (isDeliveryRide ? "📦 Go to Partner Store (Pick up)" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
+        <h1 className={`text-sm sm:text-base font-black tracking-tight truncate max-w-[200px] sm:max-w-xs ${isDeliveryRide ? "text-blue-950" : "text-neutral-950"}`}>
+          {stage === "en_route_pickup" && (isDeliveryRide ? "📦 Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
           {stage === "arrived_pickup" && (isDeliveryRide ? "📦 At Partner Store" : isHandoverRide ? "At Handover Point" : "At Pickup Location")}
-          {stage === "in_trip" && (isDeliveryRide ? "📦 En Route to Customer Delivery" : order.rideType === "pickup" ? "Heading to Partner Store" : "Heading to Drop Zone")}
+          {stage === "in_trip" && (isDeliveryRide ? "📦 En Route to Delivery" : order.rideType === "pickup" ? "Heading to Partner Store" : "Heading to Drop Zone")}
           {stage === "store_processing" && "🧺 Washing & Ironing in Progress"}
           {stage === "ready_pickup_store" && "📦 Collect from Store & Deliver"}
           {stage === "handover_waiting" && "Order Handover in Progress"}
@@ -1219,10 +1400,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         <button
           type="button"
           onClick={() => setShowCallModal(true)}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-neutral-950 text-[#FBBF24] hover:bg-neutral-800 shadow-sm active:scale-95 transition-all"
+          className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-neutral-950 text-[#FBBF24] hover:bg-neutral-800 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
           aria-label="Call Customer"
         >
-          <Phone className="w-5 h-5 fill-[#FBBF24] stroke-none" />
+          <Phone className="w-4.5 h-4.5 fill-[#FBBF24] stroke-none" />
         </button>
       </header>
 
@@ -1239,103 +1420,147 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         </div>
       )}
 
-      {/* 1.1 ORDER TIMELINE STEP PROGRESS BAR */}
-      <div className="z-25 bg-neutral-50 px-3.5 py-2 border-b border-neutral-200/80 shadow-2xs">
-        <div className="flex items-center justify-between mb-1.5">
+      {/* 1.1 UPGRADED ORDER TIMELINE STEP PROGRESS BAR (6 Milestone Lifecycle Options) */}
+      <div className="z-25 bg-white px-3.5 py-2.5 border-b border-neutral-200/90 shadow-2xs space-y-2">
+        {/* Top Header: Title, Active Stage Badge & Fare */}
+        <div className="flex items-center justify-between gap-1.5 flex-wrap">
           <button
             type="button"
             onClick={() => setShowTimelineModal(true)}
-            className="flex items-center gap-1.5 text-xs font-black text-neutral-900 hover:text-[#00C853] transition-colors"
+            className="flex items-center gap-1.5 text-xs font-black text-neutral-900 hover:text-emerald-700 transition-colors cursor-pointer group"
           >
-            <Clock className="w-3.5 h-3.5 text-[#00C853]" />
+            <div className="flex size-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 group-hover:scale-110 transition-transform">
+              <Clock className="w-3 h-3 stroke-[2.5]" />
+            </div>
             <span>Order Timeline</span>
-            <span className="text-[10px] text-[#00C853] font-bold bg-[#00C853]/10 px-1.5 py-0.2 rounded-full">
-              View
+            <span className="text-[10px] text-emerald-800 font-extrabold bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-0.5">
+              <span>View Details</span>
+              <ChevronDown className="w-2.5 h-2.5" />
             </span>
-            <ChevronDown className="w-3 h-3 text-neutral-400" />
           </button>
-          <span className="text-[10px] font-bold text-neutral-500 bg-white px-2 py-0.5 rounded-full border border-neutral-200">
-            Trip #{order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "LIVE")} · ₹{order.fare.toFixed(2)}
+
+          <div className="flex items-center gap-1.5">
+            {Boolean(
+              order.orderId?.startsWith("TEST-") ||
+              order.id?.startsWith("TEST-") ||
+              order.orderCode?.startsWith("TEST-") ||
+              order.customerName?.toLowerCase().includes("sector 67")
+            ) && (
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem("qp_active_rider_order");
+                    localStorage.removeItem("qp_test_rider_offer");
+                  } catch {}
+                  onCancelOrder();
+                }}
+                className="flex items-center gap-1 text-[10px] font-black text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 px-2 py-0.5 rounded-md active:scale-95 transition-all cursor-pointer shadow-2xs"
+                title="Discard Test Order"
+              >
+                <span>✕</span>
+                <span>Remove Test Order</span>
+              </button>
+            )}
+            <span className="text-[10px] font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md border border-neutral-200 font-mono">
+              #{order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "LIVE")}
+            </span>
+            <span className="text-[11px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+              ₹{order.fare.toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        {/* Live Active Milestone Pill Banner */}
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-neutral-50 border border-emerald-200/80 text-[11px]">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="relative flex size-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full size-2 bg-emerald-600" />
+            </span>
+            <span className="font-black text-emerald-950 truncate">
+              {currentStagePillText}
+            </span>
+          </div>
+          <span className="text-[10px] font-black text-emerald-800 shrink-0 ml-1 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+            Step {activeStepIndex} of 6
           </span>
         </div>
 
-        {/* 4 Step Progress Line */}
-        <div className="grid grid-cols-4 gap-1 items-center pt-0.5">
-          {/* Step 1: Accepted */}
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded-full bg-[#00C853] text-white flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-3 h-3 stroke-[3]" />
-            </div>
-            <span className="text-[10px] font-black text-[#00C853] truncate">Accept</span>
+        {/* 6 Step Progress Track Stepper */}
+        <div className="relative pt-1 pb-0.5">
+          {/* Background Track Line */}
+          <div className="absolute top-4 left-4 right-4 h-1 bg-neutral-200 rounded-full z-0 -translate-y-1/2">
+            {/* Animated Active Fill Line */}
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercentage}%` }}
+            />
           </div>
 
-          {/* Step 2: Pickup */}
-          <div className="flex items-center gap-1">
-            <div
-              className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-black ${
-                stage === "en_route_pickup"
-                  ? "bg-blue-600 text-white ring-2 ring-blue-200 animate-pulse"
-                  : "bg-[#00C853] text-white"
-              }`}
-            >
-              {stage === "en_route_pickup" ? "2" : "✓"}
-            </div>
-            <span
-              className={`text-[10px] font-black truncate ${
-                stage === "en_route_pickup" ? "text-blue-600" : "text-[#00C853]"
-              }`}
-            >
-              Pickup
-            </span>
-          </div>
+          {/* 6 Step Nodes */}
+          <div className="relative z-10 grid grid-cols-6 gap-1">
+            {timelineSteps.map((step) => {
+              const Icon = step.icon;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => setShowTimelineModal(true)}
+                  className="flex flex-col items-center text-center group cursor-pointer"
+                >
+                  {/* Step Node Circle */}
+                  <div
+                    className={`size-6 rounded-full flex items-center justify-center transition-all ${
+                      step.isDone
+                        ? "bg-[#00C853] text-white shadow-xs"
+                        : step.isActive
+                        ? "bg-blue-600 text-white ring-3 ring-blue-200 shadow-md scale-110 animate-pulse"
+                        : "bg-white text-neutral-400 border-2 border-neutral-300"
+                    }`}
+                  >
+                    {step.isDone ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
+                    ) : (
+                      <Icon className="w-3 h-3 stroke-[2.5]" />
+                    )}
+                  </div>
 
-          {/* Step 3: In-Trip */}
-          <div className="flex items-center gap-1">
-            <div
-              className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-black ${
-                stage === "in_trip"
-                  ? "bg-emerald-600 text-white ring-2 ring-emerald-200 animate-pulse"
-                  : stage === "completed"
-                  ? "bg-[#00C853] text-white"
-                  : "bg-neutral-200 text-neutral-600"
-              }`}
-            >
-              {stage === "completed" ? "✓" : "3"}
-            </div>
-            <span
-              className={`text-[10px] font-black truncate ${
-                stage === "in_trip" ? "text-emerald-700" : stage === "completed" ? "text-[#00C853]" : "text-neutral-400"
-              }`}
-            >
-              In-Trip
-            </span>
-          </div>
+                  {/* Step Label */}
+                  <span
+                    className={`text-[9.5px] font-black leading-tight mt-1 truncate max-w-full ${
+                      step.isActive
+                        ? "text-blue-700"
+                        : step.isDone
+                        ? "text-emerald-800"
+                        : "text-neutral-500"
+                    }`}
+                  >
+                    {step.label}
+                  </span>
 
-          {/* Step 4: Drop */}
-          <div className="flex items-center gap-1">
-            <div
-              className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-black ${
-                stage === "completed"
-                  ? "bg-[#00C853] text-white"
-                  : "bg-neutral-200 text-neutral-600"
-              }`}
-            >
-              {stage === "completed" ? "✓" : "4"}
-            </div>
-            <span
-              className={`text-[10px] font-black truncate ${
-                stage === "completed" ? "text-[#00C853]" : "text-neutral-400"
-              }`}
-            >
-              Drop
-            </span>
+                  {/* Hindi Sub-label */}
+                  <span
+                    className={`text-[8px] font-semibold leading-none truncate max-w-full mt-0.5 ${
+                      step.isActive
+                        ? "text-blue-600 font-bold"
+                        : step.isDone
+                        ? "text-emerald-600"
+                        : "text-neutral-400"
+                    }`}
+                  >
+                    {step.hindi}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* 2. Map Box Card (Rapido Navigation Box Container) */}
-      <div className="relative flex-1 w-full px-3 py-2 flex flex-col min-h-[300px] overflow-hidden bg-neutral-100/90">
-        <div className="relative flex-1 w-full rounded-3xl overflow-hidden border-2 border-neutral-300 shadow-md bg-slate-950">
+      <div className="relative w-full px-3 py-2 flex flex-col h-[280px] shrink-0 overflow-hidden bg-neutral-100/90">
+        <div className="relative w-full h-full rounded-3xl overflow-hidden border-2 border-neutral-300 shadow-md bg-slate-950">
           <div ref={mapContainerRef} className="w-full h-full" />
 
           {/* Rapido Top Floating Turn-by-Turn Maneuver Pill (In-App Live Navigation HUD) */}
@@ -1402,27 +1627,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             <span className="text-slate-800 font-bold ml-0.5">Maps</span>
           </div>
 
-          {/* Floating Map Controls (Bottom Right GPS Recenter, Voice Navigation & Google Maps Button) */}
-          <div className="absolute right-3 bottom-3 z-20 flex items-center gap-1.5 pointer-events-auto">
-            <button
-              type="button"
-              onClick={handleOpenExternalGoogleMaps}
-              className="flex items-center gap-1 px-2.5 py-2 bg-white/95 backdrop-blur-md text-slate-800 hover:bg-slate-100 font-bold text-xs rounded-xl shadow-lg border border-slate-300 active:scale-95 transition-all cursor-pointer"
-              title="Open Directions in Google Maps App"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-[#4285F4]" />
-              <span className="hidden sm:inline">Open in</span>
-              <span>Google Maps</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleStartInAppNavigation}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl shadow-xl border border-emerald-300 active:scale-95 transition-all cursor-pointer"
-              title="In-App Voice Turn-by-Turn GPS"
-            >
-              <Navigation className="w-3.5 h-3.5 fill-white stroke-none" />
-              <span>Voice GPS</span>
-            </button>
+          {/* Floating Map Controls (Bottom Right GPS Recenter Button) */}
+          <div className="absolute right-3 bottom-3 z-20 flex items-center pointer-events-auto">
             <button
               type="button"
               onClick={handleRecenter}
@@ -1433,22 +1639,6 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             </button>
           </div>
         </div>
-      </div>
-
-      {/* 3. Order Journey Stepper (Zomato/Blinkit Style Live Progress Bar) */}
-      <div className="z-20 bg-white border-t border-zinc-200">
-        <OrderJourneyStepper
-          currentStep={
-            stage === "store_processing" ||
-            stage === "ready_pickup_store" ||
-            (stage === "arrived_pickup" && (isStorePickupForDelivery || isHandoverRide))
-              ? 2
-              : (stage === "in_trip" && currentLeg === "store_to_customer") || stage === "completed"
-              ? 3
-              : 1
-          }
-          isReassigned={Boolean(order.isReassigned || (order.extraBonusAmount && order.extraBonusAmount > 0))}
-        />
       </div>
 
       {/* 4. Customer / Store Information Card (Zomato/Blinkit Captain Sunlight UI) */}
@@ -1796,7 +1986,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 </button>
 
                 {/* Payment Collection Banner (COD or Prepaid) */}
-                {Boolean(order.isCod || (order as any).paymentMethod === "cash" || (order as any).paymentMethod === "cod") ? (
+                {Boolean((order as any).isCod || order.paymentMode === "cash" || order.paymentMode === "cod" || (order as any).paymentMethod === "cash" || (order as any).paymentMethod === "cod") ? (
                   <div className="p-3 bg-amber-50 border-2 border-amber-400 rounded-2xl flex items-center justify-between shadow-xs">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-black text-sm">
@@ -1828,6 +2018,113 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     </span>
                   </div>
                 )}
+
+                {/* Doorstep Garment Handover & Cloth Verification Card */}
+                <div className="bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/70 border border-indigo-200/90 rounded-2xl p-3.5 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                        <Shirt className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                          Doorstep Cloth Count (कपड़ों की गिनती)
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-1.5 py-0.5 rounded-md">
+                            Delivery Check
+                          </span>
+                        </h4>
+                        <p className="text-[10px] font-medium text-slate-500">
+                          Verify cleaned garments before handing to customer
+                        </p>
+                      </div>
+                    </div>
+
+                    {((order as any)?.garmentVerification?.storeIntake?.totalReceivedPieces || (order.items && order.items.length > 0)) && (
+                      <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
+                        Expected: {(order as any)?.garmentVerification?.storeIntake?.totalReceivedPieces || order.items?.reduce((a: number, c: any) => a + Number(c.quantity || c.qty || 1), 0) || 5} pcs
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Quantity Stepper */}
+                  <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-700">
+                      Delivered Pieces (दिए गए कपड़े):
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDoorstepPieces((p) => Math.max(1, p - 1))}
+                        className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-base flex items-center justify-center active:scale-95 transition-all"
+                        aria-label="Decrease cloth count"
+                      >
+                        -
+                      </button>
+                      <span className="w-10 text-center font-black text-base text-indigo-950 font-mono">
+                        {doorstepPieces}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDoorstepPieces((p) => p + 1)}
+                        className="w-8 h-8 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black text-base flex items-center justify-center active:scale-95 transition-all"
+                        aria-label="Increase cloth count"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Checkbox verification confirmation */}
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={isGarmentVerified}
+                      onChange={(e) => setIsGarmentVerified(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                    />
+                    <span className="text-[11px] font-bold text-slate-700 leading-snug">
+                      I have verified and handed over all cleaned garments to the customer.
+                    </span>
+                  </label>
+
+                  {/* Toggle discrepancy / remark note */}
+                  <div className="pt-0.5">
+                    {!showDiscrepancyInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowDiscrepancyInput(true)}
+                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1"
+                      >
+                        + Add note or report missing/damaged item
+                      </button>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-500">
+                            Doorstep Remarks / Discrepancy Note:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowDiscrepancyInput(false);
+                              setDoorstepNotes("");
+                            }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-slate-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={doorstepNotes}
+                          onChange={(e) => setDoorstepNotes(e.target.value)}
+                          placeholder="e.g. 1 shirt pending dryclean, customer informed"
+                          className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-indigo-500 text-slate-800"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* 4-Digit Customer Delivery OTP Input with Instant Auto-Accept */}
                 <RiderCustomerOtpInput
@@ -1960,6 +2257,37 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 </p>
               </div>
 
+              {/* 🏠 GO TO HOME BUTTON (Directly Below SLA Countdown Timer) */}
+              <div className="pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(40);
+                    toast.info("Trip active rahegi! Dashboard par ja rahe hain 🛵");
+                    navigate({ to: "/dashboard" });
+                  }}
+                  className="w-full py-3 px-4 bg-white hover:bg-emerald-50/80 text-emerald-950 rounded-2xl border-2 border-emerald-400/90 shadow-sm font-black text-xs flex items-center justify-between active:scale-98 transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-base shadow-xs group-hover:scale-105 transition-transform">
+                      🏠
+                    </div>
+                    <div className="text-left">
+                      <span className="block font-black text-xs text-neutral-950">
+                        Go to Home (Dashboard)
+                      </span>
+                      <span className="block text-[10px] font-semibold text-emerald-700">
+                        Trip background me active rahegi · Kabhi bhi resume karein
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-800 bg-emerald-100/90 px-3 py-1.5 rounded-xl shrink-0">
+                    <span>Home</span>
+                    <span>➔</span>
+                  </div>
+                </button>
+              </div>
+
               {/* Partner Store Info */}
               <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
@@ -2022,6 +2350,14 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <button
                 type="button"
                 onClick={async () => {
+                  if (order.orderId?.startsWith("TEST-")) {
+                    unlockAudioContext();
+                    playSuccessChime();
+                    speakLaundryReadyForDelivery();
+                    toast.success("🎉 Test Laundry Ready! Collect from Store.");
+                    setStage("ready_pickup_store");
+                    return;
+                  }
                   try {
                     const res = await fetchDispatchOtp(order.orderId);
                     if (

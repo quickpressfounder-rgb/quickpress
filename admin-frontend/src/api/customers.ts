@@ -70,7 +70,7 @@ function toAdminCustomer(row: any): AdminCustomer {
     walletRaw: walletNum,
     loyaltyPoints: Number(row.loyaltyPoints || 0),
     loyaltyLevel: row.loyaltyLevel || "Silver Tier",
-    membership: row.membership || (row.isVip ? "Gold VIP" : "Standard"),
+    membership: typeof row.membership === "object" && row.membership !== null ? (row.membership.plan || (row.isVip ? "Gold VIP" : "Standard")) : (row.membership || (row.isVip ? "Gold VIP" : "Standard")),
     joined: row.registrationDate || (row.registrationTimestamp ? String(row.registrationTimestamp).slice(0, 10) : "—"),
     registrationTimestamp: row.registrationTimestamp || row.registrationDate || row.createdAt || row.created_at || row.registered_at || "",
     lastActive: row.lastActive || (row.lastLoginTimestamp ? String(row.lastLoginTimestamp).slice(0, 10) : "—"),

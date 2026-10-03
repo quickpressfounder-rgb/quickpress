@@ -332,6 +332,22 @@ async def broadcast_order_event(
     # 5. Emit to admin room
     await sio.emit(event_name, payload, room="admins")
 
+    # 6. Publish to RealtimeEventBus for SSE streams and pub/sub workers
+    try:
+        from app.core.realtime_bus import realtime_bus
+        target_rooms = ["admins"]
+        if order_id:
+            target_rooms.append(f"order:{order_id}")
+        if customer_id:
+            target_rooms.extend([f"user:{customer_id}", f"customer:{customer_id}"])
+        if partner_id:
+            target_rooms.append(f"partner:{partner_id}")
+        if rider_id:
+            target_rooms.append(f"rider:{rider_id}")
+        await realtime_bus.broadcast(event_name, payload, target_rooms)
+    except Exception as bus_err:
+        logger.debug("RealtimeEventBus broadcast error: %s", bus_err)
+
 
 EVENT_WALLET_UPDATED = "wallet.updated"
 
@@ -353,6 +369,12 @@ async def broadcast_wallet_event(
             EVENT_WALLET_UPDATED,
             wallet_data,
             room=f"customer:{user_id}",
+        )
+        from app.core.realtime_bus import realtime_bus
+        await realtime_bus.broadcast(
+            EVENT_WALLET_UPDATED,
+            wallet_data,
+            [f"user:{user_id}", f"customer:{user_id}"],
         )
     except Exception as exc:
         logger.warning("Failed to broadcast wallet event to user %s: %s", user_id, exc)

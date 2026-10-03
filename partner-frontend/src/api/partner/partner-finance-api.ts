@@ -4,6 +4,7 @@
 
 import { apiGetJson, apiPostJson } from "../core/transport";
 import { readToken } from "../core/session-store";
+import { apiBaseUrl } from "../core/config";
 
 export type SettlementCycle = {
   cycleId: string;
@@ -34,6 +35,11 @@ export type FinanceOverviewResponse = {
     orderCount: number;
   }[];
   filterOptions: string[];
+  months?: {
+    cycleId: string;
+    period: string;
+    monthKey: string;
+  }[];
 };
 
 export type SettlementOrder = {
@@ -146,7 +152,7 @@ export async function fetchFinanceTaxInvoices(): Promise<{ invoices: TaxInvoice[
 export function getPartnerOrderInvoicePdfUrl(orderId: string): string {
   const token = readToken();
   const cleanId = encodeURIComponent(orderId);
-  return `/api/partner/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  return `${apiBaseUrl()}/api/partner/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
 }
 
 export async function fetchPartnerOrderInvoice(orderId: string): Promise<any> {
@@ -156,7 +162,7 @@ export async function fetchPartnerOrderInvoice(orderId: string): Promise<any> {
 export async function downloadPartnerInvoicePdfBlob(orderId: string, customFileName?: string): Promise<string> {
   const token = readToken();
   const cleanId = encodeURIComponent(orderId);
-  const url = `/api/partner/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const url = `${apiBaseUrl()}/api/partner/orders/${cleanId}/invoice/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -179,7 +185,7 @@ export async function downloadPartnerInvoicePdfBlob(orderId: string, customFileN
 export async function downloadCommissionInvoicePdfBlob(periodKey: string, customFileName?: string): Promise<string> {
   const token = readToken();
   const cleanKey = encodeURIComponent(periodKey);
-  const url = `/api/partner/finance/commission-invoices/${cleanKey}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const url = `${apiBaseUrl()}/api/partner/finance/commission-invoices/${cleanKey}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -198,4 +204,74 @@ export async function downloadCommissionInvoicePdfBlob(periodKey: string, custom
   setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
   return fileName;
 }
+
+export async function downloadCommissionInvoiceExcelBlob(periodKey: string, customFileName?: string): Promise<string> {
+  const token = readToken();
+  const cleanKey = encodeURIComponent(periodKey);
+  const url = `${apiBaseUrl()}/api/partner/finance/commission-invoices/${cleanKey}/excel${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download commission invoice Excel (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const fileName = customFileName || `QuickPress-Commission-Invoice-${periodKey}.csv`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  return fileName;
+}
+
+export async function downloadSettlementPdfBlob(cycleId: string, customFileName?: string): Promise<string> {
+  const token = readToken();
+  const cleanId = encodeURIComponent(cycleId);
+  const url = `${apiBaseUrl()}/api/partner/finance/statement/${cleanId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download settlement statement PDF (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const fileName = customFileName || `QuickPress-Settlement-${cycleId.replace(/\//g, "-")}.pdf`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  return fileName;
+}
+
+export async function downloadSettlementExcelBlob(cycleId: string, customFileName?: string): Promise<string> {
+  const token = readToken();
+  const cleanId = encodeURIComponent(cycleId);
+  const url = `${apiBaseUrl()}/api/partner/finance/statement/${cleanId}/excel${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download settlement statement Excel (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const fileName = customFileName || `QuickPress-Settlement-${cycleId.replace(/\//g, "-")}.csv`;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  return fileName;
+}
+
 

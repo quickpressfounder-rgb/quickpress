@@ -85,7 +85,6 @@ export function OtpVerificationScreen() {
     }
     setBusy(false);
     setVerified(true);
-    toast.success("Mobile number verified successfully!");
 
     // Check ground-truth verification & onboarding status from MongoDB
     let realIsOnboarded = session.isOnboarded;
@@ -113,7 +112,7 @@ export function OtpVerificationScreen() {
       } else {
         navigate({ to: partnerRoutes.registrationSubmitted });
       }
-    }, 600);
+    }, 400);
   };
 
   const handleResend = async () => {
@@ -128,7 +127,6 @@ export function OtpVerificationScreen() {
     restart();
     setDigits("");
     inputRef.current?.focus();
-    toast.success("New OTP sent to your phone");
   };
 
   return (

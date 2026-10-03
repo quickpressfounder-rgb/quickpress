@@ -17,6 +17,7 @@ import {
 import { stopPartnerOrderAlertRing } from "../lib/partner-order-alert-sound";
 import {
   OrderStatusChips,
+  OrderStatusFlowCard,
   QuickActionsGrid,
   QuickStatsGrid,
   RevenueCard,
@@ -25,7 +26,7 @@ import {
   type DashboardSummaryCard,
   type QuickStat,
 } from "../components/dashboard/DashboardCards";
-import { Announcements, TodayPerformance } from "../components/dashboard/DashboardInsights";
+import { DailyAnalyticsSection } from "../components/dashboard/DashboardInsights";
 import {
   DashboardSkeleton,
   NoOrdersEmptyState,
@@ -36,30 +37,44 @@ import { PullToRefresh } from "../components/dashboard/PullToRefresh";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { fetchPartnerProfile } from "@/api/partner/partner-profile-api";
 import { fetchDashboardSummary, setStoreOpen } from "@/api/partner/partner-dashboard-api";
+import { fetchEarnings } from "@/api/partner/partner-earnings-api";
 import { usePartnerOrders } from "../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../hooks/use-order-action-handler";
 import { usePartnerContext } from "../context/PartnerContext";
+import { useLanguage } from "../lib/i18n";
 
 const STATUS_TO_LIVE: Record<string, LiveOrder["status"]> = {
   new: "pending",
   placed: "pending",
   pending: "pending",
+  pending_partner_acceptance: "pending",
   accepted: "accepted",
+  partner_accepted: "accepted",
   pickup_pending: "pickup",
   pickup_driver_assigned: "pickup",
+  pickup_rider_assigned: "pickup",
+  pickup_rider_accepted: "pickup",
   picked_up: "pickup",
   picked: "pickup",
+  in_transit_to_store: "pickup",
   at_partner: "pickup",
+  store_received: "pickup",
   washing: "washing",
   dry_cleaning: "washing",
   processing: "washing",
   ironing: "ironing",
   ready: "ready",
+  ready_for_delivery: "ready",
   delivery_assigned: "ready",
+  delivery_rider_assigned: "ready",
+  delivery_rider_accepted: "ready",
+  dispatch_otp_pending: "ready",
   out_for_delivery: "ready",
   completed: "delivered",
   delivered: "delivered",
-  cancelled: "delivered",
+  cancelled: "cancelled",
+  rejected: "cancelled",
+  store_rejected: "cancelled",
 };
 
 const DASHBOARD_CACHE_KEY = "qp.partner.cachedDashboard";
@@ -88,6 +103,7 @@ export function PartnerDashboardScreen() {
   const { session, isOnline, toggleOnline } = usePartnerContext();
   const { orders, isLoading: ordersLoading, refresh: refreshOrders } = usePartnerOrders();
   const { handleAction, sheetNode, overlay } = useOrderActionHandler();
+  const { t, language } = useLanguage();
 
   const cached = useMemo(getCachedDashboard, []);
 
@@ -208,7 +224,6 @@ export function PartnerDashboardScreen() {
 
   const refresh = useCallback(async () => {
     await Promise.all([load(), refreshOrders()]);
-    toast.success("Dashboard updated");
   }, [load, refreshOrders]);
 
   const liveOrders = useMemo<LiveOrder[]>(
@@ -297,13 +312,32 @@ export function PartnerDashboardScreen() {
     refreshOrders();
   };
 
+  const stageCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      pending: 0,
+      accepted: 0,
+      pickup: 0,
+      washing: 0,
+      ironing: 0,
+      ready: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+    for (const o of orders) {
+      const stageKey = (o.stage || (o as any).status || "").toLowerCase();
+      const mapped = STATUS_TO_LIVE[stageKey] || "pending";
+      counts[mapped] = (counts[mapped] || 0) + 1;
+    }
+    return counts;
+  }, [orders]);
+
+
   const handleToggleOnline = useCallback(async () => {
     try {
       if (isOnline) {
         stopPartnerOrderAlertRing();
       }
       await toggleOnline();
-      toast.success(!isOnline ? "Store is ONLINE & Accepting Orders" : "Store is now OFFLINE");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't update store status");
     }
@@ -328,8 +362,8 @@ export function PartnerDashboardScreen() {
   return (
     <PartnerLayout
       activeTab="dashboard"
-      title="Partner Dashboard"
-      subtitle={shop ? `Welcome back, ${shop.partnerName} · ${shop.shopName}` : "Store Console"}
+      title={t("nav.dashboard", "Dashboard")}
+      subtitle={shop ? `${t("dashboard.welcome", "Welcome back")}, ${shop.partnerName} · ${shop.shopName}` : t("dashboard.storeConsole", "Store Console")}
     >
       {/* Full Screen Incoming Order Alert Modal */}
       <PartnerIncomingOrderAlertModal
@@ -358,13 +392,13 @@ export function PartnerDashboardScreen() {
               {/* Operational Metric Cards */}
               <section>
                 <div className="flex items-center justify-between">
-                  <SectionHeading title="Operational Overview" />
+                  <SectionHeading title={t("Operational Overview", "Operational Overview")} />
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="flex items-center gap-1 text-xs font-bold text-brand-green hover:underline"
+                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
                   >
-                    View Queue <ArrowRight className="size-3.5" />
+                    {t("View Queue", "View Queue")} <ArrowRight className="size-3.5" />
                   </button>
                 </div>
                 <div className="mt-3.5">
@@ -373,21 +407,18 @@ export function PartnerDashboardScreen() {
               </section>
 
               {/* Desktop Multi-column Grid: Revenue & Order Status */}
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-                <section className="min-w-0">
-                  <SectionHeading title="Revenue Summary" />
-                  <div className="mt-3.5">
-                    <RevenueCard earnings={earnings} isLoading={isLoading} />
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.25fr)] items-stretch">
+                <section className="min-w-0 flex flex-col">
+                  <SectionHeading title={t("dashboard.revenueSummary", "Revenue Summary")} />
+                  <div className="mt-3.5 flex-1">
+                    <RevenueCard earnings={earnings} isLoading={isLoading} orders={orders} />
                   </div>
                 </section>
 
-                <section className="min-w-0">
-                  <SectionHeading title="Order Status Flow" />
-                  <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm mt-3.5">
-                    <OrderStatusChips active="Washing" />
-                    <p className="mt-3 text-xs font-semibold text-muted-foreground">
-                      Real-time stage transitions across your active customer bookings.
-                    </p>
+                <section className="min-w-0 flex flex-col">
+                  <SectionHeading title={t("dashboard.orderStatusFlow", "Order Status Flow")} />
+                  <div className="mt-3.5 flex-1">
+                    <OrderStatusFlowCard orders={orders} stageCounts={stageCounts} />
                   </div>
                 </section>
               </div>
@@ -395,13 +426,13 @@ export function PartnerDashboardScreen() {
               {/* Live Orders Section */}
               <section>
                 <div className="flex items-center justify-between">
-                  <SectionHeading title="Active Orders" />
+                  <SectionHeading title={t("dashboard.liveOrders", "Active Orders")} />
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="flex items-center gap-1 text-xs font-bold text-brand-green hover:underline"
+                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
                   >
-                    View all ({orders.length}) <ArrowRight className="size-3.5" />
+                    {t("View all", "View all")} ({orders.length}) <ArrowRight className="size-3.5" />
                   </button>
                 </div>
                 <div className="mt-3.5">
@@ -430,7 +461,7 @@ export function PartnerDashboardScreen() {
               {/* Quick Actions Grid */}
               <section>
                 <div className="flex items-center justify-between">
-                  <SectionHeading title="Quick Shortcuts" />
+                  <SectionHeading title={t("dashboard.quickShortcuts", "Quick Shortcuts")} />
                   <LayoutGrid className="size-4 text-muted-foreground" />
                 </div>
                 <div className="mt-3.5">
@@ -438,22 +469,22 @@ export function PartnerDashboardScreen() {
                 </div>
               </section>
 
-              {/* Performance Insights */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <section>
-                  <SectionHeading title="Performance Insights" />
-                  <div className="mt-3.5">
-                    <TodayPerformance />
-                  </div>
-                </section>
-
-                <section>
-                  <SectionHeading title="Platform Announcements" />
-                  <div className="mt-3.5">
-                    <Announcements />
-                  </div>
-                </section>
-              </div>
+              {/* Daily Analysis & Performance Graph */}
+              <section>
+                <div className="flex items-center justify-between">
+                  <SectionHeading title={t("dashboard.dailyAnalytics", "Daily Analysis & Performance Graph")} />
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: partnerRoutes.analytics })}
+                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    {t("Detailed Analytics", "Detailed Analytics & Reports")} <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+                <div className="mt-3.5">
+                  <DailyAnalyticsSection orders={orders} earnings={earnings} />
+                </div>
+              </section>
             </div>
           )}
         </PullToRefresh>

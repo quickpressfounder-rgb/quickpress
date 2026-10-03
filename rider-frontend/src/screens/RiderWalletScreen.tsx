@@ -290,7 +290,7 @@ export function RiderWalletScreen() {
             </div>
             <p className="text-xs text-zinc-600 font-bold mt-1.5 flex items-center gap-1.5">
               <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
-              <span>100% Zero-Commission Direct Bank & UPI Settlement</span>
+              <span>100% Zero-Commission Direct Bank Settlement</span>
             </p>
           </div>
         </div>
@@ -577,33 +577,6 @@ export function RiderWalletScreen() {
                   </div>
                   <span className="font-black text-emerald-800">₹0.00 (0% Free)</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Zero Commission Guarantee Banner */}
-            <div className="p-4 bg-emerald-50/90 border border-emerald-300 rounded-2xl flex items-start gap-3 text-xs shadow-2xs">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-xs shrink-0 shadow-xs">
-                0%
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="font-black text-emerald-950">
-                    {guarantee?.headline || "Zero Commission. 100% Earnings to Captains."}
-                  </p>
-                  <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-                    Live Guarantee
-                  </span>
-                </div>
-                <p className="text-[11px] text-emerald-800 mt-1 font-medium leading-relaxed">
-                  {guarantee?.description || "QuickPress charges 0% platform commission on Captain delivery fares. 100% of customer delivery fares and tips go directly to your wallet."}
-                </p>
-                {guarantee?.benefits ? (
-                  <ul className="mt-2 space-y-1 text-[10px] font-bold text-emerald-900 list-disc list-inside">
-                    {guarantee.benefits.slice(0, 3).map((b, i) => (
-                      <li key={i}>{b}</li>
-                    ))}
-                  </ul>
-                ) : null}
               </div>
             </div>
           </div>

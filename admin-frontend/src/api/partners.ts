@@ -1,5 +1,6 @@
 /** GET/POST /api/admin/partners/* — live partners & Partner 360 from the shared backend. */
 import { apiGetJson, apiPostJson, apiPutJson } from "@/api/core/transport";
+import { formatPartnerId } from "../lib/format-ids";
 
 export type PartnerDashboardStats = {
   totalPartners: number;
@@ -410,13 +411,16 @@ export async function fetchPartners(page = 1, pageSize = 100, q?: string, status
     const cleanCity = rawCity.toLowerCase().includes("bengaluru") || rawCity.toLowerCase().includes("bangalore") ? "Kasganj" : rawCity;
     const rawPhone = String(p.phone || "");
     const cleanPhone = rawPhone.includes("98765 43210") || rawPhone.includes("9876543210") ? "+91 92587 30561" : (rawPhone || "App Registered");
-    let name = p.businessName || `Partner Store #${p.id.slice(0, 6).toUpperCase()}`;
+    const cleanPartnerId = formatPartnerId(p.code || p.partnerId || p.id);
+    let name = p.businessName || `Partner Store #${cleanPartnerId}`;
     if (name === "QuickPress Partner Store") {
-      name = `QuickPress Partner Store (${p.id.replace("PRT-", "")})`;
+      name = `QuickPress Partner Store (${cleanPartnerId.replace("PRT-", "")})`;
     }
 
     return {
       ...p,
+      id: cleanPartnerId,
+      partnerId: cleanPartnerId,
       businessName: p.businessName || name,
       city: p.city || cleanCity,
       phone: p.phone || cleanPhone,

@@ -11,9 +11,9 @@ interface CaptainSupportModalProps {
 export const CaptainSupportModal: React.FC<CaptainSupportModalProps> = ({ isOpen, onClose }) => {
   const [data, setData] = useState<CaptainSupportResponse>({
     ok: true,
-    helplinePhone: "+91 92587 30561",
+    helplinePhone: "",
     supportEmail: "support@quickpress.app",
-    whatsappUrl: "https://wa.me/919258730561?text=Hi%20QuickPress%20Support,%20I%20am%20a%20Captain%20needing%20assistance",
+    whatsappUrl: "",
     emergencySosNumber: "112",
     workingHours: "24 Hours · 7 Days a Week (24/7)",
     hubAddress: "QuickPress Express Hub, Kasganj, Uttar Pradesh 207123",
@@ -85,17 +85,15 @@ export const CaptainSupportModal: React.FC<CaptainSupportModalProps> = ({ isOpen
           </a>
         </div>
 
-        {/* Action Buttons: WhatsApp & SOS */}
+        {/* Action Buttons: Email Desk & SOS */}
         <div className="grid grid-cols-2 gap-2.5">
           <a
-            href={data.whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`mailto:${data.supportEmail}?subject=Captain%20Support%20Request`}
             className="flex flex-col items-center justify-center p-3 rounded-2xl border border-emerald-200 bg-emerald-50/40 hover:bg-emerald-100/50 text-emerald-900 active:scale-95 transition-all text-center space-y-1"
           >
-            <MessageSquare className="w-5 h-5 text-[#00C853]" />
-            <span className="text-xs font-black">WhatsApp Help</span>
-            <span className="text-[10px] text-emerald-700 font-medium">Instant Chat</span>
+            <Mail className="w-5 h-5 text-emerald-600" />
+            <span className="text-xs font-black">Email Desk</span>
+            <span className="text-[10px] text-emerald-700 font-medium">support@quickpress.app</span>
           </a>
 
           <a

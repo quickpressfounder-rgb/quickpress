@@ -5,9 +5,9 @@ import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
 import { sendOtp, verifyOtp } from "../api/rider/rider-auth-api";
+import { readSession } from "../api/core/session-store";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
 import { useLanguage } from "../lib/i18n";
-import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 import { triggerHaptic } from "../lib/captain-audio";
 
 export function RiderOtpScreen() {
@@ -52,8 +52,19 @@ export function RiderOtpScreen() {
     }
   }, [phone, targetPhone, setPhone]);
 
+  // Fast session check: redirect immediately if already authenticated
+  useEffect(() => {
+    const sess = readSession("rider") || readSession();
+    if (sess && sess.token) {
+      navigate({ to: "/dashboard", replace: true });
+    }
+  }, [navigate]);
+
   // If no phone at all, redirect to /auth
   useEffect(() => {
+    const sess = readSession("rider") || readSession();
+    if (sess && sess.token) return;
+
     if (!targetPhone && !phone) {
       const timerId = setTimeout(() => {
         navigate({ to: "/auth" });
@@ -89,20 +100,9 @@ export function RiderOtpScreen() {
       const sessionResult = await verifyOtp(effectivePhone, codeToVerify);
       signIn(sessionResult);
 
-      // 2. Check Database: Is rider already onboarded and approved?
-      const onboarded = isRiderOnboarded(sessionResult);
-      const approved = isRiderApproved(sessionResult);
-
-      if (!onboarded) {
-        toast.success("Phone verified! Please complete Captain Registration 🛵");
-        navigate({ to: "/registration", replace: true });
-      } else if (!approved) {
-        toast.info("Your application is under verification ⏳");
-        navigate({ to: "/verification", replace: true });
-      } else {
-        toast.success("Welcome back, Captain! Redirecting to Dashboard... 🚀");
-        navigate({ to: "/dashboard", replace: true });
-      }
+      // 2. Direct entrance to Dashboard / Home
+      toast.success("Welcome, Captain! Redirecting to Dashboard... 🚀");
+      navigate({ to: "/dashboard", replace: true });
     } catch (err: any) {
       toast.error(err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.");
       setIsAutoSubmitting(false);

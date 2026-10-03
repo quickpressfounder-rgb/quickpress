@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { Check, Loader2, Sparkles, User, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +10,7 @@ import { writeCache, CACHE_KEYS } from "@/api/customer/api/cache";
 const GENERIC_NAMES = [
   "customer",
   "quickpress customer",
+  "quickpress user",
   "user",
   "guest",
   "client",
@@ -23,24 +25,64 @@ function isGenericName(name?: string | null): boolean {
 }
 
 export function NamePromptModal() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAuthRoute =
+    pathname === "/login" ||
+    pathname === "/auth" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth");
+
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // If on login or auth screens, ensure modal is never open
+  useEffect(() => {
+    if (isAuthRoute && open) {
+      setOpen(false);
+    }
+  }, [isAuthRoute, open]);
+
   const checkAndPrompt = async () => {
-    const session = readSession("customer");
-    if (!session || !session.token) {
+    // 1. NEVER show on login or authentication screens
+    if (
+      isAuthRoute ||
+      (typeof window !== "undefined" &&
+        (window.location.pathname.startsWith("/login") ||
+          window.location.pathname.startsWith("/auth")))
+    ) {
       setOpen(false);
       return;
     }
 
-    // Check session storage to avoid re-prompting multiple times in the exact same active tab session if user dismissed
+    // 2. Strict session check: user MUST be actively authenticated with valid token & account
+    const session = readSession("customer");
+    if (!session || !session.token || !session.account?.id) {
+      setOpen(false);
+      return;
+    }
+
+    // 3. Avoid re-prompting if dismissed in this active session
     const hasPrompted = sessionStorage.getItem("qp_name_prompt_dismissed");
     if (hasPrompted) return;
 
     try {
       const data = await fetchProfileData({ forceRefresh: true });
+
+      // 4. Double check session validity after network request (session is cleared on 401)
+      const freshSession = readSession("customer");
+      if (!freshSession || !freshSession.token || !freshSession.account?.id) {
+        setOpen(false);
+        return;
+      }
+
+      // 5. Must be an actual authenticated customer with a phone number, NOT guest fallback
+      if (!data?.user?.phone) {
+        setOpen(false);
+        return;
+      }
+
       const currentName = data?.user?.name || "";
       if (isGenericName(currentName)) {
         setOpen(true);
@@ -54,6 +96,9 @@ export function NamePromptModal() {
   };
 
   useEffect(() => {
+    // Never run prompt timer on login / auth routes
+    if (isAuthRoute) return;
+
     // Initial check on mount
     const timer = setTimeout(() => {
       void checkAndPrompt();
@@ -73,7 +118,7 @@ export function NamePromptModal() {
       window.removeEventListener("qp:login-success", handleLoginPrompt);
       window.removeEventListener("qp:prompt-name", handleLoginPrompt);
     };
-  }, []);
+  }, [isAuthRoute]);
 
   const handleDismiss = () => {
     sessionStorage.setItem("qp_name_prompt_dismissed", "true");
@@ -98,7 +143,6 @@ export function NamePromptModal() {
       // Notify components
       window.dispatchEvent(new CustomEvent("qp:profile-updated", { detail: { name: cleanName } }));
       
-      toast.success(`Welcome to QuickPress, ${cleanName}! 🎉`);
       setOpen(false);
       sessionStorage.setItem("qp_name_prompt_dismissed", "true");
     } catch (err: any) {
@@ -108,7 +152,8 @@ export function NamePromptModal() {
     }
   };
 
-  if (!open) return null;
+  // NEVER render on auth / login screens, or if closed
+  if (isAuthRoute || !open) return null;
 
   return (
     <div

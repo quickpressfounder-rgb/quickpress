@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { Toaster as Sonner } from "sonner";
-import { Check, AlertCircle, Info, XCircle } from "lucide-react";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 /**
- * Global Toaster component:
- * - Positioned at bottom-center (floating above bottom navigation)
- * - Full-width layout spanning across viewport (w-[calc(100vw-24px)] max-w-[440px])
- * - Clean white background with crisp border and high-contrast bold black text
- * - Auto-dismiss: ~500ms
+ * Modern floating bottom capsule notification pill (Zomato / Apple style):
+ * - Centered at the bottom of the screen
+ * - Dark charcoal pill shape (rounded-full)
+ * - Crisp white typography without any icons
+ * - Soft elevated drop-shadow
  */
-const Toaster = ({ ...props }: ToasterProps) => {
+export function Toaster({ ...props }: ToasterProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -23,64 +22,161 @@ const Toaster = ({ ...props }: ToasterProps) => {
   }
 
   return (
-    <Sonner
-      className="toaster group pointer-events-none"
-      position="bottom-center"
-      duration={500}
-      offset="80px"
-      style={
-        {
-          "--width": "calc(100vw - 24px)",
-          maxWidth: "440px",
-          width: "calc(100vw - 24px)",
-        } as React.CSSProperties
-      }
-      icons={{
-        success: (
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300/80 shadow-2xs">
-            <Check className="size-3.5 stroke-[3]" />
-          </span>
-        ),
-        error: (
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700 border border-rose-300/80 shadow-2xs">
-            <XCircle className="size-4 stroke-[2.5]" />
-          </span>
-        ),
-        info: (
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 border border-blue-300/80 shadow-2xs">
-            <Info className="size-4 stroke-[2.5]" />
-          </span>
-        ),
-        warning: (
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 border border-amber-300/80 shadow-2xs">
-            <AlertCircle className="size-4 stroke-[2.5]" />
-          </span>
-        ),
-      }}
-      toastOptions={{
-        duration: 500,
-        style: {
-          width: "calc(100vw - 24px)",
-          maxWidth: "440px",
-          backgroundColor: "#ffffff",
-          color: "#09090b",
-          border: "1px solid #e4e4e7",
-          boxShadow: "0 14px 40px -8px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.06)",
-          borderRadius: "16px",
-        },
-        classNames: {
-          toast:
-            "group toast pointer-events-auto group-[.toaster]:!w-[calc(100vw-24px)] group-[.toaster]:!max-w-[440px] group-[.toaster]:!bg-white group-[.toaster]:!text-zinc-950 group-[.toaster]:!border group-[.toaster]:!border-zinc-200 group-[.toaster]:!shadow-[0_14px_40px_-8px_rgba(0,0,0,0.16)] group-[.toaster]:!rounded-2xl group-[.toaster]:!px-4.5 group-[.toaster]:!py-3.5 group-[.toaster]:!font-bold group-[.toaster]:!text-xs group-[.toaster]:!tracking-tight group-[.toaster]:!gap-3 group-[.toaster]:!mx-auto",
-          title: "group-[.toast]:!text-zinc-950 group-[.toast]:!font-black group-[.toast]:!text-xs",
-          description: "group-[.toast]:!text-zinc-600 group-[.toast]:!font-medium group-[.toast]:!text-[11px]",
-          actionButton: "group-[.toast]:!bg-black group-[.toast]:!text-white",
-          cancelButton: "group-[.toast]:!bg-zinc-100 group-[.toast]:!text-zinc-800",
-        },
-      }}
-      {...props}
-    />
+    <>
+      <style>{`
+        [data-sonner-toaster],
+        [data-sonner-toaster][data-x-position="center"],
+        [data-sonner-toaster][data-x-position="left"],
+        [data-sonner-toaster][data-x-position="right"] {
+          position: fixed !important;
+          bottom: 32px !important;
+          top: auto !important;
+          left: 0 !important;
+          right: 0 !important;
+          width: 100% !important;
+          max-width: 100vw !important;
+          margin: 0 auto !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          pointer-events: none !important;
+          z-index: 99999 !important;
+          transform: none !important;
+        }
+
+        [data-sonner-toaster] ol {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+          padding: 0 16px !important;
+          box-sizing: border-box !important;
+          list-style: none !important;
+          pointer-events: none !important;
+        }
+
+        [data-sonner-toast],
+        [data-sonner-toaster] [data-sonner-toast],
+        [data-sonner-toaster] [data-sonner-toast][data-x-position="center"],
+        [data-sonner-toaster] [data-sonner-toast][data-x-position="left"],
+        [data-sonner-toaster] [data-sonner-toast][data-x-position="right"] {
+          position: relative !important;
+          left: auto !important;
+          right: auto !important;
+          top: auto !important;
+          bottom: auto !important;
+          width: auto !important;
+          max-width: min(calc(100vw - 32px), 440px) !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+          display: inline-flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+          background: #1c1c1e !important;
+          color: #ffffff !important;
+          border: 1px solid rgba(255, 255, 255, 0.12) !important;
+          border-radius: 9999px !important;
+          box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+          padding: 10px 24px !important;
+          pointer-events: auto !important;
+          box-sizing: border-box !important;
+        }
+
+        [data-sonner-toast] [data-content] {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+          width: auto !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+        }
+
+        [data-sonner-toast] [data-title] {
+          color: #ffffff !important;
+          font-weight: 700 !important;
+          font-size: 13.5px !important;
+          letter-spacing: -0.01em !important;
+          text-align: center !important;
+          line-height: 1.35 !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+        }
+
+        [data-sonner-toast] [data-description] {
+          color: #e4e4e7 !important;
+          font-weight: 600 !important;
+          font-size: 12.5px !important;
+          text-align: center !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          margin-top: 2px !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }
+        /* Completely remove all icons */
+        [data-sonner-toast] [data-icon],
+        [data-sonner-toast] svg {
+          display: none !important;
+          visibility: hidden !important;
+          width: 0 !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        [data-sonner-toast] [data-button],
+        [data-sonner-toast] [data-close-button] {
+          display: none !important;
+        }
+      `}</style>
+      <Sonner
+        position="bottom-center"
+        duration={2200}
+        visibleToasts={1}
+        closeButton={false}
+        className="toaster group"
+        icons={{
+          success: null,
+          error: null,
+          info: null,
+          warning: null,
+          loading: null,
+        }}
+        toastOptions={{
+          duration: 2200,
+          style: {
+            backgroundColor: "#1c1c1e",
+            background: "#1c1c1e",
+            color: "#ffffff",
+            borderRadius: "9999px",
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            boxShadow: "0 12px 32px -4px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.2)",
+            padding: "10px 24px",
+            whiteSpace: "nowrap",
+            width: "max-content",
+            minWidth: "max-content",
+            textAlign: "center",
+            fontSize: "13.5px",
+            fontWeight: "700",
+          },
+          classNames: {
+            toast: "!bg-[#1c1c1e] !text-white !rounded-full !border !border-white/10 !shadow-2xl !py-2.5 !px-6 !text-center",
+            title: "!text-white !font-bold !text-[13.5px] !text-center !m-0 !whitespace-nowrap",
+            description: "!text-zinc-200 !font-semibold !text-xs !text-center !m-0 !whitespace-nowrap",
+            icon: "!hidden hidden",
+          },
+        }}
+        {...props}
+      />
+    </>
   );
-};
-
-export { Toaster };
-
+}

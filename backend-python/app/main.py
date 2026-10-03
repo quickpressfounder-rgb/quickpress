@@ -42,6 +42,7 @@ from app.api.partners import router as partners_router
 from app.api.payments import router as payments_router
 from app.api.profile import router as profile_router
 from app.api.cashfree_payments import router as cashfree_payments_router
+from app.api.realtime_sse import router as realtime_sse_router
 from app.api.referral import router as referral_router
 from app.api.reviews import router as reviews_router
 from app.api.rider import public_router as rider_public_router
@@ -89,12 +90,17 @@ async def lifespan(app: FastAPI):
         except Exception as err:
             logger.warning("Startup routine warning: %s", err)
 
+    # Start Background Async Notification & Task Queue
+    from app.core.async_queue import async_task_queue
+    await async_task_queue.start(num_workers=4)
+
     # Start Background Order Timeline SLA Engine (5m Partner SLA / 2m Rider SLA)
     from app.services.order_timeline_engine import order_timeline_engine
     order_timeline_engine.start(interval_seconds=5)
 
     yield
     order_timeline_engine.stop()
+    await async_task_queue.stop()
     await database.disconnect()
 
 
@@ -106,10 +112,12 @@ def create_app() -> FastAPI:
     from app.core.security_headers import SecurityHeadersMiddleware
     from app.core.rate_limiter import GlobalRateLimiterMiddleware
     from app.core.sanitizer import InputSanitizerMiddleware
+    from app.core.timing_middleware import ServerTimingMiddleware
 
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(GlobalRateLimiterMiddleware)
     app.add_middleware(InputSanitizerMiddleware)
+    app.add_middleware(ServerTimingMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=500)
     is_prod = (settings.app_env or "development").strip().lower() == "production"
 
@@ -229,6 +237,9 @@ def create_app() -> FastAPI:
     app.include_router(finance_engine_router, prefix=settings.api_prefix)
     # Razorpay server-to-server webhooks (HMAC verified, unauthenticated by design).
     app.include_router(webhooks_router, prefix=settings.api_prefix)
+
+    # Realtime Server-Sent Events (SSE) Streaming & Stats
+    app.include_router(realtime_sse_router, prefix=settings.api_prefix)
 
     # QuickPress Commission Engine across 3 apps (Customer, Partner, Rider, Admin).
     app.include_router(commission_router)

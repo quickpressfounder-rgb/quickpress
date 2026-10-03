@@ -145,11 +145,29 @@ export function initRiderSocket(): Socket | null {
         });
       };
 
-      // Order Offer & Dispatch events
+      // Order Offer & Direct Trip Assignment events
+      socket.on("order.trip_assigned", (data) => {
+        console.log("[RiderSocket] 🚀 Direct Trip Assigned event:", data);
+        handleOrderEvent({ ...data, event: "order.trip_assigned" });
+        handleOffer({ ...data, autoAssigned: true });
+      });
+      socket.on("order.rider_assigned", (data) => {
+        console.log("[RiderSocket] 🎯 Rider Assigned event:", data);
+        handleOrderEvent({ ...data, event: "order.rider_assigned" });
+        handleOffer({ ...data, autoAssigned: true });
+      });
       socket.on("order.rider_offer", handleOffer);
       socket.on("new_order_offer", handleOffer);
       socket.on("order.offer", handleOffer);
       socket.on("dispatch.offer", handleOffer);
+      socket.on("order.rider_searching", (data) => {
+        handleOrderEvent(data);
+        handleOffer(data);
+      });
+      socket.on("order.partner_accepted", (data) => {
+        handleOrderEvent(data);
+        handleOffer(data);
+      });
 
       // Rider status & online events
       socket.on("rider.status_changed", handleStatus);

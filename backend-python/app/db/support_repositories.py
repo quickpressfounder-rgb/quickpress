@@ -49,6 +49,7 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
+from app.core.redis_cache import hybrid_cache
 from app.db.client import database
 from app.models.support import (
     CreateTicketPayload,
@@ -132,10 +133,33 @@ def _iso(value: Any) -> Optional[str]:
 
 
 class SupportRepository:
+    async def ensure_seed(self) -> None:
+        """Upsert support seed documents and invalidate cache."""
+        for name, documents in SUPPORT_SEED.items():
+            collection = database.collection(name)
+            for document in documents:
+                await collection.update_one(
+                    {"_id": document["_id"]},
+                    {"$set": {k: v for k, v in document.items() if k != "_id"}},
+                    upsert=True,
+                )
+        await hybrid_cache.delete_pattern("support:*")
+
     # ------------------------------------------------------------------ FAQs
     async def categories(self) -> FaqCategoriesResponse:
+        cached = await hybrid_cache.get("support:categories")
+        if cached is not None and isinstance(cached, dict):
+            try:
+                return FaqCategoriesResponse(**cached)
+            except Exception:
+                pass
+
         documents = await database.find_many(CATEGORIES, {}, sort_key="order")
+        if not documents:
+            documents = FAQ_CATEGORY_SEED
         faqs = await database.find_many(FAQS, {})
+        if not faqs:
+            faqs = FAQ_SEED
         counts: Dict[str, int] = {}
         for faq in faqs:
             key = str(faq.get("category_id") or "general")
@@ -151,12 +175,24 @@ class SupportRepository:
             )
             for document in documents
         ]
-        return FaqCategoriesResponse(items=items, total=len(items))
+        resp = FaqCategoriesResponse(items=items, total=len(items))
+        await hybrid_cache.set("support:categories", resp.model_dump(), ttl_seconds=600)
+        return resp
 
     async def faqs(self, *, category_id: Optional[str] = None, q: Optional[str] = None) -> FaqListResponse:
+        cache_key = f"support:faqs:{category_id or ''}:{q or ''}"
+        cached = await hybrid_cache.get(cache_key)
+        if cached is not None and isinstance(cached, dict):
+            try:
+                return FaqListResponse(**cached)
+            except Exception:
+                pass
+
         categories = await self.categories()
         names = {category.id: category.name for category in categories.items}
         documents = await database.find_many(FAQS, {}, sort_key="order")
+        if not documents:
+            documents = FAQ_SEED
         items = [
             Faq(
                 id=str(document["_id"]),
@@ -181,7 +217,9 @@ class SupportRepository:
                 or needle in faq.answer.lower()
                 or any(needle in tag.lower() for tag in faq.tags)
             ]
-        return FaqListResponse(items=items, total=len(items), categories=categories.items)
+        resp = FaqListResponse(items=items, total=len(items), categories=categories.items)
+        await hybrid_cache.set(cache_key, resp.model_dump(), ttl_seconds=600)
+        return resp
 
     # --------------------------------------------------------------- tickets
     async def _next_ticket_number(self) -> str:

@@ -186,7 +186,6 @@ export function PartnerDevicePermissionsCard({
       stopPartnerOrderAlertRing();
       setIsPlayingSiren(false);
       setSirenCountdown(null);
-      toast.info("Order siren stopped.");
       return;
     }
 
@@ -270,7 +269,7 @@ export function PartnerDevicePermissionsCard({
 
       toast.success("🎉 All device permissions & High-Priority Order Alerts initialized!");
     } catch {
-      toast.info("Permissions processed.");
+      // Handled silently
     } finally {
       setGrantingAll(false);
     }

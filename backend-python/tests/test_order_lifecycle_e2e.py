@@ -75,7 +75,7 @@ def actors(client):
         )
         await database.collection("rider_profiles").update_one(
             {"_id": RIDER_PROFILE_ID},
-            {"$set": {"isVerified": True, "isOnline": True, "fullName": "Test Rider", "phone": rider.phone}},
+            {"$set": {"isVerified": True, "isOnline": False, "fullName": "Test Rider", "phone": rider.phone}},
             upsert=True,
         )
         return {"customer": customer, "partner": partner, "rider": rider, "admin": admin}

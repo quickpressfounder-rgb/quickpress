@@ -113,7 +113,12 @@ const STATUS_TO_STAGE: Record<string, OrderStage> = {
   picked_up: "pickup_pending",
   in_transit_to_store: "pickup_pending",
   at_partner: "at_partner",
+  "at-partner": "at_partner",
+  at_store: "at_partner",
+  "at-store": "at_partner",
   store_received: "at_partner",
+  store_drop_confirmed: "at_partner",
+  processing_started: "washing",
   processing: "washing",
   washing: "washing",
   ironing: "ironing",
@@ -123,9 +128,14 @@ const STATUS_TO_STAGE: Record<string, OrderStage> = {
   delivery_rider_assigned: "ready",
   delivery_rider_accepted: "ready",
   out_for_delivery: "ready",
-  completed: "ready",
+  completed: "completed",
   delivered: "completed",
   cancelled: "cancelled",
+  rejected: "cancelled",
+  store_rejected: "cancelled",
+  cancelled_by_customer: "cancelled",
+  cancelled_by_partner: "cancelled",
+  cancelled_by_admin: "cancelled",
 };
 
 function toManagedOrder(order: PartnerOrder): ManagedOrder {

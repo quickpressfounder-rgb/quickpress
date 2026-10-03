@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Clock3,
   Download,
+  FileSpreadsheet,
   FileText,
   HelpCircle,
   Loader2,
@@ -32,10 +33,14 @@ import {
   fetchFinanceOverview,
   fetchFinanceTaxInvoices,
   downloadSettlementReport,
+  downloadSettlementPdfBlob,
+  downloadSettlementExcelBlob,
   downloadPartnerInvoicePdfBlob,
   downloadCommissionInvoicePdfBlob,
+  downloadCommissionInvoiceExcelBlob,
 } from "@/api/partner/partner-finance-api";
 import { SettlementSummaryModal } from "../components/finance/SettlementSummaryModal";
+import { formatPartnerId } from "../lib/format-ids";
 
 export function EarningsScreen() {
   const navigate = useNavigate();
@@ -84,27 +89,58 @@ export function EarningsScreen() {
     };
   }, []);
 
-  const handleDownloadReport = async () => {
-    const cycle = financeData?.pastCycles.find((c) => c.period === selectedPastRange) || financeData?.pastCycles[0];
-    if (!cycle) {
-      toast.error("No statement available for selected range");
+  const handleDownloadStatementPdf = async (customCycleId?: string) => {
+    const cycle = customCycleId
+      ? { cycleId: customCycleId, period: customCycleId }
+      : (financeData?.pastCycles.find((c) => c.period === selectedPastRange) || financeData?.pastCycles[0] || { cycleId: "current", period: "Current" });
+    if (!cycle?.cycleId) {
+      toast.error("No settlement cycle available for download");
       return;
     }
-    toast.success(`Generating settlement statement for ${selectedPastRange}...`);
+    toast.info(`Preparing official Settlement Statement PDF (${cycle.period})...`);
     try {
-      const res = await downloadSettlementReport(cycle.cycleId);
-      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-        JSON.stringify(res.data, null, 2)
-      )}`;
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.setAttribute("href", jsonString);
-      downloadAnchor.setAttribute("download", res.filename || `QuickPress_Statement_${cycle.cycleId}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      toast.success("Statement downloaded successfully!");
-    } catch {
-      toast.error("Failed to generate report");
+      await downloadSettlementPdfBlob(cycle.cycleId);
+      toast.success(`Settlement Statement PDF downloaded!`);
+    } catch (err: any) {
+      console.error("Statement PDF download error:", err);
+      toast.error(err.message || "Failed to download settlement statement PDF");
+    }
+  };
+
+  const handleDownloadStatementExcel = async (customCycleId?: string) => {
+    const cycle = customCycleId
+      ? { cycleId: customCycleId, period: customCycleId }
+      : (financeData?.pastCycles.find((c) => c.period === selectedPastRange) || financeData?.pastCycles[0] || { cycleId: "current", period: "Current" });
+    if (!cycle?.cycleId) {
+      toast.error("No settlement cycle available for download");
+      return;
+    }
+    toast.info(`Generating Excel / CSV Settlement Statement (${cycle.period})...`);
+    try {
+      await downloadSettlementExcelBlob(cycle.cycleId);
+      toast.success(`Settlement Statement Excel / CSV downloaded!`);
+    } catch (err: any) {
+      console.error("Statement Excel download error:", err);
+      toast.error(err.message || "Failed to download settlement statement Excel");
+    }
+  };
+
+  const handleDownloadCommissionExcel = async (inv: TaxInvoice) => {
+    const urlParts = inv.downloadUrl ? inv.downloadUrl.split("/") : [];
+    const periodKey = urlParts[urlParts.length - 2] || "2026-09";
+    setDownloadingId(`${inv.invoiceNumber}-excel`);
+    toast.info(`Generating Monthly GST Commission Invoice Excel for ${inv.period}...`);
+    try {
+      await downloadCommissionInvoiceExcelBlob(
+        periodKey,
+        `QuickPress-Commission-${inv.invoiceNumber}.csv`
+      );
+      toast.success(`Commission Invoice Excel (${inv.invoiceNumber}) downloaded!`);
+    } catch (err: any) {
+      console.error("Commission invoice excel download error:", err);
+      toast.error(err.message || "Failed to download commission invoice Excel");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -180,7 +216,7 @@ export function EarningsScreen() {
                 <ChevronDown className="size-4 text-zinc-500 shrink-0" />
               </div>
               <p className="mt-0.5 truncate text-[11px] font-semibold text-zinc-500">
-                ID: {profile?.partnerId || "22391793"} • {profile?.city ? `${profile.city} Locality, ${profile.city}` : "Kasganj Locality, Kasganj"}
+                ID: {formatPartnerId(profile?.partnerId)} • {profile?.city ? `${profile.city} Locality, ${profile.city}` : "Kasganj Locality, Kasganj"}
               </p>
             </div>
 
@@ -373,19 +409,36 @@ export function EarningsScreen() {
                             ITC GST: ₹{inv.gstAmount.toFixed(2)}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          disabled={downloadingId === inv.invoiceNumber}
-                          onClick={() => handleDownloadCommissionPdf(inv)}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-100 px-3 py-1.5 text-xs font-black text-zinc-800 hover:bg-zinc-200 active:scale-95 transition-all disabled:opacity-50"
-                        >
-                          {downloadingId === inv.invoiceNumber ? (
-                            <Loader2 className="size-3 animate-spin text-zinc-600" />
-                          ) : (
-                            <Download className="size-3 text-zinc-700" />
-                          )}
-                          <span>PDF</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={downloadingId === inv.invoiceNumber}
+                            onClick={() => handleDownloadCommissionPdf(inv)}
+                            className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-black text-red-700 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50"
+                            title="Download GST Commission Invoice PDF"
+                          >
+                            {downloadingId === inv.invoiceNumber ? (
+                              <Loader2 className="size-3 animate-spin text-red-600" />
+                            ) : (
+                              <FileText className="size-3 text-red-600" />
+                            )}
+                            <span>PDF</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={downloadingId === `${inv.invoiceNumber}-excel`}
+                            onClick={() => handleDownloadCommissionExcel(inv)}
+                            className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-black text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all disabled:opacity-50"
+                            title="Download GST Commission Invoice Excel"
+                          >
+                            {downloadingId === `${inv.invoiceNumber}-excel` ? (
+                              <Loader2 className="size-3 animate-spin text-emerald-600" />
+                            ) : (
+                              <FileSpreadsheet className="size-3 text-emerald-600" />
+                            )}
+                            <span>Excel</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -435,32 +488,53 @@ export function EarningsScreen() {
             <div>
               <h2 className="text-base font-black tracking-tight text-zinc-900">Past cycles</h2>
               
-              {/* Date Filter Dropdown & Get Report Button */}
-              <div className="mt-2.5 flex items-center gap-2">
+              {/* Date Filter Dropdown & Statement PDF/Excel Download Buttons */}
+              <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
                   <select
                     value={selectedPastRange}
                     onChange={(e) => setSelectedPastRange(e.target.value)}
                     className="h-11 w-full appearance-none rounded-2xl border border-zinc-200 bg-white pl-4 pr-10 text-xs font-black text-zinc-800 shadow-xs focus:border-zinc-400 focus:outline-none"
                   >
-                    {financeData?.filterOptions?.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                    {!financeData?.filterOptions?.length && (
+                    {financeData?.months && financeData.months.length > 0 && (
+                      <optgroup label="Monthly Consolidated Statements">
+                        {financeData.months.map((m) => (
+                          <option key={m.cycleId} value={m.cycleId}>{m.period} (Full Month)</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="Weekly Settlement Cycles">
+                      {financeData?.filterOptions?.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </optgroup>
+                    {!financeData?.filterOptions?.length && !financeData?.months?.length && (
                       <option value="">No past settlement cycles</option>
                     )}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleDownloadReport}
-                  className="flex h-11 items-center gap-1.5 rounded-2xl bg-zinc-950 px-4 text-xs font-black text-white shadow-sm transition-transform active:scale-95"
-                >
-                  <Download className="size-3.5" />
-                  <span>Get report</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadStatementPdf(selectedPastRange)}
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-red-200 bg-red-50 px-3.5 text-xs font-black text-red-700 shadow-xs transition-transform active:scale-95"
+                    title="Download Statement (PDF)"
+                  >
+                    <FileText className="size-3.5 text-red-600" />
+                    <span>PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadStatementExcel(selectedPastRange)}
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-black text-emerald-700 shadow-xs transition-transform active:scale-95"
+                    title="Download Statement (Excel)"
+                  >
+                    <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                    <span>Excel</span>
+                  </button>
+                </div>
               </div>
 
               {/* Selected Filter Range Result Card */}
@@ -546,7 +620,7 @@ export function EarningsScreen() {
                         </div>
                       </div>
 
-                      <div className="mt-3 border-t border-zinc-100 pt-2.5">
+                      <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2.5">
                         <button
                           type="button"
                           onClick={() => setSelectedCycleForModal(cycle.cycleId)}
@@ -555,6 +629,26 @@ export function EarningsScreen() {
                           <span>View details</span>
                           <span>→</span>
                         </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadStatementPdf(cycle.cycleId)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-black text-red-700 hover:bg-red-100 active:scale-95 transition-all"
+                            title="Download PDF Statement"
+                          >
+                            <FileText className="size-3 text-red-600" />
+                            <span>PDF</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadStatementExcel(cycle.cycleId)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all"
+                            title="Download Excel / CSV Statement"
+                          >
+                            <FileSpreadsheet className="size-3 text-emerald-600" />
+                            <span>Excel</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -753,19 +847,36 @@ export function EarningsScreen() {
                                 <p className="text-xs font-black text-zinc-900">Fee: ₹{inv.amount.toFixed(2)}</p>
                                 <p className="text-[10px] font-bold text-blue-600">ITC GST: ₹{inv.gstAmount.toFixed(2)}</p>
                               </div>
-                              <button
-                                type="button"
-                                disabled={downloadingId === inv.invoiceNumber}
-                                onClick={() => handleDownloadCommissionPdf(inv)}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-100 px-3 py-1.5 text-xs font-black text-zinc-800 hover:bg-zinc-200 active:scale-95 transition-all disabled:opacity-50"
-                              >
-                                {downloadingId === inv.invoiceNumber ? (
-                                  <Loader2 className="size-3 animate-spin text-zinc-600" />
-                                ) : (
-                                  <Download className="size-3 text-zinc-700" />
-                                )}
-                                <span>PDF</span>
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={downloadingId === inv.invoiceNumber}
+                                  onClick={() => handleDownloadCommissionPdf(inv)}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-black text-red-700 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50"
+                                  title="Download GST Commission Invoice PDF"
+                                >
+                                  {downloadingId === inv.invoiceNumber ? (
+                                    <Loader2 className="size-3 animate-spin text-red-600" />
+                                  ) : (
+                                    <FileText className="size-3 text-red-600" />
+                                  )}
+                                  <span>PDF</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={downloadingId === `${inv.invoiceNumber}-excel`}
+                                  onClick={() => handleDownloadCommissionExcel(inv)}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-black text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all disabled:opacity-50"
+                                  title="Download GST Commission Invoice Excel"
+                                >
+                                  {downloadingId === `${inv.invoiceNumber}-excel` ? (
+                                    <Loader2 className="size-3 animate-spin text-emerald-600" />
+                                  ) : (
+                                    <FileSpreadsheet className="size-3 text-emerald-600" />
+                                  )}
+                                  <span>Excel</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))
@@ -801,16 +912,55 @@ export function EarningsScreen() {
                 </div>
 
                 <div className="rounded-3xl border border-border bg-card p-6 shadow-sm col-span-2">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-black text-foreground">Settlement History</h2>
-                    <button
-                      type="button"
-                      onClick={handleDownloadReport}
-                      className="flex items-center gap-1.5 text-xs font-black text-zinc-900 hover:underline"
-                    >
-                      <Download className="size-3.5" />
-                      <span>Download Selected Statement</span>
-                    </button>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4">
+                    <div>
+                      <h2 className="text-base font-black text-foreground">Settlement History & Statements</h2>
+                      <p className="text-xs text-muted-foreground">Download bank-reconciled statements in PDF or Excel / CSV format.</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <select
+                          value={selectedPastRange}
+                          onChange={(e) => setSelectedPastRange(e.target.value)}
+                          className="h-9 appearance-none rounded-xl border border-border bg-background pl-3 pr-8 text-xs font-black text-foreground shadow-xs focus:border-zinc-400 focus:outline-none"
+                        >
+                          {financeData?.months && financeData.months.length > 0 && (
+                            <optgroup label="Monthly Statements">
+                              {financeData.months.map((m) => (
+                                <option key={m.cycleId} value={m.cycleId}>{m.period} (Full Month)</option>
+                              ))}
+                            </optgroup>
+                          )}
+                          <optgroup label="Weekly Settlement Cycles">
+                            {financeData?.filterOptions?.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </optgroup>
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadStatementPdf(selectedPastRange)}
+                        className="flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 hover:bg-red-100 active:scale-95 transition-all shadow-xs"
+                        title="Download Statement (PDF)"
+                      >
+                        <FileText className="size-3.5 text-red-600" />
+                        <span>PDF</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadStatementExcel(selectedPastRange)}
+                        className="flex h-9 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all shadow-xs"
+                        title="Download Statement (Excel)"
+                      >
+                        <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                        <span>Excel</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-4 divide-y divide-border">
@@ -827,7 +977,7 @@ export function EarningsScreen() {
                               {cycle.orderCount} orders {cycle.payoutDate !== "-" ? `settled on ${cycle.payoutDate}` : "(no settlements)"}
                             </p>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3">
                             <span className="text-sm font-black text-foreground">₹{cycle.netPayout.toFixed(2)}</span>
                             <span className={`rounded-md px-2 py-0.5 text-[10px] font-black ${
                               cycle.status === "PAID"
@@ -838,6 +988,24 @@ export function EarningsScreen() {
                             }`}>
                               {cycle.status === "NO_ORDERS" ? "No Orders" : cycle.status}
                             </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadStatementPdf(cycle.cycleId)}
+                                className="flex size-7 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 active:scale-95 transition-all"
+                                title="Download PDF Statement"
+                              >
+                                <FileText className="size-3 text-red-600" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadStatementExcel(cycle.cycleId)}
+                                className="flex size-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all"
+                                title="Download Excel Statement"
+                              >
+                                <FileSpreadsheet className="size-3 text-emerald-600" />
+                              </button>
+                            </div>
                             <button
                               type="button"
                               onClick={() => setSelectedCycleForModal(cycle.cycleId)}

@@ -247,6 +247,21 @@ class Database:
             return "supabase-postgresql"
         return "in-memory"
 
+    def get_pool_metrics(self) -> Dict[str, Any]:
+        """Returns database pool size, active connections, and query APM metrics."""
+        if self._supabase is not None and hasattr(self._supabase, "get_pool_metrics"):
+            return self._supabase.get_pool_metrics()
+        return {
+            "engine": self.engine_type,
+            "min_pool_size": 1,
+            "max_pool_size": 1,
+            "active_connections": 0,
+            "idle_connections": 0,
+            "total_queries": 0,
+            "slow_queries": 0,
+            "avg_query_time_ms": 0.0,
+        }
+
     async def connect(self) -> None:
         """Connect to Supabase PostgreSQL or MongoDB database."""
         settings = get_settings()
