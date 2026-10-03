@@ -72,6 +72,7 @@ async def send_fcm_push(
     data: Optional[Dict[str, str]] = None,
     badge: Optional[int] = None,
     icon: Optional[str] = None,
+    role: Optional[str] = None,
 ) -> int:
     """Send FCM push notification to one or multiple users.
     
@@ -117,6 +118,12 @@ async def send_fcm_push(
     if not tokens:
         return 0
 
+    # Determine if urgent alert channel is needed (Partner & Rider order dispatch)
+    target_role = (role or (data or {}).get("role") or "customer").lower()
+    is_urgent = target_role in ("partner", "rider", "captain") or (data or {}).get("type") in (
+        "new_order_offer", "order.rider_offer", "order-new", "dispatch.offer"
+    )
+
     # Clean data payload (FCM only accepts string values in data dict)
     clean_data: Dict[str, str] = {}
     if data:
@@ -129,34 +136,81 @@ async def send_fcm_push(
     if "url" in clean_data and "click_action" not in clean_data:
         clean_data["click_action"] = clean_data["url"]
 
+    if is_urgent:
+        clean_data["channel_id"] = "quickpress_urgent_dispatch"
+        clean_data["priority"] = "high"
+        clean_data["wake_screen"] = "true"
+        clean_data["ring_bell"] = "true"
+        clean_data["sound"] = "order_alarm"
+
     notification_icon = icon or "/favicon.png"
     notification = messaging.Notification(title=title, body=body, image=icon)
-    android_config = messaging.AndroidConfig(
-        priority="high",
-        notification=messaging.AndroidNotification(
+
+    import datetime
+
+    if is_urgent:
+        android_notification = messaging.AndroidNotification(
+            channel_id="quickpress_urgent_dispatch",
+            sound="order_alarm",
+            default_sound=True,
+            priority="max",
+            visibility="public",
+            icon="ic_notification",
+            color="#ef4444",
+            click_action=click_url or "FLUTTER_NOTIFICATION_CLICK",
+            vibrate_timings_millis=[0, 1000, 500, 1000, 500, 1000, 500, 1000],
+            default_vibrate_timings=False,
+            tag=f"order_{clean_data.get('orderId', '')}",
+        )
+        android_config = messaging.AndroidConfig(
+            priority="high",
+            ttl=datetime.timedelta(seconds=300),
+            notification=android_notification,
+        )
+        apns_config = messaging.APNSConfig(
+            headers={"apns-priority": "10"},
+            payload=messaging.APNSPayload(
+                aps=messaging.Aps(
+                    sound="order_alarm.caf",
+                    badge=badge or 1,
+                    category=clean_data.get("category", "order_alert"),
+                    content_available=True,
+                )
+            ),
+        )
+    else:
+        android_notification = messaging.AndroidNotification(
             channel_id="quickpress_orders",
             sound="default",
+            default_sound=True,
+            priority="high",
+            visibility="private",
             icon="ic_notification",
             color="#2563eb",
-            click_action=clean_data.get("url") or "FLUTTER_NOTIFICATION_CLICK",
-        ),
-    )
-    apns_config = messaging.APNSConfig(
-        payload=messaging.APNSPayload(
-            aps=messaging.Aps(
-                sound="default",
-                badge=badge,
-                category=clean_data.get("category", "order"),
+            click_action=click_url or "FLUTTER_NOTIFICATION_CLICK",
+        )
+        android_config = messaging.AndroidConfig(
+            priority="high",
+            notification=android_notification,
+        )
+        apns_config = messaging.APNSConfig(
+            payload=messaging.APNSPayload(
+                aps=messaging.Aps(
+                    sound="default",
+                    badge=badge,
+                    category=clean_data.get("category", "order"),
+                )
             )
         )
-    )
+
     webpush_config = messaging.WebpushConfig(
         notification=messaging.WebpushNotification(
             title=title,
             body=body,
             icon=notification_icon,
             badge="/favicon.png",
-            require_interaction=True,
+            require_interaction=is_urgent,
+            vibrate=[500, 200, 500, 200, 1000] if is_urgent else [200, 100, 200],
             data={"url": click_url, **clean_data},
         ),
         fcm_options=messaging.WebpushFCMOptions(link=click_url),

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useRiderContext } from "../../context/RiderContext";
@@ -13,12 +13,14 @@ import {
   speakTripAssigned,
   triggerHaptic,
 } from "../../lib/captain-audio";
+import { FlashTripOfferModal, type FlashOfferData } from "./FlashTripOfferModal";
 
 export const GlobalOrderDispatchListener: React.FC = () => {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { session, isOnline } = useRiderContext();
   const lastDispatchedOfferIdRef = useRef<string | null>(null);
+  const [activeFlashOffer, setActiveFlashOffer] = useState<FlashOfferData | null>(null);
 
   useEffect(() => {
     // Only listen for incoming orders if rider is authenticated and online
@@ -112,6 +114,43 @@ export const GlobalOrderDispatchListener: React.FC = () => {
         } catch {}
       }
 
+      const flashData: FlashOfferData = {
+        offerId: String(offerId),
+        orderId: String(targetId),
+        rideId: String(offer.rideId || targetId),
+        orderCode: String(offer.orderCode || (targetId ? String(targetId).slice(-6).toUpperCase() : "TRIP")),
+        rideType: offer.rideType || "pickup",
+        fare: fare,
+        isExpress: isExpress,
+        riderExpressBonus: riderBonus,
+        pickupTitle: pickupTitle,
+        pickupAddress: offer.pickupAddress || pickupTitle,
+        dropTitle: dropTitle,
+        dropAddress: offer.dropAddress || dropTitle,
+        pickupDistanceKm: Number(offer.pickupDistanceKm || offer.distanceKm || 1.2),
+        dropDistanceKm: Number(offer.dropDistanceKm || 2.5),
+        customerName: offer.customerName || "Customer",
+        customerPhone: offer.customerPhone || "",
+        partnerName: offer.partnerName || "QuickPress Partner Store",
+        partnerPhone: offer.partnerPhone || "",
+        partnerAddress: offer.partnerAddress || offer.dropAddress || "",
+        paymentMode: offer.paymentMode || "cod",
+        amount: Number(offer.amount || fare),
+        items: offer.items || [],
+        placedAt: offer.placedAt || new Date().toISOString(),
+        otp: offer.otp,
+        pickupOtp: offer.pickupOtp,
+        deliveryOtp: offer.deliveryOtp,
+        dispatchOtp: offer.dispatchOtp,
+        customerCoords: offer.customerCoords,
+        partnerCoords: offer.partnerCoords,
+        pickupCoords: offer.pickupCoords,
+        dropCoords: offer.dropCoords,
+      };
+
+      // Trigger Flash Offer Modal directly over whatever screen rider is currently viewing
+      setActiveFlashOffer(flashData);
+
       // Play continuous high-priority bell ringtone & speech alert
       try {
         unlockAudioContext();
@@ -132,27 +171,6 @@ export const GlobalOrderDispatchListener: React.FC = () => {
           duration: 5000,
         });
       }
-
-      toast.success(
-        isAutoAssigned
-          ? `🔔 TRIP ASSIGNED! Order #${offer.orderCode || targetId.slice(-6).toUpperCase()} (₹${fare})! Bell baj rahi hai...`
-          : `🚨 Naya Order Aaya! Trips tab par switch ho raha hai...`,
-        {
-          duration: 6000,
-          action: {
-            label: "Mute Bell",
-            onClick: () => stopOrderAlertSound(),
-          },
-        }
-      );
-
-      // If already on /orders or /deliveries, don't interrupt active navigation
-      if (pathname === "/orders" || pathname === "/deliveries") {
-        return;
-      }
-
-      // Immediate auto-switch to Trips tab as requested by user
-      navigate({ to: "/orders" });
     };
 
     // 1. Listen via WebSocket
@@ -190,5 +208,55 @@ export const GlobalOrderDispatchListener: React.FC = () => {
     };
   }, [session?.token, isOnline, pathname, navigate]);
 
-  return null;
+  return (
+    <FlashTripOfferModal
+      offer={activeFlashOffer}
+      onAccepted={(orderId, acceptedOffer) => {
+        const pOtp = (typeof acceptedOffer.otp?.pickup === "object" ? acceptedOffer.otp?.pickup?.code : acceptedOffer.otp?.pickup) || acceptedOffer.pickupOtp || "";
+        const dOtp = (typeof acceptedOffer.otp?.delivery === "object" ? acceptedOffer.otp?.delivery?.code : acceptedOffer.otp?.delivery) || acceptedOffer.deliveryOtp || "";
+        const hOtp = (typeof acceptedOffer.otp?.handover === "object" ? acceptedOffer.otp?.handover?.code : acceptedOffer.otp?.handover) || acceptedOffer.dispatchOtp || "";
+
+        const activeOrderData = {
+          orderId: acceptedOffer.orderId,
+          orderCode: acceptedOffer.orderCode || acceptedOffer.orderId.slice(-6).toUpperCase(),
+          customerName: acceptedOffer.customerName || "Customer",
+          customerPhone: acceptedOffer.customerPhone || "",
+          partnerName: acceptedOffer.partnerName || "QuickPress Partner Store",
+          partnerPhone: acceptedOffer.partnerPhone || "",
+          partnerAddress: acceptedOffer.partnerAddress || acceptedOffer.dropAddress || "",
+          pickupAddress: acceptedOffer.pickupAddress,
+          pickupTitle: acceptedOffer.pickupTitle,
+          dropAddress: acceptedOffer.dropAddress,
+          dropTitle: acceptedOffer.dropTitle,
+          distanceMeters: Math.round((acceptedOffer.pickupDistanceKm || 1.2) * 1000),
+          pickupDistanceKm: Number(acceptedOffer.pickupDistanceKm || 1.2),
+          dropDistanceKm: Number(acceptedOffer.dropDistanceKm || 2.5),
+          fare: acceptedOffer.fare,
+          amount: Number(acceptedOffer.amount || acceptedOffer.fare),
+          paymentMode: acceptedOffer.paymentMode || "cod",
+          items: acceptedOffer.items || [],
+          placedAt: acceptedOffer.placedAt || new Date().toISOString(),
+          startOtp: String(pOtp),
+          deliveryOtp: String(dOtp),
+          dispatchOtp: String(hOtp),
+          customerCoords: acceptedOffer.customerCoords,
+          partnerCoords: acceptedOffer.partnerCoords,
+          pickupCoords: acceptedOffer.pickupCoords,
+          dropCoords: acceptedOffer.dropCoords,
+          rideType: acceptedOffer.rideType || "pickup",
+        };
+
+        try {
+          localStorage.setItem("qp_active_rider_order", JSON.stringify(activeOrderData));
+          localStorage.setItem("qp_active_delivery_order", JSON.stringify(activeOrderData));
+        } catch {}
+
+        setActiveFlashOffer(null);
+        navigate({ to: "/orders" });
+      }}
+      onDeclined={() => {
+        setActiveFlashOffer(null);
+      }}
+    />
+  );
 };

@@ -11,6 +11,11 @@ from fastapi import HTTPException, status
 from app.config import get_settings
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 @lru_cache
 def _firebase_app() -> Optional[Any]:
     settings = get_settings()
@@ -24,7 +29,14 @@ def _firebase_app() -> Optional[Any]:
             return firebase_admin.get_app()
 
         if settings.firebase_credentials_json:
-            cred = credentials.Certificate(json.loads(settings.firebase_credentials_json))
+            raw_cred = settings.firebase_credentials_json.strip()
+            if (raw_cred.startswith("'") and raw_cred.endswith("'")) or (raw_cred.startswith('"') and raw_cred.endswith('"')):
+                raw_cred = raw_cred[1:-1].strip()
+            try:
+                cred_dict = json.loads(raw_cred)
+            except Exception:
+                cred_dict = json.loads(raw_cred.replace("\\n", "\n"))
+            cred = credentials.Certificate(cred_dict)
         else:
             import os
             path = settings.firebase_credentials_file
@@ -36,10 +48,14 @@ def _firebase_app() -> Optional[Any]:
             if not os.path.exists(path):
                 return None
             cred = credentials.Certificate(path)
-        return firebase_admin.initialize_app(
+
+        app = firebase_admin.initialize_app(
             cred, {"projectId": settings.firebase_project_id} if settings.firebase_project_id else None
         )
-    except Exception:
+        logger.info("[Firebase] Admin SDK initialized successfully for project: %s", settings.firebase_project_id or "default")
+        return app
+    except Exception as e:
+        logger.warning("[Firebase] Could not initialize Firebase Admin app: %s", e)
         return None
 
 

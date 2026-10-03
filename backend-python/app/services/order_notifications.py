@@ -57,6 +57,7 @@ async def _dispatch_external_pushes(
                 title=title,
                 body=body,
                 data=data,
+                role=role,
             )
         except Exception:
             pass
