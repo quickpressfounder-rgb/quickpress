@@ -4,10 +4,14 @@
   "outputDirectory": ".output/public",
   "build": {
     "env": {
+      "VITE_API_BASE_URL": "https://quickpress-api-production.up.railway.app",
+      "VITE_SOCKET_URL": "https://quickpress-api-production.up.railway.app",
       "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS": "1"
     }
   },
   "env": {
+    "VITE_API_BASE_URL": "https://quickpress-api-production.up.railway.app",
+    "VITE_SOCKET_URL": "https://quickpress-api-production.up.railway.app",
     "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS": "1"
   },
   "headers": [
