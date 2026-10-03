@@ -72,7 +72,7 @@ export async function verifyPhoneOtp(
       role: role(explicitRole),
       referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
     },
-    { anonymous: true },
+    { anonymous: true, timeoutMs: 35000 },
   );
   return persist(session);
 }
@@ -97,7 +97,7 @@ export async function signInWithApple(
 
 /** GET /api/auth/me */
 export async function fetchCurrentUser(): Promise<AuthSession["account"]> {
-  return apiGetJson<AuthSession["account"]>(AUTH_ENDPOINTS.me);
+  return apiGetJson<AuthSession["account"]>(AUTH_ENDPOINTS.me, { timeoutMs: 35000 });
 }
 
 /** POST /api/auth/refresh — rotates the access token using the refresh token. */
@@ -109,7 +109,7 @@ export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSe
     const next = await apiPostJson<AuthSession>(
       AUTH_ENDPOINTS.refresh,
       { refresh_token: current.refreshToken },
-      { anonymous: true, timeoutMs: 15000 },
+      { anonymous: true, timeoutMs: 35000 },
     );
     return persist(next);
   } catch (err: any) {

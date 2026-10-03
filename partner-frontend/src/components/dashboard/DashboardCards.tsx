@@ -218,9 +218,12 @@ export function RevenueCard({
     : deliveredOrders.length;
 
   const rawCompletedAmount = deliveredOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+  const todayOrdersAmount = orders
+    .filter((o) => o.stage !== "cancelled" && (o as any).status !== "cancelled")
+    .reduce((sum, o) => sum + (o.amount || 0), 0);
   const rawAmount = (earnings?.today && earnings.today > 0)
     ? earnings.today
-    : (rawCompletedAmount > 0 ? rawCompletedAmount : ((earnings as any)?.total || 0));
+    : (todayOrdersAmount > 0 ? todayOrdersAmount : (rawCompletedAmount > 0 ? rawCompletedAmount : ((earnings as any)?.total || 0)));
 
   const amount = useCountUp(rawAmount, 800);
   const pipelineGross = activeOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
@@ -246,8 +249,8 @@ export function RevenueCard({
               <IndianRupee className="size-5" strokeWidth={2.4} />
             </span>
             <div>
-              <h3 className="text-sm font-black tracking-tight text-foreground">Revenue Summary</h3>
-              <p className="text-[11px] font-semibold text-muted-foreground">Daily Gross & Automated Settlements</p>
+              <h3 className="text-sm font-black tracking-tight text-foreground">Today's Sale</h3>
+              <p className="text-[11px] font-semibold text-muted-foreground">Aaj Ki Kul Bikri (Today's Total Sale)</p>
             </div>
           </div>
 
@@ -263,18 +266,12 @@ export function RevenueCard({
             <p className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
               {isLoading ? "..." : inr(amount)}
             </p>
-            {rawAmount > 0 ? (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-black">
-                <ArrowUpRight className="size-3.5" /> Verified Gross
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 text-muted-foreground px-2.5 py-0.5 text-xs font-bold border border-border/60">
-                Daily Gross
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-black">
+              <ArrowUpRight className="size-3.5" /> Today's Sale
+            </span>
           </div>
           <p className="mt-1 text-xs font-medium text-muted-foreground">
-            Gross earnings credited to verified partner bank account (IMPS/NEFT)
+            Aaj ke sabhi orders ki kul sale (Total sales from today's orders)
           </p>
         </div>
 

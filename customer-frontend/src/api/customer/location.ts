@@ -37,58 +37,54 @@ export function readLocation(): SavedLocation | null {
  * server key). OpenStreetMap stays as a last-resort fallback so GPS keeps
  * working when Maps is unavailable.
  */
+export const DEFAULT_OPERATIONAL_LOCATION: SavedLocation = {
+  area: "Awas Vikas",
+  city: "Kasganj",
+  state: "Uttar Pradesh",
+  latitude: 27.8083,
+  longitude: 78.6475,
+};
+
+export function getDefaultLocation(): SavedLocation {
+  return { ...DEFAULT_OPERATIONAL_LOCATION };
+}
+
+/**
+ * Reverse geocode coordinates into a readable area/city.
+ *
+ * Primary source is the backend Google Maps proxy (`/api/maps/reverse-geocode`,
+ * server key). If backend proxy or Maps is unavailable, falls back to the default
+ * operational service hub (Kasganj) so store listings, pricing, and serviceability
+ * never break.
+ */
 export async function reverseGeocode(
   latitude: number,
   longitude: number,
 ): Promise<SavedLocation> {
   const fallback: SavedLocation = {
-    area: "Current Location",
-    city: "Detected via GPS",
-    state: "",
+    ...DEFAULT_OPERATIONAL_LOCATION,
     latitude,
     longitude,
   };
 
   try {
     const result = await reverseGeocodeCoords(latitude, longitude);
-    if (result.area || result.city) {
+    if (result && (result.area || result.city || result.formattedAddress)) {
+      const area = result.area || result.formattedAddress?.split(",")?.[0] || fallback.area;
+      const city = result.city && result.city.trim() ? result.city.trim() : fallback.city;
       return {
-        area: result.area || result.formattedAddress || fallback.area,
-        city: result.city || fallback.city,
-        state: result.state ?? "",
+        area,
+        city,
+        state: result.state ?? fallback.state,
         latitude,
         longitude,
       };
     }
-  } catch {
-    /* fall through to OpenStreetMap */
+  } catch (err) {
+    console.warn("[Location] Reverse geocode proxy warning, using fallback:", err);
   }
 
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
-      { headers: { Accept: "application/json" } },
-    );
-    if (!response.ok) return fallback;
-    const json = (await response.json()) as {
-      address?: Record<string, string>;
-      display_name?: string;
-    };
-    const a = json.address ?? {};
-    const area =
-      a["neighbourhood"] ??
-      a["suburb"] ??
-      a["village"] ??
-      a["town"] ??
-      a["city_district"] ??
-      a["road"] ??
-      a["city"] ??
-      fallback.area;
-    const city = a["city"] ?? a["town"] ?? a["state_district"] ?? a["county"] ?? fallback.city;
-    return { area, city, state: a["state"] ?? "", latitude, longitude };
-  } catch {
-    return fallback;
-  }
+  return fallback;
 }
 
 
@@ -102,7 +98,7 @@ export class GeoError extends Error {
       kind === "PERMISSION_DENIED"
         ? "Location permission is required to detect your current location."
         : kind === "TIMEOUT"
-          ? "Timed out while detecting your location."
+          ? "GPS satellite lock timed out. Using default operational hub."
           : kind === "UNSUPPORTED"
             ? "This device or browser does not support location access."
             : "Unable to detect your location.",
@@ -114,53 +110,84 @@ export class GeoError extends Error {
 export type DeviceLocation = { latitude: number; longitude: number; accuracy?: number };
 
 /**
- * REAL device fix only.
+ * Robust 2-Phase Device Location Acquisition:
  *
- * There is no fallback coordinate anywhere in this function: a failure is
- * reported as a GeoError so the screen can offer "Retry" or "Choose manually".
+ * Phase 1: High Accuracy GPS (satellites) with 5s timeout.
+ * Phase 2: If Phase 1 times out or errors (common indoors or on mobile),
+ *          immediately try Network/Cell/Wi-Fi positioning (enableHighAccuracy: false).
+ *          Network triangulation returns in <500ms on mobile devices.
  */
-export function getCurrentDeviceLocation(
+export async function getCurrentDeviceLocation(
   options: { timeoutMs?: number; enableHighAccuracy?: boolean } = {},
 ): Promise<DeviceLocation> {
-  return new Promise((resolve, reject) => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      reject(new GeoError("UNSUPPORTED"));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        }),
-      (error) =>
-        reject(
-          new GeoError(
-            error.code === error.PERMISSION_DENIED
-              ? "PERMISSION_DENIED"
-              : error.code === error.TIMEOUT
-                ? "TIMEOUT"
-                : "POSITION_UNAVAILABLE",
-          ),
-        ),
-      {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    throw new GeoError("UNSUPPORTED");
+  }
+
+  // Phase 1: High Accuracy attempt
+  try {
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: options.enableHighAccuracy ?? true,
-        timeout: options.timeoutMs ?? 12_000,
-        maximumAge: 0,
-      },
-    );
-  });
+        timeout: options.timeoutMs ? Math.min(options.timeoutMs, 5000) : 5000,
+        maximumAge: 30000,
+      });
+    });
+
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+    };
+  } catch (phase1Err: any) {
+    // If permission was explicitly denied by user, stop here
+    if (phase1Err?.code === 1 /* PERMISSION_DENIED */) {
+      throw new GeoError("PERMISSION_DENIED");
+    }
+
+    // Phase 2: Fast Network/Cell-tower Triangulation
+    try {
+      const networkPos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 6000,
+          maximumAge: 120000,
+        });
+      });
+
+      return {
+        latitude: networkPos.coords.latitude,
+        longitude: networkPos.coords.longitude,
+        accuracy: networkPos.coords.accuracy,
+      };
+    } catch (phase2Err: any) {
+      if (phase2Err?.code === 1) {
+        throw new GeoError("PERMISSION_DENIED");
+      }
+      if (phase2Err?.code === 3 || phase1Err?.code === 3) {
+        throw new GeoError("TIMEOUT");
+      }
+      throw new GeoError("POSITION_UNAVAILABLE");
+    }
+  }
 }
 
 /**
  * Device GPS → reverse geocoding → the customer's *current device* location.
  *
- * This is deliberately separate from the saved default address: it never
- * mutates the address book. Only `saveLocation` (called by explicit user
- * action or by the post-login location screen) updates the active location.
+ * If fallbackToDefault is true, any GPS or permission failure gracefully
+ * returns the default Kasganj hub instead of throwing, ensuring the customer
+ * is never blocked from using the app.
  */
-export async function detectDeviceLocation(): Promise<SavedLocation> {
-  const fix = await getCurrentDeviceLocation();
-  return reverseGeocode(fix.latitude, fix.longitude);
+export async function detectDeviceLocation(fallbackToDefault = false): Promise<SavedLocation> {
+  try {
+    const fix = await getCurrentDeviceLocation();
+    return await reverseGeocode(fix.latitude, fix.longitude);
+  } catch (err) {
+    if (fallbackToDefault) {
+      console.warn("[Location] Device GPS unavailable, falling back to default hub:", err);
+      return getDefaultLocation();
+    }
+    throw err;
+  }
 }

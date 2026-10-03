@@ -25,9 +25,13 @@ function getSocketUrl(): string {
     }
     return clean;
   }
-  const host = window.location.hostname || "localhost";
-  if (host === "localhost" || host === "127.0.0.1") {
-    return "http://localhost:8000";
+  const isCapacitor = Boolean(
+    (window as any).Capacitor?.isNativePlatform?.() ||
+    (window as any).Capacitor !== undefined ||
+    window.location.protocol === "capacitor:"
+  );
+  if (isCapacitor || window.location.protocol === "https:") {
+    return PRODUCTION_SOCKET_URL;
   }
   return PRODUCTION_SOCKET_URL;
 }

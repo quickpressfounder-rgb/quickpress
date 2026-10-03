@@ -33,10 +33,27 @@ function readString(key: string): string {
 
 const PRODUCTION_API_URL = "https://quickpress-api-production.up.railway.app";
 
+export function isCapacitorNative(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean(
+    (window as any).Capacitor?.isNativePlatform?.() ||
+    (window as any).Capacitor?.getPlatform?.() === "android" ||
+    (window as any).Capacitor?.getPlatform?.() === "ios" ||
+    (window as any).Capacitor !== undefined ||
+    window.location.protocol === "capacitor:" ||
+    window.location.protocol === "ionic:"
+  );
+}
+
 export function apiBaseUrl(): string {
   let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
   if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
     custom = custom.replace("quickpress-api-production-3292.up.railway.app", "quickpress-api-production.up.railway.app");
+  }
+
+  // Inside Capacitor Android/iOS APK, ALWAYS connect to the live production Railway backend!
+  if (isCapacitorNative()) {
+    return custom && custom.startsWith("https://") ? custom : PRODUCTION_API_URL;
   }
 
   if (typeof window !== "undefined") {
@@ -51,10 +68,10 @@ export function apiBaseUrl(): string {
     }
 
     if (host === "localhost" || host === "127.0.0.1") {
-      if (custom && !custom.includes("railway.app")) {
+      if (custom && (custom.startsWith("http://") || custom.startsWith("https://"))) {
         return custom;
       }
-      return "http://localhost:8000";
+      return PRODUCTION_API_URL;
     }
 
     const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;

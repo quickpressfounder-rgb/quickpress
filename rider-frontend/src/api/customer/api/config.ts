@@ -33,10 +33,27 @@ function readString(key: string): string {
 
 const PRODUCTION_API_URL = "https://quickpress-api-production.up.railway.app";
 
+export function isCapacitorNative(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean(
+    (window as any).Capacitor?.isNativePlatform?.() ||
+    (window as any).Capacitor?.getPlatform?.() === "android" ||
+    (window as any).Capacitor?.getPlatform?.() === "ios" ||
+    (window as any).Capacitor !== undefined ||
+    window.location.protocol === "capacitor:" ||
+    window.location.protocol === "ionic:"
+  );
+}
+
 export function apiBaseUrl(): string {
   let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
   if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
     custom = custom.replace("-3292", "");
+  }
+
+  // Inside Capacitor Android/iOS APK, ALWAYS connect to the live production Railway backend!
+  if (isCapacitorNative()) {
+    return custom && custom.startsWith("https://") ? custom : PRODUCTION_API_URL;
   }
 
   if (typeof window !== "undefined") {
@@ -51,7 +68,11 @@ export function apiBaseUrl(): string {
     }
 
     if (host === "localhost" || host === "127.0.0.1") {
-      return custom || "http://localhost:8000";
+      // If custom is explicitly given, use it; otherwise default to live backend
+      if (custom && (custom.startsWith("http://") || custom.startsWith("https://"))) {
+        return custom;
+      }
+      return PRODUCTION_API_URL;
     }
 
     // LAN IP check
@@ -74,16 +95,12 @@ export function appEnvironment(): AppEnvironment {
   const value = readString("VITE_APP_ENV");
   if (value === "staging" || value === "production") return value;
   if (value === "development") return "development";
-  // No explicit VITE_APP_ENV: a production bundle (`vite build`) is production.
-  // This closes the "forgot to set VITE_APP_ENV" hole that would otherwise let
-  // a shipped build silently serve mock fixtures.
   return env()["PROD"] === true ? "production" : "development";
 }
 
-
 export function apiTimeoutMs(): number {
   const parsed = Number(readString("VITE_API_TIMEOUT_MS"));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 15_000;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 35_000;
 }
 
 /** True once a real backend base URL is configured for this environment. */

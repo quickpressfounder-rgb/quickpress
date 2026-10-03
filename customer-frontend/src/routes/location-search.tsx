@@ -16,7 +16,13 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchPlaceGroups, type PlaceGroups } from "@/api/customer/locations-api";
-import { reverseGeocode, saveLocation, type SavedLocation } from "@/api/customer/location";
+import {
+  detectDeviceLocation,
+  getDefaultLocation,
+  reverseGeocode,
+  saveLocation,
+  type SavedLocation,
+} from "@/api/customer/location";
 import {
   autocompletePlaces,
   fetchPlaceDetails,
@@ -131,23 +137,21 @@ function LocationSearchScreen() {
 
 
 
-  const useCurrentLocation = () => {
+  const useCurrentLocation = async () => {
     if (locating) return;
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
     setLocating(true);
     // Request notification permission together with location GPS
     void requestNotificationPermission();
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        saveLocation(
-          await reverseGeocode(position.coords.latitude, position.coords.longitude),
-        );
-        setLocating(false);
-        navigate({ to: "/home" });
-      },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+    try {
+      const loc = await detectDeviceLocation(true);
+      saveLocation(loc);
+      setLocating(false);
+      void navigate({ to: "/home" });
+    } catch {
+      saveLocation(getDefaultLocation());
+      setLocating(false);
+      void navigate({ to: "/home" });
+    }
   };
 
   const confirm = () => {

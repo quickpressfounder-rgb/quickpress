@@ -8,7 +8,14 @@
 import { API_ENDPOINTS } from "../api/config";
 import { CACHE_KEYS, readCache, readStaleCache, writeCache } from "../api/cache";
 import { apiGet, resolveResource } from "../api/http-client";
-import { readLocation, reverseGeocode, saveLocation, type SavedLocation } from "../location";
+import {
+  detectDeviceLocation,
+  getDefaultLocation,
+  readLocation,
+  reverseGeocode,
+  saveLocation,
+  type SavedLocation,
+} from "../location";
 
 export type { SavedLocation };
 
@@ -36,23 +43,15 @@ export function fetchLocation(options: { forceRefresh?: boolean | undefined; sig
   });
 }
 
-/** Location refresh via device GPS, then reverse geocoding. */
+/** Location refresh via device GPS, then reverse geocoding with resilient fallback. */
 export async function refreshLocationFromGps(): Promise<SavedLocation> {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return readLocation() ?? (await fetchLocation());
+  try {
+    const location = await detectDeviceLocation(true);
+    changeLocation(location);
+    return location;
+  } catch {
+    const saved = readLocation() ?? getDefaultLocation();
+    changeLocation(saved);
+    return saved;
   }
-
-  const position = await new Promise<GeolocationPosition | null>((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (value) => resolve(value),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
-  });
-
-  if (!position) return readLocation() ?? (await fetchLocation());
-
-  const location = await reverseGeocode(position.coords.latitude, position.coords.longitude);
-  changeLocation(location);
-  return location;
 }
