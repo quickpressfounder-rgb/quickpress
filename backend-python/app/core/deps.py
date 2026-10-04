@@ -8,6 +8,7 @@ from typing import Callable, Iterable, Set
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.config import get_settings
 from app.core.security import decode_token
 from app.db.client import database
 from app.db.repositories import users
@@ -28,69 +29,74 @@ ADMIN_ROLES: Set[Role] = {
 async def current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> User:
+    settings = get_settings()
+    is_production = (getattr(settings, "app_env", "") or "development").strip().lower() == "production"
+
     if credentials is None or not credentials.credentials:
-        dev_partner = await users.by_phone("+919258730561", Role.partner)
-        if dev_partner:
-            return dev_partner
+        if not is_production:
+            dev_partner = await users.by_phone("+919258730561", Role.partner)
+            if dev_partner:
+                return dev_partner
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     token = credentials.credentials.strip()
 
-    # Dynamic fallback support for client development/offline tokens
-    if token.startswith("jwt_rider_") or token.startswith("rider_"):
-        parts = token.split("_")
-        phone_candidate = None
-        for part in parts:
-            clean = "".join(c for c in part if c.isdigit())
-            if len(clean) == 10:
-                phone_candidate = f"+91{clean}"
-                break
-            elif len(clean) == 12 and clean.startswith("91"):
-                phone_candidate = f"+{clean}"
-                break
-        if phone_candidate:
-            user = await users.by_phone(phone_candidate, Role.rider)
-            if not user:
-                user = await users.create_phone_user(phone=phone_candidate, role=Role.rider)
-            return user
+    # Dynamic fallback support for client development/offline tokens (STRICTLY NON-PRODUCTION ONLY)
+    if not is_production:
+        if token.startswith("jwt_rider_") or token.startswith("rider_"):
+            parts = token.split("_")
+            phone_candidate = None
+            for part in parts:
+                clean = "".join(c for c in part if c.isdigit())
+                if len(clean) == 10:
+                    phone_candidate = f"+91{clean}"
+                    break
+                elif len(clean) == 12 and clean.startswith("91"):
+                    phone_candidate = f"+{clean}"
+                    break
+            if phone_candidate:
+                user = await users.by_phone(phone_candidate, Role.rider)
+                if not user:
+                    user = await users.create_phone_user(phone=phone_candidate, role=Role.rider)
+                return user
 
-    if token.startswith("jwt_partner_") or token.startswith("partner_"):
-        parts = token.split("_")
-        phone_candidate = None
-        for part in parts:
-            clean = "".join(c for c in part if c.isdigit())
-            if len(clean) == 10:
-                phone_candidate = f"+91{clean}"
-                break
-            elif len(clean) == 12 and clean.startswith("91"):
-                phone_candidate = f"+{clean}"
-                break
-        if phone_candidate:
-            user = await users.by_phone(phone_candidate, Role.partner)
-            if not user:
-                user = await users.create_phone_user(phone=phone_candidate, role=Role.partner)
-            return user
+        if token.startswith("jwt_partner_") or token.startswith("partner_"):
+            parts = token.split("_")
+            phone_candidate = None
+            for part in parts:
+                clean = "".join(c for c in part if c.isdigit())
+                if len(clean) == 10:
+                    phone_candidate = f"+91{clean}"
+                    break
+                elif len(clean) == 12 and clean.startswith("91"):
+                    phone_candidate = f"+{clean}"
+                    break
+            if phone_candidate:
+                user = await users.by_phone(phone_candidate, Role.partner)
+                if not user:
+                    user = await users.create_phone_user(phone=phone_candidate, role=Role.partner)
+                return user
 
-    if token.startswith("jwt_admin_") or token.startswith("admin_") or token == "admin":
-        user = await users.by_phone("+919999999999", Role.admin)
-        if not user:
-            user = await users.by_phone("+919999999999", Role.super_admin)
-        if not user:
-            user = await users.create_phone_user(phone="+919999999999", role=Role.admin)
-            await users.update(
-                user.id,
-                {
-                    "email": "himanshupalsingh6@gmail.com",
-                    "display_name": "Himanshu Pal Singh",
-                    "status": "active",
-                    "is_verified": True,
-                    "is_onboarded": True,
-                },
-            )
-            user.email = "himanshupalsingh6@gmail.com"
-            user.display_name = "Himanshu Pal Singh"
-            user.is_verified = True
-            user.is_onboarded = True
-        return user
+        if token.startswith("jwt_admin_") or token.startswith("admin_") or token == "admin":
+            user = await users.by_phone("+919999999999", Role.admin)
+            if not user:
+                user = await users.by_phone("+919999999999", Role.super_admin)
+            if not user:
+                user = await users.create_phone_user(phone="+919999999999", role=Role.admin)
+                await users.update(
+                    user.id,
+                    {
+                        "email": "himanshupalsingh6@gmail.com",
+                        "display_name": "Himanshu Pal Singh",
+                        "status": "active",
+                        "is_verified": True,
+                        "is_onboarded": True,
+                    },
+                )
+                user.email = "himanshupalsingh6@gmail.com"
+                user.display_name = "Himanshu Pal Singh"
+                user.is_verified = True
+                user.is_onboarded = True
+            return user
 
     try:
         payload = decode_token(token, expected_type="access")
@@ -132,40 +138,44 @@ async def optional_user(
         return None
     token = credentials.credentials.strip()
 
-    # Dynamic fallback support for client development/offline tokens
-    if token.startswith("jwt_rider_") or token.startswith("rider_"):
-        parts = token.split("_")
-        phone_candidate = None
-        for part in parts:
-            clean = "".join(c for c in part if c.isdigit())
-            if len(clean) == 10:
-                phone_candidate = f"+91{clean}"
-                break
-            elif len(clean) == 12 and clean.startswith("91"):
-                phone_candidate = f"+{clean}"
-                break
-        if phone_candidate:
-            user = await users.by_phone(phone_candidate, Role.rider)
-            if not user:
-                user = await users.create_phone_user(phone=phone_candidate, role=Role.rider)
-            return user
+    settings = get_settings()
+    is_production = (getattr(settings, "app_env", "") or "development").strip().lower() == "production"
 
-    if token.startswith("jwt_partner_") or token.startswith("partner_"):
-        parts = token.split("_")
-        phone_candidate = None
-        for part in parts:
-            clean = "".join(c for c in part if c.isdigit())
-            if len(clean) == 10:
-                phone_candidate = f"+91{clean}"
-                break
-            elif len(clean) == 12 and clean.startswith("91"):
-                phone_candidate = f"+{clean}"
-                break
-        if phone_candidate:
-            user = await users.by_phone(phone_candidate, Role.partner)
-            if not user:
-                user = await users.create_phone_user(phone=phone_candidate, role=Role.partner)
-            return user
+    # Dynamic fallback support for client development/offline tokens (STRICTLY NON-PRODUCTION ONLY)
+    if not is_production:
+        if token.startswith("jwt_rider_") or token.startswith("rider_"):
+            parts = token.split("_")
+            phone_candidate = None
+            for part in parts:
+                clean = "".join(c for c in part if c.isdigit())
+                if len(clean) == 10:
+                    phone_candidate = f"+91{clean}"
+                    break
+                elif len(clean) == 12 and clean.startswith("91"):
+                    phone_candidate = f"+{clean}"
+                    break
+            if phone_candidate:
+                user = await users.by_phone(phone_candidate, Role.rider)
+                if not user:
+                    user = await users.create_phone_user(phone=phone_candidate, role=Role.rider)
+                return user
+
+        if token.startswith("jwt_partner_") or token.startswith("partner_"):
+            parts = token.split("_")
+            phone_candidate = None
+            for part in parts:
+                clean = "".join(c for c in part if c.isdigit())
+                if len(clean) == 10:
+                    phone_candidate = f"+91{clean}"
+                    break
+                elif len(clean) == 12 and clean.startswith("91"):
+                    phone_candidate = f"+{clean}"
+                    break
+            if phone_candidate:
+                user = await users.by_phone(phone_candidate, Role.partner)
+                if not user:
+                    user = await users.create_phone_user(phone=phone_candidate, role=Role.partner)
+                return user
 
     try:
         payload = decode_token(token, expected_type="access")
