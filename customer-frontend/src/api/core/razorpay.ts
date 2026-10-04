@@ -78,6 +78,14 @@ export type CheckoutProfile = {
   contact?: string;
 };
 
+declare global {
+  interface Window {
+    NativeRazorpay?: {
+      openRazorpay: (optionsJson: string) => void;
+    };
+  }
+}
+
 export type CheckoutOutcome =
   | { status: "success"; payload: RazorpaySuccessPayload }
   | { status: "failed"; reason: string; code: string }
@@ -85,6 +93,7 @@ export type CheckoutOutcome =
 
 /**
  * Opens Razorpay Checkout modal for a server-created order.
+ * Automatically selects Native Android Razorpay SDK if available, or Web Checkout SDK.
  */
 export async function openRazorpayCheckout(
   order: RazorpayOrderResult,
@@ -102,6 +111,89 @@ export async function openRazorpayCheckout(
   if (!order.gatewayOrderId) {
     throw new ApiError("validation", "No Razorpay order ID found to pay for.");
   }
+
+  const razorpayPayload = {
+    key: order.keyId,
+    amount: order.amountInPaise,
+    currency: order.currency || "INR",
+    name: options.appName ?? "QuickPress",
+    description: options.description ?? (order.notes?.["purpose"] as string) ?? "Laundry Order Payment",
+    order_id: order.gatewayOrderId,
+    prefill: {
+      name: options.profile?.name ?? "",
+      email: options.profile?.email ?? "",
+      contact: options.profile?.contact ?? "",
+      ...(options.preferredMethod ? { method: options.preferredMethod } : {}),
+    },
+    notes: order.notes,
+    theme: { color: options.themeColor ?? "#0c831f" },
+  };
+
+  // 1. Check if running inside Native Android APK with official Razorpay Native SDK
+  if (typeof window !== "undefined" && window.NativeRazorpay && typeof window.NativeRazorpay.openRazorpay === "function") {
+    return new Promise<CheckoutOutcome>((resolve) => {
+      let settled = false;
+      const cleanup = () => {
+        window.removeEventListener("razorpay:success", handleSuccess as EventListener);
+        window.removeEventListener("razorpay:error", handleError as EventListener);
+      };
+
+      const finish = (outcome: CheckoutOutcome) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(outcome);
+      };
+
+      const handleSuccess = (evt: CustomEvent<{ code: number; message: string; data: string }>) => {
+        try {
+          const detail = JSON.parse(evt.detail.data || "{}");
+          finish({
+            status: "success",
+            payload: {
+              razorpay_payment_id: detail.razorpay_payment_id || evt.detail.message,
+              razorpay_order_id: detail.razorpay_order_id || order.gatewayOrderId,
+              razorpay_signature: detail.razorpay_signature || "",
+            },
+          });
+        } catch {
+          finish({
+            status: "success",
+            payload: {
+              razorpay_payment_id: evt.detail.message,
+              razorpay_order_id: order.gatewayOrderId,
+              razorpay_signature: "",
+            },
+          });
+        }
+      };
+
+      const handleError = (evt: CustomEvent<{ code: number; message: string }>) => {
+        const code = evt.detail.code;
+        // In Razorpay Android SDK, code 0 or 2 represents user cancellation / back press
+        if (code === 0 || code === 2) {
+          finish({
+            status: "dismissed",
+            reason: evt.detail.message || "Payment cancelled.",
+            code: "checkout_dismissed",
+          });
+        } else {
+          finish({
+            status: "failed",
+            reason: evt.detail.message || "Payment failed at Razorpay gateway.",
+            code: String(code || "payment_failed"),
+          });
+        }
+      };
+
+      window.addEventListener("razorpay:success", handleSuccess as EventListener);
+      window.addEventListener("razorpay:error", handleError as EventListener);
+
+      window.NativeRazorpay!.openRazorpay(JSON.stringify(razorpayPayload));
+    });
+  }
+
+  // 2. Standard Web Browser Checkout SDK
   const Razorpay = await loadRazorpayCheckout();
 
   return new Promise<CheckoutOutcome>((resolve) => {
@@ -113,20 +205,7 @@ export async function openRazorpayCheckout(
     };
 
     const instance = new Razorpay({
-      key: order.keyId,
-      amount: order.amountInPaise,
-      currency: order.currency || "INR",
-      name: options.appName ?? "QuickPress",
-      description: options.description ?? (order.notes?.["purpose"] as string) ?? "Laundry Order Payment",
-      order_id: order.gatewayOrderId,
-      prefill: {
-        name: options.profile?.name ?? "",
-        email: options.profile?.email ?? "",
-        contact: options.profile?.contact ?? "",
-        ...(options.preferredMethod ? { method: options.preferredMethod } : {}),
-      },
-      notes: order.notes,
-      theme: { color: options.themeColor ?? "#0c831f" },
+      ...razorpayPayload,
       modal: {
         ondismiss: () =>
           finish({

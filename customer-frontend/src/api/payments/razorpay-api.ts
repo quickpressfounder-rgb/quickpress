@@ -156,13 +156,14 @@ export interface PayWithRazorpayInput {
   customerName?: string | undefined;
   customerPhone?: string | undefined;
   customerEmail?: string | undefined;
+  preferredMethod?: "upi" | "card" | "netbanking" | "wallet" | undefined;
 }
 
 /**
  * End-to-end payment runner for QuickPress Customer App:
  * 1. Creates order on server with wallet allocation.
  * 2. If fully covered by wallet, bypasses checkout modal.
- * 3. Opens Razorpay standard checkout modal.
+ * 3. Opens Razorpay standard checkout modal (Native Android SDK on APK, Web SDK on browser).
  * 4. Verifies HMAC-SHA256 signature server-to-server.
  */
 export async function payWithRazorpay(input: PayWithRazorpayInput): Promise<PayResult> {
@@ -191,6 +192,7 @@ export async function payWithRazorpay(input: PayWithRazorpayInput): Promise<PayR
       },
       appName: "QuickPress",
       themeColor: "#0c831f",
+      preferredMethod: input.preferredMethod,
     });
 
     if (outcome.status === "dismissed") {

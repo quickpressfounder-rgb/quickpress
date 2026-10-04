@@ -17,15 +17,24 @@ import android.webkit.WebView;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
+import com.razorpay.Checkout;
+import com.razorpay.PaymentData;
+import com.razorpay.PaymentResultWithDataListener;
+import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends BridgeActivity {
+public class MainActivity extends BridgeActivity implements PaymentResultWithDataListener {
     private long lastBackPressTime = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Preload Razorpay Checkout SDK for instant in-app payment sheet
+        try {
+            Checkout.preload(getApplicationContext());
+        } catch (Throwable ignored) {}
 
         // 1. Enable Hardware Acceleration at the Window level
         getWindow().setFlags(
@@ -170,6 +179,25 @@ public class MainActivity extends BridgeActivity {
                         }
                     }
                 }, "AndroidUpiLauncher");
+
+                // Expose Native Razorpay Checkout SDK to Web JavaScript
+                webView.addJavascriptInterface(new Object() {
+                    @android.webkit.JavascriptInterface
+                    public void openRazorpay(String optionsJson) {
+                        runOnUiThread(() -> {
+                            try {
+                                Checkout checkout = new Checkout();
+                                JSONObject options = new JSONObject(optionsJson);
+                                if (options.has("key")) {
+                                    checkout.setKeyID(options.getString("key"));
+                                }
+                                checkout.open(MainActivity.this, options);
+                            } catch (Exception e) {
+                                sendRazorpayEvent("razorpay:error", -1, e.getMessage(), "{}");
+                            }
+                        });
+                    }
+                }, "NativeRazorpay");
             }
         } catch (Exception ignored) {
             // Best effort webview tuning
@@ -209,5 +237,37 @@ public class MainActivity extends BridgeActivity {
             ordersChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
             manager.createNotificationChannel(ordersChannel);
         }
+    }
+
+    @Override
+    public void onPaymentSuccess(String razorpayPaymentID, PaymentData paymentData) {
+        try {
+            JSONObject data = new JSONObject();
+            data.put("razorpay_payment_id", razorpayPaymentID);
+            if (paymentData != null) {
+                data.put("razorpay_order_id", paymentData.getOrderId() != null ? paymentData.getOrderId() : "");
+                data.put("razorpay_signature", paymentData.getSignature() != null ? paymentData.getSignature() : "");
+            }
+            sendRazorpayEvent("razorpay:success", 0, "success", data.toString());
+        } catch (Exception e) {
+            sendRazorpayEvent("razorpay:success", 0, razorpayPaymentID, "{}");
+        }
+    }
+
+    @Override
+    public void onPaymentError(int code, String response, PaymentData paymentData) {
+        sendRazorpayEvent("razorpay:error", code, response, "{}");
+    }
+
+    private void sendRazorpayEvent(String eventName, int code, String message, String dataJson) {
+        runOnUiThread(() -> {
+            WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+            if (webView != null) {
+                String safeMsg = JSONObject.quote(message != null ? message : "");
+                String safeData = (dataJson != null && !dataJson.isEmpty()) ? dataJson : "{}";
+                String js = "window.dispatchEvent(new CustomEvent('" + eventName + "', { detail: { code: " + code + ", message: " + safeMsg + ", data: " + safeData + " } }));";
+                webView.evaluateJavascript(js, null);
+            }
+        });
     }
 }
