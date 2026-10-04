@@ -145,6 +145,31 @@ public class MainActivity extends BridgeActivity {
                     java.lang.reflect.Method m = webView.getClass().getMethod("setOffscreenPreRaster", boolean.class);
                     m.invoke(webView, true);
                 } catch (Throwable ignored) {}
+
+                // Expose high-speed Native UPI App Launcher directly to Web JavaScript
+                webView.addJavascriptInterface(new Object() {
+                    @android.webkit.JavascriptInterface
+                    public boolean openUpiApp(String uriStr, String packageName) {
+                        try {
+                            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+                            intent.setData(android.net.Uri.parse(uriStr));
+                            if (packageName != null && !packageName.trim().isEmpty()) {
+                                intent.setPackage(packageName.trim());
+                            }
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                            return true;
+                        } catch (Exception e) {
+                            try {
+                                android.content.Intent fallback = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uriStr));
+                                fallback.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(fallback);
+                                return true;
+                            } catch (Exception ignored) {}
+                            return false;
+                        }
+                    }
+                }, "AndroidUpiLauncher");
             }
         } catch (Exception ignored) {
             // Best effort webview tuning

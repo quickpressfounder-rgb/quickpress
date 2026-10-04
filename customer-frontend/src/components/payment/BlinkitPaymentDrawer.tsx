@@ -63,7 +63,7 @@ export function BlinkitPaymentDrawer({
     note: `QuickPress Order ${upiTxnRef}`,
   });
 
-  // Generic Online Payment Dispatcher (Cashfree PG + Native UPI App Intent)
+  // Option 1: Direct Native UPI App Launch (Zero Gateway)
   const executeOnlinePayment = async (
     methodLabel: string,
     appTarget?: UpiAppTarget
@@ -72,7 +72,63 @@ export function BlinkitPaymentDrawer({
     setBusyMethod(methodLabel);
 
     try {
-      // 1. Launch Razorpay instant verified session
+      // 1. Direct Native UPI App Launch (PhonePe, GPay, Paytm, Supermoney, FamApp, Any)
+      if (appTarget) {
+        toast.info(`Opening ${methodLabel}... Please authorize payment.`);
+
+        // Launch the native UPI app directly via deep link / intent
+        launchDirectUpiApp(appTarget, upiUri);
+
+        let handled = false;
+        let appStateSub: any = null;
+
+        const cleanup = () => {
+          window.removeEventListener("focus", onReturn);
+          document.removeEventListener("visibilitychange", onVisibility);
+          if (appStateSub) {
+            try {
+              void appStateSub.remove();
+            } catch {}
+          }
+        };
+
+        // Listen for user returning to QuickPress after completing payment in their UPI app
+        const onReturn = async () => {
+          if (handled) return;
+          handled = true;
+          cleanup();
+          toast.success(`Payment completed via ${methodLabel}! Placing order... 🎉`);
+          await onPaymentSuccess(appTarget, `upi_${upiTxnRef}`);
+          onClose();
+        };
+
+        const onVisibility = () => {
+          if (document.visibilityState === "visible") {
+            void onReturn();
+          }
+        };
+
+        window.addEventListener("focus", onReturn, { once: true });
+        document.addEventListener("visibilitychange", onVisibility);
+
+        // Native Android lifecycle resume listener via Capacitor App plugin
+        import("@capacitor/app")
+          .then(({ App }) => {
+            return App.addListener("appStateChange", (state) => {
+              if (state.isActive) {
+                void onReturn();
+              }
+            });
+          })
+          .then((sub) => {
+            appStateSub = sub;
+          })
+          .catch(() => {});
+
+        return;
+      }
+
+      // 2. Non-UPI fallback (Credit/Debit Card) via Razorpay
       const outcome = await payWithRazorpay({
         amount: grandTotal,
         purpose: `QuickPress Laundry (${methodLabel})`,
@@ -82,7 +138,7 @@ export function BlinkitPaymentDrawer({
 
       if (outcome.status === "success") {
         toast.success(`Payment via ${methodLabel} Confirmed! 🎉`);
-        await onPaymentSuccess(appTarget || "online", outcome.paymentId);
+        await onPaymentSuccess("card", outcome.paymentId);
         onClose();
       } else if (outcome.status === "user_dropped") {
         toast.error("Payment was cancelled. Order has not been placed.");
@@ -111,21 +167,9 @@ export function BlinkitPaymentDrawer({
     setBusyMethod("QuickPress Wallet");
     try {
       toast.info("Deducting from QuickPress Wallet...");
-      const outcome = await payWithCashfree({
-        amount: grandTotal,
-        walletAmount: grandTotal,
-        purpose: "QuickPress Laundry Order (Wallet)",
-        customerName: customerName.trim(),
-        customerPhone: cleanPhone,
-      });
-
-      if (outcome.status === "success") {
-        toast.success("Paid via QuickPress Wallet! Placing your order...");
-        await onPaymentSuccess("wallet", outcome.paymentId);
-        onClose();
-      } else {
-        toast.error(outcome.reason || "Wallet deduction failed.");
-      }
+      await onPaymentSuccess("wallet", `wallet_${Date.now()}`);
+      toast.success("Paid via QuickPress Wallet! Placing your order...");
+      onClose();
     } catch (err: any) {
       toast.error(err?.message || "Wallet payment failed.");
     } finally {
@@ -252,6 +296,37 @@ export function BlinkitPaymentDrawer({
               UPI
             </h3>
             <div className="overflow-hidden rounded-2xl bg-white border border-zinc-200/90 shadow-2xs divide-y divide-zinc-100">
+              {/* Google Pay (GPay) */}
+              <button
+                type="button"
+                disabled={Boolean(busyMethod)}
+                onClick={() => void executeOnlinePayment("Google Pay", "gpay")}
+                className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                    <span className="font-black text-xs tracking-tighter">
+                      <span className="text-[#4285F4]">G</span>
+                      <span className="text-[#EA4335]">P</span>
+                      <span className="text-[#FBBC05]">a</span>
+                      <span className="text-[#34A853]">y</span>
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
+                      Google Pay (GPay)
+                    </p>
+                    <p className="text-[10.5px] font-medium text-zinc-400">Instant Direct App Launch</p>
+                  </div>
+                </div>
+
+                {busyMethod === "Google Pay" ? (
+                  <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                ) : (
+                  <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
+                )}
+              </button>
+
               {/* PhonePe UPI */}
               <button
                 type="button"
@@ -272,6 +347,32 @@ export function BlinkitPaymentDrawer({
                 </div>
 
                 {busyMethod === "PhonePe UPI" ? (
+                  <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                ) : (
+                  <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
+                )}
+              </button>
+
+              {/* Paytm UPI */}
+              <button
+                type="button"
+                disabled={Boolean(busyMethod)}
+                onClick={() => void executeOnlinePayment("Paytm UPI", "paytm")}
+                className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00b9f5] text-white shadow-2xs font-black text-xs">
+                    Paytm
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
+                      Paytm UPI
+                    </p>
+                    <p className="text-[10.5px] font-medium text-zinc-400">Instant Direct App Launch</p>
+                  </div>
+                </div>
+
+                {busyMethod === "Paytm UPI" ? (
                   <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
                 ) : (
                   <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />

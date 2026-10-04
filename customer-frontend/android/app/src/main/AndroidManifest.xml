@@ -63,4 +63,18 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
+    <!-- Direct UPI App Queries for Android 11+ Package Visibility -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+        <package android:name="com.phonepe.app" />
+        <package android:name="com.google.android.apps.nbu.paisa.user" />
+        <package android:name="net.one97.paytm" />
+        <package android:name="in.supermoney.android" />
+        <package android:name="com.famorganizer" />
+        <package android:name="com.dreamplug.androidapp" />
+    </queries>
+
 </manifest>

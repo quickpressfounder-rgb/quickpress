@@ -1,7 +1,9 @@
 import QRCode from "qrcode";
 
-export const DEFAULT_MERCHANT_VPA = "quickpress@icici";
-export const DEFAULT_MERCHANT_NAME = "QuickPress Laundry";
+export const DEFAULT_MERCHANT_VPA =
+  (import.meta.env["VITE_MERCHANT_UPI_VPA"] as string | undefined)?.trim() || "quickpress@icici";
+export const DEFAULT_MERCHANT_NAME =
+  (import.meta.env["VITE_MERCHANT_NAME"] as string | undefined)?.trim() || "QuickPress Laundry";
 
 export interface UpiUriOptions {
   vpa?: string;
@@ -39,12 +41,39 @@ export function isMobileDevice(): boolean {
 
 export type UpiAppTarget = "phonepe" | "supermoney" | "famapp" | "gpay" | "paytm" | "cred" | "any";
 
+declare global {
+  interface Window {
+    AndroidUpiLauncher?: {
+      openUpiApp: (uriStr: string, packageName?: string) => boolean;
+    };
+  }
+}
+
+const ANDROID_PACKAGES: Record<UpiAppTarget, string> = {
+  phonepe: "com.phonepe.app",
+  gpay: "com.google.android.apps.nbu.paisa.user",
+  paytm: "net.one97.paytm",
+  supermoney: "in.supermoney.android",
+  famapp: "com.famorganizer",
+  cred: "com.dreamplug.androidapp",
+  any: "",
+};
+
 /**
  * Directly launches the requested UPI App on the user's mobile device.
  * Bypasses intermediate gateway popups and goes straight into PhonePe/Supermoney/FamApp/GPay/Paytm!
  */
 export function launchDirectUpiApp(target: UpiAppTarget, upiUri: string): void {
   if (typeof window === "undefined") return;
+
+  // 1. If running inside Native Android APK (Capacitor), trigger Android Intent directly via native bridge
+  if (window.AndroidUpiLauncher && typeof window.AndroidUpiLauncher.openUpiApp === "function") {
+    const pkg = ANDROID_PACKAGES[target] || "";
+    const success = window.AndroidUpiLauncher.openUpiApp(upiUri, pkg);
+    if (success) {
+      return;
+    }
+  }
 
   const isAndroid = /android/i.test(navigator.userAgent || "");
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "");
@@ -55,32 +84,25 @@ export function launchDirectUpiApp(target: UpiAppTarget, upiUri: string): void {
   if (isAndroid) {
     switch (target) {
       case "phonepe":
-        // Direct PhonePe Android intent - launches PhonePe directly without intermediary gateway
         finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.phonepe.app;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
         break;
       case "supermoney":
-        // Direct Supermoney Android intent
         finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=in.supermoney.android;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
         break;
       case "famapp":
-        // Direct FamApp Android intent
         finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.famorganizer;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
         break;
       case "gpay":
-        // Direct Google Pay Android intent
         finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
         break;
       case "paytm":
-        // Direct Paytm Android intent
         finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=net.one97.paytm;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
         break;
       case "cred":
-        // Direct CRED Android intent
         finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.dreamplug.androidapp;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
         break;
       case "any":
       default:
-        // Universal Android Intent: Triggers Android system chooser with ONLY user-installed UPI apps!
         finalUrl = upiUri;
         break;
     }
