@@ -33,18 +33,18 @@ export const Route = createFileRoute("/location")({
 });
 
 /**
- * Post-login location flow.
+ * Location screen:
  *
- *   LOGIN → this animation → real GPS → reverse geocoding → HOME
- *
- * If device GPS is slow or permission is not granted, gracefully falls back
- * to the operational service hub (Kasganj) so the customer is never blocked.
+ *   1. Requests real device GPS coordinates.
+ *   2. Reverse geocodes to user's real area and city.
+ *   3. If GPS is weak or pending permission, keeps the user in control with
+ *      active retry and manual search options — NO automatic redirect or forced default.
  */
 function LocationScreen() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(true);
   const [attempt, setAttempt] = useState(0);
-  const [countdown, setCountdown] = useState<number | null>(null);
 
   const proceedWithDefault = useCallback(() => {
     saveLocation(getDefaultLocation());
@@ -53,17 +53,10 @@ function LocationScreen() {
 
   const detect = useCallback(async () => {
     setError(null);
-    setCountdown(null);
-
-    // Fast check: if valid location is already saved, proceed directly to home
-    const existing = readLocation();
-    if (existing && existing.city && existing.latitude && existing.city !== "Detected via GPS") {
-      void navigate({ to: "/home" });
-      return;
-    }
+    setIsLocating(true);
 
     try {
-      // 1. Request native device notification permission in background without blocking GPS
+      // 1. Request native notification permission in background without blocking GPS
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
         try {
           Notification.requestPermission()
@@ -80,21 +73,20 @@ function LocationScreen() {
         }
       }
 
-      // 2. Ask native device GPS location permission (2-phase: GPS -> Network fallback)
+      // 2. Fetch real device GPS coordinates & reverse geocode
       const location = await detectDeviceLocation(false);
       saveLocation(location);
+      setIsLocating(false);
       void navigate({ to: "/home" });
     } catch (cause) {
-      // Prime default operational location in storage
-      saveLocation(getDefaultLocation());
-
+      setIsLocating(false);
       const msg =
         cause instanceof GeoError
           ? cause.message
-          : "We couldn't detect your exact GPS location right now.";
+          : "Unable to detect your exact GPS location. Please ensure location services are turned on.";
       setError(msg);
-      // Auto-proceed after 4 seconds if user doesn't interact
-      setCountdown(4);
+      // NOTE: We do NOT auto-proceed or auto-save default location here.
+      // The user stays in control to retry GPS or choose location manually.
     }
   }, [navigate]);
 
@@ -102,20 +94,9 @@ function LocationScreen() {
     void detect();
   }, [detect, attempt]);
 
-  // Countdown timer to automatically proceed to /home
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown <= 0) {
-      proceedWithDefault();
-      return;
-    }
-    const timer = setInterval(() => {
-      setCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [countdown, proceedWithDefault]);
-
-  if (!error) return <LocationDetecting label="Fetching your location…" />;
+  if (isLocating) {
+    return <LocationDetecting label="Detecting your real GPS location…" />;
+  }
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-6">
@@ -124,43 +105,45 @@ function LocationScreen() {
           <MapPin className="size-8" aria-hidden />
         </span>
         <h1 className="mt-5 text-[1.35rem] font-black tracking-tight text-foreground">
-          GPS Signal Weak
+          {error?.toLowerCase().includes("permission")
+            ? "Location Permission Needed"
+            : "Detect Your Current Location"}
         </h1>
-        <p className="mt-2 text-sm font-medium text-muted-foreground">{error}</p>
-        <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-          Using default service hub: Kasganj (Awas Vikas)
-          {countdown !== null && countdown > 0 ? ` (Auto-entering in ${countdown}s)` : ""}
+        <p className="mt-2 text-sm font-medium text-muted-foreground">
+          {error || "Turn on device location so QuickPress can show verified laundry partners near you."}
         </p>
 
-        {/* Primary CTA: Enter with Kasganj */}
-        <button
-          type="button"
-          onClick={proceedWithDefault}
-          className="mt-6 flex h-13 min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-[15px] font-black text-white shadow-cta active:scale-[0.985] hover:bg-emerald-700"
-        >
-          <span>Continue with Kasganj</span>
-          <ArrowRight className="size-[18px]" aria-hidden />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void navigate({ to: "/location-search" })}
-          className="mt-3 flex h-13 min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card text-[15px] font-bold text-foreground active:scale-[0.985]"
-        >
-          <Search className="size-[18px]" aria-hidden />
-          Choose location manually
-        </button>
-
+        {/* Primary CTA: Retry / Detect real GPS location */}
         <button
           type="button"
           onClick={() => {
-            setCountdown(null);
-            setAttempt((value) => value + 1);
+            setError(null);
+            setAttempt((v) => v + 1);
           }}
-          className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-muted-foreground hover:text-foreground"
+          className="mt-6 flex h-13 min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-[15px] font-black text-white shadow-cta active:scale-[0.985] hover:bg-emerald-700"
         >
-          <RefreshCw className="size-3.5" aria-hidden />
-          Retry GPS detection
+          <Compass className="size-[18px]" aria-hidden />
+          <span>Detect Current Location</span>
+        </button>
+
+        {/* Secondary CTA: Search or select location manually */}
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/location-search" })}
+          className="mt-3 flex h-13 min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card text-[15px] font-bold text-foreground active:scale-[0.985] hover:bg-muted"
+        >
+          <Search className="size-[18px]" aria-hidden />
+          <span>Choose location manually</span>
+        </button>
+
+        {/* Tertiary Explicit Bypass (NO timer / NO auto-redirect) */}
+        <button
+          type="button"
+          onClick={proceedWithDefault}
+          className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-bold text-muted-foreground hover:text-foreground"
+        >
+          <span>Or continue with Kasganj (Default hub)</span>
+          <ArrowRight className="size-3.5" aria-hidden />
         </button>
       </div>
     </main>

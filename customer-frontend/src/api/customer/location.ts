@@ -99,21 +99,16 @@ export async function reverseGeocode(
     }
   }
 
-  const fallback: SavedLocation = {
-    ...DEFAULT_OPERATIONAL_LOCATION,
-    latitude,
-    longitude,
-  };
-
+  // Tier 1: Backend Google Maps / Nominatim proxy
   try {
     const result = await reverseGeocodeCoords(latitude, longitude);
     if (result && (result.area || result.city || result.formattedAddress)) {
-      const area = result.area || result.formattedAddress?.split(",")?.[0] || fallback.area;
-      const city = result.city && result.city.trim() ? result.city.trim() : fallback.city;
+      const area = result.area || result.formattedAddress?.split(",")?.[0]?.trim() || "Current Location";
+      const city = (result.city && result.city.trim()) ? result.city.trim() : (result.state || "Detected Location");
       const resolved: SavedLocation = {
         area,
         city,
-        state: result.state ?? fallback.state,
+        state: result.state ?? "",
         latitude,
         longitude,
       };
@@ -127,11 +122,46 @@ export async function reverseGeocode(
       return resolved;
     }
   } catch (err) {
-    console.warn("[Location] Reverse geocode proxy warning, using fallback:", err);
+    console.warn("[Location] Reverse geocode backend proxy warning, attempting client-side lookup:", err);
   }
 
-  GEOCODE_CACHE.set(cacheKey, fallback);
-  return fallback;
+  // Tier 2: Client-side OpenStreetMap / BigDataCloud reverse geocode fallback
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+      { signal: controller.signal },
+    );
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      const area = data.locality || data.city || data.principalSubdivision || "Current Location";
+      const city = data.city || data.principalSubdivision || area || "Detected Location";
+      const state = data.principalSubdivision || "";
+      const resolved: SavedLocation = {
+        area,
+        city,
+        state,
+        latitude,
+        longitude,
+      };
+      GEOCODE_CACHE.set(cacheKey, resolved);
+      return resolved;
+    }
+  } catch {
+    /* fallback to coordinate-based position */
+  }
+
+  const coordFallback: SavedLocation = {
+    area: "Current Location",
+    city: "Detected Location",
+    state: "",
+    latitude,
+    longitude,
+  };
+  GEOCODE_CACHE.set(cacheKey, coordFallback);
+  return coordFallback;
 }
 
 
@@ -145,7 +175,7 @@ export class GeoError extends Error {
       kind === "PERMISSION_DENIED"
         ? "Location permission is required to detect your current location."
         : kind === "TIMEOUT"
-          ? "GPS satellite lock timed out. Using default operational hub."
+          ? "GPS satellite lock timed out. Please ensure GPS is enabled and try again."
           : kind === "UNSUPPORTED"
             ? "This device or browser does not support location access."
             : "Unable to detect your location.",
@@ -157,14 +187,13 @@ export class GeoError extends Error {
 export type DeviceLocation = { latitude: number; longitude: number; accuracy?: number };
 
 /**
- * High-Speed 3-Tier Device Location Acquisition:
+ * Robust Multi-Tier Device Location Acquisition:
  *
- * Tier 1: Check existing device cached fix (maximumAge: 5 minutes, timeout: 1200ms).
- *         If browser has any recent fix, this returns in <100ms.
- * Tier 2: Fast network/cell triangulation (enableHighAccuracy: false, timeout: 2500ms).
- * Tier 3: High-accuracy satellite GPS (enableHighAccuracy: true, timeout: 3000ms).
- *
- * If permissions are denied, fails immediately without lingering timeouts.
+ * Tier 1: Check existing device cached fix (maximumAge: 10 minutes, timeout: 2000ms).
+ *         If browser / Android OS has any recent fix, returns in <100ms.
+ * Tier 2: High-accuracy satellite GPS & Fused Provider (enableHighAccuracy: true, timeout: 12000ms).
+ *         Simultaneously races getCurrentPosition and watchPosition for instant lock.
+ * Tier 3: Network / Cell-tower triangulation fallback (enableHighAccuracy: false, timeout: 8000ms).
  */
 export async function getCurrentDeviceLocation(
   options: { timeoutMs?: number; enableHighAccuracy?: boolean } = {},
@@ -173,60 +202,106 @@ export async function getCurrentDeviceLocation(
     throw new GeoError("UNSUPPORTED");
   }
 
-  // Tier 1: Instant cached position test (sub-second response)
+  // Tier 1: Instant cached position check
   try {
     const cachedPos = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: false,
-        timeout: 1200,
-        maximumAge: 300000, // up to 5 min old fix
+        timeout: 2000,
+        maximumAge: 600000, // 10 minutes
       });
     });
-    return {
-      latitude: cachedPos.coords.latitude,
-      longitude: cachedPos.coords.longitude,
-      accuracy: cachedPos.coords.accuracy,
-    };
+    if (cachedPos?.coords?.latitude && cachedPos?.coords?.longitude) {
+      return {
+        latitude: cachedPos.coords.latitude,
+        longitude: cachedPos.coords.longitude,
+        accuracy: cachedPos.coords.accuracy,
+      };
+    }
   } catch (tier1Err: any) {
     if (tier1Err?.code === 1 /* PERMISSION_DENIED */) {
       throw new GeoError("PERMISSION_DENIED");
     }
   }
 
-  // Tier 2: Fast Network/Cell-tower Triangulation
-  try {
-    const networkPos = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: options.enableHighAccuracy ?? false,
-        timeout: options.timeoutMs ? Math.min(options.timeoutMs, 2500) : 2500,
-        maximumAge: 60000,
-      });
-    });
+  // Helper to race getCurrentPosition and watchPosition for quickest hardware fix
+  const acquirePosition = (opts: PositionOptions): Promise<GeolocationPosition> => {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let watchId: number | null = null;
 
+      const onSucc = (pos: GeolocationPosition) => {
+        if (!settled && pos?.coords?.latitude) {
+          settled = true;
+          if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch {}
+          }
+          resolve(pos);
+        }
+      };
+
+      const onErr = (err: GeolocationPositionError) => {
+        if (!settled && err.code === 1 /* PERMISSION_DENIED */) {
+          settled = true;
+          if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch {}
+          }
+          reject(err);
+        }
+      };
+
+      try {
+        navigator.geolocation.getCurrentPosition(onSucc, onErr, opts);
+      } catch (e) {
+        onErr(e as any);
+      }
+
+      try {
+        watchId = navigator.geolocation.watchPosition(onSucc, onErr, opts);
+      } catch {}
+
+      const maxWait = (opts.timeout ?? 12000) + 500;
+      setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch {}
+          }
+          reject({ code: 3, message: "Timeout" });
+        }
+      }, maxWait);
+    });
+  };
+
+  // Tier 2: Real Satellite / Fused GPS Fix with adequate 12s window
+  try {
+    const highAccTimeout = options.timeoutMs ?? 12000;
+    const gpsPos = await acquirePosition({
+      enableHighAccuracy: true,
+      timeout: highAccTimeout,
+      maximumAge: 30000,
+    });
     return {
-      latitude: networkPos.coords.latitude,
-      longitude: networkPos.coords.longitude,
-      accuracy: networkPos.coords.accuracy,
+      latitude: gpsPos.coords.latitude,
+      longitude: gpsPos.coords.longitude,
+      accuracy: gpsPos.coords.accuracy,
     };
   } catch (tier2Err: any) {
     if (tier2Err?.code === 1) {
       throw new GeoError("PERMISSION_DENIED");
     }
 
-    // Tier 3: High-Accuracy GPS satellite attempt (3s)
+    // Tier 3: Network / Cell Triangulation Fallback (8s window)
     try {
-      const gpsPos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 3000,
-          maximumAge: 30000,
-        });
+      const netPos = await acquirePosition({
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 60000,
       });
-
       return {
-        latitude: gpsPos.coords.latitude,
-        longitude: gpsPos.coords.longitude,
-        accuracy: gpsPos.coords.accuracy,
+        latitude: netPos.coords.latitude,
+        longitude: netPos.coords.longitude,
+        accuracy: netPos.coords.accuracy,
       };
     } catch (tier3Err: any) {
       if (tier3Err?.code === 1) {
@@ -244,8 +319,7 @@ export async function getCurrentDeviceLocation(
  * Device GPS → reverse geocoding → the customer's *current device* location.
  *
  * If fallbackToDefault is true, any GPS or permission failure gracefully
- * returns the default Kasganj hub instead of throwing, ensuring the customer
- * is never blocked from using the app.
+ * returns the default Kasganj hub instead of throwing.
  */
 export async function detectDeviceLocation(fallbackToDefault = false): Promise<SavedLocation> {
   try {

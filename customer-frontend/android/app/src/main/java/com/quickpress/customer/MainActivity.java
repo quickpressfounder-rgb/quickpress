@@ -17,6 +17,8 @@ import android.webkit.WebView;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends BridgeActivity {
     private long lastBackPressTime = 0;
@@ -34,8 +36,8 @@ public class MainActivity extends BridgeActivity {
         // 2. Unlock Highest Supported Display Refresh Rate (90Hz / 120Hz / 144Hz)
         unlockHighRefreshRate();
 
-        // 3. Request Android 13+ Notification Permission & Create Orders Channel
-        requestNotificationPermission();
+        // 3. Request Android 13+ Notification Permission and GPS Location Permission
+        requestDevicePermissions();
         createNotificationChannels();
 
         // 3. Android Back Button Interception with Double-Tap to Exit
@@ -136,6 +138,7 @@ public class MainActivity extends BridgeActivity {
                 settings.setCacheMode(WebSettings.LOAD_DEFAULT);
                 settings.setDomStorageEnabled(true);
                 settings.setDatabaseEnabled(true);
+                settings.setGeolocationEnabled(true);
 
                 // Safely enable offscreen pre-rasterization via reflection if supported by Chromium engine
                 try {
@@ -143,11 +146,26 @@ public class MainActivity extends BridgeActivity {
                     m.invoke(webView, true);
                 } catch (Throwable ignored) {}
             }
-    private void requestNotificationPermission() {
+        } catch (Exception ignored) {
+            // Best effort webview tuning
+        }
+    }
+
+    private void requestDevicePermissions() {
+        List<String> perms = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
+                perms.add(android.Manifest.permission.POST_NOTIFICATIONS);
             }
+        }
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            perms.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            perms.add(android.Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+        if (!perms.isEmpty()) {
+            requestPermissions(perms.toArray(new String[0]), 1001);
         }
     }
 

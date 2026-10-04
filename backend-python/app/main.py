@@ -134,20 +134,28 @@ def create_app() -> FastAPI:
         except Exception as exc:
             logger.warning("Sentry monitoring init warning: %s", exc)
 
+    capacitor_origins = [
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
+        "ionic://localhost",
+        "http://127.0.0.1",
+        "https://127.0.0.1",
+    ]
     if is_prod:
-        # Strict Production CORS: Whitelist only verified QuickPress frontends
-        prod_origins = list(settings.cors_origin_list)
+        # Strict Production CORS: Whitelist verified QuickPress frontends AND mobile Capacitor apps
+        prod_origins = list(set(list(settings.cors_origin_list) + capacitor_origins))
         app.add_middleware(
             CORSMiddleware,
             allow_origins=prod_origins,
-            allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app|lovableproject\.com|lovable\.app|lovable\.dev)$",
+            allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:[0-9]+)?|capacitor://localhost|ionic://localhost|https://([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app|lovableproject\.com|lovable\.app|lovable\.dev))$",
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             allow_headers=["*"],
             expose_headers=["*"],
         )
     else:
-        # Development: Allow verified origins and local development hosts
+        # Development: Allow verified origins and local development hosts + mobile Capacitor apps
         dev_origins = [
             "http://localhost:8080",
             "http://localhost:8081",
@@ -162,12 +170,12 @@ def create_app() -> FastAPI:
             "http://127.0.0.1:8083",
             "http://127.0.0.1:8084",
             "http://127.0.0.1:5173",
-        ]
+        ] + capacitor_origins
         allowed_origins = list(set(settings.cors_origin_list + dev_origins))
         app.add_middleware(
             CORSMiddleware,
             allow_origins=allowed_origins,
-            allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app|lovableproject\.com|lovable\.app|lovable\.dev))(:[0-9]+)?$",
+            allow_origin_regex=r"^(capacitor://localhost|ionic://localhost|https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app|lovableproject\.com|lovable\.app|lovable\.dev))(:[0-9]+)?)$",
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
