@@ -19,13 +19,10 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { DeliveryAnimation } from "@/components/DeliveryAnimation";
 import { OrderSuccessSkeleton } from "@/components/order/OrderSkeleton";
-import { FlipkartSuccessCelebration } from "@/components/order/FlipkartSuccessCelebration";
 import { fetchOrder, type OrderSummary } from "@/api/customer/order-api";
 import { fetchInvoiceForOrder } from "@/api/customer/invoice-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { playOrderPlacedSonicChime } from "@/lib/order-success-sound";
 
 
 export const Route = createFileRoute("/order-success/$orderId")({
@@ -56,18 +53,6 @@ function OrderSuccessScreen() {
   const navigate = useNavigate();
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [copied, setCopied] = useState(false);
-  // Only show celebration on initial order placement; remember in sessionStorage so returning from tracking page never triggers popup again
-  const [showCelebration, setShowCelebration] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      const alreadySeen = sessionStorage.getItem(`celebration_seen_${orderId}`);
-      if (alreadySeen) return false;
-      sessionStorage.setItem(`celebration_seen_${orderId}`, "true");
-      return true;
-    } catch {
-      return true;
-    }
-  });
   const [invoiceBusy, setInvoiceBusy] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
@@ -90,13 +75,6 @@ function OrderSuccessScreen() {
 
   useEffect(() => {
     let alive = true;
-
-    // Play celebration chime sound
-    try {
-      playOrderPlacedSonicChime();
-    } catch {
-      // Audio context might require user interaction in rare circumstances
-    }
 
     // Fast-path: immediately check session storage or local storage
     try {
@@ -191,25 +169,6 @@ function OrderSuccessScreen() {
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-white dark:bg-zinc-950 scroll-smooth">
-      {/* Flipkart-style Full Screen Green Order Success Celebration */}
-      {showCelebration ? (
-        <FlipkartSuccessCelebration
-          grandTotal={order?.totals?.grandTotal || 0}
-          orderId={order?.id || orderId}
-          pickupSlot={order?.pickup?.slot || "15-30 mins"}
-          storeName={order?.storeName || "QuickPress Partner Store"}
-          autoDismissMs={2500}
-          onViewDetails={() => setShowCelebration(false)}
-          onTrackOrder={() => {
-            try {
-              sessionStorage.setItem(`celebration_seen_${orderId}`, "true");
-            } catch {}
-            setShowCelebration(false);
-            void navigate({ to: "/track/$orderId", params: { orderId } });
-          }}
-        />
-      ) : null}
-
       <div className="relative mx-auto w-full max-w-md">
         <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3.5 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md rounded-b-2xl sm:rounded-b-3xl border-none shadow-[0_3px_12px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_3px_12px_-2px_rgba(0,0,0,0.35)]">
           <span className="size-10 shrink-0" />
@@ -234,7 +193,7 @@ function OrderSuccessScreen() {
           <div className="px-5 pb-44 pt-4">
             {/* Success hero */}
             <section className="text-center">
-              <span className="animate-pop mx-auto flex size-20 items-center justify-center rounded-full bg-secondary/15">
+              <span className="mx-auto flex size-20 items-center justify-center rounded-full bg-secondary/15">
                 <span className="flex size-14 items-center justify-center rounded-full bg-brand-green text-background">
                   <Check className="size-7" />
                 </span>
@@ -260,9 +219,6 @@ function OrderSuccessScreen() {
                 )}
               </button>
 
-              <div className="mt-4">
-                <DeliveryAnimation />
-              </div>
             </section>
 
             {/* ETA card */}

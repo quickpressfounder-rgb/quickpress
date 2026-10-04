@@ -47,7 +47,6 @@ import {
 } from "@/api/customer/finance-api";
 import { payWithCashfree } from "@/api/payments/cashfree-api";
 import { getCashfreeInstance } from "@/api/core/cashfree";
-import { playOrderPlacedSonicChime } from "@/lib/order-success-sound";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -259,9 +258,6 @@ export function CheckoutPage() {
         customerPhone: cleanPhone,
       });
 
-      // Play Rapido-style ascending celebration sound + tactile haptics
-      playOrderPlacedSonicChime();
-
       toast.success("Order Placed Successfully! 🎉");
       cart.clear();
 
@@ -314,9 +310,6 @@ export function CheckoutPage() {
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
       });
-
-      // Play Rapido-style ascending celebration sound + tactile haptics
-      playOrderPlacedSonicChime();
 
       toast.success("Order Placed with Pay on Delivery! 📦");
       cart.clear();
