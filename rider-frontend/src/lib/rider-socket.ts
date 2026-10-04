@@ -86,7 +86,7 @@ export function initRiderSocket(): Socket | null {
   try {
     if (!socket) {
       socket = io(url, {
-        transports: ["websocket", "polling"],
+        transports: ["polling", "websocket"],
         reconnection: true,
         reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,

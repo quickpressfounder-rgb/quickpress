@@ -89,22 +89,19 @@ function saveLocalLines(lines: CartLine[]) {
   }
 }
 
-const initialLines = readLocalLines();
-const initialTotals = computeOptimisticTotals(initialLines);
-
-const EMPTY: CartSnapshot = {
-  lines: initialLines,
-  totals: initialTotals,
+const STATIC_EMPTY: CartSnapshot = {
+  lines: [],
+  totals: EMPTY_TOTALS,
   charges: EMPTY_CHARGES,
   store: null,
-  count: initialTotals.count,
-  total: initialTotals.itemsTotal,
+  count: 0,
+  total: 0,
   loading: false,
   syncing: false,
   error: null,
 };
 
-let snapshot: CartSnapshot = EMPTY;
+let snapshot: CartSnapshot = STATIC_EMPTY;
 const listeners = new Set<() => void>();
 let hydrated = false;
 
@@ -255,7 +252,13 @@ export function hydrateCart() {
   hydrated = true;
   const local = readLocalLines();
   if (local.length > 0) {
-    set({ lines: local });
+    const totals = computeOptimisticTotals(local);
+    set({
+      lines: local,
+      totals,
+      count: totals.count,
+      total: totals.itemsTotal,
+    });
   }
   set({ loading: true });
   void refreshCart().finally(() => set({ loading: false }));
@@ -274,7 +277,7 @@ export function getCartSnapshot(): CartSnapshot {
 
 /** Stable server snapshot so SSR and hydration agree. */
 export function getCartServerSnapshot(): CartSnapshot {
-  return EMPTY;
+  return STATIC_EMPTY;
 }
 
 export function lineQty(id: string): number {

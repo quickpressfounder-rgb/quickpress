@@ -187,7 +187,7 @@ function ensureConnection(): void {
 
   setState({ status: "connecting" });
   socket = io(socketUrl(), {
-    transports: ["websocket", "polling"],
+    transports: ["polling", "websocket"],
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1_000,

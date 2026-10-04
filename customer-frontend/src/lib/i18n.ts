@@ -646,9 +646,13 @@ export function useLanguage(): {
   setLanguage: (lang: string) => void;
   t: (key: string) => string;
 } {
-  const [lang, setLang] = useState<LanguageCode>(readStoredLanguage);
+  const [lang, setLang] = useState<LanguageCode>(DEFAULT_LANGUAGE);
 
   useEffect(() => {
+    const stored = readStoredLanguage();
+    if (stored !== DEFAULT_LANGUAGE) {
+      setLang(stored);
+    }
     const handler = (next: LanguageCode) => setLang(next);
     listeners.add(handler);
     return () => {
