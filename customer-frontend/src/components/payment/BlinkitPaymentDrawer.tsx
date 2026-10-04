@@ -18,11 +18,130 @@ import {
 import { toast } from "sonner";
 import {
   buildUpiUri,
+  detectInstalledUpiApps,
   isMobileDevice,
   launchDirectUpiApp,
+  type InstalledUpiApp,
   type UpiAppTarget,
 } from "@/lib/upi-intent";
 import { payWithRazorpay } from "@/api/payments/razorpay-api";
+
+type UpiAppMeta = {
+  name: string;
+  subtext: string;
+  badge?: string;
+  renderIcon: () => React.ReactNode;
+};
+
+const KNOWN_UPI_META: Record<string, UpiAppMeta> = {
+  "com.google.android.apps.nbu.paisa.user": {
+    name: "Google Pay (GPay)",
+    subtext: "Fast UPI Instant Verification",
+    badge: "Popular",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+        <span className="font-black text-xs tracking-tighter">
+          <span className="text-[#4285F4]">G</span>
+          <span className="text-[#EA4335]">P</span>
+          <span className="text-[#FBBC05]">a</span>
+          <span className="text-[#34A853]">y</span>
+        </span>
+      </div>
+    ),
+  },
+  "com.phonepe.app": {
+    name: "PhonePe UPI",
+    subtext: "Fast UPI Instant Verification",
+    badge: "Fastest",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#5f259f] text-white shadow-2xs">
+        <span className="font-black text-sm">पे</span>
+      </div>
+    ),
+  },
+  "net.one97.paytm": {
+    name: "Paytm UPI",
+    subtext: "Fast UPI Instant Verification",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00b9f5] text-white shadow-2xs font-black text-xs">
+        Paytm
+      </div>
+    ),
+  },
+  "in.supermoney.android": {
+    name: "Supermoney UPI",
+    subtext: "Instant UPI Cashback",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white border border-zinc-200/80 shadow-2xs px-1 gap-1">
+        <div className="size-4 shrink-0 rounded-[3.5px] bg-[#3237d6] flex items-center justify-center shadow-2xs">
+          <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white">
+            <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
+          </svg>
+        </div>
+        <div className="flex flex-col text-left font-black text-[7.5px] leading-[7.5px] tracking-tight text-[#16173d]">
+          <span>super.</span>
+          <span>money</span>
+        </div>
+      </div>
+    ),
+  },
+  "com.famorganizer": {
+    name: "FamApp UPI",
+    subtext: "Gen-Z Fast UPI",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#ea7a1e] to-[#f49322] shadow-2xs p-1">
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+          <path d="M2.5 12.5c4.5-3.5 10-6 19-8.5-4 4.5-7 10-9 16-1-3-3-5.5-6-7.5-1.5 1.5-2.5 1-4 0z" />
+        </svg>
+      </div>
+    ),
+  },
+  "com.dreamplug.androidapp": {
+    name: "CRED UPI",
+    subtext: "Members Only Rewards",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-black text-white shadow-2xs font-black text-xs">
+        CRED
+      </div>
+    ),
+  },
+  "in.amazon.mShop.android.shopping": {
+    name: "Amazon Pay UPI",
+    subtext: "Amazon Pay UPI",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#232f3e] text-[#ff9900] shadow-2xs font-black text-sm">
+        a
+      </div>
+    ),
+  },
+  "in.org.npci.upiapp": {
+    name: "BHIM UPI",
+    subtext: "NPCI Govt Verified",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00897b] text-white shadow-2xs font-black text-xs">
+        BHIM
+      </div>
+    ),
+  },
+  "com.whatsapp": {
+    name: "WhatsApp Pay",
+    subtext: "WhatsApp In-Chat UPI",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#25d366] text-white shadow-2xs font-black text-xs">
+        WA
+      </div>
+    ),
+  },
+  "com.naviapp": {
+    name: "Navi UPI",
+    subtext: "Navi Zero Fee UPI",
+    renderIcon: () => (
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#0047cc] text-white shadow-2xs font-black text-xs">
+        Navi
+      </div>
+    ),
+  },
+};
 
 export interface BlinkitPaymentDrawerProps {
   isOpen: boolean;
@@ -46,6 +165,8 @@ export function BlinkitPaymentDrawer({
   onSelectCod,
 }: BlinkitPaymentDrawerProps) {
   const [busyMethod, setBusyMethod] = useState<string | null>(null);
+  const [installedUpiApps, setInstalledUpiApps] = useState<InstalledUpiApp[]>([]);
+  const [hasNativeBridge, setHasNativeBridge] = useState<boolean>(false);
   const [paymentFailure, setPaymentFailure] = useState<{
     failedMethod: string;
     preferredMethod: "upi" | "card" | "netbanking" | "wallet";
@@ -56,10 +177,22 @@ export function BlinkitPaymentDrawer({
   const [upiTxnRef] = useState<string>(() => `QP${Date.now().toString().slice(-8)}`);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsMobile(isMobileDevice());
-    }
-  }, []);
+    if (typeof window === "undefined") return;
+    setIsMobile(isMobileDevice());
+
+    const syncInstalledApps = () => {
+      const isBridge = Boolean(window.AndroidUpiLauncher || window.NativeRazorpay);
+      setHasNativeBridge(isBridge);
+      const apps = detectInstalledUpiApps();
+      if (apps.length > 0) {
+        setInstalledUpiApps(apps);
+      }
+    };
+
+    syncInstalledApps();
+    const timer = setTimeout(syncInstalledApps, 350);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -405,154 +538,169 @@ export function BlinkitPaymentDrawer({
 
           {/* GROUP 2: UPI */}
           <div>
-            <h3 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-              UPI
-            </h3>
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <h3 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                UPI {hasNativeBridge && installedUpiApps.length > 0 ? "• Installed On Device" : ""}
+              </h3>
+              {hasNativeBridge && installedUpiApps.length > 0 && (
+                <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Device Detected ({installedUpiApps.length})
+                </span>
+              )}
+            </div>
+
             <div className="overflow-hidden rounded-2xl bg-white border border-zinc-200/90 shadow-2xs divide-y divide-zinc-100">
-              {/* Google Pay (GPay) */}
-              <button
-                type="button"
-                disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("Google Pay", "upi")}
-                className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
-                    <span className="font-black text-xs tracking-tighter">
-                      <span className="text-[#4285F4]">G</span>
-                      <span className="text-[#EA4335]">P</span>
-                      <span className="text-[#FBBC05]">a</span>
-                      <span className="text-[#34A853]">y</span>
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
-                      Google Pay (GPay)
-                    </p>
-                    <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
-                  </div>
-                </div>
+              {/* If on Native Android Bridge: dynamically show ONLY installed UPI apps */}
+              {hasNativeBridge ? (
+                installedUpiApps.length > 0 ? (
+                  installedUpiApps.map((app) => {
+                    const meta = KNOWN_UPI_META[app.packageName] || {
+                      name: app.appName || "UPI App",
+                      subtext: "Installed UPI App",
+                      badge: undefined,
+                      renderIcon: () => (
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 shadow-2xs font-black text-xs border border-zinc-200">
+                          UPI
+                        </div>
+                      ),
+                    };
 
-                {busyMethod === "Google Pay" ? (
-                  <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                    const isBusy = busyMethod === meta.name;
+
+                    return (
+                      <button
+                        key={app.packageName}
+                        type="button"
+                        disabled={Boolean(busyMethod)}
+                        onClick={() => void executeOnlinePayment(meta.name, "upi")}
+                        className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          {meta.renderIcon()}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
+                                {meta.name}
+                              </p>
+                              {meta.badge && (
+                                <span className="rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 text-[9px] font-black text-emerald-700 uppercase">
+                                  {meta.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10.5px] font-medium text-zinc-400">
+                              {meta.subtext}
+                            </p>
+                          </div>
+                        </div>
+
+                        {isBusy ? (
+                          <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                        ) : (
+                          <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
+                        )}
+                      </button>
+                    );
+                  })
                 ) : (
-                  <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
-                )}
-              </button>
-
-              {/* PhonePe UPI */}
-              <button
-                type="button"
-                disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("PhonePe UPI", "upi")}
-                className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#5f259f] text-white shadow-2xs">
-                    <span className="font-black text-sm">पे</span>
+                  <div className="p-3.5 text-center text-xs text-zinc-500 bg-zinc-50/50">
+                    <p className="font-semibold text-zinc-700">No UPI apps detected on this device</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Use UPI ID below, or pay via Card or COD</p>
                   </div>
-                  <div>
-                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
-                      PhonePe UPI
-                    </p>
-                    <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
-                  </div>
-                </div>
-
-                {busyMethod === "PhonePe UPI" ? (
-                  <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
-                ) : (
-                  <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
-                )}
-              </button>
-
-              {/* Paytm UPI */}
-              <button
-                type="button"
-                disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("Paytm UPI", "upi")}
-                className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00b9f5] text-white shadow-2xs font-black text-xs">
-                    Paytm
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
-                      Paytm UPI
-                    </p>
-                    <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
-                  </div>
-                </div>
-
-                {busyMethod === "Paytm UPI" ? (
-                  <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
-                ) : (
-                  <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
-                )}
-              </button>
-
-              {/* Supermoney UPI */}
-              <button
-                type="button"
-                disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("Supermoney UPI", "upi")}
-                className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white border border-zinc-200/80 shadow-2xs px-1 gap-1">
-                    <div className="size-4 shrink-0 rounded-[3.5px] bg-[#3237d6] flex items-center justify-center shadow-2xs">
-                      <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white">
-                        <path d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z" />
-                      </svg>
+                )
+              ) : (
+                /* Fallback for Web Browser (when not in native Android APK) */
+                <>
+                  {/* Google Pay (GPay) */}
+                  <button
+                    type="button"
+                    disabled={Boolean(busyMethod)}
+                    onClick={() => void executeOnlinePayment("Google Pay", "upi")}
+                    className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                        <span className="font-black text-xs tracking-tighter">
+                          <span className="text-[#4285F4]">G</span>
+                          <span className="text-[#EA4335]">P</span>
+                          <span className="text-[#FBBC05]">a</span>
+                          <span className="text-[#34A853]">y</span>
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
+                          Google Pay (GPay)
+                        </p>
+                        <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
+                      </div>
                     </div>
-                    <div className="flex flex-col text-left font-black text-[7.5px] leading-[7.5px] tracking-tight text-[#16173d]">
-                      <span>super.</span>
-                      <span>money</span>
+
+                    {busyMethod === "Google Pay" ? (
+                      <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                    ) : (
+                      <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
+                    )}
+                  </button>
+
+                  {/* PhonePe UPI */}
+                  <button
+                    type="button"
+                    disabled={Boolean(busyMethod)}
+                    onClick={() => void executeOnlinePayment("PhonePe UPI", "upi")}
+                    className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#5f259f] text-white shadow-2xs">
+                        <span className="font-black text-sm">पे</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
+                            PhonePe UPI
+                          </p>
+                          <span className="rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 text-[9px] font-black text-emerald-700 uppercase">
+                            Fastest
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
-                      Supermoney UPI
-                    </p>
-                    <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
-                  </div>
-                </div>
 
-                {busyMethod === "Supermoney UPI" ? (
-                  <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
-                ) : (
-                  <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
-                )}
-              </button>
+                    {busyMethod === "PhonePe UPI" ? (
+                      <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                    ) : (
+                      <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
+                    )}
+                  </button>
 
-              {/* FamApp UPI */}
-              <button
-                type="button"
-                disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("FamApp UPI", "upi")}
-                className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#ea7a1e] to-[#f49322] shadow-2xs p-1">
-                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
-                      <path d="M2.5 12.5c4.5-3.5 10-6 19-8.5-4 4.5-7 10-9 16-1-3-3-5.5-6-7.5-1.5 1.5-2.5 1-4 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
-                      FamApp UPI
-                    </p>
-                    <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
-                  </div>
-                </div>
+                  {/* Paytm UPI */}
+                  <button
+                    type="button"
+                    disabled={Boolean(busyMethod)}
+                    onClick={() => void executeOnlinePayment("Paytm UPI", "upi")}
+                    className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#00b9f5] text-white shadow-2xs font-black text-xs">
+                        Paytm
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
+                          Paytm UPI
+                        </p>
+                        <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
+                      </div>
+                    </div>
 
-                {busyMethod === "FamApp UPI" ? (
-                  <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
-                ) : (
-                  <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
-                )}
-              </button>
+                    {busyMethod === "Paytm UPI" ? (
+                      <Loader2 className="size-4.5 animate-spin text-[#0c831f]" />
+                    ) : (
+                      <ChevronRight className="size-4 stroke-[2.5] text-zinc-400" />
+                    )}
+                  </button>
+                </>
+              )}
 
               {/* Add new UPI ID / Google Pay / Paytm */}
               <button

@@ -178,6 +178,66 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
                             return false;
                         }
                     }
+
+                    @android.webkit.JavascriptInterface
+                    public String getInstalledUpiApps() {
+                        try {
+                            android.content.pm.PackageManager pm = getPackageManager();
+                            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+                            intent.setData(android.net.Uri.parse("upi://pay"));
+
+                            java.util.List<android.content.pm.ResolveInfo> activities = pm.queryIntentActivities(intent, 0);
+                            org.json.JSONArray appList = new org.json.JSONArray();
+                            java.util.Set<String> seenPackages = new java.util.HashSet<>();
+
+                            String[][] popularUpi = {
+                                {"com.google.android.apps.nbu.paisa.user", "Google Pay", "gpay"},
+                                {"com.phonepe.app", "PhonePe", "phonepe"},
+                                {"net.one97.paytm", "Paytm", "paytm"},
+                                {"in.supermoney.android", "Supermoney", "supermoney"},
+                                {"com.famorganizer", "FamApp", "famapp"},
+                                {"com.dreamplug.androidapp", "CRED", "cred"},
+                                {"in.amazon.mShop.android.shopping", "Amazon Pay", "amazonpay"},
+                                {"in.org.npci.upiapp", "BHIM", "bhim"},
+                                {"com.whatsapp", "WhatsApp", "whatsapp"},
+                                {"com.naviapp", "Navi UPI", "navi"}
+                            };
+
+                            for (String[] upi : popularUpi) {
+                                String pkg = upi[0];
+                                try {
+                                    pm.getPackageInfo(pkg, 0);
+                                    if (!seenPackages.contains(pkg)) {
+                                        seenPackages.add(pkg);
+                                        org.json.JSONObject obj = new org.json.JSONObject();
+                                        obj.put("packageName", pkg);
+                                        obj.put("appName", upi[1]);
+                                        obj.put("appId", upi[2]);
+                                        appList.put(obj);
+                                    }
+                                } catch (android.content.pm.PackageManager.NameNotFoundException ignored) {}
+                            }
+
+                            if (activities != null) {
+                                for (android.content.pm.ResolveInfo info : activities) {
+                                    if (info.activityInfo != null) {
+                                        String pkg = info.activityInfo.packageName;
+                                        if (!seenPackages.contains(pkg)) {
+                                            seenPackages.add(pkg);
+                                            org.json.JSONObject obj = new org.json.JSONObject();
+                                            obj.put("packageName", pkg);
+                                            obj.put("appName", info.loadLabel(pm).toString());
+                                            obj.put("appId", pkg.toLowerCase());
+                                            appList.put(obj);
+                                        }
+                                    }
+                                }
+                            }
+                            return appList.toString();
+                        } catch (Exception e) {
+                            return "[]";
+                        }
+                    }
                 }, "AndroidUpiLauncher");
 
                 // Expose Native Razorpay Checkout SDK to Web JavaScript
@@ -196,6 +256,32 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
                                 sendRazorpayEvent("razorpay:error", -1, e.getMessage(), "{}");
                             }
                         });
+                    }
+
+                    @android.webkit.JavascriptInterface
+                    public String getInstalledUpiApps() {
+                        try {
+                            android.content.pm.PackageManager pm = getPackageManager();
+                            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+                            intent.setData(android.net.Uri.parse("upi://pay"));
+                            java.util.List<android.content.pm.ResolveInfo> activities = pm.queryIntentActivities(intent, 0);
+                            org.json.JSONArray appList = new org.json.JSONArray();
+                            java.util.Set<String> seen = new java.util.HashSet<>();
+                            if (activities != null) {
+                                for (android.content.pm.ResolveInfo info : activities) {
+                                    if (info.activityInfo != null && !seen.contains(info.activityInfo.packageName)) {
+                                        seen.add(info.activityInfo.packageName);
+                                        org.json.JSONObject o = new org.json.JSONObject();
+                                        o.put("packageName", info.activityInfo.packageName);
+                                        o.put("appName", info.loadLabel(pm).toString());
+                                        appList.put(o);
+                                    }
+                                }
+                            }
+                            return appList.toString();
+                        } catch (Exception e) {
+                            return "[]";
+                        }
                     }
                 }, "NativeRazorpay");
             }

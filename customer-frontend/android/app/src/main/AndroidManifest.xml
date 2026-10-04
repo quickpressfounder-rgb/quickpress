@@ -75,6 +75,10 @@
         <package android:name="in.supermoney.android" />
         <package android:name="com.famorganizer" />
         <package android:name="com.dreamplug.androidapp" />
+        <package android:name="in.amazon.mShop.android.shopping" />
+        <package android:name="in.org.npci.upiapp" />
+        <package android:name="com.whatsapp" />
+        <package android:name="com.naviapp" />
     </queries>
 
 </manifest>

@@ -39,25 +39,64 @@ export function isMobileDevice(): boolean {
   return isMobileUa || (isTouch && window.innerWidth < 768);
 }
 
-export type UpiAppTarget = "phonepe" | "supermoney" | "famapp" | "gpay" | "paytm" | "cred" | "any";
+export type UpiAppTarget = "phonepe" | "supermoney" | "famapp" | "gpay" | "paytm" | "cred" | "amazonpay" | "bhim" | "whatsapp" | "navi" | "any";
+
+export type InstalledUpiApp = {
+  packageName: string;
+  appName: string;
+  appId?: string;
+};
 
 declare global {
   interface Window {
     AndroidUpiLauncher?: {
       openUpiApp: (uriStr: string, packageName?: string) => boolean;
+      getInstalledUpiApps?: () => string;
+    };
+    NativeRazorpay?: {
+      openRazorpay: (optionsJson: string) => void;
+      getInstalledUpiApps?: () => string;
     };
   }
 }
 
-const ANDROID_PACKAGES: Record<UpiAppTarget, string> = {
+export const ANDROID_PACKAGES: Record<string, string> = {
   phonepe: "com.phonepe.app",
   gpay: "com.google.android.apps.nbu.paisa.user",
   paytm: "net.one97.paytm",
   supermoney: "in.supermoney.android",
   famapp: "com.famorganizer",
   cred: "com.dreamplug.androidapp",
+  amazonpay: "in.amazon.mShop.android.shopping",
+  bhim: "in.org.npci.upiapp",
+  whatsapp: "com.whatsapp",
+  navi: "com.naviapp",
   any: "",
 };
+
+/**
+ * Queries Android device via native bridge to get the real-time list of installed UPI apps.
+ */
+export function detectInstalledUpiApps(): InstalledUpiApp[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    if (window.AndroidUpiLauncher && typeof window.AndroidUpiLauncher.getInstalledUpiApps === "function") {
+      const raw = window.AndroidUpiLauncher.getInstalledUpiApps();
+      const list = JSON.parse(raw || "[]") as InstalledUpiApp[];
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
+    if (window.NativeRazorpay && typeof window.NativeRazorpay.getInstalledUpiApps === "function") {
+      const raw = window.NativeRazorpay.getInstalledUpiApps();
+      const list = JSON.parse(raw || "[]") as InstalledUpiApp[];
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
+  } catch (err) {
+    console.warn("[detectInstalledUpiApps] Bridge error:", err);
+  }
+
+  return [];
+}
 
 /**
  * Directly launches the requested UPI App on the user's mobile device.
