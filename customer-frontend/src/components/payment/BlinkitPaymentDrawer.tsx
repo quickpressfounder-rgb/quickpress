@@ -182,6 +182,32 @@ export const ALL_OTHER_BANKS = [
   "Yes Bank",
 ];
 
+export const BANK_CODE_MAP: Record<string, string> = {
+  "HDFC Bank": "HDFC",
+  "ICICI Bank": "ICIC",
+  "State Bank of India": "SBIN",
+  "Axis Bank": "UTIB",
+  "Kotak Mahindra Bank": "KKBK",
+  "Punjab National Bank": "PUNB_R",
+  "Bank of Baroda": "BARB_R",
+  "Bank of India": "BKID",
+  "Canara Bank": "CNRB",
+  "Central Bank of India": "CBIN",
+  "City Union Bank": "CIUB",
+  "Federal Bank": "FDRL",
+  "IDFC FIRST Bank": "IDFB",
+  "Indian Bank": "IDIB",
+  "Indian Overseas Bank": "IOBA",
+  "IndusInd Bank": "INDB",
+  "Jammu & Kashmir Bank": "JAKA",
+  "Karur Vysya Bank": "KVBL",
+  "RBL Bank": "RATN",
+  "South Indian Bank": "SIBL",
+  "UCO Bank": "UCBA",
+  "Union Bank of India": "UBIN",
+  "Yes Bank": "YESB",
+};
+
 export const getCardBrandMeta = (num: string) => {
   const clean = num.replace(/\D/g, "");
   if (/^4/.test(clean)) return { brand: "visa", label: "VISA", bg: "from-blue-700 via-blue-900 to-slate-950" };
@@ -261,6 +287,73 @@ export function BlinkitPaymentDrawer({
     }
   };
 
+  // Official Real Razorpay Live SDK Payment Runner
+  const executeOnlinePayment = async (
+    methodLabel: string,
+    preferredMethod: "upi" | "card" | "netbanking" | "wallet" = "upi",
+    vpa?: string,
+    bank?: string
+  ) => {
+    if (busyMethod) return;
+
+    if (grandTotal <= 0) {
+      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
+      onClose();
+      return;
+    }
+
+    setBusyMethod(methodLabel);
+    setPaymentFailure(null);
+
+    try {
+      toast.info(`Connecting to Real Razorpay Gateway for ${methodLabel}...`);
+
+      const outcome = await payWithRazorpay({
+        amount: grandTotal,
+        purpose: `QuickPress Laundry (${methodLabel})`,
+        customerName: cardHolder.trim() || customerName.trim() || "QuickPress Customer",
+        customerPhone: cleanPhone || "9999999999",
+        preferredMethod,
+        vpa,
+        bank,
+      });
+
+      if (outcome.status === "success") {
+        toast.success(`Payment via ${methodLabel} Confirmed! 🎉`);
+        await onPaymentSuccess(preferredMethod, outcome.paymentId);
+        onClose();
+      } else if (outcome.status === "user_dropped") {
+        toast.info("Payment window was cancelled.");
+        setPaymentFailure({
+          failedMethod: methodLabel,
+          preferredMethod,
+          reason: outcome.reason || "Payment was cancelled. You can retry or choose another payment method below.",
+          isUserCancelled: true,
+        });
+      } else {
+        toast.error(outcome.reason || "Payment attempt failed. Please try again.");
+        setPaymentFailure({
+          failedMethod: methodLabel,
+          preferredMethod,
+          reason: outcome.reason || "Transaction failed at gateway. Please try again or switch to another method.",
+          isUserCancelled: false,
+        });
+      }
+    } catch (err: any) {
+      console.error("[BlinkitPaymentDrawer] Payment error:", err);
+      toast.error(err?.message || "Payment could not be completed.");
+      setPaymentFailure({
+        failedMethod: methodLabel,
+        preferredMethod,
+        reason: err?.message || "Could not reach payment gateway. Please check your connection and retry.",
+        isUserCancelled: false,
+      });
+    } finally {
+      setBusyMethod(null);
+    }
+  };
+
   const handleCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawNumber = cardNumber.replace(/\s/g, "");
@@ -287,19 +380,8 @@ export function BlinkitPaymentDrawer({
       return;
     }
 
-    setBusyMethod("Card Payment");
-    setPaymentFailure(null);
-    try {
-      toast.info("Connecting to 3D Secure Card Network...");
-      await new Promise((res) => setTimeout(res, 1200));
-      toast.success(`Card payment of ₹${grandTotal} Approved! 🎉`);
-      await onPaymentSuccess("card", `card_${Date.now()}`);
-      onClose();
-    } catch (err: any) {
-      toast.error(err?.message || "Card transaction failed");
-    } finally {
-      setBusyMethod(null);
-    }
+    // Launch Real Razorpay 3D Secure Card Gateway
+    await executeOnlinePayment("Credit / Debit Card", "card");
   };
 
   const handleUpiIdSubmit = async (e: React.FormEvent) => {
@@ -310,28 +392,8 @@ export function BlinkitPaymentDrawer({
       return;
     }
 
-    setBusyMethod("UPI ID");
-    setPaymentFailure(null);
-    try {
-      toast.info(`Sending ₹${grandTotal} payment request to ${vpa}...`);
-      const customUri = buildUpiUri({
-        amount: grandTotal,
-        txnRef: upiTxnRef,
-        payeeName: "QuickPress Laundry",
-        note: `QuickPress Order ${upiTxnRef}`,
-        vpa,
-      });
-      launchDirectUpiApp("any", customUri);
-
-      await new Promise((res) => setTimeout(res, 1500));
-      toast.success("UPI Payment Confirmed! Placing order... 🎉");
-      await onPaymentSuccess("upi", `upi_vpa_${upiTxnRef}`);
-      onClose();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to process UPI ID");
-    } finally {
-      setBusyMethod(null);
-    }
+    // Launch Real Razorpay UPI Collect to VPA
+    await executeOnlinePayment(`UPI ID (${vpa})`, "upi", vpa);
   };
 
   const handleNetBankingSubmit = async () => {
@@ -340,19 +402,9 @@ export function BlinkitPaymentDrawer({
       return;
     }
 
-    setBusyMethod("Net Banking");
-    setPaymentFailure(null);
-    try {
-      toast.info(`Connecting to ${selectedBank} NetBanking Portal...`);
-      await new Promise((res) => setTimeout(res, 1400));
-      toast.success(`NetBanking Payment via ${selectedBank} Confirmed! 🎉`);
-      await onPaymentSuccess("netbanking", `nb_${Date.now()}`);
-      onClose();
-    } catch (err: any) {
-      toast.error(err?.message || "Net Banking payment failed");
-    } finally {
-      setBusyMethod(null);
-    }
+    const bankCode = BANK_CODE_MAP[selectedBank] || "HDFC";
+    // Launch Real Razorpay Net Banking for selected bank
+    await executeOnlinePayment(`Net Banking (${selectedBank})`, "netbanking", undefined, bankCode);
   };
 
   useEffect(() => {
@@ -399,146 +451,6 @@ export function BlinkitPaymentDrawer({
   }, [currentView, upiTab, upiUri, qrDataUrl]);
 
   if (!isOpen) return null;
-
-  // Direct 1-Tap UPI App Launch (Opens PhonePe / GPay / Paytm directly with ZERO Razorpay popup)
-  const handleDirectUpiPay = async (
-    methodLabel: string,
-    packageName?: string,
-    target: UpiAppTarget | string = "any"
-  ) => {
-    if (busyMethod) return;
-
-    if (grandTotal <= 0) {
-      toast.success("100% Promo discount applied! Placing your free order... 🎉");
-      await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
-      onClose();
-      return;
-    }
-
-    setBusyMethod(methodLabel);
-    setPaymentFailure(null);
-
-    toast.info(`Opening ${methodLabel}... Please authorize payment.`);
-
-    // 1. Launch native UPI app directly via intent / deep-link (No Razorpay dialog)
-    launchDirectUpiApp(target as UpiAppTarget, upiUri, packageName);
-
-    let handled = false;
-    let appStateSub: any = null;
-
-    const cleanup = () => {
-      window.removeEventListener("focus", onReturn);
-      document.removeEventListener("visibilitychange", onVisibility);
-      if (appStateSub && typeof appStateSub.remove === "function") {
-        try {
-          void appStateSub.remove();
-        } catch {}
-      }
-    };
-
-    // Auto-return listener: triggers when user completes payment in UPI app and returns to QuickPress
-    const onReturn = async () => {
-      if (handled) return;
-      handled = true;
-      cleanup();
-      toast.success(`Payment completed via ${methodLabel}! Placing order... 🎉`);
-      await onPaymentSuccess("upi", `upi_${upiTxnRef}`);
-      onClose();
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        void onReturn();
-      }
-    };
-
-    window.addEventListener("focus", onReturn, { once: true });
-    document.addEventListener("visibilitychange", onVisibility);
-
-    // Native Capacitor App resume listener
-    import("@capacitor/app")
-      .then(({ App }) => {
-        return App.addListener("appStateChange", (state) => {
-          if (state.isActive) {
-            void onReturn();
-          }
-        });
-      })
-      .then((sub) => {
-        appStateSub = sub;
-      })
-      .catch(() => {});
-
-    // Clear busy state after 15s in case user doesn't switch or returns early
-    setTimeout(() => {
-      if (!handled) {
-        setBusyMethod(null);
-      }
-    }, 15000);
-  };
-
-  // Official Razorpay SDK Payment Runner (Native Android SDK on APK, Web Checkout on Browser)
-  const executeOnlinePayment = async (
-    methodLabel: string,
-    preferredMethod: "upi" | "card" | "netbanking" | "wallet" = "upi"
-  ) => {
-    if (busyMethod) return;
-
-    if (grandTotal <= 0) {
-      toast.success("100% Promo discount applied! Placing your free order... 🎉");
-      await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
-      onClose();
-      return;
-    }
-
-    setBusyMethod(methodLabel);
-    setPaymentFailure(null);
-
-    try {
-      toast.info(`Opening ${methodLabel}...`);
-
-      const outcome = await payWithRazorpay({
-        amount: grandTotal,
-        purpose: `QuickPress Laundry (${methodLabel})`,
-        customerName: customerName.trim() || "QuickPress Customer",
-        customerPhone: cleanPhone || "9999999999",
-        preferredMethod,
-      });
-
-      if (outcome.status === "success") {
-        toast.success(`Payment via ${methodLabel} Confirmed! 🎉`);
-        await onPaymentSuccess(preferredMethod, outcome.paymentId);
-        onClose();
-      } else if (outcome.status === "user_dropped") {
-        toast.info("Payment window was cancelled.");
-        setPaymentFailure({
-          failedMethod: methodLabel,
-          preferredMethod,
-          reason: outcome.reason || "Payment was cancelled. You can retry or choose another payment method below.",
-          isUserCancelled: true,
-        });
-      } else {
-        toast.error(outcome.reason || "Payment attempt failed. Please try again.");
-        setPaymentFailure({
-          failedMethod: methodLabel,
-          preferredMethod,
-          reason: outcome.reason || "Transaction failed at gateway. Please try again or switch to another method.",
-          isUserCancelled: false,
-        });
-      }
-    } catch (err: any) {
-      console.error("[BlinkitPaymentDrawer] Payment error:", err);
-      toast.error(err?.message || "Payment could not be completed.");
-      setPaymentFailure({
-        failedMethod: methodLabel,
-        preferredMethod,
-        reason: err?.message || "Could not reach payment gateway. Please check your connection and retry.",
-        isUserCancelled: false,
-      });
-    } finally {
-      setBusyMethod(null);
-    }
-  };
 
   // QuickPress Wallet deduction
   const handleWalletPay = async () => {
@@ -948,26 +860,15 @@ export function BlinkitPaymentDrawer({
                     <button
                       type="button"
                       disabled={Boolean(busyMethod)}
-                      onClick={async () => {
-                        setBusyMethod("QR Payment");
-                        try {
-                          toast.info("Verifying QR Payment...");
-                          await new Promise((res) => setTimeout(res, 1000));
-                          toast.success("QR Payment Confirmed! Placing order... 🎉");
-                          await onPaymentSuccess("upi", `upi_qr_${upiTxnRef}`);
-                          onClose();
-                        } finally {
-                          setBusyMethod(null);
-                        }
-                      }}
+                      onClick={() => void executeOnlinePayment("Live UPI QR", "upi")}
                       className="w-full py-3.5 rounded-2xl bg-[#0c831f] hover:bg-[#09731b] active:scale-[0.99] text-white font-black text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-60"
                     >
                       {busyMethod ? (
                         <Loader2 className="size-5 animate-spin" />
                       ) : (
                         <>
-                          <Check className="size-4 stroke-[3]" />
-                          <span>I have paid on my UPI app</span>
+                          <QrCode className="size-4 stroke-[2.5]" />
+                          <span>Pay ₹{grandTotal} via Live Razorpay QR</span>
                         </>
                       )}
                     </button>
@@ -1269,7 +1170,7 @@ export function BlinkitPaymentDrawer({
                             key={app.packageName}
                             type="button"
                             disabled={Boolean(busyMethod)}
-                            onClick={() => void handleDirectUpiPay(meta.name, app.packageName, app.appId || "any")}
+                            onClick={() => void executeOnlinePayment(meta.name, "upi")}
                             className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                           >
                             <div className="flex items-center gap-3">
@@ -1311,7 +1212,7 @@ export function BlinkitPaymentDrawer({
                       <button
                         type="button"
                         disabled={Boolean(busyMethod)}
-                        onClick={() => void handleDirectUpiPay("Google Pay", "com.google.android.apps.nbu.paisa.user", "gpay")}
+                        onClick={() => void executeOnlinePayment("Google Pay", "upi")}
                         className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                       >
                         <div className="flex items-center gap-3">
@@ -1327,7 +1228,7 @@ export function BlinkitPaymentDrawer({
                             <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
                               Google Pay (GPay)
                             </p>
-                            <p className="text-[10.5px] font-medium text-zinc-400">Direct 1-Tap App Launch</p>
+                            <p className="text-[10.5px] font-medium text-zinc-400">Real Razorpay UPI</p>
                           </div>
                         </div>
 
@@ -1342,7 +1243,7 @@ export function BlinkitPaymentDrawer({
                       <button
                         type="button"
                         disabled={Boolean(busyMethod)}
-                        onClick={() => void handleDirectUpiPay("PhonePe UPI", "com.phonepe.app", "phonepe")}
+                        onClick={() => void executeOnlinePayment("PhonePe UPI", "upi")}
                         className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                       >
                         <div className="flex items-center gap-3">
@@ -1358,7 +1259,7 @@ export function BlinkitPaymentDrawer({
                                 Fastest
                               </span>
                             </div>
-                            <p className="text-[10.5px] font-medium text-zinc-400">Direct 1-Tap App Launch</p>
+                            <p className="text-[10.5px] font-medium text-zinc-400">Real Razorpay UPI</p>
                           </div>
                         </div>
 
@@ -1373,7 +1274,7 @@ export function BlinkitPaymentDrawer({
                       <button
                         type="button"
                         disabled={Boolean(busyMethod)}
-                        onClick={() => void handleDirectUpiPay("Paytm UPI", "net.one97.paytm", "paytm")}
+                        onClick={() => void executeOnlinePayment("Paytm UPI", "upi")}
                         className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                       >
                         <div className="flex items-center gap-3">
@@ -1384,7 +1285,7 @@ export function BlinkitPaymentDrawer({
                             <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
                               Paytm UPI
                             </p>
-                            <p className="text-[10.5px] font-medium text-zinc-400">Direct 1-Tap App Launch</p>
+                            <p className="text-[10.5px] font-medium text-zinc-400">Real Razorpay UPI</p>
                           </div>
                         </div>
 
@@ -1488,7 +1389,7 @@ export function BlinkitPaymentDrawer({
                   <button
                     type="button"
                     disabled={Boolean(busyMethod)}
-                    onClick={() => void handleDirectUpiPay("Amazon Pay", "in.amazon.mShop.android.shopping", "amazonpay")}
+                    onClick={() => void executeOnlinePayment("Amazon Pay", "wallet")}
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">
@@ -1510,7 +1411,7 @@ export function BlinkitPaymentDrawer({
                   <button
                     type="button"
                     disabled={Boolean(busyMethod)}
-                    onClick={() => void handleDirectUpiPay("Mobikwik", "com.mobikwik_new", "any")}
+                    onClick={() => void executeOnlinePayment("Mobikwik", "wallet")}
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">

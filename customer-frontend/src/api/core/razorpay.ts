@@ -108,6 +108,8 @@ export async function openRazorpayCheckout(
     themeColor?: string;
     appName?: string;
     preferredMethod?: "upi" | "card" | "netbanking" | "wallet";
+    vpa?: string;
+    bank?: string;
   } = {},
 ): Promise<CheckoutOutcome> {
   if (!order.keyId) {
@@ -125,7 +127,7 @@ export async function openRazorpayCheckout(
     normalizedContact = normalizedContact.slice(-10);
   }
 
-  const razorpayPayload = {
+  const razorpayPayload: Record<string, any> = {
     key: order.keyId,
     amount: order.amountInPaise,
     currency: order.currency || "INR",
@@ -137,6 +139,8 @@ export async function openRazorpayCheckout(
       email: options.profile?.email ?? "",
       contact: normalizedContact,
       ...(options.preferredMethod ? { method: options.preferredMethod } : {}),
+      ...(options.vpa ? { vpa: options.vpa } : {}),
+      ...(options.bank ? { bank: options.bank } : {}),
     },
     notes: order.notes,
     theme: { color: options.themeColor ?? "#0c831f" },

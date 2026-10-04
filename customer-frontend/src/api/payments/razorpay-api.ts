@@ -157,6 +157,8 @@ export interface PayWithRazorpayInput {
   customerPhone?: string | undefined;
   customerEmail?: string | undefined;
   preferredMethod?: "upi" | "card" | "netbanking" | "wallet" | undefined;
+  vpa?: string | undefined;
+  bank?: string | undefined;
 }
 
 /**
@@ -193,6 +195,8 @@ export async function payWithRazorpay(input: PayWithRazorpayInput): Promise<PayR
       appName: "QuickPress",
       themeColor: "#0c831f",
       preferredMethod: input.preferredMethod,
+      vpa: input.vpa,
+      bank: input.bank,
     });
 
     if (outcome.status === "dismissed") {
