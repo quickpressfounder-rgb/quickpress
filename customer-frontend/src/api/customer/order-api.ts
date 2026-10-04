@@ -74,12 +74,17 @@ export type TrackingStep = {
 };
 
 export type Rider = {
+  id?: string;
   name: string;
   vehicle: string;
   plate: string;
   rating: number;
   trips: string;
   phone: string;
+  avatar?: string;
+  location?: { latitude: number; longitude: number } | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type TrackingData = {
@@ -202,12 +207,15 @@ export function toTracking(order: Order): TrackingData {
     address: addressLine,
     liveNote: order?.status === "cancelled" ? "This order was cancelled." : eta.note,
     rider: {
+      id: order?.rider?.id,
       name: order?.rider?.name ?? "Assigning rider",
-      vehicle: order?.rider?.vehicle ?? "—",
-      plate: order?.rider?.plate ?? "—",
+      vehicle: order?.rider?.vehicle ?? (order?.rider as any)?.vehicleType ?? "QuickPress Fleet",
+      plate: order?.rider?.plate ?? (order?.rider as any)?.vehicleNumber ?? "—",
       rating: Number(order?.rider?.rating || 0),
       trips: String(order?.rider?.trips || "—"),
-      phone: String(order?.rider?.phone || "—"),
+      phone: String(order?.rider?.phone || ""),
+      avatar: (order?.rider as any)?.avatar || (order?.rider as any)?.photo || (order?.rider as any)?.image || "",
+      location: (order?.rider as any)?.location ?? ((order?.rider as any)?.latitude && (order?.rider as any)?.longitude ? { latitude: (order?.rider as any).latitude, longitude: (order?.rider as any).longitude } : null),
     },
     steps: ORDER_TIMELINE.map((stage, index) => {
       const copy = TIMELINE_COPY[stage] || { label: stage, description: "", pending: "" };
@@ -449,12 +457,17 @@ export type OrderTimelineStep = {
 
 export type OrderRider = {
   assigned: boolean;
+  id?: string;
   name: string;
   vehicle: string;
   plate: string;
   phone: string;
+  avatar?: string;
   rating: number;
   trips: string;
+  location?: { latitude: number; longitude: number } | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type OrderDetail = {
@@ -514,13 +527,16 @@ export function toOrderDetail(order: Order): OrderDetail {
       city: partner.city ?? "",
     },
     rider: {
-      assigned: Boolean(rider),
+      assigned: Boolean(rider && (rider.id || rider.name || (rider as any).phone)),
+      id: String(rider?.id || ""),
       name: rider?.name ?? "Rider not assigned yet",
-      vehicle: rider?.vehicle ?? "Assigning",
-      plate: rider?.plate ?? "—",
+      vehicle: rider?.vehicle ?? (rider as any)?.vehicleType ?? "QuickPress Fleet",
+      plate: rider?.plate ?? (rider as any)?.vehicleNumber ?? "—",
       phone: rider?.phone ?? "",
+      avatar: (rider as any)?.avatar || (rider as any)?.photo || (rider as any)?.image || "",
       rating: Number(rider?.rating || 0),
       trips: rider?.trips ?? "—",
+      location: (rider as any)?.location ?? ((rider as any)?.latitude && (rider as any)?.longitude ? { latitude: (rider as any).latitude, longitude: (rider as any).longitude } : null),
     },
     pickup,
     delivery,

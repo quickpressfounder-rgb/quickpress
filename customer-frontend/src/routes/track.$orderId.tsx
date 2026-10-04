@@ -752,40 +752,63 @@ function TrackOrderScreen() {
                   );
                 }
 
+                const rawAvatar = detail?.rider?.avatar || (tracking?.rider as any)?.avatar || "";
                 const assignedRider = {
                   name: rName || "Delivery Captain",
+                  avatar: rawAvatar,
                   vehicle: detail?.rider?.vehicle || tracking?.rider?.vehicle || "QuickPress Fleet",
                   plate: detail?.rider?.plate || tracking?.rider?.plate || "—",
-                  rating: Number(detail?.rider?.rating || tracking?.rider?.rating || 4.9),
-                  trips: String(detail?.rider?.trips || tracking?.rider?.trips || "100+ deliveries"),
+                  rating: Number(detail?.rider?.rating || tracking?.rider?.rating || 5.0),
+                  trips: String(detail?.rider?.trips || tracking?.rider?.trips || "10+ deliveries"),
                   phone: String(detail?.rider?.phone || tracking?.rider?.phone || ""),
                 };
 
                 return (
-                  <div className="card-soft mt-3 border border-border p-4">
-                    <div className="flex items-center gap-3">
-                      <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-base font-bold text-brand-dark">
-                        {assignedRider.name.charAt(0)}
-                      </span>
+                  <div className="card-soft mt-3 border border-border p-4 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                      {assignedRider.avatar ? (
+                        <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl border-2 border-primary/20 shadow-sm bg-muted">
+                          <img
+                            src={assignedRider.avatar}
+                            alt={assignedRider.name}
+                            className="size-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = "none";
+                              const fallback = (e.currentTarget.parentElement as HTMLElement)?.querySelector(".avatar-fallback");
+                              if (fallback) (fallback as HTMLElement).classList.remove("hidden");
+                            }}
+                          />
+                          <span className="avatar-fallback hidden size-full items-center justify-center bg-primary/15 text-base font-bold text-brand-dark">
+                            {assignedRider.name.charAt(0)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-base font-bold text-brand-dark">
+                          {assignedRider.name.charAt(0)}
+                        </span>
+                      )}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="truncate text-sm font-bold text-foreground">
                             {assignedRider.name}
                           </p>
                           <BadgeCheck className="size-3.5 shrink-0 text-brand-green" />
+                          <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-green">
+                            QuickPress Captain
+                          </span>
                         </div>
                         <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                          {assignedRider.vehicle} · {assignedRider.plate}
+                          {assignedRider.vehicle} {assignedRider.plate && assignedRider.plate !== "—" ? `· ${assignedRider.plate}` : ""}
                         </p>
                         <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                           <Star className="size-3 fill-primary text-primary" />
-                          {assignedRider.rating} · {assignedRider.trips}
+                          {assignedRider.rating.toFixed(1)} · {assignedRider.trips}
                         </p>
                       </div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2.5">
                       <a
-                        href={assignedRider.phone ? `tel:${assignedRider.phone.replace(/\s/g, "")}` : "#"}
+                        href={assignedRider.phone ? `tel:${assignedRider.phone.replace(/[^0-9+]/g, "")}` : "#"}
                         className="flex h-11 items-center justify-center gap-2 rounded-3xl bg-primary text-xs font-bold text-primary-foreground shadow-cta transition-all duration-300 active:scale-[0.97]"
                       >
                         <Phone className="size-4" /> Call rider
@@ -794,7 +817,7 @@ function TrackOrderScreen() {
                         href={
                           assignedRider.phone
                             ? `https://wa.me/${assignedRider.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                                `Hi ${assignedRider.name}, I am reaching out regarding my QuickPress Order #${orderId}.`
+                                `Hi ${assignedRider.name}, I am reaching out regarding my QuickPress Order #${detail?.code || orderId}.`
                               )}`
                             : "#"
                         }

@@ -227,11 +227,46 @@ class OrderRepository:
             except Exception:
                 pass
 
+        # Enrich real rider profile data (name, phone, vehicle, plate, avatar, rating, trips, live gps)
+        await self._enrich_rider(document)
+
         return self._to_order_response(document)
+
+    async def _enrich_rider(self, document: Dict[str, Any]) -> None:
+        if not isinstance(document, dict):
+            return
+        rider_party = document.get("rider")
+        rider_id = (
+            (rider_party.get("id") if isinstance(rider_party, dict) else None)
+            or document.get("riderId")
+            or document.get("rider_id")
+            or document.get("assignedRiderId")
+            or (document.get("deliveryRider") or {}).get("id")
+            or (document.get("pickupRider") or {}).get("id")
+        )
+        if not rider_id and not (isinstance(rider_party, dict) and (rider_party.get("name") or rider_party.get("phone"))):
+            return
+
+        try:
+            from app.services.rider_dispatch import resolve_real_rider_party
+            resolved = await resolve_real_rider_party(rider_party or rider_id)
+            if resolved:
+                document["rider"] = resolved
+                document["riderId"] = resolved["id"]
+                document["rider_id"] = resolved["id"]
+                if resolved.get("latitude") is not None and resolved.get("longitude") is not None:
+                    document["rider"]["location"] = {
+                        "latitude": float(resolved["latitude"]),
+                        "longitude": float(resolved["longitude"]),
+                    }
+        except Exception as e:
+            logger.debug("Failed to enrich rider profile: %s", e)
 
     async def list(self, user_id: str) -> List[OrderResponse]:
         docs = await database.find_many(COLLECTION, {"userId": user_id})
         docs.sort(key=lambda d: d.get("createdAt") or "", reverse=True)
+        for d in docs:
+            await self._enrich_rider(d)
         return [self._to_order_response(d) for d in docs]
 
     async def find_recent_duplicate(

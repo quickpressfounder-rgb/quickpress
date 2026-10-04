@@ -1263,25 +1263,37 @@ class Smart2RideEngine:
                     f"CITY_MISMATCH: Trip belongs to {norm_ride_city.title()}, but you are registered in {norm_rider_city.title()}. Rides can only be accepted by Captains in the same city."
                 )
 
-        r_name = rider_profile.get("fullName") or rider_profile.get("name") or "Delivery Captain"
-        r_phone = rider_profile.get("phone") or "+91 98765 43210"
-        r_vehicle = rider_profile.get("vehicleType") or "Bike"
-        r_plate = rider_profile.get("vehicleNumber") or "UP-87-QP-1001"
-        r_lat = rider_profile.get("lat") or 27.8118
-        r_lng = rider_profile.get("lng") or 78.6477
+        from app.services.rider_dispatch import resolve_real_rider_party
+        resolved_party = await resolve_real_rider_party(rider_profile or rider_id)
+        if resolved_party:
+            rider_party = resolved_party
+            r_name = rider_party.get("name") or "Delivery Captain"
+        else:
+            r_name = rider_profile.get("fullName") or rider_profile.get("name") or "Delivery Captain"
+            r_phone = rider_profile.get("phone") or ""
+            r_vehicle = rider_profile.get("vehicleType") or "Bike"
+            r_plate = rider_profile.get("vehicleNumber") or ""
+            r_avatar = rider_profile.get("photoUrl") or rider_profile.get("selfieUrl") or ""
+            r_lat = rider_profile.get("lat") or 27.8118
+            r_lng = rider_profile.get("lng") or 78.6477
 
-        rider_party = {
-            "id": rider_id,
-            "name": r_name,
-            "phone": r_phone,
-            "vehicle": r_vehicle,
-            "plate": r_plate,
-            "latitude": float(r_lat),
-            "longitude": float(r_lng),
-            "location": {"latitude": float(r_lat), "longitude": float(r_lng)},
-            "rating": float(rider_profile.get("rating", 4.9)),
-            "trips": str(rider_profile.get("totalTrips", 120)),
-        }
+            rider_party = {
+                "id": rider_id,
+                "name": r_name,
+                "phone": r_phone,
+                "vehicle": r_vehicle,
+                "vehicleType": r_vehicle,
+                "plate": r_plate,
+                "vehicleNumber": r_plate,
+                "avatar": r_avatar,
+                "photo": r_avatar,
+                "image": r_avatar,
+                "latitude": float(r_lat),
+                "longitude": float(r_lng),
+                "location": {"latitude": float(r_lat), "longitude": float(r_lng)},
+                "rating": float(rider_profile.get("rating", 5.0)),
+                "trips": str(rider_profile.get("lifetimeDeliveries") or rider_profile.get("totalTrips") or "10+ deliveries"),
+            }
 
         # Atomic update on RIDES_COLLECTION
         await database.collection(RIDES_COLLECTION).update_one(
@@ -2577,13 +2589,21 @@ class Smart2RideEngine:
             {"$or": [{"_id": new_rider_id}, {"riderId": new_rider_id}]}
         ) or {}
 
-        r2_party = {
+        from app.services.rider_dispatch import resolve_real_rider_party
+        resolved_r2 = await resolve_real_rider_party(r2_profile or new_rider_id)
+        r2_party = resolved_r2 or {
             "id": new_rider_id,
             "name": r2_profile.get("fullName") or r2_profile.get("name") or "QuickPress Captain",
             "phone": r2_profile.get("phone") or "",
             "vehicle": r2_profile.get("vehicleType") or "Bike",
-            "plate": r2_profile.get("vehicleNumber") or "UP-87-QP-1001",
-            "rating": float(r2_profile.get("rating", 4.9)),
+            "vehicleType": r2_profile.get("vehicleType") or "Bike",
+            "plate": r2_profile.get("vehicleNumber") or "",
+            "vehicleNumber": r2_profile.get("vehicleNumber") or "",
+            "avatar": r2_profile.get("photoUrl") or r2_profile.get("selfieUrl") or "",
+            "photo": r2_profile.get("photoUrl") or r2_profile.get("selfieUrl") or "",
+            "image": r2_profile.get("photoUrl") or r2_profile.get("selfieUrl") or "",
+            "rating": float(r2_profile.get("rating", 5.0)),
+            "trips": str(r2_profile.get("lifetimeDeliveries") or r2_profile.get("totalTrips") or "10+ deliveries"),
         }
 
         await database.collection(ORDERS_COLLECTION).update_one(

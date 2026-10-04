@@ -194,13 +194,16 @@ class AdminOrderRepository:
         if o_city and r_city and o_city != r_city and o_city not in r_city and r_city not in o_city:
             raise ValueError(f"City Mismatch: Captain belongs to {r_city.title()}, but order is in {o_city.title()}. Captains can only be assigned to orders in their registered city.")
 
-        rider_party = {
+        from app.services.rider_dispatch import resolve_real_rider_party
+        resolved_party = await resolve_real_rider_party(rider)
+        rider_party = resolved_party or {
             "id": rider["_id"],
-            "name": rider.get("name", ""),
+            "name": rider.get("fullName") or rider.get("name", ""),
             "phone": rider.get("phone", ""),
-            "vehicle": rider.get("vehicle", ""),
-            "plate": rider.get("plate", ""),
-            "rating": rider.get("rating", 0),
+            "vehicle": rider.get("vehicle") or rider.get("vehicleType", ""),
+            "plate": rider.get("vehicleNumber") or rider.get("plate", ""),
+            "avatar": rider.get("photoUrl") or rider.get("selfieUrl", ""),
+            "rating": rider.get("rating", 5.0),
             "trips": f"{rider.get('trips', 0)}+ trips",
         }
         current = lifecycle.order_status(order)

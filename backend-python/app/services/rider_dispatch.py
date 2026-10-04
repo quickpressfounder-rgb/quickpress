@@ -48,6 +48,170 @@ ORDERS_COLLECTION = "customer_orders"
 NOTIFICATIONS_COLLECTION = "rider_notifications"
 
 
+async def resolve_real_rider_party(rider_data: Any) -> Optional[Dict[str, Any]]:
+    """Resolves and returns complete real profile data for an assigned captain.
+    
+    Hydrates real fullName, phone, vehicleType, vehicleNumber, profile photo,
+    rating, total trips, and live GPS coordinates from rider_profiles, live_locations,
+    and users collections.
+    """
+    if not rider_data:
+        return None
+    rider_id = ""
+    if isinstance(rider_data, dict):
+        rider_id = str(rider_data.get("id") or rider_data.get("riderId") or rider_data.get("rider_id") or "").strip()
+    elif isinstance(rider_data, str):
+        rider_id = rider_data.strip()
+
+    if not rider_id:
+        return None
+
+    # 1. Search in rider_profiles
+    query_ids = [rider_id]
+    if rider_id.startswith("CAP-"):
+        hex_suffix = rider_id.replace("CAP-", "").lower()
+        query_ids.append(hex_suffix)
+    elif len(rider_id) == 36 and "-" in rider_id:
+        query_ids.append(f"CAP-{rider_id[:8].upper()}")
+        query_ids.append(f"CAP-{rider_id[:6].upper()}")
+
+    p_docs = await database.find_many("rider_profiles", {
+        "$or": [
+            {"_id": rider_id},
+            {"riderId": rider_id},
+            {"userId": rider_id},
+            {"id": rider_id},
+            {"phone": rider_id},
+        ]
+    })
+    
+    if not p_docs:
+        or_clauses = []
+        for qid in query_ids:
+            or_clauses.extend([{"_id": qid}, {"riderId": qid}, {"userId": qid}, {"id": qid}])
+        p_docs = await database.find_many("rider_profiles", {"$or": or_clauses})
+
+    p_doc = None
+    for doc in p_docs:
+        if doc.get("fullName") or doc.get("name") or doc.get("phone") or doc.get("vehicleNumber") or doc.get("photoUrl"):
+            p_doc = doc
+            break
+    if not p_doc and p_docs:
+        p_doc = p_docs[0]
+
+    # If still not found, check regex prefix match
+    if not p_doc and rider_id.startswith("CAP-"):
+        pref = rider_id[4:].lower()
+        try:
+            p_doc = await database.find_one("rider_profiles", {"_id": {"$regex": f"^{pref}", "$options": "i"}})
+        except Exception:
+            pass
+
+    # 2. Check users and riders collection if profile document not found or lacks name
+    user_doc = {}
+    if not p_doc or not (p_doc.get("fullName") or p_doc.get("name")):
+        user_doc = (
+            await database.find_one("users", {"$or": [{"_id": rider_id}, {"linked_id": rider_id}, {"phone": rider_id}]})
+            or await database.find_one("riders", {"$or": [{"_id": rider_id}, {"rider_id": rider_id}, {"user_id": rider_id}]})
+            or {}
+        )
+
+    r_dict = rider_data if isinstance(rider_data, dict) else {}
+
+    # 3. Extract real fields
+    candidate_name = (p_doc.get("fullName") or p_doc.get("name") if p_doc else "") or user_doc.get("name") or r_dict.get("name") or ""
+    if candidate_name in ("Delivery Partner", "Delivery Captain", "QuickPress Rider") and user_doc.get("name"):
+        candidate_name = user_doc["name"]
+    real_name = candidate_name if candidate_name else "Delivery Captain"
+
+    candidate_phone = (p_doc.get("phone") or p_doc.get("mobile") if p_doc else "") or user_doc.get("phone") or r_dict.get("phone") or ""
+    if "+91 98765 43210" in str(candidate_phone) or "9876543210" in str(candidate_phone):
+        if p_doc and (p_doc.get("phone") or p_doc.get("mobile")):
+            candidate_phone = p_doc.get("phone") or p_doc.get("mobile")
+        elif user_doc.get("phone"):
+            candidate_phone = user_doc.get("phone")
+        else:
+            candidate_phone = ""
+    real_phone = candidate_phone
+
+    real_vehicle = (
+        (p_doc.get("vehicleType") or p_doc.get("vehicleModel") or p_doc.get("vehicle") or p_doc.get("vehicleBrand")) if p_doc else ""
+    ) or r_dict.get("vehicle") or r_dict.get("vehicleType") or "Bike"
+
+    candidate_plate = (
+        (p_doc.get("vehicleNumber") or p_doc.get("rcNumber") or p_doc.get("plate")) if p_doc else ""
+    ) or r_dict.get("plate") or r_dict.get("vehicleNumber") or ""
+    if candidate_plate == "UP-87-QP-1001" and p_doc and (p_doc.get("vehicleNumber") or p_doc.get("plate")):
+        candidate_plate = p_doc.get("vehicleNumber") or p_doc.get("plate")
+    real_plate = candidate_plate
+
+    real_avatar = (
+        (p_doc.get("photoUrl") or p_doc.get("selfieUrl") or p_doc.get("photo") or p_doc.get("avatar")) if p_doc else ""
+    ) or r_dict.get("avatar") or r_dict.get("photo") or r_dict.get("image") or ""
+
+    rating_val = (p_doc.get("rating") if p_doc else None) or r_dict.get("rating") or 5.0
+    try:
+        real_rating = round(float(rating_val), 1)
+    except Exception:
+        real_rating = 5.0
+
+    trips_val = (p_doc.get("lifetimeDeliveries") or p_doc.get("totalTrips") if p_doc else None) or r_dict.get("trips") or "10+ deliveries"
+    if isinstance(trips_val, int):
+        real_trips = f"{trips_val} deliveries" if trips_val > 0 else "New Captain"
+    else:
+        real_trips = str(trips_val)
+
+    # 4. Location coordinates
+    r_lat = (p_doc.get("lat") or p_doc.get("latitude") if p_doc else None) or r_dict.get("lat") or r_dict.get("latitude")
+    r_lng = (p_doc.get("lng") or p_doc.get("longitude") if p_doc else None) or r_dict.get("lng") or r_dict.get("longitude")
+
+    p_id = p_doc.get("_id") if p_doc else ""
+    canonical_rid = str((p_doc.get("riderId") or p_doc.get("_id")) if p_doc else rider_id)
+
+    try:
+        live_loc = await database.find_one("live_locations", {
+            "$or": [
+                {"_id": f"rider:{rider_id}"},
+                {"_id": f"rider:{canonical_rid}"},
+                {"_id": f"rider:{p_id}"},
+            ]
+        })
+        if live_loc:
+            if live_loc.get("latitude") is not None:
+                r_lat = live_loc["latitude"]
+            if live_loc.get("longitude") is not None:
+                r_lng = live_loc["longitude"]
+    except Exception:
+        pass
+
+    loc_dict = None
+    if r_lat is not None and r_lng is not None:
+        try:
+            r_lat = float(r_lat)
+            r_lng = float(r_lng)
+            loc_dict = {"latitude": r_lat, "longitude": r_lng}
+        except Exception:
+            pass
+
+    return {
+        "id": canonical_rid,
+        "name": real_name,
+        "phone": real_phone,
+        "vehicle": real_vehicle,
+        "vehicleType": real_vehicle,
+        "plate": real_plate,
+        "vehicleNumber": real_plate,
+        "avatar": real_avatar,
+        "photo": real_avatar,
+        "image": real_avatar,
+        "rating": real_rating,
+        "trips": real_trips,
+        "latitude": r_lat,
+        "longitude": r_lng,
+        "location": loc_dict,
+    }
+
+
 def generate_secure_4digit_otp() -> str:
     """Generate a cryptographically secure 4-digit numeric OTP (1000-9999). Never hardcoded."""
     return f"{secrets.randbelow(9000) + 1000}"
@@ -365,16 +529,23 @@ class RiderDispatchEngine:
                 f"CITY_MISMATCH: Order is in {o_city.title()}, but you are registered in {r_city.title()}. Rides can only be claimed by Captains in the same city."
             )
 
-        rider_party = {
+        resolved_party = await resolve_real_rider_party(rider_profile or rider_id)
+        rider_party = resolved_party or {
             "id": rider_id,
-            "name": rider_profile.get("fullName") or rider_profile.get("name") or "Delivery Partner",
-            "phone": rider_profile.get("phone") or "+91 98765 43210",
+            "name": rider_profile.get("fullName") or rider_profile.get("name") or "Delivery Captain",
+            "phone": rider_profile.get("phone") or "",
             "vehicle": rider_profile.get("vehicleType") or "Bike",
             "vehicleType": rider_profile.get("vehicleType") or "Bike",
-            "plate": rider_profile.get("vehicleNumber") or "UP-87-QP-1001",
-            "vehicleNumber": rider_profile.get("vehicleNumber") or "UP-87-QP-1001",
-            "rating": float(rider_profile.get("rating", 4.9)),
-            "trips": str(rider_profile.get("totalTrips", 120)),
+            "plate": rider_profile.get("vehicleNumber") or "",
+            "vehicleNumber": rider_profile.get("vehicleNumber") or "",
+            "avatar": rider_profile.get("photoUrl") or rider_profile.get("selfieUrl") or "",
+            "photo": rider_profile.get("photoUrl") or rider_profile.get("selfieUrl") or "",
+            "image": rider_profile.get("photoUrl") or rider_profile.get("selfieUrl") or "",
+            "rating": float(rider_profile.get("rating", 5.0)),
+            "trips": str(rider_profile.get("lifetimeDeliveries") or rider_profile.get("totalTrips") or "10+ deliveries"),
+            "latitude": None,
+            "longitude": None,
+            "location": None,
         }
 
         # Secure random 4-digit Pickup OTP (preserve code if already generated on order)
