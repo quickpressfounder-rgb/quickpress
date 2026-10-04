@@ -56,6 +56,8 @@ class OrderPaymentPayload(BaseModel):
     label: str = "Cash on delivery"
     note: Optional[str] = None
     method: Optional[str] = None
+    paymentId: Optional[str] = None
+    gatewayPaymentId: Optional[str] = None
 
 
 class OrderPayment(BaseModel):
@@ -63,6 +65,9 @@ class OrderPayment(BaseModel):
     label: str = "Cash on delivery"
     note: str = ""
     paid: bool = False
+    paymentId: Optional[str] = None
+    gatewayPaymentId: Optional[str] = None
+
 
 
 class OrderParty(BaseModel):

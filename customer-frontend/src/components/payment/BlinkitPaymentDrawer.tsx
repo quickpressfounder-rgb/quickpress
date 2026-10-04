@@ -55,7 +55,11 @@ export function BlinkitPaymentDrawer({
 
   if (!isOpen) return null;
 
-  const cleanPhone = customerPhone.replace(/\D/g, "");
+  const rawDigits = (customerPhone || "").replace(/\D/g, "");
+  const cleanPhone = rawDigits.length === 12 && rawDigits.startsWith("91")
+    ? rawDigits.slice(2)
+    : (rawDigits.length > 10 ? rawDigits.slice(-10) : rawDigits);
+
   const upiUri = buildUpiUri({
     amount: grandTotal,
     txnRef: upiTxnRef,
@@ -69,6 +73,14 @@ export function BlinkitPaymentDrawer({
     preferredMethod: "upi" | "card" | "netbanking" | "wallet" = "upi"
   ) => {
     if (busyMethod) return;
+
+    if (grandTotal <= 0) {
+      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
+      onClose();
+      return;
+    }
+
     setBusyMethod(methodLabel);
 
     try {
@@ -103,6 +115,13 @@ export function BlinkitPaymentDrawer({
   const handleWalletPay = async () => {
     if (busyMethod) return;
 
+    if (grandTotal <= 0) {
+      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
+      onClose();
+      return;
+    }
+
     if (walletBalance < grandTotal) {
       toast.error(
         `Insufficient wallet balance: ₹${walletBalance} available, ₹${grandTotal} required. Please choose UPI or Pay on Delivery.`
@@ -126,6 +145,14 @@ export function BlinkitPaymentDrawer({
   // Cash on Delivery
   const handleCodPay = async () => {
     if (busyMethod) return;
+
+    if (grandTotal <= 0) {
+      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
+      onClose();
+      return;
+    }
+
     if (grandTotal < 50) {
       toast.error("Cash on delivery is not available for orders below ₹50.");
       return;
@@ -146,6 +173,11 @@ export function BlinkitPaymentDrawer({
     <div
       role="dialog"
       aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !busyMethod) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
     >
       {/* Drawer Container */}
@@ -155,8 +187,11 @@ export function BlinkitPaymentDrawer({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={onClose}
-              className="p-1.5 -ml-1 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
+              disabled={Boolean(busyMethod)}
+              onClick={() => {
+                if (!busyMethod) onClose();
+              }}
+              className="p-1.5 -ml-1 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 disabled:opacity-40 disabled:pointer-events-none rounded-full active:scale-95 transition-all cursor-pointer"
               aria-label="Back"
             >
               <ArrowLeft className="size-5 stroke-[2.5]" />
@@ -179,6 +214,33 @@ export function BlinkitPaymentDrawer({
 
         {/* Scrollable Grouped Inset Cards Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* FREE PROMO BANNER IF ₹0 */}
+          {grandTotal <= 0 && (
+            <div className="rounded-2xl bg-[#0c831f] text-white p-4 shadow-sm text-center space-y-2">
+              <p className="text-sm font-black">🎉 100% Discount Applied — Order is FREE!</p>
+              <p className="text-xs text-emerald-100">No payment is required to place this order.</p>
+              <button
+                type="button"
+                disabled={Boolean(busyMethod)}
+                onClick={async () => {
+                  setBusyMethod("free_promo");
+                  try {
+                    await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
+                    onClose();
+                  } finally {
+                    setBusyMethod(null);
+                  }
+                }}
+                className="w-full py-2.5 rounded-xl bg-white text-[#0c831f] font-black text-xs hover:bg-emerald-50 active:scale-95 transition cursor-pointer shadow-xs"
+              >
+                {busyMethod === "free_promo" ? (
+                  <Loader2 className="size-4 animate-spin mx-auto text-[#0c831f]" />
+                ) : (
+                  "Confirm & Place Free Order"
+                )}
+              </button>
+            </div>
+          )}
           {/* GROUP 1: CARDS */}
           <div>
             <h3 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">

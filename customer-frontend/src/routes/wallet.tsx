@@ -137,7 +137,7 @@ const TOPUP_METHODS = [
 const EXTENDED_QUICK_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 
 function WalletScreen() {
-  useAuthGuard();
+  const { session } = useAuthGuard();
   const navigate = useNavigate();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[] | null>(null);
@@ -224,6 +224,9 @@ function WalletScreen() {
         const outcome = await payWithRazorpay({
           amount: value,
           purpose: "QuickPress Wallet Top-up",
+          customerName: session?.account?.name || undefined,
+          customerPhone: session?.account?.phone || undefined,
+          customerEmail: session?.account?.email || undefined,
         });
 
         if (outcome.status === "success") {

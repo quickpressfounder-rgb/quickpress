@@ -575,6 +575,8 @@ class OrderRepository:
                 label="QuickPress Wallet" if is_wallet_payment else payload.payment.label,
                 note="Paid from QuickPress wallet balance" if is_wallet_payment else (payload.payment.note or ("Paid online" if mode == "online" else "Pay on delivery")),
                 paid=is_wallet_payment or (mode == "online"),
+                paymentId=payload.payment.paymentId or payload.payment.gatewayPaymentId or ("wallet" if is_wallet_payment else ("cod" if mode == "cod" else None)),
+                gatewayPaymentId=payload.payment.gatewayPaymentId or payload.payment.paymentId or None,
             ).model_dump(),
             "pickupOtp": str(pickup_otp_record["code"]),
             "deliveryOtp": str(delivery_otp_record["code"]),

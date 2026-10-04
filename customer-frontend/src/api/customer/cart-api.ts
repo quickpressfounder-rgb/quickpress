@@ -423,6 +423,8 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
         mode: paymentMode,
         label: paymentLabel,
         note: isCod ? "Pay on delivery" : isWallet ? "Paid via QuickPress Wallet" : "Paid online",
+        paymentId: payload.paymentId || (isWallet ? "wallet" : isCod ? "cod" : undefined),
+        gatewayPaymentId: payload.paymentId || undefined,
       },
     } satisfies PlaceOrderPayload);
 

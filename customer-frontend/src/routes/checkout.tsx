@@ -47,6 +47,14 @@ import {
 } from "@/api/customer/finance-api";
 import { payWithRazorpay } from "@/api/payments/razorpay-api";
 import { loadRazorpayCheckout } from "@/api/core/razorpay";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+
+function normalizeIndianPhone(phone: string): string {
+  const digits = (phone || "").replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+  if (digits.length > 10) return digits.slice(-10);
+  return digits;
+}
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -56,6 +64,7 @@ export const Route = createFileRoute("/checkout")({
 });
 
 export function CheckoutPage() {
+  const { isAuthenticated } = useAuthGuard();
   const navigate = useNavigate();
   const cart = useCart();
 
@@ -95,6 +104,8 @@ export function CheckoutPage() {
     // Preload Razorpay Checkout SDK silently for instant modal display
     void loadRazorpayCheckout().catch(() => {});
 
+    if (!isAuthenticated) return;
+
     async function loadData() {
       try {
         const [addrList, walletData, profileData, rulesData] = await Promise.all([
@@ -132,9 +143,9 @@ export function CheckoutPage() {
           setCustomerName("");
         }
         if (prof?.phone) {
-          setCustomerPhone(prof.phone);
+          setCustomerPhone(normalizeIndianPhone(prof.phone));
         } else if (addrList[0]?.phone) {
-          setCustomerPhone(addrList[0].phone);
+          setCustomerPhone(normalizeIndianPhone(addrList[0].phone));
         }
       } catch (err) {
         console.warn("Checkout initialization error:", err);
@@ -147,7 +158,7 @@ export function CheckoutPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   // Synchronize delivery address if sameAsPickup is active
   useEffect(() => {
@@ -177,7 +188,9 @@ export function CheckoutPage() {
   const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + currentExpressFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
   const gst = laundryGst + serviceGst;
 
-  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + gst - couponDiscount);
+  const grandTotal = Math.round(
+    Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + gst - couponDiscount)
+  );
   const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + (isFreeDelivery && itemsSubtotal > 0 ? baseDeliveryFee : 0);
 
   const selectedPickup = addresses.find((a) => a.id === pickupAddressId) || addresses[0];
@@ -206,8 +219,8 @@ export function CheckoutPage() {
       return;
     }
 
-    const cleanPhone = customerPhone.replace(/\D/g, "");
-    if (!cleanPhone || cleanPhone.length < 10) {
+    const cleanPhone = normalizeIndianPhone(customerPhone);
+    if (!cleanPhone || cleanPhone.length !== 10) {
       toast.error("Please enter a valid 10-digit mobile number.");
       return;
     }
@@ -230,7 +243,7 @@ export function CheckoutPage() {
     }
     setPlacingOrder(true);
     try {
-      const cleanPhone = customerPhone.replace(/\D/g, "");
+      const cleanPhone = normalizeIndianPhone(customerPhone);
       const result = await postOrder({
         items: cart.lines.map((l) => ({
           id: l.id,
@@ -283,7 +296,7 @@ export function CheckoutPage() {
     }
     setPlacingOrder(true);
     try {
-      const cleanPhone = customerPhone.replace(/\D/g, "");
+      const cleanPhone = normalizeIndianPhone(customerPhone);
       const result = await postOrder({
         items: cart.lines.map((l) => ({
           id: l.id,
@@ -589,7 +602,10 @@ export function CheckoutPage() {
                   type="tel"
                   maxLength={10}
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setCustomerPhone(digits.slice(0, 10));
+                  }}
                   placeholder="10-digit Phone"
                   className="w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-900 placeholder:font-normal focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden"
                 />
@@ -826,7 +842,7 @@ export function CheckoutPage() {
         onClose={() => setShowPaymentDrawer(false)}
         grandTotal={grandTotal}
         customerName={customerName}
-        customerPhone={customerPhone}
+        customerPhone={normalizeIndianPhone(customerPhone)}
         walletBalance={walletBalance}
         onPaymentSuccess={handlePaymentSuccess}
         onSelectCod={handleSelectCod}

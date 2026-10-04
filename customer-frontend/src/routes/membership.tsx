@@ -211,7 +211,7 @@ function PlanCard({
 }
 
 function MembershipScreen() {
-  useAuthGuard();
+  const { session } = useAuthGuard();
   const navigate = useNavigate();
   const [membership, setMembership] = useState<Membership | null>(null);
   const [plans, setPlans] = useState<MembershipPlans | null>(null);
@@ -287,6 +287,9 @@ function MembershipScreen() {
         const outcome = await payWithRazorpay({
           amount: planPrice,
           purpose: `QuickPress Membership: ${planId} (${cycle})`,
+          customerName: session?.account?.name || undefined,
+          customerPhone: session?.account?.phone || undefined,
+          customerEmail: session?.account?.email || undefined,
         });
 
         if (outcome.status === "success") {

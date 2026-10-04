@@ -50,7 +50,13 @@ export function loadRazorpayCheckout(): Promise<RazorpayConstructor> {
 
   loader = new Promise<RazorpayConstructor>((resolve, reject) => {
     const previous = document.querySelector<HTMLScriptElement>(`script[src="${CHECKOUT_SRC}"]`);
-    const script = previous ?? document.createElement("script");
+    if (previous && !windowRazorpay()) {
+      // Remove stale/failed script node to ensure a clean network retry
+      try {
+        previous.remove();
+      } catch {}
+    }
+    const script = document.createElement("script");
     const settle = () => {
       const ctor = windowRazorpay();
       if (ctor) resolve(ctor);
@@ -59,15 +65,14 @@ export function loadRazorpayCheckout(): Promise<RazorpayConstructor> {
     script.addEventListener("load", settle);
     script.addEventListener("error", () => {
       loader = null;
+      try {
+        script.remove();
+      } catch {}
       reject(new ApiError("network", "Could not reach Razorpay CDN. Please check your connection."));
     });
-    if (!previous) {
-      script.src = CHECKOUT_SRC;
-      script.async = true;
-      document.head.appendChild(script);
-    } else if (windowRazorpay()) {
-      settle();
-    }
+    script.src = CHECKOUT_SRC;
+    script.async = true;
+    document.head.appendChild(script);
   });
   return loader;
 }
@@ -112,6 +117,14 @@ export async function openRazorpayCheckout(
     throw new ApiError("validation", "No Razorpay order ID found to pay for.");
   }
 
+  // Normalize Indian phone number for Razorpay prefill
+  let normalizedContact = (options.profile?.contact || "").replace(/\D/g, "");
+  if (normalizedContact.length === 12 && normalizedContact.startsWith("91")) {
+    normalizedContact = normalizedContact.slice(2);
+  } else if (normalizedContact.length > 10) {
+    normalizedContact = normalizedContact.slice(-10);
+  }
+
   const razorpayPayload = {
     key: order.keyId,
     amount: order.amountInPaise,
@@ -122,7 +135,7 @@ export async function openRazorpayCheckout(
     prefill: {
       name: options.profile?.name ?? "",
       email: options.profile?.email ?? "",
-      contact: options.profile?.contact ?? "",
+      contact: normalizedContact,
       ...(options.preferredMethod ? { method: options.preferredMethod } : {}),
     },
     notes: order.notes,
@@ -145,42 +158,80 @@ export async function openRazorpayCheckout(
         resolve(outcome);
       };
 
-      const handleSuccess = (evt: CustomEvent<{ code: number; message: string; data: string }>) => {
-        try {
-          const detail = JSON.parse(evt.detail.data || "{}");
-          finish({
-            status: "success",
-            payload: {
-              razorpay_payment_id: detail.razorpay_payment_id || evt.detail.message,
-              razorpay_order_id: detail.razorpay_order_id || order.gatewayOrderId,
-              razorpay_signature: detail.razorpay_signature || "",
-            },
-          });
-        } catch {
-          finish({
-            status: "success",
-            payload: {
-              razorpay_payment_id: evt.detail.message,
-              razorpay_order_id: order.gatewayOrderId,
-              razorpay_signature: "",
-            },
-          });
+      const handleSuccess = (evt: CustomEvent<{ code: number; message: string; data: string | Record<string, unknown> }>) => {
+        const rawData = evt.detail?.data;
+        let detail: Record<string, any> = {};
+
+        if (typeof rawData === "string") {
+          try {
+            detail = JSON.parse(rawData || "{}");
+          } catch {
+            detail = {};
+          }
+        } else if (rawData && typeof rawData === "object") {
+          detail = rawData as Record<string, any>;
         }
+
+        const paymentId =
+          detail.razorpay_payment_id ||
+          detail.payment_id ||
+          (typeof evt.detail?.message === "string" && evt.detail.message !== "success" ? evt.detail.message : "") ||
+          "";
+
+        const orderId =
+          detail.razorpay_order_id ||
+          detail.order_id ||
+          order.gatewayOrderId;
+
+        const signature =
+          detail.razorpay_signature ||
+          detail.signature ||
+          "";
+
+        finish({
+          status: "success",
+          payload: {
+            razorpay_payment_id: paymentId,
+            razorpay_order_id: orderId,
+            razorpay_signature: signature,
+          },
+        });
       };
 
-      const handleError = (evt: CustomEvent<{ code: number; message: string }>) => {
-        const code = evt.detail.code;
-        // In Razorpay Android SDK, code 0 or 2 represents user cancellation / back press
-        if (code === 0 || code === 2) {
+      const handleError = (evt: CustomEvent<{ code: number; message: string; data?: any }>) => {
+        const code = Number(evt.detail?.code ?? -1);
+        const rawMsg = evt.detail?.message || "";
+
+        // Parse possible embedded JSON error message from Razorpay Android SDK
+        let friendlyReason = rawMsg;
+        try {
+          if (rawMsg.startsWith("{") && rawMsg.endsWith("}")) {
+            const parsed = JSON.parse(rawMsg);
+            if (parsed?.error?.description) {
+              friendlyReason = parsed.error.description;
+            }
+          }
+        } catch {}
+
+        // In Razorpay Android SDK:
+        // Checkout.PAYMENT_CANCELED = 0 (user pressed back button)
+        // Checkout.NETWORK_ERROR = 2 (lost internet connectivity)
+        if (code === 0) {
           finish({
             status: "dismissed",
-            reason: evt.detail.message || "Payment cancelled.",
+            reason: friendlyReason || "Payment window was closed.",
             code: "checkout_dismissed",
+          });
+        } else if (code === 2) {
+          finish({
+            status: "failed",
+            reason: "Internet connection was lost during payment. Please check your data connection and retry.",
+            code: "network_error",
           });
         } else {
           finish({
             status: "failed",
-            reason: evt.detail.message || "Payment failed at Razorpay gateway.",
+            reason: friendlyReason || "Payment failed at Razorpay gateway.",
             code: String(code || "payment_failed"),
           });
         }
