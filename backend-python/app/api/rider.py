@@ -2287,16 +2287,6 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
     now_iso = datetime.now(timezone.utc).isoformat()
 
     possible_rider_ids = {rider_id, getattr(user, "id", ""), str(getattr(user, "id", ""))}
-    try:
-        profile = await rider_profile_repository.get(rider_id)
-        if profile:
-            for k in ("_id", "riderId", "userId", "phone", "mobile"):
-                val = profile.get(k)
-                if val:
-                    possible_rider_ids.add(str(val))
-    except Exception:
-        pass
-    possible_rider_ids.discard("")
     now_dt = datetime.now(timezone.utc)
     from app.services.smart_2ride_engine import normalize_city_name, is_city_match, extract_clean_city
     rider_city_norm = "kasganj"
@@ -2445,6 +2435,24 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
     # Deduplicate and strictly validate against active customer orders
     seen = set()
     valid_offers = []
+    target_order_ids = list({off.get("orderId") for off in all_raw if off.get("orderId")})
+    orders_cache: Dict[str, Dict[str, Any]] = {}
+    if target_order_ids:
+        c_docs = await database.find_many("customer_orders", {"_id": {"$in": target_order_ids}})
+        for cd in c_docs:
+            for k in ("_id", "id"):
+                v = cd.get(k)
+                if v:
+                    orders_cache[str(v)] = cd
+        missing_ids = [oid for oid in target_order_ids if str(oid) not in orders_cache]
+        if missing_ids:
+            legacy_docs = await database.find_many("orders", {"_id": {"$in": missing_ids}})
+            for ld in legacy_docs:
+                for k in ("_id", "id"):
+                    v = ld.get(k)
+                    if v:
+                        orders_cache[str(v)] = ld
+
     for off in all_raw:
         order_id = off.get("orderId")
         if not order_id:
@@ -2455,9 +2463,9 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
         seen.add(order_id)
 
         # Strictly verify that a REAL active customer order exists for this ride
-        real_order = await database.find_one("customer_orders", {"_id": order_id})
+        real_order = orders_cache.get(str(order_id))
         if not real_order:
-            real_order = await database.find_one("customer_orders", {"id": order_id})
+            real_order = await database.find_one("customer_orders", {"_id": order_id})
         if not real_order:
             real_order = await database.find_one("orders", {"_id": order_id})
 

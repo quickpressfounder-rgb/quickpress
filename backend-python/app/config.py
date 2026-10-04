@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     cashfree_env: str = "PROD"
     cashfree_webhook_secret: str = ""
 
+    # --- Razorpay Payment Gateway (Legacy / Dual Gateway Support) --------
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
+
 
 
     # --- Google Maps Platform --------------------------------------------

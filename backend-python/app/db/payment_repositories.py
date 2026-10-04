@@ -254,10 +254,17 @@ async def verify_payment(user: User, payload: Dict[str, Any]) -> Dict[str, Any]:
             "payment": _payment_out(payment),
         }
 
-    order_id = payload.get("cfOrderId") or payload.get("orderId") or payment.get("gatewayOrderId") or ""
-    gateway_payment_id = payload.get("cfPaymentId") or payload.get("gatewayPaymentId") or f"cf_pay_{uuid.uuid4().hex[:10]}"
-    verified = False
-    if order_id:
+    if "razorpay_signature" in payload:
+        from app.config import get_settings
+        secret = get_settings().razorpay_key_secret or LOCAL_TEST_SECRET
+        rzp_order_id = payload.get("razorpay_order_id") or payment.get("gatewayOrderId") or ""
+        rzp_payment_id = payload.get("razorpay_payment_id") or ""
+        given_sig = payload.get("razorpay_signature") or ""
+        msg = f"{rzp_order_id}|{rzp_payment_id}".encode("utf-8")
+        expected_sig = hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+        verified = hmac.compare_digest(given_sig, expected_sig)
+        gateway_payment_id = rzp_payment_id or gateway_payment_id
+    elif order_id:
         try:
             payments = await cashfree_client.get_order_payments(order_id)
             verified = any(p.get("payment_status") == "SUCCESS" for p in payments)

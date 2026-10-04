@@ -177,7 +177,28 @@ _CACHEABLE_STATIC_COLLECTIONS = {
     "faq_categories",
     "faqs",
     "admin_cities",
+    "services",
+    "admin_services",
+    "admin_categories",
+    "membership_benefits",
+    "membership_plans",
+    "cart_settings",
+    "referral_program_settings",
+    "financial_rules",
+    "website_settings",
+    "website_faqs",
+    "website_testimonials",
+    "website_landing_content",
+    "website_legal_docs",
 }
+
+
+def _make_cache_key(val: Any) -> str:
+    """Fast deterministic cache key for query caching."""
+    try:
+        return json.dumps(val, sort_keys=True, default=str)
+    except Exception:
+        return str(val)
 
 
 def _compile_filter(
@@ -244,16 +265,22 @@ def _compile_filter(
             sub_clauses = []
             for op, op_val in val.items():
                 if op == "$eq":
-                    params.append(str(op_val) if not isinstance(op_val, (int, float, bool)) else op_val)
+                    if isinstance(op_val, bool):
+                        params.append("true" if op_val else "false")
+                    else:
+                        params.append(str(op_val))
                     sub_clauses.append(f"{json_field} = ${len(params)}")
                 elif op == "$ne":
-                    params.append(str(op_val))
+                    if isinstance(op_val, bool):
+                        params.append("true" if op_val else "false")
+                    else:
+                        params.append(str(op_val))
                     sub_clauses.append(f"({json_field} IS DISTINCT FROM ${len(params)})")
                 elif op == "$in" and isinstance(op_val, (list, tuple)):
-                    params.append([str(x) for x in op_val])
+                    params.append([("true" if x is True else ("false" if x is False else str(x))) for x in op_val])
                     sub_clauses.append(f"{json_field} = ANY(${len(params)}::text[])")
                 elif op == "$nin" and isinstance(op_val, (list, tuple)):
-                    params.append([str(x) for x in op_val])
+                    params.append([("true" if x is True else ("false" if x is False else str(x))) for x in op_val])
                     sub_clauses.append(f"(NOT ({json_field} = ANY(${len(params)}::text[])))")
                 elif op == "$exists":
                     if bool(op_val):
@@ -275,7 +302,15 @@ def _compile_filter(
         # 5. Scalar equality
         if val is None:
             return f"({json_field} IS NULL)"
-        params.append(str(val) if not isinstance(val, (int, float, bool)) else val)
+        if isinstance(val, bool):
+            params.append("true" if val else "false")
+        elif isinstance(val, (int, float)):
+            params.append(str(val))
+        elif isinstance(val, (list, tuple)):
+            params.append([("true" if x is True else ("false" if x is False else str(x))) for x in val])
+            return f"{json_field} = ANY(${len(params)}::text[])"
+        else:
+            params.append(str(val))
         return f"{json_field} = ${len(params)}"
 
     for k, v in query.items():
@@ -329,7 +364,7 @@ class SupabaseCursor:
                     else:
                         order_by_parts.append(f"data->>'{key}' {dir_str}")
 
-                order_sql = f" ORDER BY {', '.join(order_by_parts)}" if order_by_parts else ""
+                order_sql = f" ORDER BY {', '.join(order_by_parts)}" if order_by_parts else " ORDER BY updated_at DESC"
                 limit_offset_sql = ""
 
                 cur_params = list(params)
@@ -337,9 +372,8 @@ class SupabaseCursor:
                     cur_params.append(self._skip)
                     limit_offset_sql += f" OFFSET ${len(cur_params)}"
 
-                if lim is not None:
-                    cur_params.append(lim)
-                    limit_offset_sql += f" LIMIT ${len(cur_params)}"
+                cur_params.append(lim if lim is not None else 500)
+                limit_offset_sql += f" LIMIT ${len(cur_params)}"
 
                 sql = f"SELECT data FROM quickpress_documents WHERE {where_clause}{order_sql}{limit_offset_sql}"
                 pool = await self._collection._db.get_pool()
@@ -362,30 +396,55 @@ class SupabaseCursor:
 
 
 class SupabaseCollection:
-    """PostgreSQL-backed document collection in Supabase with sub-millisecond write-through caching."""
+    """PostgreSQL-backed document collection in Supabase with sub-millisecond query caching."""
 
-    CACHE_TTL: float = 3.0
+    STATIC_CACHE_TTL: float = 300.0  # 5 minutes for reference catalog data
+    QUERY_CACHE_TTL: float = 2.5     # 2.5 seconds for repetitive polling queries
 
     def __init__(self, db: Any, name: str) -> None:
         self._db = db
         self._name = name
+        self._is_static = name in _CACHEABLE_STATIC_COLLECTIONS
         self._cache: Optional[List[Dict[str, Any]]] = None
         self._cache_ts: float = 0.0
+        self._query_cache: Dict[str, Tuple[float, Any]] = {}
+
+    def _invalidate_query_cache(self) -> None:
+        self._query_cache.clear()
+
+    def _get_from_query_cache(self, key: str) -> Optional[Any]:
+        cached = self._query_cache.get(key)
+        if cached is not None:
+            ts, val = cached
+            if (time.time() - ts) < self.QUERY_CACHE_TTL:
+                return val
+            del self._query_cache[key]
+        return None
+
+    def _put_in_query_cache(self, key: str, val: Any) -> None:
+        if len(self._query_cache) > 200:
+            self._query_cache.clear()
+        self._query_cache[key] = (time.time(), val)
 
     async def _fetch_all(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         now = time.time()
-        if not force_refresh and self._cache is not None and (now - self._cache_ts) < self.CACHE_TTL:
+        ttl = self.STATIC_CACHE_TTL if self._is_static else 3.0
+        if not force_refresh and self._cache is not None and (now - self._cache_ts) < ttl:
             return list(self._cache)
 
         try:
             pool = await self._db.get_pool()
             async with pool.acquire() as conn:
-                rows = await conn.fetch(
-                    "SELECT data FROM quickpress_documents WHERE collection = $1", self._name
-                )
+                if self._is_static:
+                    sql = "SELECT data FROM quickpress_documents WHERE collection = $1"
+                    rows = await conn.fetch(sql, self._name)
+                else:
+                    sql = "SELECT data FROM quickpress_documents WHERE collection = $1 ORDER BY updated_at DESC LIMIT 300"
+                    rows = await conn.fetch(sql, self._name)
                 docs = [json.loads(r["data"]) for r in rows]
-                self._cache = docs
-                self._cache_ts = time.time()
+                if self._is_static:
+                    self._cache = docs
+                    self._cache_ts = time.time()
                 return list(docs)
         except Exception as e:
             logger.warning(f"Fetch error for collection {self._name}: {e}")
@@ -398,16 +457,20 @@ class SupabaseCollection:
         if "id" not in doc:
             doc["id"] = doc_id
 
-        # In-memory cache write-through
-        if self._cache is not None:
-            existing_idx = next((i for i, d in enumerate(self._cache) if str(d.get("_id") or d.get("id")) == doc_id), None)
-            if existing_idx is not None:
-                self._cache[existing_idx] = dict(doc)
+        # Invalidate query cache immediately on any write
+        self._invalidate_query_cache()
+
+        # In-memory cache write-through for static collections
+        if self._is_static:
+            if self._cache is not None:
+                existing_idx = next((i for i, d in enumerate(self._cache) if str(d.get("_id") or d.get("id")) == doc_id), None)
+                if existing_idx is not None:
+                    self._cache[existing_idx] = dict(doc)
+                else:
+                    self._cache.append(dict(doc))
             else:
-                self._cache.append(dict(doc))
-        else:
-            self._cache = [dict(doc)]
-        self._cache_ts = time.time()
+                self._cache = [dict(doc)]
+            self._cache_ts = time.time()
 
         # Direct database persistence
         try:
@@ -429,7 +492,8 @@ class SupabaseCollection:
             logger.warning(f"Save error for {self._name}:{doc_id}: {e}")
 
     async def _delete_doc_id(self, doc_id: str) -> None:
-        if self._cache is not None:
+        self._invalidate_query_cache()
+        if self._is_static and self._cache is not None:
             self._cache = [d for d in self._cache if str(d.get("_id") or d.get("id")) != doc_id]
             self._cache_ts = time.time()
 
@@ -446,13 +510,19 @@ class SupabaseCollection:
         return SupabaseCursor(self, query or {})
 
     async def find_one(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        # 1. Check local cache first if available
-        if self._cache is not None:
+        # 1. Check local static cache if available
+        if self._is_static and self._cache is not None:
             for d in self._cache:
                 if _matches(d, query):
                     return dict(d)
 
-        # 2. Targeted SQL lookup (O(1) index hit)
+        # 2. Check query cache
+        q_key = f"one:{_make_cache_key(query)}"
+        cached_result = self._get_from_query_cache(q_key)
+        if cached_result is not None:
+            return dict(cached_result) if isinstance(cached_result, dict) else None
+
+        # 3. Targeted SQL lookup (O(1) index hit)
         where_clause, params = _compile_filter(self._name, query)
         if where_clause is not None:
             try:
@@ -461,39 +531,65 @@ class SupabaseCollection:
                     sql = f"SELECT data FROM quickpress_documents WHERE {where_clause} LIMIT 1"
                     row = await conn.fetchrow(sql, *params)
                     if row:
-                        return json.loads(row["data"])
+                        doc = json.loads(row["data"])
+                        self._put_in_query_cache(q_key, doc)
+                        return doc
+                    self._put_in_query_cache(q_key, None)
                     return None
             except Exception as e:
                 logger.debug("Targeted SQL find_one fallback: %s", e)
 
-        # 3. Fallback to memory
+        # 4. Fallback
         docs = await self._fetch_all()
         for d in docs:
             if _matches(d, query):
+                self._put_in_query_cache(q_key, d)
                 return dict(d)
+        self._put_in_query_cache(q_key, None)
         return None
 
     async def find_many(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
-        if self._cache is not None and not query:
-            return list(self._cache)
+        # 1. Check static cache if available
+        if self._is_static:
+            if self._cache is not None and not query:
+                return [dict(d) for d in self._cache]
+            if self._cache is not None:
+                return [dict(d) for d in self._cache if _matches(d, query)]
 
+        # 2. Check query cache
+        q_key = f"many:{_make_cache_key(query)}"
+        cached_result = self._get_from_query_cache(q_key)
+        if cached_result is not None:
+            return [dict(d) for d in cached_result]
+
+        # 3. SQL pushdown
         where_clause, params = _compile_filter(self._name, query)
         if where_clause is not None:
             try:
                 pool = await self._db.get_pool()
                 async with pool.acquire() as conn:
-                    sql = f"SELECT data FROM quickpress_documents WHERE {where_clause}"
+                    sql = f"SELECT data FROM quickpress_documents WHERE {where_clause} ORDER BY updated_at DESC LIMIT 500"
                     rows = await conn.fetch(sql, *params)
-                    return [json.loads(r["data"]) for r in rows]
+                    docs = [json.loads(r["data"]) for r in rows]
+                    self._put_in_query_cache(q_key, docs)
+                    return docs
             except Exception as e:
                 logger.debug("Targeted SQL find_many fallback: %s", e)
 
+        # 4. Fallback to memory
         docs = await self._fetch_all()
-        return [d for d in docs if _matches(d, query)]
+        matched = [d for d in docs if _matches(d, query)]
+        self._put_in_query_cache(q_key, matched)
+        return matched
 
     async def count_documents(self, query: Dict[str, Any]) -> int:
-        if self._cache is not None and not query:
+        if self._is_static and self._cache is not None and not query:
             return len(self._cache)
+
+        q_key = f"cnt:{_make_cache_key(query)}"
+        cached_count = self._get_from_query_cache(q_key)
+        if cached_count is not None:
+            return cached_count
 
         where_clause, params = _compile_filter(self._name, query)
         if where_clause is not None:
@@ -502,12 +598,16 @@ class SupabaseCollection:
                 async with pool.acquire() as conn:
                     sql = f"SELECT count(*) FROM quickpress_documents WHERE {where_clause}"
                     count = await conn.fetchval(sql, *params)
-                    return int(count or 0)
+                    res = int(count or 0)
+                    self._put_in_query_cache(q_key, res)
+                    return res
             except Exception as e:
                 logger.debug("Targeted SQL count_documents fallback: %s", e)
 
         docs = await self._fetch_all()
-        return sum(1 for d in docs if _matches(d, query))
+        res = sum(1 for d in docs if _matches(d, query))
+        self._put_in_query_cache(q_key, res)
+        return res
 
     async def insert_one(self, document: Dict[str, Any]) -> Any:
         doc = dict(document)
@@ -588,9 +688,10 @@ class SupabaseCollection:
         return 0
 
     async def delete_many(self, query: Dict[str, Any]) -> int:
+        self._invalidate_query_cache()
         if not query:
             count = len(self._cache or [])
-            self._cache = []
+            self._cache = [] if self._is_static else None
             self._cache_ts = time.time()
             try:
                 pool = await self._db.get_pool()
@@ -614,7 +715,7 @@ class SupabaseCollection:
                         f"DELETE FROM quickpress_documents WHERE {where_clause}", *params
                     )
                     count = int(res.split(" ")[-1]) if (res and " " in res) else 0
-                    if self._cache is not None:
+                    if self._is_static and self._cache is not None:
                         self._cache = [d for d in self._cache if not _matches(d, query)]
                     return count
             except Exception as e:
@@ -748,6 +849,13 @@ class SupabaseDatabase:
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_user_id ON quickpress_documents (collection, (data->>'userId'));
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_phone ON quickpress_documents (collection, (data->>'phone'));
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_created_at ON quickpress_documents (collection, (data->>'createdAt'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_partner_id ON quickpress_documents (collection, (data->>'partnerId'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_rider_id ON quickpress_documents (collection, (data->>'riderId'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_order_id ON quickpress_documents (collection, (data->>'orderId'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_code ON quickpress_documents (collection, (data->>'code'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_is_online ON quickpress_documents (collection, (data->>'isOnline'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_partner_pid ON quickpress_documents (collection, (data->'partner'->>'id'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_updated_at ON quickpress_documents (collection, updated_at DESC);
             """)
         logger.info("Connected to Supabase PostgreSQL and initialized optimized schema + JSONB indexes.")
         asyncio.create_task(self._safe_preload_cache())
@@ -761,9 +869,10 @@ class SupabaseDatabase:
     def collection(self, name: str) -> SupabaseCollection:
         if name not in self._collections:
             coll = SupabaseCollection(self, name)
-            if self._is_preloaded:
-                coll._cache = []
-                coll._cache_ts = time.time()
+            if self._is_preloaded and name in _CACHEABLE_STATIC_COLLECTIONS:
+                if coll._cache is None:
+                    coll._cache = []
+                    coll._cache_ts = time.time()
             self._collections[name] = coll
         return self._collections[name]
 
