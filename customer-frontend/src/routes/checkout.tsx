@@ -340,7 +340,7 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f6fb] text-zinc-950 font-sans pb-36">
+    <main className="min-h-screen bg-white text-zinc-950 font-sans pb-36">
       {/* Top Header — Clean Blinkit Minimalist White */}
       <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-zinc-200/80 shadow-2xs">
         <div className="flex items-center gap-3">
