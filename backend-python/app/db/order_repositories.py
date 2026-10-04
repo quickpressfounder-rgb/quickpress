@@ -134,10 +134,20 @@ class OrderRepository:
                 highest = max(highest, int(digits))
         return highest
 
+    _counter_synced: bool = False
+
     async def next_number(self) -> str:
         document = await database.collection(COUNTER_COLLECTION).find_one({"_id": "order"})
+        if document and "value" in document and self._counter_synced:
+            value = int(document["value"]) + 1
+            await database.collection(COUNTER_COLLECTION).update_one(
+                {"_id": "order"}, {"$set": {"value": value}}
+            )
+            return f"QP{value}"
+
         counter = int((document or {}).get("value") or 1040)
         value = max(counter, await self._highest_existing_number()) + 1
+        self._counter_synced = True
         await database.collection(COUNTER_COLLECTION).update_one(
             {"_id": "order"}, {"$set": {"value": value}}, upsert=True
         )
@@ -588,66 +598,72 @@ class OrderRepository:
         }
         await database.collection(COLLECTION).insert_one(document)
 
-        # Log Automations: Fresh Dynamic OTPs & Order Placed
-        try:
-            await automation_repository.log_event(
-                automation_type="otp",
-                title=f"Order #{code} Dynamic OTPs Generated",
-                description=f"Generated fresh unique cryptographic OTPs: Pickup [***{pickup_code[-2:]}], Delivery [***{delivery_code[-2:]}]",
-                order_id=document["_id"],
-                order_code=code,
-                actor_id=user.id,
-                actor_type="customer",
-                severity="success",
-                metadata={"pickupOtpLast2": pickup_code[-2:], "deliveryOtpLast2": delivery_code[-2:]},
-            )
-            await automation_repository.log_event(
-                automation_type="notification",
-                title=f"Order #{code} Placed (₹{cust_payable:.0f})",
-                description=f"Automated partner routing initiated for {partner.name or partner.id}.",
-                order_id=document["_id"],
-                order_code=code,
-                actor_id=user.id,
-                actor_type="customer",
-                severity="info",
-            )
-        except Exception as auto_err:
-            logger.debug(f"[Automation] Order creation log error: {auto_err}")
-        try:
-            await unified_finance_service.initialize_order_financials(
-                order_id=document["_id"],
-                customer_id=user.id,
-                pricing_data={
-                    "itemsSubtotal": fin_calc["itemsSubtotal"],
-                    "taxableLaundry": fin_calc["taxableLaundrySubtotal"],
-                    "customerPayable": cust_payable,
-                    "actualDeliveryFee": fin_calc["deliveryFee"],
-                    "customerDeliveryFee": customer_del_fee,
-                    "deliverySubsidy": fin_calc["deliverySubsidy"],
-                    "platformFee": fin_calc["platformFee"],
-                    "handlingFee": fin_calc["handlingFee"],
-                    "expressFee": fin_calc.get("expressFee", 0.0),
-                    "partnerExpressBonus": fin_calc.get("partnerExpressBonus", 0.0),
-                    "riderExpressBonus": fin_calc.get("riderExpressBonus", 0.0),
-                    "totalGst": fin_calc["totalGst"],
-                    "cgst": fin_calc["cgst"],
-                    "sgst": fin_calc["sgst"],
-                    "igst": fin_calc["igst"],
-                },
-                partner_id=partner.id,
-                rider_id=None,
-            )
+        from app.core.async_queue import async_task_queue
 
-            if is_wallet_payment or (mode in ("online", "card", "upi")):
-                await unified_finance_service.record_payment(
+        # High-Speed Non-blocking Offload: Background Audit & Unified Finance Tracking
+        async def _record_background_order_tasks():
+            try:
+                await automation_repository.log_event(
+                    automation_type="otp",
+                    title=f"Order #{code} Dynamic OTPs Generated",
+                    description=f"Generated fresh unique cryptographic OTPs: Pickup [***{pickup_code[-2:]}], Delivery [***{delivery_code[-2:]}]",
                     order_id=document["_id"],
-                    amount=cust_payable,
-                    payment_method="wallet" if is_wallet_payment else str(mode),
-                    payment_gateway="WALLET" if is_wallet_payment else "RAZORPAY",
-                    transaction_ref=f"pay-{code}",
+                    order_code=code,
+                    actor_id=user.id,
+                    actor_type="customer",
+                    severity="success",
+                    metadata={"pickupOtpLast2": pickup_code[-2:], "deliveryOtpLast2": delivery_code[-2:]},
                 )
-        except Exception as fin_err:
-            logger.error("Failed to initialize unified order financials for %s: %s", code, fin_err)
+                await automation_repository.log_event(
+                    automation_type="notification",
+                    title=f"Order #{code} Placed (₹{cust_payable:.0f})",
+                    description=f"Automated partner routing initiated for {partner.name or partner.id}.",
+                    order_id=document["_id"],
+                    order_code=code,
+                    actor_id=user.id,
+                    actor_type="customer",
+                    severity="info",
+                )
+            except Exception as auto_err:
+                logger.debug(f"[Automation] Order creation log error: {auto_err}")
+
+            try:
+                await unified_finance_service.initialize_order_financials(
+                    order_id=document["_id"],
+                    customer_id=user.id,
+                    pricing_data={
+                        "itemsSubtotal": fin_calc["itemsSubtotal"],
+                        "taxableLaundry": fin_calc["taxableLaundrySubtotal"],
+                        "customerPayable": cust_payable,
+                        "actualDeliveryFee": fin_calc["deliveryFee"],
+                        "customerDeliveryFee": customer_del_fee,
+                        "deliverySubsidy": fin_calc["deliverySubsidy"],
+                        "platformFee": fin_calc["platformFee"],
+                        "handlingFee": fin_calc["handlingFee"],
+                        "expressFee": fin_calc.get("expressFee", 0.0),
+                        "partnerExpressBonus": fin_calc.get("partnerExpressBonus", 0.0),
+                        "riderExpressBonus": fin_calc.get("riderExpressBonus", 0.0),
+                        "totalGst": fin_calc["totalGst"],
+                        "cgst": fin_calc["cgst"],
+                        "sgst": fin_calc["sgst"],
+                        "igst": fin_calc["igst"],
+                    },
+                    partner_id=partner.id,
+                    rider_id=None,
+                )
+
+                if is_wallet_payment or (mode in ("online", "card", "upi")):
+                    await unified_finance_service.record_payment(
+                        order_id=document["_id"],
+                        amount=cust_payable,
+                        payment_method="wallet" if is_wallet_payment else str(mode),
+                        payment_gateway="WALLET" if is_wallet_payment else "RAZORPAY",
+                        transaction_ref=f"pay-{code}",
+                    )
+            except Exception as fin_err:
+                logger.error("Failed to initialize unified order financials for %s: %s", code, fin_err)
+
+        async_task_queue.enqueue(_record_background_order_tasks)
 
         # Canonical audit trail: every order starts its life with ORDER_CREATED.
         await lifecycle.record_event(

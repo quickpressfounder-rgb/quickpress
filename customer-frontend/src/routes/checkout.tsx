@@ -649,34 +649,6 @@ export function CheckoutPage() {
           </section>
         </div>
 
-        {/* SECTION 5: PAYMENT METHOD SELECTOR (Opens Blinkit Drawer on click) */}
-        <div>
-          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-            Payment Method
-          </h2>
-          <div
-            onClick={handleProceedToPayment}
-            className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-zinc-200/90 shadow-2xs cursor-pointer hover:bg-zinc-50/80 active:scale-99 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-emerald-50 border border-emerald-200/70 text-[#0c831f] flex items-center justify-center shadow-2xs">
-                <Smartphone className="size-5 stroke-[2.5]" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-black text-zinc-900 leading-tight">
-                  Choose Payment Option
-                </p>
-                <p className="text-[10.5px] font-medium text-zinc-400">
-                  PhonePe, Supermoney, UPI, Cards, Wallets, Pay on Delivery
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-black text-[#0c831f]">
-              <span>Select</span>
-              <ChevronRight className="size-4 stroke-[3]" />
-            </div>
-          </div>
-        </div>
 
         {/* SECTION 6: BILL DETAILS */}
         <div>

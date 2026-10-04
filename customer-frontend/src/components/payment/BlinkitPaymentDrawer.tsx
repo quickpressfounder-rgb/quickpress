@@ -72,16 +72,7 @@ export function BlinkitPaymentDrawer({
     setBusyMethod(methodLabel);
 
     try {
-      // 1. If on mobile device and tapping a direct UPI app (PhonePe, Supermoney, FamApp, GPay):
-      // Launch the direct UPI app immediately so user experiences instant redirection!
-      if (isMobile && appTarget) {
-        toast.info(`Launching ${methodLabel}...`);
-        launchDirectUpiApp(appTarget, upiUri);
-      } else {
-        toast.info(`Connecting to ${methodLabel} via Razorpay...`);
-      }
-
-      // 2. Launch Razorpay verified session
+      // 1. Launch Razorpay instant verified session
       const outcome = await payWithRazorpay({
         amount: grandTotal,
         purpose: `QuickPress Laundry (${methodLabel})`,
