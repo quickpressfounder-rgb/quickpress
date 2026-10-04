@@ -208,6 +208,83 @@ export function BlinkitPaymentDrawer({
     note: `QuickPress Order ${upiTxnRef}`,
   });
 
+  // Direct 1-Tap UPI App Launch (Opens PhonePe / GPay / Paytm directly with ZERO Razorpay popup)
+  const handleDirectUpiPay = async (
+    methodLabel: string,
+    packageName?: string,
+    target: UpiAppTarget | string = "any"
+  ) => {
+    if (busyMethod) return;
+
+    if (grandTotal <= 0) {
+      toast.success("100% Promo discount applied! Placing your free order... 🎉");
+      await onPaymentSuccess("free_promo", `promo_free_${Date.now()}`);
+      onClose();
+      return;
+    }
+
+    setBusyMethod(methodLabel);
+    setPaymentFailure(null);
+
+    toast.info(`Opening ${methodLabel}... Please authorize payment.`);
+
+    // 1. Launch native UPI app directly via intent / deep-link (No Razorpay dialog)
+    launchDirectUpiApp(target as UpiAppTarget, upiUri, packageName);
+
+    let handled = false;
+    let appStateSub: any = null;
+
+    const cleanup = () => {
+      window.removeEventListener("focus", onReturn);
+      document.removeEventListener("visibilitychange", onVisibility);
+      if (appStateSub && typeof appStateSub.remove === "function") {
+        try {
+          void appStateSub.remove();
+        } catch {}
+      }
+    };
+
+    // Auto-return listener: triggers when user completes payment in UPI app and returns to QuickPress
+    const onReturn = async () => {
+      if (handled) return;
+      handled = true;
+      cleanup();
+      toast.success(`Payment completed via ${methodLabel}! Placing order... 🎉`);
+      await onPaymentSuccess("upi", `upi_${upiTxnRef}`);
+      onClose();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void onReturn();
+      }
+    };
+
+    window.addEventListener("focus", onReturn, { once: true });
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Native Capacitor App resume listener
+    import("@capacitor/app")
+      .then(({ App }) => {
+        return App.addListener("appStateChange", (state) => {
+          if (state.isActive) {
+            void onReturn();
+          }
+        });
+      })
+      .then((sub) => {
+        appStateSub = sub;
+      })
+      .catch(() => {});
+
+    // Clear busy state after 15s in case user doesn't switch or returns early
+    setTimeout(() => {
+      if (!handled) {
+        setBusyMethod(null);
+      }
+    }, 15000);
+  };
+
   // Official Razorpay SDK Payment Runner (Native Android SDK on APK, Web Checkout on Browser)
   const executeOnlinePayment = async (
     methodLabel: string,
@@ -573,7 +650,7 @@ export function BlinkitPaymentDrawer({
                         key={app.packageName}
                         type="button"
                         disabled={Boolean(busyMethod)}
-                        onClick={() => void executeOnlinePayment(meta.name, "upi")}
+                        onClick={() => void handleDirectUpiPay(meta.name, app.packageName, app.appId || "any")}
                         className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                       >
                         <div className="flex items-center gap-3">
@@ -616,7 +693,7 @@ export function BlinkitPaymentDrawer({
                   <button
                     type="button"
                     disabled={Boolean(busyMethod)}
-                    onClick={() => void executeOnlinePayment("Google Pay", "upi")}
+                    onClick={() => void handleDirectUpiPay("Google Pay", "com.google.android.apps.nbu.paisa.user", "gpay")}
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">
@@ -632,7 +709,7 @@ export function BlinkitPaymentDrawer({
                         <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
                           Google Pay (GPay)
                         </p>
-                        <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
+                        <p className="text-[10.5px] font-medium text-zinc-400">Direct 1-Tap App Launch</p>
                       </div>
                     </div>
 
@@ -647,7 +724,7 @@ export function BlinkitPaymentDrawer({
                   <button
                     type="button"
                     disabled={Boolean(busyMethod)}
-                    onClick={() => void executeOnlinePayment("PhonePe UPI", "upi")}
+                    onClick={() => void handleDirectUpiPay("PhonePe UPI", "com.phonepe.app", "phonepe")}
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">
@@ -663,7 +740,7 @@ export function BlinkitPaymentDrawer({
                             Fastest
                           </span>
                         </div>
-                        <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
+                        <p className="text-[10.5px] font-medium text-zinc-400">Direct 1-Tap App Launch</p>
                       </div>
                     </div>
 
@@ -678,7 +755,7 @@ export function BlinkitPaymentDrawer({
                   <button
                     type="button"
                     disabled={Boolean(busyMethod)}
-                    onClick={() => void executeOnlinePayment("Paytm UPI", "upi")}
+                    onClick={() => void handleDirectUpiPay("Paytm UPI", "net.one97.paytm", "paytm")}
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">
@@ -689,7 +766,7 @@ export function BlinkitPaymentDrawer({
                         <p className="text-xs sm:text-[13px] font-black text-zinc-900 leading-tight">
                           Paytm UPI
                         </p>
-                        <p className="text-[10.5px] font-medium text-zinc-400">Razorpay SDK In-App Verified</p>
+                        <p className="text-[10.5px] font-medium text-zinc-400">Direct 1-Tap App Launch</p>
                       </div>
                     </div>
 
@@ -706,7 +783,7 @@ export function BlinkitPaymentDrawer({
               <button
                 type="button"
                 disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("UPI Universal", "upi")}
+                onClick={() => void handleDirectUpiPay("UPI Apps", "", "any")}
                 className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
               >
                 <div className="flex items-center gap-3">
@@ -721,7 +798,7 @@ export function BlinkitPaymentDrawer({
                   </div>
                 </div>
 
-                {busyMethod === "UPI Universal" ? (
+                {busyMethod === "UPI Apps" ? (
                   <Loader2 className="size-4 animate-spin text-[#0c831f]" />
                 ) : (
                   <Plus className="size-4 stroke-[3] text-rose-500" />
@@ -768,7 +845,7 @@ export function BlinkitPaymentDrawer({
               <button
                 type="button"
                 disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("Amazon Pay Balance")}
+                onClick={() => void handleDirectUpiPay("Amazon Pay", "in.amazon.mShop.android.shopping", "amazonpay")}
                 className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
               >
                 <div className="flex items-center gap-3">
@@ -780,7 +857,7 @@ export function BlinkitPaymentDrawer({
                   </p>
                 </div>
 
-                {busyMethod === "Amazon Pay Balance" ? (
+                {busyMethod === "Amazon Pay" ? (
                   <Loader2 className="size-4 animate-spin text-[#0c831f]" />
                 ) : (
                   <Plus className="size-4 stroke-[3] text-rose-500" />
@@ -791,7 +868,7 @@ export function BlinkitPaymentDrawer({
               <button
                 type="button"
                 disabled={Boolean(busyMethod)}
-                onClick={() => void executeOnlinePayment("Mobikwik")}
+                onClick={() => void handleDirectUpiPay("Mobikwik", "com.mobikwik_new", "any")}
                 className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
               >
                 <div className="flex items-center gap-3">

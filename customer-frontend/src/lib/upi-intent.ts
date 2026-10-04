@@ -102,12 +102,13 @@ export function detectInstalledUpiApps(): InstalledUpiApp[] {
  * Directly launches the requested UPI App on the user's mobile device.
  * Bypasses intermediate gateway popups and goes straight into PhonePe/Supermoney/FamApp/GPay/Paytm!
  */
-export function launchDirectUpiApp(target: UpiAppTarget, upiUri: string): void {
+export function launchDirectUpiApp(target: UpiAppTarget | string, upiUri: string, specificPackage?: string): void {
   if (typeof window === "undefined") return;
+
+  const pkg = specificPackage || ANDROID_PACKAGES[target] || (target.includes(".") ? target : "");
 
   // 1. If running inside Native Android APK (Capacitor), trigger Android Intent directly via native bridge
   if (window.AndroidUpiLauncher && typeof window.AndroidUpiLauncher.openUpiApp === "function") {
-    const pkg = ANDROID_PACKAGES[target] || "";
     const success = window.AndroidUpiLauncher.openUpiApp(upiUri, pkg);
     if (success) {
       return;
@@ -121,29 +122,10 @@ export function launchDirectUpiApp(target: UpiAppTarget, upiUri: string): void {
   const queryPart = upiUri.replace(/^upi:\/\/pay\??/, "");
 
   if (isAndroid) {
-    switch (target) {
-      case "phonepe":
-        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.phonepe.app;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
-        break;
-      case "supermoney":
-        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=in.supermoney.android;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
-        break;
-      case "famapp":
-        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.famorganizer;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
-        break;
-      case "gpay":
-        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
-        break;
-      case "paytm":
-        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=net.one97.paytm;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
-        break;
-      case "cred":
-        finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=com.dreamplug.androidapp;S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
-        break;
-      case "any":
-      default:
-        finalUrl = upiUri;
-        break;
+    if (pkg) {
+      finalUrl = `intent://pay?${queryPart}#Intent;scheme=upi;package=${pkg};S.browser_fallback_url=${encodeURIComponent(upiUri)};end`;
+    } else {
+      finalUrl = upiUri;
     }
   } else if (isIOS) {
     switch (target) {
