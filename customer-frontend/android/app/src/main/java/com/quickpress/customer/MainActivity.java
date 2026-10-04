@@ -1,5 +1,12 @@
 package com.quickpress.customer;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Display;
@@ -26,6 +33,10 @@ public class MainActivity extends BridgeActivity {
 
         // 2. Unlock Highest Supported Display Refresh Rate (90Hz / 120Hz / 144Hz)
         unlockHighRefreshRate();
+
+        // 3. Request Android 13+ Notification Permission & Create Orders Channel
+        requestNotificationPermission();
+        createNotificationChannels();
 
         // 3. Android Back Button Interception with Double-Tap to Exit
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -132,8 +143,28 @@ public class MainActivity extends BridgeActivity {
                     m.invoke(webView, true);
                 } catch (Throwable ignored) {}
             }
-        } catch (Exception ignored) {
-            // Best effort webview tuning
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
+    }
+
+    private void createNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager == null) return;
+
+            NotificationChannel ordersChannel = new NotificationChannel(
+                "quickpress_orders",
+                "QuickPress Order Updates",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            ordersChannel.setDescription("Status updates for your laundry orders");
+            ordersChannel.enableVibration(true);
+            ordersChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(ordersChannel);
         }
     }
 }

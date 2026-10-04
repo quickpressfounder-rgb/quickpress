@@ -147,6 +147,10 @@ function RootComponent() {
   useEffect(() => {
     installGlobalAudioUnlocker();
     import("@/api/core/onesignal").then((m) => m.initOneSignal()).catch(() => {});
+    import("@/api/core/firebase-messaging").then((m) => {
+      m.requestPushNotificationPermission();
+      m.setupForegroundMessageListener();
+    }).catch(() => {});
   }, []);
 
   return (

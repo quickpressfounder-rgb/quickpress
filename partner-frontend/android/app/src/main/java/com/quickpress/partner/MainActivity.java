@@ -1,5 +1,12 @@
 package com.quickpress.partner;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Display;
@@ -26,6 +33,10 @@ public class MainActivity extends BridgeActivity {
 
         // 2. Unlock Highest Supported Display Refresh Rate (90Hz / 120Hz / 144Hz)
         unlockHighRefreshRate();
+
+        // 3. Request Android 13+ Notification Permission & Create Urgent Channels
+        requestNotificationPermission();
+        createNotificationChannels();
 
         // 3. Android Back Button Interception with Double-Tap to Exit
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -132,8 +143,52 @@ public class MainActivity extends BridgeActivity {
                     m.invoke(webView, true);
                 } catch (Throwable ignored) {}
             }
-        } catch (Exception ignored) {
-            // Best effort webview tuning
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
+    }
+
+    private void createNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager == null) return;
+
+            // 1. High-Priority Urgent Dispatch Channel for Partner (Locksceen + Alarm Sound + Vibration)
+            NotificationChannel urgentChannel = new NotificationChannel(
+                "quickpress_urgent_dispatch",
+                "QuickPress Urgent Order Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            urgentChannel.setDescription("Loud alerts for incoming orders requiring store acceptance");
+            urgentChannel.enableVibration(true);
+            urgentChannel.setVibrationPattern(new long[]{0, 1000, 500, 1000, 500, 1000});
+            urgentChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            urgentChannel.setBypassDnd(true);
+
+            Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            if (defaultSoundUri == null) {
+                defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build();
+            urgentChannel.setSound(defaultSoundUri, audioAttributes);
+            manager.createNotificationChannel(urgentChannel);
+
+            // 2. Standard Orders Channel
+            NotificationChannel ordersChannel = new NotificationChannel(
+                "quickpress_orders",
+                "QuickPress Order Updates",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            ordersChannel.setDescription("Status updates for store orders");
+            ordersChannel.enableVibration(true);
+            ordersChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(ordersChannel);
         }
     }
 }

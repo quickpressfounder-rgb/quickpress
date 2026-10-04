@@ -28,8 +28,7 @@ export function NotificationManager() {
       return undefined;
     }
 
-    // Direct native permission request: asks directly from device/mobile/browser settings
-    // ONLY triggered right after login via custom event, NEVER on cold app open.
+    // Ask for permission directly if in default state (not yet decided)
     const askNativeMobilePermission = async () => {
       try {
         // 1. Capacitor Native Mobile Platform check
@@ -67,7 +66,11 @@ export function NotificationManager() {
       }
     };
 
-    // Listen only for post-login trigger
+    if (current === "default") {
+      void askNativeMobilePermission();
+    }
+
+    // Also listen for post-login trigger
     const handlePostLoginTrigger = () => {
       void askNativeMobilePermission();
     };
