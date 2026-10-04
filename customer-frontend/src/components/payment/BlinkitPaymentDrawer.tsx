@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  AlertCircle,
   ArrowLeft,
   Banknote,
   Check,
@@ -8,6 +9,7 @@ import {
   Loader2,
   Lock,
   Plus,
+  RotateCcw,
   ShieldCheck,
   Smartphone,
   Wallet,
@@ -44,6 +46,12 @@ export function BlinkitPaymentDrawer({
   onSelectCod,
 }: BlinkitPaymentDrawerProps) {
   const [busyMethod, setBusyMethod] = useState<string | null>(null);
+  const [paymentFailure, setPaymentFailure] = useState<{
+    failedMethod: string;
+    preferredMethod: "upi" | "card" | "netbanking" | "wallet";
+    reason: string;
+    isUserCancelled?: boolean;
+  } | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [upiTxnRef] = useState<string>(() => `QP${Date.now().toString().slice(-8)}`);
 
@@ -82,6 +90,7 @@ export function BlinkitPaymentDrawer({
     }
 
     setBusyMethod(methodLabel);
+    setPaymentFailure(null);
 
     try {
       toast.info(`Opening ${methodLabel}...`);
@@ -99,13 +108,31 @@ export function BlinkitPaymentDrawer({
         await onPaymentSuccess(preferredMethod, outcome.paymentId);
         onClose();
       } else if (outcome.status === "user_dropped") {
-        toast.error("Payment was cancelled. Order has not been placed.");
+        toast.info("Payment window was cancelled.");
+        setPaymentFailure({
+          failedMethod: methodLabel,
+          preferredMethod,
+          reason: outcome.reason || "Payment was cancelled. You can retry or choose another payment method below.",
+          isUserCancelled: true,
+        });
       } else {
         toast.error(outcome.reason || "Payment attempt failed. Please try again.");
+        setPaymentFailure({
+          failedMethod: methodLabel,
+          preferredMethod,
+          reason: outcome.reason || "Transaction failed at gateway. Please try again or switch to another method.",
+          isUserCancelled: false,
+        });
       }
     } catch (err: any) {
       console.error("[BlinkitPaymentDrawer] Payment error:", err);
       toast.error(err?.message || "Payment could not be completed.");
+      setPaymentFailure({
+        failedMethod: methodLabel,
+        preferredMethod,
+        reason: err?.message || "Could not reach payment gateway. Please check your connection and retry.",
+        isUserCancelled: false,
+      });
     } finally {
       setBusyMethod(null);
     }
@@ -126,10 +153,17 @@ export function BlinkitPaymentDrawer({
       toast.error(
         `Insufficient wallet balance: ₹${walletBalance} available, ₹${grandTotal} required. Please choose UPI or Pay on Delivery.`
       );
+      setPaymentFailure({
+        failedMethod: "QuickPress Wallet",
+        preferredMethod: "wallet",
+        reason: `Insufficient balance (₹${walletBalance} available, ₹${grandTotal} needed). Please select UPI or COD.`,
+        isUserCancelled: false,
+      });
       return;
     }
 
     setBusyMethod("QuickPress Wallet");
+    setPaymentFailure(null);
     try {
       toast.info("Deducting from QuickPress Wallet...");
       await onPaymentSuccess("wallet", `wallet_${Date.now()}`);
@@ -137,6 +171,12 @@ export function BlinkitPaymentDrawer({
       onClose();
     } catch (err: any) {
       toast.error(err?.message || "Wallet payment failed.");
+      setPaymentFailure({
+        failedMethod: "QuickPress Wallet",
+        preferredMethod: "wallet",
+        reason: err?.message || "Wallet deduction failed. Please select another method.",
+        isUserCancelled: false,
+      });
     } finally {
       setBusyMethod(null);
     }
@@ -159,6 +199,7 @@ export function BlinkitPaymentDrawer({
     }
 
     setBusyMethod("cod");
+    setPaymentFailure(null);
     try {
       await onSelectCod();
       onClose();
@@ -239,6 +280,70 @@ export function BlinkitPaymentDrawer({
                   "Confirm & Place Free Order"
                 )}
               </button>
+            </div>
+          )}
+
+          {/* PAYMENT FAILED / RETRY BANNER (Flowchart: Payment Failed -> Show Retry -> Select Another Method) */}
+          {paymentFailure && (
+            <div className="rounded-2xl border-2 border-rose-300 bg-rose-50/95 p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+              <div className="flex items-start justify-between gap-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white mt-0.5 shadow-2xs">
+                    <AlertCircle className="size-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-rose-950">
+                      {paymentFailure.isUserCancelled ? "Payment Cancelled / Incomplete" : "Payment Failed"}
+                    </h4>
+                    <p className="text-[11px] font-medium text-rose-800 leading-snug mt-0.5">
+                      {paymentFailure.reason}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentFailure(null)}
+                  className="text-rose-400 hover:text-rose-700 p-1 -mr-1 rounded-full cursor-pointer transition-colors"
+                  aria-label="Dismiss message"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              {/* 1-Tap Action Row: Retry Same App OR Instant COD */}
+              <div className="flex items-center gap-2 pt-2 border-t border-rose-200/80">
+                <button
+                  type="button"
+                  disabled={Boolean(busyMethod)}
+                  onClick={() => {
+                    const method = paymentFailure.failedMethod;
+                    const pref = paymentFailure.preferredMethod;
+                    setPaymentFailure(null);
+                    void executeOnlinePayment(method, pref);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+                >
+                  <RotateCcw className="size-3.5 stroke-[2.5]" />
+                  <span>Retry {paymentFailure.failedMethod}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={Boolean(busyMethod)}
+                  onClick={() => {
+                    setPaymentFailure(null);
+                    void handleCodPay();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100/60 active:scale-95 text-rose-900 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+                >
+                  <Banknote className="size-3.5 text-emerald-600" />
+                  <span>Pay via COD</span>
+                </button>
+              </div>
+
+              <p className="text-[10px] text-center font-bold text-zinc-500">
+                Or select another payment method from the list below:
+              </p>
             </div>
           )}
           {/* GROUP 1: CARDS */}
