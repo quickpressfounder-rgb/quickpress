@@ -50,7 +50,7 @@ import {
   type MembershipPlans,
 } from "@/api/customer/membership-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { payWithCashfree } from "@/api/payments/cashfree-api";
+import { payWithRazorpay } from "@/api/payments/razorpay-api";
 
 export const Route = createFileRoute("/membership")({
   head: () => ({
@@ -284,7 +284,7 @@ function MembershipScreen() {
       const planPrice = selectedPlan ? (cycle === "yearly" ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice) : 0;
 
       if (planId !== "free" && planPrice > 0) {
-        const outcome = await payWithCashfree({
+        const outcome = await payWithRazorpay({
           amount: planPrice,
           purpose: `QuickPress Membership: ${planId} (${cycle})`,
         });

@@ -20,7 +20,7 @@ import {
   launchDirectUpiApp,
   type UpiAppTarget,
 } from "@/lib/upi-intent";
-import { payWithCashfree } from "@/api/payments/cashfree-api";
+import { payWithRazorpay } from "@/api/payments/razorpay-api";
 
 export interface BlinkitPaymentDrawerProps {
   isOpen: boolean;
@@ -78,11 +78,11 @@ export function BlinkitPaymentDrawer({
         toast.info(`Launching ${methodLabel}...`);
         launchDirectUpiApp(appTarget, upiUri);
       } else {
-        toast.info(`Connecting to ${methodLabel} via Cashfree...`);
+        toast.info(`Connecting to ${methodLabel} via Razorpay...`);
       }
 
-      // 2. Launch Cashfree verified session
-      const outcome = await payWithCashfree({
+      // 2. Launch Razorpay verified session
+      const outcome = await payWithRazorpay({
         amount: grandTotal,
         purpose: `QuickPress Laundry (${methodLabel})`,
         customerName: customerName.trim() || "QuickPress Customer",
@@ -501,7 +501,7 @@ export function BlinkitPaymentDrawer({
         <footer className="p-3 bg-white border-t border-zinc-100 text-center">
           <p className="text-[10.5px] font-medium text-zinc-400 flex items-center justify-center gap-1.5">
             <ShieldCheck className="size-3.5 text-[#0c831f]" />
-            <span>Cashfree Certified 256-bit Bank Grade Security</span>
+            <span>Razorpay Secured 256-bit Bank Grade Encryption</span>
           </p>
         </footer>
       </div>

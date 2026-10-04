@@ -39,6 +39,10 @@ async def cashfree_webhook_public(
 
 
 @router.post("/public/webhooks/razorpay")
-async def legacy_razorpay_webhook(request: Request) -> dict:
-    """Legacy Razorpay webhook stub to prevent 404/500 errors if external service pings."""
-    return {"ok": True, "message": "QuickPress has migrated to Cashfree Payments architecture."}
+async def razorpay_webhook_public(
+    request: Request,
+    x_razorpay_signature: str = Header("", alias="x-razorpay-signature"),
+) -> dict:
+    """Public Razorpay webhook endpoint with signature verification."""
+    from app.api.razorpay import razorpay_webhook
+    return await razorpay_webhook(request=request, x_razorpay_signature=x_razorpay_signature)

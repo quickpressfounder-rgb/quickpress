@@ -45,8 +45,8 @@ import {
   type FinancialRules,
   DEFAULT_FINANCIAL_RULES,
 } from "@/api/customer/finance-api";
-import { payWithCashfree } from "@/api/payments/cashfree-api";
-import { getCashfreeInstance } from "@/api/core/cashfree";
+import { payWithRazorpay } from "@/api/payments/razorpay-api";
+import { loadRazorpayCheckout } from "@/api/core/razorpay";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -92,8 +92,8 @@ export function CheckoutPage() {
   useEffect(() => {
     let alive = true;
 
-    // Preload Cashfree Checkout SDK silently for instant modal display
-    void getCashfreeInstance().catch(() => {});
+    // Preload Razorpay Checkout SDK silently for instant modal display
+    void loadRazorpayCheckout().catch(() => {});
 
     async function loadData() {
       try {
@@ -754,7 +754,7 @@ export function CheckoutPage() {
         <div className="rounded-2xl bg-white border border-zinc-200/90 p-3.5 shadow-2xs space-y-1.5">
           <div className="flex items-center gap-2 text-xs font-bold text-zinc-800">
             <ShieldCheck className="size-4 text-[#0c831f] shrink-0" />
-            <span>100% Safe &amp; Secure Payments • Cashfree Certified</span>
+            <span>100% Safe &amp; Secure Payments • Razorpay Verified</span>
           </div>
           <p className="text-[10.5px] text-zinc-500 leading-relaxed">
             Cancellation Policy: Orders can be cancelled anytime before rider pickup dispatch for an instant 100% refund.

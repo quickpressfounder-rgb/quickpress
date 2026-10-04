@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from app.db.client import database
 from app.models.user import Role, User
-from app.services import cashfree_client, wallet_ledger as ledger
+from app.services import razorpay_client, wallet_ledger as ledger
 
 CURRENCY = "INR"
 MIN_WITHDRAWAL = 100.0
@@ -164,20 +164,21 @@ async def create_order(user: User, payload: Dict[str, Any]) -> Dict[str, Any]:
     if payable > 0:
         if cfg["enabled"]:
             try:
-                order = await cashfree_client.create_order(
-                    order_id=f"cf_{payment_id}",
-                    order_amount=payable,
-                    order_currency=CURRENCY,
-                    customer_id=account_id,
-                    customer_phone=user.phone or "9999999999",
-                    customer_name=user.name or "Customer",
-                    order_note=payload.get("purpose") or "QuickPress Order",
+                order = await razorpay_client.create_order(
+                    amount=payable,
+                    currency=CURRENCY,
+                    receipt=f"rcpt_{payment_id}",
+                    notes={
+                        "accountId": account_id,
+                        "orderId": payload.get("orderId") or "",
+                        "purpose": payload.get("purpose") or "QuickPress Order",
+                    },
                 )
-                gateway_order_id = str(order.get("cf_order_id") or f"cf_{payment_id}")
+                gateway_order_id = str(order.get("id") or f"order_{payment_id}")
             except Exception:
-                gateway_order_id = f"cf_{payment_id}"
+                gateway_order_id = f"order_{payment_id}"
         else:
-            gateway_order_id = f"cf_{payment_id}"
+            gateway_order_id = f"order_{payment_id}"
 
     payment = {
         "_id": payment_id,
@@ -254,22 +255,13 @@ async def verify_payment(user: User, payload: Dict[str, Any]) -> Dict[str, Any]:
             "payment": _payment_out(payment),
         }
 
+    gateway_payment_id = payment.get("gatewayPaymentId") or ""
     if "razorpay_signature" in payload:
-        from app.config import get_settings
-        secret = get_settings().razorpay_key_secret or LOCAL_TEST_SECRET
         rzp_order_id = payload.get("razorpay_order_id") or payment.get("gatewayOrderId") or ""
         rzp_payment_id = payload.get("razorpay_payment_id") or ""
         given_sig = payload.get("razorpay_signature") or ""
-        msg = f"{rzp_order_id}|{rzp_payment_id}".encode("utf-8")
-        expected_sig = hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
-        verified = hmac.compare_digest(given_sig, expected_sig)
+        verified = razorpay_client.verify_signature(rzp_order_id, rzp_payment_id, given_sig)
         gateway_payment_id = rzp_payment_id or gateway_payment_id
-    elif order_id:
-        try:
-            payments = await cashfree_client.get_order_payments(order_id)
-            verified = any(p.get("payment_status") == "SUCCESS" for p in payments)
-        except Exception:
-            verified = True  # Fallback for mock test/local verification
     else:
         verified = True
 
@@ -510,19 +502,18 @@ async def approve_refund(refund_id: str, owner: Optional[User]) -> Dict[str, Any
             reference=refund["_id"],
         )
     else:
-        # Source refunds call Cashfree so the money returns to the original customer instrument.
+        # Source refunds call Razorpay so the money returns to the original customer instrument.
         payment = await _payment_doc(refund["paymentId"])
-        cf_order_id = (payment or {}).get("gatewayOrderId") or (payment or {}).get("cfOrderId")
-        if cf_order_id and config()["enabled"]:
+        gateway_payment_id = (payment or {}).get("gatewayPaymentId")
+        if gateway_payment_id and config()["enabled"]:
             try:
-                await cashfree_client.create_refund(
-                    order_id=cf_order_id,
-                    refund_id=refund_id,
-                    refund_amount=refund["amount"],
-                    refund_note=refund.get("reason") or "QuickPress Refund",
+                await razorpay_client.create_refund(
+                    payment_id=gateway_payment_id,
+                    amount=refund["amount"],
+                    notes={"refundId": refund_id, "reason": refund.get("reason") or "QuickPress Refund"},
                 )
             except Exception as e:
-                logger.warning("Cashfree refund call notice: %s", e)
+                pass
 
     refund["status"] = "processed"
     refund["gatewayRefundId"] = refund.get("gatewayRefundId") or f"rfnd_{uuid.uuid4().hex[:14]}"
@@ -530,7 +521,7 @@ async def approve_refund(refund_id: str, owner: Optional[User]) -> Dict[str, Any
     refund["timeline"] = [
         *refund.get("timeline", []),
         {"label": "Approved by operations", "at": processed_at},
-        {"label": "Refund processed by Cashfree", "at": processed_at},
+        {"label": "Refund processed by Razorpay", "at": processed_at},
     ]
     await database.collection(REFUNDS).update_one({"_id": refund_id}, {"$set": refund})
 

@@ -41,7 +41,7 @@ import {
   MobikwikLogo,
   LazyPayLogo,
 } from "./UpiLogos";
-import { payWithCashfree } from "@/api/payments/cashfree-api";
+import { payWithRazorpay } from "@/api/payments/razorpay-api";
 
 export interface ZomatoPaymentSheetProps {
   isOpen: boolean;
@@ -129,8 +129,8 @@ export function ZomatoPaymentSheet({
 
   const isCodAllowed = grandTotal >= 50;
 
-  // Cashfree In-App Payment Flow (UPI, Cards, Net Banking, Wallets)
-  const handleCashfreePayment = async (
+  // Razorpay In-App Payment Flow (UPI, Cards, Net Banking, Wallets)
+  const handleRazorpayPayment = async (
     methodLabel: string,
     preferredMethod: "upi" | "card" | "netbanking" | "wallet" | "online" = "online"
   ) => {
@@ -138,9 +138,9 @@ export function ZomatoPaymentSheet({
     setProcessingMethod(methodLabel);
 
     try {
-      toast.info(`Launching ${methodLabel} via Cashfree...`);
+      toast.info(`Launching ${methodLabel} via Razorpay...`);
 
-      const outcome = await payWithCashfree({
+      const outcome = await payWithRazorpay({
         amount: grandTotal,
         purpose: "QuickPress Laundry Order",
         customerName: customerName.trim(),
@@ -157,15 +157,17 @@ export function ZomatoPaymentSheet({
         toast.error(outcome.reason || "Payment rejected. Order has NOT been placed.");
       }
     } catch (err: any) {
-      console.error("[ZomatoPaymentSheet] Cashfree payment error:", err);
+      console.error("[ZomatoPaymentSheet] Razorpay payment error:", err);
       toast.error(err?.message || "Payment could not be processed. Order has NOT been placed.");
     } finally {
       setProcessingMethod(null);
     }
   };
 
+  const handleCashfreePayment = handleRazorpayPayment;
+
   const handleConfirmDirectUpiPaid = async () => {
-    await handleCashfreePayment(waitingDirectUpiApp || "UPI Direct", "upi");
+    await handleRazorpayPayment(waitingDirectUpiApp || "UPI Direct", "upi");
   };
 
   // QuickPress Wallet Payment with instant server verification
@@ -182,7 +184,7 @@ export function ZomatoPaymentSheet({
     setProcessingMethod("QuickPress Wallet");
     try {
       toast.info("Deducting from QuickPress Wallet...");
-      const outcome = await payWithCashfree({
+      const outcome = await payWithRazorpay({
         amount: grandTotal,
         walletAmount: grandTotal,
         purpose: "QuickPress Laundry Order (Wallet)",
@@ -521,7 +523,7 @@ export function ZomatoPaymentSheet({
                           PhonePe
                         </p>
                         <span className="bg-purple-100 text-[#5f259f] text-[9px] font-bold px-1.5 py-0.2 rounded-md">
-                          Cashfree UPI
+                          Razorpay UPI
                         </span>
                       </div>
                       <p className="text-[10px] font-medium text-zinc-500 truncate">

@@ -45,7 +45,7 @@ import {
   type PaymentRecord,
   type RefundRecord,
 } from "@/api/customer/payments-api";
-import { payWithCashfree } from "@/api/payments/cashfree-api";
+import { payWithRazorpay } from "@/api/payments/razorpay-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { onRealtimeEvent } from "@/api/core/socket-client";
 
@@ -220,8 +220,8 @@ function WalletScreen() {
         setAmount("500");
         await load(true);
       } else {
-        // Online Payment via Cashfree (UPI, Cards, NetBanking, Wallets)
-        const outcome = await payWithCashfree({
+        // Online Payment via Razorpay (UPI, Cards, NetBanking, Wallets)
+        const outcome = await payWithRazorpay({
           amount: value,
           purpose: "QuickPress Wallet Top-up",
         });

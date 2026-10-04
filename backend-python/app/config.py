@@ -161,7 +161,11 @@ class Settings(BaseSettings):
 
     @property
     def razorpay_configured(self) -> bool:
-        return False
+        return bool(self.razorpay_key_id.strip() and self.razorpay_key_secret.strip())
+
+    @property
+    def razorpay_is_production(self) -> bool:
+        return self.razorpay_key_id.strip().startswith("rzp_live_")
 
     @property
     def firebase_configured(self) -> bool:
