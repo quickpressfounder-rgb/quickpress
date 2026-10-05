@@ -759,7 +759,7 @@ function HomeScreen() {
                 ) : null}
 
                 {/* Recent orders — GET /api/orders/recent */}
-                <section className="mt-8">
+                <section className="mt-8" suppressHydrationWarning>
                   <SectionHeading
                     title="Recent orders"
                     action="View all"
@@ -771,7 +771,7 @@ function HomeScreen() {
                     emptyLabel="You have no orders yet."
                     onRetry={() => void retry()}
                   />
-                  <div className="stagger-children mt-4 space-y-3">
+                  <div className="stagger-children mt-4 space-y-3" suppressHydrationWarning>
                     {recentOrders.slice(0, 3).map((order, index) => {
                       const targetId = order.id || order.reference;
                       return (

@@ -87,7 +87,25 @@ import { getDefaultLocation, readLocation } from "../location";
 
 export const IDLE_SECTION: SectionState<never> = { data: null, loading: true, error: null };
 
+export function emptySections(): HomeSections {
+  return {
+    profile: { data: null, loading: true, error: null },
+    location: { data: getDefaultLocation(), loading: false, error: null },
+    banners: { data: null, loading: true, error: null },
+    categories: { data: DEFAULT_CATEGORIES, loading: false, error: null },
+    partners: { data: null, loading: true, error: null },
+    popular: { data: null, loading: true, error: null },
+    recommendations: { data: null, loading: true, error: null },
+    offers: { data: null, loading: true, error: null },
+    recentOrders: { data: null, loading: true, error: null },
+    notifications: { data: 0, loading: false, error: null },
+  };
+}
+
 export function initialSections(): HomeSections {
+  if (typeof window === "undefined") {
+    return emptySections();
+  }
   const cachedProfile = readStaleCache<Profile>(CACHE_KEYS.profile);
   const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location) || readLocation() || getDefaultLocation();
   const cachedBanners = readStaleCache<Banner[]>(CACHE_KEYS.banners);

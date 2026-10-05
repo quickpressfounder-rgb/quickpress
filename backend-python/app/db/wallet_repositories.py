@@ -45,6 +45,7 @@ Business rules enforced here
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import uuid
 from typing import Any, Dict, List, Optional
@@ -68,6 +69,8 @@ from app.models.wallet import (
 
 WALLETS = "wallets"
 TRANSACTIONS = "wallet_transactions"
+
+logger = logging.getLogger(__name__)
 PAYMENT_METHODS = "payment_methods"
 PAYMENTS = "payments"
 REFUNDS = "refunds"
@@ -166,26 +169,52 @@ class WalletRepository:
         )
 
     def _to_transaction(self, document: Dict[str, Any]) -> WalletTransaction:
+        raw_status = str(document.get("status") or "success").strip().lower()
+        if raw_status in ("completed", "paid", "confirmed", "success", "done"):
+            status = "success"
+        elif raw_status in ("pending", "processing", "created", "initiated"):
+            status = "pending"
+        elif raw_status in ("failed", "cancelled", "rejected", "error"):
+            status = "failed"
+        else:
+            status = "success"
+
+        raw_direction = str(document.get("direction") or "credit").strip().lower()
+        direction = "debit" if raw_direction in ("debit", "out", "expense") else "credit"
+
+        raw_kind = str(document.get("kind") or "add-funds").strip().lower().replace("_", "-")
+        created_at = _iso(document.get("created_at")) or _iso(utcnow()) or ""
+
         return WalletTransaction(
-            id=str(document.get("_id")),
-            kind=document.get("kind") or "add-funds",
-            title=document.get("title") or "Wallet activity",
-            description=document.get("description") or "",
+            id=str(document.get("_id") or document.get("id") or uuid.uuid4().hex[:10]),
+            kind=raw_kind,
+            title=str(document.get("title") or "Wallet activity"),
+            description=str(document.get("description") or ""),
             amount=_money(document.get("amount")),
-            direction=document.get("direction") or "credit",
-            status=document.get("status") or "success",
-            balanceAfter=_money(document.get("balance_after")),
-            method=document.get("method"),
-            reference=document.get("reference"),
-            createdAt=_iso(document.get("created_at")) or _iso(utcnow()) or "",
+            direction=direction,
+            status=status,
+            balanceAfter=_money(document.get("balance_after") or document.get("balanceAfter")),
+            method=str(document.get("method")) if document.get("method") is not None else None,
+            reference=str(document.get("reference")) if document.get("reference") is not None else None,
+            createdAt=created_at,
         )
 
     async def _transactions(self, user: User, limit: Optional[int] = None) -> List[WalletTransaction]:
-        docs = await database.find_many(TRANSACTIONS, {"user_id": user.id}, sort_key="created_at")
-        docs.reverse()  # newest first
-        if limit is not None:
-            docs = docs[:limit]
-        return [self._to_transaction(doc) for doc in docs]
+        try:
+            docs = await database.find_many(TRANSACTIONS, {"user_id": user.id}, sort_key="created_at")
+            docs.reverse()  # newest first
+            if limit is not None:
+                docs = docs[:limit]
+            txns: List[WalletTransaction] = []
+            for doc in docs:
+                try:
+                    txns.append(self._to_transaction(doc))
+                except Exception as exc:
+                    logger.warning("Failed to serialize wallet transaction %s: %s", doc.get("_id"), exc)
+            return txns
+        except Exception as exc:
+            logger.warning("Failed to fetch wallet transactions for user %s: %s", user.id, exc)
+            return []
 
     async def _referral_summary(self, user: User) -> tuple[str, float]:
         """Referral code + lifetime referral earnings (Sprint 2.8 collections).
@@ -224,12 +253,26 @@ class WalletRepository:
         )
 
     async def wallet(self, user: User) -> WalletResponse:
-        return await self._wallet_response(user, await self._wallet_document(user))
+        try:
+            doc = await self._wallet_document(user)
+            return await self._wallet_response(user, doc)
+        except Exception as exc:
+            logger.warning("Wallet fetch error for user %s: %s", user.id, exc)
+            return WalletResponse(
+                balances=WalletBalances(currentBalance=0, pendingBalance=0, rewardBalance=0, membershipCredits=0),
+                totalBalance=0,
+                recentTransactions=[],
+                updatedAt=_iso(utcnow()),
+            )
 
     async def history(self, user: User, limit: int = 100) -> WalletHistoryResponse:
-        await self._wallet_document(user)
-        items = await self._transactions(user)
-        return WalletHistoryResponse(items=items[:limit], total=len(items))
+        try:
+            await self._wallet_document(user)
+            items = await self._transactions(user)
+            return WalletHistoryResponse(items=items[:limit], total=len(items))
+        except Exception as exc:
+            logger.warning("Wallet history error for user %s: %s", user.id, exc)
+            return WalletHistoryResponse(items=[], total=0)
 
     async def _record_transaction(
         self,

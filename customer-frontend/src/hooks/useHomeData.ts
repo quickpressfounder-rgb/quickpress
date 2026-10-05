@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { isOnline, onNetworkChange } from "@/api/customer/api/network";
 import {
+  emptySections,
   initialSections,
   invalidateHomeCache,
   loadHome,
@@ -36,16 +37,26 @@ export type UseHomeData = {
 };
 
 export function useHomeData(): UseHomeData {
-  const [sections, setSections] = useState<HomeSections>(() => initialSections());
-  const hasCachedData = Boolean(
-    sections.categories?.data?.length ||
-    sections.banners?.data?.length ||
-    sections.partners?.data?.length
-  );
-  const [initialLoading, setInitialLoading] = useState(() => !hasCachedData);
+  // Use emptySections on SSR/initial hydration so server and client DOM are 100% identical
+  const [sections, setSections] = useState<HomeSections>(() => emptySections());
+  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [online, setOnline] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    // Populate cache on client immediately after hydration completes (avoids React #418 error)
+    const cached = initialSections();
+    const hasCachedData = Boolean(
+      cached.categories?.data?.length ||
+      cached.banners?.data?.length ||
+      cached.partners?.data?.length
+    );
+    setSections(cached);
+    if (hasCachedData) {
+      setInitialLoading(false);
+    }
+  }, []);
 
   const applySection = useCallback(
     <K extends SectionKey>(key: K, state: HomeSections[K]) => {

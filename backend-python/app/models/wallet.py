@@ -43,16 +43,16 @@ class WalletBalances(BaseModel):
 
 class WalletTransaction(BaseModel):
     id: str
-    kind: TransactionKind = "add-funds"
+    kind: str = "add-funds"
     title: str = ""
     description: str = ""
     amount: float = 0
-    direction: TransactionDirection = "credit"
-    status: TransactionStatus = "success"
+    direction: str = "credit"
+    status: str = "success"
     balanceAfter: float = 0
-    method: Optional[PaymentKind] = None
+    method: Optional[str] = None
     reference: Optional[str] = None
-    createdAt: str
+    createdAt: str = ""
 
 
 class WalletResponse(BaseModel):
