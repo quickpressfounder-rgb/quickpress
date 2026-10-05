@@ -72,6 +72,14 @@ import { AdminShell } from "../components/AdminShell";
 import { DataTable, SectionCard, StatusPill, KpiCard } from "../components/AdminUI";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
+import { GlobalFinanceSearch } from "../components/finance/GlobalFinanceSearch";
+import { AnomalyAlertBanner } from "../components/finance/AnomalyAlertBanner";
+import { QuickViewDrawer } from "../components/finance/QuickViewDrawer";
+import { DoubleEntryLedgerView } from "../components/finance/DoubleEntryLedgerView";
+import { CodManagementView } from "../components/finance/CodManagementView";
+import { ReconciliationView } from "../components/finance/ReconciliationView";
+import { UnitEconomicsView } from "../components/finance/UnitEconomicsView";
+import { MembershipFinanceView } from "../components/finance/MembershipFinanceView";
 import {
   fetchFinancialRules,
   updateFinancialRules,
@@ -888,8 +896,27 @@ export const Route = createFileRoute("/finance-engine")({
 export function FinanceEnginePage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<
-    "overview" | "rules" | "loyalty" | "ledger" | "settlements" | "audit"
+    | "overview"
+    | "general-ledger"
+    | "cod"
+    | "recon"
+    | "unit-economics"
+    | "memberships"
+    | "rules"
+    | "loyalty"
+    | "ledger"
+    | "settlements"
+    | "audit"
   >("overview");
+
+  // Quick View Drawer states
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerEntity, setDrawerEntity] = useState<{ type: string; id: string } | null>(null);
+
+  const handleInspectEntity = (type: string, id: string) => {
+    setDrawerEntity({ type, id });
+    setDrawerOpen(true);
+  };
 
   // Sub-tab under rules (9 Dedicated Modules + Versioning & Legacy Aliases)
   const [rulesSubTab, setRulesSubTab] = useState<
@@ -1448,30 +1475,113 @@ export function FinanceEnginePage() {
           </div>
         </div>
 
-        {/* Primary Tabs */}
+        {/* Global Instant Multi-Entity Search Bar (Auto-Detect Regex) */}
+        <GlobalFinanceSearch
+          onSelectResult={(result) => handleInspectEntity(result.type, result.id)}
+        />
+
+        {/* Real-Time Institutional Anomaly Warning Widget (8 Threat Checks) */}
+        <AnomalyAlertBanner
+          onSelectAnomaly={(anomaly) => {
+            if (anomaly.action_url?.includes("cod")) {
+              setActiveTab("cod");
+            } else if (anomaly.action_url?.includes("recon")) {
+              setActiveTab("recon");
+            } else if (anomaly.action_url?.includes("ledger")) {
+              setActiveTab("general-ledger");
+            } else if (anomaly.action_url?.includes("settlement")) {
+              setActiveTab("settlements");
+            }
+          }}
+        />
+
+        {/* Primary Enterprise Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-          <TabsList className="grid grid-cols-6 w-full bg-zinc-100 p-1 rounded-xl h-auto">
-            <TabsTrigger value="overview" className="font-bold text-xs py-2.5 flex items-center gap-1.5">
+          <TabsList className="flex flex-wrap gap-1 bg-zinc-100 p-1.5 rounded-2xl h-auto border border-zinc-200 shadow-2xs">
+            <TabsTrigger
+              value="overview"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
+            >
               <Activity className="size-3.5" />
               <span>Overview & P&L</span>
             </TabsTrigger>
-            <TabsTrigger value="rules" className="font-bold text-xs py-2.5 flex items-center gap-1.5">
-              <Sliders className="size-3.5" />
-              <span>Rules & Engine Control</span>
+
+            <TabsTrigger
+              value="general-ledger"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Scale className="size-3.5 text-blue-600" />
+              <span>General Ledger (Double-Entry)</span>
             </TabsTrigger>
-            <TabsTrigger value="loyalty" className="font-bold text-xs py-2.5 flex items-center gap-1.5 text-amber-800 data-[state=active]:text-amber-900">
-              <Sparkles className="size-3.5 text-amber-500" />
-              <span>Loyalty Rewards</span>
+
+            <TabsTrigger
+              value="cod"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Truck className="size-3.5 text-emerald-600" />
+              <span>COD & Fleet Vault</span>
             </TabsTrigger>
-            <TabsTrigger value="ledger" className="font-bold text-xs py-2.5 flex items-center gap-1.5">
-              <FileText className="size-3.5" />
-              <span>Single Order Ledger</span>
+
+            <TabsTrigger
+              value="recon"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <ShieldCheck className="size-3.5 text-purple-600" />
+              <span>3-Way Recon</span>
             </TabsTrigger>
-            <TabsTrigger value="settlements" className="font-bold text-xs py-2.5 flex items-center gap-1.5">
+
+            <TabsTrigger
+              value="unit-economics"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <TrendingUp className="size-3.5 text-amber-600" />
+              <span>Unit Economics (CM1/CM2)</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="memberships"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Tag className="size-3.5 text-indigo-600" />
+              <span>Membership Plans</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="settlements"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
+            >
               <Landmark className="size-3.5" />
-              <span>Settlements & Payouts</span>
+              <span>Settlements</span>
             </TabsTrigger>
-            <TabsTrigger value="audit" className="font-bold text-xs py-2.5 flex items-center gap-1.5">
+
+            <TabsTrigger
+              value="rules"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Sliders className="size-3.5" />
+              <span>Rules Engine</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="loyalty"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Sparkles className="size-3.5 text-amber-500" />
+              <span>Loyalty</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="ledger"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <FileText className="size-3.5" />
+              <span>Order Inspector</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="audit"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
+            >
               <History className="size-3.5" />
               <span>Audit Logs</span>
             </TabsTrigger>
@@ -4259,6 +4369,41 @@ export function FinanceEnginePage() {
               </div>
             </div>
           </TabsContent>
+
+          {/* =========================================================================
+              PHASE 1: DOUBLE-ENTRY GENERAL LEDGER (CHART OF ACCOUNTS & TRIAL BALANCE)
+             ========================================================================= */}
+          <TabsContent value="general-ledger" className="mt-6 space-y-6">
+            <DoubleEntryLedgerView onInspectEntity={handleInspectEntity} />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 2: COD MANAGEMENT & RIDER RISK CONTROLS
+             ========================================================================= */}
+          <TabsContent value="cod" className="mt-6 space-y-6">
+            <CodManagementView onInspectEntity={handleInspectEntity} />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 3: 3-WAY AUTOMATED RECONCILIATION ENGINE
+             ========================================================================= */}
+          <TabsContent value="recon" className="mt-6 space-y-6">
+            <ReconciliationView onInspectEntity={handleInspectEntity} />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 4: PER-ORDER UNIT ECONOMICS & PROFITABILITY HEATMAPS
+             ========================================================================= */}
+          <TabsContent value="unit-economics" className="mt-6 space-y-6">
+            <UnitEconomicsView onInspectEntity={handleInspectEntity} />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 4: DYNAMIC MEMBERSHIP PLANS & DEFERRED REVENUE
+             ========================================================================= */}
+          <TabsContent value="memberships" className="mt-6 space-y-6">
+            <MembershipFinanceView />
+          </TabsContent>
         </Tabs>
 
         {/* Add / Edit Service Pricing Modal */}
@@ -4602,6 +4747,14 @@ export function FinanceEnginePage() {
             </Button>
           </div>
         )}
+
+        {/* QuickView Sliding Drawer for 2-Click Financial Drilldown */}
+        <QuickViewDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          entityType={drawerEntity?.type || null}
+          entityId={drawerEntity?.id || null}
+        />
       </div>
     </AdminShell>
   );

@@ -27,6 +27,13 @@ from app.api.commission import router as commission_router
 from app.api.earnings import router as earnings_router
 from app.api.financial import router as financial_router
 from app.api.finance_engine import router as finance_engine_router
+from app.api.finance_ledger_api import router as finance_ledger_router
+from app.api.cod_api import router as cod_router
+from app.api.finance_search_api import router as finance_search_router
+from app.api.reconciliation_api import router as reconciliation_router
+from app.api.anomaly_api import router as anomaly_router
+from app.api.unit_economics_api import router as unit_economics_router
+from app.api.membership_finance_api import router as membership_finance_router
 from app.api.help import router as help_router
 from app.api.home import router as home_router
 from app.api.invoices import router as invoices_router
@@ -246,6 +253,13 @@ def create_app() -> FastAPI:
     app.include_router(earnings_router, prefix=settings.api_prefix)
     app.include_router(financial_router, prefix=settings.api_prefix)
     app.include_router(finance_engine_router, prefix=settings.api_prefix)
+    app.include_router(finance_ledger_router, prefix=settings.api_prefix)
+    app.include_router(cod_router, prefix=settings.api_prefix)
+    app.include_router(finance_search_router, prefix=settings.api_prefix)
+    app.include_router(reconciliation_router, prefix=settings.api_prefix)
+    app.include_router(anomaly_router, prefix=settings.api_prefix)
+    app.include_router(unit_economics_router, prefix=settings.api_prefix)
+    app.include_router(membership_finance_router, prefix=settings.api_prefix)
     # Razorpay server-to-server webhooks (HMAC verified, unauthenticated by design).
     app.include_router(webhooks_router, prefix=settings.api_prefix)
 

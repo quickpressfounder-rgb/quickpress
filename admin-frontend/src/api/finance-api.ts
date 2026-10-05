@@ -430,3 +430,380 @@ export async function updateLoyaltyCampaignConfig(
   );
   return res.config;
 }
+
+// ============================================================================
+// PHASE 1: GENERAL LEDGER & PERIOD GOVERNANCE
+// ============================================================================
+export interface GeneralLedgerLine {
+  id: string;
+  batch_id: string;
+  line_number: number;
+  posting_date: string;
+  transaction_date: string;
+  accounting_period: string;
+  account_code: number;
+  account_name: string;
+  account_type: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+  debit: number;
+  credit: number;
+  currency: string;
+  reference_type: string;
+  reference_id: string;
+  party_type?: string;
+  party_id?: string;
+  description: string;
+  is_reversal: boolean;
+  reversal_of_id?: string;
+  metadata?: Record<string, any>;
+  created_by: string;
+}
+
+export interface ChartOfAccountItem {
+  account_code: number;
+  account_name: string;
+  account_type: string;
+  total_debit: number;
+  total_credit: number;
+  net_balance: number;
+}
+
+export async function fetchGeneralLedger(params?: Record<string, any>): Promise<{
+  ok: boolean;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  entries: GeneralLedgerLine[];
+}> {
+  return await apiGetJson("/api/finance-ledger", params);
+}
+
+export async function fetchChartOfAccounts(period?: string): Promise<{
+  ok: boolean;
+  accountingPeriod: string;
+  isBalanced: boolean;
+  totalDebit: number;
+  totalCredit: number;
+  variance: number;
+  accounts: ChartOfAccountItem[];
+}> {
+  return await apiGetJson("/api/finance-ledger/chart-of-accounts", { accounting_period: period });
+}
+
+export async function fetchAccountingPeriods(): Promise<{
+  ok: boolean;
+  periods: Array<{
+    period: string;
+    status: "OPEN" | "LOCKED";
+    locked_by?: string;
+    locked_at?: string;
+    closing_notes?: string;
+  }>;
+}> {
+  return await apiGetJson("/api/finance-ledger/periods");
+}
+
+export async function lockAccountingPeriod(period: string, notes: string): Promise<any> {
+  return await apiPostJson(`/api/finance-ledger/periods/${period}/lock`, { notes });
+}
+
+export async function unlockAccountingPeriod(period: string, reason: string): Promise<any> {
+  return await apiPostJson(`/api/finance-ledger/periods/${period}/unlock`, { reason });
+}
+
+export async function postLedgerReversal(entryId: string, reason: string): Promise<any> {
+  return await apiPostJson("/api/finance-ledger/reversal", { entryId, reason });
+}
+
+export async function fetchEntityLedgerTrail(referenceType: string, referenceId: string): Promise<{
+  ok: boolean;
+  referenceType: string;
+  referenceId: string;
+  count: number;
+  totalDebits: number;
+  totalCredits: number;
+  isBalanced: boolean;
+  entries: GeneralLedgerLine[];
+}> {
+  return await apiGetJson(`/api/finance-ledger/reference/${referenceType}/${referenceId}`);
+}
+
+// ============================================================================
+// PHASE 2: COD MANAGEMENT & RIDER RISK
+// ============================================================================
+export interface CodCollectionRecord {
+  id: string;
+  order_id: string;
+  customer_id: string;
+  rider_id: string;
+  partner_id: string;
+  order_amount: number;
+  collected_amount: number;
+  deposited_amount: number;
+  pending_amount: number;
+  collected_at: string;
+  deposit_deadline: string;
+  status: "CASH_COLLECTED" | "DEPOSITED" | "PARTIALLY_DEPOSITED" | "VERIFIED" | "DISPUTED" | "OVERDUE";
+  deposit_id?: string;
+  bank_utr?: string;
+  verified_by?: string;
+  verified_at?: string;
+  notes?: string;
+}
+
+export async function fetchCodMetrics(): Promise<{
+  ok: boolean;
+  metrics: {
+    total_cod_orders: number;
+    total_cod_collected: number;
+    total_deposited_verified: number;
+    total_outstanding: number;
+    total_overdue: number;
+    overdue_orders_count: number;
+    overdue_riders_count: number;
+    pending_verifications_count: number;
+  };
+  activeRules: {
+    max_holding_limit: number;
+    overdue_hours: number;
+  };
+}> {
+  return await apiGetJson("/api/cod/metrics");
+}
+
+export async function fetchCodCollections(params?: Record<string, any>): Promise<{
+  ok: boolean;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  collections: CodCollectionRecord[];
+}> {
+  return await apiGetJson("/api/cod/collections", params);
+}
+
+export async function verifyCodDeposit(depositId: string, notes?: string): Promise<any> {
+  return await apiPostJson(`/api/cod/deposit/${depositId}/verify`, { notes });
+}
+
+export async function fetchOverdueRiders(): Promise<{
+  ok: boolean;
+  count: number;
+  overdueRiders: Array<{
+    rider_id: string;
+    rider_name: string;
+    rider_phone: string;
+    city: string;
+    total_overdue_amount: number;
+    orders_count: number;
+    oldest_collection_time: string;
+    order_ids: string[];
+  }>;
+}> {
+  return await apiGetJson("/api/cod/overdue-riders");
+}
+
+export async function updateCodRules(payload: { maxHoldingLimit: number; overdueHours: number }): Promise<any> {
+  return await apiPostJson("/api/cod/rules", payload);
+}
+
+// ============================================================================
+// PHASE 3: GLOBAL FINANCE SEARCH & RECONCILIATION & ANOMALIES
+// ============================================================================
+export interface GlobalSearchResult {
+  query: string;
+  detectedType: string;
+  totalMatches: number;
+  users: any[];
+  orders: any[];
+  payments: any[];
+  invoices: any[];
+  settlements: any[];
+  ledgerEntries: any[];
+  codRecords: any[];
+}
+
+export async function performGlobalFinanceSearch(q: string): Promise<GlobalSearchResult> {
+  return await apiGetJson("/api/finance-search", { q });
+}
+
+export async function fetchCustomerFinancialProfile(customerId: string): Promise<any> {
+  return await apiGetJson(`/api/finance-search/customer/${customerId}/profile`);
+}
+
+export async function fetchReconciliationSummary(): Promise<{
+  ok: boolean;
+  summary: {
+    total_runs: number;
+    matched_count: number;
+    mismatch_count: number;
+    resolved_count: number;
+    total_unresolved_variance: number;
+    match_rate_percentage: number;
+  };
+}> {
+  return await apiGetJson("/api/reconciliation/summary");
+}
+
+export async function fetchReconciliationRuns(params?: Record<string, any>): Promise<{
+  ok: boolean;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  runs: Array<{
+    id: string;
+    recon_type: string;
+    external_source: string;
+    external_reference: string;
+    internal_reference: string;
+    external_amount: number;
+    internal_amount: number;
+    variance: number;
+    status: string;
+    discrepancy_reason: string;
+    created_at: string;
+  }>;
+}> {
+  return await apiGetJson("/api/reconciliation/runs", params);
+}
+
+export async function resolveReconciliationRun(runId: string, notes: string): Promise<any> {
+  return await apiPostJson(`/api/reconciliation/runs/${runId}/resolve`, { notes });
+}
+
+export interface AnomalyItem {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  severity: "CRITICAL_RED" | "WARNING_AMBER" | "INFO_BLUE";
+  count: number;
+  total_impact_amount: number;
+  action_url: string;
+  action_label: string;
+}
+
+export async function fetchAttentionRequiredAnomalies(): Promise<{
+  ok: boolean;
+  threatLevel: "GREEN_HEALTHY" | "AMBER_WARNING" | "RED_CRITICAL";
+  totalActiveExceptions: number;
+  criticalCount: number;
+  warningCount: number;
+  anomalies: AnomalyItem[];
+  generatedAt: string;
+}> {
+  return await apiGetJson("/api/finance-anomalies/attention-required");
+}
+
+// ============================================================================
+// PHASE 4: UNIT ECONOMICS & DYNAMIC MEMBERSHIP FINANCE
+// ============================================================================
+export async function fetchUnitEconomicsSummary(): Promise<{
+  ok: boolean;
+  margins: {
+    total_orders: number;
+    total_gross_gmv: number;
+    total_net_gmv: number;
+    total_cm1: number;
+    blended_cm1_pct: number;
+    total_cm2: number;
+    blended_cm2_pct: number;
+    profitable_orders_count: number;
+    profitable_orders_pct: number;
+  };
+}> {
+  return await apiGetJson("/api/unit-economics/summary");
+}
+
+export async function fetchCityProfitabilityHeatmap(): Promise<{
+  ok: boolean;
+  cityHeatmap: Array<{
+    city: string;
+    orders_count: number;
+    gross_gmv: number;
+    net_gmv: number;
+    total_cm1: number;
+    cm1_margin_pct: number;
+    total_cm2: number;
+    cm2_margin_pct: number;
+    is_cash_flow_positive: boolean;
+  }>;
+}> {
+  return await apiGetJson("/api/unit-economics/profitability/cities");
+}
+
+export async function fetchServiceProfitabilityComparison(): Promise<{
+  ok: boolean;
+  serviceComparison: Array<{
+    service_category: string;
+    orders_count: number;
+    gross_gmv: number;
+    net_gmv: number;
+    total_cm1: number;
+    cm1_margin_pct: number;
+    total_cm2: number;
+    cm2_margin_pct: number;
+  }>;
+}> {
+  return await apiGetJson("/api/unit-economics/profitability/services");
+}
+
+export async function fetchMembershipMetrics(): Promise<{
+  ok: boolean;
+  metrics: {
+    total_active_members: number;
+    mrr: number;
+    arr: number;
+    churn_rate_percentage: number;
+    total_upfront_cash_collected: number;
+    total_subscriptions_count: number;
+  };
+}> {
+  return await apiGetJson("/api/membership-finance/metrics");
+}
+
+export async function fetchMembershipPlans(): Promise<{
+  ok: boolean;
+  plans: any[];
+}> {
+  return await apiGetJson("/api/membership-finance/plans");
+}
+
+export async function createMembershipPlan(payload: any): Promise<any> {
+  return await apiPostJson("/api/membership-finance/plans", payload);
+}
+
+export async function updateMembershipPlan(planId: string, payload: any): Promise<any> {
+  return await apiPutJson(`/api/membership-finance/plans/${planId}`, payload);
+}
+
+export async function toggleMembershipPlan(planId: string, isActive: boolean): Promise<any> {
+  return await apiPostJson(`/api/membership-finance/plans/${planId}/toggle`, { isActive });
+}
+
+export async function fetchActiveMembers(params?: Record<string, any>): Promise<{
+  ok: boolean;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  members: Array<{
+    subscription_id: string;
+    user_id: string;
+    customer_name: string;
+    customer_phone: string;
+    plan_id: string;
+    billing_cycle: string;
+    amount_paid: number;
+    started_at: string;
+    expires_at: string;
+    days_remaining: number;
+    is_expiring_soon: boolean;
+    orders_count: number;
+    total_spend: number;
+  }>;
+}> {
+  return await apiGetJson("/api/membership-finance/members", params);
+}
+

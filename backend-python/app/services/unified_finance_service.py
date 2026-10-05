@@ -1035,7 +1035,7 @@ class UnifiedFinanceService:
             },
         )
 
-        # Ledger: PAYMENT_RECEIVED
+        # Ledger: PAYMENT_RECEIVED (Legacy Financial Ledger)
         ledger_entry = await self.record_ledger_event(
             order_id=order_id,
             transaction_type="PAYMENT_RECEIVED",
@@ -1045,6 +1045,58 @@ class UnifiedFinanceService:
             reference=f"Gateway: {gateway} | Ref: {payment_id}",
             metadata={"paymentId": payment_id, "gateway": gateway, "method": method},
         )
+
+        # Production Double-Entry General Ledger Posting
+        try:
+            from app.services.general_ledger_service import general_ledger_service
+            is_cod = str(method).upper() == "COD"
+            paid_tot = round(float(amount), 2)
+            part_pay = round(float(fin.get("partnerSettlementAmount", fin.get("partnerSettlement", 0.0))), 2) if fin else 0.0
+            qp_comm = round(float(fin.get("quickpressCommission", 0.0)), 2) if fin else 0.0
+            del_fee = round(float(fin.get("customerDeliveryFee", 0.0)), 2) if fin else 0.0
+            hnd_fee = round(float(fin.get("handlingFee", 0.0)) + float(fin.get("platformFee", 0.0)), 2) if fin else 0.0
+            gst_val = round(float(fin.get("totalGst", 0.0)), 2) if fin else 0.0
+            subsidy = round(float(fin.get("deliverySubsidy", 0.0)) + float(fin.get("couponDiscount", 0.0)), 2) if fin else 0.0
+
+            # Mathematical balancing adjustment to avoid penny mismatch
+            target_cr = round(part_pay + qp_comm + del_fee + hnd_fee + gst_val, 2)
+            target_dr = round(paid_tot + subsidy, 2)
+            if abs(target_dr - target_cr) > 0.001:
+                diff = round(target_dr - target_cr, 2)
+                qp_comm = round(max(0.0, qp_comm + diff), 2)
+
+            if is_cod:
+                rider_id = str(fin.get("riderId") or "pending_rider") if fin else "pending_rider"
+                await general_ledger_service.post_cod_order_collected(
+                    order_id=order_id,
+                    customer_id=str(fin.get("customerId", "guest")) if fin else "guest",
+                    rider_id=rider_id,
+                    partner_id=fin.get("partnerId") if fin else None,
+                    cash_collected_total=paid_tot,
+                    partner_payable=part_pay,
+                    commission_revenue=qp_comm,
+                    delivery_fee=del_fee,
+                    handling_fee=hnd_fee,
+                    gst_tax=gst_val,
+                    created_by="payment_received_handler",
+                )
+            else:
+                await general_ledger_service.post_online_order_paid(
+                    order_id=order_id,
+                    customer_id=str(fin.get("customerId", "guest")) if fin else "guest",
+                    partner_id=fin.get("partnerId") if fin else None,
+                    customer_paid_total=paid_tot,
+                    partner_payable=part_pay,
+                    commission_revenue=qp_comm,
+                    delivery_fee=del_fee,
+                    handling_fee=hnd_fee,
+                    gst_tax=gst_val,
+                    platform_discount_subsidy=subsidy,
+                    payment_reference=f"{gateway}:{payment_id}",
+                    created_by="payment_received_handler",
+                )
+        except Exception as gl_err:
+            logger.warning("General Ledger double-entry hook warning on order %s: %s", order_id, gl_err)
 
         return {"ok": True, "orderId": order_id, "ledgerEntry": ledger_entry}
 
