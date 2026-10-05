@@ -14,6 +14,16 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Handle local messages dispatched from the web application to display in mobile tray
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "TRIGGER_OS_NOTIFICATION") {
+    const { title, options } = event.data;
+    event.waitUntil(
+      self.registration.showNotification(title || "QuickPress Laundry", options || {})
+    );
+  }
+});
+
 // Fallback native push event handler if custom payload structure received
 self.addEventListener("push", (event) => {
   if (!event.data) return;

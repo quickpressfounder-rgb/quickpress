@@ -7,6 +7,7 @@ import { readLocation, type SavedLocation } from "@/api/customer/location";
 import { refreshLocationFromGps } from "@/api/customer/services/location-service";
 import { requestPushNotificationPermission } from "@/api/core/firebase-messaging";
 import { playOrderBellNotificationSound } from "@/lib/order-success-sound";
+import { triggerMobileOsNotification } from "@/lib/notifications";
 
 export type PermissionState = "granted" | "prompt" | "denied" | "unsupported";
 
@@ -105,16 +106,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
       console.debug("[Permissions] Push token registration notice:", pushErr);
     }
 
-    // 3. Show a welcoming native notification if supported
-    try {
-      new Notification("QuickPress Notifications Active 🔔", {
-        body: "You will now get live pickup, wash, and 15-minute delivery alerts!",
-        icon: "/favicon.png",
-        badge: "/favicon.png",
-      });
-    } catch {
-      // Ignore if native construction on active page is restricted
-    }
+    // 3. Show welcoming mobile OS notification
+    void triggerMobileOsNotification({
+      title: "QuickPress Notifications Active 🔔",
+      body: "You will now get live pickup, wash, and 15-minute delivery alerts!",
+    });
 
     return true;
   } catch (err) {

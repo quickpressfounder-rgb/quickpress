@@ -423,7 +423,7 @@ function ProfileScreen() {
       setDevicePermission(res);
       if (res === "granted") {
         toast.success("Device notification permission allowed! 🎉");
-        sendTestNotification();
+        void sendTestNotification();
       } else if (res === "denied") {
         const opened = await openDeviceNotificationSettings();
         if (opened) {
@@ -817,9 +817,9 @@ function ProfileScreen() {
         devicePermission={devicePermission}
         requestingDevicePerm={requestingDevicePerm}
         onRequestDevicePermission={handleRequestDevicePermission}
-        onSendTestNotification={() => {
-          const sent = sendTestNotification();
-          if (sent) toast.success("Test notification sent to your phone/screen!");
+        onSendTestNotification={async () => {
+          const sent = await sendTestNotification();
+          if (sent) toast.success("Test notification sent to your phone's notification bar! 🔔");
           else toast.info("Notification triggered!");
         }}
         notificationRows={NOTIFICATION_ROWS}
@@ -1730,7 +1730,7 @@ function NotificationSettingsPage({
           }
 
           // Trigger test system notification
-          sendTestNotification(
+          void sendTestNotification(
             "QuickPress Notifications Active 🔔",
             "You will now receive live pickup, wash, rider arrival & delivery alerts!"
           );

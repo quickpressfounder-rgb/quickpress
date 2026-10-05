@@ -11,9 +11,17 @@ import {
 } from "@/api/core/firebase-messaging";
 import { playOrderBellNotificationSound } from "@/lib/order-success-sound";
 import { readCachedSettings } from "@/api/customer/settings-api";
+import { triggerMobileOsNotification } from "@/lib/notifications";
 
 export function NotificationManager() {
   const queryClient = useQueryClient();
+
+  // Register service worker proactively on mount for instant mobile push ready state
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" }).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     if (!isPushNotificationSupported()) {
@@ -31,7 +39,13 @@ export function NotificationManager() {
     // Ask for permission directly if in default state (not yet decided)
     const askNativeMobilePermission = async () => {
       try {
-        // 1. Capacitor Native Mobile Platform check
+        // 1. Android Native App check (Native interface already available)
+        if (typeof window !== "undefined" && (window as any).AndroidNotification?.showNotification) {
+          void requestPushNotificationPermission();
+          return;
+        }
+
+        // 2. Capacitor Native Mobile Platform check
         const cap = (window as any).Capacitor;
         if (cap?.isNativePlatform?.()) {
           const push = cap.Plugins?.PushNotifications;
@@ -52,7 +66,7 @@ export function NotificationManager() {
           }
         }
 
-        // 2. Browser / Mobile Web Native Permission API
+        // 3. Browser / Mobile Web Native Permission API
         if (typeof window !== "undefined" && "Notification" in window) {
           if (Notification.permission === "default") {
             const perm = await Notification.requestPermission();
@@ -84,13 +98,26 @@ export function NotificationManager() {
   // Set up Firebase Cloud Messaging (FCM) Foreground Listener with Order Bell Chime
   useEffect(() => {
     let cleanup: (() => void) | null = null;
-    void setupForegroundMessageListener(() => {
+    void setupForegroundMessageListener((payload: any) => {
       const cached = readCachedSettings();
       if (cached?.notifications?.push === false) {
         return;
       }
       // Play instant order bell chime sound on incoming push
       playOrderBellNotificationSound();
+
+      const notif = payload?.notification || {};
+      const data = payload?.data || {};
+      const title = notif.title || data.title || "🔔 QuickPress Order Update";
+      const message = notif.body || data.body || data.message || "Your laundry order has an update.";
+      const orderId = data.orderId;
+
+      // Dispatch to mobile phone's native OS notification tray
+      void triggerMobileOsNotification({
+        title,
+        body: message,
+        orderId,
+      });
 
       // Refresh notification queries
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -118,6 +145,16 @@ export function NotificationManager() {
       "order_out_for_delivery",
       "order_delivered",
       "rider_assigned",
+      "order.created",
+      "order.accepted",
+      "order.assigned",
+      "order.reached_shop",
+      "order.picked",
+      "order.washing",
+      "order.ironing",
+      "order.ready",
+      "order.out_for_delivery",
+      "order.delivered",
     ],
     (payload: any) => {
       const cached = readCachedSettings();
@@ -139,11 +176,11 @@ export function NotificationManager() {
         queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       }
 
-      // 3. Display rich in-app toast with order link
+      // 3. Display compact in-app toast with order link
       toast(title, {
         description: message,
         icon: <Bell className="size-4 text-amber-500 fill-amber-400" />,
-        duration: 6000,
+        duration: 5000,
         action: {
           label: "View",
           onClick: () => {
@@ -154,21 +191,14 @@ export function NotificationManager() {
         },
       });
 
-      // 4. Trigger native OS / Mobile push notification if permission is granted
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        try {
-          new Notification(title, {
-            body: message,
-            icon: "/favicon.png",
-            badge: "/favicon.png",
-          });
-        } catch (err) {
-          console.warn("Native Notification error:", err);
-        }
-      }
+      // 4. Trigger real mobile phone system tray / status bar notification
+      void triggerMobileOsNotification({
+        title,
+        body: message,
+        orderId,
+      });
     }
   );
 
-  // Return null — no custom banner/popup is rendered
   return null;
 }

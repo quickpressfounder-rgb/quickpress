@@ -156,6 +156,18 @@ export async function setupForegroundMessageListener(
           : undefined,
       });
 
+      // Dispatch to mobile phone's native notification tray
+      import("@/lib/notifications")
+        .then(({ triggerMobileOsNotification }) => {
+          void triggerMobileOsNotification({
+            title,
+            body,
+            orderId: data["orderId"],
+            url: clickUrl,
+          });
+        })
+        .catch(() => {});
+
       if (onCustomMessage) {
         onCustomMessage(payload);
       }

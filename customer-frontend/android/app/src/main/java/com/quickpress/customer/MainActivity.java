@@ -7,6 +7,9 @@ import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.content.Intent;
+import android.app.PendingIntent;
+import androidx.core.app.NotificationCompat;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Display;
@@ -99,6 +102,31 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
         super.onResume();
         unlockHighRefreshRate();
         optimizeWebView();
+        handleNotificationIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleNotificationIntent(intent);
+    }
+
+    private void handleNotificationIntent(Intent intent) {
+        if (intent != null && intent.hasExtra("orderId")) {
+            String orderId = intent.getStringExtra("orderId");
+            if (orderId != null && !orderId.trim().isEmpty()) {
+                runOnUiThread(() -> {
+                    WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                            "if (window.location.pathname !== '/track/" + orderId.trim() + "') { window.location.href = '/track/" + orderId.trim() + "'; }",
+                            null
+                        );
+                    }
+                });
+            }
+        }
     }
 
     /**
@@ -284,6 +312,52 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
                         }
                     }
                 }, "NativeRazorpay");
+
+                // Expose Native Android OS Notifications directly to Web JavaScript
+                webView.addJavascriptInterface(new Object() {
+                    @android.webkit.JavascriptInterface
+                    public boolean showNotification(String title, String message, String orderId) {
+                        try {
+                            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                            if (manager == null) return false;
+
+                            createNotificationChannels();
+
+                            Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                            if (orderId != null && !orderId.trim().isEmpty()) {
+                                intent.putExtra("orderId", orderId.trim());
+                            }
+
+                            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                flags |= PendingIntent.FLAG_IMMUTABLE;
+                            }
+
+                            PendingIntent pendingIntent = PendingIntent.getActivity(
+                                MainActivity.this,
+                                (int) (System.currentTimeMillis() & 0xfffffff),
+                                intent,
+                                flags
+                            );
+
+                            androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(MainActivity.this, "quickpress_orders")
+                                .setSmallIcon(R.mipmap.ic_launcher)
+                                .setContentTitle(title != null && !title.trim().isEmpty() ? title.trim() : "QuickPress")
+                                .setContentText(message != null && !message.trim().isEmpty() ? message.trim() : "")
+                                .setStyle(new androidx.core.app.NotificationCompat.BigTextStyle().bigText(message != null ? message.trim() : ""))
+                                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                                .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
+                                .setAutoCancel(true)
+                                .setContentIntent(pendingIntent);
+
+                            manager.notify((int) (System.currentTimeMillis() % 100000), builder.build());
+                            return true;
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    }
+                }, "AndroidNotification");
             }
         } catch (Exception ignored) {
             // Best effort webview tuning
