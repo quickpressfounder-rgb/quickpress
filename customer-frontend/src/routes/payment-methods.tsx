@@ -14,7 +14,6 @@ import { toast } from "sonner";
 
 import { PaymentsSkeleton } from "@/components/account/AccountSkeletons";
 import { BottomNav } from "@/components/home/BottomNav";
-import { Toaster } from "@/shared/ui/sonner";
 import {
   addPaymentMethod,
   fetchPaymentMethods,
@@ -1007,7 +1006,6 @@ function PaymentMethodsScreen() {
       ) : null}
 
       <BottomNav active="payments" />
-      <Toaster />
     </main>
   );
 }

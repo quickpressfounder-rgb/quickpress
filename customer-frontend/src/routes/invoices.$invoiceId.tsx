@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
-import { Toaster } from "@/shared/ui/sonner";
 import {
   downloadInvoice,
   downloadInvoicePdfBlob,
@@ -332,8 +331,6 @@ function InvoiceDetailScreen() {
           )}
         </div>
       </div>
-
-      <Toaster />
     </main>
   );
 }

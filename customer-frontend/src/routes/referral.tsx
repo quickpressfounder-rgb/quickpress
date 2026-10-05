@@ -24,7 +24,6 @@ import { BottomNav } from "@/components/home/BottomNav";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ReferralSkeleton } from "@/components/rewards/RewardsSkeletons";
 import { NotificationBellAction, ScreenTopBar } from "@/components/rewards/ScreenTopBar";
-import { Toaster } from "@/shared/ui/sonner";
 import { isApiError } from "@/api/core/errors";
 import { isOnline, onNetworkChange } from "@/api/customer/api/network";
 import {
@@ -551,7 +550,6 @@ function ReferralScreen() {
         ) : null}
 
         <BottomNav />
-        <Toaster />
       </div>
     </main>
   );

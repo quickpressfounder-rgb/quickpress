@@ -31,7 +31,6 @@ import {
   MembershipSkeleton,
 } from "@/components/membership/MembershipSkeletons";
 import { NotificationBellAction, ScreenTopBar } from "@/components/rewards/ScreenTopBar";
-import { Toaster } from "@/shared/ui/sonner";
 import { isApiError } from "@/api/core/errors";
 import { isOnline, onNetworkChange } from "@/api/customer/api/network";
 import {
@@ -858,7 +857,6 @@ function MembershipScreen() {
 
       <FloatingCartBar />
       <BottomNav />
-      <Toaster />
     </main>
   );
 }

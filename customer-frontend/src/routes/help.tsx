@@ -27,7 +27,6 @@ import { toast } from "sonner";
 import { HelpSkeleton } from "@/components/account/AccountSkeletons";
 import { BottomNav } from "@/components/home/BottomNav";
 import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
-import { Toaster } from "@/shared/ui/sonner";
 import {
   createSupportTicket,
   fetchFaqCategories,
@@ -574,7 +573,6 @@ function HelpScreen() {
       </div>
 
       <BottomNav active="help" />
-      <Toaster />
     </main>
   );
 }

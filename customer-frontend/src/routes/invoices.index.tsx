@@ -13,7 +13,6 @@ import { toast } from "sonner";
 
 import { BottomNav } from "@/components/home/BottomNav";
 import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
-import { Toaster } from "@/shared/ui/sonner";
 import {
   downloadInvoice,
   downloadInvoicePdfBlob,
@@ -259,7 +258,6 @@ function InvoicesScreen() {
       </div>
 
       <BottomNav active="profile" />
-      <Toaster />
     </main>
   );
 }

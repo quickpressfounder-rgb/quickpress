@@ -271,7 +271,7 @@ export function CheckoutPage() {
         customerPhone: cleanPhone,
       });
 
-      toast.success("Order Placed Successfully! 🎉");
+      toast.success("Success");
       cart.clear();
 
       // Persist customer name and phone into profile
@@ -324,7 +324,7 @@ export function CheckoutPage() {
         customerPhone: cleanPhone,
       });
 
-      toast.success("Order Placed with Pay on Delivery! 📦");
+      toast.success("Success");
       cart.clear();
 
       // Persist customer name and phone into profile

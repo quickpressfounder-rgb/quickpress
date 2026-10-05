@@ -23,7 +23,6 @@ import { AddressesSkeleton } from "@/components/account/AccountSkeletons";
 import { BottomNav } from "@/components/home/BottomNav";
 import { MapPicker, type PickedLocation } from "@/components/MapPicker";
 import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
-import { Toaster } from "@/shared/ui/sonner";
 import {
   checkPincodeServiceability,
   type PincodeServiceabilityResult,
@@ -626,7 +625,6 @@ function AddressesScreen() {
       ) : null}
 
       {mapOpen || sheetOpen ? null : <BottomNav active="addresses" />}
-      <Toaster />
     </main>
   );
 }
