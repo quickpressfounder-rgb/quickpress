@@ -248,27 +248,39 @@ export async function applyCoupon(code: string): Promise<{ ok: boolean; discount
   return { ok: result?.ok !== false, discount: Number(result?.discount ?? 0) };
 }
 
+import { CACHE_KEYS, readStaleCache, writeCache } from "./api/cache";
+
 const ADDRESS_LABELS: Record<AddressEntity["type"], Address["label"]> = {
   home: "Home",
   office: "Office",
   other: "Other",
 };
 
-function toAddress(entity: AddressEntity): Address {
+export function toAddress(entity: AddressEntity | any): Address {
   return {
-    id: entity.id,
-    label: ADDRESS_LABELS[entity.type],
-    line: [entity.houseNumber, entity.building, entity.street].filter(Boolean).join(", "),
-    city: `${entity.area}, ${entity.city} ${entity.pincode}`.trim(),
+    id: entity.id || entity._id || `addr-${Math.random()}`,
+    label: (entity.type && ADDRESS_LABELS[entity.type as AddressEntity["type"]]) || entity.label || "Home",
+    line: [entity.houseNumber, entity.building, entity.street].filter(Boolean).join(", ") || entity.line || "",
+    city: entity.city ? `${entity.area ? entity.area + ", " : ""}${entity.city} ${entity.pincode ? "• PIN " + entity.pincode : ""}`.trim() : (entity.city || ""),
     pincode: entity.pincode,
     state: entity.state,
     phone: entity.phone,
   };
 }
 
+/** Instant cache-first address reader for 0ms checkout painting */
+export function readCachedAddresses(): Address[] {
+  const cached = readStaleCache<any[]>(CACHE_KEYS.addresses);
+  if (!cached || !Array.isArray(cached) || cached.length === 0) return [];
+  return cached.map(toAddress);
+}
+
 /** GET /api/addresses */
 export async function fetchAddresses(): Promise<Address[]> {
   const entities = await apiGetJson<AddressEntity[]>(CART_API_ENDPOINTS.addresses);
+  if (Array.isArray(entities)) {
+    writeCache(CACHE_KEYS.addresses, entities);
+  }
   return entities.map(toAddress);
 }
 
@@ -363,19 +375,17 @@ export type PostOrderPayload = {
   paymentId?: string | undefined;
   paymentMethod?: string | undefined;
   cardId?: string | null | undefined;
+  instructions?: string | undefined;
+  couponCode?: string | null | undefined;
   total: number;
 };
 
 export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; orderId: string }> {
-  const [addresses, payments] = await Promise.all([
-    fetchAddresses().catch(() => []),
-    fetchPaymentMethods().catch(() => ({ methods: [], savedCards: [] })),
-  ]);
-
-  const address =
-    payload.address ??
-    addresses.find((item) => item.id === payload.addressId) ??
-    addresses[0];
+  let address = payload.address;
+  if (!address || !address.line?.trim()) {
+    const addresses = await fetchAddresses().catch(() => []);
+    address = addresses.find((item) => item.id === payload.addressId) ?? addresses[0];
+  }
 
   if (!address || !address.line?.trim()) {
     throw new Error("No delivery address selected. Please add an address to place your order.");
@@ -419,6 +429,8 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
       },
       isExpress: isExpressSelected,
       expressFee: isExpressSelected ? (payload.expressFee ?? 40) : 0,
+      instructions: payload.instructions || getCartState().instructions || "",
+      couponCode: payload.couponCode ?? getCartState().couponCode ?? undefined,
       payment: {
         mode: paymentMode,
         label: paymentLabel,
@@ -426,7 +438,7 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
         paymentId: payload.paymentId || (isWallet ? "wallet" : isCod ? "cod" : undefined),
         gatewayPaymentId: payload.paymentId || undefined,
       },
-    } satisfies PlaceOrderPayload);
+    } as any);
 
     const confirmedOrder = res?.order || res;
     const orderId = res?.orderId || res?.order?.id || res?.id || res?.code;

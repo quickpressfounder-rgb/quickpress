@@ -131,12 +131,19 @@ export function readToken(role: string = activeRole): string | null {
   const direct = readSession(role)?.token;
   if (direct && typeof direct === "string" && direct.trim()) return direct.trim();
   if (typeof window !== "undefined") {
+    if (role === "partner") {
+      const raw =
+        window.localStorage.getItem("qp_partner_token") ||
+        window.sessionStorage.getItem("qp_partner_token") ||
+        window.localStorage.getItem(`qp_${role}_token`) ||
+        window.sessionStorage.getItem(`qp_${role}_token`);
+      if (raw && typeof raw === "string" && raw.trim()) return raw.trim();
+      return null;
+    }
     const raw =
       window.localStorage.getItem(`qp_${role}_token`) ||
-      window.localStorage.getItem("qp_partner_token") ||
       window.localStorage.getItem("qp_access_token") ||
-      window.sessionStorage.getItem(`qp_${role}_token`) ||
-      window.sessionStorage.getItem("qp_partner_token");
+      window.sessionStorage.getItem(`qp_${role}_token`);
     if (raw && typeof raw === "string" && raw.trim()) return raw.trim();
   }
   return null;

@@ -232,7 +232,7 @@ function RootComponent() {
       sessionStorage.getItem("qp_access_token");
     // Only preload protected routes if authenticated to avoid 401 unauthorized errors
     const paths = token
-      ? ["/history", "/cart", "/search", "/offers"]
+      ? ["/history", "/checkout", "/search", "/offers"]
       : ["/search", "/offers"];
 
     const idle =

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   ArrowRight,
   ChevronRight,
@@ -22,6 +22,7 @@ interface CartPopupProps {
 }
 
 export function CartPopup({ isOpen, onClose }: CartPopupProps) {
+  const router = useRouter();
   const navigate = useNavigate();
   const cart = useCart();
   const [mounted, setMounted] = useState(false);
@@ -30,13 +31,19 @@ export function CartPopup({ isOpen, onClose }: CartPopupProps) {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (isOpen) {
+      void router.preloadRoute({ to: "/checkout" }).catch(() => undefined);
+    }
+  }, [isOpen, router]);
+
   if (!isOpen || !mounted) return null;
 
   const itemsSubtotal = cart.lines.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  const handleGoToCart = () => {
+  const handleGoToCheckout = () => {
     onClose();
-    void navigate({ to: "/cart" });
+    void navigate({ to: "/checkout" });
   };
 
   const content = (
@@ -121,11 +128,11 @@ export function CartPopup({ isOpen, onClose }: CartPopupProps) {
               </div>
 
               <Link
-                to="/cart"
+                to="/checkout"
                 onClick={onClose}
                 className="flex h-12 flex-1 items-center justify-between rounded-2xl bg-[#006045] hover:bg-[#004e38] px-5 text-sm font-black text-white shadow-lg shadow-emerald-950/20 active:scale-[0.98] transition-all cursor-pointer"
               >
-                <span>View Full Cart</span>
+                <span>Proceed to Checkout</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-bold opacity-90">{cart.count} items</span>
                   <ChevronRight className="size-4 stroke-[2.5]" />

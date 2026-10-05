@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ChevronRight,
@@ -25,8 +25,14 @@ import {
 } from "@/api/customer/finance-api";
 
 export const Route = createFileRoute("/cart")({
+  beforeLoad: () => {
+    throw redirect({
+      to: "/checkout",
+      replace: true,
+    });
+  },
   head: () => ({
-    meta: [{ title: "My Cart — QuickPress" }],
+    meta: [{ title: "Checkout — QuickPress" }],
   }),
   component: CartPage,
 });

@@ -12,12 +12,15 @@ import {
   Loader2,
   MapPin,
   Minus,
+  Percent,
   Phone,
   Plus,
   QrCode,
   ShieldCheck,
+  ShoppingBag,
   Smartphone,
   Sparkles,
+  Tag,
   Trash2,
   User,
   Wallet,
@@ -33,11 +36,13 @@ import {
   fetchPaymentMethods,
   getCartState,
   postOrder,
+  readCachedAddresses,
+  setCartState,
   type Address,
   type PaymentMethod,
 } from "@/api/customer/cart-api";
 import { fetchWallet } from "@/api/customer/wallet-api";
-import { fetchProfile } from "@/api/customer/services/profile-service";
+import { fetchProfile, type Profile } from "@/api/customer/services/profile-service";
 import { updateProfile } from "@/api/customer/profile-api";
 import type { CartLine } from "@/api/customer/cart-store";
 import {
@@ -48,6 +53,8 @@ import {
 import { payWithRazorpay } from "@/api/payments/razorpay-api";
 import { loadRazorpayCheckout } from "@/api/core/razorpay";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { readSession } from "@/api/core/session-store";
+import { CACHE_KEYS, readStaleCache, writeCache } from "@/api/customer/api/cache";
 
 function normalizeIndianPhone(phone: string): string {
   const digits = (phone || "").replace(/\D/g, "");
@@ -68,10 +75,11 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const cart = useCart();
 
-  // State management
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [pickupAddressId, setPickupAddressId] = useState<string>("");
-  const [deliveryAddressId, setDeliveryAddressId] = useState<string>("");
+  // Instant cache-first initialization (0ms paint)
+  const cachedAddrs = readCachedAddresses();
+  const [addresses, setAddresses] = useState<Address[]>(() => cachedAddrs);
+  const [pickupAddressId, setPickupAddressId] = useState<string>(() => cachedAddrs[0]?.id || "");
+  const [deliveryAddressId, setDeliveryAddressId] = useState<string>(() => cachedAddrs[0]?.id || "");
   const [sameAsPickup, setSameAsPickup] = useState<boolean>(true);
   const [isExpress, setIsExpress] = useState<boolean>(false);
 
@@ -79,25 +87,76 @@ export function CheckoutPage() {
   const [showPickupPicker, setShowPickupPicker] = useState<boolean>(false);
   const [showDeliveryPicker, setShowDeliveryPicker] = useState<boolean>(false);
 
-  // Customer contact info
-  const [customerName, setCustomerName] = useState<string>("");
-  const [customerPhone, setCustomerPhone] = useState<string>("");
+  // Customer contact info (synced from session / cache instantly)
+  const session = readSession("customer");
+  const cachedProfile = readStaleCache<Profile>(CACHE_KEYS.profile);
+  const initialName =
+    cachedProfile?.name && cachedProfile.name !== "Customer" && cachedProfile.name !== "Guest User"
+      ? cachedProfile.name
+      : session?.account?.name && session.account.name !== "Customer" && session.account.name !== "Guest User"
+      ? session.account.name
+      : "";
+  const initialPhone = normalizeIndianPhone(
+    cachedProfile?.phone || session?.account?.phone || cachedAddrs[0]?.phone || ""
+  );
+
+  const [customerName, setCustomerName] = useState<string>(() => initialName);
+  const [customerPhone, setCustomerPhone] = useState<string>(() => initialPhone);
+
+  // Special care instructions (from cart state)
+  const [instructions, setInstructions] = useState<string>(() => getCartState().instructions || "");
+
+  // Coupon state (from cart state, with interactive input + apply/remove)
+  const [couponInput, setCouponInput] = useState<string>("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(() => getCartState().couponCode || null);
+  const [couponDiscount, setCouponDiscount] = useState<number>(() => getCartState().couponDiscount || 0);
 
   // Payment mode & drawer
   const [showPaymentDrawer, setShowPaymentDrawer] = useState<boolean>(false);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const cachedWallet = readStaleCache<any>(CACHE_KEYS.wallet);
+  const initialWallet = cachedWallet?.balances?.currentBalance ?? cachedWallet?.totalBalance ?? 0;
+  const [walletBalance, setWalletBalance] = useState<number>(() => initialWallet);
 
-  // Status
-  const [loading, setLoading] = useState<boolean>(true);
+  // Background refresh status (does NOT block initial screen paint)
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(() => cachedAddrs.length === 0);
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
 
-  // Coupon
-  const couponDiscount = getCartState().couponDiscount || 0;
-  const couponCode = getCartState().couponCode || null;
+  const cachedRules = readStaleCache<FinancialRules>("finance_rules");
+  const [financeRules, setFinanceRules] = useState<FinancialRules>(() => cachedRules || DEFAULT_FINANCIAL_RULES);
 
-  const [financeRules, setFinanceRules] = useState<FinancialRules>(DEFAULT_FINANCIAL_RULES);
+  // Sync instructions to store
+  const handleInstructionChange = (text: string) => {
+    setInstructions(text);
+    setCartState({ instructions: text });
+  };
 
-  // Load backend data and preload Cashfree on mount
+  // Coupon handlers
+  const handleApplyCoupon = (code: string) => {
+    const clean = code.trim().toUpperCase();
+    if (!clean) return;
+    if (clean === "WELCOME50" || clean === "QUICK50") {
+      setAppliedCoupon(clean);
+      setCouponDiscount(50);
+      setCartState({ couponCode: clean, couponDiscount: 50 });
+      toast.success(`${clean} applied! ₹50 saved.`);
+    } else if (clean === "FIRSTFREE") {
+      setAppliedCoupon(clean);
+      setCouponDiscount(75);
+      setCartState({ couponCode: clean, couponDiscount: 75 });
+      toast.success(`${clean} applied! ₹75 saved.`);
+    } else {
+      toast.error("Invalid coupon code. Try WELCOME50");
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCartState({ couponCode: null, couponDiscount: 0 });
+    toast.info("Coupon removed.");
+  };
+
+  // Load backend data in the background silently (stale-while-revalidate)
   useEffect(() => {
     let alive = true;
 
@@ -119,13 +178,14 @@ export function CheckoutPage() {
 
         if (rulesData) {
           setFinanceRules(rulesData);
+          writeCache("finance_rules", rulesData);
         }
 
         // Populate addresses
         if (addrList.length > 0 && addrList[0]) {
           setAddresses(addrList);
-          setPickupAddressId(addrList[0].id);
-          setDeliveryAddressId(addrList[0].id);
+          setPickupAddressId((prev) => (prev && addrList.some((a) => a.id === prev) ? prev : addrList[0].id));
+          setDeliveryAddressId((prev) => (prev && addrList.some((a) => a.id === prev) ? prev : addrList[0].id));
         }
 
         // Populate wallet
@@ -138,19 +198,17 @@ export function CheckoutPage() {
           ? (profileData as { data: { name?: string; phone?: string } }).data
           : profileData) as { name?: string; phone?: string } | null;
         if (prof?.name && prof.name !== "Customer" && prof.name !== "Guest User") {
-          setCustomerName(prof.name);
-        } else {
-          setCustomerName("");
+          setCustomerName((prev) => prev || prof.name || "");
         }
         if (prof?.phone) {
-          setCustomerPhone(normalizeIndianPhone(prof.phone));
+          setCustomerPhone((prev) => prev || normalizeIndianPhone(prof.phone || ""));
         } else if (addrList[0]?.phone) {
-          setCustomerPhone(normalizeIndianPhone(addrList[0].phone));
+          setCustomerPhone((prev) => prev || normalizeIndianPhone(addrList[0].phone));
         }
       } catch (err) {
-        console.warn("Checkout initialization error:", err);
+        console.warn("Checkout background refresh error:", err);
       } finally {
-        if (alive) setLoading(false);
+        if (alive) setIsRefreshing(false);
       }
     }
 
@@ -266,6 +324,8 @@ export function CheckoutPage() {
         expressFee: currentExpressFee,
         paymentId,
         paymentMethod: method,
+        instructions: instructions.trim() || undefined,
+        couponCode: appliedCoupon || undefined,
         total: grandTotal,
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
@@ -273,6 +333,7 @@ export function CheckoutPage() {
 
       toast.success("Success");
       cart.clear();
+      setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
 
       // Persist customer name and phone into profile
       void updateProfile({ name: customerName.trim(), phone: cleanPhone }).catch(() => {});
@@ -319,6 +380,8 @@ export function CheckoutPage() {
         expressFee: currentExpressFee,
         paymentId: "cod",
         paymentMethod: "cod",
+        instructions: instructions.trim() || undefined,
+        couponCode: appliedCoupon || undefined,
         total: grandTotal,
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
@@ -326,6 +389,7 @@ export function CheckoutPage() {
 
       toast.success("Success");
       cart.clear();
+      setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
 
       // Persist customer name and phone into profile
       void updateProfile({ name: customerName.trim(), phone: cleanPhone }).catch(() => {});
@@ -341,12 +405,46 @@ export function CheckoutPage() {
     }
   };
 
-  if (loading) {
+  // When cart has no items, show friendly empty cart state
+  if (cart.lines.length === 0) {
     return (
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="size-8 animate-spin text-[#0c831f]" />
-          <p className="text-xs font-bold text-zinc-500">Preparing Checkout...</p>
+      <main className="min-h-screen bg-white text-zinc-900 font-sans pb-12">
+        <div className="mx-auto max-w-md">
+          <header className="sticky top-0 z-30 mx-auto w-full max-w-md flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-zinc-100 shadow-2xs">
+            <button
+              type="button"
+              aria-label="Go to Home"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate({ to: "/home" });
+                }
+              }}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-800 transition-colors hover:bg-zinc-200 active:scale-95 cursor-pointer"
+            >
+              <ArrowLeft className="size-4.5" />
+            </button>
+            <h1 className="min-w-0 flex-1 truncate text-center text-sm font-bold tracking-tight text-zinc-900">Checkout</h1>
+            <span className="size-9 shrink-0" />
+          </header>
+
+          <div className="flex flex-col items-center justify-center pt-24 pb-16 px-4 text-center">
+            <div className="flex size-20 items-center justify-center rounded-3xl bg-emerald-50 text-[#0c831f] shadow-sm mb-4">
+              <ShoppingBag className="size-10 stroke-[1.75]" />
+            </div>
+            <h2 className="text-lg font-black text-zinc-900">Your cart is empty</h2>
+            <p className="text-xs text-zinc-500 max-w-xs mt-1">
+              Add services from our laundry store to proceed with checkout.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/home" })}
+              className="mt-6 flex h-11 items-center justify-center rounded-xl bg-[#0c831f] hover:bg-emerald-800 px-6 text-sm font-black text-white shadow-md active:scale-98 transition-all cursor-pointer"
+            >
+              Explore Services
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -359,12 +457,12 @@ export function CheckoutPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            aria-label="Go back to cart"
+            aria-label="Go back"
             onClick={() => {
               if (window.history.length > 1) {
                 window.history.back();
               } else {
-                navigate({ to: "/cart" });
+                navigate({ to: "/home" });
               }
             }}
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-800 transition-colors hover:bg-zinc-200 active:scale-95 cursor-pointer"
@@ -403,7 +501,16 @@ export function CheckoutPage() {
               </button>
             </div>
 
-            {selectedPickup && selectedPickup.line?.trim() ? (
+            {addresses.length === 0 && isRefreshing ? (
+              <div className="flex items-start gap-2.5 pt-1 animate-pulse">
+                <div className="size-8 rounded-xl bg-emerald-50 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1 space-y-1.5 py-0.5">
+                  <div className="h-3.5 w-24 bg-zinc-200 rounded" />
+                  <div className="h-3 w-48 bg-zinc-100 rounded" />
+                  <div className="h-2.5 w-32 bg-zinc-100 rounded" />
+                </div>
+              </div>
+            ) : selectedPickup && selectedPickup.line?.trim() ? (
               <div className="flex items-start gap-2.5 pt-1">
                 <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-[#0c831f] shrink-0 mt-0.5">
                   <Home className="size-4" />
@@ -665,8 +772,76 @@ export function CheckoutPage() {
           </section>
         </div>
 
+        {/* SECTION 5: SPECIAL CARE INSTRUCTIONS */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            Special Care Instructions (Optional)
+          </h2>
+          <section aria-label="Care Instructions" className="bg-white rounded-2xl p-4 border border-zinc-200/90 shadow-2xs">
+            <textarea
+              rows={3}
+              value={instructions}
+              onChange={(e) => handleInstructionChange(e.target.value)}
+              placeholder="e.g. Do not bleach, starch shirts, handle silk gently..."
+              className="w-full resize-none text-xs rounded-xl border border-zinc-200 p-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden leading-relaxed"
+            />
+          </section>
+        </div>
 
-        {/* SECTION 6: BILL DETAILS */}
+        {/* SECTION 6: APPLY COUPON */}
+        <div>
+          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            Apply Coupon
+          </h2>
+          <section aria-label="Coupon" className="bg-white rounded-2xl p-3.5 border border-zinc-200/90 shadow-2xs">
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 p-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-[#0c831f] text-white">
+                    <Tag className="size-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-emerald-900 tracking-wide">
+                      {appliedCoupon}
+                    </span>
+                    <p className="text-[10px] font-semibold text-[#0c831f]">
+                      ₹{couponDiscount} coupon savings applied
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="text-xs font-black text-red-600 hover:text-red-700 cursor-pointer px-2 py-1 active:scale-95 transition-transform"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Tag className="absolute left-3 top-2.5 size-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Enter promo code (e.g. WELCOME50)"
+                    className="w-full pl-9 pr-3 py-2 text-xs font-bold uppercase rounded-xl border border-zinc-200 text-zinc-900 placeholder:text-zinc-400 placeholder:font-normal focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleApplyCoupon(couponInput)}
+                  className="rounded-xl bg-[#0c831f] hover:bg-emerald-800 px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform cursor-pointer shadow-xs"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* SECTION 7: BILL DETAILS */}
         <div>
           <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
             Bill Details
@@ -719,7 +894,7 @@ export function CheckoutPage() {
 
               {couponDiscount > 0 ? (
                 <div className="flex justify-between text-[#0c831f] font-bold">
-                  <span>Coupon ({couponCode})</span>
+                  <span>Coupon ({appliedCoupon || couponCode})</span>
                   <span>-₹{couponDiscount}</span>
                 </div>
               ) : null}

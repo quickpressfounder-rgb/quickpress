@@ -34,9 +34,6 @@ export function requirePartnerAuth() {
   // Active partner with store access
 }
 
-/**
- * Guard for registration & verification waiting screens.
- */
 export function requirePartnerSession() {
   if (typeof window === "undefined") return;
   const sess = readSession("partner");
@@ -44,3 +41,23 @@ export function requirePartnerSession() {
     throw redirect({ to: partnerRoutes.auth });
   }
 }
+
+/**
+ * Returns true only when the app is on an operational authenticated screen.
+ * Disables background polling, socket alerts, and API fetches on /auth, /otp, /registration, etc.
+ */
+export function isOperationalRoute(): boolean {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  if (
+    path === "/auth" ||
+    path.startsWith("/auth") ||
+    path.startsWith("/otp") ||
+    path.startsWith("/registration") ||
+    path.startsWith("/suspended")
+  ) {
+    return false;
+  }
+  return true;
+}
+

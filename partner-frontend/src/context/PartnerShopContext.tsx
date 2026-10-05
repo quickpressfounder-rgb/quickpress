@@ -25,6 +25,7 @@ import {
   type ShopStatusId,
 } from "../data/partner-shop-mock";
 import { hasActiveSessionToken } from "@/api/core/session-store";
+import { isOperationalRoute } from "@/lib/auth-guard";
 
 export type ShopEditableFields = Pick<
   ShopProfile,
@@ -156,7 +157,7 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!hasActiveSessionToken("partner")) {
+    if (!isOperationalRoute() || !hasActiveSessionToken("partner")) {
       setIsLoading(false);
       return;
     }
@@ -228,7 +229,7 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (hasActiveSessionToken("partner")) {
+    if (isOperationalRoute() && hasActiveSessionToken("partner")) {
       void load();
     } else {
       setIsLoading(false);

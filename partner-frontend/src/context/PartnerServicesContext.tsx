@@ -19,6 +19,7 @@ import {
   type ServiceOffer,
 } from "../data/partner-services-mock";
 import { hasActiveSessionToken } from "@/api/core/session-store";
+import { isOperationalRoute } from "@/lib/auth-guard";
 
 /* ------------------------------------------------------------------ */
 /* Filter / sort vocabulary                                            */
@@ -198,7 +199,7 @@ export function PartnerServicesProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!hasActiveSessionToken("partner")) {
+    if (!isOperationalRoute() || !hasActiveSessionToken("partner")) {
       setIsLoading(false);
       return;
     }
@@ -216,13 +217,15 @@ export function PartnerServicesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!isOperationalRoute() || !hasActiveSessionToken("partner")) {
+      setIsLoading(false);
+      return;
+    }
     const cached = readCachedServices();
     if (cached.length > 0) {
       setServices(cached);
     }
-    if (hasActiveSessionToken("partner")) {
-      void load();
-    }
+    void load();
   }, [load]);
 
   const refresh = useCallback(() => load(), [load]);

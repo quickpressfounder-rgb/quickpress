@@ -396,7 +396,7 @@ function PartnerDetailScreen() {
     setAdded(true);
     window.setTimeout(() => {
       setAdded(false);
-      void navigate({ to: "/cart" });
+      void navigate({ to: "/checkout" });
     }, 400);
   };
 

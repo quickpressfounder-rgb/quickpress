@@ -18,6 +18,7 @@ import {
 import { toggleStoreStatus, fetchPartnerProfile } from "@/api/partner/partner-profile-api";
 import { initPartnerSocket, subscribePartnerStatus } from "@/lib/partner-socket";
 import { hasActiveSessionToken, readSession, writeSession } from "@/api/core/session-store";
+import { isOperationalRoute } from "@/lib/auth-guard";
 
 type PartnerContextValue = {
   session: PartnerSession | null;
@@ -105,7 +106,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
 
   // Sync real store status from backend on session restore
   useEffect(() => {
-    if (!session || !hasActiveSessionToken("partner")) return;
+    if (!isOperationalRoute() || !session || !hasActiveSessionToken("partner")) return;
     let active = true;
     void fetchPartnerProfile()
       .then((prof) => {
@@ -127,7 +128,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
 
   // Realtime Socket.IO listener for store status
   useEffect(() => {
-    if (typeof window === "undefined" || !session || !hasActiveSessionToken("partner")) return;
+    if (typeof window === "undefined" || !isOperationalRoute() || !session || !hasActiveSessionToken("partner")) return;
     initPartnerSocket();
     const unsub = subscribePartnerStatus((data) => {
       if (data && typeof data.isOnline === "boolean") {

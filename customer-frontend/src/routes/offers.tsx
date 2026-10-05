@@ -148,7 +148,7 @@ function OffersScreen() {
     await applyCoupon(coupon.code);
     setApplying(null);
     toast.success(`${coupon.code} applied to your cart`);
-    navigate({ to: "/cart" });
+    navigate({ to: "/checkout" });
   };
 
   const handleShare = async (offer: SpecialOffer) => {

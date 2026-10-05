@@ -46,9 +46,19 @@ export function isCapacitorNative(): boolean {
 }
 
 export function apiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
+    if (globalBase && typeof globalBase === "string" && globalBase.trim()) {
+      let cleaned = globalBase.trim().replace(/\/+$/, "").replace(/-3292/g, "");
+      if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+        return cleaned;
+      }
+    }
+  }
+
   let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-  if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
-    custom = custom.replace("quickpress-api-production-3292.up.railway.app", "quickpress-api-production.up.railway.app");
+  if (custom) {
+    custom = custom.replace(/-3292/g, "");
   }
 
   // Inside Capacitor Android/iOS APK, ALWAYS connect to the live production Railway backend!
@@ -72,12 +82,6 @@ export function apiBaseUrl(): string {
         return custom;
       }
       return PRODUCTION_API_URL;
-    }
-
-    const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
-    if (globalBase && typeof globalBase === "string") {
-      const cleaned = globalBase.trim().replace(/\/+$/, "");
-      return cleaned.replace("-3292", "");
     }
   }
 
