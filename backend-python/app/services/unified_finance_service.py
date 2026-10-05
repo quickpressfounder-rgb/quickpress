@@ -135,6 +135,8 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
 
     # 2. PRICING & PLATFORM FEES
     "pricing": {
+        "universalBasePrice": 69.0,
+        "universalExpressPrice": 99.0,
         "platformFee": 10.0,
         "handlingFee": 15.0,
         "minimumOrderValue": 99.0,
@@ -184,26 +186,14 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         ],
     },
 
-    # 4. COMMISSION ENGINE
+    # 4. COMMISSION ENGINE (SINGLE UNIFIED PLATFORM COMMISSION)
     "commission": {
-        "partnerCommissionType": "tier",  # tier | percentage | fixed
-        "standardRate": 0.18,             # 18% (<100 orders/month)
-        "silverRate": 0.15,               # 15% (100-299 orders/month)
-        "goldRate": 0.12,                 # 12% (300+ orders/month)
-        "silverThreshold": 100,
-        "goldThreshold": 300,
+        "partnerCommissionType": "percentage",
+        "platformCommissionPercent": 18.0,
+        "standardRate": 0.18,
         "fixedAmountPerOrder": 0.0,
-        "partnerCommissionPercent": 18.0,
-        "riderCommissionRate": 0.0,       # 0% commission on delivery captains (100% fare to rider)
-        "platformCommissionRate": 0.18,
         "captainCommissionRate": 0.0,
-        "categoryOverrides": [
-            {"id": "comm-dryclean", "category": "Dry Cleaning", "rate": 0.20, "active": True},
-            {"id": "comm-shoecare", "category": "Shoe Care", "rate": 0.15, "active": True},
-        ],
-        "cityAreaOverrides": [
-            {"id": "comm-kasganj", "city": "Kasganj", "area": "All Areas", "rate": 0.15, "active": True},
-        ],
+        "riderCommissionRate": 0.0,
     },
 
     # 5. RIDER PAYOUT & EARNINGS ENGINE
@@ -585,11 +575,15 @@ class UnifiedFinanceService:
         version_cfg = rules.get("versioning", {})
 
         # A. Items Subtotal
+        universal_base = float(pricing_cfg.get("universalBasePrice", 69.0))
         items_subtotal = 0.0
         for it in items:
-            p = float(it.get("price") or it.get("unitPrice") or 0.0)
+            p = float(it.get("price") or it.get("unitPrice") or universal_base)
             q = int(it.get("quantity") or it.get("qty") or 1)
             items_subtotal += p * q
+
+        if items_subtotal <= 0.0:
+            items_subtotal = universal_base
 
         # Express turnaround surcharge
         express_multiplier = float(pricing_cfg.get("expressMultiplier", 1.35)) if is_express else 1.0
@@ -729,7 +723,10 @@ class UnifiedFinanceService:
 
         # F. Settlement Split (Separate Authoritative Calculations)
         comm_cfg = rules.get("commission", {})
-        comm_rate = float(comm_cfg.get("standardRate", 0.18))
+        comm_val = comm_cfg.get("platformCommissionPercent") or comm_cfg.get("standardRate") or 18.0
+        comm_rate = float(comm_val)
+        if comm_rate > 1.0:
+            comm_rate = comm_rate / 100.0
         platform_commission = round(taxable_laundry * comm_rate, 2)
         tcs_deduction = round(taxable_laundry * float(gst_cfg.get("tcsRate", 0.01)), 2)
         tds_deduction = round(taxable_laundry * float(gst_cfg.get("tdsRate", 0.01)), 2)

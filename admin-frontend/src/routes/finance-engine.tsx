@@ -193,6 +193,8 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     },
   ],
   pricing: {
+    universalBasePrice: "69",
+    universalExpressPrice: "99",
     platformFee: "10",
     handlingFee: "15",
     minimumOrderValue: "99",
@@ -229,22 +231,11 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     ],
   },
   commission: {
-    partnerCommissionType: "tier",
+    partnerCommissionType: "percentage",
+    platformCommissionPercent: "18",
     standardPercent: "18",
-    silverPercent: "15",
-    goldPercent: "12",
-    silverThreshold: "100",
-    goldThreshold: "300",
     fixedAmountPerOrder: "0",
     captainCommissionRate: 0.0,
-    platformCommissionPercent: "18",
-    categoryOverrides: [
-      { id: "comm-dryclean", category: "Dry Cleaning", ratePercent: "20", active: true },
-      { id: "comm-shoecare", category: "Shoe Care", ratePercent: "15", active: true },
-    ],
-    cityAreaOverrides: [
-      { id: "comm-kasganj", city: "Kasganj", area: "All Areas", ratePercent: "15", active: true },
-    ],
   },
   delivery: {
     baseFee: "30",
@@ -936,40 +927,6 @@ export function FinanceEnginePage() {
   >("service-pricing");
 
   // Dialog & Inline Form States for Dedicated Commercial Modules
-  const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
-  const [serviceForm, setServiceForm] = useState({
-    id: "",
-    serviceName: "",
-    category: "Laundry",
-    city: "All Cities",
-    area: "All Areas",
-    basePrice: "69",
-    unit: "kg",
-    additionalUnitPrice: "69",
-    minQuantity: "1",
-    expressPrice: "99",
-    effectiveFrom: "2026-01-01",
-    effectiveUntil: "2099-12-31",
-    active: true,
-  });
-
-  const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
-  const [couponForm, setCouponForm] = useState({
-    id: "",
-    code: "",
-    title: "",
-    type: "flat" as "flat" | "percent",
-    discount: "50",
-    maxDiscount: "50",
-    minOrderValue: "299",
-    firstOrderOnly: false,
-    citySpecific: "All",
-    usageLimit: "1000",
-    startDate: "2026-01-01",
-    endDate: "2026-12-31",
-    active: true,
-  });
 
   const [newAreaPricing, setNewAreaPricing] = useState({
     city: "Kasganj",
@@ -1078,113 +1035,6 @@ export function FinanceEnginePage() {
       curr[parts[parts.length - 1]] = val;
       return next;
     });
-  };
-
-  // Service Pricing Handlers
-  const handleSaveService = () => {
-    if (!serviceForm.serviceName.trim()) {
-      toast.error("Please enter a service name");
-      return;
-    }
-    setIsDirty(true);
-    setEditableRules((prev: any) => {
-      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-      const list = next.servicePricing || [];
-      if (editingServiceId) {
-        const idx = list.findIndex((s: any) => s.id === editingServiceId);
-        if (idx >= 0) {
-          list[idx] = { ...serviceForm, id: editingServiceId };
-        }
-      } else {
-        list.push({
-          ...serviceForm,
-          id: `svc-${Date.now()}`,
-          status: "active",
-        });
-      }
-      next.servicePricing = list;
-      return next;
-    });
-    setIsAddServiceOpen(false);
-    setEditingServiceId(null);
-    setServiceForm({
-      id: "",
-      serviceName: "",
-      category: "Laundry",
-      city: "All Cities",
-      area: "All Areas",
-      basePrice: "69",
-      unit: "kg",
-      additionalUnitPrice: "69",
-      minQuantity: "1",
-      expressPrice: "99",
-      effectiveFrom: "2026-01-01",
-      effectiveUntil: "2099-12-31",
-      active: true,
-    });
-    toast.success("Service pricing saved to draft rules. Click 'Save Rule Changes' to apply.");
-  };
-
-  const handleDeleteService = (id: string) => {
-    setIsDirty(true);
-    setEditableRules((prev: any) => {
-      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-      next.servicePricing = (next.servicePricing || []).filter((s: any) => s.id !== id);
-      return next;
-    });
-    toast.info("Service price rule removed. Remember to commit changes.");
-  };
-
-  // Coupon Handlers
-  const handleSaveCoupon = () => {
-    if (!couponForm.code.trim()) {
-      toast.error("Please enter a coupon code");
-      return;
-    }
-    setIsDirty(true);
-    setEditableRules((prev: any) => {
-      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-      if (!next.discount) next.discount = { minOrderValue: "99", coupons: [] };
-      if (!next.discount.coupons) next.discount.coupons = [];
-      const list = next.discount.coupons;
-      const codeUpper = couponForm.code.trim().toUpperCase();
-      const existingIdx = list.findIndex((c: any) => c.code?.toUpperCase() === codeUpper);
-      if (existingIdx >= 0) {
-        list[existingIdx] = { ...couponForm, code: codeUpper, id: list[existingIdx].id || `cpn-${Date.now()}` };
-      } else {
-        list.push({ ...couponForm, code: codeUpper, id: `cpn-${Date.now()}`, usedCount: "0" });
-      }
-      return next;
-    });
-    setIsAddCouponOpen(false);
-    setCouponForm({
-      id: "",
-      code: "",
-      title: "",
-      type: "flat",
-      discount: "50",
-      maxDiscount: "50",
-      minOrderValue: "299",
-      firstOrderOnly: false,
-      citySpecific: "All",
-      usageLimit: "1000",
-      startDate: "2026-01-01",
-      endDate: "2026-12-31",
-      active: true,
-    });
-    toast.success("Coupon added to draft rules. Remember to commit changes.");
-  };
-
-  const handleDeleteCoupon = (id: string) => {
-    setIsDirty(true);
-    setEditableRules((prev: any) => {
-      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-      if (next.discount?.coupons) {
-        next.discount.coupons = next.discount.coupons.filter((c: any) => c.id !== id);
-      }
-      return next;
-    });
-    toast.info("Coupon deleted. Remember to commit changes.");
   };
 
   // Area Delivery Pricing Handlers
@@ -1701,10 +1551,10 @@ export function FinanceEnginePage() {
 
             {/* Sub Tabs */}
             <Tabs value={rulesSubTab} onValueChange={(v) => setRulesSubTab(v as any)}>
-              <TabsList className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-1 bg-zinc-100 p-1.5 rounded-xl h-auto border border-zinc-200/80">
+              <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 bg-zinc-100 p-1.5 rounded-xl h-auto border border-zinc-200/80">
                 <TabsTrigger value="service-pricing" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
                   <Sparkles className="size-3.5 mr-1 text-emerald-600" />
-                  1. Services
+                  1. Base Pricing & Fees
                 </TabsTrigger>
                 <TabsTrigger value="delivery" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-sky-700 data-[state=active]:shadow-xs">
                   <Truck className="size-3.5 mr-1 text-sky-600" />
@@ -1718,213 +1568,220 @@ export function FinanceEnginePage() {
                   <Receipt className="size-3.5 mr-1 text-purple-600" />
                   4. Tax / GST
                 </TabsTrigger>
-                <TabsTrigger value="fees" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs">
-                  <DollarSign className="size-3.5 mr-1 text-blue-600" />
-                  5. Fees
-                </TabsTrigger>
-                <TabsTrigger value="discount" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-rose-700 data-[state=active]:shadow-xs">
-                  <Gift className="size-3.5 mr-1 text-rose-600" />
-                  6. Coupons
-                </TabsTrigger>
                 <TabsTrigger value="cancellation" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-orange-700 data-[state=active]:shadow-xs">
                   <RotateCcw className="size-3.5 mr-1 text-orange-600" />
-                  7. Refunds
+                  5. Refunds
                 </TabsTrigger>
                 <TabsTrigger value="rider-incentives" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-xs">
                   <Bike className="size-3.5 mr-1 text-teal-600" />
-                  8. Riders
+                  6. Riders
                 </TabsTrigger>
                 <TabsTrigger value="settlement" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs">
                   <Building2 className="size-3.5 mr-1 text-indigo-600" />
-                  9. Settlement
+                  7. Settlement
                 </TabsTrigger>
                 <TabsTrigger value="versioning" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs">
                   <Clock className="size-3.5 mr-1 text-zinc-600" />
-                  10. Versioning
+                  8. Versioning
                 </TabsTrigger>
               </TabsList>
 
               {/* =========================================================================
-                  MODULE A: SERVICE PRICING ENGINE
+                  MODULE A: UNIVERSAL BASE PRICING & CORE FEES
                  ========================================================================= */}
               <TabsContent value="service-pricing" className="mt-4 space-y-4">
                 <SectionCard
-                  title="A. Master Service Item Pricing Engine"
-                  description="Authoritative catalog rates, minimum billing quantities, additional unit rates, and express surcharges across cities."
-                  actions={
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setEditingServiceId(null);
-                        setServiceForm({
-                          id: "",
-                          serviceName: "",
-                          category: "Laundry",
-                          city: "All Cities",
-                          area: "All Areas",
-                          basePrice: "69",
-                          unit: "kg",
-                          additionalUnitPrice: "69",
-                          minQuantity: "1",
-                          expressPrice: "99",
-                          effectiveFrom: "2026-01-01",
-                          effectiveUntil: "2099-12-31",
-                          active: true,
-                        });
-                        setIsAddServiceOpen(true);
-                      }}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1 text-xs"
-                    >
-                      <Plus className="size-3.5" />
-                      <span>Add Service Rule</span>
-                    </Button>
-                  }
+                  title="A. Universal Base Pricing & Core Fees"
+                  description="Centralized base price, express turnaround surcharge, handling fee, and checkout charges applied uniformly across all standard orders."
                 >
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
-                        <tr>
-                          <th className="p-2.5">Service Name & Category</th>
-                          <th className="p-2.5">City / Area</th>
-                          <th className="p-2.5">Unit</th>
-                          <th className="p-2.5">Base Price (₹)</th>
-                          <th className="p-2.5">Addl. Unit (₹)</th>
-                          <th className="p-2.5">Min Qty</th>
-                          <th className="p-2.5">Express (₹)</th>
-                          <th className="p-2.5">Status</th>
-                          <th className="p-2.5 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-200 font-mono text-[11px]">
-                        {(editableRules?.servicePricing || []).map((s: any, idx: number) => (
-                          <tr key={s.id || idx} className="hover:bg-zinc-50 font-sans">
-                            <td className="p-2.5 font-bold text-zinc-900">
-                              <div className="flex items-center gap-1.5">
-                                <span>{s.serviceName}</span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 font-bold">
-                                  {s.category}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="p-2.5 text-zinc-600 font-medium">
-                              {s.city} {s.area && s.area !== "All Areas" ? `(${s.area})` : ""}
-                            </td>
-                            <td className="p-2.5 font-bold uppercase">{s.unit}</td>
-                            <td className="p-2.5">
-                              <Input
-                                type="number"
-                                value={s.basePrice ?? ""}
-                                onChange={(e) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (next.servicePricing[idx]) next.servicePricing[idx].basePrice = e.target.value;
-                                    return next;
-                                  });
-                                }}
-                                className="w-20 font-mono font-bold h-8"
-                              />
-                            </td>
-                            <td className="p-2.5">
-                              <Input
-                                type="number"
-                                value={s.additionalUnitPrice ?? s.basePrice ?? ""}
-                                onChange={(e) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (next.servicePricing[idx]) next.servicePricing[idx].additionalUnitPrice = e.target.value;
-                                    return next;
-                                  });
-                                }}
-                                className="w-20 font-mono font-bold h-8"
-                              />
-                            </td>
-                            <td className="p-2.5">
-                              <Input
-                                type="number"
-                                value={s.minQuantity ?? "1"}
-                                onChange={(e) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (next.servicePricing[idx]) next.servicePricing[idx].minQuantity = e.target.value;
-                                    return next;
-                                  });
-                                }}
-                                className="w-16 font-mono font-bold h-8"
-                              />
-                            </td>
-                            <td className="p-2.5">
-                              <Input
-                                type="number"
-                                value={s.expressPrice ?? ""}
-                                onChange={(e) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (next.servicePricing[idx]) next.servicePricing[idx].expressPrice = e.target.value;
-                                    return next;
-                                  });
-                                }}
-                                className="w-20 font-mono font-bold h-8 text-amber-600"
-                              />
-                            </td>
-                            <td className="p-2.5">
-                              <Switch
-                                checked={s.active !== false}
-                                onCheckedChange={(checked) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (next.servicePricing[idx]) next.servicePricing[idx].active = checked;
-                                    return next;
-                                  });
-                                }}
-                              />
-                            </td>
-                            <td className="p-2.5 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="xs"
-                                  onClick={() => {
-                                    setEditingServiceId(s.id);
-                                    setServiceForm({
-                                      id: s.id,
-                                      serviceName: s.serviceName,
-                                      category: s.category || "Laundry",
-                                      city: s.city || "All Cities",
-                                      area: s.area || "All Areas",
-                                      basePrice: String(s.basePrice || "0"),
-                                      unit: s.unit || "piece",
-                                      additionalUnitPrice: String(s.additionalUnitPrice || s.basePrice || "0"),
-                                      minQuantity: String(s.minQuantity || "1"),
-                                      expressPrice: String(s.expressPrice || "0"),
-                                      effectiveFrom: s.effectiveFrom || "2026-01-01",
-                                      effectiveUntil: s.effectiveUntil || "2099-12-31",
-                                      active: s.active !== false,
-                                    });
-                                    setIsAddServiceOpen(true);
-                                  }}
-                                  className="h-7 px-2 text-xs font-bold"
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="xs"
-                                  onClick={() => handleDeleteService(s.id)}
-                                  className="h-7 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                                >
-                                  <Trash2 className="size-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* 1. Universal Base Price */}
+                    <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-black text-emerald-900 uppercase tracking-wide">
+                          Universal Base Price
+                        </Label>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-bold">
+                          All Orders
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-zinc-400 font-bold text-sm">₹</span>
+                        <Input
+                          type="number"
+                          value={editableRules?.pricing?.universalBasePrice ?? "69"}
+                          onChange={(e) => {
+                            updateField("pricing.universalBasePrice", e.target.value);
+                          }}
+                          className="pl-7 text-xl font-black font-mono h-11 bg-white border-emerald-300 text-emerald-900"
+                          placeholder="69"
+                        />
+                      </div>
+                      <p className="text-[11px] text-emerald-800/80 font-medium">
+                        Standard base service amount applied across all customer orders.
+                      </p>
+                    </div>
+
+                    {/* 2. Universal Express Turnaround Price */}
+                    <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-black text-amber-900 uppercase tracking-wide">
+                          Universal Express Price
+                        </Label>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-900 font-bold">
+                          24h Priority
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-zinc-400 font-bold text-sm">₹</span>
+                        <Input
+                          type="number"
+                          value={editableRules?.pricing?.universalExpressPrice ?? "99"}
+                          onChange={(e) => {
+                            updateField("pricing.universalExpressPrice", e.target.value);
+                          }}
+                          className="pl-7 text-xl font-black font-mono h-11 bg-white border-amber-300 text-amber-900"
+                          placeholder="99"
+                        />
+                      </div>
+                      <p className="text-[11px] text-amber-800/80 font-medium">
+                        Flat express turnaround priority price for quick 24-hour turnaround orders.
+                      </p>
+                    </div>
+
+                    {/* 3. Handling & Packaging Fee */}
+                    <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-black text-blue-900 uppercase tracking-wide">
+                          Order Handling Fee
+                        </Label>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/80 text-blue-900 font-bold">
+                          Packaging & Care
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-2.5 text-zinc-400 font-bold text-sm">
+                            {editableRules?.fees?.handlingFeeType === "percentage" ? "%" : "₹"}
+                          </span>
+                          <Input
+                            type="number"
+                            value={editableRules?.fees?.handlingFee ?? editableRules?.pricing?.handlingFee ?? "15"}
+                            onChange={(e) => {
+                              updateField("fees.handlingFee", e.target.value);
+                              updateField("pricing.handlingFee", e.target.value);
+                            }}
+                            className="pl-7 text-xl font-black font-mono h-11 bg-white border-blue-300 text-blue-900"
+                            placeholder="15"
+                          />
+                        </div>
+                        <Select
+                          value={editableRules?.fees?.handlingFeeType ?? "fixed"}
+                          onValueChange={(v) => {
+                            updateField("fees.handlingFeeType", v);
+                          }}
+                        >
+                          <SelectTrigger className="w-24 h-11 bg-white font-bold text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed ₹</SelectItem>
+                            <SelectItem value="percentage">% Subtotal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-[11px] text-blue-800/80 font-medium">
+                        Sorting, sanitization & packaging fee charged at checkout.
+                      </p>
+                    </div>
+
+                    {/* 4. Platform Convenience Fee */}
+                    <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-black text-purple-900 uppercase tracking-wide">
+                          Platform Convenience Fee
+                        </Label>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-200/80 text-purple-900 font-bold">
+                          Cloud & App
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-2.5 text-zinc-400 font-bold text-sm">
+                            {editableRules?.fees?.platformFeeType === "percentage" ? "%" : "₹"}
+                          </span>
+                          <Input
+                            type="number"
+                            value={editableRules?.fees?.platformFee ?? editableRules?.pricing?.platformFee ?? "10"}
+                            onChange={(e) => {
+                              updateField("fees.platformFee", e.target.value);
+                              updateField("pricing.platformFee", e.target.value);
+                            }}
+                            className="pl-7 text-xl font-black font-mono h-11 bg-white border-purple-300 text-purple-900"
+                            placeholder="10"
+                          />
+                        </div>
+                        <Select
+                          value={editableRules?.fees?.platformFeeType ?? "fixed"}
+                          onValueChange={(v) => {
+                            updateField("fees.platformFeeType", v);
+                          }}
+                        >
+                          <SelectTrigger className="w-24 h-11 bg-white font-bold text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed ₹</SelectItem>
+                            <SelectItem value="percentage">% Subtotal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-[11px] text-purple-800/80 font-medium">
+                        Platform technology infrastructure fee.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Secondary Parameters: Minimum Order Value & Express Turnaround Multiplier */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-1">
+                      <Label className="text-xs font-bold text-zinc-800">Minimum Order Value (MOV) (₹)</Label>
+                      <Input
+                        type="number"
+                        value={editableRules?.pricing?.minimumOrderValue ?? "99"}
+                        onChange={(e) => updateField("pricing.minimumOrderValue", e.target.value)}
+                        className="font-bold font-mono h-9 bg-white"
+                        placeholder="99"
+                      />
+                      <span className="text-[10px] text-zinc-500">Minimum order subtotal required to checkout</span>
+                    </div>
+
+                    <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-1">
+                      <Label className="text-xs font-bold text-zinc-800">Express Multiplier Fallback (x)</Label>
+                      <Input
+                        type="number"
+                        step="0.05"
+                        value={editableRules?.pricing?.expressMultiplier ?? "1.35"}
+                        onChange={(e) => updateField("pricing.expressMultiplier", e.target.value)}
+                        className="font-bold font-mono h-9 bg-white"
+                        placeholder="1.35"
+                      />
+                      <span className="text-[10px] text-zinc-500">Multiplier (+35%) applied if express fee is percentage-based</span>
+                    </div>
+                  </div>
+
+                  {/* Helpful Guidance Notice */}
+                  <div className="p-3.5 bg-zinc-100 rounded-xl border border-zinc-200/80 flex items-start gap-3">
+                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg shrink-0 mt-0.5">
+                      <Sparkles className="size-4" />
+                    </div>
+                    <div className="text-xs space-y-0.5">
+                      <div className="font-bold text-zinc-900">Unified Pricing Architecture</div>
+                      <div className="text-zinc-600">
+                        Individual item-level categories and garment items are managed in the <span className="font-bold text-zinc-800">Services Catalog (/services)</span>. 
+                        The single base price, express turnaround rate, and handling fees configured above are universally computed at checkout for all standard orders.
+                      </div>
+                    </div>
                   </div>
                 </SectionCard>
               </TabsContent>
@@ -2210,206 +2067,100 @@ export function FinanceEnginePage() {
               </TabsContent>
 
               {/* =========================================================================
-                  MODULE C: COMMISSION ENGINE
+                  MODULE C: UNIVERSAL MARKETPLACE COMMISSION
                  ========================================================================= */}
               <TabsContent value="commission" className="mt-4 space-y-4">
-                <SectionCard title="C. Marketplace Commission Engine & Slabs">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <Label className="text-xs font-bold">Commission Calculation Mode</Label>
-                      <Select
-                        value={editableRules?.commission?.partnerCommissionType ?? "tier"}
-                        onValueChange={(v) => updateField("commission.partnerCommissionType", v)}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tier">Volume Tiered (Standard / Silver / Gold)</SelectItem>
-                          <SelectItem value="percentage">Flat Percentage Across Store</SelectItem>
-                          <SelectItem value="fixed">Fixed ₹ Flat Fee Per Order</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Platform Retained Commission (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={editableRules?.commission?.platformCommissionPercent ?? "18"}
-                        onChange={(e) => updateField("commission.platformCommissionPercent", e.target.value)}
-                        className="mt-1 font-bold text-amber-700 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">Fixed Amount Per Order (if Mode = Fixed)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.commission?.fixedAmountPerOrder ?? "0"}
-                        onChange={(e) => updateField("commission.fixedAmountPerOrder", e.target.value)}
-                        className="mt-1 font-bold font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black text-emerald-800 uppercase">Standard Tier</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-bold">&lt; {editableRules?.commission?.silverThreshold ?? 100} orders</span>
+                <SectionCard
+                  title="C. Universal Marketplace Commission Engine"
+                  description="Single standard commission rate retained by QuickPress on all laundry partner earnings uniformly across all orders."
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Primary Universal Commission Rate */}
+                    <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/40 rounded-2xl border border-amber-200/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-black text-amber-900 uppercase tracking-wide">
+                          Platform Retained Commission
+                        </Label>
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 font-bold">
+                          All Partners & Orders
+                        </span>
                       </div>
-                      <Label className="text-xs font-bold">Commission Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={editableRules?.commission?.standardPercent ?? ""}
-                        onChange={(e) => updateField("commission.standardPercent", e.target.value)}
-                        className="mt-1 font-mono text-lg font-black"
-                      />
-                    </div>
-
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black text-slate-800 uppercase">Silver Tier</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-900 font-bold">{editableRules?.commission?.silverThreshold ?? 100} - {(Number(editableRules?.commission?.goldThreshold) || 300) - 1} orders</span>
-                      </div>
-                      <Label className="text-xs font-bold">Commission Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={editableRules?.commission?.silverPercent ?? ""}
-                        onChange={(e) => updateField("commission.silverPercent", e.target.value)}
-                        className="mt-1 font-mono text-lg font-black"
-                      />
-                      <div className="mt-2">
-                        <Label className="text-[11px] font-bold text-zinc-600">Order Threshold (Min)</Label>
+                      <div className="relative">
                         <Input
                           type="number"
-                          value={editableRules?.commission?.silverThreshold ?? ""}
-                          onChange={(e) => updateField("commission.silverThreshold", e.target.value)}
-                          className="mt-1 font-mono text-xs font-bold"
+                          step="0.1"
+                          value={
+                            editableRules?.commission?.platformCommissionPercent ??
+                            editableRules?.commission?.standardPercent ??
+                            "18"
+                          }
+                          onChange={(e) => {
+                            updateField("commission.platformCommissionPercent", e.target.value);
+                            updateField("commission.standardPercent", e.target.value);
+                          }}
+                          className="pr-12 text-3xl font-black font-mono h-14 bg-white border-amber-300 text-amber-900"
+                          placeholder="18"
                         />
+                        <span className="absolute right-4 top-3.5 text-amber-700 font-black text-xl">%</span>
                       </div>
+                      <p className="text-xs text-amber-900/80 font-medium">
+                        Unified commission rate deducted from the laundry service subtotal before merchant payout settlement.
+                      </p>
                     </div>
 
-                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black text-amber-800 uppercase">Gold Tier</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-bold">{editableRules?.commission?.goldThreshold ?? 300}+ orders</span>
+                    {/* Fixed Per-Order Fee (Optional) */}
+                    <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-black text-zinc-900 uppercase tracking-wide">
+                          Fixed Fee Per Order (Optional)
+                        </Label>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-700 font-bold">
+                          Flat Surcharge
+                        </span>
                       </div>
-                      <Label className="text-xs font-bold">Commission Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={editableRules?.commission?.goldPercent ?? ""}
-                        onChange={(e) => updateField("commission.goldPercent", e.target.value)}
-                        className="mt-1 font-mono text-lg font-black"
-                      />
-                      <div className="mt-2">
-                        <Label className="text-[11px] font-bold text-zinc-600">Order Threshold (Min)</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3.5 text-zinc-400 font-bold text-lg">₹</span>
                         <Input
                           type="number"
-                          value={editableRules?.commission?.goldThreshold ?? ""}
-                          onChange={(e) => updateField("commission.goldThreshold", e.target.value)}
-                          className="mt-1 font-mono text-xs font-bold"
+                          value={editableRules?.commission?.fixedAmountPerOrder ?? "0"}
+                          onChange={(e) => updateField("commission.fixedAmountPerOrder", e.target.value)}
+                          className="pl-8 text-2xl font-black font-mono h-14 bg-white text-zinc-900"
+                          placeholder="0"
                         />
+                      </div>
+                      <p className="text-xs text-zinc-500 font-medium">
+                        Optional additional fixed rupee fee per order. Defaults to ₹0 for standard marketplace operations.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Delivery Captain Commission Guarantee Card */}
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-3">
+                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl shrink-0 mt-0.5">
+                      <ShieldCheck className="size-5" />
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="font-black text-emerald-950 uppercase tracking-wide">
+                        Captain Commission Guarantee: 0.0% Commission
+                      </div>
+                      <div className="text-emerald-900 leading-relaxed font-medium">
+                        Delivery Captains are never charged commission. 100% of the customer logistics delivery fee, distance fares, express bonuses, and customer tips are disbursed directly into the captain&apos;s settlement balance.
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
-                    <ShieldCheck className="size-4 shrink-0 text-blue-600" />
-                    <span>
-                      <strong>Captain Commission Guarantee:</strong> Delivery Captains are charged <strong>0.0% commission</strong>.
-                      100% of the customer logistics delivery fee and customer tips are passed directly into the rider&apos;s settlement.
-                    </span>
-                  </div>
-
-                  {/* Category Commission Overrides */}
-                  <div className="border rounded-xl p-3 bg-white space-y-3">
-                    <h4 className="text-xs font-black text-zinc-900 uppercase">
-                      Category Commission Overrides ({editableRules?.commission?.categoryOverrides?.length || 0})
-                    </h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs text-left">
-                        <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
-                          <tr>
-                            <th className="p-2">Category</th>
-                            <th className="p-2">Commission Rate (%)</th>
-                            <th className="p-2">Active</th>
-                            <th className="p-2 text-right">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100 font-mono text-[11px]">
-                          {(editableRules?.commission?.categoryOverrides || []).map((c: any, idx: number) => (
-                            <tr key={c.id || idx}>
-                              <td className="p-2 font-sans font-bold">{c.category}</td>
-                              <td className="p-2">
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  value={c.ratePercent ?? ""}
-                                  onChange={(e) => {
-                                    setIsDirty(true);
-                                    setEditableRules((prev: any) => {
-                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                      if (next.commission.categoryOverrides[idx]) next.commission.categoryOverrides[idx].ratePercent = e.target.value;
-                                      return next;
-                                    });
-                                  }}
-                                  className="w-24 font-bold h-7"
-                                />
-                              </td>
-                              <td className="p-2">
-                                <Switch
-                                  checked={c.active !== false}
-                                  onCheckedChange={(checked) => {
-                                    setIsDirty(true);
-                                    setEditableRules((prev: any) => {
-                                      const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                      if (next.commission.categoryOverrides[idx]) next.commission.categoryOverrides[idx].active = checked;
-                                      return next;
-                                    });
-                                  }}
-                                />
-                              </td>
-                              <td className="p-2 text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="xs"
-                                  onClick={() => handleDeleteCommOverride(c.id)}
-                                  className="h-6 px-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                                >
-                                  <Trash2 className="size-3" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {/* Statutory Tax Deductions Notice */}
+                  <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 text-blue-700 rounded-xl shrink-0 mt-0.5">
+                      <Receipt className="size-5" />
                     </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-zinc-100">
-                      <Input
-                        placeholder="Category (e.g. Dry Cleaning)"
-                        value={newCommOverride.category}
-                        onChange={(e) => setNewCommOverride((p) => ({ ...p, category: e.target.value }))}
-                        className="w-48 text-xs h-8"
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Rate %"
-                        value={newCommOverride.ratePercent}
-                        onChange={(e) => setNewCommOverride((p) => ({ ...p, ratePercent: e.target.value }))}
-                        className="w-24 text-xs font-bold h-8"
-                      />
-                      <Button
-                        size="xs"
-                        onClick={handleAddCommOverride}
-                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold h-8 px-3"
-                      >
-                        <Plus className="size-3.5 mr-1" />
-                        Add Category Override
-                      </Button>
+                    <div className="text-xs space-y-1">
+                      <div className="font-bold text-zinc-900">
+                        Statutory Merchant Deductions (TCS & TDS)
+                      </div>
+                      <div className="text-zinc-600 leading-relaxed">
+                        In accordance with Indian tax statutes, <span className="font-bold text-zinc-800">1.0% Section 194-O TCS</span> and <span className="font-bold text-zinc-800">1.0% Section 194-C TDS</span> are automatically computed and reported in the settlement batch audit trail.
+                      </div>
                     </div>
                   </div>
                 </SectionCard>
@@ -2960,148 +2711,7 @@ export function FinanceEnginePage() {
                 </div>
               </TabsContent>
 
-              {/* =========================================================================
-                  MODULE F: DISCOUNT & COUPON ENGINE
-                 ========================================================================= */}
-              <TabsContent value="discount" className="mt-4 space-y-4">
-                <SectionCard
-                  title="F. Promotional Discount & Coupon Engine"
-                  description="Cart-level discounts, first-order welcome offers, usage caps, and promo code validation rules."
-                  actions={
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setCouponForm({
-                          id: "",
-                          code: "",
-                          title: "",
-                          type: "flat",
-                          discount: "50",
-                          maxDiscount: "50",
-                          minOrderValue: "299",
-                          firstOrderOnly: false,
-                          citySpecific: "All",
-                          usageLimit: "1000",
-                          startDate: "2026-01-01",
-                          endDate: "2026-12-31",
-                          active: true,
-                        });
-                        setIsAddCouponOpen(true);
-                      }}
-                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-1 text-xs"
-                    >
-                      <Plus className="size-3.5" />
-                      <span>Add Coupon</span>
-                    </Button>
-                  }
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <Label className="text-xs font-bold">Cart Minimum Order Value (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.discount?.minOrderValue ?? "99"}
-                        onChange={(e) => updateField("discount.minOrderValue", e.target.value)}
-                        className="mt-1 font-bold font-mono"
-                      />
-                      <span className="text-[10px] text-zinc-500">Minimum subtotal required to use discounts</span>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">First-Order Welcome Discount (%)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.discount?.firstOrderDiscountPercent ?? "20"}
-                        onChange={(e) => updateField("discount.firstOrderDiscountPercent", e.target.value)}
-                        className="mt-1 font-bold font-mono text-rose-600"
-                      />
-                      <span className="text-[10px] text-zinc-500">Auto-applied for new customer first order</span>
-                    </div>
-                    <div>
-                      <Label className="text-xs font-bold">First-Order Max Discount Cap (₹)</Label>
-                      <Input
-                        type="number"
-                        value={editableRules?.discount?.firstOrderMaxDiscount ?? "100"}
-                        onChange={(e) => updateField("discount.firstOrderMaxDiscount", e.target.value)}
-                        className="mt-1 font-bold font-mono text-rose-600"
-                      />
-                      <span className="text-[10px] text-zinc-500">Ceiling cap on first-order discount</span>
-                    </div>
-                  </div>
 
-                  {/* Coupons Table */}
-                  <div className="border rounded-xl overflow-hidden bg-white">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
-                        <tr>
-                          <th className="p-2.5">Code</th>
-                          <th className="p-2.5">Title</th>
-                          <th className="p-2.5">Type & Benefit</th>
-                          <th className="p-2.5">Min Order (₹)</th>
-                          <th className="p-2.5">Max Cap (₹)</th>
-                          <th className="p-2.5">Used / Limit</th>
-                          <th className="p-2.5">Audience</th>
-                          <th className="p-2.5">Status</th>
-                          <th className="p-2.5 text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-200 font-mono text-[11px]">
-                        {(editableRules?.discount?.coupons || []).map((cpn: any, idx: number) => (
-                          <tr key={cpn.id || idx} className="hover:bg-zinc-50 font-sans">
-                            <td className="p-2.5 font-bold font-mono text-rose-700 text-xs">
-                              <span className="px-2 py-0.5 rounded bg-rose-50 border border-rose-200">
-                                {cpn.code}
-                              </span>
-                            </td>
-                            <td className="p-2.5 font-medium">{cpn.title}</td>
-                            <td className="p-2.5 font-mono font-bold">
-                              {cpn.type === "percent" ? `${cpn.discount}% OFF` : `₹${cpn.discount} FLAT`}
-                            </td>
-                            <td className="p-2.5 font-mono">₹{cpn.minOrderValue}</td>
-                            <td className="p-2.5 font-mono">₹{cpn.maxDiscount}</td>
-                            <td className="p-2.5 font-mono">
-                              {cpn.usedCount || 0} / {cpn.usageLimit || "∞"}
-                            </td>
-                            <td className="p-2.5">
-                              {cpn.firstOrderOnly ? (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                                  1st Order Only
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                                  All Orders
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-2.5">
-                              <Switch
-                                checked={cpn.active !== false}
-                                onCheckedChange={(checked) => {
-                                  setIsDirty(true);
-                                  setEditableRules((prev: any) => {
-                                    const next = JSON.parse(JSON.stringify(prev || DEFAULT_FINANCIAL_RULES));
-                                    if (next.discount?.coupons[idx]) next.discount.coupons[idx].active = checked;
-                                    return next;
-                                  });
-                                }}
-                              />
-                            </td>
-                            <td className="p-2.5 text-right">
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                onClick={() => handleDeleteCoupon(cpn.id)}
-                                className="h-7 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </SectionCard>
-              </TabsContent>
 
               {/* =========================================================================
                   MODULE G: CANCELLATION & REFUND RULES
@@ -4406,285 +4016,6 @@ export function FinanceEnginePage() {
           </TabsContent>
         </Tabs>
 
-        {/* Add / Edit Service Pricing Modal */}
-        <Dialog open={isAddServiceOpen} onOpenChange={setIsAddServiceOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="size-5 text-emerald-600" />
-                <span>{editingServiceId ? "Edit Service Price Rule" : "Add Service Price Rule"}</span>
-              </DialogTitle>
-              <DialogDescription>
-                Authoritative pricing catalog rule governing checkout totals and partner credit.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 text-xs">
-              <div className="sm:col-span-2">
-                <Label className="text-xs font-bold">Service Name</Label>
-                <Input
-                  value={serviceForm.serviceName}
-                  onChange={(e) => setServiceForm((p) => ({ ...p, serviceName: e.target.value }))}
-                  placeholder="e.g. Wash & Steam Iron"
-                  className="mt-1 font-bold"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Category</Label>
-                <Select
-                  value={serviceForm.category}
-                  onValueChange={(v) => setServiceForm((p) => ({ ...p, category: v }))}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Laundry">Laundry</SelectItem>
-                    <SelectItem value="Ironing">Ironing</SelectItem>
-                    <SelectItem value="Dry Cleaning">Dry Cleaning</SelectItem>
-                    <SelectItem value="Shoe Care">Shoe Care</SelectItem>
-                    <SelectItem value="Special">Special Cleaning</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Billing Unit</Label>
-                <Select
-                  value={serviceForm.unit}
-                  onValueChange={(v) => setServiceForm((p) => ({ ...p, unit: v }))}
-                >
-                  <SelectTrigger className="mt-1 font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="kg">Per Kilogram (kg)</SelectItem>
-                    <SelectItem value="piece">Per Piece</SelectItem>
-                    <SelectItem value="pair">Per Pair</SelectItem>
-                    <SelectItem value="set">Per Set</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Base Price (₹)</Label>
-                <Input
-                  type="number"
-                  value={serviceForm.basePrice}
-                  onChange={(e) => setServiceForm((p) => ({ ...p, basePrice: e.target.value }))}
-                  className="mt-1 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Additional Unit Price (₹)</Label>
-                <Input
-                  type="number"
-                  value={serviceForm.additionalUnitPrice}
-                  onChange={(e) => setServiceForm((p) => ({ ...p, additionalUnitPrice: e.target.value }))}
-                  className="mt-1 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Min Quantity</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={serviceForm.minQuantity}
-                  onChange={(e) => setServiceForm((p) => ({ ...p, minQuantity: e.target.value }))}
-                  className="mt-1 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Express Surcharge Price (₹)</Label>
-                <Input
-                  type="number"
-                  value={serviceForm.expressPrice}
-                  onChange={(e) => setServiceForm((p) => ({ ...p, expressPrice: e.target.value }))}
-                  className="mt-1 font-mono font-bold text-amber-600"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">City Territory</Label>
-                <Input
-                  value={serviceForm.city}
-                  onChange={(e) => setServiceForm((p) => ({ ...p, city: e.target.value }))}
-                  placeholder="All Cities or Kasganj"
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Area Territory</Label>
-                <Input
-                  value={serviceForm.area}
-                  onChange={(e) => setServiceForm((p) => ({ ...p, area: e.target.value }))}
-                  placeholder="All Areas or Soron Gate"
-                  className="mt-1"
-                />
-              </div>
-
-              <div className="sm:col-span-2 flex items-center justify-between p-2.5 bg-zinc-50 rounded-lg border border-zinc-200 mt-1">
-                <div>
-                  <span className="font-bold text-xs text-zinc-900 block">Service Status</span>
-                  <span className="text-[11px] text-zinc-500">Enable this service in the customer catalog</span>
-                </div>
-                <Switch
-                  checked={serviceForm.active}
-                  onCheckedChange={(checked) => setServiceForm((p) => ({ ...p, active: checked }))}
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddServiceOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveService} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
-                {editingServiceId ? "Update Service Rule" : "Add Service Rule"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Add Promotional Coupon Modal */}
-        <Dialog open={isAddCouponOpen} onOpenChange={setIsAddCouponOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Gift className="size-5 text-rose-600" />
-                <span>Create Promotional Coupon</span>
-              </DialogTitle>
-              <DialogDescription>
-                Promotional discount code rules enforced authoritatively by the pricing engine.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2 text-xs">
-              <div>
-                <Label className="text-xs font-bold">Coupon Code</Label>
-                <Input
-                  value={couponForm.code}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
-                  placeholder="e.g. MONSOON30"
-                  className="mt-1 font-mono uppercase font-black"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Display Title</Label>
-                <Input
-                  value={couponForm.title}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="e.g. 30% Off on Laundry"
-                  className="mt-1 font-medium"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Discount Type</Label>
-                <Select
-                  value={couponForm.type}
-                  onValueChange={(v: any) => setCouponForm((p) => ({ ...p, type: v }))}
-                >
-                  <SelectTrigger className="mt-1 font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="flat">Flat ₹ Discount</SelectItem>
-                    <SelectItem value="percent">Percentage % Off</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">
-                  {couponForm.type === "percent" ? "Discount Rate (%)" : "Flat Discount (₹)"}
-                </Label>
-                <Input
-                  type="number"
-                  value={couponForm.discount}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, discount: e.target.value }))}
-                  className="mt-1 font-mono font-bold text-rose-600"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Max Discount Cap (₹)</Label>
-                <Input
-                  type="number"
-                  value={couponForm.maxDiscount}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, maxDiscount: e.target.value }))}
-                  className="mt-1 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Minimum Order Value (₹)</Label>
-                <Input
-                  type="number"
-                  value={couponForm.minOrderValue}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, minOrderValue: e.target.value }))}
-                  className="mt-1 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Total Usage Limit</Label>
-                <Input
-                  type="number"
-                  value={couponForm.usageLimit}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, usageLimit: e.target.value }))}
-                  className="mt-1 font-mono font-bold"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-lg border border-zinc-200">
-                <div>
-                  <span className="font-bold text-xs text-zinc-900 block">First Order Only?</span>
-                  <span className="text-[10px] text-zinc-500">Limit to new users</span>
-                </div>
-                <Switch
-                  checked={couponForm.firstOrderOnly}
-                  onCheckedChange={(checked) => setCouponForm((p) => ({ ...p, firstOrderOnly: checked }))}
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">Start Date</Label>
-                <Input
-                  type="date"
-                  value={couponForm.startDate}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, startDate: e.target.value }))}
-                  className="mt-1 font-mono"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">End Date</Label>
-                <Input
-                  type="date"
-                  value={couponForm.endDate}
-                  onChange={(e) => setCouponForm((p) => ({ ...p, endDate: e.target.value }))}
-                  className="mt-1 font-mono"
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddCouponOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveCoupon} className="bg-rose-600 hover:bg-rose-700 text-white font-bold">
-                Save Promotional Coupon
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Save Rules Confirmation Modal */}
         <Dialog open={isSaveModalOpen} onOpenChange={setIsSaveModalOpen}>
