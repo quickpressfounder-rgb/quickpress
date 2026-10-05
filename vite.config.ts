@@ -1,27 +1,17 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,
-//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
-//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
+// QuickPress Multi-App Vite Configuration
+// Bundles TanStack Start, React 19, Tailwind CSS v4, Nitro, and TypeScript path aliases.
 //
 // PRODUCTION PARTNER ENTRY POINT (default)
 // ----------------------------------------
-// The root build IS the deployed Partner application. It used to compile the
-// legacy mock-backed Partner Console in ./src; production now compiles the real
-// API-connected Partner app in ./partner-frontend/src (same code that
-// `cd partner-frontend && npm run build` produces), while ./src is kept intact
-// for legacy/development use.
+// The root build compiles the production Partner application in ./partner-frontend/src.
 //
-// CUSTOMER PREVIEW SWITCH
-// -----------------------
-// Production/build output is UNCHANGED: `vite build` at the root still compiles
-// the Partner app. Only the dev server (the Lovable preview) defaults to the
-// existing migrated Customer app in ./customer-frontend/src so it can be
-// manually tested. Override explicitly at any time:
-//   QUICKPRESS_APP=partner  -> Partner in dev too
-//   QUICKPRESS_APP=customer -> Customer for build as well
-// No Partner/Customer source or per-app config is modified by this switch.
+// APP SWITCH
+// ----------
+// Override target frontend explicitly via QUICKPRESS_APP:
+//   QUICKPRESS_APP=partner  -> Partner App
+//   QUICKPRESS_APP=customer -> Customer App
+//   QUICKPRESS_APP=admin    -> Admin Console
+//   QUICKPRESS_APP=rider    -> Delivery Captain App
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
