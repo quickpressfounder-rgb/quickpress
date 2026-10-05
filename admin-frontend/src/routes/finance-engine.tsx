@@ -43,6 +43,7 @@ import {
   Tag,
   CalendarCheck,
   ArrowRight,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +52,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
 import { Switch } from "@/shared/ui/switch";
+import { Badge } from "@/shared/ui/badge";
 import {
   Dialog,
   DialogContent,
