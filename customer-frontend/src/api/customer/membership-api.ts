@@ -217,8 +217,106 @@ export function formatMembershipPrice(amount: number): string {
 }
 
 function toPlanId(value: string | undefined | null): MembershipPlanId {
-  return PLAN_IDS.includes(value as MembershipPlanId) ? (value as MembershipPlanId) : "free";
+  if (!value) return "free";
+  return String(value).toLowerCase().trim();
 }
+
+export const DEFAULT_MEMBERSHIP_PLANS: MembershipPlan[] = [
+  {
+    id: "silver",
+    name: "Silver VIP",
+    tagline: "5 Free deliveries/mo + 10% discount on laundry",
+    monthlyPrice: 99,
+    yearlyPrice: 999,
+    yearlySavings: 189,
+    savingsLabel: "Save ₹189 a year",
+    validityDays: 30,
+    yearlyValidityDays: 365,
+    validityLabel: "Valid for 30 days",
+    popular: false,
+    order: 1,
+    monthlyOrderLimit: 5,
+    monthlyWeightLimitKg: 20,
+    freeExpressCount: 1,
+    benefits: [
+      { id: "free-pickup", title: "Free Doorstep Pickup", description: "Doorstep pickup at ₹0 on every order", icon: "package", plans: ["silver", "gold", "platinum", "elite"] },
+      { id: "free-delivery", title: "5 Free Deliveries / mo", description: "Free doorstep delivery on orders above ₹149", icon: "truck", plans: ["silver", "gold", "platinum", "elite"] },
+      { id: "extra-discount", title: "10% Laundry Discount", description: "Flat 10% discount on all washing & ironing", icon: "percent", plans: ["silver", "gold", "platinum", "elite"] },
+      { id: "free-express", title: "1 Free Express Pickup", description: "Priority 24h wash & press", icon: "clock", plans: ["silver", "gold", "platinum", "elite"] },
+    ],
+  },
+  {
+    id: "gold",
+    name: "Gold VIP",
+    tagline: "15 Free deliveries/mo + 15% discount & priority queue",
+    monthlyPrice: 199,
+    yearlyPrice: 1990,
+    yearlySavings: 398,
+    savingsLabel: "Save ₹398 a year",
+    validityDays: 30,
+    yearlyValidityDays: 365,
+    validityLabel: "Valid for 30 days",
+    popular: true,
+    order: 2,
+    monthlyOrderLimit: 15,
+    monthlyWeightLimitKg: 50,
+    freeExpressCount: 3,
+    benefits: [
+      { id: "free-pickup", title: "Free Doorstep Pickup", description: "Doorstep pickup at ₹0 on every order", icon: "package", plans: ["silver", "gold", "platinum", "elite"] },
+      { id: "free-delivery", title: "15 Free Deliveries / mo", description: "Free delivery with zero surge fees", icon: "truck", plans: ["silver", "gold", "platinum", "elite"] },
+      { id: "extra-discount", title: "15% Laundry Discount", description: "Extra 15% discount on all services", icon: "percent", plans: ["gold", "platinum", "elite"] },
+      { id: "priority-processing", title: "Priority Wash Queue", description: "Jump the queue with prioritized machine cycles", icon: "zap", plans: ["gold", "platinum", "elite"] },
+      { id: "free-express", title: "3 Free Express Pickups", description: "24-hour turnaround guaranteed", icon: "clock", plans: ["gold", "platinum", "elite"] },
+    ],
+  },
+  {
+    id: "platinum",
+    name: "Platinum VIP",
+    tagline: "30 Free deliveries/mo + 20% discount & Free Surge waiver",
+    monthlyPrice: 349,
+    yearlyPrice: 3490,
+    yearlySavings: 698,
+    savingsLabel: "Save ₹698 a year",
+    validityDays: 30,
+    yearlyValidityDays: 365,
+    validityLabel: "Valid for 30 days",
+    popular: false,
+    order: 3,
+    monthlyOrderLimit: 30,
+    monthlyWeightLimitKg: 100,
+    freeExpressCount: 10,
+    benefits: [
+      { id: "free-pickup", title: "Free Doorstep Pickup", description: "Doorstep pickup at ₹0 on every order", icon: "package", plans: ["silver", "gold", "platinum", "elite"] },
+      { id: "free-delivery", title: "30 Free Deliveries / mo", description: "Unlimited doorstep delivery waiver", icon: "truck", plans: ["platinum", "elite"] },
+      { id: "extra-discount", title: "20% Laundry Discount", description: "20% off all laundry, steam press & shoe care", icon: "percent", plans: ["platinum", "elite"] },
+      { id: "free-express", title: "10 Free Express Deliveries", description: "Fastest express delivery at zero surcharge", icon: "clock", plans: ["platinum", "elite"] },
+      { id: "surge-waiver", title: "Surge & Rain Protection", description: "Never pay surge during monsoons or peak hours", icon: "sparkles", plans: ["platinum", "elite"] },
+    ],
+  },
+  {
+    id: "elite",
+    name: "Elite VIP",
+    tagline: "Unlimited Free Deliveries + 25% Off + Personal Concierge",
+    monthlyPrice: 599,
+    yearlyPrice: 5990,
+    yearlySavings: 1198,
+    savingsLabel: "Save ₹1,198 a year",
+    validityDays: 30,
+    yearlyValidityDays: 365,
+    validityLabel: "Valid for 30 days",
+    popular: false,
+    order: 4,
+    monthlyOrderLimit: 999,
+    monthlyWeightLimitKg: 999,
+    freeExpressCount: 999,
+    benefits: [
+      { id: "free-pickup", title: "Free Doorstep Pickup", description: "Doorstep pickup at ₹0 on every order", icon: "package", plans: ["elite"] },
+      { id: "free-delivery", title: "Unlimited Free Deliveries", description: "No minimum order requirement", icon: "truck", plans: ["elite"] },
+      { id: "extra-discount", title: "25% Laundry Discount", description: "Maximum platform discount across all categories", icon: "percent", plans: ["elite"] },
+      { id: "concierge-support", title: "Personal Concierge", description: "Dedicated relationship manager for all orders", icon: "headphones", plans: ["elite"] },
+    ],
+  },
+];
 
 function toBenefit(raw: RawBenefit, index: number): MembershipBenefit {
   return {
@@ -231,13 +329,14 @@ function toBenefit(raw: RawBenefit, index: number): MembershipBenefit {
 }
 
 function toPlan(raw: RawPlan, index: number): MembershipPlan {
+  const planId = toPlanId(raw.id);
   const monthly = Number(raw.monthlyPrice ?? 0);
   const yearly = Number(raw.yearlyPrice ?? 0);
   const savings = Number(raw.yearlySavings ?? Math.max(monthly * 12 - yearly, 0));
   const validityDays = Number(raw.validityDays ?? 30);
   return {
-    id: toPlanId(raw.id),
-    name: raw.name ?? "Plan",
+    id: planId,
+    name: raw.name ?? (planId ? planId.charAt(0).toUpperCase() + planId.slice(1) : "Plan"),
     tagline: raw.tagline ?? "",
     monthlyPrice: monthly,
     yearlyPrice: yearly,
@@ -248,6 +347,9 @@ function toPlan(raw: RawPlan, index: number): MembershipPlan {
     validityLabel: `Valid for ${validityDays} days`,
     popular: raw.popular ?? false,
     order: Number(raw.order ?? index + 1),
+    monthlyOrderLimit: Number((raw as any).monthlyOrderLimit ?? (raw as any).monthly_order_limit ?? 0),
+    monthlyWeightLimitKg: Number((raw as any).monthlyWeightLimitKg ?? (raw as any).monthly_weight_limit_kg ?? 0),
+    freeExpressCount: Number((raw as any).freeExpressCount ?? (raw as any).free_express_count ?? 0),
     benefits: (raw.benefits ?? []).map(toBenefit),
   };
 }
@@ -397,8 +499,9 @@ function cachedPlans(stale: boolean): MembershipPlans | null {
   const filtered = (value.plans ?? [])
     .map(toPlan)
     .filter((p) => p.id !== "free" && p.monthlyPrice > 0);
+  const list = filtered.length > 0 ? filtered : DEFAULT_MEMBERSHIP_PLANS;
   return {
-    plans: filtered,
+    plans: list,
     currentPlanId: toPlanId(value.currentPlanId),
     fromCache: true,
   };
@@ -409,30 +512,31 @@ export async function fetchMembershipPlans(
 ): Promise<MembershipPlans> {
   if (!options.forceRefresh) {
     const fresh = cachedPlans(false);
-    if (fresh) return fresh;
-  }
-  if (!isOnline()) {
-    const stale = cachedPlans(true);
-    if (stale) return stale;
-    throw new ApiError("offline", "Device is offline");
+    if (fresh && fresh.plans.length > 0) return fresh;
   }
   try {
     const raw = await apiGetJson<RawPlans>("/api/membership/plans", {
       ...(options.signal ? { signal: options.signal } : {}),
     });
     writeCache(CACHE_KEYS.membershipPlans, raw);
-    const filtered = (raw.plans ?? [])
+    const mapped = (raw.plans ?? [])
       .map(toPlan)
       .filter((p) => p.id !== "free" && p.monthlyPrice > 0);
+    const list = mapped.length > 0 ? mapped : DEFAULT_MEMBERSHIP_PLANS;
     return {
-      plans: filtered,
+      plans: list,
       currentPlanId: toPlanId(raw.currentPlanId),
       fromCache: false,
     };
   } catch (error) {
+    console.warn("Could not fetch live membership plans from server, using default active catalogue:", error);
     const stale = cachedPlans(true);
-    if (stale) return stale;
-    throw error;
+    if (stale && stale.plans.length > 0) return stale;
+    return {
+      plans: DEFAULT_MEMBERSHIP_PLANS,
+      currentPlanId: "free",
+      fromCache: true,
+    };
   }
 }
 

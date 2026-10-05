@@ -341,6 +341,11 @@ class MembershipRepository:
         documents = await database.find_many(BENEFITS, {})
         if not documents:
             documents = [dict(item) for item in BENEFIT_SEED]
+            for doc in documents:
+                try:
+                    await database.insert_one(BENEFITS, dict(doc))
+                except Exception:
+                    pass
         documents.sort(key=lambda doc: int(doc.get("order") or 0))
         return documents
 
@@ -348,6 +353,11 @@ class MembershipRepository:
         documents = await database.find_many(PLANS, {"status": {"$ne": "Archived"}})
         if not documents:
             documents = [dict(item) for item in PLAN_SEED]
+            for doc in documents:
+                try:
+                    await database.insert_one(PLANS, dict(doc))
+                except Exception:
+                    pass
         documents = [
             d for d in documents
             if str(d.get("_id") or d.get("id") or "").lower() != "free"
@@ -412,11 +422,17 @@ class MembershipRepository:
             benefits=unique,
         )
 
-    async def plans(self, user: User) -> MembershipPlansResponse:
+    async def plans(self, user: Optional[User] = None) -> MembershipPlansResponse:
         benefits = await self._benefit_documents()
         plans = [self._plan_model(doc, benefits) for doc in await self._plan_documents()]
-        membership = await self.current(user)
-        return MembershipPlansResponse(plans=plans, currentPlanId=membership.planId)
+        current_plan_id = "free"
+        if user is not None:
+            try:
+                membership = await self.current(user)
+                current_plan_id = membership.planId
+            except Exception:
+                current_plan_id = "free"
+        return MembershipPlansResponse(plans=plans, currentPlanId=current_plan_id)
 
     async def get_user_membership_perks(self, user_id: str) -> Dict[str, Any]:
         """Evaluate active membership perks for cart & checkout."""
@@ -476,13 +492,19 @@ class MembershipRepository:
             "total_orders": order_limit,
         }
 
-    async def benefits(self, user: User) -> MembershipBenefitsResponse:
+    async def benefits(self, user: Optional[User] = None) -> MembershipBenefitsResponse:
         documents = await self._benefit_documents()
         items = [self._benefit_model(doc) for doc in documents]
-        membership = await self.current(user)
-        active = [item for item in items if membership.planId in item.plans]
+        plan_id = "free"
+        if user is not None:
+            try:
+                membership = await self.current(user)
+                plan_id = membership.planId
+            except Exception:
+                plan_id = "free"
+        active = [item for item in items if plan_id in item.plans]
         return MembershipBenefitsResponse(
-            items=items, activeBenefits=active, planId=membership.planId
+            items=items, activeBenefits=active, planId=plan_id
         )
 
     async def _plan_by_id(self, plan_id: str) -> Optional[MembershipPlan]:
@@ -652,7 +674,9 @@ class MembershipRepository:
         )
 
 
-    async def current(self, user: User) -> MembershipResponse:
+    async def current(self, user: Optional[User] = None) -> MembershipResponse:
+        if user is None:
+            return await self._project(None)
         document = await self._document(user)
         if document is not None:
             document = await self._expire_if_needed(document)

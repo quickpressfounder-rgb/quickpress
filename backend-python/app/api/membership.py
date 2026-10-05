@@ -12,9 +12,10 @@ Every route requires a bearer token and is scoped to `current_user`.
 
 from __future__ import annotations
 
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.deps import current_user
+from app.core.deps import current_user, optional_user
 from app.db.membership_repositories import MembershipConflict, membership_repository
 from app.models.membership import (
     CancelPayload,
@@ -32,12 +33,16 @@ router = APIRouter(tags=["membership"])
 
 
 @router.get("/membership/plans", response_model=MembershipPlansResponse)
-async def membership_plans(user: User = Depends(current_user)) -> MembershipPlansResponse:
+async def membership_plans(
+    user: Optional[User] = Depends(optional_user),
+) -> MembershipPlansResponse:
     return await membership_repository.plans(user)
 
 
 @router.get("/membership/benefits", response_model=MembershipBenefitsResponse)
-async def membership_benefits(user: User = Depends(current_user)) -> MembershipBenefitsResponse:
+async def membership_benefits(
+    user: Optional[User] = Depends(optional_user),
+) -> MembershipBenefitsResponse:
     return await membership_repository.benefits(user)
 
 
@@ -47,7 +52,9 @@ async def membership_history(user: User = Depends(current_user)) -> MembershipHi
 
 
 @router.get("/membership", response_model=MembershipResponse)
-async def membership_dashboard(user: User = Depends(current_user)) -> MembershipResponse:
+async def membership_dashboard(
+    user: Optional[User] = Depends(optional_user),
+) -> MembershipResponse:
     return await membership_repository.current(user)
 
 

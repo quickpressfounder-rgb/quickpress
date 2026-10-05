@@ -41,6 +41,7 @@ import {
   formatMembershipDate,
   formatMembershipPrice,
   subscribeMembership,
+  DEFAULT_MEMBERSHIP_PLANS,
   type BillingCycle,
   type Membership,
   type MembershipHistory,
@@ -213,7 +214,11 @@ function MembershipScreen() {
   const { session } = useAuthGuard();
   const navigate = useNavigate();
   const [membership, setMembership] = useState<Membership | null>(null);
-  const [plans, setPlans] = useState<MembershipPlans | null>(null);
+  const [plans, setPlans] = useState<MembershipPlans>({
+    plans: DEFAULT_MEMBERSHIP_PLANS,
+    currentPlanId: "free",
+    fromCache: true,
+  });
   const [history, setHistory] = useState<MembershipHistory | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -229,13 +234,28 @@ function MembershipScreen() {
     if (options.refresh) setRefreshing(true);
     setError(null);
     try {
-      const [current, catalogue] = await Promise.all([
+      const [currentRes, catalogueRes] = await Promise.allSettled([
         fetchMembership(options.refresh ? { forceRefresh: true } : {}),
         fetchMembershipPlans(options.refresh ? { forceRefresh: true } : {}),
       ]);
-      setMembership(current);
-      setPlans(catalogue);
+      if (currentRes.status === "fulfilled") {
+        setMembership(currentRes.value);
+      }
+      if (catalogueRes.status === "fulfilled" && catalogueRes.value.plans.length > 0) {
+        setPlans(catalogueRes.value);
+      } else {
+        setPlans({
+          plans: DEFAULT_MEMBERSHIP_PLANS,
+          currentPlanId: "free",
+          fromCache: true,
+        });
+      }
     } catch (caught) {
+      setPlans({
+        plans: DEFAULT_MEMBERSHIP_PLANS,
+        currentPlanId: "free",
+        fromCache: true,
+      });
       setError(isApiError(caught) ? caught.userMessage : "We couldn't load your membership.");
     } finally {
       setRefreshing(false);
