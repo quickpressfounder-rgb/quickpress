@@ -83,12 +83,22 @@ function HelpScreen() {
   const navigate = useNavigate();
   const contact = fetchSupportContact();
   const allTopics = fetchHelpTopics();
-  const [faqList, setFaqList] = useState<FaqList | null>(() => readCachedFaqs());
-  const [categories, setCategories] = useState<FaqCategory[]>(
-    () => readCachedFaqs()?.categories ?? [],
-  );
+  const [faqList, setFaqList] = useState<FaqList | null>(null);
+  const [categories, setCategories] = useState<FaqCategory[]>([]);
   const [faqsLoading, setFaqsLoading] = useState(true);
-  const [tickets, setTickets] = useState<SupportTicket[]>(() => readCachedTickets()?.items ?? []);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+
+  useEffect(() => {
+    const cachedFaqs = readCachedFaqs();
+    if (cachedFaqs) {
+      setFaqList(cachedFaqs);
+      setCategories(cachedFaqs.categories ?? []);
+    }
+    const cachedTix = readCachedTickets();
+    if (cachedTix?.items) {
+      setTickets(cachedTix.items);
+    }
+  }, []);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState("");

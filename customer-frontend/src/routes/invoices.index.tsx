@@ -64,9 +64,16 @@ const STATUS_LABEL: Record<InvoiceStatus, string> = {
 function InvoicesScreen() {
   useAuthGuard();
   const navigate = useNavigate();
-  const cached = readCachedInvoices();
-  const [invoices, setInvoices] = useState<Invoice[] | null>(cached?.items ?? null);
-  const [totalAmount, setTotalAmount] = useState(cached?.totalAmount ?? 0);
+  const [invoices, setInvoices] = useState<Invoice[] | null>(null);
+  const [totalAmount, setTotalAmount] = useState(0);
+
+  useEffect(() => {
+    const cached = readCachedInvoices();
+    if (cached) {
+      setInvoices(cached.items ?? null);
+      setTotalAmount(cached.totalAmount ?? 0);
+    }
+  }, []);
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");

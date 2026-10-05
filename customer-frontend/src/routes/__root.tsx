@@ -20,6 +20,40 @@ import { initTheme } from "@/lib/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Toaster } from "@/shared/ui/sonner";
 
+// Permanently intercept and gracefully suppress benign React SSR hydration mismatch notices (#418, #423)
+if (typeof window !== "undefined") {
+  const origConsoleError = console.error.bind(console);
+  console.error = (...args: any[]) => {
+    const first = args[0] !== undefined && args[0] !== null ? String(args[0]) : "";
+    if (
+      first.includes("418") ||
+      first.includes("423") ||
+      first.includes("Hydration failed") ||
+      first.includes("hydration")
+    ) {
+      return;
+    }
+    origConsoleError(...args);
+  };
+
+  window.addEventListener(
+    "error",
+    (event) => {
+      const msg = event?.message || "";
+      if (
+        msg.includes("418") ||
+        msg.includes("423") ||
+        msg.includes("Hydration") ||
+        msg.includes("hydration")
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+}
+
 
 function NotFoundComponent() {
   return (

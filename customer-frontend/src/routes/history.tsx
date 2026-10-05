@@ -64,7 +64,12 @@ const STATUS_META: Record<OrderStatus, { label: string; icon: typeof Clock; tone
 function HistoryScreen() {
   useAuthGuard();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<OrderRecord[] | null>(() => readCachedOrderHistory());
+  const [orders, setOrders] = useState<OrderRecord[] | null>(null);
+
+  useEffect(() => {
+    const cached = readCachedOrderHistory();
+    if (cached) setOrders(cached);
+  }, []);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState("");
