@@ -80,6 +80,7 @@ import { CodManagementView } from "../components/finance/CodManagementView";
 import { ReconciliationView } from "../components/finance/ReconciliationView";
 import { UnitEconomicsView } from "../components/finance/UnitEconomicsView";
 import { MembershipFinanceView } from "../components/finance/MembershipFinanceView";
+import { ExpenseTrackerNetProfitView } from "../components/finance/ExpenseTrackerNetProfitView";
 import {
   fetchFinancialRules,
   updateFinancialRules,
@@ -888,6 +889,7 @@ export function FinanceEnginePage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<
     | "overview"
+    | "expenses"
     | "general-ledger"
     | "cod"
     | "recon"
@@ -1354,6 +1356,17 @@ export function FinanceEnginePage() {
             >
               <Activity className="size-3.5" />
               <span>Overview & P&L</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="expenses"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Wallet className="size-3.5 text-emerald-600" />
+              <span>Expense & Net Profit</span>
+              <Badge className="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                REAL P&L
+              </Badge>
             </TabsTrigger>
 
             <TabsTrigger
@@ -4013,6 +4026,13 @@ export function FinanceEnginePage() {
              ========================================================================= */}
           <TabsContent value="memberships" className="mt-6 space-y-6">
             <MembershipFinanceView />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 6: OPERATING EXPENSES & REAL NET IN-HAND PROFIT (PAT)
+             ========================================================================= */}
+          <TabsContent value="expenses" className="mt-6 space-y-6">
+            <ExpenseTrackerNetProfitView />
           </TabsContent>
         </Tabs>
 

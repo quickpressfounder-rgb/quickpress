@@ -807,3 +807,84 @@ export async function fetchActiveMembers(params?: Record<string, any>): Promise<
   return await apiGetJson("/api/membership-finance/members", params);
 }
 
+// --------------------------------------------------------------------------
+// BUSINESS EXPENSES & REAL NET PROFIT REPORTING
+// --------------------------------------------------------------------------
+
+export interface BusinessExpense {
+  id: string;
+  title: string;
+  category: "MARKETING" | "SERVERS_TECH" | "PACKAGING" | "STAFF_OFFICE" | "LOGISTICS" | "MISC" | string;
+  amount: number;
+  date: string;
+  paymentMode: "UPI" | "BANK_TRANSFER" | "CARD" | "CASH" | string;
+  status: "PAID" | "PENDING_APPROVAL" | string;
+  notes?: string;
+  addedBy?: string;
+  createdAt?: string;
+}
+
+export interface NetProfitReport {
+  ok: boolean;
+  totalOrders: number;
+  currency: string;
+  inflows: {
+    grossGmv: number;
+    label: string;
+  };
+  outflows: {
+    partnerPayouts: number;
+    riderPayouts: number;
+    taxesAndGst: number;
+    gatewayCharges: number;
+    totalDirectCosts: number;
+    operatingExpenses: number;
+    totalOutflows: number;
+  };
+  profitability: {
+    grossProfit: number;
+    grossMarginPct: number;
+    realNetProfit: number;
+    netProfitMarginPct: number;
+    isProfitable: boolean;
+  };
+  opexBreakdown: Record<string, number>;
+  waterfallPer100: {
+    customerInflow: number;
+    partnerShare: number;
+    riderShare: number;
+    taxesAndGst: number;
+    gatewayFees: number;
+    operatingExpenses: number;
+    netProfitInHand: number;
+  };
+}
+
+export async function fetchExpenses(category?: string): Promise<{
+  ok: boolean;
+  expenses: BusinessExpense[];
+  totalCount: number;
+  totalOpex: number;
+  byCategory: Record<string, number>;
+}> {
+  return await apiGetJson("/api/finance-engine/expenses", category && category !== "ALL" ? { category } : undefined);
+}
+
+export async function createExpense(payload: Partial<BusinessExpense>): Promise<{
+  ok: boolean;
+  expense: BusinessExpense;
+}> {
+  return await apiPostJson("/api/finance-engine/expenses", payload);
+}
+
+export async function deleteExpense(expenseId: string): Promise<{
+  ok: boolean;
+  deletedId: string;
+}> {
+  return await apiPostJson(`/api/finance-engine/expenses/${expenseId}/delete`, {});
+}
+
+export async function fetchNetProfitReport(): Promise<NetProfitReport> {
+  return await apiGetJson("/api/finance-engine/net-profit-report");
+}
+

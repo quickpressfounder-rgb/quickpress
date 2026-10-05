@@ -347,3 +347,40 @@ async def get_audit_logs(limit: int = Query(default=50, le=200)) -> Dict[str, An
     logs = await database.find_many("financial_audit_logs", {})
     logs.sort(key=lambda x: str(x.get("timestamp", "")), reverse=True)
     return {"ok": True, "logs": logs[:limit], "total": len(logs)}
+
+
+# --------------------------------------------------------------------------
+# 8. BUSINESS EXPENSE TRACKER & REAL NET PROFIT REPORTING
+# --------------------------------------------------------------------------
+
+@router.get("/expenses", summary="Get Operating Business Expenses")
+async def get_expenses(
+    category: Optional[str] = Query(default=None),
+    limit: int = Query(default=100, le=500),
+) -> Dict[str, Any]:
+    """Returns business expenses with category breakdown and total operational expense."""
+    return await unified_finance_service.get_expenses(limit=limit, category=category)
+
+
+@router.post("/expenses", summary="Log New Operating Expense")
+async def add_expense(
+    body: Dict[str, Any],
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Creates a new business operating expense record."""
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("addedBy") or "super_admin"
+    return await unified_finance_service.add_expense(expense_data=body, admin_id=str(admin_id))
+
+
+@router.delete("/expenses/{expense_id}", summary="Delete Operating Expense")
+@router.post("/expenses/{expense_id}/delete", summary="Delete Operating Expense (POST fallback)")
+async def delete_expense(expense_id: str) -> Dict[str, Any]:
+    """Deletes an operating expense."""
+    return await unified_finance_service.delete_expense(expense_id=expense_id)
+
+
+@router.get("/net-profit-report", summary="Calculate Real In-Hand Net Profit & P&L Waterfall")
+async def get_net_profit_report() -> Dict[str, Any]:
+    """Calculates true net profit after deducting Partner payout, Rider payout, Taxes, Gateway fees, and Opex."""
+    return await unified_finance_service.get_net_profit_report()
+
