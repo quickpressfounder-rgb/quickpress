@@ -2,10 +2,9 @@
  * OneSignal Web & Mobile Push Notification Engine — QuickPress.
  *
  * Provides:
- * 1. Client initialization with App ID 184bda82-7c5b-4319-a977-4fcffbcca270
+ * 1. Safe client initialization only when a valid VITE_ONESIGNAL_APP_ID is present.
  * 2. User identification (login / logout) mapping to Backend JWT user ID.
  * 3. Synchronization of subscription IDs with FastAPI Backend.
- * 4. High-priority foreground notification listener & alarm triggers.
  */
 
 export const ONESIGNAL_APP_ID =
@@ -21,14 +20,20 @@ declare global {
 
 let isInitialized = false;
 
+export function isOneSignalEnabled(): boolean {
+  return Boolean(
+    typeof window !== "undefined" &&
+      ONESIGNAL_APP_ID &&
+      !ONESIGNAL_APP_ID.includes("184bda82") &&
+      ONESIGNAL_APP_ID.trim().length > 10
+  );
+}
+
 /**
- * Initializes OneSignal Web SDK.
+ * Initializes OneSignal Web SDK safely if enabled.
  */
 export function initOneSignal(): void {
-  if (typeof window === "undefined" || isInitialized) return;
-  if (!ONESIGNAL_APP_ID || ONESIGNAL_APP_ID.includes("184bda82")) {
-    return;
-  }
+  if (!isOneSignalEnabled() || isInitialized) return;
   isInitialized = true;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -44,14 +49,14 @@ export function initOneSignal(): void {
       });
 
       // Listen for subscription changes and sync with backend
-      OneSignal.User.PushSubscription.addEventListener("change", async (event: any) => {
+      OneSignal.User?.PushSubscription?.addEventListener?.("change", async (event: any) => {
         const subscriptionId = event?.current?.id;
         if (subscriptionId) {
           await syncPlayerIdWithBackend(subscriptionId);
         }
       });
     } catch (err) {
-      console.warn("[OneSignal] Init warning:", err);
+      console.debug("[OneSignal] Init notice:", err);
     }
   });
 }
@@ -61,7 +66,9 @@ export function initOneSignal(): void {
  */
 async function syncPlayerIdWithBackend(playerId: string): Promise<void> {
   try {
-    const token = localStorage.getItem("qp_access_token") || sessionStorage.getItem("qp_access_token");
+    const token =
+      localStorage.getItem("qp_access_token") ||
+      sessionStorage.getItem("qp_access_token");
     if (!token) return;
 
     await fetch("/api/notifications/onesignal/player-id", {
@@ -81,19 +88,21 @@ async function syncPlayerIdWithBackend(playerId: string): Promise<void> {
  * Logs in the user in OneSignal using the Backend User ID as external_id.
  */
 export async function onesignalLogin(userId: string): Promise<void> {
-  if (typeof window === "undefined" || !userId) return;
+  if (!isOneSignalEnabled() || !userId) return;
 
   initOneSignal();
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function (OneSignal: any) {
     try {
-      await OneSignal.login(userId);
-      const subscriptionId = OneSignal.User?.PushSubscription?.id;
-      if (subscriptionId) {
-        await syncPlayerIdWithBackend(subscriptionId);
+      if (typeof OneSignal?.login === "function") {
+        await OneSignal.login(userId);
+        const subscriptionId = OneSignal.User?.PushSubscription?.id;
+        if (subscriptionId) {
+          await syncPlayerIdWithBackend(subscriptionId);
+        }
       }
     } catch (err) {
-      console.warn("[OneSignal] Login error:", err);
+      console.debug("[OneSignal] Login notice:", err);
     }
   });
 }
@@ -102,14 +111,16 @@ export async function onesignalLogin(userId: string): Promise<void> {
  * Logs out the user from OneSignal on sign-out.
  */
 export async function onesignalLogout(): Promise<void> {
-  if (typeof window === "undefined") return;
+  if (!isOneSignalEnabled()) return;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function (OneSignal: any) {
     try {
-      await OneSignal.logout();
+      if (typeof OneSignal?.logout === "function") {
+        await OneSignal.logout();
+      }
     } catch (err) {
-      console.warn("[OneSignal] Logout error:", err);
+      console.debug("[OneSignal] Logout notice:", err);
     }
   });
 }
@@ -118,7 +129,7 @@ export async function onesignalLogout(): Promise<void> {
  * Requests push notification permission from the user.
  */
 export async function requestOneSignalPermission(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
+  if (!isOneSignalEnabled()) return false;
 
   initOneSignal();
   return new Promise((resolve) => {

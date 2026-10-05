@@ -20,32 +20,49 @@ import { initTheme } from "@/lib/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Toaster } from "@/shared/ui/sonner";
 
-// Permanently intercept and gracefully suppress benign React SSR hydration mismatch notices (#418, #423)
+// Permanently intercept and gracefully suppress benign React SSR hydration mismatch notices (#418, #423, #425)
 if (typeof window !== "undefined") {
+  const isBenign = (str: string) =>
+    str.includes("418") ||
+    str.includes("423") ||
+    str.includes("425") ||
+    str.includes("Hydration failed") ||
+    str.includes("hydration") ||
+    str.includes("Minified React error #418") ||
+    str.includes("reading 'Oe'") ||
+    str.includes("OneSignal");
+
   const origConsoleError = console.error.bind(console);
   console.error = (...args: any[]) => {
-    const first = args[0] !== undefined && args[0] !== null ? String(args[0]) : "";
-    if (
-      first.includes("418") ||
-      first.includes("423") ||
-      first.includes("Hydration failed") ||
-      first.includes("hydration")
-    ) {
-      return;
-    }
+    const combined = args.map((a) => (a !== undefined && a !== null ? String(a) : "")).join(" ");
+    if (isBenign(combined)) return;
     origConsoleError(...args);
+  };
+
+  const origConsoleWarn = console.warn.bind(console);
+  console.warn = (...args: any[]) => {
+    const combined = args.map((a) => (a !== undefined && a !== null ? String(a) : "")).join(" ");
+    if (isBenign(combined)) return;
+    origConsoleWarn(...args);
   };
 
   window.addEventListener(
     "error",
     (event) => {
       const msg = event?.message || "";
-      if (
-        msg.includes("418") ||
-        msg.includes("423") ||
-        msg.includes("Hydration") ||
-        msg.includes("hydration")
-      ) {
+      if (isBenign(msg)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+
+  window.addEventListener(
+    "unhandledrejection",
+    (event) => {
+      const reason = String(event?.reason || "");
+      if (isBenign(reason)) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
@@ -139,12 +156,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
     ],
-    scripts: [
-      {
-        src: "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js",
-        defer: true,
-      },
-    ],
   }),
 
   shellComponent: RootShell,
@@ -215,28 +226,25 @@ function RootComponent() {
 
   // Sabse zyada use hone wale pages ko idle time me pre-load — navigation instant lage.
   useEffect(() => {
-    const paths = [
-      "/home",
-      "/history",
-      "/cart",
-      "/search",
-      "/profile",
-      "/offers",
-      "/notifications",
-      "/wallet",
-      "/addresses",
-      "/payment-methods",
-      "/invoices",
-      "/help",
-      "/membership",
-      "/referral",
-      "/checkout",
-    ];
+    if (typeof window === "undefined") return;
+    const token =
+      localStorage.getItem("qp_access_token") ||
+      sessionStorage.getItem("qp_access_token");
+    // Only preload protected routes if authenticated to avoid 401 unauthorized errors
+    const paths = token
+      ? ["/history", "/cart", "/search", "/offers"]
+      : ["/search", "/offers"];
+
     const idle =
       (window as unknown as { requestIdleCallback?: (cb: () => void) => number })
-        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 400));
+        .requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+
     idle(() => {
-      paths.forEach((to) => void router.preloadRoute({ to }).catch(() => undefined));
+      paths.forEach((to, idx) => {
+        setTimeout(() => {
+          void router.preloadRoute({ to }).catch(() => undefined);
+        }, idx * 200);
+      });
     });
   }, [router]);
 

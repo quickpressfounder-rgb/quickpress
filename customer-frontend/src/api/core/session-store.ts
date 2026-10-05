@@ -143,7 +143,21 @@ export function clearSession(role: string = activeRole): void {
 }
 
 export function readToken(role: string = activeRole): string | null {
-  return readSession(role)?.token ?? null;
+  const sessionToken = readSession(role)?.token;
+  if (sessionToken) return sessionToken;
+  for (const store of [local(), session()]) {
+    if (!store) continue;
+    try {
+      const direct =
+        store.getItem("qp_access_token") ||
+        store.getItem("token") ||
+        store.getItem("accessToken");
+      if (direct) return direct;
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
 }
 
 /** Access-token expiry for this role, or null when there is no session. */

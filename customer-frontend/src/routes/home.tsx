@@ -177,7 +177,13 @@ function HomeScreen() {
 
   useEffect(() => {
     setRecentSearches(readRecentSearches());
-    void fetchMembership().then(setMembership).catch(() => { });
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("qp_access_token") || sessionStorage.getItem("qp_access_token")
+        : null;
+    if (token) {
+      void fetchMembership().then(setMembership).catch(() => { });
+    }
   }, []);
 
   const profile = sections.profile.data;
@@ -243,9 +249,15 @@ function HomeScreen() {
   const unreadNotifications = unreadOverride ?? sections.notifications.data ?? 0;
 
   const handleRefresh = useCallback(async () => {
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("qp_access_token") || sessionStorage.getItem("qp_access_token")
+        : null;
     await Promise.all([
       refresh(),
-      fetchMembership({ forceRefresh: true }).then(setMembership).catch(() => { }),
+      token
+        ? fetchMembership({ forceRefresh: true }).then(setMembership).catch(() => { })
+        : Promise.resolve(),
     ]);
     setPull(0);
   }, [refresh]);

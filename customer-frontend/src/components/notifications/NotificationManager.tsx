@@ -12,6 +12,7 @@ import {
 import { playOrderBellNotificationSound } from "@/lib/order-success-sound";
 import { readCachedSettings } from "@/api/customer/settings-api";
 import { triggerMobileOsNotification } from "@/lib/notifications";
+import { CACHE_KEYS, clearCache } from "@/api/customer/api/cache";
 
 export function NotificationManager() {
   const queryClient = useQueryClient();
@@ -175,6 +176,7 @@ export function NotificationManager() {
       if (orderId) {
         queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       }
+      clearCache(CACHE_KEYS.recentOrders);
 
       // 3. Display compact in-app toast with order link
       toast(title, {

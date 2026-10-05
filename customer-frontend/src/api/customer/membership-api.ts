@@ -19,6 +19,7 @@ import { apiGetJson, apiPostJson } from "../core/transport";
 import { ApiError } from "../core/errors";
 import { CACHE_KEYS, readCache, readStaleCache, writeCache } from "./api/cache";
 import { isOnline } from "./api/network";
+import { readToken } from "../core/session-store";
 
 export type MembershipPlanId = "silver" | "gold" | "platinum" | "elite" | string;
 export type BillingCycle = "monthly" | "yearly";
@@ -357,6 +358,10 @@ function cachedMembership(stale: boolean): Membership | null {
 export async function fetchMembership(
   options: { forceRefresh?: boolean; signal?: AbortSignal } = {},
 ): Promise<Membership> {
+  const token = readToken();
+  if (!token) {
+    return { ...toMembership({ status: "none", planId: "free" }), fromCache: false };
+  }
   if (!options.forceRefresh) {
     const fresh = cachedMembership(false);
     if (fresh) return fresh;
