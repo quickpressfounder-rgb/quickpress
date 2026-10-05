@@ -888,3 +888,376 @@ export async function fetchNetProfitReport(): Promise<NetProfitReport> {
   return await apiGetJson("/api/finance-engine/net-profit-report");
 }
 
+// --------------------------------------------------------------------------
+// PHASE 1: CUSTOMER FINANCE 360 & ORDER FINANCIAL 360
+// --------------------------------------------------------------------------
+
+export interface CustomerFinance360 {
+  ok: boolean;
+  customer: {
+    userId: string;
+    name: string;
+    phone: string;
+    email: string;
+    createdAt?: string;
+  };
+  metrics: {
+    lifetimeSpent: number;
+    totalOrders: number;
+    completedOrders: number;
+    cancelledOrders: number;
+    totalRefunds: number;
+    walletBalance: number;
+    averageOrderValue: number;
+  };
+  orders: Array<{
+    id: string;
+    orderNumber?: string;
+    totalAmount: number;
+    paymentStatus: string;
+    status: string;
+    createdAt: string;
+    city?: string;
+  }>;
+  payments: Array<{
+    id: string;
+    orderId?: string;
+    amount: number;
+    gateway: string;
+    status: string;
+    method?: string;
+    transactionId?: string;
+    createdAt: string;
+  }>;
+  walletTransactions: Array<{
+    id: string;
+    type: "CREDIT" | "DEBIT" | string;
+    amount: number;
+    balanceAfter: number;
+    description: string;
+    createdAt: string;
+  }>;
+  timeline: Array<{
+    timestamp: string;
+    type: string;
+    title: string;
+    description: string;
+    amount?: number;
+    status?: string;
+  }>;
+}
+
+export async function fetchCustomerFinance360(identifier: string): Promise<CustomerFinance360> {
+  return await apiGetJson(`/api/finance-engine/customer-360/${encodeURIComponent(identifier)}`);
+}
+
+export interface OrderFinancial360 {
+  ok: boolean;
+  orderId: string;
+  summary: {
+    customerPaid: number;
+    serviceTotal: number;
+    deliveryFee: number;
+    gstTotal: number;
+    partnerShare: number;
+    riderShare: number;
+    platformCommission: number;
+    gatewayFee: number;
+    netMargin: number;
+    netMarginPct: number;
+    settlementStatus: string;
+  };
+  details: any;
+  timeline: Array<{
+    timestamp: string;
+    stage: string;
+    action: string;
+    amount?: number;
+    notes?: string;
+  }>;
+}
+
+export async function fetchOrderFinancial360(orderId: string): Promise<OrderFinancial360> {
+  return await apiGetJson(`/api/finance-engine/orders/${encodeURIComponent(orderId)}/financial-360`);
+}
+
+// --------------------------------------------------------------------------
+// PHASE 2: ADVANCED GAAP ACCOUNTING STATEMENTS & AGING
+// --------------------------------------------------------------------------
+
+export interface AccountingStatementsResponse {
+  ok: boolean;
+  period: string;
+  pnl: {
+    gmv: number;
+    partnerPayouts: number;
+    riderPayouts: number;
+    grossProfit: number;
+    operatingExpenses: number;
+    netProfit: number;
+    marginPercent: number;
+    ebitda: number;
+    directExpenses: number;
+  };
+  balanceSheet: {
+    assets: {
+      currentAssets: {
+        cashAndBank: number;
+        customerReceivables: number;
+        gatewayInTransit: number;
+        totalCurrentAssets: number;
+      };
+      nonCurrentAssets: {
+        securityDeposits: number;
+        totalNonCurrentAssets: number;
+      };
+      totalAssets: number;
+    };
+    liabilities: {
+      currentLiabilities: {
+        partnerPayables: number;
+        riderPayables: number;
+        taxPayables: number;
+        totalCurrentLiabilities: number;
+      };
+      totalLiabilities: number;
+    };
+    equity: {
+      retainedEarnings: number;
+      totalEquity: number;
+    };
+    isBalanced: boolean;
+  };
+  cashFlow: {
+    operatingCashFlow: {
+      customerCollections: number;
+      partnerDisbursements: number;
+      riderDisbursements: number;
+      netOperatingCash: number;
+    };
+    netCashGenerated: number;
+  };
+  aging: {
+    arBuckets: Record<string, number>;
+    apBuckets: Record<string, number>;
+    totalReceivables: number;
+    totalPayables: number;
+  };
+}
+
+export async function fetchAccountingStatements(period?: string): Promise<AccountingStatementsResponse> {
+  return await apiGetJson("/api/finance-engine/accounting/statements", period ? { period } : undefined);
+}
+
+// --------------------------------------------------------------------------
+// PHASE 2: PROFITABILITY ANALYTICS (CITY, SERVICE, RIDER)
+// --------------------------------------------------------------------------
+
+export interface ProfitabilityAnalyticsResponse {
+  ok: boolean;
+  cityProfitability: Array<{
+    city: string;
+    orderCount: number;
+    gmv: number;
+    netProfit: number;
+    marginPct: number;
+    status: string;
+  }>;
+  serviceProfitability: Array<{
+    serviceCategory: string;
+    orderCount: number;
+    gmv: number;
+    grossMargin: number;
+    netMarginPct: number;
+  }>;
+  riderCostAnalysis: {
+    totalDeliveryFeesCollected: number;
+    totalRiderPayouts: number;
+    deliverySubsidyBurn: number;
+    avgCostPerDelivery: number;
+  };
+}
+
+export async function fetchProfitabilityAnalytics(period?: string): Promise<ProfitabilityAnalyticsResponse> {
+  return await apiGetJson("/api/finance-engine/profitability", period ? { period } : undefined);
+}
+
+// --------------------------------------------------------------------------
+// PHASE 2 & 4: TAX COMPLIANCE CENTER
+// --------------------------------------------------------------------------
+
+export interface TaxCenterResponse {
+  ok: boolean;
+  taxSummary: {
+    grossTaxableSales: number;
+    cgstCollected: number;
+    sgstCollected: number;
+    igstCollected: number;
+    totalGstCollected: number;
+    tcs194O: number;
+    tds194C: number;
+    netTaxPayable: number;
+  };
+  gstin: string;
+  jurisdiction: string;
+  complianceCalendar: Array<{
+    period: string;
+    dueDate: string;
+    status: string;
+    statutoryForm: string;
+    description: string;
+  }>;
+}
+
+export async function fetchTaxCenter(): Promise<TaxCenterResponse> {
+  return await apiGetJson("/api/finance-engine/tax-center");
+}
+
+// --------------------------------------------------------------------------
+// PHASE 4: TREASURY CENTER, BANK ACCOUNTS & LIQUIDITY
+// --------------------------------------------------------------------------
+
+export interface TreasuryCenterResponse {
+  ok: boolean;
+  bankAccounts: Array<{
+    id: string;
+    bankName: string;
+    accountNumber: string;
+    accountType: string;
+    ifsc: string;
+    currentBalance: number;
+    status: string;
+    currency: string;
+  }>;
+  liquidity: {
+    totalBankBalance: number;
+    gatewayInTransit: number;
+    codFloat: number;
+    totalLiquidity: number;
+    reserveTarget: number;
+    reserveCoveragePct: number;
+    status: string;
+  };
+  forecastTimeline: Array<{
+    day: string;
+    projectedInflow: number;
+    projectedOutflow: number;
+    netCash: number;
+    projectedBalance: number;
+  }>;
+}
+
+export async function fetchTreasuryCenter(): Promise<TreasuryCenterResponse> {
+  return await apiGetJson("/api/finance-engine/treasury");
+}
+
+export async function addBankAccount(payload: {
+  bankName: string;
+  accountNumber: string;
+  accountType: string;
+  ifsc: string;
+  currentBalance?: number;
+}): Promise<any> {
+  return await apiPostJson("/api/finance-engine/treasury/bank-accounts", payload);
+}
+
+// --------------------------------------------------------------------------
+// PHASE 1 & 3: MAKER-CHECKER APPROVALS CENTER & PERIOD CLOSING
+// --------------------------------------------------------------------------
+
+export interface ApprovalRequest {
+  id: string;
+  type: string;
+  amount: number;
+  requestedBy: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reason: string;
+  createdAt: string;
+  metadata?: any;
+  approvedBy?: string;
+  actionReason?: string;
+  resolvedAt?: string;
+}
+
+export interface ApprovalsCenterResponse {
+  ok: boolean;
+  approvals: ApprovalRequest[];
+  total: number;
+}
+
+export async function fetchApprovalsCenter(status?: string): Promise<ApprovalsCenterResponse> {
+  return await apiGetJson("/api/finance-engine/approvals", status && status !== "ALL" ? { status } : undefined);
+}
+
+export async function submitApprovalRequest(payload: {
+  type: string;
+  amount: number;
+  reason: string;
+  metadata?: any;
+}): Promise<any> {
+  return await apiPostJson("/api/finance-engine/approvals/request", payload);
+}
+
+export async function processApprovalAction(requestId: string, action: "APPROVE" | "REJECT", reason: string): Promise<any> {
+  return await apiPostJson(`/api/finance-engine/approvals/${requestId}/action`, { action, reason });
+}
+
+export interface FinancialPeriodsResponse {
+  ok: boolean;
+  periods: Array<{
+    periodId: string;
+    name: string;
+    isLocked: boolean;
+    lockedAt?: string;
+    lockedBy?: string;
+    notes?: string;
+  }>;
+}
+
+export async function fetchFinancialPeriods(): Promise<FinancialPeriodsResponse> {
+  return await apiGetJson("/api/finance-engine/periods");
+}
+
+export async function closeFinancialPeriod(periodId: string, notes?: string): Promise<any> {
+  return await apiPostJson(`/api/finance-engine/periods/${periodId}/close`, { notes });
+}
+
+// --------------------------------------------------------------------------
+// PHASE 3: AI FINANCE ASSISTANT & COMMERCIAL SCENARIO SIMULATOR
+// --------------------------------------------------------------------------
+
+export interface AiAssistantResponse {
+  ok: boolean;
+  query: string;
+  answer: string;
+  metrics: Record<string, any>;
+  source: string;
+  timestamp: string;
+}
+
+export async function queryAiFinanceAssistant(query: string): Promise<AiAssistantResponse> {
+  return await apiPostJson("/api/finance-engine/ai-assistant", { query });
+}
+
+export interface ScenarioSimulationResponse {
+  ok: boolean;
+  simulatedParameters: Record<string, any>;
+  projectedFinancials: {
+    projectedGmv: number;
+    projectedNetProfit: number;
+    projectedMarginPct: number;
+    deltaVsCurrent: number;
+    variancePercentage: number;
+  };
+}
+
+export async function simulateCommercialScenario(params: {
+  commissionRate?: number;
+  deliveryFeePerKm?: number;
+  monthlyOrderGrowthPct?: number;
+  platformFee?: number;
+}): Promise<ScenarioSimulationResponse> {
+  return await apiPostJson("/api/finance-engine/simulate-scenario", params);
+}
+
+

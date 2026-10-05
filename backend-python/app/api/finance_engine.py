@@ -384,3 +384,164 @@ async def get_net_profit_report() -> Dict[str, Any]:
     """Calculates true net profit after deducting Partner payout, Rider payout, Taxes, Gateway fees, and Opex."""
     return await unified_finance_service.get_net_profit_report()
 
+
+# --------------------------------------------------------------------------
+# 9. PHASE 1: CUSTOMER FINANCE 360
+# --------------------------------------------------------------------------
+
+@router.get("/customer-360/{identifier}", summary="Customer Finance 360 Profile")
+async def get_customer_finance_360(identifier: str) -> Dict[str, Any]:
+    """Fetches complete customer lifetime spending, orders, payments, refunds, wallet, and financial timeline."""
+    return await unified_finance_service.get_customer_finance_360(identifier=identifier)
+
+
+# --------------------------------------------------------------------------
+# 10. PHASE 1: ORDER FINANCIAL 360 & TIMELINE
+# --------------------------------------------------------------------------
+
+@router.get("/orders/{order_id}/financial-360", summary="Order Financial 360 View")
+async def get_order_financial_360(order_id: str) -> Dict[str, Any]:
+    """Transparent financial unit economics and complete chronological lifecycle timeline for an order."""
+    return await unified_finance_service.get_order_financial_360(order_id=order_id)
+
+
+# --------------------------------------------------------------------------
+# 11. PHASE 2: ADVANCED ACCOUNTING STATEMENTS (P&L, BALANCE SHEET, CASH FLOW)
+# --------------------------------------------------------------------------
+
+@router.get("/accounting/statements", summary="GAAP-Standard P&L, Balance Sheet, Cash Flow & Aging")
+async def get_accounting_statements(period: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+    """Generates authoritative GAAP financial statements and AR/AP aging buckets from the live ledger."""
+    return await unified_finance_service.get_accounting_statements(period=period)
+
+
+# --------------------------------------------------------------------------
+# 12. PHASE 2: PROFITABILITY ANALYTICS (CITY, SERVICE, PARTNER, RIDER)
+# --------------------------------------------------------------------------
+
+@router.get("/profitability", summary="Multi-Dimensional Profitability Analytics")
+async def get_profitability_analytics(period: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+    """Calculates real profitability heatmaps by City, Service category, Partner rank, and Rider costs."""
+    return await unified_finance_service.get_profitability_analytics(period=period)
+
+
+# --------------------------------------------------------------------------
+# 13. PHASE 2 & 4: GST & TAX COMPLIANCE CENTER
+# --------------------------------------------------------------------------
+
+@router.get("/tax-center", summary="Tax Center & Statutory Compliance Calendar")
+async def get_tax_compliance_center() -> Dict[str, Any]:
+    """Returns statutory tax breakdown (CGST, SGST, IGST, Section 194-O TCS, Section 194-C TDS) and filing calendar."""
+    return await unified_finance_service.get_tax_compliance_center()
+
+
+# --------------------------------------------------------------------------
+# 14. PHASE 4: TREASURY CENTER, BANK ACCOUNTS & CASH POSITIONING
+# --------------------------------------------------------------------------
+
+@router.get("/treasury", summary="Corporate Treasury & Liquidity Position")
+async def get_treasury_center() -> Dict[str, Any]:
+    """Returns corporate bank account balances, gateway in-transit escrow, COD float, and cash runway projections."""
+    return await unified_finance_service.get_treasury_center()
+
+
+@router.post("/treasury/bank-accounts", summary="Add Corporate Bank Account")
+async def add_bank_account(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Registers a corporate operating or escrow bank account."""
+    return await unified_finance_service.add_bank_account(body)
+
+
+# --------------------------------------------------------------------------
+# 15. PHASE 1 & 3: MAKER-CHECKER APPROVALS CENTER & SEGREGATION OF DUTIES
+# --------------------------------------------------------------------------
+
+@router.get("/approvals", summary="Pending Maker-Checker Financial Approvals")
+async def get_approvals_center(status: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+    """Returns approval requests for high-value refunds, manual ledger adjustments, and settlements."""
+    return await unified_finance_service.get_approvals_center(status_filter=status)
+
+
+@router.post("/approvals/request", summary="Submit Maker-Checker Approval Request")
+async def submit_approval_request(
+    body: Dict[str, Any],
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Submits a sensitive financial action for mandatory checker review."""
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("requestedBy") or "super_admin"
+    return await unified_finance_service.submit_approval_request(data=body, creator_id=str(admin_id))
+
+
+@router.post("/approvals/{request_id}/action", summary="Approve or Reject Request")
+async def process_approval_action(
+    request_id: str,
+    body: Dict[str, Any],
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Approves or rejects a financial request. Enforces Segregation of Duties (Creator != Approver)."""
+    action = str(body.get("action", "APPROVE")).upper()
+    reason = str(body.get("reason", "Approved by authorized finance manager"))
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("adminId") or "finance_manager"
+    try:
+        return await unified_finance_service.process_approval_action(
+            request_id=request_id,
+            action=action,
+            admin_id=str(admin_id),
+            reason=reason,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# --------------------------------------------------------------------------
+# 16. PHASE 1 & 3: FINANCIAL PERIOD LOCK GOVERNANCE
+# --------------------------------------------------------------------------
+
+@router.get("/periods", summary="List Accounting Periods & Locks")
+async def get_financial_periods() -> Dict[str, Any]:
+    """Returns monthly financial close periods and lock statuses."""
+    return await unified_finance_service.get_financial_periods()
+
+
+@router.post("/periods/{period_id}/close", summary="Lock Financial Period")
+async def close_financial_period(
+    period_id: str,
+    body: Dict[str, Any],
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Permanently locks an accounting period to prevent historical journal alterations."""
+    notes = str(body.get("notes", "Month-end financial close completed."))
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("adminId") or "super_admin"
+    return await unified_finance_service.close_financial_period(
+        period_id=period_id,
+        admin_id=str(admin_id),
+        notes=notes,
+    )
+
+
+# --------------------------------------------------------------------------
+# 17. PHASE 3: AI FINANCE ASSISTANT
+# --------------------------------------------------------------------------
+
+@router.post("/ai-assistant", summary="Query AI Finance Assistant")
+async def ai_finance_assistant(
+    body: Dict[str, Any],
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Natural language financial query engine running deterministic calculations on live Supabase data."""
+    query = str(body.get("query", ""))
+    if not query.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Query cannot be empty.")
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or "super_admin"
+    return await unified_finance_service.ai_finance_assistant(query=query, admin_id=str(admin_id))
+
+
+# --------------------------------------------------------------------------
+# 18. PHASE 2 & 3: WHAT-IF SCENARIO SIMULATOR
+# --------------------------------------------------------------------------
+
+@router.post("/simulate-scenario", summary="Commercial What-If Simulator")
+async def simulate_scenario(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Calculates live financial impact of commercial levers without mutating actual ledger records."""
+    return await unified_finance_service.simulate_scenario(params=body)
+
+

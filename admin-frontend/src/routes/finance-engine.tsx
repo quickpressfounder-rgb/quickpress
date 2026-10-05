@@ -81,6 +81,13 @@ import { ReconciliationView } from "../components/finance/ReconciliationView";
 import { UnitEconomicsView } from "../components/finance/UnitEconomicsView";
 import { MembershipFinanceView } from "../components/finance/MembershipFinanceView";
 import { ExpenseTrackerNetProfitView } from "../components/finance/ExpenseTrackerNetProfitView";
+import { CustomerFinance360View } from "../components/finance/CustomerFinance360View";
+import { AccountingStatementsView } from "../components/finance/AccountingStatementsView";
+import { ProfitabilityAnalyticsView } from "../components/finance/ProfitabilityAnalyticsView";
+import { TaxComplianceCenterView } from "../components/finance/TaxComplianceCenterView";
+import { TreasuryCenterView } from "../components/finance/TreasuryCenterView";
+import { ApprovalCenterView } from "../components/finance/ApprovalCenterView";
+import { AiFinanceAssistantView } from "../components/finance/AiFinanceAssistantView";
 import {
   fetchFinancialRules,
   updateFinancialRules,
@@ -889,6 +896,13 @@ export function FinanceEnginePage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<
     | "overview"
+    | "customer-360"
+    | "accounting-statements"
+    | "profitability"
+    | "tax-center"
+    | "treasury"
+    | "approvals"
+    | "ai-assistant"
     | "expenses"
     | "general-ledger"
     | "cod"
@@ -1359,6 +1373,17 @@ export function FinanceEnginePage() {
             </TabsTrigger>
 
             <TabsTrigger
+              value="customer-360"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <User className="size-3.5 text-indigo-600" />
+              <span>Customer 360</span>
+              <Badge className="bg-indigo-100 text-indigo-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                PHASE 1
+              </Badge>
+            </TabsTrigger>
+
+            <TabsTrigger
               value="expenses"
               className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
             >
@@ -1366,6 +1391,72 @@ export function FinanceEnginePage() {
               <span>Expense & Net Profit</span>
               <Badge className="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0 h-4 font-black">
                 REAL P&L
+              </Badge>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="accounting-statements"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Scale className="size-3.5 text-blue-600" />
+              <span>GAAP Statements</span>
+              <Badge className="bg-blue-100 text-blue-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                PHASE 2
+              </Badge>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="profitability"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <TrendingUp className="size-3.5 text-amber-600" />
+              <span>Profitability Heatmap</span>
+              <Badge className="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                PHASE 2
+              </Badge>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="treasury"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Landmark className="size-3.5 text-emerald-600" />
+              <span>Treasury & Banks</span>
+              <Badge className="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                PHASE 4
+              </Badge>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="tax-center"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Receipt className="size-3.5 text-purple-600" />
+              <span>GST & Tax Center</span>
+              <Badge className="bg-purple-100 text-purple-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                PHASE 2/4
+              </Badge>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="approvals"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-rose-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <ShieldCheck className="size-3.5 text-rose-600" />
+              <span>Maker-Checker</span>
+              <Badge className="bg-rose-100 text-rose-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                PHASE 1/3
+              </Badge>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="ai-assistant"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Sparkles className="size-3.5 text-cyan-600" />
+              <span>AI Simulator</span>
+              <Badge className="bg-cyan-100 text-cyan-800 text-[9px] px-1.5 py-0 h-4 font-black">
+                PHASE 3
               </Badge>
             </TabsTrigger>
 
@@ -3997,14 +4088,14 @@ export function FinanceEnginePage() {
               PHASE 1: DOUBLE-ENTRY GENERAL LEDGER (CHART OF ACCOUNTS & TRIAL BALANCE)
              ========================================================================= */}
           <TabsContent value="general-ledger" className="mt-6 space-y-6">
-            <DoubleEntryLedgerView onInspectEntity={handleInspectEntity} />
+            <DoubleEntryLedgerView />
           </TabsContent>
 
           {/* =========================================================================
               PHASE 2: COD MANAGEMENT & RIDER RISK CONTROLS
              ========================================================================= */}
           <TabsContent value="cod" className="mt-6 space-y-6">
-            <CodManagementView onInspectEntity={handleInspectEntity} />
+            <CodManagementView />
           </TabsContent>
 
           {/* =========================================================================
@@ -4018,7 +4109,7 @@ export function FinanceEnginePage() {
               PHASE 4: PER-ORDER UNIT ECONOMICS & PROFITABILITY HEATMAPS
              ========================================================================= */}
           <TabsContent value="unit-economics" className="mt-6 space-y-6">
-            <UnitEconomicsView onInspectEntity={handleInspectEntity} />
+            <UnitEconomicsView />
           </TabsContent>
 
           {/* =========================================================================
@@ -4033,6 +4124,55 @@ export function FinanceEnginePage() {
              ========================================================================= */}
           <TabsContent value="expenses" className="mt-6 space-y-6">
             <ExpenseTrackerNetProfitView />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 1: CUSTOMER FINANCE 360 (ALL-IN-ONE CUSTOMER PROFILE)
+             ========================================================================= */}
+          <TabsContent value="customer-360" className="mt-6 space-y-6">
+            <CustomerFinance360View onInspectOrder={(id) => handleInspectEntity("order", id)} />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 2: GAAP STATEMENTS (P&L, BALANCE SHEET, CASH FLOW, AGING)
+             ========================================================================= */}
+          <TabsContent value="accounting-statements" className="mt-6 space-y-6">
+            <AccountingStatementsView />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 2: MULTI-DIMENSIONAL PROFITABILITY ANALYTICS (CITY, SERVICE, RIDER)
+             ========================================================================= */}
+          <TabsContent value="profitability" className="mt-6 space-y-6">
+            <ProfitabilityAnalyticsView />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 2 & 4: GST & STATUTORY TAX COMPLIANCE CENTER
+             ========================================================================= */}
+          <TabsContent value="tax-center" className="mt-6 space-y-6">
+            <TaxComplianceCenterView />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 4: CORPORATE TREASURY, MULTI-BANK POSITIONING & LIQUIDITY
+             ========================================================================= */}
+          <TabsContent value="treasury" className="mt-6 space-y-6">
+            <TreasuryCenterView />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 1 & 3: MAKER-CHECKER APPROVALS & FINANCIAL PERIOD CLOSING
+             ========================================================================= */}
+          <TabsContent value="approvals" className="mt-6 space-y-6">
+            <ApprovalCenterView />
+          </TabsContent>
+
+          {/* =========================================================================
+              PHASE 3: AI FINANCE ASSISTANT & COMMERCIAL SCENARIO SIMULATOR
+             ========================================================================= */}
+          <TabsContent value="ai-assistant" className="mt-6 space-y-6">
+            <AiFinanceAssistantView />
           </TabsContent>
         </Tabs>
 
@@ -4103,8 +4243,8 @@ export function FinanceEnginePage() {
         <QuickViewDrawer
           isOpen={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          entityType={drawerEntity?.type || null}
-          entityId={drawerEntity?.id || null}
+          entityType={drawerEntity?.type || ""}
+          entityId={drawerEntity?.id || ""}
         />
       </div>
     </AdminShell>
