@@ -157,8 +157,9 @@ function CartPage() {
   }, []);
 
   // Pricing calculations driven dynamically by Unified Finance Engine
-  const itemsSubtotal = cart.lines.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round(item.price * 1.25) * item.qty, 0);
+  const universalBase = financeRules?.pricing?.universalBasePrice ?? 69;
+  const itemsSubtotal = cart.lines.reduce((sum, item) => sum + (item.price || universalBase) * item.qty, 0);
+  const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round((item.price || universalBase) * 1.25) * item.qty, 0);
 
   const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
   const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold;

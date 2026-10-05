@@ -15,6 +15,8 @@ export interface DeliverySlab {
 
 export interface FinancialRules {
   pricing: {
+    universalBasePrice?: number;
+    universalExpressPrice?: number;
     platformFee: number;
     handlingFee: number;
     expressMultiplier: number;
@@ -86,6 +88,8 @@ export interface PricingCalculationResult {
 
 export const DEFAULT_FINANCIAL_RULES: FinancialRules = {
   pricing: {
+    universalBasePrice: 69.0,
+    universalExpressPrice: 99.0,
     platformFee: 10.0,
     handlingFee: 15.0,
     expressMultiplier: 1.35,

@@ -226,8 +226,9 @@ export function CheckoutPage() {
   }, [pickupAddressId, sameAsPickup]);
 
   // Pricing calculations driven dynamically by Unified Finance Engine
-  const itemsSubtotal = cart.lines.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round(item.price * 1.25) * item.qty, 0);
+  const universalBase = financeRules?.pricing?.universalBasePrice ?? 69;
+  const itemsSubtotal = cart.lines.reduce((sum, item) => sum + (item.price || universalBase) * item.qty, 0);
+  const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round((item.price || universalBase) * 1.25) * item.qty, 0);
 
   const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
   const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold;
@@ -236,7 +237,7 @@ export function CheckoutPage() {
   const handlingFee = itemsSubtotal > 0 ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
   const platformFee = itemsSubtotal > 0 ? (financeRules?.pricing?.platformFee ?? 10) : 0;
 
-  const expressFee = financeRules?.expressPickup?.fee ?? 40;
+  const expressFee = financeRules?.pricing?.universalExpressPrice ?? financeRules?.expressPickup?.fee ?? 99;
   const isExpressEnabled = financeRules?.expressPickup?.enabled !== false;
   const isExpressActive = isExpress && isExpressEnabled;
   const currentExpressFee = isExpressActive ? expressFee : 0;
