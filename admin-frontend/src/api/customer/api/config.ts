@@ -35,8 +35,8 @@ const PRODUCTION_API_URL = "https://quickpress-api-production.up.railway.app";
 
 export function apiBaseUrl(): string {
   let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-  if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
-    custom = custom.replace("quickpress-api-production-3292.up.railway.app", "quickpress-api-production.up.railway.app");
+  if (custom) {
+    custom = custom.replace(/-3292/g, "");
   }
 
   if (typeof window !== "undefined") {

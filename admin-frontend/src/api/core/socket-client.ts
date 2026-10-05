@@ -46,7 +46,8 @@ const DEDUPE_LIMIT = 500;
 function socketUrl(): string {
   const raw = import.meta.env["VITE_SOCKET_URL"] || import.meta.env["VITE_API_BASE_URL"];
   if (raw && typeof raw === "string" && raw.trim()) {
-    return raw.trim();
+    let clean = raw.trim().replace(/\/+$/, "").replace(/-3292/g, "");
+    return clean;
   }
   return apiBaseUrl();
 }
