@@ -20,6 +20,8 @@ try:
 except ImportError:
     asyncpg = None  # type: ignore
 
+from app.config import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -782,6 +784,10 @@ class SupabaseDatabase:
                         await self._pool.close()
                     except Exception:
                         pass
+                try:
+                    settings = get_settings()
+                except Exception:
+                    settings = None
                 is_prod = (getattr(settings, "app_env", "") or "development").strip().lower() == "production"
                 is_local = "localhost" in self.database_url or "127.0.0.1" in self.database_url
                 ssl_mode = "require" if ("supabase" in self.database_url or "pooler" in self.database_url or "sslmode=require" in self.database_url or (is_prod and not is_local)) else None
