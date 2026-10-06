@@ -87,32 +87,21 @@ function playToneBurst() {
   }
 }
 
+import {
+  playPartnerOrderChime,
+  startPartnerOrderAlertRing,
+  stopPartnerOrderAlertRing,
+  triggerPartnerHaptic,
+} from "./partner-order-alert-sound";
+
 /**
- * Plays continuous looping order alarm (Zomato style) until explicitly stopped.
+ * Plays continuous looping order alarm (Commercial Store Alert) until explicitly stopped.
  */
 export function startOrderAlarm(orderCode?: string) {
   if (isRinging) return;
   isRinging = true;
 
-  // Immediate first chime
-  playToneBurst();
-
-  // Repeat every 1.4 seconds
-  alarmIntervalId = setInterval(() => {
-    if (!isRinging) return;
-    playToneBurst();
-
-    // Mobile vibration pattern
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      try {
-        navigator.vibrate([300, 100, 300, 100, 500]);
-      } catch {
-        // Ignore vibration error
-      }
-    }
-  }, 1400);
-
-  // Trigger native desktop notification
+  startPartnerOrderAlertRing();
   triggerDesktopNotification(orderCode);
 }
 
@@ -121,17 +110,7 @@ export function startOrderAlarm(orderCode?: string) {
  */
 export function stopOrderAlarm() {
   isRinging = false;
-  if (alarmIntervalId) {
-    clearInterval(alarmIntervalId);
-    alarmIntervalId = null;
-  }
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    try {
-      navigator.vibrate(0);
-    } catch {
-      // Ignore
-    }
-  }
+  stopPartnerOrderAlertRing();
 }
 
 export function isAlarmRinging(): boolean {

@@ -78,47 +78,25 @@ function triggerVibration() {
   }
 }
 
-/** Starts continuous siren chime and haptic pulsing */
+import {
+  playOrderAlertSound,
+  stopOrderAlertSound as stopCaptainAudioSound,
+} from "./captain-audio";
+
+/** Starts continuous radar siren chime and haptic pulsing */
 export function startOrderAlertRing(isMuted = false) {
   if (isRinging) return;
   isRinging = true;
 
   if (!isMuted) {
-    playSirenBeepTone();
-  }
-  triggerVibration();
-
-  if (!alertIntervalId && !isMuted) {
-    alertIntervalId = setInterval(() => {
-      playSirenBeepTone();
-    }, 750);
-  }
-
-  if (!vibrationIntervalId) {
-    vibrationIntervalId = setInterval(() => {
-      triggerVibration();
-    }, 1400);
+    playOrderAlertSound();
   }
 }
 
 /** Stops the continuous siren and haptics */
 export function stopOrderAlertRing() {
   isRinging = false;
-  if (alertIntervalId) {
-    clearInterval(alertIntervalId);
-    alertIntervalId = null;
-  }
-  if (vibrationIntervalId) {
-    clearInterval(vibrationIntervalId);
-    vibrationIntervalId = null;
-  }
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    try {
-      navigator.vibrate(0);
-    } catch {
-      /* ignore */
-    }
-  }
+  stopCaptainAudioSound();
 }
 
 export function isAlertRinging(): boolean {

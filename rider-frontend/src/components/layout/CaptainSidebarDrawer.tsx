@@ -14,13 +14,14 @@ import {
   MapPin,
   ShieldCheck,
   TrendingUp,
+  Volume2,
   X,
   Zap,
 } from "lucide-react";
 import { useLanguage } from "../../lib/i18n";
 import { toast } from "sonner";
 import { useRiderContext } from "../../context/RiderContext";
-import { triggerHaptic } from "../../lib/captain-audio";
+import { triggerHaptic, testCaptainAlertSound } from "../../lib/captain-audio";
 import { CaptainSupportModal } from "../support/CaptainSupportModal";
 import { CaptainGuidelinesModal } from "../support/CaptainGuidelinesModal";
 
@@ -199,7 +200,16 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                     navigate({ to: "/incentives" });
                   },
                 },
-
+                {
+                  icon: Volume2,
+                  title: "Test Radar Alert Siren 🛵🔊",
+                  sub: "High-urgency highway dispatch tone preview",
+                  onClick: () => {
+                    triggerHaptic([100, 50, 100]);
+                    testCaptainAlertSound();
+                    toast.info("Testing High-Urgency Dispatch Radar Siren (4s)... 🛵🔊");
+                  },
+                },
                 {
                   icon: ShieldCheck,
                   title: t("profile.guidelines", "Captain Guidelines & SOP"),

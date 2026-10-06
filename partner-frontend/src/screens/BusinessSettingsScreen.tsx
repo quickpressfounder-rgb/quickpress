@@ -14,10 +14,12 @@ import {
   Sliders,
   Timer,
   Trash2,
+  Volume2,
   Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { testPartnerSoundAndVibration } from "../lib/partner-order-alert-sound";
 
 import { Toaster } from "@/shared/ui/sonner";
 import { PartnerLayout } from "../components/layout/PartnerLayout";
@@ -287,6 +289,33 @@ export function BusinessSettingsScreen() {
                       onDisabledClick={() => toast.info("Auto-Accept Orders feature is coming soon!")}
                       onChange={() => {}}
                     />
+                  </div>
+
+                  {/* Test Store Order Ringtone */}
+                  <div
+                    onClick={() => {
+                      testPartnerSoundAndVibration();
+                      toast.info("🔊 Testing Store Order Alert Chime & Vibration...");
+                    }}
+                    className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                        <Volume2 className="size-5" strokeWidth={2.2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-zinc-900">Store Order Alert Ringtone</p>
+                        <p className="text-xs font-medium text-zinc-500 truncate">
+                          Commercial laundromat chime & counter bell siren
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-black transition-all"
+                    >
+                      Play Chime 🔊
+                    </button>
                   </div>
 
                   {/* Express Delivery */}

@@ -54,14 +54,14 @@ export function setAudioLanguage(lang: "hi-IN" | "en-IN"): void {
   window.localStorage.setItem(AUDIO_LANG_KEY, lang);
 }
 
-// Cached Blob URL for synthesized metallic bell chime WAV
+// Cached Blob URL for synthesized on-the-road radar siren WAV
 let cachedBellWavUrl: string | null = null;
 
 function getBellChimeUrl(): string {
   if (cachedBellWavUrl) return cachedBellWavUrl;
   try {
     const sampleRate = 22050;
-    const duration = 1.4;
+    const duration = 1.05;
     const numSamples = Math.floor(sampleRate * duration);
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
@@ -90,30 +90,42 @@ function getBellChimeUrl(): string {
     for (let i = 0; i < numSamples; i++) {
       const t = i / sampleRate;
       let sample = 0;
-      // Strike 1: C6 (1046 Hz)
-      if (t >= 0 && t < 0.5) {
+
+      // Sub-bass physical thump (0.0s - 0.15s)
+      if (t >= 0 && t < 0.15) {
+        const decay = Math.exp(-t * 22.0);
+        sample += Math.sin(2 * Math.PI * 120.0 * t) * 0.45 * decay;
+      }
+
+      // Chirp 1: Rapid rising radar sweep 1760 Hz -> 2349 Hz (0.0s - 0.12s)
+      if (t >= 0 && t < 0.12) {
         const dt = t;
-        const decay = Math.exp(-dt * 6.5);
-        sample += (Math.sin(2 * Math.PI * 1046.5 * dt) * 0.55 + Math.sin(2 * Math.PI * 2093.0 * dt) * 0.25) * decay;
+        const freq = 1760.0 + (2349.0 - 1760.0) * (dt / 0.12);
+        const decay = Math.exp(-dt * 4.0);
+        sample += Math.sin(2 * Math.PI * freq * dt) * 0.65 * decay;
       }
-      // Strike 2: G5 (784 Hz)
-      if (t >= 0.22 && t < 0.75) {
-        const dt = t - 0.22;
-        const decay = Math.exp(-dt * 6.5);
-        sample += (Math.sin(2 * Math.PI * 783.99 * dt) * 0.55 + Math.sin(2 * Math.PI * 1568.0 * dt) * 0.25) * decay;
+
+      // Chirp 2: High piercing sweep 2349 Hz -> 3136 Hz (0.16s - 0.30s)
+      if (t >= 0.16 && t < 0.3) {
+        const dt = t - 0.16;
+        const freq = 2349.0 + (3136.0 - 2349.0) * (dt / 0.14);
+        const decay = Math.exp(-dt * 4.0);
+        sample += Math.sin(2 * Math.PI * freq * dt) * 0.75 * decay;
       }
-      // Strike 3: C6 (1046 Hz)
-      if (t >= 0.55 && t < 1.05) {
-        const dt = t - 0.55;
-        const decay = Math.exp(-dt * 6.5);
-        sample += (Math.sin(2 * Math.PI * 1046.5 * dt) * 0.55 + Math.sin(2 * Math.PI * 2093.0 * dt) * 0.25) * decay;
+
+      // Triple Staccato Attention Pulses (0.36s, 0.48s, 0.60s)
+      const staccatoTimes = [0.36, 0.48, 0.6];
+      for (const st of staccatoTimes) {
+        if (t >= st && t < st + 0.08) {
+          const dt = t - st;
+          const decay = Math.exp(-dt * 18.0);
+          sample +=
+            (Math.sin(2 * Math.PI * 2793.82 * dt) * 0.7 +
+              Math.sin(2 * Math.PI * 5587.64 * dt) * 0.25) *
+            decay;
+        }
       }
-      // Strike 4: A5 (880 Hz)
-      if (t >= 0.77 && t < 1.35) {
-        const dt = t - 0.77;
-        const decay = Math.exp(-dt * 6.5);
-        sample += (Math.sin(2 * Math.PI * 880.0 * dt) * 0.55 + Math.sin(2 * Math.PI * 1760.0 * dt) * 0.25) * decay;
-      }
+
       const intSample = Math.max(-1, Math.min(1, sample)) * 32767;
       view.setInt16(offset, intSample, true);
       offset += 2;
@@ -207,73 +219,88 @@ export function triggerHaptic(pattern: number | number[] = [100, 50, 100]) {
 let activeBellInterval: any = null;
 let activeBellAudio: HTMLAudioElement | null = null;
 
-// Synthesize a realistic, resonant metallic bell strike with harmonics
-function triggerBellStrike(
-  ctx: AudioContext,
-  baseFreq: number,
-  timeOffset: number = 0,
-  duration: number = 0.55,
-  masterVolume: number = 0.5
-) {
-  const now = ctx.currentTime + timeOffset;
-  const harmonics = [
-    { ratio: 1.0, gain: 0.6 },
-    { ratio: 2.0, gain: 0.35 },
-    { ratio: 2.76, gain: 0.25 },
-    { ratio: 4.07, gain: 0.15 },
-    { ratio: 5.4, gain: 0.08 },
-  ];
-
-  harmonics.forEach(({ ratio, gain }) => {
-    try {
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(baseFreq * ratio, now);
-
-      gainNode.gain.setValueAtTime(0.001, now);
-      gainNode.gain.linearRampToValueAtTime(gain * masterVolume, now + 0.005);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + duration + 0.05);
-    } catch {
-      /* ignore node errors */
-    }
-  });
-}
-
-// Generate two-cycle bell chime ("Ding-Dong... Ding-Dang...")
-function playBellCycle(ctx: AudioContext) {
+// High-Urgency Dispatch Radar Pulse & Accelerating Siren (On-The-Road Pro Rider)
+function playCaptainRadarSiren(ctx: AudioContext) {
   if (!ctx || ctx.state === "closed") return;
   if (ctx.state === "suspended") {
     void ctx.resume();
   }
+  const now = ctx.currentTime;
 
-  // Strike 1: High C6 (Ding!)
-  triggerBellStrike(ctx, 1046.5, 0.0, 0.45, 0.55);
-  // Strike 2: G5 (Dong!)
-  triggerBellStrike(ctx, 783.99, 0.22, 0.55, 0.55);
+  // 1. Sub-bass speaker thump (120Hz)
+  try {
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = "sine";
+    subOsc.frequency.setValueAtTime(120, now);
+    subGain.gain.setValueAtTime(0.001, now);
+    subGain.gain.linearRampToValueAtTime(0.5, now + 0.005);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+    subOsc.connect(subGain);
+    subGain.connect(ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.16);
+  } catch {}
 
-  // Strike 3: High C6 (Ding!)
-  triggerBellStrike(ctx, 1046.5, 0.55, 0.45, 0.55);
-  // Strike 4: A5 (Dang!)
-  triggerBellStrike(ctx, 880.0, 0.77, 0.6, 0.55);
+  // 2. Chirp 1 (1760Hz -> 2349Hz, sawtooth)
+  try {
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sawtooth";
+    osc1.frequency.setValueAtTime(1760, now);
+    osc1.frequency.exponentialRampToValueAtTime(2349, now + 0.12);
+    gain1.gain.setValueAtTime(0.001, now);
+    gain1.gain.linearRampToValueAtTime(0.55, now + 0.01);
+    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.15);
+  } catch {}
+
+  // 3. Chirp 2 (2349Hz -> 3136Hz, high triangle)
+  try {
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "triangle";
+    osc2.frequency.setValueAtTime(2349, now + 0.16);
+    osc2.frequency.exponentialRampToValueAtTime(3136, now + 0.29);
+    gain2.gain.setValueAtTime(0.001, now + 0.16);
+    gain2.gain.linearRampToValueAtTime(0.65, now + 0.17);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.31);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.16);
+    osc2.stop(now + 0.32);
+  } catch {}
+
+  // 4. Triple Staccato Attention Pulses (2793.82 Hz - F7)
+  [0.36, 0.48, 0.6].forEach((offset) => {
+    try {
+      const oscP = ctx.createOscillator();
+      const gainP = ctx.createGain();
+      oscP.type = "sine";
+      oscP.frequency.setValueAtTime(2793.82, now + offset);
+      gainP.gain.setValueAtTime(0.001, now + offset);
+      gainP.gain.linearRampToValueAtTime(0.7, now + offset + 0.005);
+      gainP.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.08);
+      oscP.connect(gainP);
+      gainP.connect(ctx.destination);
+      oscP.start(now + offset);
+      oscP.stop(now + offset + 0.09);
+    } catch {}
+  });
 }
 
 /**
- * Loud, continuous ringing bell chime for assigned trips & incoming dispatches.
- * Emulates the unmistakable Swiggy/Zomato/Uber delivery captain bell ringtone!
+ * Loud, continuous on-the-road radar dispatch siren for assigned trips & offers.
+ * Pierces through helmet, heavy traffic, and pocket environments!
  */
 export function playOrderAlertSound() {
   if (isAudioMuted()) return;
 
   unlockAudioContext();
-  triggerHaptic([350, 150, 350, 150, 600, 300]);
+  triggerHaptic([450, 100, 450, 100, 800, 200, 800]);
 
   try {
     stopOrderAlertSound();
@@ -284,13 +311,13 @@ export function playOrderAlertSound() {
       if (ctx.state === "suspended") {
         void ctx.resume();
       }
-      playBellCycle(ctx);
+      playCaptainRadarSiren(ctx);
 
       activeBellInterval = setInterval(() => {
         if (!ctx || ctx.state === "closed") return;
-        playBellCycle(ctx);
-        triggerHaptic([350, 150, 350, 150, 600, 300]);
-      }, 1400);
+        playCaptainRadarSiren(ctx);
+        triggerHaptic([450, 100, 450, 100, 800, 200, 800]);
+      }, 1050);
     }
 
     // Engine 2: Native HTML5 Audio with embedded WAV chime (Guaranteed fallback when AudioContext is suspended)
@@ -617,4 +644,21 @@ export function speakPickupOtpPrompt() {
     ? "आप कस्टमर के घर पहुँच गए हैं। कपड़े लेकर 4-अंकीय पिकअप कोड लें।"
     : "Arrived at customer pickup. Collect garments and ask for 4-digit pickup code.";
   speakText(text, true);
+}
+
+/**
+ * Test preview of the On-The-Road Dispatch Radar Siren.
+ * Rings for 4 seconds then automatically silences.
+ */
+export function testCaptainAlertSound(onFinished?: () => void): () => void {
+  playOrderAlertSound();
+  const timer = setTimeout(() => {
+    stopOrderAlertSound();
+    if (onFinished) onFinished();
+  }, 4000);
+
+  return () => {
+    clearTimeout(timer);
+    stopOrderAlertSound();
+  };
 }
