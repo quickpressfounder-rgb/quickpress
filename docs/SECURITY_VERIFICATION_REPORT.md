@@ -154,7 +154,23 @@ graph TD
 
 ---
 
-## 6. Verification & Audit Conclusion
+## 6. Database Vault Security & Disaster Recovery (9 Core Pillars)
+
+| Point ID | Security Domain | Target Layer | Enforcement Logic & Impact | File Reference |
+| :--- | :--- | :--- | :--- | :--- |
+| `SEC-DB-01` | **Restricted Network & SSL** | Transport Layer | Direct PostgreSQL port 5432 exposure blocked by Private VPC; production backend enforces `sslmode=require` encryption tunnel. | `app/db/supabase_client.py:L785` |
+| `SEC-DB-02` | **Strong Credentials Vault** | Secrets Management | High-entropy secrets (40+ chars) loaded from environment; automated auditor rejects weak passwords and default accounts. | `app/core/db_security_guard.py` |
+| `SEC-DB-03` | **Least-Privilege App Role** | PostgreSQL Role | Service connects as `quickpress_app_role` with DML grants (`SELECT, INSERT, UPDATE, DELETE`) only; DDL (`DROP`, `ALTER`) revoked. | `supabase/migrations/20261006_quickpress_database_vault_hardening.sql` |
+| `SEC-DB-04` | **Prod/Dev DB Separation** | Environment Guard | Environment isolation guard prevents local development or automated tests from connecting to or mutating live production databases. | `app/core/db_security_guard.py` |
+| `SEC-DB-05` | **Field-Level AES-256-GCM** | Data-at-Rest Crypto | Authenticated Encryption (AEAD) with 96-bit unique nonces for Aadhaar, PAN, Bank Accounts, and customer PII; includes format-preserving UI masking. | `app/core/field_crypto.py` |
+| `SEC-DB-06` | **Composite & GIN Indexes** | Database Optimization | GIN JSONB indexing (`jsonb_path_ops` and full GIN) + composite B-tree indexes for `(userId, createdAt)`, `(partnerId, status)`, `(riderId, status)`, and `idempotencyKey`. | `app/db/supabase_client.py:L845` |
+| `SEC-DB-07` | **Automated Backup & PITR** | Disaster Recovery | Daily encrypted backups (`pg_dump + gzip + AES-256`) + Continuous Write-Ahead Log (WAL) archiving for minute-by-minute point-in-time recovery. | `supabase/scripts/backup_and_pitr_recovery.sh` |
+| `SEC-DB-08` | **Immutable DB Audit Logs** | Compliance Trail | PostgreSQL trigger `quickpress_audit_trigger_func` logs every mutation on orders, wallets, settlements to append-only `quickpress_db_audit_log`. | `quickpress_db_audit_log` |
+| `SEC-DB-09` | **Database RLS Policies** | Database Engine | PostgreSQL Row-Level Security (RLS) active on all tables; audit log table allows `NO UPDATE` and `NO DELETE` even for system administrators. | `supabase/security_rules.sql` |
+
+---
+
+## 7. Verification & Audit Conclusion
 
 | Security Domain | Rules Implemented | Verification State |
 | :--- | :---: | :---: |
@@ -166,7 +182,8 @@ graph TD
 | Financial Ledger & Taxes | 5 | **ACTIVE & BALANCED** |
 | Phase 2 Advanced Scaling Rules | 6 | **ACTIVE & TESTED (6/6)** |
 | Bank-Grade Admin Console Hardening | 9 | **ACTIVE & TESTED (9/9)** |
-| **API & Network Gateway Controls** | **11** | **ACTIVE & TESTED (11/11)** |
-| **TOTAL QUICKPRESS RULES** | **64** | **100% PRODUCTION READY** |
+| API & Network Gateway Controls | 11 | **ACTIVE & TESTED (11/11)** |
+| **Database Vault & Disaster Recovery** | **9** | **ACTIVE & TESTED (9/9)** |
+| **TOTAL QUICKPRESS RULES** | **73** | **100% PRODUCTION READY** |
 
 

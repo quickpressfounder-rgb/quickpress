@@ -782,7 +782,9 @@ class SupabaseDatabase:
                         await self._pool.close()
                     except Exception:
                         pass
-                ssl_mode = "require" if ("supabase" in self.database_url or "pooler" in self.database_url or "sslmode=require" in self.database_url) else None
+                is_prod = (getattr(settings, "app_env", "") or "development").strip().lower() == "production"
+                is_local = "localhost" in self.database_url or "127.0.0.1" in self.database_url
+                ssl_mode = "require" if ("supabase" in self.database_url or "pooler" in self.database_url or "sslmode=require" in self.database_url or (is_prod and not is_local)) else None
                 self._pool = await asyncpg.create_pool(
                     self.database_url,
                     min_size=1,
@@ -855,6 +857,11 @@ class SupabaseDatabase:
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_code ON quickpress_documents (collection, (data->>'code'));
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_is_online ON quickpress_documents (collection, (data->>'isOnline'));
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_partner_pid ON quickpress_documents (collection, (data->'partner'->>'id'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_idempotency_key ON quickpress_documents (collection, (data->>'idempotencyKey'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_user_orders ON quickpress_documents (collection, (data->>'userId'), (data->>'createdAt') DESC);
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_partner_orders ON quickpress_documents (collection, (data->>'partnerId'), (data->>'status'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_rider_rides ON quickpress_documents (collection, (data->>'riderId'), (data->>'status'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_gin_full ON quickpress_documents USING gin (data);
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_updated_at ON quickpress_documents (collection, updated_at DESC);
             """)
         logger.info("Connected to Supabase PostgreSQL and initialized optimized schema + JSONB indexes.")
