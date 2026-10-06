@@ -149,3 +149,38 @@ WITH CHECK (
         'audit_logs'
     )
 );
+
+-- 8. Supabase Storage Buckets Security Rules (storage.objects)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'storage' AND table_name = 'objects') THEN
+        EXECUTE '
+            ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+            DROP POLICY IF EXISTS "Public Storage Read" ON storage.objects;
+            CREATE POLICY "Public Storage Read" ON storage.objects
+            FOR SELECT TO anon, authenticated
+            USING (bucket_id IN (''public'', ''services'', ''banners''));
+
+            DROP POLICY IF EXISTS "KYC Private Documents Read" ON storage.objects;
+            CREATE POLICY "KYC Private Documents Read" ON storage.objects
+            FOR SELECT TO authenticated
+            USING (
+                bucket_id = ''kyc'' 
+                AND (
+                    (auth.uid())::text = (storage.foldername(name))[1]
+                    OR (auth.jwt() ->> ''role'') = ''admin''
+                )
+            );
+
+            DROP POLICY IF EXISTS "KYC Private Documents Write" ON storage.objects;
+            CREATE POLICY "KYC Private Documents Write" ON storage.objects
+            FOR INSERT TO authenticated
+            WITH CHECK (
+                bucket_id = ''kyc'' 
+                AND (auth.uid())::text = (storage.foldername(name))[1]
+            );
+        ';
+    END IF;
+END $$;
+

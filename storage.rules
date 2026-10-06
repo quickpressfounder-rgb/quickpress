@@ -1,0 +1,76 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email.matches('.*@quickpress[.]com')
+      );
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isImageOrPdf() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType == 'application/pdf';
+    }
+
+    function isUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // 1. PUBLIC ASSETS (Banners, laundry catalog images, app assets)
+    // Anyone can read, only Admin can write
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImageOrPdf() && isUnder5MB();
+    }
+
+    match /services/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImageOrPdf() && isUnder5MB();
+    }
+
+    // 2. PARTNER KYC & SENSITIVE DOCUMENTS (Aadhaar, PAN, GSTIN, Shop License)
+    // STRICT SECURITY: Only the verified Store Owner OR Admin can read/write!
+    match /kyc/partners/{partnerId}/{fileName} {
+      allow read: if isOwner(partnerId) || isAdmin();
+      allow write: if (isOwner(partnerId) || isAdmin()) && isImageOrPdf() && isUnder5MB();
+    }
+
+    // 3. RIDER KYC & ONBOARDING DOCUMENTS (Driving License, RC, Selfie, Aadhaar)
+    // STRICT SECURITY: Only the verified Delivery Captain OR Admin can read/write!
+    match /kyc/riders/{riderId}/{fileName} {
+      allow read: if isOwner(riderId) || isAdmin();
+      allow write: if (isOwner(riderId) || isAdmin()) && isImageOrPdf() && isUnder5MB();
+    }
+
+    // 4. ORDER INSPECTION & DAMAGE CLAIM PHOTOS (Garment condition tags, drop-off doorstep photos)
+    // Read: Customer, assigned Partner, assigned Rider, or Admin
+    // Write: Authenticated user uploading order photos under 5MB
+    match /orders/{orderId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isImageOrPdf() && isUnder5MB();
+    }
+
+    // 5. USER PROFILE AVATARS
+    // Owner can update their own profile photo
+    match /profiles/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && request.resource.contentType.matches('image/.*') && isUnder5MB();
+    }
+
+    // DEFAULT: Catch-all rule strictly blocking all unlisted paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
