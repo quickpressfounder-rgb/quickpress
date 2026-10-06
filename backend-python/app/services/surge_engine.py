@@ -335,8 +335,60 @@ class DynamicSurgeEngine:
             "multiplier": "1.0x",
             "zoneName": None,
             "reason": "Normal Traffic (Surge Disabled)",
+            "circuitBreakerMaxMultiplier": MAX_SURGE_MULTIPLIER,
         }
+
+    def evaluate_capped_surge(
+        self,
+        calculated_multiplier: float,
+        calculated_bonus: float = 0.0,
+    ) -> Dict[str, Any]:
+        """Phase 2 Rule 6: Dynamic Surge Ceiling Anomaly Circuit Breaker.
+        
+        Hard-limits surge multiplier to 3.5x and bonus to ₹75.0, logging circuit breaker events
+        when extreme conditions or runaway pricing algorithms trigger anomalous surges.
+        """
+        is_circuit_breaker_triggered = False
+        capped_mult = calculated_multiplier
+        capped_bonus = calculated_bonus
+
+        if capped_mult > MAX_SURGE_MULTIPLIER:
+            logger.warning(
+                "Dynamic surge ceiling circuit breaker triggered: Uncapped %.2fx clamped to %.1fx",
+                calculated_multiplier,
+                MAX_SURGE_MULTIPLIER,
+            )
+            capped_mult = MAX_SURGE_MULTIPLIER
+            is_circuit_breaker_triggered = True
+
+        if capped_bonus > MAX_SURGE_BONUS_INR:
+            capped_bonus = MAX_SURGE_BONUS_INR
+            is_circuit_breaker_triggered = True
+
+        return {
+            "effectiveMultiplier": round(capped_mult, 2),
+            "effectiveBonus": round(capped_bonus, 2),
+            "multiplierLabel": f"{round(capped_mult, 1)}x",
+            "isCircuitBreakerTriggered": is_circuit_breaker_triggered,
+            "uncappedMultiplier": calculated_multiplier,
+            "maxCeiling": MAX_SURGE_MULTIPLIER,
+        }
+
+
+# Phase 2 Rule 6 Constants
+MAX_SURGE_MULTIPLIER = 3.5
+MAX_SURGE_BONUS_INR = 75.0
+
+
+def apply_surge_circuit_breaker(multiplier: float, bonus: float = 0.0) -> Tuple[float, float, bool]:
+    """Applies Phase 2 Rule 6 Circuit Breaker: Limits surge multiplier to 3.5x and bonus to ₹75."""
+    return (
+        min(multiplier, MAX_SURGE_MULTIPLIER),
+        min(bonus, MAX_SURGE_BONUS_INR),
+        multiplier > MAX_SURGE_MULTIPLIER or bonus > MAX_SURGE_BONUS_INR,
+    )
 
 
 # Singleton Engine instance
 surge_engine = DynamicSurgeEngine()
+

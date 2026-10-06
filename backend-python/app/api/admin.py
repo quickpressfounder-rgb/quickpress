@@ -2433,5 +2433,98 @@ async def reject_partner_change_request(
         raise HTTPException(status_code=404, detail=str(e))
 
 
+# =========================================================================
+#  Phase 2 Rule 4: Admin Four-Eyes (Dual-Control) Authorization Endpoints
+# =========================================================================
+
+@router.get("/dual-control/pending")
+async def list_pending_dual_control(
+    user: User = Depends(require_roles(Role.admin, Role.super_admin)),
+) -> dict:
+    """Lists high-impact actions currently pending second admin approval."""
+    from app.services.dual_control_service import dual_control_service
+    requests = await dual_control_service.list_pending_requests()
+    return {"ok": True, "count": len(requests), "requests": requests}
+
+
+@router.post("/dual-control/request")
+async def create_dual_control_ticket(
+    body: dict,
+    user: User = Depends(require_roles(Role.admin, Role.super_admin)),
+) -> dict:
+    """Creates a high-impact operation ticket (Four-Eyes Principle)."""
+    from app.services.dual_control_service import dual_control_service
+    action_type = str(body.get("actionType") or "").strip()
+    reason = str(body.get("reason") or "").strip()
+    payload = body.get("payload") or {}
+    target_id = str(body.get("targetEntityId") or "").strip()
+
+    if not action_type or not reason:
+        raise HTTPException(status_code=400, detail="actionType and reason are required.")
+
+    admin_name = getattr(user, "name", None) or getattr(user, "email", "Admin")
+    ticket = await dual_control_service.create_request(
+        action_type=action_type,
+        initiator_admin_id=user.id,
+        initiator_admin_name=admin_name,
+        payload=payload,
+        reason=reason,
+        target_entity_id=target_id,
+    )
+    return {"ok": True, "message": "Dual-control ticket created. Requires approval from a second admin.", "ticket": ticket}
+
+
+@router.post("/dual-control/{request_id}/approve")
+async def approve_dual_control_ticket(
+    request_id: str,
+    user: User = Depends(require_roles(Role.admin, Role.super_admin)),
+) -> dict:
+    """Approves a high-impact operation ticket. Rejects self-approval by initiator."""
+    from app.services.dual_control_service import dual_control_service
+    admin_name = getattr(user, "name", None) or getattr(user, "email", "Admin")
+    approved = await dual_control_service.approve_request(
+        request_id=request_id,
+        approver_admin_id=user.id,
+        approver_admin_name=admin_name,
+    )
+    return {"ok": True, "message": "Dual-control ticket successfully approved and executed.", "ticket": approved}
+
+
+@router.post("/dual-control/{request_id}/reject")
+async def reject_dual_control_ticket(
+    request_id: str,
+    body: Optional[dict] = None,
+    user: User = Depends(require_roles(Role.admin, Role.super_admin)),
+) -> dict:
+    """Rejects a dual-control ticket."""
+    from app.services.dual_control_service import dual_control_service
+    admin_name = getattr(user, "name", None) or getattr(user, "email", "Admin")
+    reason = str((body or {}).get("reason") or "Declined by second admin.")
+    rejected = await dual_control_service.reject_request(
+        request_id=request_id,
+        rejector_admin_id=user.id,
+        rejector_admin_name=admin_name,
+        rejection_reason=reason,
+    )
+    return {"ok": True, "message": "Dual-control ticket rejected.", "ticket": rejected}
+
+
+# =========================================================================
+#  Phase 2 Rule 5: DPDP Act 2023 Compliance & Data Retention Maintenance
+# =========================================================================
+
+@router.post("/dpdp/anonymize-batch")
+async def run_dpdp_anonymization(
+    body: Optional[dict] = None,
+    user: User = Depends(require_roles(Role.super_admin)),
+) -> dict:
+    """Runs automated PII scrubbing on delivered orders older than retention threshold (default 180 days)."""
+    from app.services.dpdp_anonymization_service import dpdp_anonymization_service
+    retention_days = int((body or {}).get("retentionDays") or 180)
+    result = await dpdp_anonymization_service.run_batch_anonymization(retention_days=retention_days)
+    return {"ok": True, "result": result}
+
+
+
 
 

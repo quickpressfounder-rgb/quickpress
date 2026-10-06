@@ -3,9 +3,10 @@
 **Report Date:** 2026-10-06  
 **Platform Version:** QuickPress Multi-Console Production Engine  
 **Target Architecture:** FastAPI 3.12 Backend + Supabase PostgreSQL (JSONB + GIN) + Firebase Auth & Storage + Multi-Console React Frontends  
-**Security Status:** Verified & Locked Down (38 Core Rules Active)
+**Security Status:** Verified & Locked Down (44 Core Rules Active — Phase 1 & Phase 2 Complete)
 
 ---
+
 
 ## 1. Executive Summary & Security Posture
 
@@ -105,33 +106,16 @@ graph TD
 
 ---
 
-## 3. Future & Advanced Security Rules Roadmap (Scaling Stage)
+## 3. Phase 2 Advanced Security Rules (Now Live & Verified) — 6 Rules
 
-When QuickPress expands to higher transaction volumes (10,000+ daily orders across multiple states), the following **6 Advanced Security Rules** can be integrated into the roadmap:
-
-### 1. Computer Vision Pre-Wash Garment Damage Rule
-* **Concept:** When Captain picks up clothes, an in-app photo is analyzed via Vision AI.
-* **Security Function:** Automatically detects existing tears, missing buttons, or deep discolorations before pickup. Stamps photographic proof into order metadata so customers cannot file fraudulent claims against the laundromat.
-
-### 2. Payment Velocity & Card Brute-Force Rule
-* **Concept:** Payment gateway card velocity guard.
-* **Security Function:** If a single IP address or user ID fails 3 consecutive card transactions within 10 minutes, card payments are temporarily suspended for 1 hour (UPI fallback remains available) to block stolen card testing.
-
-### 3. Driver Telematics & Excessive Velocity Rule
-* **Concept:** Continuous GPS distance-over-time delta monitoring.
-* **Security Function:** Calculates transit velocity between GPS pings. If a rider reports moving across the city at unrealistic speeds (> 85 km/h in dense traffic or teleportation > 3 km in 30 seconds), the session is flagged for GPS spoofing investigation.
-
-### 4. Admin Four-Eyes (Dual-Control) Authorization Rule
-* **Concept:** Critical financial and merchant action threshold.
-* **Security Function:** Any single refund exceeding ₹5,000, permanent partner suspension, or manual commission override requires approval from **two separate Admin accounts** before execution.
-
-### 5. Automated Data Anonymization (DPDP Act 2023 Compliance)
-* **Concept:** Privacy by Design data retention lifecycle.
-* **Security Function:** 180 days after order delivery, customer phone numbers, delivery coordinates, and chat transcripts are automatically anonymized, while financial GST invoices are retained in immutable cold storage for the statutory 7-year audit requirement.
-
-### 6. Dynamic Surge Ceiling Anomaly Guard
-* **Concept:** Automated pricing circuit breaker.
-* **Security Function:** If an automated weather or surge pricing algorithm calculates delivery surge exceeding `3.5x` standard base rates, an automatic cap is applied to protect customers from pricing anomalies.
+| Rule ID | Rule Name | Target Scope | Enforcement Logic & Implementation | File Reference |
+| :--- | :--- | :--- | :--- | :--- |
+| `ADV-01` | **AI Pre-Wash Garment Inspection Shield** | Order Lifecycle & Pickup | Stamps photographic cryptographic proof (`QP-VERIFIED-...`) of pre-existing tears, stains, and fabric defects to shield laundromats against false customer damage claims. | `backend-python/app/services/garment_inspection_ai.py` |
+| `ADV-02` | **Payment Card Velocity & Anti-Carding Lock** | Payment Gateway & Checkout | If 3 failed card attempts occur within 10 minutes from an IP/device, card transactions are suspended for 1 hour (UPI fallback remains accessible). | `backend-python/app/core/anti_fraud.py:L98` |
+| `ADV-03` | **Driver Telematics & City Velocity Ceiling** | Rider Dispatch & GPS | Rejects speed > 85 km/h in dense traffic or teleportation > 1 km in 20s / 3 km in 45s. Automatically flags `telematicsAnomalyFlagged: true` for administrative audit. | `backend-python/app/api/rider.py:L1220` |
+| `ADV-04` | **Admin Four-Eyes (Dual-Control) Authorization** | Admin Console & Operations | High-impact actions (Refunds >= ₹5,000, merchant bans, commission overrides) strictly require approval from a SECOND independent verified admin; self-approval is rejected. | `backend-python/app/services/dual_control_service.py` |
+| `ADV-05` | **Automated DPDP Act 2023 Data Anonymization** | Data Retention & Privacy | Orders delivered > 180 days have customer phone, full name, gate codes and precise GPS scrubbed, while preserving GST tax invoices intact for the statutory 7-year audit requirement. | `backend-python/app/services/dpdp_anonymization_service.py` |
+| `ADV-06` | **Dynamic Surge Ceiling Circuit Breaker** | Pricing Engine & Dispatch | Enforces a hard ceiling of `3.5x` maximum multiplier and `₹75.0` maximum bonus on dynamic surge calculations to protect customers against runaway surge anomalies. | `backend-python/app/services/surge_engine.py:L342` |
 
 ---
 
@@ -145,4 +129,6 @@ When QuickPress expands to higher transaction volumes (10,000+ daily orders acro
 | Laundry Merchant Isolation | 7 | **ACTIVE & TESTED** |
 | Customer Privacy & Auth | 5 | **ACTIVE & TESTED** |
 | Financial Ledger & Taxes | 5 | **ACTIVE & BALANCED** |
-| **Total Platform Rules** | **38** | **100% PRODUCTION READY** |
+| **Phase 2 Advanced Scaling Rules** | **6** | **ACTIVE & TESTED (6/6)** |
+| **Total Platform Rules** | **44** | **100% PRODUCTION READY** |
+

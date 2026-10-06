@@ -1216,8 +1216,12 @@ async def push_location(body: dict, user: User = Depends(current_user)) -> dict:
         lat_f = float(lat)
         lng_f = float(lng)
 
-        # 2. Anti-Spoofing: Impossible Teleportation / Velocity Jump Check
-        r_profile = await database.find_one("rider_profiles", {"_id": rider_id}) or {}
+        # 2. Anti-Spoofing: Driver Telematics & Velocity Jump Check (Phase 2 Rule 3)
+        user_candidate_id = getattr(user, "id", "")
+        r_profile = await database.find_one(
+            "rider_profiles",
+            {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"userId": user_candidate_id}]}
+        ) or {}
         prev_lat = r_profile.get("lat")
         prev_lng = r_profile.get("lng")
         prev_ts_raw = r_profile.get("lastLocationAt")
@@ -1229,22 +1233,41 @@ async def push_location(body: dict, user: User = Depends(current_user)) -> dict:
                 prev_ts = datetime.fromisoformat(str(prev_ts_raw).replace("Z", "+00:00"))
                 time_diff_sec = max(0.1, (now_dt - prev_ts).total_seconds())
 
-                # If jump is greater than 1.0 km in under 20 seconds, or speed > 150 km/h:
-                if dist_km > 1.0 and time_diff_sec < 20.0:
+                # If jump is greater than 1.0 km in under 20 seconds, or 3.0 km in under 45 seconds:
+                if (dist_km > 1.0 and time_diff_sec < 20.0) or (dist_km > 3.0 and time_diff_sec < 45.0):
                     logger.warning(
                         "Teleportation detected for rider %s: %s km in %s sec",
                         rider_id, dist_km, time_diff_sec,
+                    )
+                    await database.update(
+                        "rider_profiles",
+                        {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"userId": user_candidate_id}]},
+                        {
+                            "telematicsAnomalyFlagged": True,
+                            "telematicsAnomalyReason": f"Unrealistic location jump: {round(dist_km, 2)} km in {round(time_diff_sec, 1)}s",
+                            "telematicsAnomalyAt": now_iso,
+                        },
                     )
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="Unrealistic location jump / Teleportation detected. Please turn off fake GPS.",
                     )
-                elif dist_km > 0.5:
+                elif dist_km > 0.3:
                     speed_kmh = (dist_km / (time_diff_sec / 3600.0))
-                    if speed_kmh > 150.0:
+                    # City speed ceiling is 85 km/h
+                    if speed_kmh > 85.0:
                         logger.warning(
-                            "Impossible speed detected for rider %s: %s km/h over %s km",
+                            "Impossible velocity detected for rider %s: %s km/h over %s km",
                             rider_id, speed_kmh, dist_km,
+                        )
+                        await database.update(
+                            "rider_profiles",
+                            {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"userId": user_candidate_id}]},
+                            {
+                                "telematicsAnomalyFlagged": True,
+                                "telematicsAnomalyReason": f"Excessive velocity: {round(speed_kmh)} km/h over {round(dist_km, 2)} km",
+                                "telematicsAnomalyAt": now_iso,
+                            },
                         )
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,

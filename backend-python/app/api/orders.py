@@ -168,3 +168,55 @@ async def cancel_order(
 @router.get("/orders/{order_id}/tracking", response_model=OrderResponse)
 async def track_order(order_id: str, user: Optional[User] = Depends(optional_user)) -> OrderResponse:
     return await get_order(order_id, user)
+
+
+# =========================================================================
+#  Phase 2 Rule 1: AI Pre-Wash Garment Damage Inspection & Liability Shield
+# =========================================================================
+
+@router.post("/orders/{order_id}/prewash-inspection")
+async def record_prewash_inspection(
+    order_id: str,
+    body: dict,
+    user: User = Depends(current_user),
+) -> dict:
+    """Phase 2 Rule 1: Computer Vision & Pre-Wash Damage Proof Recording.
+    
+    Allows Captain or Partner to record pre-wash photo evidence and fabric flaws,
+    stamping photographic liability protection to shield laundromats from fraudulent claims.
+    """
+    from app.services.garment_inspection_ai import garment_inspection_engine
+
+    photo_url = str(body.get("photoUrl") or "").strip()
+    if not photo_url:
+        raise HTTPException(status_code=400, detail="photoUrl is required for garment inspection.")
+
+    category = str(body.get("garmentCategory") or "general")
+    flaws = body.get("detectedFlaws") or []
+    notes = str(body.get("notes") or "")
+    role_str = getattr(user.role, "value", str(user.role))
+
+    report = await garment_inspection_engine.inspect_garment(
+        order_id=order_id,
+        photo_url=photo_url,
+        garment_category=category,
+        detected_flaws=flaws,
+        notes=notes,
+        reported_by=role_str,
+        reporter_id=user.id,
+    )
+    return {"ok": True, "inspection": report}
+
+
+@router.get("/orders/{order_id}/prewash-inspection")
+async def get_prewash_inspection(
+    order_id: str,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Fetch recorded inspection and liability certificate for an order."""
+    from app.services.garment_inspection_ai import garment_inspection_engine
+    inspection = await garment_inspection_engine.get_inspection_report(order_id)
+    if not inspection:
+        raise HTTPException(status_code=404, detail="No prewash inspection recorded for this order.")
+    return {"ok": True, "inspection": inspection}
+
