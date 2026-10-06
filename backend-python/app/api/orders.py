@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
 from app.core.deps import current_user, optional_user
 from app.db.address_repositories import address_repository
@@ -46,8 +46,14 @@ def _place_order_response(order: OrderResponse) -> PlaceOrderResponse:
 
 @router.post("/orders", response_model=PlaceOrderResponse, status_code=status.HTTP_201_CREATED)
 async def place_order(
-    payload: PlaceOrderPayload, user: User = Depends(current_user)
+    payload: PlaceOrderPayload,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
+    user: User = Depends(current_user),
 ) -> PlaceOrderResponse:
+    if not payload.idempotencyKey:
+        payload.idempotencyKey = idempotency_key or x_idempotency_key
+
     if payload.idempotencyKey:
         from app.core.idempotency import idempotency_engine
         idemp = await idempotency_engine.acquire("order", f"{user.id}:{payload.idempotencyKey}")

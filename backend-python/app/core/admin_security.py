@@ -552,6 +552,12 @@ async def record_successful_login(admin_id: str, email: str, client_ip: str, use
 # =========================================================================
 
 PERM_ALL = "*"
+ROLE_SUPER_ADMIN = "super_admin"
+ROLE_ADMIN = "admin"
+ROLE_FINANCE = "finance"
+ROLE_SUPPORT = "support"
+ROLE_OPS = "ops"
+
 PERM_ORDERS_READ = "orders:read"
 PERM_ORDERS_DISPATCH = "orders:dispatch"
 PERM_FINANCE_REFUND = "finance:refund"
@@ -564,8 +570,8 @@ PERM_SETTINGS_WRITE = "settings:write"
 PERM_SUPPORT_TICKETS = "support:tickets"
 
 ROLE_PERMISSIONS_MAP: Dict[str, List[str]] = {
-    "super_admin": [PERM_ALL],
-    "admin": [
+    ROLE_SUPER_ADMIN: [PERM_ALL],
+    ROLE_ADMIN: [
         PERM_ORDERS_READ,
         PERM_ORDERS_DISPATCH,
         PERM_FINANCE_LEDGER,
@@ -738,7 +744,7 @@ async def issue_sudo_token(admin_id: str) -> str:
         "createdAt": _now_iso(),
         "expiresAtEpoch": now_epoch + SUDO_TOKEN_EXPIRY_SECONDS,
     }
-    await database.insert_one(SUDO_COLLECTION, doc)
+    await database.insert(SUDO_COLLECTION, doc)
     return token
 
 
@@ -752,6 +758,22 @@ async def verify_sudo_token(admin_id: str, sudo_token: str) -> bool:
     if float(doc.get("expiresAtEpoch", 0.0)) < time.time():
         await database.delete_many(SUDO_COLLECTION, {"_id": sudo_token})
         return False
+    return True
+
+
+async def require_sudo_mode(admin_id: str, sudo_token: Optional[str]) -> bool:
+    """Verifies that an admin holds an active, non-expired Sudo Mode session."""
+    if not sudo_token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sudo Mode Required: Please verify your credentials via /api/admin/security/sudo-confirm before performing this sensitive operation.",
+        )
+    valid = await verify_sudo_token(admin_id, sudo_token)
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sudo Mode Token Invalid or Expired: Please re-authenticate your administrative session.",
+        )
     return True
 
 

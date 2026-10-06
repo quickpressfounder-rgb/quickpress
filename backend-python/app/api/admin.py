@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Response, status
 
 
 from fastapi.security import HTTPAuthorizationCredentials
@@ -2353,14 +2353,20 @@ async def get_login_history(
 async def issue_order_refund(
     order_id: str,
     payload: dict,
+    x_sudo_token: Optional[str] = Header(None, alias="X-Sudo-Token"),
     user: User = Depends(current_user),
 ) -> dict:
     """POST /api/admin/orders/{order_id}/refund — Strictly segregated Finance-only refund execution."""
-    from app.core.admin_security import PERM_FINANCE_REFUND, check_admin_permission
+    from app.core.admin_security import PERM_FINANCE_REFUND, check_admin_permission, verify_sudo_token
     from app.services.dual_control_service import dual_control_service, HighImpactActionType
 
     # 1. RBAC & Segregation of Duties Check: Support Agents CANNOT issue refunds!
     check_admin_permission(user, PERM_FINANCE_REFUND)
+
+    if x_sudo_token:
+        is_valid = await verify_sudo_token(user.id, x_sudo_token)
+        if not is_valid:
+            raise HTTPException(status_code=403, detail="Sudo Mode verification failed: Invalid or expired sudo token.")
 
     amount = float(payload.get("amount") or 0.0)
     reason = str(payload.get("reason") or "Customer dissatisfaction").strip()

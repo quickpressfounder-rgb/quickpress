@@ -15,9 +15,9 @@ Online rails (Razorpay, UPI, cards) are modelled but rejected until
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.core.deps import current_user
 from app.db.wallet_repositories import WalletError, wallet_repository
@@ -83,9 +83,13 @@ async def delete_payment_method(
 
 @router.post("/payments/create", response_model=CreatePaymentResponse)
 async def create_payment(
-    payload: CreatePaymentPayload, user: User = Depends(current_user)
+    payload: CreatePaymentPayload,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
+    user: User = Depends(current_user),
 ) -> CreatePaymentResponse:
-    idemp_key = payload.paymentReference or (f"{payload.orderId}:{payload.amount}:{payload.method}" if payload.orderId else None)
+    header_key = idempotency_key or x_idempotency_key
+    idemp_key = payload.paymentReference or header_key or (f"{payload.orderId}:{payload.amount}:{payload.method}" if payload.orderId else None)
     if idemp_key:
         from app.core.idempotency import idempotency_engine
         idemp = await idempotency_engine.acquire("payment", f"{user.id}:{idemp_key}")

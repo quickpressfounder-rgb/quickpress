@@ -98,10 +98,12 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
     """
 
     # Quotas: (max_requests, window_seconds)
-    AUTH_LIMIT = (12, 60)       # 12 requests / minute (OTP & Login)
-    POLLING_LIMIT = (80, 60)    # 80 requests / minute (Rider/Partner live heartbeat)
-    MUTATION_LIMIT = (40, 60)   # 40 requests / minute (Orders & Checkout)
-    GLOBAL_LIMIT = (150, 60)    # 150 requests / minute (General APIs)
+    SUDO_ADMIN_LIMIT = (6, 60)   # 6 requests / minute (Sudo re-auth & sensitive security)
+    AUTH_LIMIT = (12, 60)        # 12 requests / minute (OTP & Login)
+    PAYMENT_LIMIT = (15, 60)     # 15 requests / minute (Payment init, verification, wallet debit)
+    POLLING_LIMIT = (80, 60)     # 80 requests / minute (Rider/Partner live heartbeat)
+    MUTATION_LIMIT = (40, 60)    # 40 requests / minute (General mutating APIs)
+    GLOBAL_LIMIT = (150, 60)     # 150 requests / minute (General read APIs)
 
     async def dispatch(self, request: Request, call_next):
         # 1. Skip static assets, health probes, and API documentation
@@ -124,9 +126,20 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # 3. Route-specific Rate Limit Policy
-        if path.startswith("/api/auth"):
+        if path.startswith("/api/admin/security/sudo-confirm") or "/sudo" in path:
+            tier_name = "sudo"
+            max_req, win_sec = self.SUDO_ADMIN_LIMIT
+        elif path.startswith("/api/auth") or path.startswith("/api/admin/auth"):
             tier_name = "auth"
             max_req, win_sec = self.AUTH_LIMIT
+        elif (
+            path.startswith("/api/payments")
+            or path.startswith("/api/razorpay")
+            or path.startswith("/api/cashfree")
+            or path.startswith("/api/checkout")
+        ):
+            tier_name = "payment"
+            max_req, win_sec = self.PAYMENT_LIMIT
         elif (
             path.startswith("/api/rider/offers")
             or path.startswith("/api/partner/orders")

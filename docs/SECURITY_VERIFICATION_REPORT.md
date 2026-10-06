@@ -136,7 +136,25 @@ graph TD
 
 ---
 
-## 5. Verification & Audit Conclusion
+## 5. API & Network Gateway Security Controls (11 Core Security Pillars)
+
+| Point ID | Security Domain | Target Layer | Enforcement Logic & Impact | File Reference |
+| :--- | :--- | :--- | :--- | :--- |
+| `SEC-NET-01` | **HTTPS-Only & HSTS** | Gateway & TLS | Production HTTP traffic permanently redirected (301) to HTTPS; Strict-Transport-Security header enforces 1-year browser encryption tunnel. | `app/core/security_headers.py` |
+| `SEC-NET-02` | **Strict CORS Whitelist** | Browser Gateway | Strict whitelisting with zero wildcard reflection; prevents third-party origins from intercepting cookies or receiving reflected access. | `app/main.py:L155` |
+| `SEC-NET-03` | **Request Schema Validation** | FastAPI / Pydantic | Every endpoint parameter, query, and payload validated by strict schemas; malformed or negative inputs rejected with standardized 422. | `app/main.py:L305` |
+| `SEC-NET-04` | **Sliding Window Rate Limiter** | API Shield | Multi-tier rate limiting (Auth 12/min, Sudo 6/min, Payments 15/min, Mutations 40/min, Global 150/min); blocks brute-force and DoS loops with 429. | `app/core/rate_limiter.py` |
+| `SEC-NET-05` | **Cryptographic Authentication** | Identity Layer | Every protected endpoint requires valid Supabase Auth JWT / Bearer Token; unauthenticated requests dropped with 401. | `app/core/deps.py` |
+| `SEC-NET-06` | **Granular Authorization** | Access Control | Role-Based Access Control (RBAC) and strict tenant isolation; cross-user, cross-merchant, and unauthorized refunds blocked with 403. | `app/core/admin_security.py` |
+| `SEC-NET-07` | **Multi-Vector Sanitization** | WAF & Query Guard | Deep regex and operator filter blocking SQL Injection (`UNION SELECT`, `' OR '1'='1`), XSS (`<script>`, `onerror=`), and NoSQL operators with 400. | `app/core/sanitizer.py` |
+| `SEC-NET-08` | **Pagination Limits & OOM Guard** | Memory Defense | Intercepts all `limit` / `page_size` queries and enforces hard ceilings (Max 100 general, 200 financial); prevents Out-Of-Memory server crashes. | `app/core/pagination.py` |
+| `SEC-NET-09` | **Request Payload Size Limits** | Buffer Shield | Limits request bodies to Max 2 MB for JSON and 10 MB for media uploads; drops oversized payloads with 413 Payload Too Large before memory buffering. | `app/core/request_size_limiter.py` |
+| `SEC-NET-10` | **RFC Idempotency-Key Header** | Payment Integrity | Accepts `Idempotency-Key` / `X-Idempotency-Key` headers on order and payment APIs; prevents double charges and duplicate order replays. | `app/api/orders.py`, `app/api/payments.py` |
+| `SEC-NET-11` | **Sensitive Endpoint Sudo Shield** | Governance Layer | High-impact administrative actions require active Sudo Mode re-authentication tokens; prevents unattended terminal hijackings. | `app/core/admin_security.py`, `app/api/admin.py` |
+
+---
+
+## 6. Verification & Audit Conclusion
 
 | Security Domain | Rules Implemented | Verification State |
 | :--- | :---: | :---: |
@@ -147,7 +165,8 @@ graph TD
 | Customer Privacy & Auth | 5 | **ACTIVE & TESTED** |
 | Financial Ledger & Taxes | 5 | **ACTIVE & BALANCED** |
 | Phase 2 Advanced Scaling Rules | 6 | **ACTIVE & TESTED (6/6)** |
-| **Bank-Grade Admin Console Hardening** | **9** | **ACTIVE & TESTED (9/9)** |
-| **TOTAL QUICKPRESS RULES** | **53** | **100% PRODUCTION READY** |
+| Bank-Grade Admin Console Hardening | 9 | **ACTIVE & TESTED (9/9)** |
+| **API & Network Gateway Controls** | **11** | **ACTIVE & TESTED (11/11)** |
+| **TOTAL QUICKPRESS RULES** | **64** | **100% PRODUCTION READY** |
 
 

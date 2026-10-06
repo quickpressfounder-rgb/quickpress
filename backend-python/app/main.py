@@ -118,13 +118,17 @@ def create_app() -> FastAPI:
     app = FastAPI(title="QuickPress API", version="1.0.0", lifespan=lifespan)
     from fastapi.middleware.gzip import GZipMiddleware
     from app.core.security_headers import SecurityHeadersMiddleware
+    from app.core.request_size_limiter import RequestSizeLimitMiddleware
     from app.core.rate_limiter import GlobalRateLimiterMiddleware
     from app.core.sanitizer import InputSanitizerMiddleware
+    from app.core.pagination import PaginationGuardMiddleware
     from app.core.timing_middleware import ServerTimingMiddleware
 
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RequestSizeLimitMiddleware)
     app.add_middleware(GlobalRateLimiterMiddleware)
     app.add_middleware(InputSanitizerMiddleware)
+    app.add_middleware(PaginationGuardMiddleware)
     app.add_middleware(ServerTimingMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=500)
     is_prod = (settings.app_env or "development").strip().lower() == "production"
@@ -282,30 +286,49 @@ def create_app() -> FastAPI:
         from app.api.health import health as get_health_status  # noqa: PLC0415
         return await get_health_status()
 
+    import re
     from fastapi.responses import JSONResponse
     from fastapi.exceptions import RequestValidationError
+
+    ALLOWED_ORIGIN_REGEX = re.compile(
+        r"^(capacitor://localhost|ionic://localhost|https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app))(:[0-9]+)?)$"
+    )
+
+    def _resolve_safe_origin(origin_header: str | None) -> str | None:
+        if not origin_header:
+            return None
+        if not is_prod:
+            if origin_header.startswith("http://localhost") or origin_header.startswith("http://127.0.0.1"):
+                return origin_header
+        if origin_header in settings.cors_origin_list:
+            return origin_header
+        if ALLOWED_ORIGIN_REGEX.match(origin_header):
+            return origin_header
+        return None
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):
         logger.exception("Unhandled error on %s %s: %s", request.method, request.url.path, exc)
-        origin = request.headers.get("origin") or "*"
         response = JSONResponse(
             status_code=500,
-            content={"detail": f"Internal Server Error: {str(exc)}"},
+            content={"detail": "Internal Server Error"},
         )
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
+        safe_origin = _resolve_safe_origin(request.headers.get("origin"))
+        if safe_origin:
+            response.headers["Access-Control-Allow-Origin"] = safe_origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request, exc):
-        origin = request.headers.get("origin") or "*"
         response = JSONResponse(
             status_code=422,
             content={"detail": exc.errors()},
         )
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
+        safe_origin = _resolve_safe_origin(request.headers.get("origin"))
+        if safe_origin:
+            response.headers["Access-Control-Allow-Origin"] = safe_origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
     return app
