@@ -103,6 +103,14 @@ def verify_password(password: str, hashed: str) -> bool:
         return False
 
 
+def constant_time_compare(val1: str, val2: str) -> bool:
+    """Constant-time string comparison to prevent timing attacks."""
+    if not isinstance(val1, str) or not isinstance(val2, str):
+        return False
+    return hmac.compare_digest(val1.encode("utf-8"), val2.encode("utf-8"))
+
+
+
 # =========================================================================
 #  2. Business Email Validation
 # =========================================================================
@@ -529,6 +537,277 @@ async def record_successful_login(admin_id: str, email: str, client_ip: str, use
             "at": now,
         },
     )
+    # Record in login history
+    await record_admin_login_history(
+        email=email,
+        admin_id=admin_id,
+        client_ip=client_ip,
+        user_agent=user_agent,
+        login_status="SUCCESS",
+    )
+
+
+# =========================================================================
+#  5. RBAC (Role-Based Access Control) & Segregation of Duties
+# =========================================================================
+
+PERM_ALL = "*"
+PERM_ORDERS_READ = "orders:read"
+PERM_ORDERS_DISPATCH = "orders:dispatch"
+PERM_FINANCE_REFUND = "finance:refund"
+PERM_FINANCE_PAYOUT = "finance:payout"
+PERM_FINANCE_LEDGER = "finance:ledger"
+PERM_PARTNERS_MANAGE = "partners:manage"
+PERM_RIDERS_MANAGE = "riders:manage"
+PERM_STAFF_MANAGE = "staff:manage"
+PERM_SETTINGS_WRITE = "settings:write"
+PERM_SUPPORT_TICKETS = "support:tickets"
+
+ROLE_PERMISSIONS_MAP: Dict[str, List[str]] = {
+    "super_admin": [PERM_ALL],
+    "admin": [
+        PERM_ORDERS_READ,
+        PERM_ORDERS_DISPATCH,
+        PERM_FINANCE_LEDGER,
+        PERM_PARTNERS_MANAGE,
+        PERM_RIDERS_MANAGE,
+        PERM_SUPPORT_TICKETS,
+    ],
+    "finance": [
+        PERM_FINANCE_LEDGER,
+        PERM_FINANCE_REFUND,
+        PERM_FINANCE_PAYOUT,
+        PERM_ORDERS_READ,
+    ],
+    "support": [
+        PERM_ORDERS_READ,
+        PERM_SUPPORT_TICKETS,
+    ],
+    "operations": [
+        PERM_ORDERS_READ,
+        PERM_ORDERS_DISPATCH,
+        PERM_RIDERS_MANAGE,
+        PERM_PARTNERS_MANAGE,
+    ],
+    "verification": [
+        "kyc:review",
+        PERM_PARTNERS_MANAGE,
+        PERM_RIDERS_MANAGE,
+    ],
+}
+
+
+def check_admin_permission(user: Any, required_perm: str) -> None:
+    """Enforces fine-grained RBAC and segregation of duties.
+    
+    Raises 403 Forbidden if user lacks the required permission.
+    """
+    user_role = str(getattr(user, "role", "") or "")
+    if hasattr(user.role, "value"):
+        user_role = user.role.value
+
+    # Super Admin possesses all broad permissions
+    if user_role == "super_admin":
+        return
+
+    allowed_perms = ROLE_PERMISSIONS_MAP.get(user_role, [])
+    # Support agents explicitly cannot execute refunds or finance operations
+    if required_perm in (PERM_FINANCE_REFUND, PERM_FINANCE_PAYOUT) and user_role == "support":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Segregation of Duties: Support Agents cannot process financial refunds or payouts. Please escalate to Finance.",
+        )
+
+    if PERM_ALL not in allowed_perms and required_perm not in allowed_perms:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"RBAC Access Denied: Role '{user_role}' lacks required permission '{required_perm}'.",
+        )
+
+
+# =========================================================================
+#  6. IP, Device & Active Session Monitoring (15-Minute Timeout)
+# =========================================================================
+
+SESSION_TIMEOUT_SECONDS = 900  # 15 minutes of inactivity
+SESSION_COLLECTION = "admin_active_sessions"
+
+
+async def create_admin_session(
+    admin_id: str,
+    email: str,
+    client_ip: str,
+    user_agent: str = "",
+    device_id: str = "",
+) -> Dict[str, Any]:
+    """Registers an active authenticated admin session with inactivity tracking."""
+    session_id = f"sess_{secrets.token_hex(16)}"
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    now_epoch = now.timestamp()
+
+    doc = {
+        "_id": session_id,
+        "sessionId": session_id,
+        "adminId": admin_id,
+        "email": email,
+        "clientIp": client_ip,
+        "userAgent": user_agent[:255] if user_agent else "",
+        "deviceId": device_id or f"dev_{secrets.token_hex(8)}",
+        "createdAt": now_iso,
+        "lastActivityAt": now_iso,
+        "lastActivityEpoch": now_epoch,
+        "expiresAtEpoch": now_epoch + SESSION_TIMEOUT_SECONDS,
+        "status": "ACTIVE",
+    }
+    await database.insert_one(SESSION_COLLECTION, doc)
+    return doc
+
+
+async def touch_admin_session(session_id: str, client_ip: str) -> bool:
+    """Refreshes active session timestamp, checking against 15-minute inactivity timeout."""
+    if not session_id:
+        return False
+    doc = await database.find_one(SESSION_COLLECTION, {"_id": session_id})
+    if not doc or doc.get("status") != "ACTIVE":
+        return False
+
+    now_epoch = time.time()
+    if float(doc.get("expiresAtEpoch", 0.0)) < now_epoch:
+        # Session expired due to inactivity
+        await database.update_one(
+            SESSION_COLLECTION,
+            {"_id": session_id},
+            {"$set": {"status": "EXPIRED", "expiredAt": _now_iso()}},
+        )
+        return False
+
+    # Refresh idle expiry
+    await database.update_one(
+        SESSION_COLLECTION,
+        {"_id": session_id},
+        {
+            "$set": {
+                "lastActivityAt": _now_iso(),
+                "lastActivityEpoch": now_epoch,
+                "expiresAtEpoch": now_epoch + SESSION_TIMEOUT_SECONDS,
+                "clientIp": client_ip,
+            }
+        },
+    )
+    return True
+
+
+async def terminate_admin_session(session_id: str) -> bool:
+    """Terminates an active session remotely."""
+    result = await database.update_one(
+        SESSION_COLLECTION,
+        {"_id": session_id},
+        {"$set": {"status": "TERMINATED", "terminatedAt": _now_iso()}},
+    )
+    return getattr(result, "modified_count", 1) > 0
+
+
+async def list_admin_active_sessions(admin_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Lists current active sessions with IP and device metadata."""
+    query: Dict[str, Any] = {"status": "ACTIVE"}
+    if admin_id:
+        query["adminId"] = admin_id
+    sessions = await database.find_many(SESSION_COLLECTION, query)
+    now_epoch = time.time()
+    # Filter out expired sessions
+    return [s for s in sessions if float(s.get("expiresAtEpoch", 0.0)) >= now_epoch]
+
+
+# =========================================================================
+#  7. Sensitive Action Confirmation (Sudo Mode)
+# =========================================================================
+
+SUDO_TOKEN_EXPIRY_SECONDS = 900  # 15 minutes validity
+SUDO_COLLECTION = "admin_sudo_sessions"
+
+
+async def issue_sudo_token(admin_id: str) -> str:
+    """Issues a 15-minute re-authenticated sudo token for sensitive operations."""
+    token = f"sudo_{secrets.token_hex(20)}"
+    now_epoch = time.time()
+    doc = {
+        "_id": token,
+        "sudoToken": token,
+        "adminId": admin_id,
+        "createdAt": _now_iso(),
+        "expiresAtEpoch": now_epoch + SUDO_TOKEN_EXPIRY_SECONDS,
+    }
+    await database.insert_one(SUDO_COLLECTION, doc)
+    return token
+
+
+async def verify_sudo_token(admin_id: str, sudo_token: str) -> bool:
+    """Validates if admin is currently in verified Sudo mode."""
+    if not sudo_token:
+        return False
+    doc = await database.find_one(SUDO_COLLECTION, {"_id": sudo_token, "adminId": admin_id})
+    if not doc:
+        return False
+    if float(doc.get("expiresAtEpoch", 0.0)) < time.time():
+        await database.delete_many(SUDO_COLLECTION, {"_id": sudo_token})
+        return False
+    return True
+
+
+async def confirm_sudo_with_password(admin_id: str, password: str) -> str:
+    """Validates admin password and issues a new Sudo Token upon success."""
+    staff = await database.find_one("admin_staff", {"_id": admin_id}) or await database.find_one("admin_staff", {"email": admin_id})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff account not found.")
+
+    pwd_hash = staff.get("passwordHash", "")
+    if not verify_password(password, pwd_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sensitive Action Re-Authentication Failed: Incorrect admin password.",
+        )
+
+    return await issue_sudo_token(str(staff.get("_id") or admin_id))
+
+
+# =========================================================================
+#  8. Login History & Failed Login Security Alerts
+# =========================================================================
+
+LOGIN_HISTORY_COLLECTION = "admin_login_history"
+
+
+async def record_admin_login_history(
+    email: str,
+    admin_id: str,
+    client_ip: str,
+    user_agent: str = "",
+    login_status: str = "SUCCESS",
+    failure_reason: str = "",
+) -> None:
+    """Records chronological login history with device and IP metadata."""
+    now_iso = _now_iso()
+    doc = {
+        "_id": f"log_{secrets.token_hex(12)}",
+        "email": email,
+        "adminId": admin_id,
+        "clientIp": client_ip,
+        "userAgent": user_agent[:255] if user_agent else "",
+        "status": login_status,
+        "failureReason": failure_reason,
+        "timestamp": now_iso,
+    }
+    await database.insert_one(LOGIN_HISTORY_COLLECTION, doc)
+
+
+async def list_admin_login_history(admin_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    """Retrieves chronological login history."""
+    query = {"adminId": admin_id} if admin_id else {}
+    history = await database.find_many(LOGIN_HISTORY_COLLECTION, query, limit=limit)
+    history.sort(key=lambda x: str(x.get("timestamp") or ""), reverse=True)
+    return history
+
 
 
 async def ensure_super_admin_seed() -> dict:

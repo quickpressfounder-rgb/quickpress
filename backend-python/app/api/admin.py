@@ -2287,6 +2287,126 @@ async def change_admin_pin(
         upsert=True,
     )
     return {"ok": True, "message": "Admin Security Passcode successfully updated."}
+
+
+# =========================================================================
+#  9-Point Admin Security Engine Routes (RBAC, Sessions, Sudo, History)
+# =========================================================================
+
+@router.get("/security/sessions")
+async def get_active_sessions(
+    user: User = Depends(current_user),
+) -> dict:
+    """GET /api/admin/security/sessions — IP, device & session monitoring."""
+    from app.core.admin_security import list_admin_active_sessions
+    is_super = getattr(user.role, "value", str(user.role)) in ("super_admin", "admin")
+    admin_id_filter = None if is_super else user.id
+    sessions = await list_admin_active_sessions(admin_id=admin_id_filter)
+    return {"ok": True, "count": len(sessions), "sessions": sessions}
+
+
+@router.post("/security/sessions/{session_id}/terminate")
+async def terminate_session(
+    session_id: str,
+    user: User = Depends(current_user),
+) -> dict:
+    """POST /api/admin/security/sessions/{session_id}/terminate — Remote session kill."""
+    from app.core.admin_security import terminate_admin_session
+    terminated = await terminate_admin_session(session_id)
+    return {"ok": True, "terminated": terminated, "message": f"Session {session_id} terminated."}
+
+
+@router.post("/security/sudo-confirm")
+async def confirm_sudo_mode(
+    payload: dict,
+    user: User = Depends(current_user),
+) -> dict:
+    """POST /api/admin/security/sudo-confirm — Sensitive action re-authentication."""
+    from app.core.admin_security import confirm_sudo_with_password
+    password = str(payload.get("password") or "").strip()
+    if not password:
+        raise HTTPException(status_code=400, detail="Password is required for sensitive action re-authentication.")
+
+    token = await confirm_sudo_with_password(user.id, password)
+    return {
+        "ok": True,
+        "sudoToken": token,
+        "expiresInSeconds": 900,
+        "message": "Sudo mode active for 15 minutes.",
+    }
+
+
+@router.get("/security/login-history")
+async def get_login_history(
+    limit: int = Query(default=50, ge=1, le=100),
+    user: User = Depends(current_user),
+) -> dict:
+    """GET /api/admin/security/login-history — Chronological access logs."""
+    from app.core.admin_security import list_admin_login_history
+    is_super = getattr(user.role, "value", str(user.role)) in ("super_admin", "admin")
+    admin_id_filter = None if is_super else user.id
+    history = await list_admin_login_history(admin_id=admin_id_filter, limit=limit)
+    return {"ok": True, "count": len(history), "history": history}
+
+
+@router.post("/orders/{order_id}/refund")
+async def issue_order_refund(
+    order_id: str,
+    payload: dict,
+    user: User = Depends(current_user),
+) -> dict:
+    """POST /api/admin/orders/{order_id}/refund — Strictly segregated Finance-only refund execution."""
+    from app.core.admin_security import PERM_FINANCE_REFUND, check_admin_permission
+    from app.services.dual_control_service import dual_control_service, HighImpactActionType
+
+    # 1. RBAC & Segregation of Duties Check: Support Agents CANNOT issue refunds!
+    check_admin_permission(user, PERM_FINANCE_REFUND)
+
+    amount = float(payload.get("amount") or 0.0)
+    reason = str(payload.get("reason") or "Customer dissatisfaction").strip()
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Refund amount must be greater than zero.")
+
+    # 2. Point 9 / Phase 2: If refund is >= ₹5,000, enforce Four-Eyes Dual-Control approval!
+    if amount >= dual_control_service.HIGH_VALUE_REFUND_THRESHOLD_INR:
+        admin_name = getattr(user, "name", None) or getattr(user, "email", "Admin")
+        ticket = await dual_control_service.create_request(
+            action_type=HighImpactActionType.HIGH_VALUE_REFUND.value,
+            initiator_admin_id=user.id,
+            initiator_admin_name=admin_name,
+            payload={"orderId": order_id, "amount": amount},
+            reason=reason,
+            target_entity_id=order_id,
+        )
+        return {
+            "ok": True,
+            "requiresDualControl": True,
+            "status": "PENDING_SECOND_APPROVAL",
+            "message": f"Refund of ₹{amount} exceeds ₹5,000 threshold. Dual-Control ticket {ticket['requestId']} created for second admin approval.",
+            "ticket": ticket,
+        }
+
+    # Standard refund under threshold executed by Finance role
+    await database.update(
+        "customer_orders",
+        {"_id": order_id},
+        {
+            "refundStatus": "APPROVED",
+            "refundAmount": amount,
+            "refundReason": reason,
+            "refundedByAdminId": user.id,
+            "refundedAt": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+    return {
+        "ok": True,
+        "requiresDualControl": False,
+        "status": "REFUND_PROCESSED",
+        "orderId": order_id,
+        "amount": amount,
+        "message": f"Refund of ₹{amount} processed successfully by Finance role.",
+    }
+
  
  
 # ----------------------------------------------------------- Global Server-Side Search

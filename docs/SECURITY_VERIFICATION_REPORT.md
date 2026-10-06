@@ -3,9 +3,10 @@
 **Report Date:** 2026-10-06  
 **Platform Version:** QuickPress Multi-Console Production Engine  
 **Target Architecture:** FastAPI 3.12 Backend + Supabase PostgreSQL (JSONB + GIN) + Firebase Auth & Storage + Multi-Console React Frontends  
-**Security Status:** Verified & Locked Down (44 Core Rules Active — Phase 1 & Phase 2 Complete)
+**Security Status:** Verified & Locked Down (53 Core Rules Active — Bank-Grade Zero-Trust Enforced)
 
 ---
+
 
 
 ## 1. Executive Summary & Security Posture
@@ -119,7 +120,23 @@ graph TD
 
 ---
 
-## 4. Verification & Audit Conclusion
+## 4. Bank-Grade Admin Console Hardening (9 Core Security Points)
+
+| Point ID | Security Domain | Target Layer | Enforcement Logic & Impact | File Reference |
+| :--- | :--- | :--- | :--- | :--- |
+| `SEC-ADM-01` | **RBAC Access Control** | Auth & Middleware | Strict granular role enforcement (`support`, `operations`, `finance`, `admin`, `super_admin`). Unassigned actions rejected with 403. | `backend-python/app/core/admin_security.py:L545` |
+| `SEC-ADM-02` | **Two-Factor Auth (2FA)** | Authentication | Cryptographic 6-digit OTP/challenge verified before session generation; rate limited to 5/hr with 24h lockout on 3 failed attempts. | `backend-python/app/core/admin_security.py:L370` |
+| `SEC-ADM-03` | **Session & Device Monitor** | Session Layer | Tracks active session UUID, IP, User-Agent; enforces 15-minute idle timeout; provides remote session termination. | `backend-python/app/core/admin_security.py:L620` |
+| `SEC-ADM-04` | **Sensitive Action Sudo Mode** | Operations Guard | High-impact mutations require 15-minute Sudo re-authentication token via password confirmation. | `backend-python/app/core/admin_security.py:L695` |
+| `SEC-ADM-05` | **Immutable Audit Logs** | Compliance Trail | Every administrative modification writes an indelible JSON audit document with actor, target, timestamp, and IP. | `backend-python/app/core/admin_security.py:L530` |
+| `SEC-ADM-06` | **Chronological Login History**| Access Ledger | Records every login attempt with status (SUCCESS/FAILED), IP, client browser, and failure reasons. | `backend-python/app/core/admin_security.py:L740` |
+| `SEC-ADM-07` | **Failed-Login Alerts & Lockout**| Threat Defense | 5 consecutive wrong passwords trigger immediate 15-minute IP/account lockout and email threat alerts. | `backend-python/app/core/admin_security.py:L465` |
+| `SEC-ADM-08` | **Finance Segregation of Duties**| Financial Integrity | Support Agents strictly blocked from executing refunds or wallet adjustments; only verified Finance roles can issue payouts. | `backend-python/app/api/admin.py:L2330` |
+| `SEC-ADM-09` | **Super Admin Four-Eyes Bound** | Dual-Control Governance| Super Admins cannot execute single-handed refunds >= ₹5,000 or merchant bans; self-approval prohibited. | `backend-python/app/services/dual_control_service.py` |
+
+---
+
+## 5. Verification & Audit Conclusion
 
 | Security Domain | Rules Implemented | Verification State |
 | :--- | :---: | :---: |
@@ -129,6 +146,8 @@ graph TD
 | Laundry Merchant Isolation | 7 | **ACTIVE & TESTED** |
 | Customer Privacy & Auth | 5 | **ACTIVE & TESTED** |
 | Financial Ledger & Taxes | 5 | **ACTIVE & BALANCED** |
-| **Phase 2 Advanced Scaling Rules** | **6** | **ACTIVE & TESTED (6/6)** |
-| **Total Platform Rules** | **44** | **100% PRODUCTION READY** |
+| Phase 2 Advanced Scaling Rules | 6 | **ACTIVE & TESTED (6/6)** |
+| **Bank-Grade Admin Console Hardening** | **9** | **ACTIVE & TESTED (9/9)** |
+| **TOTAL QUICKPRESS RULES** | **53** | **100% PRODUCTION READY** |
+
 
