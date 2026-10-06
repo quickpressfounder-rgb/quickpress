@@ -65,8 +65,11 @@ class InputSanitizerMiddleware(BaseHTTPMiddleware):
     """Sanitizes query parameters & path to prevent SQLi, XSS, and NoSQL operator injection."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        # 1. Inspect URL path for traversal or embedded script payloads
         path = request.url.path
+        if path in ("/", "/health", "/api/health") or path.startswith("/health") or path.startswith("/api/health"):
+            return await call_next(request)
+
+        # 1. Inspect URL path for traversal or embedded script payloads
         if is_malicious_payload(path):
             return JSONResponse(
                 status_code=400,

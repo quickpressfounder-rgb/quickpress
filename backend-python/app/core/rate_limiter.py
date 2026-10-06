@@ -109,7 +109,10 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
         # 1. Skip static assets, health probes, and API documentation
         path = request.url.path
         if (
-            path.startswith("/api/health")
+            path == "/"
+            or path == "/health"
+            or path.startswith("/health")
+            or path.startswith("/api/health")
             or path.startswith("/docs")
             or path.startswith("/openapi.json")
             or path.startswith("/redoc")

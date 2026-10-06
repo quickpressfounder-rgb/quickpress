@@ -18,16 +18,27 @@ from starlette.responses import RedirectResponse, Response
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
+        path = request.url.path
         proto = request.headers.get("x-forwarded-proto", request.url.scheme).lower()
         host = request.headers.get("host", "").lower()
-        
-        # 1. Enforce HTTPS in production: redirect plain HTTP to HTTPS
+        ua = request.headers.get("user-agent", "").lower()
+
+        # 1. Health check probes (Railway, Docker, Kubernetes) must NEVER be redirected
+        is_healthcheck = (
+            path in ("/", "/health", "/api/health", "/favicon.ico")
+            or path.startswith("/health")
+            or path.startswith("/api/health")
+            or "railway" in ua
+            or "health" in ua
+            or "probe" in ua
+        )
+
         from app.config import get_settings
         settings = get_settings()
         is_prod = (settings.app_env or "development").strip().lower() == "production"
         is_local = "localhost" in host or "127.0.0.1" in host or host.startswith("testclient")
 
-        if is_prod and not is_local and proto == "http":
+        if not is_healthcheck and is_prod and not is_local and proto == "http":
             https_url = str(request.url).replace("http://", "https://", 1)
             redirect_res = RedirectResponse(url=https_url, status_code=301)
             redirect_res.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
