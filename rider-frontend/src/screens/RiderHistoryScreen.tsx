@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  BarChart3,
   Bike,
   CheckCircle2,
   ChevronRight,
@@ -190,6 +191,21 @@ export function RiderHistoryScreen() {
                   {completedCount} {t("history.delivered", "Delivered")}
                 </span>
               </div>
+            </div>
+
+            <div className="pt-2.5 mt-2 border-t border-zinc-100 flex items-center justify-between">
+              <span className="text-[11px] text-zinc-500 font-semibold">Performance metrics & trends</span>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(20);
+                  navigate({ to: "/analytics" });
+                }}
+                className="inline-flex items-center gap-1.5 text-[11px] font-black text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 px-2.5 py-1 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs"
+              >
+                <BarChart3 className="size-3.5 text-amber-600" />
+                <span>Analytics Dashboard →</span>
+              </button>
             </div>
           </div>
 

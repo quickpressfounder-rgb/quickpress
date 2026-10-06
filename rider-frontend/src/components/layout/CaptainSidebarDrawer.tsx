@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
   Award,
+  BarChart3,
   Bike,
   CheckCircle2,
   ChevronRight,
@@ -169,6 +170,15 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   onClick: () => {
                     onClose();
                     navigate({ to: "/leaderboard" });
+                  },
+                },
+                {
+                  icon: BarChart3,
+                  title: "Performance & Analytics",
+                  sub: "Live trips, KM, ratings & earnings summary",
+                  onClick: () => {
+                    onClose();
+                    navigate({ to: "/analytics" });
                   },
                 },
                 {

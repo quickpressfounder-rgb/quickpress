@@ -68,6 +68,7 @@ import { CaptainReviewModal } from "./CaptainReviewModal";
 import { pushRiderLocation } from "../../api/rider/rider-dashboard-api";
 import { SwipeActionButton } from "../common/SwipeActionButton";
 import { RiderCustomerOtpInput, RiderStoreDispatchDisplay } from "./RiderOtpCard";
+import { RiderTripDetailModal } from "../trips/RiderTripDetailModal";
 
 import {
   verifyHandoverOtp,
@@ -232,6 +233,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showChatModal, setShowChatModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [showTripDetailModal, setShowTripDetailModal] = useState(false);
   const [acceptedTime] = useState(() => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
   const [arrivedTime, setArrivedTime] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<string | null>(null);
@@ -1396,15 +1398,31 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           {stage === "completed" && (isDeliveryRide ? "🎉 Delivery Completed" : "Trip Completed")}
         </h1>
 
-        {/* Support / Call Customer Button (Black circle with Yellow telephone icon) */}
-        <button
-          type="button"
-          onClick={() => setShowCallModal(true)}
-          className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-neutral-950 text-[#FBBF24] hover:bg-neutral-800 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
-          aria-label="Call Customer"
-        >
-          <Phone className="w-4.5 h-4.5 fill-[#FBBF24] stroke-none" />
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Trip Fare Breakdown & Route Sheet Button */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              setShowTripDetailModal(true);
+            }}
+            className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-2xs active:scale-95 transition-all cursor-pointer"
+            aria-label="Trip Breakdown"
+            title="View Route & Fare Breakdown"
+          >
+            <Sparkles className="w-4.5 h-4.5 text-emerald-700" />
+          </button>
+
+          {/* Support / Call Customer Button (Black circle with Yellow telephone icon) */}
+          <button
+            type="button"
+            onClick={() => setShowCallModal(true)}
+            className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-neutral-950 text-[#FBBF24] hover:bg-neutral-800 shadow-sm active:scale-95 transition-all cursor-pointer"
+            aria-label="Call Customer"
+          >
+            <Phone className="w-4.5 h-4.5 fill-[#FBBF24] stroke-none" />
+          </button>
+        </div>
       </header>
 
       {/* DELIVERY BLUE THEME BANNER */}
@@ -2975,6 +2993,34 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         storeName={partnerStoreName}
         onSuccess={() => {
           setHasRatedTrip(true);
+        }}
+      />
+
+      {/* Full Trip Route & Itemized Fare Slip Modal */}
+      <RiderTripDetailModal
+        isOpen={showTripDetailModal}
+        onClose={() => setShowTripDetailModal(false)}
+        trip={{
+          orderId: order.orderId,
+          orderCode: order.orderCode,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          pickupAddress: order.pickupAddress,
+          pickupTitle: order.pickupTitle,
+          dropAddress: order.dropAddress,
+          dropTitle: order.dropTitle,
+          partnerName: order.partnerName || partnerStoreName,
+          partnerAddress: order.partnerAddress || partnerStoreAddress,
+          fare: order.fare,
+          baseFare: 35,
+          distanceKm: (order.pickupDistanceKm || 0.8) + (order.dropDistanceKm || 2.2),
+          paymentMode: order.paymentMode,
+          amount: order.amount,
+          pickupOtp: order.startOtp,
+          dispatchOtp: order.dispatchOtp,
+          deliveryOtp: order.deliveryOtp,
+          bagCount: order.items?.length || 2,
+          status: stage === "completed" ? "Completed" : "In Progress",
         }}
       />
     </div>

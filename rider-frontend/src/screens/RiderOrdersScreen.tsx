@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { RiderBottomNav } from "../components/RiderBottomNav";
+import { RiderTripDetailModal } from "../components/trips/RiderTripDetailModal";
 import {
   acceptRiderOrder,
   fetchRiderOffers,
@@ -93,6 +94,7 @@ export function RiderOrdersScreen() {
   const [activeOrder, setActiveOrder] = useState<ActiveOrderData | null>(null);
   const [isHudMinimized, setIsHudMinimized] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedOfferForDetail, setSelectedOfferForDetail] = useState<OrderOfferItem | null>(null);
 
   // Restore saved active order on client mount safely without hydration mismatch
   useEffect(() => {
@@ -806,6 +808,22 @@ export function RiderOrdersScreen() {
                   </div>
                 </div>
 
+                {/* View Trip Breakdown Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(20);
+                    setSelectedOfferForDetail(offer);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-bold flex items-center justify-between transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="size-3 text-emerald-600" />
+                    <span>View Full Route & Fare Breakdown</span>
+                  </div>
+                  <ChevronRight className="size-3.5 text-zinc-400" />
+                </button>
+
                 {/* Action Buttons: [ Circular Decline (-) ] [ Maps Navigation ] [ Large Yellow Accept ] */}
                 <div className="flex items-center gap-3 pt-2">
                   {/* Reject / Pass Button (Circular with -) */}
@@ -883,7 +901,34 @@ export function RiderOrdersScreen() {
       {/* 3. 4-Tab Captain Bottom Navigation */}
       <RiderBottomNav active="orders" ordersBadgeCount={totalOrders} />
 
-
+      {/* 4. Full Trip Details & Fare Slip Modal */}
+      {selectedOfferForDetail && (
+        <RiderTripDetailModal
+          isOpen={Boolean(selectedOfferForDetail)}
+          onClose={() => setSelectedOfferForDetail(null)}
+          trip={{
+            orderId: selectedOfferForDetail.orderId || selectedOfferForDetail.id,
+            orderCode: selectedOfferForDetail.orderCode,
+            customerName: selectedOfferForDetail.customerName,
+            customerPhone: selectedOfferForDetail.customerPhone,
+            pickupAddress: selectedOfferForDetail.pickupAddress,
+            pickupTitle: selectedOfferForDetail.pickupTitle,
+            dropAddress: selectedOfferForDetail.dropAddress,
+            dropTitle: selectedOfferForDetail.dropTitle,
+            partnerName: selectedOfferForDetail.partnerName,
+            partnerAddress: selectedOfferForDetail.partnerAddress,
+            fare: selectedOfferForDetail.fare || 45,
+            baseFare: 35,
+            distanceKm: (selectedOfferForDetail.pickupDistanceKm || 0.8) + (selectedOfferForDetail.dropDistanceKm || 2.2),
+            paymentMode: selectedOfferForDetail.paymentMode,
+            amount: selectedOfferForDetail.amount,
+            pickupOtp: selectedOfferForDetail.pickupOtp,
+            dispatchOtp: selectedOfferForDetail.dispatchOtp,
+            deliveryOtp: selectedOfferForDetail.deliveryOtp,
+            status: "Offer Queue",
+          }}
+        />
+      )}
     </div>
   );
 }
