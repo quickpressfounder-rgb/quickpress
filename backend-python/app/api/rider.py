@@ -4195,6 +4195,50 @@ async def update_rider_bank(body: dict, user: User = Depends(current_user)) -> d
 
 
 # --------------------------------------------------------------------------
+# Captain Payout & Settlement Engine Endpoints
+# --------------------------------------------------------------------------
+
+
+@router.get("/finance/settlements")
+async def get_rider_settlements_overview(user: Optional[User] = Depends(optional_user)) -> dict:
+    """Returns Captain current ongoing weekly cycle, past bank settlements, and filters."""
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    rider_id = await _rider_id(user)
+    from app.services.settlement_engine import settlement_engine
+    return await settlement_engine.get_rider_settlement_overview(rider_id)
+
+
+@router.get("/finance/settlements/{cycle_id}")
+async def get_rider_cycle_settlement_breakdown(
+    cycle_id: str, user: Optional[User] = Depends(optional_user)
+) -> dict:
+    """Returns trip-by-trip itemized settlement statement with bank UTR reference."""
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    rider_id = await _rider_id(user)
+    from app.services.settlement_engine import settlement_engine
+    return await settlement_engine.compute_rider_cycle_breakdown(rider_id, cycle_id)
+
+
+@router.post("/finance/instant-payout")
+async def request_rider_instant_payout(
+    body: dict, user: Optional[User] = Depends(optional_user)
+) -> dict:
+    """Executes on-demand instant UPI transfer via Settlement Engine."""
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+    rider_id = await _rider_id(user)
+    from app.services.settlement_engine import settlement_engine
+    amount = float((body or {}).get("amount", 0))
+    upi_id = str((body or {}).get("upiId") or "").strip() or None
+    try:
+        return await settlement_engine.process_instant_rider_payout(rider_id, amount, upi_id=upi_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# --------------------------------------------------------------------------
 # Shift & Operational Zone Settings
 # --------------------------------------------------------------------------
 

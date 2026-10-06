@@ -4,6 +4,7 @@ import {
   ArrowDownLeft,
   ArrowLeft,
   ArrowUpRight,
+  Building2,
   Calendar,
   CheckCircle2,
   ChevronRight,
@@ -38,9 +39,14 @@ import {
   type RiderCommissionGuarantee,
 } from "../api/rider/rider-commission-api";
 import { fetchRiderHistory } from "../api/rider/rider-orders-api";
+import {
+  fetchRiderSettlementOverview,
+  type RiderSettlementOverview,
+} from "../api/rider/rider-settlements-api";
 import { CaptainTripDetailView } from "../components/history/CaptainTripDetailView";
 import { RiderFundAddModal } from "../components/wallet/RiderFundAddModal";
 import { RiderWithdrawModal } from "../components/wallet/RiderWithdrawModal";
+import { RiderSettlementDetailModal } from "../components/wallet/RiderSettlementDetailModal";
 import { apiGetJson } from "../api/core/transport";
 import type { RiderHistoryEntry } from "../shared/types/rider";
 import { useRiderContext } from "../context/RiderContext";
@@ -116,20 +122,23 @@ export function RiderWalletScreen() {
   });
 
   // Active View Tab
-  const [activeTab, setActiveTab] = useState<"passbook" | "breakdown" | "weekly">("passbook");
+  const [activeTab, setActiveTab] = useState<"passbook" | "breakdown" | "weekly" | "settlements">("passbook");
   const [filterTxn, setFilterTxn] = useState<"all" | "credits" | "debits" | "cod_deposits" | "incentives">("all");
+  const [settlementOverview, setSettlementOverview] = useState<RiderSettlementOverview | null>(null);
+  const [selectedCycleForDetail, setSelectedCycleForDetail] = useState<string | null>(null);
 
   // Ultra-fast progressive data loading
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
 
     try {
-      // 1. Fetch wallet, transactions, order history, and floating cash in parallel (ultra fast <20ms)
-      const [walletRes, txnsRes, historyRes, floatRes] = await Promise.all([
+      // 1. Fetch wallet, transactions, order history, floating cash, and settlements in parallel (ultra fast <20ms)
+      const [walletRes, txnsRes, historyRes, floatRes, stlRes] = await Promise.all([
         fetchRiderWallet().catch(() => null),
         fetchRiderTransactions().catch(() => []),
         fetchRiderHistory().catch(() => []),
         apiGetJson<any>("/api/rider/floating-cash").catch(() => null),
+        fetchRiderSettlementOverview().catch(() => null),
       ]);
 
       if (walletRes) {
@@ -158,6 +167,9 @@ export function RiderWalletScreen() {
           isBlocked: Boolean(floatRes.isBlocked),
           remainingLimit: Number(floatRes.remainingLimit ?? Math.max(0, 3000 - Number(floatRes.floatingCash || 0))),
         });
+      }
+      if (stlRes) {
+        setSettlementOverview(stlRes);
       }
 
       setLoading(false);
@@ -489,7 +501,8 @@ export function RiderWalletScreen() {
         {/* 3. NAVIGATION PILL TABS */}
         <div className="flex items-center p-1 bg-white border border-zinc-200/80 rounded-2xl shadow-2xs">
           {[
-            { id: "passbook", label: t("earnings.passbook") || "Passbook & Ledger", icon: History },
+            { id: "passbook", label: t("earnings.passbook") || "Passbook", icon: History },
+            { id: "settlements", label: "Settlements 🏛️", icon: Building2 },
             { id: "breakdown", label: "Today's Fares", icon: PieChart },
             { id: "weekly", label: "Weekly Summary", icon: Calendar },
           ].map((tab) => {
@@ -793,6 +806,165 @@ export function RiderWalletScreen() {
             </div>
           </div>
         )}
+
+        {/* TAB 4: BANK SETTLEMENTS & DISBURSEMENTS */}
+        {activeTab === "settlements" && (
+          <div className="space-y-3">
+            {/* Upcoming / Current Ongoing Settlement Batch */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-zinc-950 text-white shadow-md space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-200">
+                    Ongoing Weekly Cycle
+                  </span>
+                </div>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {settlementOverview?.currentCycle?.status || "ACCRUING"}
+                </span>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold text-emerald-200/80 uppercase">
+                  Accrued Settlement Balance
+                </p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <h3 className="text-3xl font-black tracking-tight text-white">
+                    ₹{(settlementOverview?.currentCycle?.estPayout ?? todayEarned).toFixed(2)}
+                  </h3>
+                  <span className="text-xs font-bold text-emerald-200/80">
+                    ({settlementOverview?.currentCycle?.tripCount ?? historyTrips.length} trips)
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-emerald-100/90 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-emerald-300" />
+                  <span>Cycle: {settlementOverview?.currentCycle?.period || "Current Week"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock3 className="size-3.5 text-emerald-300" />
+                  <span>Payout: {settlementOverview?.currentCycle?.payoutDate || "Every Monday"}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(20);
+                    setSelectedCycleForDetail("current");
+                  }}
+                  className="flex-1 py-2 px-3 rounded-xl bg-white text-zinc-950 text-xs font-black flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
+                >
+                  <FileText className="size-3.5 text-emerald-700" />
+                  <span>View Itemized Cycle</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(20);
+                    setIsWithdrawOpen(true);
+                  }}
+                  className="py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Zap className="size-3.5" />
+                  <span>Instant Cashout</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Linked Bank / UPI Account Information */}
+            <div className="p-3.5 bg-white rounded-2xl border border-zinc-200/90 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="size-4 text-zinc-700" />
+                  <span className="text-xs font-black text-zinc-900">
+                    {settlementOverview?.bankDetails?.bankName || wallet?.bankName || "Verified Bank Account"}
+                  </span>
+                </div>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Direct IMPS / NEFT ✓
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-zinc-600 font-medium">
+                <span>Payout Destination:</span>
+                <span className="font-mono font-bold text-zinc-900">
+                  {settlementOverview?.bankDetails?.upiId || wallet?.upiId || settlementOverview?.bankDetails?.accountNumberMasked || wallet?.accountNumber || "Verified UPI VPA"}
+                </span>
+              </div>
+            </div>
+
+            {/* Past Weekly Settlement Batches */}
+            <div className="space-y-2 pt-1">
+              <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center justify-between">
+                <span>Completed Settlement Batches</span>
+                <span className="text-zinc-500 font-bold lowercase">
+                  ({settlementOverview?.pastCycles?.length || 0} batches)
+                </span>
+              </h4>
+
+              {(!settlementOverview?.pastCycles || settlementOverview.pastCycles.length === 0) ? (
+                <div className="p-6 bg-white rounded-2xl border border-zinc-200 text-center space-y-1">
+                  <Building2 className="size-8 text-zinc-300 mx-auto mb-1" />
+                  <p className="text-xs font-bold text-zinc-700">No past settlement batches yet</p>
+                  <p className="text-[11px] text-zinc-400">
+                    Weekly batch disbursements generate automatically on Mondays with official bank UTRs.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {settlementOverview.pastCycles.map((cycle, idx) => (
+                    <div
+                      key={cycle.cycleId || idx}
+                      onClick={() => {
+                        triggerHaptic(20);
+                        setSelectedCycleForDetail(cycle.cycleId);
+                      }}
+                      className="p-3.5 bg-white rounded-2xl border border-zinc-200/90 hover:border-emerald-400 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between cursor-pointer active:scale-[0.99] group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                        <div className="flex items-center justify-center size-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                          <Building2 className="size-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-zinc-950 truncate">
+                            {cycle.period}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-zinc-500 font-bold">
+                            <span>{cycle.tripCount} trips</span>
+                            <span>•</span>
+                            <span className="text-emerald-700 font-black">
+                              Paid {cycle.payoutDate}
+                            </span>
+                          </div>
+                          {cycle.utr && (
+                            <p className="text-[9px] font-mono text-zinc-400 mt-0.5 truncate">
+                              UTR: {cycle.utr}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0 flex items-center gap-2">
+                        <div>
+                          <p className="text-sm font-black text-emerald-700">
+                            ₹{cycle.netPayout.toFixed(2)}
+                          </p>
+                          <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            Disbursed ✓
+                          </span>
+                        </div>
+                        <ChevronRight className="size-4 text-zinc-400 group-hover:text-emerald-600 transition-all" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 4. BOTTOM NAVIGATION */}
@@ -817,7 +989,14 @@ export function RiderWalletScreen() {
         maxCodLimit={floatingCashData.maxCodLimit}
       />
 
-      {/* 7. WITHDRAWAL MODAL */}
+      {/* 7. SETTLEMENT DETAIL MODAL */}
+      <RiderSettlementDetailModal
+        isOpen={Boolean(selectedCycleForDetail)}
+        onClose={() => setSelectedCycleForDetail(null)}
+        cycleId={selectedCycleForDetail || "current"}
+      />
+
+      {/* 8. WITHDRAWAL MODAL */}
       <RiderWithdrawModal
         isOpen={isWithdrawOpen}
         onClose={() => setIsWithdrawOpen(false)}

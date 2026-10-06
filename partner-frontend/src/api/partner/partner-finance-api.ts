@@ -274,4 +274,18 @@ export async function downloadSettlementExcelBlob(cycleId: string, customFileNam
   return fileName;
 }
 
+export async function requestPartnerInstantPayout(amount: number) {
+  return await apiPostJson<{
+    ok: boolean;
+    settlementId: string;
+    amount: number;
+    utr: string;
+    newBalance: number;
+    settledAt: string;
+    message: string;
+  }>("/api/partner/finance/instant-payout", {
+    amount: Math.abs(amount),
+  });
+}
+
 

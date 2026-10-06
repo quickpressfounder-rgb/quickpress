@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Wallet,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ import {
   downloadPartnerInvoicePdfBlob,
   downloadCommissionInvoicePdfBlob,
   downloadCommissionInvoiceExcelBlob,
+  requestPartnerInstantPayout,
 } from "@/api/partner/partner-finance-api";
 import { SettlementSummaryModal } from "../components/finance/SettlementSummaryModal";
 import { formatPartnerId } from "../lib/format-ids";
@@ -459,28 +461,57 @@ export function EarningsScreen() {
                   <p className="mt-0.5 text-xs font-black text-zinc-900">
                     {currentCycle?.period || "Current Cycle"}
                   </p>
+                  <p className="mt-2 text-2xl font-black text-zinc-950">
+                    ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
+                  </p>
+                  <p className="text-[10px] font-bold text-zinc-500">
+                    {currentCycle?.orderCount || 0} delivered orders
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] font-bold text-zinc-500">Payout date</p>
+                  <p className="text-[11px] font-bold text-zinc-500">Scheduled payout</p>
                   <p className="mt-0.5 text-xs font-black text-zinc-900">
                     {currentCycle?.payoutDate || "Auto 7-Day Cycle"}
                   </p>
+                  <span className="mt-2 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">
+                    Auto-Settling ✓
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-4 border-t border-zinc-100 pt-3 flex items-center justify-between">
+              <div className="mt-4 border-t border-zinc-100 pt-3 flex items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedCycleForModal("current")}
                   className="text-xs font-black text-blue-600 hover:underline flex items-center gap-1"
                 >
-                  <span>View details</span>
+                  <span>View itemized breakdown</span>
                   <span>→</span>
                 </button>
-                <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
-                  <ShieldCheck className="size-3" />
-                  <span>7-Day Auto Settlement</span>
-                </div>
+
+                {(currentCycle?.estPayout || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!currentCycle?.estPayout) return;
+                      const confirmed = window.confirm(`Initiate instant IMPS settlement of ₹${currentCycle.estPayout.toFixed(2)} to your verified store bank account?`);
+                      if (!confirmed) return;
+                      toast.info("Processing instant bank payout via Settlement Engine...");
+                      try {
+                        const res = await requestPartnerInstantPayout(currentCycle.estPayout);
+                        toast.success(res.message || "Instant payout transferred successfully!");
+                        const ov = await fetchFinanceOverview();
+                        if (ov) setFinanceData(ov);
+                      } catch (err: any) {
+                        toast.error(err?.message || "Failed to process instant payout");
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Zap className="size-3.5" />
+                    <span>Instant Payout</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -902,13 +933,39 @@ export function EarningsScreen() {
                     ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{currentCycle?.period}</p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCycleForModal("current")}
-                    className="mt-4 text-xs font-black text-blue-600 hover:underline"
-                  >
-                    View itemized breakdown →
-                  </button>
+                  <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCycleForModal("current")}
+                      className="text-xs font-black text-blue-600 hover:underline"
+                    >
+                      View itemized breakdown →
+                    </button>
+
+                    {(currentCycle?.estPayout || 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!currentCycle?.estPayout) return;
+                          const confirmed = window.confirm(`Initiate instant IMPS settlement of ₹${currentCycle.estPayout.toFixed(2)} to your verified store bank account?`);
+                          if (!confirmed) return;
+                          toast.info("Processing instant bank payout via Settlement Engine...");
+                          try {
+                            const res = await requestPartnerInstantPayout(currentCycle.estPayout);
+                            toast.success(res.message || "Instant payout transferred successfully!");
+                            const ov = await fetchFinanceOverview();
+                            if (ov) setFinanceData(ov);
+                          } catch (err: any) {
+                            toast.error(err?.message || "Failed to process instant payout");
+                          }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                      >
+                        <Zap className="size-3.5" />
+                        <span>Instant Payout ⚡</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="rounded-3xl border border-border bg-card p-6 shadow-sm col-span-2">

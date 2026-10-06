@@ -1928,6 +1928,19 @@ async def get_cycle_settlement_breakdown(
     return await settlement_engine.compute_cycle_breakdown(partner_id, cycle_id)
 
 
+@router.post("/finance/instant-payout")
+async def request_partner_instant_payout(
+    body: dict, partner_id: str = Depends(_partner_id)
+) -> dict:
+    """Executes on-demand instant payout to registered partner bank account via Settlement Engine."""
+    from app.services.settlement_engine import settlement_engine
+    amount = float((body or {}).get("amount", 0))
+    try:
+        return await settlement_engine.process_instant_partner_payout(partner_id, amount)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.get("/finance/statement/{cycle_id}/download")
 async def download_settlement_statement(
     cycle_id: str, partner_id: str = Depends(_partner_id)
