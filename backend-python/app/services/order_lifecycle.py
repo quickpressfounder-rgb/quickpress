@@ -722,10 +722,13 @@ RIDER_STATUS = {
 
 _PARTNER_STAGES = [
     ("pending", "Order Placed", (PLACED, PENDING)),
-    ("accepted", "Accepted", (PARTNER_ACCEPTED, RIDER_SEARCHING, PICKUP_RIDER_ASSIGNED, RIDER_ASSIGNED, PICKUP_RIDER_ACCEPTED, RIDER_ACCEPTED, PICKUP_OTP_PENDING)),
-    ("picked", "Picked Up", (PICKED_UP, AT_PARTNER)),
+    ("accepted", "Accepted", (PARTNER_ACCEPTED, RIDER_SEARCHING)),
+    ("pickup_pending", "Waiting for Pickup", (PICKUP_RIDER_ASSIGNED, RIDER_ASSIGNED, PICKUP_RIDER_ACCEPTED, RIDER_ACCEPTED, PICKUP_OTP_PENDING)),
+    ("picked", "Pickup Completed", (PICKED_UP, AT_PARTNER)),
     ("processing", "Processing", (PROCESSING, IRONING, "washing", "dry_cleaning")),
-    ("ready", "Ready for Delivery", (READY_FOR_DELIVERY, READY, COMPLETED, DELIVERY_RIDER_ASSIGNED, DELIVERY_RIDER_ACCEPTED, DISPATCH_OTP_PENDING)),
+    ("ready", "Ready for Delivery", (READY_FOR_DELIVERY, READY, COMPLETED)),
+    ("delivery_assigned", "Delivery Rider Assigned", (DELIVERY_RIDER_ASSIGNED, DELIVERY_RIDER_ACCEPTED)),
+    ("dispatch", "Dispatch / Handover", (DISPATCH_OTP_PENDING,)),
     ("out_for_delivery", "Out for Delivery", (OUT_FOR_DELIVERY, DELIVERY_OTP_PENDING)),
     ("delivered", "Delivered", (DELIVERED,)),
 ]
@@ -756,22 +759,30 @@ STATUS_PROGRESSION_RANK: Dict[str, int] = {
     PICKUP_RIDER_ACCEPTED: 3,
     RIDER_ACCEPTED: 3,
     PICKUP_OTP_PENDING: 3,
+    "pickup_pending": 3,
     PICKED_UP: 4,
+    "picked": 4,
     AT_PARTNER: 4,
     "dropped_at_partner": 4,
     PROCESSING: 5,
+    "processing": 5,
     IRONING: 5,
     "washing": 5,
     "dry_cleaning": 5,
     READY_FOR_DELIVERY: 6,
     READY: 6,
+    "ready": 6,
     COMPLETED: 6,
     DELIVERY_RIDER_ASSIGNED: 7,
+    "delivery_assigned": 7,
     DELIVERY_RIDER_ACCEPTED: 7,
-    DISPATCH_OTP_PENDING: 7,
-    OUT_FOR_DELIVERY: 7,
-    DELIVERY_OTP_PENDING: 7,
-    DELIVERED: 8,
+    DISPATCH_OTP_PENDING: 8,
+    "dispatch": 8,
+    OUT_FOR_DELIVERY: 9,
+    "out_for_delivery": 9,
+    DELIVERY_OTP_PENDING: 9,
+    DELIVERED: 10,
+    "delivered": 10,
     CANCELLED: 99,
 }
 
@@ -794,6 +805,25 @@ def _event_times(order: Dict[str, Any]) -> Dict[str, str]:
         times["ORDER_CREATED"] = created_at
         times["order_created"] = created_at
         times["new"] = created_at
+
+    explicit_mappings = {
+        PLACED: order.get("placedAt") or order.get("createdAt") or order.get("placedOn"),
+        PARTNER_ACCEPTED: order.get("partnerAcceptedAt") or order.get("acceptedAt"),
+        PICKUP_RIDER_ASSIGNED: order.get("pickupRiderAssignedAt") or order.get("riderAssignedAt"),
+        PICKUP_RIDER_ACCEPTED: order.get("pickupRiderAcceptedAt") or order.get("riderAcceptedAt"),
+        PICKED_UP: order.get("pickedUpAt") or order.get("pickupCompletedAt"),
+        AT_PARTNER: order.get("atPartnerAt") or order.get("partnerReceivedAt") or order.get("droppedAtPartnerAt"),
+        PROCESSING: order.get("processingStartedAt"),
+        READY_FOR_DELIVERY: order.get("readyAt") or order.get("readyForDeliveryAt"),
+        READY: order.get("readyAt") or order.get("readyForDeliveryAt"),
+        DELIVERY_RIDER_ASSIGNED: order.get("deliveryRiderAssignedAt"),
+        OUT_FOR_DELIVERY: order.get("outForDeliveryAt") or order.get("dispatchedAt") or order.get("dispatchAt"),
+        DELIVERED: order.get("deliveredAt") or order.get("completedAt"),
+        CANCELLED: order.get("cancelledAt"),
+    }
+    for k, v in explicit_mappings.items():
+        if v and k not in times:
+            times[k] = str(v)
 
     for event in order.get("events") or []:
         raw_status = str(event.get("status") or "")
@@ -850,12 +880,19 @@ def _timeline(order: Dict[str, Any], stages) -> List[Dict[str, Any]]:
         if effective_time:
             prev_time = effective_time
 
+        is_current = False
+        if current_rank != 99:
+            if current in statuses or (is_done and min_stage_rank == current_rank):
+                is_current = True
+
         rows.append({
             "id": stage_id,
+            "key": stage_id,
             "label": label,
             "time": effective_time or "",
             "at": effective_time or "",
             "done": is_done,
+            "current": is_current,
         })
 
     if current == CANCELLED:

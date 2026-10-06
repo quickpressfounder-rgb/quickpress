@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { RiderOrderTimelineModal } from "./RiderOrderTimelineModal";
 import {
   Bike,
   Building2,
@@ -63,6 +64,8 @@ export const RiderTripDetailModal: React.FC<RiderTripDetailModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+
   const baseFare = Number(trip.baseFare ?? 35);
   const distanceKm = Number(trip.distanceKm ?? 2.8);
   const distanceBonus = Number(
@@ -125,6 +128,24 @@ export const RiderTripDetailModal: React.FC<RiderTripDetailModalProps> = ({
             <X className="size-5" />
           </button>
         </header>
+
+        {/* Quick Mode Bar / Timeline Link */}
+        <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between">
+          <span className="text-[11px] font-bold text-zinc-600 flex items-center gap-1">
+            <Clock className="size-3 text-emerald-600" />
+            <span>Trip Journey & Milestone Tracker</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              setShowTimelineModal(true);
+            }}
+            className="text-[11px] font-black text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-0.5 rounded-lg active:scale-95 transition-all cursor-pointer shadow-2xs"
+          >
+            Open Timeline Stepper ↗
+          </button>
+        </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -379,6 +400,13 @@ export const RiderTripDetailModal: React.FC<RiderTripDetailModalProps> = ({
             <span>Open GPS Map</span>
           </button>
         </footer>
+
+        {/* Live Order Timeline Slide-Up Sheet */}
+        <RiderOrderTimelineModal
+          isOpen={showTimelineModal}
+          onClose={() => setShowTimelineModal(false)}
+          trip={trip}
+        />
       </div>
     </div>
   );

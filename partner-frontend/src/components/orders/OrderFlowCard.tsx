@@ -29,6 +29,7 @@ import { toast } from "sonner";
 
 import type { ManagedOrder } from "../../data/partner-orders-mock";
 import type { OrderActionId } from "./order-actions";
+import { OrderTimelineModal } from "./OrderTimelineModal";
 
 export interface OrderFlowCardProps {
   order: ManagedOrder;
@@ -195,6 +196,7 @@ export function OrderFlowCard({
   onShowInvoice,
 }: OrderFlowCardProps) {
   const [showFullHistory, setShowFullHistory] = useState(false);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
   const milestone = getFlowMilestone(order.stage);
   const isCancelled = order.stage === "cancelled";
   const timeline = order.timeline || [];
@@ -461,14 +463,25 @@ export function OrderFlowCard({
             <Clock className="size-3.5 text-emerald-600" />
             <span>Activity Log ({timeline.length > 0 ? timeline.length : "Step-by-step"} events)</span>
           </span>
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-            <span>{showFullHistory ? "Hide Log" : "View Full Log"}</span>
-            <ChevronDown
-              className={`size-3.5 transition-transform duration-200 ${
-                showFullHistory ? "rotate-180" : ""
-              }`}
-            />
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTimelineModal(true);
+              }}
+              className="text-[10px] font-black text-blue-700 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 transition-colors"
+            >
+              Timeline Stepper ↗
+            </span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+              <span>{showFullHistory ? "Hide Log" : "View Full Log"}</span>
+              <ChevronDown
+                className={`size-3.5 transition-transform duration-200 ${
+                  showFullHistory ? "rotate-180" : ""
+                }`}
+              />
+            </span>
+          </div>
         </button>
 
         {showFullHistory && (
@@ -497,6 +510,13 @@ export function OrderFlowCard({
           </div>
         )}
       </div>
+
+      {/* Full Live Order Timeline Modal */}
+      <OrderTimelineModal
+        isOpen={showTimelineModal}
+        onClose={() => setShowTimelineModal(false)}
+        order={order}
+      />
     </div>
   );
 }
