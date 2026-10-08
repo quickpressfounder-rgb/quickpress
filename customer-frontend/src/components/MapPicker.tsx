@@ -353,7 +353,7 @@ export function MapPicker({
       <div className="relative flex-1 overflow-hidden">
         <GoogleMapView
           className="size-full h-full"
-          center={point ?? DEFAULT_COORDS}
+          center={point ?? undefined}
           zoom={zoomLevel}
           interactive={true}
           preferLeaflet={true}

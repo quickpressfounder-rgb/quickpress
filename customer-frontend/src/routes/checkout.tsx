@@ -895,7 +895,7 @@ export function CheckoutPage() {
 
               {couponDiscount > 0 ? (
                 <div className="flex justify-between text-[#0c831f] font-bold">
-                  <span>Coupon ({appliedCoupon || couponCode})</span>
+                  <span>Coupon ({appliedCoupon || "DISCOUNT"})</span>
                   <span>-₹{couponDiscount}</span>
                 </div>
               ) : null}

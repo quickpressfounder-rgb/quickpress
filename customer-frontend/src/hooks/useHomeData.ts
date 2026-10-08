@@ -17,7 +17,7 @@ import {
   type HomeSections,
   type SectionKey,
 } from "@/api/customer/services/home-service";
-import { changeLocation, refreshLocationFromGps } from "@/api/customer/services/location-service";
+import { changeLocation, refreshLocationFromGps, readLocation } from "@/api/customer/services/location-service";
 import { greetingFor } from "@/api/customer/services/profile-service";
 import type { SavedLocation } from "@/api/customer/location";
 
@@ -43,6 +43,7 @@ export function useHomeData(): UseHomeData {
   const [refreshing, setRefreshing] = useState(false);
   const [online, setOnline] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
+  const autoDetectTriggered = useRef(false);
 
   useEffect(() => {
     // Populate cache on client immediately after hydration completes (avoids React #418 error)
@@ -86,20 +87,6 @@ export function useHomeData(): UseHomeData {
     [applySection],
   );
 
-  useEffect(() => {
-    setOnline(isOnline());
-    void load();
-    return () => abortRef.current?.abort();
-  }, [load]);
-
-  // Auto-detect real live device GPS location on start if no location saved yet
-  useEffect(() => {
-    const saved = readLocation();
-    if (!saved) {
-      void useCurrentLocation();
-    }
-  }, [useCurrentLocation]);
-
   const refresh = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
@@ -139,6 +126,30 @@ export function useHomeData(): UseHomeData {
     },
     [applySection, load],
   );
+
+  useEffect(() => {
+    setOnline(isOnline());
+    void load();
+    return () => abortRef.current?.abort();
+  }, [load]);
+
+  // Network awareness: auto-retry once connectivity returns.
+  useEffect(() => {
+    return onNetworkChange((next) => {
+      setOnline(next);
+      if (next) void load({ forceRefresh: true });
+    });
+  }, [load]);
+
+  // Auto-detect real live device GPS location on start if no location saved yet
+  useEffect(() => {
+    if (autoDetectTriggered.current) return;
+    const saved = readLocation();
+    if (!saved) {
+      autoDetectTriggered.current = true;
+      void useCurrentLocation();
+    }
+  }, [useCurrentLocation]);
 
   const settled = Object.values(sections).filter((section) => !section.loading);
   const failed =

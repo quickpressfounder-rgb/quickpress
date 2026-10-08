@@ -68,7 +68,7 @@ function LocationScreen() {
       }
 
       // 2. Fetch real device GPS coordinates & reverse geocode
-      const location = await detectDeviceLocation(false);
+      const location = await detectDeviceLocation();
       saveLocation(location);
       setIsLocating(false);
       void navigate({ to: "/home" });

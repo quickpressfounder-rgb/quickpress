@@ -18,6 +18,7 @@ import {
 } from "../location";
 
 export type { SavedLocation };
+export { readLocation };
 
 /** Saved address chosen by the customer, if any. */
 export function readSavedLocation(): SavedLocation | null {
