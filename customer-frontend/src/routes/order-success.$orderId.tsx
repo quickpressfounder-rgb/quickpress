@@ -90,7 +90,7 @@ function OrderSuccessScreen() {
             storeName: parsed.partner?.name || "QuickPress Partner Store",
             storeImage: parsed.partner?.image || "/images/partners/store-front.jpg",
             storePhone: parsed.partner?.phone || "+91 98765 43210",
-            address: parsed.address || { label: "Home", line: "Main Road", city: "Kasganj", phone: "9876543210" },
+            address: parsed.address || { label: "Home", line: "Doorstep Address", city: "", phone: "" },
             pickup: parsed.pickup || { date: "Today", slot: "15-30 mins", express: true },
             delivery: parsed.delivery || { date: "Tomorrow", slot: "6 PM – 9 PM" },
             payment: {
@@ -122,7 +122,7 @@ function OrderSuccessScreen() {
               storeName: "QuickPress Partner Store",
               storeImage: "/images/partners/store-front.jpg",
               storePhone: "+91 98765 43210",
-              address: { label: "Home", line: "Doorstep Delivery", city: "Kasganj", phone: "" },
+              address: { label: "Home", line: "Doorstep Delivery", city: "", phone: "" },
               pickup: { date: "Today", slot: "15-30 mins", express: true },
               delivery: { date: "Tomorrow", slot: "6 PM – 9 PM" },
               payment: {

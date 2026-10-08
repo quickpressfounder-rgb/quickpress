@@ -247,13 +247,13 @@ class Smart2RideEngine:
                     "name": db_partner.get("storeName") or db_partner.get("businessName") or db_partner.get("name") or partner.get("name") or "QuickPress Partner Store",
                     "phone": db_partner.get("phone") or partner.get("phone") or "",
                     "address": db_partner.get("address") or partner.get("address") or "Partner Store",
-                    "city": db_partner.get("city") or partner.get("city") or "Kasganj",
-                    "latitude": db_partner.get("latitude") or db_partner.get("lat") or 27.8118,
-                    "longitude": db_partner.get("longitude") or db_partner.get("lng") or 78.6477,
+                    "city": db_partner.get("city") or partner.get("city") or "",
+                    "latitude": db_partner.get("latitude") or db_partner.get("lat") or cust_lat,
+                    "longitude": db_partner.get("longitude") or db_partner.get("lng") or cust_lng,
                 }
 
-        p_lat = float(partner.get("latitude") or partner.get("lat") or 27.8118)
-        p_lng = float(partner.get("longitude") or partner.get("lng") or 78.6477)
+        p_lat = float(partner.get("latitude") or partner.get("lat") or cust_lat)
+        p_lng = float(partner.get("longitude") or partner.get("lng") or cust_lng)
         partner_name = partner.get("name") or "QuickPress Partner Store"
         partner_phone = partner.get("phone") or ""
         drop_addr = partner.get("address") or "QuickPress Partner Store"
@@ -261,8 +261,8 @@ class Smart2RideEngine:
         # Calculate trip distance and dynamic fare
         distance_km = max(0.5, haversine_distance_km(cust_lat, cust_lng, p_lat, p_lng))
         partner_city = str((partner or {}).get("city") or "").strip()
-        city_raw = str(addr.get("city") or order.get("city") or partner_city or "Kasganj")
-        clean_city = extract_clean_city(city_raw) or extract_clean_city(partner_city) or normalize_city_name(city_raw) or normalize_city_name(partner_city) or "kasganj"
+        city_raw = str(addr.get("city") or order.get("city") or partner_city or "")
+        clean_city = extract_clean_city(city_raw) or extract_clean_city(partner_city) or normalize_city_name(city_raw) or normalize_city_name(partner_city) or ""
         fare_calc = financial_engine.compute_rider_trip_fare(distance_km=distance_km, city=clean_city.title())
         base_pickup_earning = max(35, int(round(fare_calc.totalTripEarnings)))
 
@@ -428,29 +428,29 @@ class Smart2RideEngine:
                     "name": db_partner.get("storeName") or db_partner.get("businessName") or db_partner.get("name") or partner.get("name") or "QuickPress Partner Store",
                     "phone": db_partner.get("phone") or partner.get("phone") or "",
                     "address": db_partner.get("address") or partner.get("address") or "Partner Store",
-                    "city": db_partner.get("city") or partner.get("city") or "Kasganj",
-                    "latitude": db_partner.get("latitude") or db_partner.get("lat") or 27.8118,
-                    "longitude": db_partner.get("longitude") or db_partner.get("lng") or 78.6477,
+                    "city": db_partner.get("city") or partner.get("city") or "",
+                    "latitude": db_partner.get("latitude") or db_partner.get("lat") or cust_lat,
+                    "longitude": db_partner.get("longitude") or db_partner.get("lng") or cust_lng,
                 }
 
-        p_lat = float(partner.get("latitude") or partner.get("lat") or 27.8118)
-        p_lng = float(partner.get("longitude") or partner.get("lng") or 78.6477)
+        p_lat = float(partner.get("latitude") or partner.get("lat") or cust_lat)
+        p_lng = float(partner.get("longitude") or partner.get("lng") or cust_lng)
         partner_name = partner.get("name") or "QuickPress Partner Store"
         partner_phone = partner.get("phone") or ""
         pickup_addr = partner.get("address") or "QuickPress Partner Store"
 
         # Drop location for Ride 2 is CUSTOMER ADDRESS
         addr = order.get("address") or {}
-        cust_lat = float(addr.get("latitude") or addr.get("lat") or 27.8165)
-        cust_lng = float(addr.get("longitude") or addr.get("lng") or 78.6530)
+        cust_lat = float(addr.get("latitude") or addr.get("lat") or p_lat)
+        cust_lng = float(addr.get("longitude") or addr.get("lng") or p_lng)
         cust_name = (order.get("customer") or {}).get("name") or addr.get("name") or order.get("customerName") or "Customer"
         cust_phone = (order.get("customer") or {}).get("phone") or addr.get("phone") or order.get("customerPhone") or ""
         drop_addr = addr.get("line") or addr.get("address") or addr.get("formattedAddress") or "Customer Delivery Location"
 
         distance_km = max(0.5, haversine_distance_km(p_lat, p_lng, cust_lat, cust_lng))
         partner_city = str((partner or {}).get("city") or "").strip()
-        city_raw = str(addr.get("city") or order.get("city") or partner_city or "Kasganj")
-        clean_city = extract_clean_city(city_raw) or extract_clean_city(partner_city) or normalize_city_name(city_raw) or normalize_city_name(partner_city) or "kasganj"
+        city_raw = str(addr.get("city") or order.get("city") or partner_city or "")
+        clean_city = extract_clean_city(city_raw) or extract_clean_city(partner_city) or normalize_city_name(city_raw) or normalize_city_name(partner_city) or ""
         fare_calc = financial_engine.compute_rider_trip_fare(distance_km=distance_km, city=clean_city.title())
         delivery_earning = max(35, int(round(fare_calc.totalTripEarnings)))
 
@@ -875,7 +875,7 @@ class Smart2RideEngine:
             )
             if not r_city_raw:
                 r_prof = await database.find_one("rider_profiles", {"_id": r_id}) or await database.find_one("rider_profiles", {"userId": r_id}) or {}
-                r_city_raw = r_prof.get("city") or r_prof.get("preferredCity") or r_prof.get("operatingCity") or "Kasganj"
+                r_city_raw = r_prof.get("city") or r_prof.get("preferredCity") or r_prof.get("operatingCity") or ""
 
             r_city_norm = normalize_city_name(r_city_raw)
             r_lat = rider.get("lat") or rider.get("latitude")
@@ -956,12 +956,12 @@ class Smart2RideEngine:
                     extract_clean_city((order.get("address") or {}).get("city"))
                     or extract_clean_city((order.get("address") or {}).get("addressLine1"))
                     or extract_clean_city((order.get("address") or {}).get("fullAddress"))
-                    or str((order.get("address") or {}).get("city") or order.get("city") or "Kasganj").strip()
+                    or str((order.get("address") or {}).get("city") or order.get("city") or "").strip()
                 )
             else:
-                target_city = "Kasganj"
+                target_city = ""
 
-        clean_target_city = extract_clean_city(target_city) or normalize_city_name(target_city) or "kasganj"
+        clean_target_city = extract_clean_city(target_city) or normalize_city_name(target_city) or ""
 
         ranked_riders = await self.find_ranked_eligible_riders(
             target_lat=t_lat,
@@ -990,7 +990,7 @@ class Smart2RideEngine:
                         )
                         if not r_city:
                             rp = await database.find_one("rider_profiles", {"_id": r_id}) or {}
-                            r_city = rp.get("city") or rp.get("preferredCity") or "Kasganj"
+                            r_city = rp.get("city") or rp.get("preferredCity") or ""
                         r_city_norm = normalize_city_name(r_city)
                         if clean_target_city and r_city_norm:
                             if not is_city_match(r_city_norm, clean_target_city):

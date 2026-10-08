@@ -57,8 +57,8 @@ type BackendStaff = {
 function toStaff(row: BackendStaff): StaffMember {
   return {
     id: row._id || row.id || "",
-    name: row.name || "Himanshu Pal Singh",
-    email: row.email || "himanshupalsingh6@gmail.com",
+    name: row.name || "Super Admin",
+    email: row.email || "admin@quickpress.online",
     phone: row.phone || "+91 98719 62596",
     role: row.role || "Super Admin",
     scope: row.scope || "All India Hubs",

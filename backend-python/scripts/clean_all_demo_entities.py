@@ -146,7 +146,7 @@ async def run_wipe():
         res_u = await conn.execute("""
             DELETE FROM quickpress_documents 
             WHERE collection = 'users' 
-              AND id != 'stf_super_admin_himanshu'
+              AND id NOT LIKE 'stf_super_admin%'
               AND (data->>'role' IS NULL OR LOWER(data->>'role') != 'admin')
         """)
         logger.info("✓ Wiped non-admin users: %s", res_u)

@@ -82,18 +82,20 @@ async def current_user(
                 user = await users.by_phone("+919999999999", Role.super_admin)
             if not user:
                 user = await users.create_phone_user(phone="+919999999999", role=Role.admin)
+                admin_email = os.getenv("ADMIN_EMAIL", "admin@quickpress.online")
+                admin_name = os.getenv("ADMIN_NAME", "Super Admin")
                 await users.update(
                     user.id,
                     {
-                        "email": "himanshupalsingh6@gmail.com",
-                        "display_name": "Himanshu Pal Singh",
+                        "email": admin_email,
+                        "display_name": admin_name,
                         "status": "active",
                         "is_verified": True,
                         "is_onboarded": True,
                     },
                 )
-                user.email = "himanshupalsingh6@gmail.com"
-                user.display_name = "Himanshu Pal Singh"
+                user.email = admin_email
+                user.display_name = admin_name
                 user.is_verified = True
                 user.is_onboarded = True
             return user

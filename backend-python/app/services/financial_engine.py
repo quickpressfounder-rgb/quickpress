@@ -186,7 +186,7 @@ class FinancialEngine:
         distance_km: float,
         items_subtotal: float,
         is_member: bool = False,
-        city: str = "Kasganj",
+        city: str = "",
     ) -> Tuple[float, float, bool]:
         """Calculates standard delivery fee, member/cart discounts, and free delivery flag."""
         city_lower = (city or "").strip().lower()
@@ -227,7 +227,7 @@ class FinancialEngine:
         is_express: bool = False,
         is_member: bool = False,
         distance_km: float = 3.0,
-        city: str = "Kasganj",
+        city: str = "",
         partner_monthly_orders: int = 50,
     ) -> CheckoutPricingResult:
         """Complete, mathematically sound computation of the customer checkout invoice."""
@@ -329,7 +329,7 @@ class FinancialEngine:
         is_night: bool = False,
         waiting_minutes: int = 0,
         tip_amount: float = 0.0,
-        city: str = "Kasganj",
+        city: str = "",
     ) -> RiderTripFareResult:
         """Calculates precise trip fare, distance rate, surge, and tips for a rider."""
         city_lower = (city or "").strip().lower()

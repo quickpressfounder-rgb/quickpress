@@ -22,7 +22,7 @@ async def test_invoice_pdf_generation():
         invoiceDate="2026-06-22T11:03:00Z",
         serviceLabel="Ride Charge",
         customer=InvoiceParty(
-            name="Himanshu Pal",
+            name="Aarav Sharma",
             phone="+919876543210",
             addressLine="Kasganj, Uttar Pradesh 207123, India",
             city="Kasganj",
@@ -88,4 +88,4 @@ async def test_invoice_pdf_generation():
     # Check page 3 text
     page3_text = doc[2].get_text()
     assert "QuickPress Technologies Private Limited" in page3_text
-    assert "Thank you Himanshu Pal" in page3_text
+    assert "Thank you Aarav Sharma" in page3_text

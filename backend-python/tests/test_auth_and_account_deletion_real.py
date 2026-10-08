@@ -75,7 +75,7 @@ async def test_auth_and_account_deletion_lifecycle_real_database(client: AsyncCl
         role=Role.customer,
         phone=test_phone,
         email=test_email,
-        display_name="Himanshu Pal",
+        display_name="Test Customer",
         photo_url=None,
         status=UserStatus.active,
         is_verified=True,
@@ -89,10 +89,10 @@ async def test_auth_and_account_deletion_lifecycle_real_database(client: AsyncCl
         {"_id": test_user_id},
         {
             "$set": {
-                "name": "Himanshu Pal",
+                "name": "Test Customer",
                 "phone": test_phone,
                 "email": test_email,
-                "city": "Kasganj",
+                "city": "Test City",
             }
         },
         upsert=True,
@@ -123,7 +123,7 @@ async def test_auth_and_account_deletion_lifecycle_real_database(client: AsyncCl
             "id": f"pm-{uuid.uuid4().hex[:6]}",
             "userId": test_user_id,
             "kind": "upi",
-            "name": "himanshu@okhdfcbank",
+            "name": "customer@okhdfcbank",
         }
     )
     await database.collection("carts").update_one(
@@ -140,7 +140,7 @@ async def test_auth_and_account_deletion_lifecycle_real_database(client: AsyncCl
     profile_res = await client.get("/api/profile", headers=auth_headers)
     assert profile_res.status_code == 200
     p_data = profile_res.json()
-    assert p_data["name"] == "Himanshu Pal"
+    assert p_data["name"] == "Test Customer"
     assert p_data["phone"] == test_phone
     assert p_data["email"] == test_email
 
@@ -150,16 +150,16 @@ async def test_auth_and_account_deletion_lifecycle_real_database(client: AsyncCl
     update_res = await client.put(
         "/api/profile",
         headers=auth_headers,
-        json={"name": "Himanshu Pal Singh", "email": "himanshu.singh@quickpress.test", "city": "Kasganj"},
+        json={"name": "Test Customer Updated", "email": "test.customer@quickpress.test", "city": "Test City"},
     )
     assert update_res.status_code == 200
-    assert update_res.json()["name"] == "Himanshu Pal Singh"
+    assert update_res.json()["name"] == "Test Customer Updated"
 
     # Verify persistence in MongoDB Atlas
     db_user = await user_repository.by_id(test_user_id)
     assert db_user is not None
-    assert db_user.display_name == "Himanshu Pal Singh"
-    assert db_user.email == "himanshu.singh@quickpress.test"
+    assert db_user.display_name == "Test Customer Updated"
+    assert db_user.email == "test.customer@quickpress.test"
 
     # Photo update
     photo_res = await client.post(

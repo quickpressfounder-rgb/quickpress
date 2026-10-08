@@ -90,7 +90,7 @@ export const IDLE_SECTION: SectionState<never> = { data: null, loading: true, er
 export function emptySections(): HomeSections {
   return {
     profile: { data: null, loading: true, error: null },
-    location: { data: getDefaultLocation(), loading: false, error: null },
+    location: { data: readLocation(), loading: false, error: null },
     banners: { data: null, loading: true, error: null },
     categories: { data: DEFAULT_CATEGORIES, loading: false, error: null },
     partners: { data: null, loading: true, error: null },
@@ -107,7 +107,7 @@ export function initialSections(): HomeSections {
     return emptySections();
   }
   const cachedProfile = readStaleCache<Profile>(CACHE_KEYS.profile);
-  const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location) || readLocation() || getDefaultLocation();
+  const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location) || readLocation();
   const cachedBanners = readStaleCache<Banner[]>(CACHE_KEYS.banners);
   const cachedCategories = readStaleCache<Category[]>(CACHE_KEYS.categories) || DEFAULT_CATEGORIES;
   const cachedPartners = readStaleCache<Partner[]>(CACHE_KEYS.partners);

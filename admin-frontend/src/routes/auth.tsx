@@ -241,12 +241,12 @@ export function AdminAuthPage() {
               </div>
 
               <div className="flex items-center justify-between text-xs pt-0.5">
-                <span className="text-slate-400 text-[11px]">himanshupalsingh6@gmail.com</span>
+                <span className="text-slate-400 text-[11px]">admin@quickpress.online</span>
                 <button
                   type="button"
                   onClick={() => {
-                    setLoginEmail("himanshupalsingh6@gmail.com");
-                    setLoginPassword("Himanshu@8055");
+                    setLoginEmail("admin@quickpress.online");
+                    setLoginPassword("Admin@QuickPress2026!");
                     toast.info("Super Admin credentials filled!");
                   }}
                   className="font-bold text-emerald-700 hover:underline cursor-pointer text-[11px]"

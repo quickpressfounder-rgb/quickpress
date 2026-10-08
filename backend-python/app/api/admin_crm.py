@@ -240,12 +240,12 @@ async def search_crm_entities(
 
         for r in riders_list:
             r_id = str(r.get("id") or r.get("code") or r.get("rawId") or "")
-            r_name = _safe_str(r.get("name") or "Himanshu Pal")
+            r_name = _safe_str(r.get("name") or "Captain Partner")
             r_phone = _safe_str(r.get("phone"))
             r_email = _safe_str(r.get("email") if r.get("email") != "—" else "")
-            r_city = _safe_str(r.get("city") or "Kasganj")
+            r_city = _safe_str(r.get("city") or "")
             r_state = "Uttar Pradesh"
-            r_pin = _safe_str(r.get("pincode") or "207124")
+            r_pin = _safe_str(r.get("pincode") or "")
             r_veh = _safe_str(r.get("plate") or r.get("vehicle") or "")
 
             if not _matches_geo(r_state, r_city, r_pin, state, city, pincode):
@@ -421,13 +421,13 @@ async def get_crm_deep_profile(
             ovw = data.get("overview") or {}
 
             # Synthesize flat profile with real data from all database models
-            c_name = pers.get("fullName") or p_sub.get("fullName") or p_sub.get("name") or "Himanshu Pal"
-            c_phone = pers.get("phone") or p_sub.get("phone") or "+91 92587 40561"
+            c_name = pers.get("fullName") or p_sub.get("fullName") or p_sub.get("name") or "Captain Partner"
+            c_phone = pers.get("phone") or p_sub.get("phone") or ""
             c_email = pers.get("email") or p_sub.get("email") or ""
             c_id = p_sub.get("code") or p_sub.get("id") or format_captain_id(entity_id)
-            b_name = payouts.get("bankName") or p_sub.get("bankName") or "HDFC Bank"
-            b_acc = payouts.get("accountNumber") or p_sub.get("accountNumber") or "50200099093311"
-            b_ifsc = payouts.get("ifsc") or p_sub.get("ifsc") or "HDFC0002733"
+            b_name = payouts.get("bankName") or p_sub.get("bankName") or "Bank Account"
+            b_acc = payouts.get("accountNumber") or p_sub.get("accountNumber") or ""
+            b_ifsc = payouts.get("ifsc") or p_sub.get("ifsc") or ""
             clean_digits = c_phone.replace(" ", "").replace("+", "").replace("-", "")
             b_upi = payouts.get("upiId") or p_sub.get("upiId") or (f"{clean_digits}@upi" if clean_digits else "—")
 

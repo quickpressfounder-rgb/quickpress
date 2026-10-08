@@ -92,13 +92,13 @@ export function useHomeData(): UseHomeData {
     return () => abortRef.current?.abort();
   }, [load]);
 
-  // Network awareness: auto-retry once connectivity returns.
+  // Auto-detect real live device GPS location on start if no location saved yet
   useEffect(() => {
-    return onNetworkChange((next) => {
-      setOnline(next);
-      if (next) void load({ forceRefresh: true });
-    });
-  }, [load]);
+    const saved = readLocation();
+    if (!saved) {
+      void useCurrentLocation();
+    }
+  }, [useCurrentLocation]);
 
   const refresh = useCallback(async () => {
     if (refreshing) return;

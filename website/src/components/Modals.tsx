@@ -564,7 +564,7 @@ export function ContactModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Himanshu Baghel / Rahul Sharma"
+                    placeholder="e.g. Amit Sharma / Rahul Verma"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-emerald-600 bg-white"

@@ -435,8 +435,8 @@ def generate_invoice_pdf(data: Dict[str, Any], output_target: Any = None) -> byt
     state_str = str(data.get("state") or "Uttar Pradesh")
     place_of_supply = str(data.get("place_of_supply") or state_str)
     partner_gst = str(data.get("partner_gst") or data.get("gstNumber") or "09AAHCR1710J1ZE")
-    captain_name = str(data.get("captain_name") or "ANKIT SAHU")
-    customer_name = str(data.get("customer_name") or "Himanshu Pal")
+    captain_name = str(data.get("captain_name") or "Delivery Captain")
+    customer_name = str(data.get("customer_name") or "Valued Customer")
 
     p2_grid = [
         [Paragraph("Invoice No.", meta_label), Paragraph(invoice_no, meta_val)],
@@ -728,11 +728,11 @@ def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = No
     payment = inv_dict.get("payment") or {}
     gst = inv_dict.get("gst") or {}
 
-    cust_addr = customer.get("addressLine") or customer.get("city") or "Kasganj, Uttar Pradesh 207123, India"
+    cust_addr = customer.get("addressLine") or customer.get("city") or "Customer Registered Address"
     if customer.get("city") and customer.get("city") not in cust_addr:
         cust_addr = f"{cust_addr}, {customer.get('city')}"
 
-    part_addr = partner.get("addressLine") or partner.get("city") or "MDR 82W, Kasganj, Uttar Pradesh 207123, India"
+    part_addr = partner.get("addressLine") or partner.get("city") or "QuickPress Partner Store Hub"
 
     captain_fee = round(ride_charge / 1.05, 2)
     cgst_p2 = round((ride_charge - captain_fee) / 2, 2)
@@ -760,9 +760,9 @@ def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = No
         "state": "Uttar Pradesh",
         "place_of_supply": gst.get("placeOfSupply") or "Uttar Pradesh",
         "partner_gst": gst.get("gstin") or "09AAHCR1710J1ZE",
-        "partner_name": partner.get("name") or "QuickPress Kasganj Hub",
-        "captain_name": ord_dict.get("riderName") or "ANKIT SAHU",
-        "customer_name": customer.get("name") or "Himanshu Pal",
+        "partner_name": partner.get("name") or "QuickPress Partner Hub",
+        "captain_name": ord_dict.get("riderName") or "Delivery Captain",
+        "customer_name": customer.get("name") or "Valued Customer",
         "service_fee_label": "Captain Fee",
         "captain_fee": f"{captain_fee:.2f}",
         "cgst_rate_p2": "2.5",
@@ -846,12 +846,12 @@ def generate_commission_invoice_pdf(data: Dict[str, Any]) -> bytes:
     partner_name = data.get("partner_name", "Partner Store")
     partner_id = data.get("partner_id", "")
     partner_gst = data.get("partner_gst", "Unregistered / Composition")
-    partner_city = data.get("partner_city", "Kasganj, Uttar Pradesh")
+    partner_city = data.get("partner_city", "")
 
     meta_table_data = [
         [
             Paragraph(f"<b>Invoice Number:</b> {inv_num}<br/><b>Date of Issue:</b> {inv_date}<br/><b>Billing Period:</b> {period}<br/><b>Place of Supply:</b> 09 - Uttar Pradesh", body_style),
-            Paragraph("<b>ISSUER / PLATFORM:</b><br/><b>QuickPress Technologies Pvt. Ltd.</b><br/>Main Road, Kasganj, UP 207123<br/><b>GSTIN:</b> 09AAHCR1710J1ZE<br/><b>PAN:</b> AAHCR1710J", body_style),
+            Paragraph("<b>ISSUER / PLATFORM:</b><br/><b>QuickPress Technologies Pvt. Ltd.</b><br/>Registered Corporate Office<br/><b>GSTIN:</b> 09AAHCR1710J1ZE<br/><b>PAN:</b> AAHCR1710J", body_style),
         ],
         [
             Paragraph(f"<b>RECIPIENT / MERCHANT PARTNER:</b><br/><b>{partner_name}</b> (ID: {partner_id})<br/>{partner_city}<br/><b>GSTIN:</b> {partner_gst}", body_style),
@@ -1030,7 +1030,7 @@ def generate_settlement_statement_pdf(data: Dict[str, Any]) -> bytes:
     header_data = [
         [
             Paragraph("<b>QUICKPRESS MERCHANT SETTLEMENT STATEMENT</b><br/><font color='#64748b' size='8'>Official Payout Ledger & Statutory Bank Reconciliation Document</font>", header_style),
-            Paragraph("<b>QuickPress Technologies Pvt. Ltd.</b><br/>GSTIN: 09AAHCR1710J1ZE · PAN: AAHCR1710J<br/>Kasganj, Uttar Pradesh 207123", ParagraphStyle("Right", parent=regular_style, alignment=2)),
+            Paragraph("<b>QuickPress Technologies Pvt. Ltd.</b><br/>GSTIN: 09AAHCR1710J1ZE · PAN: AAHCR1710J<br/>Registered Corporate Office", ParagraphStyle("Right", parent=regular_style, alignment=2)),
         ]
     ]
     t_head = Table(header_data, colWidths=[310, 213])
@@ -1045,7 +1045,7 @@ def generate_settlement_statement_pdf(data: Dict[str, Any]) -> bytes:
     b_name = data.get("businessName") or "QuickPress Partner Store"
     p_id = data.get("partnerId") or ""
     owner = data.get("ownerName") or "Store Partner"
-    city = data.get("city") or "Kasganj"
+    city = data.get("city") or ""
     cycle = data.get("cycle") or {}
     period = cycle.get("period") or "Current Cycle"
     cycle_id = cycle.get("cycleId") or "cycle"
@@ -1232,7 +1232,7 @@ def generate_settlement_statement_csv(data: Dict[str, Any]) -> str:
     b_name = data.get("businessName") or "QuickPress Partner Store"
     p_id = data.get("partnerId") or ""
     owner = data.get("ownerName") or "Store Partner"
-    city = data.get("city") or "Kasganj"
+    city = data.get("city") or ""
     cycle = data.get("cycle") or {}
     period = cycle.get("period") or "Current Cycle"
     cycle_id = cycle.get("cycleId") or "cycle"
@@ -1345,7 +1345,7 @@ def generate_commission_invoice_csv(data: Dict[str, Any]) -> str:
     partner_name = data.get("partner_name", "Partner Store")
     partner_id = data.get("partner_id", "")
     partner_gst = data.get("partner_gst", "Unregistered / Composition")
-    partner_city = data.get("partner_city", "Kasganj, Uttar Pradesh")
+    partner_city = data.get("partner_city", "")
 
     comm_base = float(data.get("commission_amount", 0.0))
     cgst = float(data.get("cgst", round(comm_base * 0.09, 2)))
@@ -1362,7 +1362,7 @@ def generate_commission_invoice_csv(data: Dict[str, Any]) -> str:
     writer.writerow(["Issuer", "QuickPress Technologies Pvt. Ltd."])
     writer.writerow(["Issuer GSTIN", "09AAHCR1710J1ZE"])
     writer.writerow(["Issuer PAN", "AAHCR1710J"])
-    writer.writerow(["Issuer Address", "Main Road, Kasganj, UP 207123"])
+    writer.writerow(["Issuer Address", "Registered Corporate Office"])
     writer.writerow(["Recipient / Partner Store", partner_name])
     writer.writerow(["Partner ID", partner_id])
     writer.writerow(["Partner GSTIN", partner_gst])

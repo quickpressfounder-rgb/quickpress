@@ -711,7 +711,7 @@ export function NotificationsPage() {
                       <div className="space-y-1.5">
                         <Label className="text-xs font-bold text-zinc-700">Recipient Name</Label>
                         <Input
-                          placeholder="e.g. Himanshu Pal"
+                          placeholder="e.g. Customer Name"
                           value={waForm.recipientName}
                           onChange={(e) => setWaForm({ ...waForm, recipientName: e.target.value })}
                           className="h-10 text-xs font-bold"

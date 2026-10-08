@@ -130,8 +130,8 @@ export function SupportPage() {
     priority: "Medium",
     category: "Order Related",
     refOrder: "",
-    city: "Kasganj",
-    assignee: "Himanshu (Lead Admin)",
+    city: "",
+    assignee: "Lead Admin",
   });
 
   // Queries
@@ -600,7 +600,7 @@ export function SupportPage() {
                         aria-label="Assign ticket agent"
                         className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer"
                       >
-                        <option value="Himanshu (Lead Admin)">👤 Himanshu (Lead)</option>
+                        <option value="Lead Admin">👤 Lead Admin</option>
                         <option value="Pooja (Fulfillment Ops)">👤 Pooja (Fulfillment)</option>
                         <option value="Rahul (Rider Ops)">👤 Rahul (Riders)</option>
                       </select>

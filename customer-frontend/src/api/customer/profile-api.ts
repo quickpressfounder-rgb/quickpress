@@ -122,7 +122,7 @@ const DEFAULT_GUEST_PROFILE: ProfileData = {
     verified: false,
     phone: "",
     email: "",
-    city: "Kasganj, Uttar Pradesh",
+    city: "",
     memberSince: "August 2026",
     unreadNotifications: 0,
   },

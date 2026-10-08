@@ -79,9 +79,9 @@ def run_checks():
     else:
         print(f"  ✓ Phone masking verified: {sample_phone} -> {masked_p}")
 
-    sample_name = "Himanshu Pal"
+    sample_name = "Test User"
     masked_n = mask_name(sample_name)
-    if masked_n != "Himanshu P.":
+    if masked_n != "Test U.":
         errors.append(f"PII Leak: Name masking failed: {masked_n}")
     else:
         print(f"  ✓ Name masking verified: {sample_name} -> {masked_n}")

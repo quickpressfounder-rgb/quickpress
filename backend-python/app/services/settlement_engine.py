@@ -178,15 +178,16 @@ class SettlementEngine:
         platform_gst_rate = float(fin_rules.get("gst", {}).get("platformGstRate", 0.18))
         tcs_rate = float(fin_rules.get("gst", {}).get("tcsRate", 0.01))
 
-        # Standard QuickPress laundry partner commission is 15%
-        comm_rate = 0.15
+        # Dynamic QuickPress laundry partner commission based on tier or partner profile override
         partner_comm = profile.get("commissionRate") or profile.get("commission_rate")
         if partner_comm is not None:
             try:
                 p_rate = float(partner_comm)
                 comm_rate = (p_rate / 100.0) if p_rate > 1.0 else p_rate
             except Exception:
-                comm_rate = 0.15
+                comm_rate = financial_engine.get_commission_rate(order_count=order_count)
+        else:
+            comm_rate = financial_engine.get_commission_rate(order_count=order_count)
 
         if order_count == 0:
             gross_items = 0.0
@@ -344,7 +345,7 @@ class SettlementEngine:
             "partnerId": partner_id,
             "businessName": profile.get("businessName") or profile.get("storeName") or "QuickPress Partner Store",
             "ownerName": profile.get("ownerName") or "Partner",
-            "city": profile.get("city") or "Kasganj",
+            "city": profile.get("city") or "",
             "cycle": matched_cycle,
             "totalOrders": order_count,
             "estNetPayout": est_net_payout,

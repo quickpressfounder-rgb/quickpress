@@ -33,8 +33,8 @@ export type AdminAuthSession = {
 function toAdminSession(session: AuthSession): AdminAuthSession {
   return {
     token: session.token,
-    email: session.account?.email || "himanshupalsingh6@gmail.com",
-    name: session.account?.name || "Himanshu Pal Singh",
+    email: session.account?.email || "admin@quickpress.online",
+    name: session.account?.name || "Super Admin",
     role: session.account?.departmentRole || session.account?.role || "Super Administrator",
     twoFactorRequired: false,
   };

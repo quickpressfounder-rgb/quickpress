@@ -43,15 +43,9 @@ export function fetchLocation(options: { forceRefresh?: boolean | undefined; sig
   });
 }
 
-/** Location refresh via device GPS, then reverse geocoding with resilient fallback. */
+/** Location refresh strictly via real device GPS, then reverse geocoding. */
 export async function refreshLocationFromGps(): Promise<SavedLocation> {
-  try {
-    const location = await detectDeviceLocation(true);
-    changeLocation(location);
-    return location;
-  } catch {
-    const saved = readLocation() ?? getDefaultLocation();
-    changeLocation(saved);
-    return saved;
-  }
+  const location = await detectDeviceLocation();
+  changeLocation(location);
+  return location;
 }

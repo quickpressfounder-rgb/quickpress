@@ -284,7 +284,7 @@ class CreateSupportTicketPayload(BaseModel):
     category: Optional[str] = "General Issue"
     refOrder: Optional[str] = None
     city: Optional[str] = None
-    assignee: Optional[str] = "Himanshu (Lead Admin)"
+    assignee: Optional[str] = "Lead Admin"
 
 
 class SupportReplyPayload(BaseModel):

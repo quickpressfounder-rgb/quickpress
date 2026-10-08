@@ -180,7 +180,7 @@ export async function fetchPartnerDetail(
         status: partner.status || "open",
         ownerName: partner.ownerName || "Store Owner",
         address: partner.address || "Local Store Address",
-        city: partner.city || "Kasganj",
+        city: partner.city || "",
         area: partner.area || partner.address || "Local Area",
         latitude: partner.latitude != null ? Number(partner.latitude) : 28.5355,
         longitude: partner.longitude != null ? Number(partner.longitude) : 77.3910,

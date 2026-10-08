@@ -5857,8 +5857,8 @@ class SupportRepository:
                 "orderTotal": (odoc.get("totals") or {}).get("grandTotal"),
                 "partnerName": (odoc.get("partner") or {}).get("name"),
                 "riderName": (odoc.get("rider") or {}).get("name"),
-                "assignee": t.get("assignee") or "Himanshu (Lead Admin)",
-                "city": t.get("city") or udoc.get("city") or "Kasganj",
+                "assignee": t.get("assignee") or "Lead Admin",
+                "city": t.get("city") or udoc.get("city") or "",
                 "vipBadge": vip_badge,
                 "compensationAmount": float(t.get("compensationAmount") or 0.0),
                 "messagesCount": len(replies),
@@ -5918,8 +5918,8 @@ class SupportRepository:
                     "orderTotal": (odoc.get("totals") or {}).get("grandTotal"),
                     "partnerName": (odoc.get("partner") or {}).get("name"),
                     "riderName": (odoc.get("rider") or {}).get("name"),
-                    "assignee": t.get("assignee") or "Himanshu (Lead Admin)",
-                    "city": udoc.get("city") or "Kasganj",
+                    "assignee": t.get("assignee") or "Lead Admin",
+                    "city": udoc.get("city") or "",
                     "vipBadge": vip_badge,
                     "compensationAmount": float(t.get("compensationAmount") or 0.0),
                     "messagesCount": len(replies_fmt),
@@ -6016,7 +6016,7 @@ class SupportRepository:
             "refOrder": ref_oid or "—",
             "order": odoc,
             "user": udoc,
-            "assignee": doc.get("assignee") or "Himanshu (Lead Admin)",
+            "assignee": doc.get("assignee") or "Lead Admin",
             "compensationAmount": float(doc.get("compensationAmount") or 0.0),
             "createdAt": doc.get("createdAt") or doc.get("created_at") or now_iso(),
             "updatedAt": doc.get("updatedAt") or doc.get("updated_at") or now_iso(),
@@ -6052,8 +6052,8 @@ class SupportRepository:
             "status": "Open",
             "category": payload.category or "General Issue",
             "refOrder": payload.refOrder or "—",
-            "city": payload.city or "Kasganj",
-            "assignee": payload.assignee or "Himanshu (Lead Admin)",
+            "city": payload.city or "",
+            "assignee": payload.assignee or "Lead Admin",
             "compensationAmount": 0.0,
             "createdAt": now,
             "updatedAt": now,
@@ -6071,7 +6071,7 @@ class SupportRepository:
         admin_user: Optional[User] = None,
     ) -> Optional[Dict[str, Any]]:
         now = now_iso()
-        admin_name = admin_user.display_name or admin_user.name if admin_user else "Himanshu (Lead Admin)"
+        admin_name = admin_user.display_name or admin_user.name if admin_user else "Lead Admin"
         new_msg = {
             "_id": f"msg-{uuid.uuid4().hex[:8]}",
             "author": f"{admin_name} (Internal Note)" if is_internal else f"{admin_name} (Support)",
@@ -6179,7 +6179,7 @@ class SupportRepository:
             raise ValueError("No customer account associated with this ticket for wallet credit.")
 
         admin_id = admin_user.id if admin_user else "admin"
-        admin_name = admin_user.display_name if admin_user else "Himanshu (Lead Admin)"
+        admin_name = admin_user.display_name if admin_user else "Lead Admin"
         r_text = reason or f"Resolution compensation for Ticket #{ticket.get('ticketNumber')}"
 
         # Adjust Customer Wallet

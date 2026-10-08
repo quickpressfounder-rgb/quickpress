@@ -57,7 +57,7 @@ async def test_unregistered_email_login_denied_in_staff_directory():
         wrong_pwd_res = await client.post(
             "/api/auth/admin/login",
             json={
-                "email": "himanshupalsingh6@gmail.com",
+                "email": "admin@quickpress.online",
                 "password": "CompletelyWrongPassword@999",
             },
         )
@@ -122,8 +122,8 @@ async def test_super_admin_email_password_and_2fa_login():
         login_res = await client.post(
             "/api/auth/admin/login",
             json={
-                "email": "himanshupalsingh6@gmail.com",
-                "password": "Himanshu@8055",
+                "email": "admin@quickpress.online",
+                "password": "Admin@QuickPress2026!",
             },
         )
         assert login_res.status_code == 200
@@ -186,7 +186,7 @@ async def test_staff_member_login_receives_assigned_permissions_and_profile():
         # 1. Super Admin logs in
         admin_login = await client.post(
             "/api/auth/admin/login",
-            json={"email": "himanshupalsingh6@gmail.com", "password": "Himanshu@8055"},
+            json={"email": "admin@quickpress.online", "password": "Admin@QuickPress2026!"},
         )
         ch_id = admin_login.json()["challengeId"]
         admin_session = await client.post(

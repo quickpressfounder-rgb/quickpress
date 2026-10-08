@@ -20,6 +20,7 @@
 import type { AddressEntity, Order, PaymentMethodEntity, PlaceOrderPayload } from "@/shared/types";
 
 import { apiDeleteJson, apiGetJson, apiPostJson, apiRequest } from "../core/transport";
+import { readLocation } from "./location";
 
 export const CART_API_ENDPOINTS = {
   cart: "/api/cart/summary",
@@ -419,7 +420,7 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
       address: {
         label: address.label || "Home",
         line: address.line || "Main Road",
-        city: address.city || "Kasganj",
+        city: address.city || readLocation()?.city || "",
         phone: payload.customerPhone || address.phone || "9876543210",
       },
       pickup: {
@@ -477,12 +478,12 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
       id: "partner-1",
       name: "QuickPress Partner Store",
       phone: "+91 98765 43210",
-      city: address.city || "Kasganj",
+      city: address.city || readLocation()?.city || "",
     },
     address: {
       label: address.label || "Home",
       line: address.line || "Main Road",
-      city: address.city || "Kasganj",
+      city: address.city || readLocation()?.city || "",
       phone: payload.customerPhone || address.phone || "9876543210",
     },
     pickup: {

@@ -360,7 +360,7 @@ function HomeScreen() {
                     <span className="block truncate text-xs font-bold text-foreground">
                       {location
                         ? `${location.area}${location.city ? `, ${location.city}` : ""}`
-                        : "Select your location"}
+                        : "Detecting live location…"}
                     </span>
                   </span>
                   <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
@@ -408,6 +408,24 @@ function HomeScreen() {
               </div>
             </header>
 
+            {!location ? (
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <MapPin className="size-4 shrink-0 text-emerald-600 animate-pulse" />
+                  <p className="text-xs font-bold text-emerald-950 dark:text-emerald-100 truncate">
+                    Enable GPS to see laundry services near you
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/location" })}
+                  className="shrink-0 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
+                >
+                  Allow GPS
+                </button>
+              </div>
+            ) : null}
+
             {isServicesUnavailable ? (
               <ServicesUnavailableView
                 location={location}
@@ -417,8 +435,8 @@ function HomeScreen() {
                 onSelectArea={(area) => {
                   const chosen: SavedLocation = {
                     area,
-                    city: area.includes("Kasganj") ? "Kasganj" : area,
-                    state: "Uttar Pradesh",
+                    city: area,
+                    state: "",
                   };
                   setLocation(chosen);
                 }}

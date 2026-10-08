@@ -328,7 +328,7 @@ export function ContactPage({
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Himanshu Pal"
+                      placeholder="e.g. Rahul Sharma"
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-gray-50/50"
                     />
                   </div>

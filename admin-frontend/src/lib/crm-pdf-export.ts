@@ -65,7 +65,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
     p.storeName ||
     p.businessName ||
     p.display_name ||
-    (isCustomer ? "QuickPress Customer" : isRider ? "Himanshu Pal" : "Merchant Hub");
+    (isCustomer ? "QuickPress Customer" : isRider ? "Captain Partner" : "Merchant Hub");
 
   const rawUid = p.rawId || p.id || p._id || "ca919300-47b2-4d2b-980b-1d70e44ffc9a";
   const entityId =
@@ -73,11 +73,11 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
     p.code ||
     (isRider ? "CAP-919300" : isPartner ? "PRT-104928" : "QP-" + String(rawUid).slice(0, 8).toUpperCase());
 
-  const phone = p.pPhone || p.phone || (isRider ? "+91 92587 40561" : "—");
+  const phone = p.pPhone || p.phone || (isRider ? "—" : "—");
   const email = p.pEmail || p.email || (p.email && p.email !== "—" ? p.email : "Not Provided");
-  const city = p.pCity || p.city || "Kasganj";
+  const city = p.pCity || p.city || "";
   const state = p.pState || p.state || "Uttar Pradesh";
-  const pincode = p.pincode || (p.personalDetails || {}).pincode || "207123";
+  const pincode = p.pincode || (p.personalDetails || {}).pincode || "";
   const status = p.liveStatus || p.status || (isRider ? p.live || "Online" : "Active");
   
   // Registration and joined timestamps

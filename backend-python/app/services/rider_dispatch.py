@@ -292,7 +292,7 @@ class RiderDispatchEngine:
             (order.get("address") or {}).get("city")
             or (order.get("customer") or {}).get("city")
             or (order.get("partner") or {}).get("city")
-            or "Kasganj"
+            or ""
         ).strip()
 
         # 1. Update status to rider_searching if needed and emit realtime event
@@ -302,10 +302,7 @@ class RiderDispatchEngine:
             extra_data={"city": order_city, "searchStartedAt": lifecycle.now_iso()},
         )
 
-        # Extract clean city (e.g. "Kasganj, Kasganj 207123" -> "Kasganj")
         clean_city = order_city.split(",")[0].strip()
-        if not clean_city:
-            clean_city = "Kasganj"
 
         # Also extract 6-digit postal pincode
         order_pin = str(
@@ -515,7 +512,7 @@ class RiderDispatchEngine:
         # Strict City Matching Check: Captain must belong to the order's city
         from app.services.smart_2ride_engine import normalize_city_name
         addr = order.get("address") or {}
-        o_city = normalize_city_name(addr.get("city") or order.get("city") or "Kasganj")
+        o_city = normalize_city_name(addr.get("city") or order.get("city") or "")
         r_city = normalize_city_name(
             rider_profile.get("city")
             or rider_profile.get("preferredCity")
@@ -523,7 +520,7 @@ class RiderDispatchEngine:
         )
         if not r_city:
             rp = await database.find_one("rider_profiles", {"_id": rider_id}) or {}
-            r_city = normalize_city_name(rp.get("city") or rp.get("preferredCity") or "Kasganj")
+            r_city = normalize_city_name(rp.get("city") or rp.get("preferredCity") or "")
         if o_city and r_city and o_city != r_city and o_city not in r_city and r_city not in o_city:
             raise ValueError(
                 f"CITY_MISMATCH: Order is in {o_city.title()}, but you are registered in {r_city.title()}. Rides can only be claimed by Captains in the same city."

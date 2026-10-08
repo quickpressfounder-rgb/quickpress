@@ -456,7 +456,7 @@ function ProfileScreen() {
     if (Object.keys(errors).length > 0) return;
     setSaving(true);
     try {
-      const payloadCity = activeLocation?.city || form.city || "Kasganj";
+      const payloadCity = activeLocation?.city || form.city || "";
       const cleanDigits = (form.phone || "").replace(/\D/g, "");
       const payloadPhone = cleanDigits.length === 10 ? `+91${cleanDigits}` : undefined;
       const saved = await updateProfile({
@@ -755,11 +755,11 @@ function ProfileScreen() {
                       Current Service Area
                     </p>
                     <p className="truncate text-xs font-bold text-foreground mt-0.5">
-                      {activeLocation?.area || activeLocation?.city || data.user.city || "Kasganj"}
+                      {activeLocation?.area || activeLocation?.city || data.user.city || "Not Set"}
                     </p>
                     <p className="truncate text-[10px] text-muted-foreground">
                       {[activeLocation?.city, activeLocation?.state].filter(Boolean).join(", ") ||
-                        "Uttar Pradesh, India"}
+                        "Tap to detect live location"}
                     </p>
                   </div>
                 </div>
@@ -996,8 +996,8 @@ function ProfileScreen() {
                     <MapPin className="size-3.5 shrink-0 text-primary" />
                     <span className="truncate">
                       {activeLocation?.area
-                        ? `${activeLocation.area}, ${activeLocation.city || ""}`
-                        : (activeLocation?.city || data.user.city || "Kasganj, Uttar Pradesh")}
+                        ? `${activeLocation.area}${activeLocation.city ? `, ${activeLocation.city}` : ""}`
+                        : (activeLocation?.city || data.user.city || "Location not set")}
                     </span>
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">

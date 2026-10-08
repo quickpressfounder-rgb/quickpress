@@ -15,10 +15,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { toast } from "sonner";
 import { fetchPlaceGroups, type PlaceGroups } from "@/api/customer/locations-api";
 import {
   detectDeviceLocation,
-  getDefaultLocation,
   reverseGeocode,
   saveLocation,
   type SavedLocation,
@@ -143,14 +143,13 @@ function LocationSearchScreen() {
     // Request notification permission together with location GPS
     void requestNotificationPermission();
     try {
-      const loc = await detectDeviceLocation(true);
+      const loc = await detectDeviceLocation();
       saveLocation(loc);
       setLocating(false);
       void navigate({ to: "/home" });
     } catch {
-      saveLocation(getDefaultLocation());
+      toast.error("Could not detect device GPS. Please search and select your location above.");
       setLocating(false);
-      void navigate({ to: "/home" });
     }
   };
 

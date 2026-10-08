@@ -338,8 +338,9 @@ async def admin_login(payload: dict, request: Request) -> dict:
     if not user:
         user = await users.by_email(email, Role.finance)
 
-    # Ensure Super Admin exists in database if logging in as himanshupalsingh6@gmail.com
-    if not staff_doc and email == "himanshupalsingh6@gmail.com":
+    # Ensure Super Admin exists in database if logging in as configured admin
+    admin_seed_email = os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower()
+    if not staff_doc and email == admin_seed_email:
         from app.core.admin_security import ensure_super_admin_seed
         staff_doc = await ensure_super_admin_seed()
         user = await users.by_email(email, Role.admin)

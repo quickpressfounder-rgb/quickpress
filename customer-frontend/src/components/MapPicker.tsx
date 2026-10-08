@@ -49,8 +49,6 @@ export type PickedLocation = {
   pincode: string;
 };
 
-const DEFAULT_COORDS = { latitude: 27.8118, longitude: 78.6477 }; // Kasganj / UP center fallback
-
 export function MapPicker({
   initial,
   onConfirm,
@@ -147,9 +145,6 @@ export function MapPicker({
           ? cause.message
           : "Unable to detect GPS position. You can search or tap on the map.",
       );
-      if (!point) {
-        setPoint(DEFAULT_COORDS);
-      }
     } finally {
       setLocating(false);
     }

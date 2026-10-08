@@ -42,7 +42,7 @@ async def main():
         "_id": "test_ord_email_001",
         "code": "QP-TEST-9921",
         "userId": "usr_test_9921",
-        "customerName": "Himanshu Pal Singh",
+        "customerName": "Test Customer",
         "customerEmail": "official.quickpress@gmail.com",
         "customerPhone": "+919258730561",
         "status": "delivered",

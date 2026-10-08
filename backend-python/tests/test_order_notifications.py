@@ -27,7 +27,7 @@ async def test_order_created_and_lifecycle_notifications():
         "userId": test_user_id,
         "status": "pending",
         "totals": {"grandTotal": 499},
-        "customer": {"id": test_user_id, "name": "Himanshu Pal"},
+        "customer": {"id": test_user_id, "name": "Test Customer"},
         "partner": {"id": "p-kasganj", "name": "QuickPress Express"},
         "rider": {"id": "r-1", "name": "Rohan"},
         "otp": {"pickup": "1234", "delivery": "5678"},

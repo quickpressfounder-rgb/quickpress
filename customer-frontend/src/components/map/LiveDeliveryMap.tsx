@@ -52,8 +52,8 @@ export function LiveDeliveryMap({
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [etaMins, setEtaMins] = useState<number | null>(null);
 
-  // Default coordinate (Center of Kasganj, UP if no coordinates available)
-  const defaultCenter = { lat: 27.8118, lng: 78.6477 };
+  // Default coordinate if no rider or destination coordinates are available
+  const defaultCenter = { lat: 28.6139, lng: 77.2090 };
 
   // Calculate distance & ETA whenever positions update
   useEffect(() => {

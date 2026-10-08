@@ -1858,8 +1858,8 @@ class UnifiedFinanceService:
                 "phone": customer_phone,
                 "email": customer_email,
                 "status": user_doc.get("status", "ACTIVE") if user_doc else "ACTIVE",
-                "city": (all_orders[0].get("address", {}).get("city") if all_orders else "Kasganj") or "Kasganj",
-                "area": (all_orders[0].get("address", {}).get("area") if all_orders else "Awas Vikas") or "Awas Vikas",
+                "city": (all_orders[0].get("address", {}).get("city") if all_orders else "") or "",
+                "area": (all_orders[0].get("address", {}).get("area") if all_orders else "") or "",
             },
             "financialSummary": {
                 "totalOrders": total_orders,
@@ -2111,7 +2111,7 @@ class UnifiedFinanceService:
         # 1. City Profitability
         city_groups: Dict[str, Dict[str, Any]] = {}
         for o in all_orders:
-            city = str(o.get("address", {}).get("city") or o.get("city") or "Kasganj")
+            city = str(o.get("address", {}).get("city") or o.get("city") or "General Area")
             f = fin_map.get(str(o.get("_id") or o.get("id")), {})
             gov = float(f.get("grossOrderValue") or o.get("totals", {}).get("total") or o.get("total") or 0.0)
             partner = float(f.get("partnerSettlement") or gov * 0.58)

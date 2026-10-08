@@ -37,25 +37,16 @@ export function readLocation(): SavedLocation | null {
  * server key). OpenStreetMap stays as a last-resort fallback so GPS keeps
  * working when Maps is unavailable.
  */
-export const DEFAULT_OPERATIONAL_LOCATION: SavedLocation = {
-  area: "Awas Vikas",
-  city: "Kasganj",
-  state: "Uttar Pradesh",
-  latitude: 27.8083,
-  longitude: 78.6475,
-};
-
-export function getDefaultLocation(): SavedLocation {
-  return { ...DEFAULT_OPERATIONAL_LOCATION };
+export function getDefaultLocation(): SavedLocation | null {
+  return null;
 }
 
 /**
  * Reverse geocode coordinates into a readable area/city.
  *
  * Primary source is the backend Google Maps proxy (`/api/maps/reverse-geocode`,
- * server key). If backend proxy or Maps is unavailable, falls back to the default
- * operational service hub (Kasganj) so store listings, pricing, and serviceability
- * never break.
+ * server key). If backend proxy or Maps is unavailable, falls back to detected location
+ * so store listings, pricing, and serviceability never break.
  */
 const GEOCODE_CACHE = new Map<string, SavedLocation>();
 
@@ -70,9 +61,8 @@ function getGeocodeCacheKey(lat: number, lng: number): string {
  * network requests for the same or proximate coordinates.
  *
  * Primary source is the backend Google Maps proxy (`/api/maps/reverse-geocode`,
- * server key). If backend proxy or Maps is unavailable, falls back to the default
- * operational service hub (Kasganj) so store listings, pricing, and serviceability
- * never break.
+ * server key). If backend proxy or Maps is unavailable, falls back to detected location
+ * so store listings, pricing, and serviceability never break.
  */
 export async function reverseGeocode(
   latitude: number,
@@ -317,20 +307,9 @@ export async function getCurrentDeviceLocation(
 
 /**
  * Device GPS → reverse geocoding → the customer's *current device* location.
- *
- * If fallbackToDefault is true, any GPS or permission failure gracefully
- * returns the default Kasganj hub instead of throwing.
  */
-export async function detectDeviceLocation(fallbackToDefault = false): Promise<SavedLocation> {
-  try {
-    const fix = await getCurrentDeviceLocation();
-    return await reverseGeocode(fix.latitude, fix.longitude);
-  } catch (err) {
-    if (fallbackToDefault) {
-      console.warn("[Location] Device GPS unavailable, falling back to default hub:", err);
-      return getDefaultLocation();
-    }
-    throw err;
-  }
+export async function detectDeviceLocation(): Promise<SavedLocation> {
+  const fix = await getCurrentDeviceLocation();
+  return await reverseGeocode(fix.latitude, fix.longitude);
 }
 

@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { LocationDetecting } from "@/components/LocationDetecting";
 import {
   detectDeviceLocation,
-  getDefaultLocation,
   GeoError,
   readLocation,
   saveLocation,
@@ -45,11 +44,6 @@ function LocationScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [attempt, setAttempt] = useState(0);
-
-  const proceedWithDefault = useCallback(() => {
-    saveLocation(getDefaultLocation());
-    void navigate({ to: "/home" });
-  }, [navigate]);
 
   const detect = useCallback(async () => {
     setError(null);
@@ -134,16 +128,6 @@ function LocationScreen() {
         >
           <Search className="size-[18px]" aria-hidden />
           <span>Choose location manually</span>
-        </button>
-
-        {/* Tertiary Explicit Bypass (NO timer / NO auto-redirect) */}
-        <button
-          type="button"
-          onClick={proceedWithDefault}
-          className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-bold text-muted-foreground hover:text-foreground"
-        >
-          <span>Or continue with Kasganj (Default hub)</span>
-          <ArrowRight className="size-3.5" aria-hidden />
         </button>
       </div>
     </main>

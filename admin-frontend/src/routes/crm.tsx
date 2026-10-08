@@ -1380,12 +1380,12 @@ function FullPageDossierView({
     profile.businessName ||
     profile.storeName ||
     profile.display_name ||
-    (isRider ? "Himanshu Pal" : target.name);
+    (isRider ? "Captain Partner" : target.name);
 
   const pPhone =
     (profile.phone && profile.phone !== "—" ? profile.phone : null) ||
     (personal.phone && personal.phone !== "—" ? personal.phone : null) ||
-    (isRider ? "+91 92587 40561" : "—");
+    (isRider ? "—" : "—");
 
   const pEmail =
     (profile.email && profile.email !== "—" ? profile.email : null) ||

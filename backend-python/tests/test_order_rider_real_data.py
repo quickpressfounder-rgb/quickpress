@@ -18,8 +18,8 @@ async def test_resolve_real_rider_party_and_order_enrichment():
         "_id": profile_id,
         "riderId": rider_id,
         "userId": profile_id,
-        "fullName": "Himanshu Pal",
-        "name": "Himanshu Pal",
+        "fullName": "Vikram Singh",
+        "name": "Vikram Singh",
         "phone": "+919258740561",
         "photoUrl": "https://res.cloudinary.com/demo/image/upload/sample_rider.jpg",
         "selfieUrl": "https://res.cloudinary.com/demo/image/upload/sample_rider.jpg",
@@ -39,7 +39,7 @@ async def test_resolve_real_rider_party_and_order_enrichment():
     # 2. Test resolve_real_rider_party with both riderId and profile_id
     party_by_rider_id = await resolve_real_rider_party(rider_id)
     assert party_by_rider_id is not None
-    assert party_by_rider_id["name"] == "Himanshu Pal"
+    assert party_by_rider_id["name"] == "Vikram Singh"
     assert party_by_rider_id["phone"] == "+919258740561"
     assert party_by_rider_id["vehicle"] == "Bike (Petrol)"
     assert party_by_rider_id["plate"] == "UP87R6390"
@@ -51,7 +51,7 @@ async def test_resolve_real_rider_party_and_order_enrichment():
 
     party_by_dict = await resolve_real_rider_party({"id": profile_id})
     assert party_by_dict is not None
-    assert party_by_dict["name"] == "Himanshu Pal"
+    assert party_by_dict["name"] == "Vikram Singh"
     assert party_by_dict["avatar"] == "https://res.cloudinary.com/demo/image/upload/sample_rider.jpg"
 
     # 3. Create an order with minimal rider object (simulating previous dummy or incomplete data)
@@ -80,7 +80,7 @@ async def test_resolve_real_rider_party_and_order_enrichment():
     fetched = await order_repository.by_id("cust-test-1", order_id)
     assert fetched is not None
     assert fetched.rider is not None
-    assert fetched.rider.name == "Himanshu Pal"
+    assert fetched.rider.name == "Vikram Singh"
     assert fetched.rider.phone == "+919258740561"
     assert fetched.rider.vehicle == "Bike (Petrol)"
     assert fetched.rider.plate == "UP87R6390"

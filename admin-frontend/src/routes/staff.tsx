@@ -526,8 +526,8 @@ export function StaffPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">🌐 All Operators ({allLogs.length} Events)</SelectItem>
-                      <SelectItem value="Himanshu Pal Singh">👑 Himanshu Pal Singh (Super Admin)</SelectItem>
-                      <SelectItem value="himanshupalsingh6@gmail.com">👑 himanshupalsingh6@gmail.com</SelectItem>
+                      <SelectItem value="Super Admin">👑 Super Admin</SelectItem>
+                      <SelectItem value="admin@quickpress.online">👑 admin@quickpress.online</SelectItem>
                       <SelectItem value="Rajesh Sharma">⚙️ Rajesh Sharma (Ops)</SelectItem>
                       <SelectItem value="Vikram Singh">🚴 Vikram Singh (Fleet)</SelectItem>
                     </SelectContent>
@@ -765,7 +765,7 @@ export function StaffPage() {
                   <ShieldCheck className="size-5 text-purple-600" />
                   <span className="text-xl font-black text-zinc-900">All India & HQ</span>
                 </div>
-                <h4 className="font-bold text-xs text-zinc-900">Super Admin: himanshupalsingh6@gmail.com</h4>
+                <h4 className="font-bold text-xs text-zinc-900">Super Admin: {session?.email || "admin@quickpress.online"}</h4>
                 <p className="text-[11px] text-zinc-400">Nationwide governance, platform commissions, global catalog.</p>
               </div>
             </div>

@@ -1149,7 +1149,7 @@ function PartnersPage() {
                         <span>Step 1: Store Owner Personal Profile</span>
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <DetailRow label="Full Legal Name" value={profile.header.ownerName || "Himanshu Pal"} />
+                        <DetailRow label="Full Legal Name" value={profile.header.ownerName || "Merchant Partner"} />
                         <DetailRow label="Mobile Phone" value={profile.header.phone || "—"} />
                         <DetailRow label="Email Address" value={profile.header.email || "Not Provided"} />
                         <DetailRow label="Date of Birth (DOB)" value={profile.header.dob || profile.kyc.dob || "2000-01-01"} />

@@ -943,7 +943,7 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
     
     address_str = _address_line(addr) if isinstance(addr, dict) else str(addr or order.get("pickup_address") or "")
     if not address_str and isinstance(addr, dict):
-        address_str = addr.get("line") or addr.get("city") or "Kasganj"
+        address_str = addr.get("line") or addr.get("city") or "Doorstep Address"
 
     # Partner is shown Dispatch OTP only when order is ready / dispatch pending
     dispatch_otp_val = (order.get("otp") or {}).get("dispatch")
@@ -1063,7 +1063,7 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
         (order.get("partner") or {}).get("address")
         or order.get("partnerAddress")
         or order.get("storeAddress")
-        or "QuickPress Partner Store, Kasganj"
+        or "QuickPress Partner Store Hub"
     )
 
     p_lat = float(
@@ -1140,8 +1140,8 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
         "partnerName": partner.get("name", "") or order.get("partnerName", "") or "QuickPress Laundry Store",
         "partnerPhone": partner.get("phone", "") or order.get("partnerPhone", "") or "",
         "partnerAddress": partner_addr,
-        "pickupAddress": address or "Customer Pickup Location, Kasganj",
-        "deliveryAddress": address or "Customer Delivery Address, Kasganj",
+        "pickupAddress": address or "Customer Pickup Location",
+        "deliveryAddress": address or "Customer Delivery Address",
         "pickupLocation": {"latitude": c_lat, "longitude": c_lng},
         "deliveryLocation": {"latitude": c_lat, "longitude": c_lng},
         "partnerLocation": {"latitude": p_lat, "longitude": p_lng},

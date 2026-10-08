@@ -190,7 +190,8 @@ async def check_email_otp_limits(email: str) -> None:
         )
 
     # 2. 1-Hour Rolling Window Check (Max 5 OTP requests for staff/users)
-    limit = 100 if email_clean == "himanshupalsingh6@gmail.com" else MAX_OTP_SENDS_PER_HOUR
+    super_admin_email = os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower()
+    limit = 100 if email_clean == super_admin_email else MAX_OTP_SENDS_PER_HOUR
     timestamps = [float(ts) for ts in sec_doc.get("sendTimestamps", []) if (now_ts - float(ts)) < OTP_SEND_WINDOW_SECONDS]
     if len(timestamps) >= limit:
         oldest = timestamps[0]
@@ -834,34 +835,30 @@ async def list_admin_login_history(admin_id: Optional[str] = None, limit: int = 
 
 async def ensure_super_admin_seed() -> dict:
     """
-    Ensure the Super Admin account (himanshupalsingh6@gmail.com) is securely seeded
-    in the database with PBKDF2 hashed password (Himanshu@8055) and full operational permissions.
-    Cleans any obsolete legacy admin records.
+    Ensure the Super Admin account is securely seeded
+    in the database with configurable environment credentials and full operational permissions.
     """
     from app.models.user import Role, UserStatus
 
-    admin_email = "himanshupalsingh6@gmail.com"
-    pwd_hash = hash_password("Himanshu@8055")
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower()
+    admin_password = os.getenv("ADMIN_PASSWORD", "Admin@QuickPress2026!")
+    admin_name = os.getenv("ADMIN_NAME", "Super Admin")
+    admin_phone = os.getenv("ADMIN_PHONE", "+91 99999 99999")
+    pwd_hash = hash_password(admin_password)
     now = _now_iso()
 
-    # Remove all other dummy / legacy staff records from database, keeping strictly himanshupalsingh6@gmail.com
+    # Clean legacy staff records
     await database.delete_many("admin_staff", {"email": {"$ne": admin_email}})
-    await database.delete_many("users", {"email": "admin@quickpress.online"})
-    await database.delete_many("users", {"email": "admin@quickpress.com"})
-    await database.delete_many("users", {"email": "rajesh.ops@quickpress.com"})
-    await database.delete_many("users", {"email": "vikram.dispatch@quickpress.com"})
-    await database.delete_many("users", {"email": "neha.support@quickpress.com"})
-    await database.delete_many("users", {"email": "amit.finance@quickpress.com"})
 
     # Check or create super admin in admin_staff collection
     existing_staff = await database.find_one("admin_staff", {"email": admin_email})
-    staff_id = existing_staff.get("_id") if existing_staff else "stf_super_admin_himanshu"
+    staff_id = existing_staff.get("_id") if existing_staff else "stf_super_admin"
 
     super_admin_staff_doc = {
         "_id": staff_id,
-        "name": "Himanshu Pal Singh",
+        "name": admin_name,
         "email": admin_email,
-        "phone": "+91 98719 62596",
+        "phone": admin_phone,
         "role": "Super Admin",
         "scope": "All India Hubs",
         "passwordHash": pwd_hash,
@@ -892,9 +889,9 @@ async def ensure_super_admin_seed() -> dict:
         {
             "$set": {
                 "_id": staff_id,
-                "phone": "+91 98719 62596",
+                "phone": admin_phone,
                 "email": admin_email,
-                "display_name": "Himanshu Pal Singh",
+                "display_name": admin_name,
                 "role": Role.admin.value,
                 "status": UserStatus.active.value,
                 "is_verified": True,

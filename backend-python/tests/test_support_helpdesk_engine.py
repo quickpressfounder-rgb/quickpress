@@ -13,7 +13,7 @@ async def admin_auth():
     admin = User(
         id="usr-support-lead-admin",
         phone="+919999900077",
-        display_name="Himanshu Lead Admin",
+        display_name="Lead Admin",
         email="leadadmin@quickpress.com",
         role=Role.admin,
     )
@@ -62,8 +62,8 @@ async def test_omnichannel_support_helpdesk_full_lifecycle(admin_auth, customer_
                 "priority": "Urgent",
                 "category": "Order Related",
                 "refOrder": "ord-8832",
-                "city": "Kasganj",
-                "assignee": "Himanshu (Lead Admin)",
+                "city": "Noida",
+                "assignee": "Lead Admin",
             },
         )
         assert create_res.status_code == 200

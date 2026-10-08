@@ -326,7 +326,7 @@ class GlobalFinanceSearchService:
             "name": user.get("name") or user.get("fullName") or "QuickPress Customer",
             "phone": phone,
             "email": user.get("email", ""),
-            "city": user.get("city") or "Kasganj",
+            "city": user.get("city") or "",
             "status": user.get("status", "active"),
             "registeredAt": user.get("created_at") or user.get("createdAt"),
             "kpis": {

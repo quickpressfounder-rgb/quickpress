@@ -49,7 +49,7 @@ router = APIRouter(tags=["home"])
 optional_bearer = HTTPBearer(auto_error=False)
 
 GUEST_PROFILE = ProfileResponse(name="Guest", initials="G", unreadNotifications=0)
-DEFAULT_LOCATION = LocationResponse(area="Awas Vikas", city="Kasganj", state="Uttar Pradesh")
+DEFAULT_LOCATION = LocationResponse(area="Current Location", city="", state="")
 
 
 def _initials(name: str) -> str:
@@ -316,9 +316,9 @@ async def get_home(
     )
 
     current_loc = LocationResponse(
-        area=area or "Awas Vikas",
-        city=city or "Kasganj",
-        state="Uttar Pradesh",
+        area=area or "Current Location",
+        city=city or "",
+        state="",
         latitude=lat,
         longitude=lng,
     ) if (city or area or lat or lng) else DEFAULT_LOCATION
