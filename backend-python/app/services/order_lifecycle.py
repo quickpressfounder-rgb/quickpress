@@ -487,21 +487,42 @@ def assert_partner(order: Dict[str, Any], partner_id: str) -> None:
 
 def assert_rider(order: Dict[str, Any], rider_id: str) -> None:
     rider = order.get("rider") or {}
-    assigned_id = str(rider.get("id") or order.get("assignedRiderId") or order.get("riderId") or "")
-    if not assigned_id:
+    delivery_rider = order.get("deliveryRider") or {}
+    transfer_rider = order.get("transferRider") or (order.get("reassignment") or {}).get("transferRider") or {}
+
+    allowed_raw = [
+        rider.get("id"),
+        delivery_rider.get("id"),
+        transfer_rider.get("id"),
+        order.get("assignedRiderId"),
+        order.get("riderId"),
+        order.get("deliveryRiderId"),
+        order.get("pickupRiderId"),
+        order.get("originalRiderId"),
+        (order.get("reassignment") or {}).get("originalRiderId"),
+        (order.get("reassignment") or {}).get("assignedTransferRiderId"),
+    ]
+
+    target_ids = set()
+    for raw_id in allowed_raw:
+        if not raw_id:
+            continue
+        s_id = str(raw_id).strip()
+        target_ids.add(s_id)
+        target_ids.add(s_id.lower())
+        target_ids.add(s_id.upper())
+        if s_id.upper().startswith("CAP-"):
+            target_ids.add(f"rdr-{s_id[4:].lower()}")
+            target_ids.add(f"rdr-{s_id[4:]}")
+        elif s_id.lower().startswith("rdr-"):
+            target_ids.add(f"CAP-{s_id[4:].upper()}")
+            target_ids.add(f"cap-{s_id[4:].lower()}")
+
+    if not target_ids:
         raise OrderAuthorizationError("No rider is assigned to this order yet")
-    target_ids = {assigned_id, assigned_id.lower(), assigned_id.upper()}
-    if assigned_id.upper().startswith("CAP-"):
-        target_ids.add(f"rdr-{assigned_id[4:].lower()}")
-        target_ids.add(f"rdr-{assigned_id[4:]}")
-    elif assigned_id.lower().startswith("rdr-"):
-        target_ids.add(f"CAP-{assigned_id[4:].upper()}")
-        target_ids.add(f"cap-{assigned_id[4:].lower()}")
+
     if str(rider_id) not in target_ids and str(rider_id).lower() not in target_ids:
-        orig_id = str(order.get("originalRiderId") or (order.get("reassignment") or {}).get("originalRiderId") or "")
-        transfer_id = str((order.get("reassignment") or {}).get("assignedTransferRiderId") or "")
-        if str(rider_id) not in (orig_id, transfer_id):
-            raise OrderAuthorizationError("This order is assigned to another rider")
+        raise OrderAuthorizationError("This order is assigned to another rider")
 
 
 def assert_customer(order: Dict[str, Any], user_id: str) -> None:

@@ -225,8 +225,8 @@ class Smart2RideEngine:
 
         # Extract Pickup (Customer) and Drop (Partner) Coordinates
         addr = order.get("address") or {}
-        cust_lat = float(addr.get("latitude") or addr.get("lat") or 27.8165)
-        cust_lng = float(addr.get("longitude") or addr.get("lng") or 78.6530)
+        cust_lat = float(addr.get("latitude") or addr.get("lat") or 0.0)
+        cust_lng = float(addr.get("longitude") or addr.get("lng") or 0.0)
         cust_name = (order.get("customer") or {}).get("name") or addr.get("name") or order.get("customerName") or "Customer"
         cust_phone = (order.get("customer") or {}).get("phone") or addr.get("phone") or order.get("customerPhone") or ""
         pickup_addr = addr.get("line") or addr.get("address") or addr.get("formattedAddress") or "Customer Pickup Location"
@@ -412,6 +412,14 @@ class Smart2RideEngine:
             return existing_ride
 
         # Pickup location for Ride 2 is PARTNER STORE
+        # Drop location for Ride 2 is CUSTOMER ADDRESS
+        addr = order.get("address") or {}
+        cust_lat = float(addr.get("latitude") or addr.get("lat") or 0.0)
+        cust_lng = float(addr.get("longitude") or addr.get("lng") or 0.0)
+        cust_name = (order.get("customer") or {}).get("name") or addr.get("name") or order.get("customerName") or "Customer"
+        cust_phone = (order.get("customer") or {}).get("phone") or addr.get("phone") or order.get("customerPhone") or ""
+        drop_addr = addr.get("line") or addr.get("address") or addr.get("formattedAddress") or "Customer Delivery Location"
+
         partner = order.get("partner") or {}
         partner_id = order.get("partnerId") or order.get("partner_id")
         if partner_id and (not partner.get("address") or not partner.get("city")):
@@ -438,14 +446,6 @@ class Smart2RideEngine:
         partner_name = partner.get("name") or "QuickPress Partner Store"
         partner_phone = partner.get("phone") or ""
         pickup_addr = partner.get("address") or "QuickPress Partner Store"
-
-        # Drop location for Ride 2 is CUSTOMER ADDRESS
-        addr = order.get("address") or {}
-        cust_lat = float(addr.get("latitude") or addr.get("lat") or p_lat)
-        cust_lng = float(addr.get("longitude") or addr.get("lng") or p_lng)
-        cust_name = (order.get("customer") or {}).get("name") or addr.get("name") or order.get("customerName") or "Customer"
-        cust_phone = (order.get("customer") or {}).get("phone") or addr.get("phone") or order.get("customerPhone") or ""
-        drop_addr = addr.get("line") or addr.get("address") or addr.get("formattedAddress") or "Customer Delivery Location"
 
         distance_km = max(0.5, haversine_distance_km(p_lat, p_lng, cust_lat, cust_lng))
         partner_city = str((partner or {}).get("city") or "").strip()
@@ -1268,6 +1268,12 @@ class Smart2RideEngine:
         if resolved_party:
             rider_party = resolved_party
             r_name = rider_party.get("name") or "Delivery Captain"
+            r_phone = rider_party.get("phone") or rider_profile.get("phone") or ""
+            r_vehicle = rider_party.get("vehicle") or rider_profile.get("vehicleType") or "Bike"
+            r_plate = rider_party.get("plate") or rider_profile.get("vehicleNumber") or ""
+            r_avatar = rider_party.get("avatar") or rider_profile.get("photoUrl") or ""
+            r_lat = float(rider_party.get("latitude") or 0.0)
+            r_lng = float(rider_party.get("longitude") or 0.0)
         else:
             r_name = rider_profile.get("fullName") or rider_profile.get("name") or "Delivery Captain"
             r_phone = rider_profile.get("phone") or ""
@@ -2015,6 +2021,7 @@ class Smart2RideEngine:
             {
                 "$set": {
                     "status": lifecycle.DELIVERED,
+                    "deliveryRiderId": rider_id,
                     "deliveryOtpVerified": True,
                     "otp.delivery": delivery_record,
                     "geofence.delivery": geofence_status,

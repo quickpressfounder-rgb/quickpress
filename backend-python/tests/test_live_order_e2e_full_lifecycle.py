@@ -330,7 +330,8 @@ def test_complete_live_order_e2e_journey(client, live_actors):
     # -------------------------------------------------------------------------
     c_final = client.get(f"/api/orders/{order_id}", headers=_auth(customer)).json()
     p_final = client.get(f"/api/partner/orders/{order_id}", headers=_auth(partner)).json()
-    r_final = client.get(f"/api/rider/orders/{order_id}", headers=_auth(rider_delivery)).json()
+    r_res = client.get(f"/api/rider/orders/{order_id}", headers=_auth(rider_delivery))
+    r_final = r_res.json()
     a_final = client.get(f"/api/admin/orders/{order_id}", headers=_auth(admin)).json()
 
     assert c_final["status"] == "delivered"

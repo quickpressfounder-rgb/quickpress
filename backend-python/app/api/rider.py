@@ -2811,19 +2811,27 @@ async def accept_order(order_id: str, user: User = Depends(current_user)) -> dic
     if customer_order:
         canonical_ord_id = customer_order.get("_id") or customer_order.get("id")
 
+    order_status = str((customer_order or {}).get("status") or "").lower()
+    is_delivery_phase = order_status in ("ready", "ready_for_delivery", "out_for_delivery")
+
     ride = await database.find_one(RIDES_COLLECTION, {"_id": order_id})
     if not ride and offer_doc and offer_doc.get("rideId"):
         ride = await database.find_one(RIDES_COLLECTION, {"_id": offer_doc["rideId"]})
     if not ride:
+        ride = await database.find_one(RIDES_COLLECTION, {
+            "orderId": canonical_ord_id,
+            "status": {"$in": ["OFFER_SENT", "SEARCHING_RIDER", "NO_RIDER_FOUND", "PENDING_ACCEPTANCE"]},
+        })
+    if not ride and is_delivery_phase:
+        ride = await database.find_one(RIDES_COLLECTION, {"_id": f"ride-dl-{canonical_ord_id}"})
+        if not ride and canonical_ord_id:
+            ride = await smart_2ride_engine.create_ride_2_delivery(canonical_ord_id)
+    if not ride and not is_delivery_phase:
         ride = await database.find_one(RIDES_COLLECTION, {"_id": f"ride-pk-{canonical_ord_id}"})
-    if not ride:
-        ride = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_ord_id, "status": {"$in": ["OFFER_SENT", "SEARCHING_RIDER", "NO_RIDER_FOUND"]}})
+        if not ride and canonical_ord_id:
+            ride = await smart_2ride_engine.create_ride_1_pickup(canonical_ord_id)
     if not ride:
         ride = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_ord_id})
-    if not ride and canonical_ord_id:
-        created_ride = await smart_2ride_engine.create_ride_1_pickup(canonical_ord_id)
-        if created_ride:
-            ride = created_ride
     
     if ride:
         try:
