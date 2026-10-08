@@ -33,35 +33,19 @@ interface CaptainRouteBookingModalProps {
 const PRESET_LOCATIONS: RouteDestination[] = [
   {
     id: "loc-home",
-    name: "Home",
+    name: "Home Location",
     type: "home",
-    address: "Soron Gate, Near Chamunda Mandir, Kasganj",
-    lat: 27.815,
-    lng: 78.649,
+    address: "Registered Home Address",
+    lat: 28.6139,
+    lng: 77.2090,
   },
   {
     id: "loc-hub",
-    name: "QuickPress Hub",
+    name: "Partner Hub",
     type: "hub",
-    address: "Soron Gate Commercial Complex, Kasganj",
-    lat: 27.8118,
-    lng: 78.6477,
-  },
-  {
-    id: "loc-railway",
-    name: "Railway Junction",
-    type: "station",
-    address: "Station Road, Railway Colony, Kasganj",
-    lat: 27.8035,
-    lng: 78.642,
-  },
-  {
-    id: "loc-bilram",
-    name: "Bilram Gate",
-    type: "market",
-    address: "Bilram Gate Main Bazar, Kasganj",
-    lat: 27.808,
-    lng: 78.653,
+    address: "Central Operational Hub",
+    lat: 28.6139,
+    lng: 77.2090,
   },
 ];
 

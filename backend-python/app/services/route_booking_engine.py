@@ -23,49 +23,7 @@ ROUTE_BOOKINGS_COLLECTION = "rider_route_bookings"
 RIDERS_COLLECTION = "rider_profiles"
 DEFAULT_MAX_PASSES_PER_DAY = 3
 
-# Pre-seeded reference landmarks for Kasganj city
-KASGANJ_LANDMARKS = [
-    {
-        "id": "loc-home-default",
-        "name": "Home",
-        "type": "home",
-        "address": "Soron Gate, Near Chamunda Mandir, Kasganj",
-        "lat": 27.8150,
-        "lng": 78.6490,
-    },
-    {
-        "id": "loc-hub-ksj",
-        "name": "QuickPress Express Hub",
-        "type": "hub",
-        "address": "Soron Gate Commercial Complex, Kasganj",
-        "lat": 27.8118,
-        "lng": 78.6477,
-    },
-    {
-        "id": "loc-railway-ksj",
-        "name": "Kasganj Railway Junction",
-        "type": "station",
-        "address": "Station Road, Railway Colony, Kasganj",
-        "lat": 27.8035,
-        "lng": 78.6420,
-    },
-    {
-        "id": "loc-bilram-ksj",
-        "name": "Bilram Gate Market",
-        "type": "market",
-        "address": "Bilram Gate Main Road, Kasganj",
-        "lat": 27.8080,
-        "lng": 78.6530,
-    },
-    {
-        "id": "loc-nadrai-ksj",
-        "name": "Nadrai Gate & Aqueduct",
-        "type": "landmark",
-        "address": "Nadrai Gate, Kasganj",
-        "lat": 27.8220,
-        "lng": 78.6380,
-    },
-]
+DEFAULT_ROUTE_PRESETS: List[Dict[str, Any]] = []
 
 
 def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -96,8 +54,9 @@ class RouteBookingEngine:
 
         doc = await database.find_one(ROUTE_BOOKINGS_COLLECTION, {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
         if not doc:
-            # Initialize with default Home route in Kasganj
-            default_dest = KASGANJ_LANDMARKS[0]
+            rider_doc = await database.find_one(RIDERS_COLLECTION, {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}) or {}
+            saved = rider_doc.get("savedAddresses") or DEFAULT_ROUTE_PRESETS
+            default_dest = saved[0] if saved else None
             doc = {
                 "_id": rider_id,
                 "riderId": rider_id,
@@ -108,7 +67,7 @@ class RouteBookingEngine:
                 "passesRemaining": DEFAULT_MAX_PASSES_PER_DAY,
                 "maxPassesPerDay": DEFAULT_MAX_PASSES_PER_DAY,
                 "lastResetDate": now_date_str,
-                "savedAddresses": KASGANJ_LANDMARKS[:3],
+                "savedAddresses": saved,
                 "activatedAt": None,
                 "updatedAt": datetime.now(timezone.utc).isoformat(),
             }

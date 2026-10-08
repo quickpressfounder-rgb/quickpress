@@ -2265,8 +2265,8 @@ async def add_saved_route_address(
         effective_id,
         str(body.get("name") or "Saved Location"),
         str(body.get("address") or ""),
-        float(body.get("lat") or 27.8118),
-        float(body.get("lng") or 78.6477),
+        float(body.get("lat") or 0.0),
+        float(body.get("lng") or 0.0),
         str(body.get("type") or "saved"),
     )
 
@@ -2681,22 +2681,22 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
         route_state = await route_booking_engine.get_rider_route_state(rider_id)
         if route_state and route_state.get("isActive") and route_state.get("destination"):
             dest = route_state["destination"]
-            dest_lat = float(dest.get("lat") or 27.8150)
-            dest_lng = float(dest.get("lng") or 78.6490)
-            dest_name = dest.get("name") or "Home"
+            dest_lat = float(dest.get("lat") or 0.0)
+            dest_lng = float(dest.get("lng") or 0.0)
+            dest_name = dest.get("name") or "Destination"
             max_detour = float(route_state.get("maxDetourKm") or 2.0)
 
             # Rider coordinates fallback
-            r_lat = float(profile.get("lat") or 27.8118) if profile else 27.8118
-            r_lng = float(profile.get("lng") or 78.6477) if profile else 78.6477
+            r_lat = float(profile.get("lat") or 0.0) if profile else 0.0
+            r_lng = float(profile.get("lng") or 0.0) if profile else 0.0
 
             for offer in valid_offers:
                 p_c = offer.get("pickupCoords") or {}
                 d_c = offer.get("dropCoords") or {}
-                p_lat = float(p_c.get("lat") or 27.8130)
-                p_lng = float(p_c.get("lng") or 78.6480)
-                d_lat = float(d_c.get("lat") or 27.8160)
-                d_lng = float(d_c.get("lng") or 78.6500)
+                p_lat = float(p_c.get("lat") or 0.0)
+                p_lng = float(p_c.get("lng") or 0.0)
+                d_lat = float(d_c.get("lat") or 0.0)
+                d_lng = float(d_c.get("lng") or 0.0)
 
                 eval_res = route_booking_engine.evaluate_order_route_alignment(
                     r_lat, r_lng, dest_lat, dest_lng, p_lat, p_lng, d_lat, d_lng, max_detour

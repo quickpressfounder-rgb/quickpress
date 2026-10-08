@@ -407,10 +407,8 @@ export async function fetchPartners(page = 1, pageSize = 100, q?: string, status
   const items = res.items || [];
 
   return items.map((p) => {
-    const rawCity = String(p.city || "Kasganj");
-    const cleanCity = rawCity.toLowerCase().includes("bengaluru") || rawCity.toLowerCase().includes("bangalore") ? "Kasganj" : rawCity;
-    const rawPhone = String(p.phone || "");
-    const cleanPhone = rawPhone.includes("98765 43210") || rawPhone.includes("9876543210") ? "+91 92587 30561" : (rawPhone || "App Registered");
+    const cleanCity = String(p.city || "").trim();
+    const rawPhone = String(p.phone || "").trim();
     const cleanPartnerId = formatPartnerId(p.code || p.partnerId || p.id);
     let name = p.businessName || `Partner Store #${cleanPartnerId}`;
     if (name === "QuickPress Partner Store") {
@@ -422,8 +420,8 @@ export async function fetchPartners(page = 1, pageSize = 100, q?: string, status
       id: cleanPartnerId,
       partnerId: cleanPartnerId,
       businessName: p.businessName || name,
-      city: p.city || cleanCity,
-      phone: p.phone || cleanPhone,
+      city: cleanCity,
+      phone: rawPhone,
       logo: p.logo || p.ownerPhoto || "",
       ownerPhoto: p.ownerPhoto || p.logo || "",
       banner: p.banner || "",
@@ -440,19 +438,10 @@ export async function fetchPartner360(id: string): Promise<Partner360Data> {
   const data = await apiGetJson<Partner360Data>(`/api/admin/partners/${encodeURIComponent(id)}/360`);
   if (!data || !data.header) return data;
 
-  // Clean city from old Bengaluru seeds
-  if (data.header.city?.toLowerCase().includes("bengaluru") || data.header.city?.toLowerCase().includes("bangalore")) {
-    data.header.city = "Kasganj";
-  }
   if (data.overview) {
     data.overview.grossRevenue = Number(data.overview.grossRevenue || data.overview.revenue || 0);
     data.overview.partnerEarnings = Number(data.overview.partnerEarnings || data.overview.earnings || 0);
     data.overview.commission = Number(data.overview.commission || data.overview.commissionEarned || 0);
-  }
-
-  // Clean dummy phone numbers
-  if (data.header.phone?.includes("98765 43210") || data.header.phone?.includes("9876543210")) {
-    data.header.phone = "+91 92587 30561";
   }
 
   // Filter out fake hardcoded reviews

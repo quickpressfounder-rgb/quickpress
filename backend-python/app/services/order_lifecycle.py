@@ -1069,22 +1069,22 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
     p_lat = float(
         (order.get("partner") or {}).get("latitude")
         or (order.get("partner") or {}).get("lat")
-        or 27.8118
+        or 0.0
     )
     p_lng = float(
         (order.get("partner") or {}).get("longitude")
         or (order.get("partner") or {}).get("lng")
-        or 78.6477
+        or 0.0
     )
     c_lat = float(
         (order.get("address") or {}).get("latitude")
         or (order.get("address") or {}).get("lat")
-        or 27.8165
+        or 0.0
     )
     c_lng = float(
         (order.get("address") or {}).get("longitude")
         or (order.get("address") or {}).get("lng")
-        or 78.6530
+        or 0.0
     )
 
     order_amount = int(

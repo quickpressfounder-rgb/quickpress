@@ -49,7 +49,7 @@ export type PickedLocation = {
   pincode: string;
 };
 
-const DEFAULT_COORDS = { latitude: 27.8118, longitude: 78.6477 }; // Kasganj / UP center fallback
+const DEFAULT_COORDS = { latitude: 28.6139, longitude: 77.2090 };
 
 export function MapPicker({
   initial,

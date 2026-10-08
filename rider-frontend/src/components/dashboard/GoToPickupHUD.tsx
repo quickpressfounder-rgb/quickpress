@@ -507,7 +507,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       order.customerCoords ||
       order.partnerCoords ||
       order.pickupCoords ||
-      { lat: 27.8118, lng: 78.6477 }
+      { lat: 28.6139, lng: 77.2090 }
     );
   });
 
@@ -517,7 +517,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     riderLocationEngine.setOnline(true);
 
     const unsubscribe = riderLocationEngine.subscribe((loc) => {
-      if (loc.lat && loc.lng && (loc.lat !== 27.8118 || loc.lng !== 78.6477)) {
+      if (loc.lat && loc.lng) {
         setCaptainCoords({ lat: loc.lat, lng: loc.lng });
         try {
           localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat: loc.lat, lng: loc.lng }));
@@ -567,8 +567,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     };
   }, [order.orderId]);
 
-  const customerCoords = order.customerCoords || order.pickupCoords || { lat: 27.8095, lng: 78.6490 };
-  const storeCoords = order.partnerCoords || (order.rideType === "pickup" ? (order.dropCoords || { lat: 27.8118, lng: 78.6477 }) : (order.pickupCoords || { lat: 27.8118, lng: 78.6477 }));
+  const customerCoords = order.customerCoords || order.pickupCoords || order.dropCoords || captainCoords || { lat: 28.6139, lng: 77.2090 };
+  const storeCoords = order.partnerCoords || (order.rideType === "pickup" ? (order.dropCoords || customerCoords) : (order.pickupCoords || customerCoords));
 
   // Target Destination based on current leg and stage:
   // In Leg 1 (Pickup -> Store):

@@ -264,7 +264,7 @@ function PartnersPage() {
   const [newOwnerName, setNewOwnerName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newCity, setNewCity] = useState("Kasganj");
+  const [newCity, setNewCity] = useState("");
   const [newAddress, setNewAddress] = useState("");
 
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);

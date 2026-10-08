@@ -1181,20 +1181,20 @@ function Order360FullPage({
   const isDelivered = currentStatus === "Delivered";
 
   const partnerInfo = data?.partnerData || {
-    id: "PRT-HUB-01",
-    name: order.partner || "QuickPress Verified Laundry Hub",
-    phone: "+91 98765 43210",
-    address: "QuickPress Verified Laundry Hub, Station Road",
-    city: order.city || "Kasganj",
+    id: "",
+    name: order.partner || "Partner Laundry Hub",
+    phone: "—",
+    address: "—",
+    city: order.city || "—",
   };
 
   const is2Way = Boolean(data?.isReassigned || order.isReassigned || data?.rider1 || data?.rider2);
   const rider1 = data?.rider1 || {
-    id: "RDR-01",
-    name: order.rider !== "Unassigned" ? order.rider : "Captain Amit Kumar",
-    phone: "+91 98765 12345",
-    vehicle: "Electric Scooter",
-    plate: "UP-87-QP-1001",
+    id: "",
+    name: order.rider !== "Unassigned" ? order.rider : "Unassigned",
+    phone: "—",
+    vehicle: "Delivery Vehicle",
+    plate: "—",
     payout: 45,
   };
   const rider2 = data?.rider2;

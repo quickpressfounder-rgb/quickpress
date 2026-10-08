@@ -119,8 +119,8 @@ export function LiveDeliveryMap({
 
   const activeLayer = activeLayerOverride || internalLayer;
 
-  // Default coordinate (Center of Kasganj, UP if no coordinates available)
-  const defaultCenter = { lat: 27.8118, lng: 78.6477 };
+  // Default coordinate if no coordinates available
+  const defaultCenter = { lat: 28.6139, lng: 77.2090 };
 
   // Calculate distance & ETA whenever positions update
   useEffect(() => {

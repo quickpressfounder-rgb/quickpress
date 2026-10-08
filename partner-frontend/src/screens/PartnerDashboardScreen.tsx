@@ -538,20 +538,20 @@ export function PartnerDashboardScreen() {
             <div className="p-4 space-y-3">
               <LiveDeliveryMap
                 storeLocation={{
-                  lat: 27.8118,
-                  lng: 78.6477,
+                  lat: (session as any)?.lat || (session as any)?.latitude || 28.6139,
+                  lng: (session as any)?.lng || (session as any)?.longitude || 77.2090,
                   label: session?.businessName || "My Laundry Store",
                   sublabel: "Store Hub",
                 }}
                 destinationLocation={{
-                  lat: 27.8118 + 0.0075,
-                  lng: 78.6477 + 0.0065,
+                  lat: (trackingOrder as any)?.dropLat || (trackingOrder as any)?.latitude || ((session as any)?.lat || 28.6139) + 0.0075,
+                  lng: (trackingOrder as any)?.dropLng || (trackingOrder as any)?.longitude || ((session as any)?.lng || 77.2090) + 0.0065,
                   label: trackingOrder.customerName,
                   sublabel: "Customer Delivery Location",
                 }}
                 riderLocation={{
-                  lat: 27.8118 + 0.0035,
-                  lng: 78.6477 + 0.0028,
+                  lat: (trackingOrder as any)?.riderLat || ((session as any)?.lat || 28.6139) + 0.0035,
+                  lng: (trackingOrder as any)?.riderLng || ((session as any)?.lng || 77.2090) + 0.0028,
                   label: "Assigned Captain",
                   sublabel: "On the way to store",
                 }}

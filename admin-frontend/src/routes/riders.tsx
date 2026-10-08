@@ -1697,7 +1697,7 @@ export function RidersPage() {
                             <span>Real-Time Live GPS Telemetry Fix</span>
                           </h4>
                           <p className="text-xs text-zinc-500 mt-0.5">
-                            Assigned Hub: <strong>{data360?.overview.assignedHub || "QuickPress Kasganj Main Hub"}</strong> · Zone: <strong>{data360?.overview.serviceZone || selectedRider.zone}</strong>
+                            Assigned Hub: <strong>{data360?.overview.assignedHub || "QuickPress Central Hub"}</strong> · Zone: <strong>{data360?.overview.serviceZone || selectedRider.zone}</strong>
                           </p>
                         </div>
                         <span
@@ -2789,7 +2789,7 @@ export function RidersPage() {
             <div className="space-y-1">
               <label className="text-xs font-bold text-zinc-700">Notification Title</label>
               <Input
-                placeholder="e.g. High Demand Surge in Kasganj City Hub!"
+                placeholder="e.g. High Demand Surge in Active City Hub!"
                 value={notifTitle}
                 onChange={(e) => setNotifTitle(e.target.value)}
                 className="h-10 text-xs bg-zinc-50"

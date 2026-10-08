@@ -80,8 +80,8 @@ export const RiderUnableToDeliverModal: React.FC<RiderUnableToDeliverModalProps>
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [addressPreview, setAddressPreview] = useState<string>("Detecting current GPS location...");
   const [latLng, setLatLng] = useState<{ lat: number; lng: number }>({
-    lat: currentCoords?.lat || 27.8118,
-    lng: currentCoords?.lng || 78.649,
+    lat: currentCoords?.lat || 0,
+    lng: currentCoords?.lng || 0,
   });
 
   useEffect(() => {

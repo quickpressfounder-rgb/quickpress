@@ -177,8 +177,8 @@ export function CitiesPage() {
 
   const [activeTab, setActiveTab] = useState<"pincodes" | "cities" | "partners" | "riders" | "states">("pincodes");
   const [selectedState, setSelectedState] = useState<string>("All States");
-  const [selectedCityId, setSelectedCityId] = useState<string>("city-kasganj");
-  const [selectedPincode, setSelectedPincode] = useState<string>("207123");
+  const [selectedCityId, setSelectedCityId] = useState<string>("");
+  const [selectedPincode, setSelectedPincode] = useState<string>("");
 
   // Modals state
   const [editingPincode, setEditingPincode] = useState<{ cityId: string; pincode: string; detail: PincodeDetail } | null>(null);

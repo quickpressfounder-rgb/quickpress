@@ -87,7 +87,7 @@ export function InAppVoiceNavigationModal({
   const [routeSource, setRouteSource] = useState<string>("google");
   const [showStepsSheet, setShowStepsSheet] = useState<boolean>(false);
 
-  const currentRiderPos = riderCoords || { lat: 27.8118, lng: 78.6477 };
+  const currentRiderPos = riderCoords || destinationCoords || { lat: 28.6139, lng: 77.2090 };
 
   // Calculate bearing whenever rider moves
   useEffect(() => {

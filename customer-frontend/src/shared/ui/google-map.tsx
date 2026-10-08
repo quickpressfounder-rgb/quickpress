@@ -40,8 +40,8 @@ export type GoogleMapViewProps = {
   preferLeaflet?: boolean | undefined;
 };
 
-// Default center: Kasganj, UP
-const DEFAULT_CENTER: MapPoint = { latitude: 27.8118, longitude: 78.6477 };
+// Default neutral center if none provided
+const DEFAULT_CENTER: MapPoint = { latitude: 28.6139, longitude: 77.2090 };
 
 const TONE_COLOR: Record<NonNullable<MapPoint["tone"]>, string> = {
   primary: "#2563eb",

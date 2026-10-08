@@ -173,14 +173,14 @@ const DEFAULTS: AdminSettings = {
     tagline: "Ultra-Fast On-Demand Laundry & Express Dry Cleaning",
     supportEmail: "support@quickpress.app",
     supportPhone: "+91 98719 62596",
-    defaultCity: "Kasganj",
+    defaultCity: "",
     currency: "INR (₹)",
     operatingHours: "08:00 AM - 09:00 PM (Mon-Sun)",
   },
   business: {
     legalName: "QuickPress Logistics & Laundry Private Limited",
     gstin: "09AAAAA0000A1Z5",
-    address: "QuickPress Master Hub, Bilram Gate, Kasganj, Uttar Pradesh 207123",
+    address: "QuickPress Central Operations Hub",
     payoutCycle: "Weekly on Monday",
     minimumOrderValue: "99",
     deliveryFee: "29",
@@ -252,7 +252,7 @@ export async function fetchSettingsScopes(): Promise<ScopeOption[]> {
   }
   return [
     { id: "global", cityId: "global", name: "Global Platform Defaults (Nationwide)", type: "global", state: "All India", status: "Active" },
-    { id: "city-kasganj", cityId: "city-kasganj", name: "Kasganj", type: "city", state: "Uttar Pradesh", tier: "Tier-2", status: "Live" },
+    { id: "city-default", cityId: "city-default", name: "Operating City Hub", type: "city", state: "Uttar Pradesh", tier: "Tier-2", status: "Live" },
     { id: "city-delhi", cityId: "city-delhi", name: "Delhi NCR", type: "city", state: "Delhi", tier: "Tier-1", status: "Live" },
     { id: "city-mumbai", cityId: "city-mumbai", name: "Mumbai", type: "city", state: "Maharashtra", tier: "Tier-1", status: "Live" },
   ];

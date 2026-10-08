@@ -160,13 +160,13 @@ class AutomationService:
 
         # Determine target point based on leg
         if leg == "pickup":
-            target_lat = (order.get("pickupLocation") or {}).get("lat") or 27.8118
-            target_lng = (order.get("pickupLocation") or {}).get("lng") or 78.6477
+            target_lat = float((order.get("pickupLocation") or {}).get("lat") or (order.get("pickupLocation") or {}).get("latitude") or 0.0)
+            target_lng = float((order.get("pickupLocation") or {}).get("lng") or (order.get("pickupLocation") or {}).get("longitude") or 0.0)
             target_name = order.get("pickupAddress") or "Customer Pickup"
         else:
             partner = order.get("partner") or {}
-            target_lat = (partner.get("location") or {}).get("lat") or 27.8145
-            target_lng = (partner.get("location") or {}).get("lng") or 78.6495
+            target_lat = float((partner.get("location") or {}).get("lat") or partner.get("lat") or 0.0)
+            target_lng = float((partner.get("location") or {}).get("lng") or partner.get("lng") or 0.0)
             target_name = partner.get("businessName") or "Partner Store"
 
         # Query all online active riders
@@ -181,8 +181,8 @@ class AutomationService:
         ranked: List[Tuple[float, Dict[str, Any]]] = []
         for r in riders:
             coords = r.get("currentLocation") or r.get("location") or {}
-            rlat = float(coords.get("lat") or 27.8118)
-            rlng = float(coords.get("lng") or 78.6477)
+            rlat = float(coords.get("lat") or r.get("lat") or 0.0)
+            rlng = float(coords.get("lng") or r.get("lng") or 0.0)
             dist = haversine_km(rlat, rlng, target_lat, target_lng)
             ranked.append((dist, r))
 

@@ -59,8 +59,8 @@ function toAdminCustomer(row: any): AdminCustomer {
     name: row.name || "QuickPress Customer",
     phone: row.phone || "—",
     email: row.email || "—",
-    city: row.city || "Kasganj",
-    zone: row.zone || "Central Zone",
+    city: row.city || "",
+    zone: row.zone || "Operational Zone",
     orders: Number(row.orders || 0),
     completedOrders: Number(row.completedOrders || 0),
     cancelledOrders: Number(row.cancelledOrders || 0),
@@ -79,9 +79,9 @@ function toAdminCustomer(row: any): AdminCustomer {
     lastOrderTimestamp: row.lastOrderTimestamp,
     isVip: Boolean(row.isVip || spendNum >= 500),
     status: rawStatus === "blocked" ? ("Blocked" as const) : ("Active" as const),
-    tags: Array.isArray(row.tags) ? row.tags : ["Customer", "Kasganj"],
+    tags: Array.isArray(row.tags) ? row.tags : (row.city ? ["Customer", row.city] : ["Customer"]),
     addressCount: Number(row.addressCount || (row.addresses ? row.addresses.length : 1)),
-    primaryAddress: row.primaryAddress || `${row.city || "Kasganj"}, Uttar Pradesh`,
+    primaryAddress: row.primaryAddress || (row.city ? `${row.city}` : "—"),
     deviceInfo: row.deviceInfo || "Mobile App (Android/iOS)",
   };
 }

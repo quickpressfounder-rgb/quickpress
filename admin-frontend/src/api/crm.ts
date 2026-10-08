@@ -182,24 +182,18 @@ export async function fetchCrmLocations(): Promise<CrmLocationData> {
       const citiesList: CrmLocationData["cities"] = [];
 
       for (const c of citiesIntel) {
-        const stateName = (c as any).state || "Uttar Pradesh";
-        statesSet.add(stateName);
-        citiesList.push({
-          city: c.city || c.name || "Kasganj",
-          state: stateName,
-          pincodes: (c as any).pincodes && (c as any).pincodes.length > 0
-            ? (c as any).pincodes
-            : ["207123", "207124", "207125"],
-        });
-      }
-
-      if (citiesList.length === 0) {
-        statesSet.add("Uttar Pradesh");
-        citiesList.push({
-          city: "Kasganj",
-          state: "Uttar Pradesh",
-          pincodes: ["207123", "207124", "207125"],
-        });
+        const stateName = (c as any).state || "";
+        if (stateName) statesSet.add(stateName);
+        const cityName = c.city || c.name || "";
+        if (cityName) {
+          citiesList.push({
+            city: cityName,
+            state: stateName,
+            pincodes: (c as any).pincodes && (c as any).pincodes.length > 0
+              ? (c as any).pincodes
+              : [],
+          });
+        }
       }
 
       return {
@@ -208,14 +202,8 @@ export async function fetchCrmLocations(): Promise<CrmLocationData> {
       };
     } catch {
       return {
-        states: ["Uttar Pradesh"],
-        cities: [
-          {
-            city: "Kasganj",
-            state: "Uttar Pradesh",
-            pincodes: ["207123", "207124", "207125"],
-          },
-        ],
+        states: [],
+        cities: [],
       };
     }
   }
@@ -257,9 +245,9 @@ export async function searchCrmEntities(params: {
 
     // Map Customers
     for (const c of customers) {
-      const cCity = c.city || "Kasganj";
-      const cState = "Uttar Pradesh";
-      const cPin = (c.primaryAddress?.match(/\b\d{6}\b/) || ["207123"])[0];
+      const cCity = c.city || "";
+      const cState = (c as any).state || "";
+      const cPin = (c.primaryAddress?.match(/\b\d{6}\b/) || [""])[0];
 
       if (!matchesGeo(cState, cCity, cPin, params.state, params.city, params.pincode)) {
         continue;
@@ -297,9 +285,9 @@ export async function searchCrmEntities(params: {
 
     // Map Riders
     for (const r of riders) {
-      const rCity = r.city || "Kasganj";
-      const rState = "Uttar Pradesh";
-      const rPin = "207123";
+      const rCity = r.city || "";
+      const rState = (r as any).state || "";
+      const rPin = (r as any).pincode || "";
 
       if (!matchesGeo(rState, rCity, rPin, params.state, params.city, params.pincode)) {
         continue;
@@ -338,9 +326,9 @@ export async function searchCrmEntities(params: {
 
     // Map Partners
     for (const p of partners) {
-      const pCity = p.city || "Kasganj";
-      const pState = "Uttar Pradesh";
-      const pPin = p.pincode || "207123";
+      const pCity = p.city || "";
+      const pState = (p as any).state || "";
+      const pPin = p.pincode || "";
 
       if (!matchesGeo(pState, pCity, pPin, params.state, params.city, params.pincode)) {
         continue;
@@ -460,7 +448,7 @@ export async function fetchCrmDeepProfile(
             serviceLabel: o.service || o.serviceLabel || "Laundry Order",
             amount: o.amount || o.totals?.grandTotal || 0,
             status: o.status || "Delivered",
-            partner: o.partner || o.partnerName || "Kasganj Hub",
+            partner: o.partner || o.partnerName || "Partner Hub",
             rider: o.rider || o.riderName || "Pilot",
           })),
           addresses: (data.addresses || []).map((a: any) => ({
@@ -468,8 +456,8 @@ export async function fetchCrmDeepProfile(
             type: a.type || "Primary",
             fullAddress: a.fullAddress || a.addressLine || a.formatted || "",
             landmark: a.landmark || "",
-            city: a.city || data.profile.city,
-            pincode: a.pincode || "207123",
+            city: a.city || data.profile.city || "",
+            pincode: a.pincode || "",
             isDefault: a.isDefault,
           })),
           walletTransactions: (data.wallet as any)?.transactions || (data as any).walletLedger || [],
@@ -572,8 +560,8 @@ export async function fetchCrmDeepProfile(
             serviceLabel: t.service || "Express Pickup & Delivery",
             customer: t.customer || "QuickPress Customer",
             partner: t.partner || "Central Hub Store",
-            pickupAddress: t.pickupAddress || "Main Market, Kasganj",
-            dropAddress: t.dropAddress || "Civil Lines, Kasganj",
+            pickupAddress: t.pickupAddress || "",
+            dropAddress: t.dropAddress || "",
             distanceKm: t.distanceKm || 3.2,
             tip: t.tip || 0,
             rating: t.rating || 5,
@@ -581,7 +569,7 @@ export async function fetchCrmDeepProfile(
           shiftsList: (data as any).shifts || [],
           payoutsList: (data as any).payouts || [],
           sessionsList: (data as any).sessions || [
-            { id: "sess-1", device: "Android 14 (Redmi Note 13)", ip: "103.21.244.12", lastActive: "Just now", status: "Active" }
+            { id: "sess-1", device: "Mobile Device", ip: "—", lastActive: "Just now", status: "Active" }
           ],
         },
       };
@@ -611,29 +599,29 @@ export async function fetchCrmDeepProfile(
           rating: data.header.rating || 4.9,
           businessDetails: data.business || {
             storeName: data.header.businessName,
-            category: "Premium Laundry Hub",
-            address: "Main Station Road, Kasganj, UP - 207123",
+            category: "Laundry Hub",
+            address: data.header.address || (data.header.city ? `${data.header.city}` : "—"),
             operatingHours: "08:00 AM - 09:00 PM",
             isOpen: true,
             prepTime: "24 Hours Turnaround",
           },
           bankDetails: data.bank || {
-            bankName: "HDFC Bank",
-            accountNumber: "50100298412891",
-            ifsc: "HDFC0001892",
-            upiId: "merchant@hdfcbank",
+            bankName: "—",
+            accountNumber: "—",
+            ifsc: "—",
+            upiId: "—",
             accountHolder: data.header.ownerName || data.header.businessName,
           },
           kycDetails: data.kyc || {
-            gstin: "09AABCU9603R1ZM",
-            fssai: "12724001000192",
-            pan: "AABCU9603R",
-            verified: true,
+            gstin: "—",
+            fssai: "—",
+            pan: "—",
+            verified: Boolean(data.header.kycStatus === "VERIFIED"),
           },
           earningsDetails: data.earnings || {
-            grossAmount: data.earnings?.grossAmount || 145000,
-            commissionDeducted: Math.round((data.earnings?.grossAmount || 145000) * 0.15),
-            netEarning: Math.round((data.earnings?.grossAmount || 145000) * 0.85),
+            grossAmount: data.earnings?.grossAmount || 0,
+            commissionDeducted: Math.round((data.earnings?.grossAmount || 0) * 0.15),
+            netEarning: Math.round((data.earnings?.grossAmount || 0) * 0.85),
           },
           deliveriesDetails: data.deliveries || {},
           settlementsList: data.settlements || [],
@@ -692,9 +680,9 @@ export async function fetchCrmGeoPulse(params: {
     const matchedOrders: AdminOrder[] = [];
 
     for (const o of orders) {
-      const oCity = o.city || "Kasganj";
-      const oState = "Uttar Pradesh";
-      const oPin = "207123";
+      const oCity = o.city || "";
+      const oState = (o as any).state || "";
+      const oPin = (o as any).pincode || "";
 
       if (!matchesGeo(oState, oCity, oPin, params.state, params.city, params.pincode)) {
         continue;
@@ -720,7 +708,7 @@ export async function fetchCrmGeoPulse(params: {
 
     // Filter Riders in Geo
     const geoRiders = riders.filter((r) =>
-      matchesGeo("Uttar Pradesh", r.city || "Kasganj", "207123", params.state, params.city, params.pincode)
+      matchesGeo((r as any).state || "", r.city || "", (r as any).pincode || "", params.state, params.city, params.pincode)
     );
 
     const onlineRiders = geoRiders.filter((r) => r.live === "Online").length;
@@ -729,7 +717,7 @@ export async function fetchCrmGeoPulse(params: {
 
     // Filter Partners in Geo
     const geoPartners = partners.filter((p) =>
-      matchesGeo("Uttar Pradesh", p.city || "Kasganj", p.pincode || "207123", params.state, params.city, params.pincode)
+      matchesGeo((p as any).state || "", p.city || "", p.pincode || "", params.state, params.city, params.pincode)
     );
     const activePartners = geoPartners.filter((p) => p.status === "ACTIVE").length;
 
@@ -805,14 +793,14 @@ export async function fetchCrmLeaderboard(params: {
     // Top Partners
     const filteredPartners = partners
       .filter((p) =>
-        matchesGeo("Uttar Pradesh", p.city || "Kasganj", p.pincode || "207123", params.state, params.city, params.pincode)
+        matchesGeo((p as any).state || "", p.city || "", p.pincode || "", params.state, params.city, params.pincode)
       )
       .map((p, idx) => ({
         rank: idx + 1,
         id: p.id,
         name: p.businessName,
-        city: p.city || "Kasganj",
-        pincode: p.pincode || "207123",
+        city: p.city || "",
+        pincode: p.pincode || "",
         rating: p.rating || 5.0,
         gmv: p.revenue || 0,
         orders: p.totalOrders || 0,
@@ -825,14 +813,14 @@ export async function fetchCrmLeaderboard(params: {
     // Top Riders
     const filteredRiders = riders
       .filter((r) =>
-        matchesGeo("Uttar Pradesh", r.city || "Kasganj", "207123", params.state, params.city, params.pincode)
+        matchesGeo((r as any).state || "", r.city || "", (r as any).pincode || "", params.state, params.city, params.pincode)
       )
       .map((r, idx) => ({
         rank: idx + 1,
         id: r.id,
         name: r.name,
-        city: r.city || "Kasganj",
-        pincode: "207123",
+        city: r.city || "",
+        pincode: (r as any).pincode || "",
         rating: parseFloat(r.rating || "5.0"),
         deliveries: r.trips || 0,
         earnings: r.walletRaw || 0,
@@ -845,14 +833,14 @@ export async function fetchCrmLeaderboard(params: {
     // Top Customers
     const filteredCustomers = customers
       .filter((c) =>
-        matchesGeo("Uttar Pradesh", c.city || "Kasganj", "207123", params.state, params.city, params.pincode)
+        matchesGeo((c as any).state || "", c.city || "", (c as any).pincode || "", params.state, params.city, params.pincode)
       )
       .map((c, idx) => ({
         rank: idx + 1,
         id: c.id,
         name: c.name,
-        city: c.city || "Kasganj",
-        pincode: "207123",
+        city: c.city || "",
+        pincode: (c as any).pincode || "",
         spend: c.spendRaw || 0,
         orders: c.orders || 0,
         membership: c.isVip ? "Gold VIP" : "Standard VIP",

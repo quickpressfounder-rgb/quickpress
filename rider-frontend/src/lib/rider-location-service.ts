@@ -43,8 +43,8 @@ class RiderLocationEngine {
   private activeOrderId: string | null = null;
 
   private currentData: RiderLocationData = {
-    lat: 27.8118,
-    lng: 78.6477,
+    lat: 0,
+    lng: 0,
     speed: null,
     heading: null,
     accuracy: null,

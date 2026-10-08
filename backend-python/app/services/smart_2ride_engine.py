@@ -882,8 +882,8 @@ class Smart2RideEngine:
             r_lng = rider.get("lng") or rider.get("longitude")
             has_real_gps = r_lat is not None and r_lng is not None
             if r_lat is None or r_lng is None:
-                r_lat = 27.8118
-                r_lng = 78.6477
+                r_lat = 0.0
+                r_lng = 0.0
 
             dist = haversine_distance_km(float(r_lat), float(r_lng), target_lat, target_lng)
 
@@ -942,8 +942,8 @@ class Smart2RideEngine:
         order_id = ride.get("orderId")
         ride_type = ride.get("rideType")
         target_loc = ride.get("pickupLocation") or {}
-        t_lat = float(target_loc.get("latitude") or 27.8118)
-        t_lng = float(target_loc.get("longitude") or 78.6477)
+        t_lat = float(target_loc.get("latitude") or target_loc.get("lat") or 0.0)
+        t_lng = float(target_loc.get("longitude") or target_loc.get("lng") or 0.0)
         now = lifecycle.now_iso()
 
         # Look for eligible riders within expanded radius (15 km)
@@ -1274,8 +1274,8 @@ class Smart2RideEngine:
             r_vehicle = rider_profile.get("vehicleType") or "Bike"
             r_plate = rider_profile.get("vehicleNumber") or ""
             r_avatar = rider_profile.get("photoUrl") or rider_profile.get("selfieUrl") or ""
-            r_lat = rider_profile.get("lat") or 27.8118
-            r_lng = rider_profile.get("lng") or 78.6477
+            r_lat = float(rider_profile.get("lat") or rider_profile.get("latitude") or 0.0)
+            r_lng = float(rider_profile.get("lng") or rider_profile.get("longitude") or 0.0)
 
             rider_party = {
                 "id": rider_id,
@@ -2209,20 +2209,20 @@ class Smart2RideEngine:
                 partner_info = {
                     "name": db_p.get("storeName") or db_p.get("name") or "QuickPress Partner Store",
                     "address": db_p.get("address") or "Partner Store",
-                    "lat": float(db_p.get("lat") or db_p.get("latitude") or 27.8118),
-                    "lng": float(db_p.get("lng") or db_p.get("longitude") or 78.6477),
+                    "lat": float(db_p.get("lat") or db_p.get("latitude") or 0.0),
+                    "lng": float(db_p.get("lng") or db_p.get("longitude") or 0.0),
                     "phone": db_p.get("phone") or "",
                 }
 
-        p_lat = float(partner_info.get("lat") or partner_info.get("latitude") or 27.8118)
-        p_lng = float(partner_info.get("lng") or partner_info.get("longitude") or 78.6477)
+        p_lat = float(partner_info.get("lat") or partner_info.get("latitude") or 0.0)
+        p_lng = float(partner_info.get("lng") or partner_info.get("longitude") or 0.0)
         p_addr = str(partner_info.get("address") or "QuickPress Partner Store")
         p_name = str(partner_info.get("name") or order.get("partnerName") or "QuickPress Partner Store")
 
         # Customer drop details
         drop_loc = order.get("deliveryLocation") or order.get("address") or order.get("customerAddress") or {}
-        drop_lat = float(drop_loc.get("lat") or drop_loc.get("latitude") or 27.8180)
-        drop_lng = float(drop_loc.get("lng") or drop_loc.get("longitude") or 78.6550)
+        drop_lat = float(drop_loc.get("lat") or drop_loc.get("latitude") or 0.0)
+        drop_lng = float(drop_loc.get("lng") or drop_loc.get("longitude") or 0.0)
         drop_addr = str(drop_loc.get("address") or drop_loc.get("line") or order.get("deliveryAddress") or "Customer Doorstep")
 
         # Pickup leg payout is 100% PROTECTED (Customer -> Store completed by Rider 1)

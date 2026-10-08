@@ -118,7 +118,7 @@ const TEMPLATE_PRESETS = [
     id: "surge-rider",
     label: "⚡ Rider Surge Earning Bonus",
     title: "⚡ Peak Hours Surge Active: Extra ₹25/Trip!",
-    body: "High order demand in Kasganj Sector 1 & Main Market. Earn ₹25 extra bonus on every delivery completed before 9 PM.",
+    body: "High order demand across operational zones. Earn ₹25 extra bonus on every delivery completed before 9 PM.",
     audience: "Riders",
     category: "Urgent",
   },
@@ -1272,7 +1272,7 @@ export function NotificationsPage() {
                   <span className="text-xl font-black text-zinc-900">65 Users</span>
                 </div>
                 <h4 className="font-bold text-xs text-zinc-900">Customer Base</h4>
-                <p className="text-[11px] text-zinc-400">Registered customers across Kasganj, Aligarh & Delhi NCR.</p>
+                <p className="text-[11px] text-zinc-400">Registered customers across active operating service hubs.</p>
               </div>
 
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">

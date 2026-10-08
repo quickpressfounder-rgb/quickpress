@@ -510,7 +510,7 @@ export function CustomersPage() {
                   <div>
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-800">
                       <MapPin className="size-3 text-emerald-600" />
-                      {r.city || "Kasganj"}
+                      {r.city || "—"}
                     </span>
                     <p className="text-[10px] text-zinc-400 truncate max-w-[150px] mt-0.5">
                       {r.primaryAddress}
@@ -720,7 +720,7 @@ function Customer360Sheet({
                   )}
                 </div>
                 <SheetDescription className="text-xs text-zinc-500 font-medium mt-0.5">
-                  ID: <span className="font-mono font-bold text-zinc-700">#{customer?.id}</span> · {customer?.city || "Kasganj"} · {customer?.zone || "Central Zone"}
+                  ID: <span className="font-mono font-bold text-zinc-700">#{customer?.id}</span> · {customer?.city || "—"} · {customer?.zone || "Operational Zone"}
                 </SheetDescription>
               </div>
             </div>
@@ -910,7 +910,7 @@ function Customer360Sheet({
                   }
                 />
                 <DetailRow label="Email Address" value={<span className="font-mono text-zinc-700">{customer?.email || "—"}</span>} />
-                <DetailRow label="City & Area" value={<span className="font-bold text-zinc-900">{customer?.city || "Kasganj"} ({customer?.zone || "Central Zone"})</span>} />
+                <DetailRow label="City & Area" value={<span className="font-bold text-zinc-900">{customer?.city || "—"} ({customer?.zone || "Operational Zone"})</span>} />
                 <DetailRow label="Favorite Service" value={<span className="font-bold text-zinc-900">{data?.overview?.favoriteService || "Standard Laundry"}</span>} />
                 <DetailRow label="Favorite Partner Hub" value={<span className="font-bold text-zinc-900">{data?.overview?.favoritePartner || "QuickPress Store"}</span>} />
                 <DetailRow
@@ -1125,7 +1125,7 @@ function Customer360Sheet({
                       .filter(Boolean)
                       .join(", ") ||
                     customer?.primaryAddress ||
-                    "Kasganj, Uttar Pradesh";
+                    "—";
 
                   return (
                     <div
@@ -1145,7 +1145,7 @@ function Customer360Sheet({
                       </div>
                       <p className="text-zinc-700 font-medium">{addrLine}</p>
                       <p className="text-zinc-400 text-[11px]">
-                        {addr.city || "Kasganj"}, PIN: {addr.pincode || "207123"}{" "}
+                        {addr.city || "—"}{addr.pincode ? `, PIN: ${addr.pincode}` : ""}{" "}
                         {addr.landmark ? `· Landmark: ${addr.landmark}` : ""}
                       </p>
                     </div>

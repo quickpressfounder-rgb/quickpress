@@ -60,34 +60,7 @@ export async function fetchCampaigns(): Promise<Campaign[]> {
     }
 
     if (groups.size === 0) {
-      return [
-        {
-          id: "cmp-001",
-          title: "Welcome to QuickPress Kasganj!",
-          message: "Get 50% flat discount on your first dry clean pickup with code FIRST50.",
-          audience: "Customers",
-          channel: "All Channels",
-          category: "Promotional",
-          sent: 19,
-          opened: "78%",
-          status: "Delivered",
-          date: new Date().toISOString().slice(0, 10),
-          time: "10:30 AM",
-        },
-        {
-          id: "cmp-002",
-          title: "Surge Earning Active for Captains",
-          message: "Earn extra ₹25 per completed express delivery between 6 PM to 9 PM.",
-          audience: "Riders",
-          channel: "FCM Mobile Push",
-          category: "Urgent",
-          sent: 4,
-          opened: "100%",
-          status: "Delivered",
-          date: new Date().toISOString().slice(0, 10),
-          time: "05:45 PM",
-        },
-      ];
+      return [];
     }
 
     return Array.from(groups.entries()).map(([key, g]) => {

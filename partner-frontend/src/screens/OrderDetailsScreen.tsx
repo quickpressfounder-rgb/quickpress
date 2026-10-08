@@ -1003,7 +1003,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                         center={{ latitude: rLat, longitude: rLng, label: "Delivery Partner", tone: "primary" }}
                         markers={[
                           { id: "rider", latitude: rLat, longitude: rLng, label: "Rider En Route", tone: "primary" },
-                          { id: "store", latitude: 27.8118, longitude: 78.6477, label: "Your Store", tone: "secondary" },
+                          { id: "store", latitude: Number((order as any)?.partnerLat || (order as any)?.pickupLat || rLat), longitude: Number((order as any)?.partnerLng || (order as any)?.pickupLng || rLng), label: "Your Store", tone: "secondary" },
                         ]}
                       />
                     </div>

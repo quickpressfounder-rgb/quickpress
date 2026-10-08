@@ -51,7 +51,7 @@ export function LiveDeliveryMap({
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [etaMins, setEtaMins] = useState<number | null>(null);
 
-  const defaultCenter = { lat: 27.8118, lng: 78.6477 };
+  const defaultCenter = { lat: 28.6139, lng: 77.2090 };
 
   useEffect(() => {
     const fromLoc = riderLocation || storeLocation;

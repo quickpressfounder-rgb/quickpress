@@ -196,8 +196,8 @@ function toAdminRider(row: any): AdminRider {
   const name = row.name || row.fullName || row.displayName || "QuickPress Delivery Rider";
   const phone = row.phone || row.mobile || "—";
   const email = row.email || "—";
-  const city = row.city || "Kasganj";
-  const zone = row.zone || "Central Kasganj Zone";
+  const city = row.city || "";
+  const zone = row.zone || "Operational Zone";
   const vehicle = row.vehicle || row.vehicleType || "Motorbike";
   const plate = row.plate || row.vehicleNumber || "—";
   const trips = typeof row.trips === "number" ? row.trips : Number(row.trips ?? 0);
