@@ -10,6 +10,7 @@ import {
   Star,
   Truck,
   XCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -53,12 +54,14 @@ const FILTERS: { id: "all" | OrderStatus; label: string }[] = [
   { id: "in-progress", label: "In Progress" },
   { id: "delivered", label: "Delivered" },
   { id: "cancelled", label: "Cancelled" },
+  { id: "refunded", label: "Refunded" },
 ];
 
 const STATUS_META: Record<OrderStatus, { label: string; icon: typeof Clock; tone: string }> = {
   delivered: { label: "Delivered", icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
   "in-progress": { label: "In Progress", icon: Clock, tone: "bg-emerald-50 text-emerald-800 border border-emerald-200" },
   cancelled: { label: "Cancelled", icon: XCircle, tone: "bg-rose-50 text-rose-700 border border-rose-200" },
+  refunded: { label: "Refunded", icon: RotateCcw, tone: "bg-amber-50 text-amber-800 border border-amber-200" },
 };
 
 function HistoryScreen() {

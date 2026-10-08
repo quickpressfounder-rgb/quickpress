@@ -784,9 +784,17 @@ class OrderRepository:
                     return False
                 if wanted == "cancelled" and order.status != "cancelled":
                     return False
-                if wanted == "active" and order.status in ("delivered", "cancelled"):
+                if wanted in ("refunded", "refund"):
+                    is_ref = (
+                        order.status == "refunded"
+                        or getattr(order, "paymentStatus", None) == "refunded"
+                        or getattr(order, "refundStatus", None) is not None
+                    )
+                    if not is_ref:
+                        return False
+                if wanted == "active" and order.status in ("delivered", "cancelled", "refunded"):
                     return False
-                if wanted not in ("completed", "cancelled", "active") and order.status != wanted:
+                if wanted not in ("completed", "cancelled", "active", "refunded", "refund") and order.status != wanted:
                     return False
             created = (order.createdAt or "")[:10]
             if date_from and created < date_from[:10]:

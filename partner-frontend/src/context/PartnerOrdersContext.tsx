@@ -24,6 +24,7 @@ export type OrderFilterId =
   | "tomorrow"
   | "completed"
   | "cancelled"
+  | "refunded"
   | "cod"
   | "online"
   | "high_value";
@@ -33,6 +34,7 @@ export const ORDER_FILTERS: { id: OrderFilterId; label: string }[] = [
   { id: "tomorrow", label: "Tomorrow" },
   { id: "completed", label: "Completed" },
   { id: "cancelled", label: "Cancelled" },
+  { id: "refunded", label: "Refunded" },
   { id: "cod", label: "COD" },
   { id: "online", label: "Online Payment" },
   { id: "high_value", label: "High Value" },
@@ -57,6 +59,17 @@ export function matchesFilter(order: ManagedOrder, filter: OrderFilterId) {
       return order.stage === "completed";
     case "cancelled":
       return order.stage === "cancelled";
+    case "refunded":
+      return (
+        order.stage === "refunded" ||
+        order.paymentStatus === "refunded" ||
+        (order as any).refund_status === "completed" ||
+        (order as any).refund_status === "processed" ||
+        (order as any).refund_status === "refunded" ||
+        Boolean((order as any).refund_id) ||
+        Boolean((order as any).refundAmount && (order as any).refundAmount > 0) ||
+        Boolean(order.refundStatus && order.refundStatus !== "none")
+      );
     case "cod":
       return order.paymentMode === "cod";
     case "online":
@@ -137,6 +150,9 @@ const STATUS_TO_STAGE: Record<string, OrderStage> = {
   cancelled_by_customer: "cancelled",
   cancelled_by_partner: "cancelled",
   cancelled_by_admin: "cancelled",
+  refunded: "refunded",
+  refund_completed: "refunded",
+  refund_processed: "refunded",
 };
 
 function toManagedOrder(order: PartnerOrder): ManagedOrder {

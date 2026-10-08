@@ -163,7 +163,24 @@ class AdminOrderRepository:
     async def list(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
         query: Dict[str, Any] = {}
         if status and status != "all":
-            query["status"] = status
+            if status.lower() in ("refunded", "refund"):
+                query["$or"] = [
+                    {"status": "refunded"},
+                    {"status": "Refunded"},
+                    {"payment.status": "refunded"},
+                    {"paymentStatus": "refunded"},
+                    {"payment": "Refunded"},
+                    {"refundStatus": {"$exists": True, "$ne": None}},
+                    {"refund_status": {"$exists": True, "$ne": None}},
+                ]
+            elif status.lower() in ("cancelled", "canceled"):
+                query["$or"] = [
+                    {"status": "cancelled"},
+                    {"status": "Cancelled"},
+                    {"status": "canceled"},
+                ]
+            else:
+                query["status"] = status
         docs = await database.find_sorted(self.collection, query, sort=[("createdAt", -1)])
         if not docs:
             docs = await database.find_sorted("orders", query, sort=[("createdAt", -1)])

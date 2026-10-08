@@ -27,7 +27,7 @@ export const HISTORY_API_ENDPOINTS = {
   cancel: "/api/orders/{id}/cancel",
 } as const;
 
-export type OrderStatus = "delivered" | "in-progress" | "cancelled";
+export type OrderStatus = "delivered" | "in-progress" | "cancelled" | "refunded";
 
 export type OrderItem = {
   name: string;
@@ -70,9 +70,19 @@ const STATUS_QUERY: Record<OrderStatus, string> = {
   delivered: "completed",
   cancelled: "cancelled",
   "in-progress": "active",
+  refunded: "refunded",
 };
 
 function toStatus(order: Order): OrderStatus {
+  if (
+    order.status === "refunded" ||
+    (order as any).refund_status ||
+    (order as any).paymentStatus === "refunded" ||
+    (order as any).payment?.status === "refunded" ||
+    Boolean((order as any).refundAmount && (order as any).refundAmount > 0)
+  ) {
+    return "refunded";
+  }
   if (order.status === "cancelled") return "cancelled";
   if (order.status === "delivered") return "delivered";
   return "in-progress";

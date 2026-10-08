@@ -65,6 +65,8 @@ export function OrdersScreen() {
       { id: "dispatch", label: "Dispatch", count: orders.filter((o) => isOrderMatchingTab(o, "dispatch")).length },
       { id: "out_for_delivery", label: "Out for Delivery", count: orders.filter((o) => isOrderMatchingTab(o, "out_for_delivery")).length },
       { id: "delivered", label: "Delivered", count: orders.filter((o) => isOrderMatchingTab(o, "delivered")).length },
+      { id: "cancelled", label: "Cancelled", count: orders.filter((o) => isOrderMatchingTab(o, "cancelled")).length },
+      { id: "refunded", label: "Refunded", count: orders.filter((o) => isOrderMatchingTab(o, "refunded")).length },
     ];
   }, [orders]);
 

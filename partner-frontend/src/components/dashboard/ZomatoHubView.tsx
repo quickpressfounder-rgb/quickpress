@@ -223,20 +223,27 @@ export function ZomatoHubView() {
   }, [orders]);
 
   const FILTER_TABS: { id: PartnerOrderFilterTab; label: string; count: number }[] = useMemo(() => [
+    { id: "all", label: "All", count: orders.length },
     { id: "active", label: "Active", count: activeOrders.length },
     { id: "pickup", label: "Pickup", count: activeOrders.filter((o) => isOrderMatchingTab(o, "pickup")).length },
     { id: "processing", label: "Processing", count: activeOrders.filter((o) => isOrderMatchingTab(o, "processing")).length },
     { id: "ready", label: "Ready", count: activeOrders.filter((o) => isOrderMatchingTab(o, "ready")).length },
     { id: "dispatch", label: "Dispatch", count: activeOrders.filter((o) => isOrderMatchingTab(o, "dispatch")).length },
     { id: "out_for_delivery", label: "Out for Delivery", count: activeOrders.filter((o) => isOrderMatchingTab(o, "out_for_delivery")).length },
-  ], [activeOrders]);
+    { id: "delivered", label: "Delivered", count: orders.filter((o) => isOrderMatchingTab(o, "delivered")).length },
+    { id: "cancelled", label: "Cancelled", count: orders.filter((o) => isOrderMatchingTab(o, "cancelled")).length },
+    { id: "refunded", label: "Refunded", count: orders.filter((o) => isOrderMatchingTab(o, "refunded")).length },
+  ], [activeOrders, orders]);
 
   const displayedOrders = useMemo(() => {
-    if (activeFilterTab === "active" || activeFilterTab === "all") {
+    if (activeFilterTab === "active") {
       return activeOrders;
     }
-    return activeOrders.filter((order) => isOrderMatchingTab(order, activeFilterTab));
-  }, [activeOrders, activeFilterTab]);
+    if (activeFilterTab === "all") {
+      return orders;
+    }
+    return orders.filter((order) => isOrderMatchingTab(order, activeFilterTab));
+  }, [activeOrders, orders, activeFilterTab]);
 
   return (
     <div className="min-h-screen bg-[#F4F5F7] pb-28 text-zinc-900">

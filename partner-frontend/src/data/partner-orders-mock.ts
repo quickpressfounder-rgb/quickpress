@@ -20,7 +20,8 @@ export type OrderStage =
   | "ironing"
   | "ready"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "refunded";
 
 export type PaymentStatus = "paid" | "pending" | "refunded";
 export type PaymentMode = "cod" | "online";
@@ -95,6 +96,7 @@ export const ORDER_TABS: { id: OrderStage; label: string; short: string }[] = [
   { id: "ready", label: "Ready for Delivery", short: "Ready" },
   { id: "completed", label: "Completed", short: "Done" },
   { id: "cancelled", label: "Cancelled", short: "Cancelled" },
+  { id: "refunded", label: "Refunded", short: "Refunded" },
 ];
 
 export const STAGE_LABEL: Record<string, string> = {
@@ -120,6 +122,7 @@ export const STAGE_LABEL: Record<string, string> = {
   completed: "Completed",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  refunded: "Refunded",
 };
 
 export const STAGE_TONE: Record<string, string> = {
@@ -142,6 +145,7 @@ export const STAGE_TONE: Record<string, string> = {
   completed: "bg-muted text-muted-foreground",
   delivered: "bg-muted text-muted-foreground",
   cancelled: "bg-destructive/10 text-destructive",
+  refunded: "bg-amber-500/10 text-amber-700",
 };
 
 /** Vertical status timeline shown on the order details screen. */
@@ -183,6 +187,7 @@ export const STAGE_TIMELINE_INDEX: Record<string, number> = {
   completed: 9,
   delivered: 9,
   cancelled: 0,
+  refunded: 0,
 };
 
 export type PartnerOrderFilterTab =
@@ -193,15 +198,27 @@ export type PartnerOrderFilterTab =
   | "ready"
   | "dispatch"
   | "out_for_delivery"
-  | "delivered";
+  | "delivered"
+  | "cancelled"
+  | "refunded";
 
 export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterTab): boolean {
-  const stage = order.stage as string;
+  const stage = (order.stage || "") as string;
+  const isRefunded =
+    stage === "refunded" ||
+    order.paymentStatus === "refunded" ||
+    (order as any).refund_status === "completed" ||
+    (order as any).refund_status === "processed" ||
+    (order as any).refund_status === "refunded" ||
+    Boolean((order as any).refund_id) ||
+    Boolean((order as any).refundAmount && (order as any).refundAmount > 0) ||
+    Boolean((order as any).refundStatus && (order as any).refundStatus !== "none");
+
   switch (tab) {
     case "all":
       return true;
     case "active":
-      return stage !== "completed" && stage !== "delivered" && stage !== "cancelled";
+      return stage !== "completed" && stage !== "delivered" && stage !== "cancelled" && !isRefunded;
     case "pickup":
       return (
         stage === "new" ||
@@ -235,6 +252,10 @@ export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterT
       return stage === "out_for_delivery" || stage === "delivery_otp_pending";
     case "delivered":
       return stage === "completed" || stage === "delivered";
+    case "cancelled":
+      return stage === "cancelled";
+    case "refunded":
+      return isRefunded;
     default:
       return true;
   }

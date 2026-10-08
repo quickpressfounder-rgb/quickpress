@@ -98,6 +98,7 @@ const STATUS_TABS = [
   { id: "Out for delivery", label: "Out for Delivery" },
   { id: "Delivered", label: "Delivered" },
   { id: "Cancelled", label: "Cancelled" },
+  { id: "Refunded", label: "Refunded" },
 ];
 
 const STATUS_RANK: Record<string, number> = {
@@ -139,6 +140,8 @@ const STATUS_RANK: Record<string, number> = {
   Delivered: 6,
   cancelled: 99,
   Cancelled: 99,
+  refunded: 100,
+  Refunded: 100,
 };
 
 const parseOrderAmount = (totalStr?: string) => {
@@ -432,9 +435,25 @@ export function OrdersPage() {
           return false;
       }
 
+      const isOrderRefunded =
+        order.status === "Refunded" ||
+        (order as any).status === "refunded" ||
+        order.payment === "Refunded" ||
+        Boolean(order.refundStatus && order.refundStatus !== "none") ||
+        Boolean(order.refundAmount && order.refundAmount > 0);
+
+      const isOrderCancelled =
+        order.status === "Cancelled" || (order as any).status === "cancelled";
+
       const matchesStatus =
         activeTab === "all" ||
-        (activeTab === "reassigned" ? Boolean(order.isReassigned) : order.status === activeTab);
+        (activeTab === "reassigned"
+          ? Boolean(order.isReassigned)
+          : activeTab === "Refunded"
+          ? isOrderRefunded
+          : activeTab === "Cancelled"
+          ? isOrderCancelled
+          : order.status === activeTab);
       const matchesCity = city === "all" || order.city.toLowerCase() === city.toLowerCase();
       const matchesFrom = !from || order.placedAt >= from;
       const matchesTo = !to || order.placedAt <= to;
@@ -841,11 +860,22 @@ export function OrdersPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="flex flex-wrap h-auto p-1 bg-zinc-100/80 rounded-xl gap-1">
                 {STATUS_TABS.map((tab) => {
+                  const isOrderRefunded = (o: AdminOrder) =>
+                    o.status === "Refunded" ||
+                    (o as any).status === "refunded" ||
+                    o.payment === "Refunded" ||
+                    Boolean(o.refundStatus && o.refundStatus !== "none") ||
+                    Boolean(o.refundAmount && o.refundAmount > 0);
+
                   const countNum =
                     tab.id === "all"
                       ? allOrders.length
                       : tab.id === "reassigned"
                       ? allOrders.filter((o) => o.isReassigned).length
+                      : tab.id === "Refunded"
+                      ? allOrders.filter(isOrderRefunded).length
+                      : tab.id === "Cancelled"
+                      ? allOrders.filter((o) => o.status === "Cancelled" || (o as any).status === "cancelled").length
                       : allOrders.filter((o) => o.status === tab.id).length;
 
                   return (

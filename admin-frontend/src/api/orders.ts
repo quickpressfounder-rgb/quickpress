@@ -21,7 +21,8 @@ export type OrderStatus =
   | "Delivery Assigned"
   | "Out for delivery"
   | "Delivered"
-  | "Cancelled";
+  | "Cancelled"
+  | "Refunded";
 
 export type AdminOrder = {
   id: string;
@@ -100,9 +101,16 @@ const STATUS_LABEL: Record<string, OrderStatus> = {
   delivery_otp_pending: "Out for delivery",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  refunded: "Refunded",
 };
 
 function toAdminOrder(row: AdminOrderRow): AdminOrder {
+  const isRefunded =
+    row.status === "refunded" ||
+    row.refundStatus === "completed" ||
+    row.refundStatus === "refunded" ||
+    (Boolean(row.refundAmount) && (row.refundAmount ?? 0) > 0);
+
   return {
     id: row.code,
     customer: row.customer,
@@ -111,8 +119,8 @@ function toAdminOrder(row: AdminOrderRow): AdminOrder {
     city: row.city,
     partner: row.partner,
     rider: row.rider,
-    status: STATUS_LABEL[row.status] ?? "Pending",
-    payment: row.status === "cancelled" ? "Refunded" : row.paymentMode === "cod" ? "COD" : "Paid",
+    status: isRefunded ? "Refunded" : (STATUS_LABEL[row.status] ?? "Pending"),
+    payment: isRefunded || row.status === "cancelled" ? "Refunded" : row.paymentMode === "cod" ? "COD" : "Paid",
     placedAt: row.placedOn,
     total: money(row.amount),
     cancellationReason: row.cancellationReason,
