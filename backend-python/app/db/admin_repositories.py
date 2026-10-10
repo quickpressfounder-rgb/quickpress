@@ -6099,6 +6099,8 @@ class SupportRepository:
         }
 
         doc = await database.find_one(self.collection, {"_id": ticket_id})
+        target_uid = None
+        target_ticket_num = None
         if doc is not None:
             replies = list(doc.get("replies") or [])
             replies.append(new_msg)
@@ -6110,29 +6112,103 @@ class SupportRepository:
                 {"_id": ticket_id},
                 {"replies": replies, "status": new_st, "updatedAt": now},
             )
-            return {"ok": True, "ticketId": ticket_id, "body": body, "message": new_msg}
+            target_uid = str(doc.get("userId") or doc.get("user_id") or "")
+            target_ticket_num = str(doc.get("ticketNumber") or doc.get("ticket_number") or f"TCK-{ticket_id[:4].upper()}")
+        else:
+            doc = await database.find_one("support_tickets", {"_id": ticket_id})
+            if doc is not None:
+                msg = {
+                    "_id": f"msg-{uuid.uuid4().hex[:12]}",
+                    "ticket_id": ticket_id,
+                    "user_id": admin_user.id if admin_user else "admin",
+                    "author": "support",
+                    "author_name": admin_name,
+                    "body": body,
+                    "is_internal": is_internal,
+                    "created_at": now,
+                }
+                await database.insert("support_messages", msg)
+                await database.update(
+                    "support_tickets",
+                    {"_id": ticket_id},
+                    {"status": "in-progress", "last_message_at": now, "updated_at": now},
+                )
+                target_uid = str(doc.get("user_id") or doc.get("userId") or "")
+                target_ticket_num = str(doc.get("ticket_number") or doc.get("ticketNumber") or f"TCK-{ticket_id[:4].upper()}")
+            else:
+                return None
 
-        doc = await database.find_one("support_tickets", {"_id": ticket_id})
-        if doc is not None:
-            msg = {
-                "_id": f"msg-{uuid.uuid4().hex[:12]}",
-                "ticket_id": ticket_id,
-                "user_id": admin_user.id if admin_user else "admin",
-                "author": "support",
-                "author_name": admin_name,
-                "body": body,
-                "is_internal": is_internal,
-                "created_at": now,
-            }
-            await database.insert("support_messages", msg)
-            await database.update(
-                "support_tickets",
-                {"_id": ticket_id},
-                {"status": "in-progress", "last_message_at": now, "updated_at": now},
-            )
-            return {"ok": True, "ticketId": ticket_id, "body": body, "message": new_msg}
+        # Real-time Multi-Channel Dispatch to Customer (Push Notification + In-App + Socket.IO)
+        if not is_internal and target_uid:
+            deep_link = f"/help?ticketId={ticket_id}"
+            clean_tnum = target_ticket_num or f"TCK-{ticket_id[:4].upper()}"
 
-        return None
+            # 1. In-App Notification Feed Entry
+            try:
+                await database.insert("notifications", {
+                    "_id": new_id("ntf"),
+                    "user_id": target_uid,
+                    "role": "customer",
+                    "kind": "support",
+                    "category": "support",
+                    "title": f"💬 Support Reply: #{clean_tnum}",
+                    "description": body[:120],
+                    "message": body[:120],
+                    "url": deep_link,
+                    "ticket_id": ticket_id,
+                    "created_at": now,
+                    "read": False,
+                    "read_at": None,
+                })
+            except Exception as e:
+                logger.warning("Could not insert support reply notification: %s", e)
+
+            # 2. OneSignal Mobile Push Notification (Locks Screen & Notification Bar)
+            try:
+                from app.core.onesignal import send_onesignal_notification
+                await send_onesignal_notification(
+                    target_uid,
+                    title=f"QuickPress Support: #{clean_tnum}",
+                    body=f"{admin_name}: {body[:90]}",
+                    url=deep_link,
+                    data={"type": "support_chat", "ticketId": ticket_id, "url": deep_link},
+                )
+            except Exception as e:
+                logger.warning("OneSignal support reply push failed: %s", e)
+
+            # 3. Firebase Cloud Messaging (FCM) Native Mobile Heads-Up Notification
+            try:
+                from app.core.fcm import send_fcm_push
+                await send_fcm_push(
+                    target_uid,
+                    title=f"Support Desk #{clean_tnum}",
+                    body=f"{admin_name}: {body[:90]}",
+                    data={"type": "support_chat", "ticketId": ticket_id, "url": deep_link, "channel_id": "quickpress_support"},
+                )
+            except Exception as e:
+                logger.warning("FCM support reply push failed: %s", e)
+
+            # 4. Socket.IO Real-Time Stream to Customer Screen
+            try:
+                from app.services.socket_service import sio
+                chat_event = {
+                    "ticketId": ticket_id,
+                    "ticketNumber": clean_tnum,
+                    "body": body,
+                    "author": admin_name,
+                    "authorName": admin_name,
+                    "role": "Support",
+                    "at": now,
+                    "createdAt": now,
+                    "url": deep_link,
+                }
+                await sio.emit("support:message", chat_event, room=f"user:{target_uid}")
+                await sio.emit("support_message", chat_event, room=f"user:{target_uid}")
+                await sio.emit("support:ticket_updated", {"ticketId": ticket_id, "status": "in-progress"}, room=f"user:{target_uid}")
+            except Exception as e:
+                logger.warning("Socket.IO support reply emission failed: %s", e)
+
+        return {"ok": True, "ticketId": ticket_id, "body": body, "message": new_msg}
 
     async def update_status(self, ticket_id: str, new_status: str, admin_user: Optional[User] = None) -> Optional[Dict[str, Any]]:
         now = now_iso()
@@ -6464,9 +6540,73 @@ class NotificationRepository:
                 "audience": audience,
             }
             await sio.emit(EVENT_NOTIFICATION_CREATED, rider_event, room="riders")
-            await sio.emit(EVENT_ADMIN_BROADCAST, rider_event, room="riders")
         except Exception as exc:
             pass
+
+        # 5. Mobile Native OS Push Dispatches (OneSignal + FCM + WebPush)
+        # Guarantees notification appears outside the app in the mobile phone's native status bar / lockscreen
+        deep_link = "/offers" if is_promo else "/notifications"
+        target_uids = [str(a["id"]) for a in target_accounts if a.get("id")]
+
+        # 5a. OneSignal Segment & Device Broadcast
+        try:
+            from app.core.onesignal import send_onesignal_broadcast
+            os_segment = "Total Subscriptions"
+            await send_onesignal_broadcast(
+                title=title or "QuickPress Announcement",
+                body=message or "",
+                segment=os_segment,
+                data={
+                    "type": "broadcast",
+                    "category": effective_category,
+                    "url": deep_link,
+                    "isPromo": str(is_promo).lower(),
+                },
+                url=deep_link,
+            )
+        except Exception as os_err:
+            logger.warning("OneSignal broadcast dispatch notice: %s", os_err)
+
+        # 5b. Firebase Cloud Messaging (FCM) High-Priority Multicast to all active device tokens
+        try:
+            from app.core.fcm import send_fcm_push, send_topic_push
+            if target_uids:
+                await send_fcm_push(
+                    target_uids,
+                    title=title or "QuickPress Announcement",
+                    body=message or "",
+                    data={
+                        "type": "broadcast",
+                        "category": effective_category,
+                        "url": deep_link,
+                        "channel_id": "quickpress_alerts",
+                    },
+                )
+            if audience_lower in ("all", "everyone", "rider", "all_rider", "riders"):
+                await send_topic_push(
+                    "all_riders",
+                    title=title or "QuickPress Announcement",
+                    body=message or "",
+                    data={"type": "broadcast", "url": "/rider/notifications"},
+                )
+        except Exception as fcm_err:
+            logger.warning("FCM broadcast dispatch notice: %s", fcm_err)
+
+        # 5c. Native WebPush / PWA VAPID Push Dispatches
+        try:
+            from app.core.webpush import send_native_webpush
+            for uid in target_uids[:50]:
+                try:
+                    await send_native_webpush(
+                        uid,
+                        title=title or "QuickPress Announcement",
+                        body=message or "",
+                        data={"url": deep_link, "type": "broadcast"},
+                    )
+                except Exception:
+                    pass
+        except Exception as wp_err:
+            logger.warning("WebPush broadcast dispatch notice: %s", wp_err)
 
         return {"ok": True, "reached": len(target_accounts)}
 

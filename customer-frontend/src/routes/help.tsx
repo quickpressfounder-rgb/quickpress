@@ -38,6 +38,8 @@ import { toast } from "sonner";
 import { HelpSkeleton } from "@/components/account/AccountSkeletons";
 import { BottomNav } from "@/components/home/BottomNav";
 import { ScreenTopBar } from "@/components/rewards/ScreenTopBar";
+import { useRealtimeEvent } from "@/shared/hooks/use-realtime";
+import { playOrderBellNotificationSound } from "@/lib/order-success-sound";
 import {
   createSupportTicket,
   fetchFaqCategories,
@@ -236,6 +238,19 @@ function HelpScreen() {
     }, 4000);
     return () => clearInterval(interval);
   }, [activeTicket?.id]);
+
+  // Instant sub-second chat update via real-time WebSocket connection
+  useRealtimeEvent(["support:message", "support_message"], (payload: any) => {
+    if (activeTicket?.id && (payload?.ticketId === activeTicket.id || !payload?.ticketId)) {
+      playOrderBellNotificationSound();
+      fetchTicket(activeTicket.id)
+        .then((fresh) => {
+          setActiveTicket(fresh);
+        })
+        .catch(() => {});
+    }
+    refreshTickets();
+  });
 
   // Scroll chat to bottom when messages update
   useEffect(() => {

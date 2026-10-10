@@ -118,11 +118,13 @@ export async function triggerMobileOsNotification(
   // Channel 1: Native Android App (Injected WebView Interface)
   if (typeof window !== "undefined" && (window as any).AndroidNotification?.showNotification) {
     try {
-      const shown = (window as any).AndroidNotification.showNotification(
-        title,
-        body,
-        orderId || ""
-      );
+      const androidNotif = (window as any).AndroidNotification;
+      let shown = false;
+      if (typeof androidNotif.showNotificationWithUrl === "function") {
+        shown = androidNotif.showNotificationWithUrl(title, body, orderId || "", clickUrl);
+      } else {
+        shown = androidNotif.showNotification(title, body, orderId || "");
+      }
       if (shown) {
         return true;
       }

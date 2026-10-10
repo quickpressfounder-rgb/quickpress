@@ -132,12 +132,15 @@ export function NotificationManager() {
     };
   }, [queryClient]);
 
-  // Real-time broadcast & order lifecycle event listener
+  // Real-time broadcast, support chat, & order lifecycle event listener
   useRealtimeEvent(
     [
       "admin_broadcast",
       "notification_created",
       "notification.created",
+      "support:message",
+      "support_message",
+      "support:ticket_updated",
       "order_status_updated",
       "order_status_changed",
       "order_accepted",
@@ -162,9 +165,31 @@ export function NotificationManager() {
       if (cached?.notifications?.push === false) {
         return;
       }
-      const title = payload?.title || payload?.event || "🔔 QuickPress Order Update";
-      const message = payload?.message || payload?.description || payload?.text || "Your laundry order has an update.";
+      const isSupport =
+        payload?.type === "support_chat" ||
+        Boolean(payload?.ticketId || payload?.ticket_id) ||
+        payload?.role === "Support";
+      const ticketId = payload?.ticketId || payload?.ticket_id;
       const orderId = payload?.orderId || payload?.id;
+
+      const title =
+        payload?.title ||
+        payload?.event ||
+        (isSupport ? "💬 QuickPress Support Reply" : "🔔 QuickPress Order Update");
+      const message =
+        payload?.body ||
+        payload?.message ||
+        payload?.description ||
+        payload?.text ||
+        "You have a new update.";
+
+      const targetUrl =
+        payload?.url ||
+        (ticketId
+          ? `/help?ticketId=${ticketId}`
+          : orderId
+          ? `/track/${orderId}`
+          : "/notifications");
 
       // 1. Play signature order bell chime sound
       playOrderBellNotificationSound();
@@ -172,22 +197,26 @@ export function NotificationManager() {
       // 2. Invalidate caches so UI & badge update instantly
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+      if (isSupport) {
+        queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
+        queryClient.invalidateQueries({ queryKey: ["help-tickets"] });
+      }
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       if (orderId) {
         queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       }
       clearCache(CACHE_KEYS.recentOrders);
 
-      // 3. Display compact in-app toast with order link
+      // 3. Display compact in-app toast with action link
       toast(title, {
         description: message,
-        icon: <Bell className="size-4 text-amber-500 fill-amber-400" />,
+        icon: <Bell className="size-4 text-emerald-500 fill-emerald-400" />,
         duration: 5000,
         action: {
           label: "View",
           onClick: () => {
             if (typeof window !== "undefined") {
-              window.location.href = orderId ? `/track/${orderId}` : "/notifications";
+              window.location.href = targetUrl;
             }
           },
         },
@@ -198,6 +227,8 @@ export function NotificationManager() {
         title,
         body: message,
         orderId,
+        url: targetUrl,
+        tag: ticketId ? `ticket-${ticketId}` : (orderId ? `order-${orderId}` : undefined),
       });
     }
   );

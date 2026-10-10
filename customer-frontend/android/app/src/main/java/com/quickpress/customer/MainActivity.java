@@ -370,6 +370,11 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
                 webView.addJavascriptInterface(new Object() {
                     @android.webkit.JavascriptInterface
                     public boolean showNotification(String title, String message, String orderId) {
+                        return showNotificationWithUrl(title, message, orderId, null);
+                    }
+
+                    @android.webkit.JavascriptInterface
+                    public boolean showNotificationWithUrl(String title, String message, String orderId, String url) {
                         try {
                             NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                             if (manager == null) return false;
@@ -380,6 +385,9 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
                             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                             if (orderId != null && !orderId.trim().isEmpty()) {
                                 intent.putExtra("orderId", orderId.trim());
+                            }
+                            if (url != null && !url.trim().isEmpty()) {
+                                intent.putExtra("url", url.trim());
                             }
 
                             int flags = PendingIntent.FLAG_UPDATE_CURRENT;
@@ -394,12 +402,21 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
                                 flags
                             );
 
-                            androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(MainActivity.this, "quickpress_orders")
+                            String channelId = "quickpress_orders";
+                            String combined = (title + " " + message).toLowerCase();
+                            if (combined.contains("support") || combined.contains("ticket") || combined.contains("chat")) {
+                                channelId = "quickpress_support";
+                            } else if (combined.contains("offer") || combined.contains("discount") || combined.contains("sale") || combined.contains("announcement") || combined.contains("coupon")) {
+                                channelId = "quickpress_alerts";
+                            }
+
+                            androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(MainActivity.this, channelId)
                                 .setSmallIcon(R.mipmap.ic_launcher)
                                 .setContentTitle(title != null && !title.trim().isEmpty() ? title.trim() : "QuickPress")
                                 .setContentText(message != null && !message.trim().isEmpty() ? message.trim() : "")
                                 .setStyle(new androidx.core.app.NotificationCompat.BigTextStyle().bigText(message != null ? message.trim() : ""))
                                 .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                                .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                                 .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
                                 .setAutoCancel(true)
                                 .setContentIntent(pendingIntent);
@@ -449,6 +466,36 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
             ordersChannel.enableVibration(true);
             ordersChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
             manager.createNotificationChannel(ordersChannel);
+
+            NotificationChannel alertsChannel = new NotificationChannel(
+                "quickpress_alerts",
+                "QuickPress Offers & Announcements",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            alertsChannel.setDescription("Special discounts, seasonal offers, and urgent announcements");
+            alertsChannel.enableVibration(true);
+            alertsChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(alertsChannel);
+
+            NotificationChannel supportChannel = new NotificationChannel(
+                "quickpress_support",
+                "QuickPress Support Desk",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            supportChannel.setDescription("Live responses from customer support specialists");
+            supportChannel.enableVibration(true);
+            supportChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(supportChannel);
+
+            NotificationChannel defaultChannel = new NotificationChannel(
+                "quickpress_default",
+                "QuickPress General",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            defaultChannel.setDescription("General notifications from QuickPress");
+            defaultChannel.enableVibration(true);
+            defaultChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(defaultChannel);
         }
     }
 

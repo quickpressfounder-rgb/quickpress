@@ -313,6 +313,86 @@ class SupportRepository:
         await database.collection(TICKETS).update_one(
             {"_id": ticket_id}, {"$set": {"last_message_at": now, "updated_at": now}}
         )
+
+        # Real-time multi-channel transport hook
+        deep_link = f"/help?ticketId={ticket_id}"
+        chat_msg_payload = {
+            "id": str(document["_id"]),
+            "ticketId": ticket_id,
+            "author": author,
+            "authorName": author_name,
+            "body": body,
+            "photos": photo_list,
+            "attachmentUrl": document.get("attachment_url"),
+            "createdAt": now,
+            "url": deep_link,
+        }
+
+        # 1. If message from Support -> Alert Customer via Push Notification & Socket.IO
+        if author in ("support", "admin"):
+            try:
+                from app.core.onesignal import send_onesignal_notification
+                await send_onesignal_notification(
+                    user_id,
+                    title="QuickPress Support Desk 💬",
+                    body=f"{author_name}: {body[:90]}",
+                    url=deep_link,
+                    data={"type": "support_chat", "ticketId": ticket_id, "url": deep_link},
+                )
+            except Exception as e:
+                logger.warning("OneSignal support dispatch notice: %s", e)
+
+            try:
+                from app.core.fcm import send_fcm_push
+                await send_fcm_push(
+                    user_id,
+                    title="QuickPress Support Desk",
+                    body=f"{author_name}: {body[:90]}",
+                    data={
+                        "type": "support_chat",
+                        "ticketId": ticket_id,
+                        "url": deep_link,
+                        "channel_id": "quickpress_support",
+                    },
+                )
+            except Exception as e:
+                logger.warning("FCM support dispatch notice: %s", e)
+
+            try:
+                from app.services.socket_service import sio
+                await sio.emit("support:message", chat_msg_payload, room=f"user:{user_id}")
+                await sio.emit("support_message", chat_msg_payload, room=f"user:{user_id}")
+            except Exception:
+                pass
+
+        # 2. If message from Customer -> Stream to Admin console & mirror in admin_support_tickets
+        elif author == "customer":
+            try:
+                from app.services.socket_service import sio
+                await sio.emit("admin:support_message", chat_msg_payload, room="admins")
+                await sio.emit("support:message", chat_msg_payload, room="admins")
+            except Exception:
+                pass
+
+            try:
+                admin_tkt = await database.collection("admin_support_tickets").find_one({"_id": ticket_id})
+                if admin_tkt:
+                    existing_replies = list(admin_tkt.get("replies") or [])
+                    existing_replies.append({
+                        "_id": str(document["_id"]),
+                        "author": author_name or "Customer",
+                        "role": "Customer",
+                        "body": body,
+                        "at": now,
+                        "photos": photo_list,
+                    })
+                    await database.collection("admin_support_tickets").update_one(
+                        {"_id": ticket_id},
+                        {"$set": {"replies": existing_replies, "status": "Open", "updatedAt": now}}
+                    )
+            except Exception:
+                pass
+
         return TicketMessage(
             id=str(document["_id"]),
             ticketId=ticket_id,

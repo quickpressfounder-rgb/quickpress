@@ -9,7 +9,7 @@
 
 export const ONESIGNAL_APP_ID =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_ONESIGNAL_APP_ID) ||
-  "";
+  "184bda82-7c5b-4319-a977-4fcffbcca270";
 
 declare global {
   interface Window {
@@ -24,7 +24,6 @@ export function isOneSignalEnabled(): boolean {
   return Boolean(
     typeof window !== "undefined" &&
       ONESIGNAL_APP_ID &&
-      !ONESIGNAL_APP_ID.includes("184bda82") &&
       ONESIGNAL_APP_ID.trim().length > 10
   );
 }
@@ -35,6 +34,15 @@ export function isOneSignalEnabled(): boolean {
 export function initOneSignal(): void {
   if (!isOneSignalEnabled() || isInitialized) return;
   isInitialized = true;
+
+  // Dynamically load OneSignal Web SDK v16 script if not already in document
+  if (typeof document !== "undefined" && !document.getElementById("onesignal-sdk")) {
+    const s = document.createElement("script");
+    s.id = "onesignal-sdk";
+    s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    s.defer = true;
+    document.head.appendChild(s);
+  }
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function (OneSignal: any) {

@@ -43,15 +43,16 @@ self.addEventListener("push", (event) => {
       icon: icon,
       badge: "/favicon.png",
       vibrate: [200, 100, 200],
-      tag: data.orderId || "quickpress_notification",
+      tag: data.ticketId ? `ticket-${data.ticketId}` : (data.orderId ? `order-${data.orderId}` : "quickpress_notification"),
       renotify: true,
       data: {
         url: clickUrl,
         orderId: data.orderId,
+        ticketId: data.ticketId,
         ...data,
       },
       actions: [
-        { action: "open", title: "View Details" },
+        { action: "open", title: data.ticketId ? "Open Chat" : "View Details" },
         { action: "dismiss", title: "Close" },
       ],
     };
