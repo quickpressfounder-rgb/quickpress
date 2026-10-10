@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">quickpress-api-production.up.railway.app</domain>
+        <domain includeSubdomains="true">up.railway.app</domain>
+        <domain includeSubdomains="true">railway.app</domain>
+        <domain includeSubdomains="true">vercel.app</domain>
+        <domain includeSubdomains="true">quickpress-customer.vercel.app</domain>
+        <domain includeSubdomains="true">quickpress-partner.vercel.app</domain>
+        <domain includeSubdomains="true">quickpress-caption.vercel.app</domain>
+        <domain includeSubdomains="true">supabase.co</domain>
+        <domain includeSubdomains="true">acpxzppgjnqqhckzxcmk.supabase.co</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

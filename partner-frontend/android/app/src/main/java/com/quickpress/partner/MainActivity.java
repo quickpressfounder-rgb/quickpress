@@ -139,6 +139,7 @@ public class MainActivity extends BridgeActivity {
                 settings.setDomStorageEnabled(true);
                 settings.setDatabaseEnabled(true);
                 settings.setGeolocationEnabled(true);
+                settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
                 // Safely enable offscreen pre-rasterization via reflection if supported by Chromium engine
                 try {

@@ -103,10 +103,15 @@ async function httpRequest<T>(
   } catch (error) {
     if (error instanceof ApiError) throw error;
     if (!isOnline()) throw new ApiError("offline", "Device went offline");
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new ApiError("timeout", `${method} ${path} timed out`);
+    if (
+      (error instanceof DOMException && error.name === "AbortError") ||
+      (error as any)?.name === "AbortError"
+    ) {
+      throw new ApiError("timeout", `${method} ${path} timed out. Please retry.`);
     }
-    throw new ApiError("network", `${method} ${path} could not reach the server`);
+    const reason = (error as any)?.message ? ` (${(error as any).message})` : "";
+    console.error(`[transport] ${method} ${path} failed:`, error);
+    throw new ApiError("network", `${method} ${path} could not reach the server${reason}`);
   } finally {
     clearTimeout(timeout);
     external?.removeEventListener("abort", forward);

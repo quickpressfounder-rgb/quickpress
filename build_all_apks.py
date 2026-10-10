@@ -5,16 +5,18 @@ import subprocess
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/4035913c-c1a4-42e9-a3c3-5361c321760c"
-OLD_ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/3b6ce2cd-28f6-4eb0-a61c-f5e8e78f50a4"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/3ab9df93-0c34-4b9b-8fdb-99d5f33cf43f"
+OLD_ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/4035913c-c1a4-42e9-a3c3-5361c321760c"
 
 def run_cmd(cmd, cwd=ROOT_DIR):
     print(f"\n===> Executing: {cmd} (in {cwd})")
     env = os.environ.copy()
+    env["PATH"] = f"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{env.get('PATH', '')}"
     if "ANDROID_HOME" not in env or not env["ANDROID_HOME"]:
         sdk = os.path.expanduser("~/Library/Android/sdk")
         if os.path.exists(sdk):
             env["ANDROID_HOME"] = sdk
+            env["PATH"] = f"{sdk}/platform-tools:{sdk}/cmdline-tools/latest/bin:{env['PATH']}"
     res = subprocess.run(cmd, shell=True, cwd=cwd, env=env)
     if res.returncode != 0:
         raise RuntimeError(f"Command failed with code {res.returncode}: {cmd}")
