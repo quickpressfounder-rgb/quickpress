@@ -31,6 +31,7 @@ import { verifyCustomerOtp } from "@/lib/customer-auth";
 import { updateProfile } from "@/api/customer/profile-api";
 import { readSession, writeSession } from "@/api/core/session-store";
 import { CACHE_KEYS, writeCache } from "@/api/customer/api/cache";
+import { readLocation } from "@/api/customer/location";
 import type { AuthSession } from "@/shared/types";
 
 export const Route = createFileRoute("/login")({
@@ -159,7 +160,8 @@ function AuthScreen() {
       if (redirectTarget) {
         void navigate({ to: redirectTarget as any });
       } else {
-        void navigate({ to: "/location" });
+        const savedLoc = readLocation();
+        void navigate({ to: savedLoc?.latitude ? "/home" : "/location" });
       }
     }
   };
@@ -872,7 +874,8 @@ function NameStep({
       if (redirectTarget) {
         void navigate({ to: redirectTarget as any });
       } else {
-        void navigate({ to: "/location" });
+        const savedLoc = readLocation();
+        void navigate({ to: savedLoc?.latitude ? "/home" : "/location" });
       }
     } catch (cause: any) {
       console.error("Failed to save name:", cause);
@@ -889,7 +892,8 @@ function NameStep({
     if (redirectTarget) {
       void navigate({ to: redirectTarget as any });
     } else {
-      void navigate({ to: "/location" });
+      const savedLoc = readLocation();
+      void navigate({ to: savedLoc?.latitude ? "/home" : "/location" });
     }
   };
 

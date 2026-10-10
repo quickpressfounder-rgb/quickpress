@@ -18,11 +18,11 @@ import {
 } from "../location";
 
 export type { SavedLocation };
-export { readLocation };
+export { readLocation, getDefaultLocation };
 
 /** Saved address chosen by the customer, if any. */
 export function readSavedLocation(): SavedLocation | null {
-  return readLocation();
+  return readLocation() || getDefaultLocation();
 }
 
 export function changeLocation(location: SavedLocation) {
@@ -30,10 +30,13 @@ export function changeLocation(location: SavedLocation) {
   writeCache(CACHE_KEYS.location, location);
 }
 
-/** Resolve the customer's current location: saved address, then API, then GPS. */
-export function fetchLocation(options: { forceRefresh?: boolean | undefined; signal?: AbortSignal | undefined } = {}) {
+/** Resolve the customer's current location: saved address, then cached, then API, then Default hub. */
+export function fetchLocation(options: { forceRefresh?: boolean | undefined; signal?: AbortSignal | undefined } = {}): Promise<SavedLocation> {
   const saved = readLocation();
   if (saved && !options.forceRefresh) return Promise.resolve(saved);
+
+  const stale = readStaleCache<SavedLocation>(CACHE_KEYS.location);
+  if (stale && !options.forceRefresh) return Promise.resolve(stale);
 
   return resolveResource<SavedLocation>({
     forceRefresh: options.forceRefresh,
@@ -41,12 +44,12 @@ export function fetchLocation(options: { forceRefresh?: boolean | undefined; sig
     readCache: () => readCache<SavedLocation>(CACHE_KEYS.location),
     readStaleCache: () => readStaleCache<SavedLocation>(CACHE_KEYS.location),
     writeCache: (value) => writeCache(CACHE_KEYS.location, value),
-  });
+  }).catch(() => getDefaultLocation());
 }
 
-/** Location refresh strictly via real device GPS, then reverse geocoding. */
-export async function refreshLocationFromGps(): Promise<SavedLocation> {
-  const location = await detectDeviceLocation();
+/** Location refresh strictly via real device GPS, then reverse geocoding. Falls back gracefully without hanging. */
+export async function refreshLocationFromGps(options: { allowFallback?: boolean } = {}): Promise<SavedLocation> {
+  const location = await detectDeviceLocation({ allowFallback: options.allowFallback ?? true });
   changeLocation(location);
   return location;
 }

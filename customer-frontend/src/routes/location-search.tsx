@@ -143,7 +143,7 @@ function LocationSearchScreen() {
     // Request notification permission together with location GPS
     void requestNotificationPermission();
     try {
-      const loc = await detectDeviceLocation();
+      const loc = await detectDeviceLocation({ timeoutMs: 3200 });
       saveLocation(loc);
       setLocating(false);
       void navigate({ to: "/home" });

@@ -17,7 +17,7 @@ import {
   type HomeSections,
   type SectionKey,
 } from "@/api/customer/services/home-service";
-import { changeLocation, refreshLocationFromGps, readLocation } from "@/api/customer/services/location-service";
+import { changeLocation, refreshLocationFromGps, readLocation, getDefaultLocation } from "@/api/customer/services/location-service";
 import { greetingFor } from "@/api/customer/services/profile-service";
 import type { SavedLocation } from "@/api/customer/location";
 
@@ -104,17 +104,20 @@ export function useHomeData(): UseHomeData {
   }, [load]);
 
   const useCurrentLocation = useCallback(async () => {
-    applySection("location", { data: sections.location.data, loading: true, error: null });
+    applySection("location", { data: sections.location.data || getDefaultLocation(), loading: true, error: null });
     try {
-      const location = await refreshLocationFromGps();
+      const location = await refreshLocationFromGps({ allowFallback: true });
       applySection("location", { data: location, loading: false, error: null });
       await load({ forceRefresh: true });
     } catch {
+      const fallback = sections.location.data || getDefaultLocation();
+      changeLocation(fallback);
       applySection("location", {
-        data: sections.location.data,
+        data: fallback,
         loading: false,
-        error: "Couldn't detect your location.",
+        error: null,
       });
+      void load({ forceRefresh: true });
     }
   }, [applySection, load, sections.location.data]);
 

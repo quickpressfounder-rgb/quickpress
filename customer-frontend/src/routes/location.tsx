@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Compass, MapPin, RefreshCw, Search } from "lucide-react";
+import { Compass, MapPin, Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { LocationDetecting } from "@/components/LocationDetecting";
 import {
   detectDeviceLocation,
+  getDefaultLocation,
   GeoError,
   readLocation,
   saveLocation,
@@ -32,18 +33,26 @@ export const Route = createFileRoute("/location")({
 });
 
 /**
- * Location screen:
+ * Fast Location Screen:
  *
- *   1. Requests real device GPS coordinates.
- *   2. Reverse geocodes to user's real area and city.
- *   3. If GPS is weak or pending permission, keeps the user in control with
- *      active retry and manual search options — NO automatic redirect or forced default.
+ *   1. Instantly redirects to /home if a location is already remembered (<1ms).
+ *   2. Parallel dual-tier GPS lock (<500ms cached/cell fix).
+ *   3. If GPS is off or denied, keeps the user in total control with 1-tap
+ *      manual search or instant Kasganj Central hub continuation.
  */
 function LocationScreen() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [attempt, setAttempt] = useState(0);
+
+  // Instant bypass if location is already saved
+  useEffect(() => {
+    const existing = readLocation();
+    if (existing?.latitude && existing?.longitude) {
+      void navigate({ to: "/home", replace: true });
+    }
+  }, [navigate]);
 
   const detect = useCallback(async () => {
     setError(null);
@@ -67,8 +76,8 @@ function LocationScreen() {
         }
       }
 
-      // 2. Fetch real device GPS coordinates & reverse geocode
-      const location = await detectDeviceLocation();
+      // 2. Fetch real device GPS coordinates & reverse geocode (<500ms fast lock)
+      const location = await detectDeviceLocation({ timeoutMs: 3200 });
       saveLocation(location);
       setIsLocating(false);
       void navigate({ to: "/home" });
@@ -79,8 +88,6 @@ function LocationScreen() {
           ? cause.message
           : "Unable to detect your exact GPS location. Please ensure location services are turned on.";
       setError(msg);
-      // NOTE: We do NOT auto-proceed or auto-save default location here.
-      // The user stays in control to retry GPS or choose location manually.
     }
   }, [navigate]);
 
@@ -88,8 +95,14 @@ function LocationScreen() {
     void detect();
   }, [detect, attempt]);
 
+  const handleContinueWithKasganj = () => {
+    const fallback = getDefaultLocation();
+    saveLocation(fallback);
+    void navigate({ to: "/home" });
+  };
+
   if (isLocating) {
-    return <LocationDetecting label="Detecting your real GPS location…" />;
+    return <LocationDetecting label="Detecting your location…" />;
   }
 
   return (
@@ -128,6 +141,16 @@ function LocationScreen() {
         >
           <Search className="size-[18px]" aria-hidden />
           <span>Choose location manually</span>
+        </button>
+
+        {/* Tertiary CTA: Instant 1-tap fallback to Kasganj Hub */}
+        <button
+          type="button"
+          onClick={handleContinueWithKasganj}
+          className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-emerald-600/25 bg-emerald-500/10 text-[14px] font-bold text-emerald-700 dark:text-emerald-400 active:scale-[0.985] hover:bg-emerald-500/15"
+        >
+          <MapPin className="size-4" aria-hidden />
+          <span>Continue with Kasganj Central</span>
         </button>
       </div>
     </main>

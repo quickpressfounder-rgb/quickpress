@@ -136,7 +136,7 @@ export function MapPicker({
     setLocating(true);
     setError(null);
     try {
-      const fix = await getCurrentDeviceLocation({ timeoutMs: 10000, enableHighAccuracy: true });
+      const fix = await getCurrentDeviceLocation({ timeoutMs: 3500, enableHighAccuracy: true });
       setPoint({ latitude: fix.latitude, longitude: fix.longitude });
       setZoomLevel(17);
     } catch (cause) {
