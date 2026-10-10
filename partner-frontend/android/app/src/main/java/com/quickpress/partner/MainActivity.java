@@ -100,22 +100,25 @@ public class MainActivity extends BridgeActivity {
         try {
             WebView webView = getBridge() != null ? getBridge().getWebView() : null;
             if (webView != null) {
+                String apiBaseUrl = getString(R.string.api_base_url).trim().replaceAll("/+$", "");
+                String hostOnly = apiBaseUrl.replaceFirst("^https?://", "");
                 String script = 
                     "(function() {" +
-                    "  window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: 'https://quickpress-api-production.up.railway.app' };" +
+                    "  var _base = '" + apiBaseUrl + "';" +
+                    "  window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: _base };" +
                     "  if (!window.__qp_fetch_patched) {" +
                     "    window.__qp_fetch_patched = true;" +
                     "    var _origFetch = window.fetch;" +
                     "    window.fetch = function(input, init) {" +
                     "      if (typeof input === 'string') {" +
-                    "        input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');" +
+                    "        input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, '" + hostOnly + "');" +
                     "        if (input.startsWith('/api/')) {" +
-                    "          input = 'https://quickpress-api-production.up.railway.app' + input;" +
+                    "          input = _base + input;" +
                     "        }" +
                     "      } else if (input && input.url) {" +
                     "        try {" +
-                    "          var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');" +
-                    "          if (newUrl.startsWith('/api/')) { newUrl = 'https://quickpress-api-production.up.railway.app' + newUrl; }" +
+                    "          var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, '" + hostOnly + "');" +
+                    "          if (newUrl.startsWith('/api/')) { newUrl = _base + newUrl; }" +
                     "          input = new Request(newUrl, input);" +
                     "        } catch(e) {}" +
                     "      }" +
@@ -124,8 +127,8 @@ public class MainActivity extends BridgeActivity {
                     "    var _origOpen = XMLHttpRequest.prototype.open;" +
                     "    XMLHttpRequest.prototype.open = function(method, url) {" +
                     "      if (typeof url === 'string') {" +
-                    "        url = url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');" +
-                    "        if (url.startsWith('/api/')) { url = 'https://quickpress-api-production.up.railway.app' + url; }" +
+                    "        url = url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, '" + hostOnly + "');" +
+                    "        if (url.startsWith('/api/')) { url = _base + url; }" +
                     "      }" +
                     "      return _origOpen.apply(this, arguments);" +
                     "    };" +

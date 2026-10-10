@@ -5,4 +5,5 @@
     <string name="package_name">com.quickpress.rider</string>
     <string name="custom_url_scheme">com.quickpress.rider</string>
     <string name="default_notification_channel_id">quickpress_rider_default</string>
+    <string name="api_base_url">https://quickpress-api-production.up.railway.app</string>
 </resources>

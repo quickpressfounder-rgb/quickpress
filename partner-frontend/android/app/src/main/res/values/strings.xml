@@ -5,4 +5,5 @@
     <string name="package_name">com.quickpress.partner</string>
     <string name="custom_url_scheme">com.quickpress.partner</string>
     <string name="default_notification_channel_id">quickpress_partner_default</string>
+    <string name="api_base_url">https://quickpress-api-production.up.railway.app</string>
 </resources>
