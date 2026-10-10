@@ -656,7 +656,7 @@ class MembershipRepository:
             planName=(effective_plan.name if effective_plan else "Free"),
             status=status,  # type: ignore[arg-type]
             active=active,
-            billingCycle=billing if billing in ("monthly", "yearly") else None,
+            billingCycle=billing if billing in ("monthly", "quarterly", "yearly") else None,
             amountPaid=int(document.get("amount_paid") or 0),
             startedAt=_iso(document.get("started_at")) if document.get("started_at") else None,
             expiresAt=_iso(document.get("expires_at")) if document.get("expires_at") else None,
@@ -724,7 +724,7 @@ class MembershipRepository:
             planId=str(document.get("plan_id") or FREE_PLAN_ID),  # type: ignore[arg-type]
             planName=str(document.get("plan_name") or "Membership"),
             type=kind if kind in ("subscribe", "renew", "upgrade", "cancel", "expire") else "subscribe",  # type: ignore[arg-type]
-            billingCycle=billing if billing in ("monthly", "yearly") else "monthly",  # type: ignore[arg-type]
+            billingCycle=billing if billing in ("monthly", "quarterly", "yearly") else "monthly",  # type: ignore[arg-type]
             amount=int(document.get("amount") or 0),
             paymentStatus=(  # type: ignore[arg-type]
                 payment_status
@@ -771,8 +771,16 @@ class MembershipRepository:
             )
 
         yearly = billing_cycle == "yearly"
-        amount = plan.yearlyPrice if yearly else plan.monthlyPrice
-        days = plan.yearlyValidityDays if yearly else plan.validityDays
+        quarterly = billing_cycle == "quarterly"
+        if yearly:
+            amount = plan.yearlyPrice
+            days = plan.yearlyValidityDays
+        elif quarterly:
+            amount = plan.quarterlyPrice if plan.quarterlyPrice > 0 else (plan.monthlyPrice * 3)
+            days = 90
+        else:
+            amount = plan.monthlyPrice
+            days = plan.validityDays
         now = utcnow()
         expires_at = now + timedelta(days=days)
 

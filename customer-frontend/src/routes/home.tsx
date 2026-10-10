@@ -812,7 +812,38 @@ function HomeScreen() {
                       </button>
                     </div>
                   </section>
-                ) : null}
+                ) : (
+                  <section className="mt-8">
+                    <div 
+                      onClick={() => void navigate({ to: "/membership" })}
+                      className="group relative overflow-hidden rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-emerald-500/10 p-4 text-zinc-950 shadow-xs transition-all hover:border-amber-400 hover:shadow-soft active:scale-[0.99] cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-xs">
+                            <Crown className="size-5" />
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-black tracking-tight text-zinc-900">
+                                QuickPress VIP Club
+                              </h3>
+                              <span className="rounded-full bg-amber-500 text-white px-2 py-0.2 text-[9px] font-black uppercase">
+                                From ₹99
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-xs text-zinc-600">
+                              Unlimited <strong>₹0 Delivery</strong> &amp; <strong>10%–20% Off</strong> Every Order
+                            </p>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-white p-2 text-zinc-900 shadow-2xs group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                          <ArrowRight className="size-4" />
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+                )}
 
                 {/* Recent orders — GET /api/orders/recent */}
                 <section className="mt-8" suppressHydrationWarning>

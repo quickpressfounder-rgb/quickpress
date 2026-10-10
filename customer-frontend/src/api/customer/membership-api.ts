@@ -20,9 +20,11 @@ import { ApiError } from "../core/errors";
 import { CACHE_KEYS, readCache, readStaleCache, writeCache } from "./api/cache";
 import { isOnline } from "./api/network";
 import { readToken } from "../core/session-store";
+import { openRazorpayCheckout } from "../core/razorpay";
+import type { RazorpayOrderResult } from "@/shared/types/payment";
 
 export type MembershipPlanId = "silver" | "gold" | "platinum" | "elite" | string;
-export type BillingCycle = "monthly" | "yearly";
+export type BillingCycle = "monthly" | "quarterly" | "yearly";
 export type MembershipStatus = "active" | "expired" | "cancelled" | "none";
 export type MembershipPaymentStatus = "paid" | "pending" | "failed" | "free" | "refunded";
 export type MembershipTransactionType = "subscribe" | "renew" | "upgrade" | "cancel" | "expire";
@@ -40,6 +42,7 @@ export type MembershipPlan = {
   name: string;
   tagline: string;
   monthlyPrice: number;
+  quarterlyPrice?: number;
   yearlyPrice: number;
   yearlySavings: number;
   savingsLabel: string;
@@ -339,6 +342,7 @@ function toPlan(raw: RawPlan, index: number): MembershipPlan {
     name: raw.name ?? (planId ? planId.charAt(0).toUpperCase() + planId.slice(1) : "Plan"),
     tagline: raw.tagline ?? "",
     monthlyPrice: monthly,
+    quarterlyPrice: Number((raw as any).quarterlyPrice ?? (raw as any).quarterly_price ?? 0),
     yearlyPrice: yearly,
     yearlySavings: savings,
     savingsLabel: raw.savingsLabel ?? (savings > 0 ? `Save ₹${savings} a year` : "Always free"),
@@ -360,7 +364,7 @@ function toMembership(raw: RawMembership): Membership {
   )
     ? (raw.status as MembershipStatus)
     : "none";
-  const cycle = raw.billingCycle === "monthly" || raw.billingCycle === "yearly" ? raw.billingCycle : null;
+  const cycle = raw.billingCycle === "monthly" || raw.billingCycle === "quarterly" || raw.billingCycle === "yearly" ? raw.billingCycle : null;
   const planId = toPlanId(raw.planId);
 
   const rawQuota = (raw as any).quota || {};
@@ -433,7 +437,9 @@ function toTransaction(raw: RawTransaction, index: number): MembershipTransactio
     planId: toPlanId(raw.planId),
     planName: raw.planName ?? "Membership",
     type,
-    billingCycle: raw.billingCycle === "yearly" ? "yearly" : "monthly",
+    billingCycle: (["monthly", "quarterly", "yearly"] as const).includes(raw.billingCycle as BillingCycle)
+      ? (raw.billingCycle as BillingCycle)
+      : "monthly",
     amount: Number(raw.amount ?? 0),
     paymentStatus,
     paymentReference: raw.paymentReference ?? null,
@@ -650,5 +656,117 @@ export async function cancelMembership(reason?: string): Promise<{
     ok: raw.ok ?? true,
     message: raw.message ?? "Membership cancelled.",
     membership: toMembership(raw.membership ?? {}),
+  };
+}
+
+export type MembershipRazorpayOrder = {
+  ok: boolean;
+  keyId: string;
+  gatewayOrderId: string;
+  amount: number;
+  currency: string;
+  planId: string;
+  planName: string;
+  billingCycle: string;
+};
+
+export async function createMembershipRazorpayOrder(
+  planId: MembershipPlanId,
+  billingCycle: BillingCycle = "monthly",
+): Promise<MembershipRazorpayOrder> {
+  if (!isOnline()) throw new ApiError("offline", "Reconnect to create your membership order.");
+  return await apiPostJson<MembershipRazorpayOrder>("/api/membership/razorpay/create-order", {
+    planId,
+    billingCycle,
+  });
+}
+
+export async function verifyMembershipRazorpayPayment(payload: {
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+  planId: string;
+  billingCycle: BillingCycle;
+}): Promise<SubscribeResult> {
+  if (!isOnline()) throw new ApiError("offline", "Reconnect to verify your membership payment.");
+  const raw = await apiPostJson<{
+    ok?: boolean;
+    message?: string;
+    membership?: RawMembership;
+    transaction?: RawTransaction | null;
+  }>("/api/membership/razorpay/verify-payment", payload);
+  invalidateMembershipCache();
+  return {
+    ok: raw.ok ?? true,
+    message: raw.message ?? "Membership activated successfully!",
+    membership: toMembership(raw.membership ?? {}),
+    transaction: raw.transaction ? toTransaction(raw.transaction, 0) : null,
+  };
+}
+
+export async function payMembershipWithRazorpay(input: {
+  planId: MembershipPlanId;
+  billingCycle: BillingCycle;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  planName?: string;
+  amount?: number;
+}): Promise<{
+  status: "success" | "user_dropped" | "failed";
+  message?: string;
+  membership?: Membership;
+}> {
+  const order = await createMembershipRazorpayOrder(input.planId, input.billingCycle);
+
+  const checkoutOrder: RazorpayOrderResult = {
+    ok: true,
+    paymentId: order.gatewayOrderId,
+    gatewayOrderId: order.gatewayOrderId,
+    keyId: order.keyId,
+    currency: order.currency || "INR",
+    amount: order.amount,
+    walletApplied: 0,
+    payableAmount: order.amount,
+    amountInPaise: Math.round(order.amount * 100),
+    fullyPaidByWallet: false,
+    receipt: `rcpt_${order.gatewayOrderId}`,
+    notes: {
+      planId: input.planId,
+      billingCycle: input.billingCycle,
+      purpose: `QuickPress Membership: ${input.planName || "VIP"}`,
+    },
+  };
+
+  const outcome = await openRazorpayCheckout(checkoutOrder, {
+    description: `QuickPress ${input.planName || "VIP"} (${input.billingCycle})`,
+    profile: {
+      name: input.customerName || "Customer",
+      contact: input.customerPhone ? input.customerPhone.replace(/\D/g, "") : "",
+      email: input.customerEmail || "",
+    },
+    appName: "QuickPress",
+    themeColor: "#059669",
+  });
+
+  if (outcome.status === "dismissed") {
+    return { status: "user_dropped", message: outcome.reason || "Payment cancelled." };
+  }
+  if (outcome.status === "failed") {
+    return { status: "failed", message: outcome.reason || "Payment failed." };
+  }
+
+  const result = await verifyMembershipRazorpayPayment({
+    razorpayOrderId: outcome.razorpayOrderId || order.gatewayOrderId,
+    razorpayPaymentId: outcome.razorpayPaymentId,
+    razorpaySignature: outcome.razorpaySignature || "",
+    planId: input.planId,
+    billingCycle: input.billingCycle,
+  });
+
+  return {
+    status: "success",
+    message: result.message,
+    membership: result.membership,
   };
 }

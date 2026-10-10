@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 PlanId = str
-BillingCycle = Literal["monthly", "yearly"]
+BillingCycle = Literal["monthly", "quarterly", "yearly"]
 MembershipStatus = Literal["active", "expired", "cancelled", "none"]
 PaymentStatus = Literal["paid", "pending", "failed", "free", "refunded"]
 TransactionType = Literal["subscribe", "renew", "upgrade", "cancel", "expire", "admin_grant", "admin_revoke"]
@@ -150,6 +150,37 @@ class CancelResponse(BaseModel):
     ok: bool = True
     message: str = ""
     membership: MembershipResponse
+
+
+class MembershipRazorpayOrderPayload(BaseModel):
+    planId: str
+    billingCycle: BillingCycle = "monthly"
+
+
+class MembershipRazorpayOrderResponse(BaseModel):
+    ok: bool = True
+    keyId: str
+    gatewayOrderId: str
+    amount: float
+    currency: str = "INR"
+    planId: str
+    planName: str
+    billingCycle: str
+
+
+class MembershipRazorpayVerifyPayload(BaseModel):
+    razorpayOrderId: str
+    razorpayPaymentId: str
+    razorpaySignature: str
+    planId: str
+    billingCycle: BillingCycle = "monthly"
+
+
+class MembershipRazorpayVerifyResponse(BaseModel):
+    ok: bool = True
+    message: str = "Membership activated successfully."
+    membership: MembershipResponse
+    transaction: Optional[MembershipTransaction] = None
 
 
 # ---------------------------------------------------------------- Admin Models

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  Crown,
   Home,
   Loader2,
   MapPin,
@@ -55,6 +56,7 @@ import { loadRazorpayCheckout } from "@/api/core/razorpay";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { readSession } from "@/api/core/session-store";
 import { CACHE_KEYS, readStaleCache, writeCache } from "@/api/customer/api/cache";
+import { fetchMembership, subscribeMembership, type Membership } from "@/api/customer/membership-api";
 
 function normalizeIndianPhone(phone: string): string {
   const digits = (phone || "").replace(/\D/g, "");
@@ -120,6 +122,18 @@ export function CheckoutPage() {
   // Background refresh status (does NOT block initial screen paint)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(() => cachedAddrs.length === 0);
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
+
+  // Membership & 1-Click Upsell Hook
+  const [membership, setMembership] = useState<Membership | null>(() => readStaleCache<Membership>(CACHE_KEYS.membership) || null);
+  const [clubAddon, setClubAddon] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetchMembership()
+      .then((m) => {
+        if (m) setMembership(m);
+      })
+      .catch(() => {});
+  }, []);
 
   const cachedRules = readStaleCache<FinancialRules>("finance_rules");
   const [financeRules, setFinanceRules] = useState<FinancialRules>(() => cachedRules || DEFAULT_FINANCIAL_RULES);
@@ -225,13 +239,21 @@ export function CheckoutPage() {
     }
   }, [pickupAddressId, sameAsPickup]);
 
-  // Pricing calculations driven dynamically by Unified Finance Engine
+  // Membership evaluation
+  const isMember = Boolean(membership?.active && membership.planId !== "free");
+  const isEffectiveMember = isMember || clubAddon;
+
+  // Unified Finance Engine calculations
   const universalBase = financeRules?.pricing?.universalBasePrice ?? 69;
   const itemsSubtotal = cart.lines.reduce((sum, item) => sum + (item.price || universalBase) * item.qty, 0);
   const totalMRP = cart.lines.reduce((sum, item) => sum + Math.round((item.price || universalBase) * 1.25) * item.qty, 0);
 
+  // 10% Extra Member Discount on items
+  const memberDiscount = isEffectiveMember ? Math.round(itemsSubtotal * 0.1) : 0;
+  const clubPlanPrice = (!isMember && clubAddon) ? 99 : 0;
+
   const freeDeliveryThreshold = financeRules?.delivery?.freeDeliveryThreshold ?? 499;
-  const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold;
+  const isFreeDelivery = itemsSubtotal >= freeDeliveryThreshold || isEffectiveMember;
   const baseDeliveryFee = financeRules?.delivery?.slabs?.[0]?.fee ?? (financeRules?.delivery?.baseFee ?? 30);
   const deliveryFee = itemsSubtotal > 0 ? (isFreeDelivery ? 0 : baseDeliveryFee) : 0;
   const handlingFee = itemsSubtotal > 0 ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
@@ -243,14 +265,14 @@ export function CheckoutPage() {
   const currentExpressFee = isExpressActive ? expressFee : 0;
 
   // 5% fabric laundry GST + 18% services GST
-  const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
+  const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount - memberDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
   const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + currentExpressFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
   const gst = laundryGst + serviceGst;
 
   const grandTotal = Math.round(
-    Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + gst - couponDiscount)
+    Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + gst + clubPlanPrice - couponDiscount - memberDiscount)
   );
-  const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + (isFreeDelivery && itemsSubtotal > 0 ? baseDeliveryFee : 0);
+  const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + memberDiscount + ((isFreeDelivery || isEffectiveMember) && itemsSubtotal > 0 ? baseDeliveryFee : 0);
 
   const selectedPickup = addresses.find((a) => a.id === pickupAddressId) || addresses[0];
   const selectedDelivery = sameAsPickup
@@ -336,6 +358,11 @@ export function CheckoutPage() {
       cart.clear();
       setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
 
+      // If user opted for Club Starter in 1-click upsell, activate plan
+      if (clubAddon) {
+        subscribeMembership("silver", "quarterly").catch(() => {});
+      }
+
       // Persist customer name and phone into profile
       void updateProfile({ name: customerName.trim(), phone: cleanPhone }).catch(() => {});
 
@@ -391,6 +418,11 @@ export function CheckoutPage() {
       toast.success("Success");
       cart.clear();
       setCartState({ instructions: "", couponCode: null, couponDiscount: 0 });
+
+      // If user opted for Club Starter in 1-click upsell, activate plan
+      if (clubAddon) {
+        subscribeMembership("silver", "quarterly").catch(() => {});
+      }
 
       // Persist customer name and phone into profile
       void updateProfile({ name: customerName.trim(), phone: cleanPhone }).catch(() => {});
@@ -842,6 +874,67 @@ export function CheckoutPage() {
           </section>
         </div>
 
+        {/* SECTION 6.5: VIP MEMBERSHIP UPSELL / STATUS */}
+        <div>
+          {isMember ? (
+            <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-emerald-500/10 p-3.5 shadow-2xs flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-8 items-center justify-center rounded-xl bg-amber-500 text-white shadow-2xs">
+                  <Crown className="size-4 fill-white" />
+                </span>
+                <div>
+                  <p className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                    <span>QuickPress {membership?.planName || "VIP"} Member</span>
+                    <span className="rounded-full bg-amber-400/30 px-1.5 py-0.2 text-[9px] font-black text-amber-900 uppercase">ACTIVE</span>
+                  </p>
+                  <p className="text-[10px] font-medium text-amber-850">
+                    ₹0 Delivery Fee &amp; VIP Priority Applied
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                Saved ₹{baseDeliveryFee + memberDiscount}
+              </span>
+            </div>
+          ) : (
+            <div className={`rounded-2xl border p-3.5 transition-all ${
+              clubAddon 
+                ? "border-[#0c831f] bg-emerald-50/70 shadow-xs ring-1 ring-[#0c831f]/30" 
+                : "border-amber-300/90 bg-gradient-to-r from-amber-50/90 via-amber-50/50 to-white shadow-2xs"
+            }`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs">
+                    <Sparkles className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs font-black text-zinc-900">Add QuickPress Club (3 Months)</p>
+                      <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
+                        ⚡ Save ₹{baseDeliveryFee + Math.round(itemsSubtotal * 0.1)} Today
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-zinc-600 leading-tight">
+                      Get <strong>₹0 Delivery Fee</strong> on this order &amp; future orders, plus <strong>10% extra discount</strong>!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setClubAddon((prev) => !prev)}
+                  className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
+                    clubAddon
+                      ? "bg-[#0c831f] text-white shadow-xs"
+                      : "border border-amber-500 bg-amber-500/10 text-amber-950 hover:bg-amber-500 hover:text-white"
+                  }`}
+                >
+                  {clubAddon ? "✓ Added (₹99)" : "+ Add (₹99)"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* SECTION 7: BILL DETAILS */}
         <div>
           <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
@@ -885,6 +978,24 @@ export function CheckoutPage() {
                     ⚡ Express 15-Min Priority Pickup
                   </span>
                   <span className="font-black text-[#0c831f]">+₹{expressFee}</span>
+                </div>
+              ) : null}
+
+              {memberDiscount > 0 ? (
+                <div className="flex justify-between text-[#0c831f] font-semibold">
+                  <span className="flex items-center gap-1">
+                    <Crown className="size-3" /> VIP Member Discount (10%)
+                  </span>
+                  <span>-₹{memberDiscount}</span>
+                </div>
+              ) : null}
+
+              {clubAddon ? (
+                <div className="flex justify-between text-amber-900 font-semibold">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="size-3 text-amber-600" /> QuickPress Club Pass (3 Months)
+                  </span>
+                  <span>₹99</span>
                 </div>
               ) : null}
 
