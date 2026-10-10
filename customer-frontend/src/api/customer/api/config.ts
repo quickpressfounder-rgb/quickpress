@@ -31,7 +31,7 @@ function readString(key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-const PRODUCTION_API_URL = "https://quickpress-api-production.up.railway.app";
+const DEFAULT_FALLBACK_URL = "https://quickpress-api-production.up.railway.app";
 
 export function isCapacitorNative(): boolean {
   if (typeof window === "undefined") return false;
@@ -46,42 +46,38 @@ export function isCapacitorNative(): boolean {
 }
 
 export function apiBaseUrl(): string {
+  // 1. If window.__QUICKPRESS_CONFIG__.API_BASE_URL is set (injected by WebView or SSR script)
+  if (typeof window !== "undefined") {
+    const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
+    if (globalBase && typeof globalBase === "string" && globalBase.trim()) {
+      return globalBase.trim().replace(/\/+$/, "");
+    }
+  }
+
+  // 2. Read explicit environment variable (VITE_API_BASE_URL or VITE_API_URL)
   let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
   if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
     custom = custom.replace("-3292", "");
   }
 
-  // Inside Capacitor Android/iOS APK, ALWAYS connect to the live production Railway backend!
+  // 3. Inside Capacitor Android/iOS native container
   if (isCapacitorNative()) {
-    return custom && custom.startsWith("https://") ? custom : PRODUCTION_API_URL;
+    return custom || DEFAULT_FALLBACK_URL;
   }
 
   if (typeof window !== "undefined") {
-    const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
-    if (globalBase && typeof globalBase === "string") {
-      return globalBase.trim().replace(/\/+$/, "");
-    }
-
     const isHttps = window.location.protocol === "https:";
     const host = window.location.hostname;
 
-    // 1. If running on an HTTPS page (Vercel, Lovable preview, production domain, tunnel):
-    if (isHttps) {
-      if (custom && custom.startsWith("https://")) {
-        return custom;
-      }
-      return PRODUCTION_API_URL;
-    }
-
-    // 2. If running locally on localhost or 127.0.0.1:
+    // Localhost development
     if (host === "localhost" || host === "127.0.0.1") {
       if (custom && (custom.startsWith("http://") || custom.startsWith("https://"))) {
         return custom;
       }
-      return PRODUCTION_API_URL;
+      return "http://localhost:8000";
     }
 
-    // 3. If accessing via private LAN IP (e.g. mobile device on Wi-Fi):
+    // Access via private LAN IP (e.g. mobile device testing on Wi-Fi)
     const isPrivateIp = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
     if (isPrivateIp) {
       if (custom && custom.includes("localhost")) {
@@ -93,15 +89,16 @@ export function apiBaseUrl(): string {
       return `http://${host}:8000`;
     }
 
-    // 4. Any other public domain:
-    if (custom && custom.startsWith("https://")) {
+    // Explicit custom URL from environment takes priority
+    if (custom) {
       return custom;
     }
-    return PRODUCTION_API_URL;
+
+    // Fallback on HTTPS or other public domain
+    return DEFAULT_FALLBACK_URL;
   }
 
-  if (custom && custom.startsWith("https://")) return custom;
-  return PRODUCTION_API_URL;
+  return custom || DEFAULT_FALLBACK_URL;
 }
 
 export function appEnvironment(): AppEnvironment {

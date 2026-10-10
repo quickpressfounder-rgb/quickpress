@@ -165,9 +165,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  const envApiBase =
-    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
-    "https://quickpress-api-production.up.railway.app";
+  const envApiBase = (
+    (typeof import.meta !== "undefined" &&
+      ((import.meta as any).env?.VITE_API_BASE_URL || (import.meta as any).env?.VITE_API_URL)) ||
+    ""
+  ).replace(/\/+$/, "");
 
   return (
     <html lang="en" className="bg-white" suppressHydrationWarning>
@@ -175,19 +177,27 @@ function RootShell({ children }: { children: ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: '${envApiBase}' };
               (function() {
+                var _base = (window.__QUICKPRESS_CONFIG__ && window.__QUICKPRESS_CONFIG__.API_BASE_URL) || '${envApiBase}';
+                window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: _base };
                 if (window.__qp_fetch_patched) return;
                 window.__qp_fetch_patched = true;
                 var _origFetch = window.fetch;
                 window.fetch = function(input, init) {
                   if (typeof input === 'string') {
-                    input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                    if (input.startsWith('/api/')) { input = '${envApiBase}' + input; }
+                    if (_base) {
+                      var hostOnly = _base.replace(/^https?:\\/\\//, '');
+                      input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, hostOnly);
+                    }
+                    if (input.startsWith('/api/') && _base) { input = _base + input; }
                   } else if (input && input.url) {
                     try {
-                      var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                      if (newUrl.startsWith('/api/')) { newUrl = '${envApiBase}' + newUrl; }
+                      var newUrl = input.url;
+                      if (_base) {
+                        var hostOnly = _base.replace(/^https?:\\/\\//, '');
+                        newUrl = newUrl.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, hostOnly);
+                      }
+                      if (newUrl.startsWith('/api/') && _base) { newUrl = _base + newUrl; }
                       input = new Request(newUrl, input);
                     } catch(e) {}
                   }
