@@ -250,6 +250,23 @@ function HomeScreen() {
     return false;
   }, [partners.length, sections.partners.loading, location?.city, availability]);
 
+  const displayLocationName = useMemo(() => {
+    if (!location) return "Detecting live location…";
+    const area = (location.area || "").trim();
+    const city = (location.city || "").trim();
+
+    if (!area || area.toLowerCase() === "current location") {
+      return city || "Current Location";
+    }
+    if (!city || area.toLowerCase() === city.toLowerCase()) {
+      return area;
+    }
+    if (area.toLowerCase().endsWith(city.toLowerCase())) {
+      return area;
+    }
+    return `${area}, ${city}`;
+  }, [location]);
+
   // Header badge stays live: the notifications screen broadcasts every
   // read/delete so the count updates without a home refetch.
   const [unreadOverride, setUnreadOverride] = useState<number | null>(null);
@@ -366,9 +383,7 @@ function HomeScreen() {
                       Current Location
                     </span>
                     <span className="block truncate text-xs font-bold text-foreground">
-                      {location
-                        ? `${location.area}${location.city ? `, ${location.city}` : ""}`
-                        : "Detecting live location…"}
+                      {displayLocationName}
                     </span>
                   </span>
                   <ChevronDown className="size-4 shrink-0 text-muted-foreground" />

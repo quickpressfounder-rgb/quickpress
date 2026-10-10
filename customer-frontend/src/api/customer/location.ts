@@ -92,11 +92,14 @@ export async function reverseGeocode(
     clearTimeout(timeoutId);
 
     if (result && (result.area || result.city || result.formattedAddress)) {
-      const area = result.area || result.formattedAddress?.split(",")?.[0]?.trim() || "Current Location";
-      const city = (result.city && result.city.trim()) ? result.city.trim() : (result.state || "Detected Location");
+      let area = (result.area || "").trim();
+      if (!area || area.toLowerCase() === "current location") {
+        area = result.formattedAddress?.split(",")?.[0]?.trim() || "";
+      }
+      const city = (result.city && result.city.trim()) ? result.city.trim() : (result.state || "");
       const resolved: SavedLocation = {
-        area,
-        city,
+        area: area || city || "Current Location",
+        city: city || "",
         state: result.state ?? "",
         latitude,
         longitude,
@@ -114,23 +117,70 @@ export async function reverseGeocode(
     console.debug("[Location] Fast reverse geocode proxy bypassed, falling back:", err);
   }
 
-  // Tier 2: Client-side OpenStreetMap / BigDataCloud reverse geocode fallback (strict 1200ms timeout)
+  // Tier 2: Client-side OpenStreetMap / BigDataCloud reverse geocode fallback with deep colony parsing
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+    // 2a. OpenStreetMap Nominatim with deep locality breakdown
+    const osmRes = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+      { signal: controller.signal, headers: { "Accept-Language": "en" } },
+    ).catch(() => null);
+
+    if (osmRes && osmRes.ok) {
+      clearTimeout(timeoutId);
+      const data = await osmRes.json();
+      const addr = data.address || {};
+      const deepColony =
+        addr.amenity ||
+        addr.building ||
+        addr.neighbourhood ||
+        addr.residential ||
+        addr.suburb ||
+        addr.subdistrict ||
+        addr.quarter ||
+        addr.road ||
+        addr.village ||
+        "";
+      const city = addr.city || addr.town || addr.county || addr.state_district || "";
+      const state = addr.state || "";
+      const area = deepColony || city || "Current Location";
+      const resolved: SavedLocation = {
+        area,
+        city: city || state,
+        state,
+        latitude,
+        longitude,
+      };
+      GEOCODE_CACHE.set(cacheKey, resolved);
+      return resolved;
+    }
+
+    // 2b. BigDataCloud with informative locality inspection
     const res = await fetch(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
       { signal: controller.signal },
-    );
+    ).catch(() => null);
     clearTimeout(timeoutId);
-    if (res.ok) {
+    if (res && res.ok) {
       const data = await res.json();
-      const area = data.locality || data.city || data.principalSubdivision || "Current Location";
-      const city = data.city || data.principalSubdivision || area || "Detected Location";
+      const localityInfo = Array.isArray(data.localityInfo?.informative) ? data.localityInfo.informative : [];
+      let deepName = "";
+      for (const item of [...localityInfo].reverse()) {
+        const n = String(item?.name || "").trim();
+        const desc = String(item?.description || "").toLowerCase();
+        if (n && (desc.includes("suburb") || desc.includes("neighbourhood") || desc.includes("colony") || desc.includes("sector") || desc.includes("locality"))) {
+          deepName = n;
+          break;
+        }
+      }
+      const area = deepName || data.locality || data.city || "Current Location";
+      const city = data.city || data.principalSubdivision || "";
       const state = data.principalSubdivision || "";
       const resolved: SavedLocation = {
         area,
-        city,
+        city: city || state,
         state,
         latitude,
         longitude,
@@ -144,7 +194,7 @@ export async function reverseGeocode(
 
   const coordFallback: SavedLocation = {
     area: "Current Location",
-    city: "Detected Location",
+    city: "",
     state: "",
     latitude,
     longitude,

@@ -116,7 +116,17 @@ def _map_geocode_result(result: Dict[str, Any]) -> Dict[str, Any]:
         "placeId": result.get("place_id", ""),
         "latitude": location.get("lat", 0.0),
         "longitude": location.get("lng", 0.0),
-        "area": _component(components, "sublocality_level_1", "sublocality", "neighborhood", "route"),
+        "area": _component(
+            components,
+            "sublocality_level_2",
+            "sublocality_level_1",
+            "neighborhood",
+            "sublocality",
+            "point_of_interest",
+            "premise",
+            "subpremise",
+            "route",
+        ),
         "city": _component(components, "locality", "administrative_area_level_3", "administrative_area_level_2"),
         "state": _component(components, "administrative_area_level_1"),
         "pincode": _component(components, "postal_code"),
@@ -125,11 +135,20 @@ def _map_geocode_result(result: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def _fallback_reverse_geocode(latitude: float, longitude: float) -> Dict[str, Any]:
-    # 1. Try BigDataCloud reverse geocoding
+    # 1. Try BigDataCloud reverse geocoding with deep locality extraction
     try:
         url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={latitude}&longitude={longitude}&localityLanguage=en"
         data = await _call(url, headers={"User-Agent": "QuickPress/1.0"})
-        area = data.get("locality") or data.get("city") or ""
+        # Extract deep colony / neighbourhood / landmark from localityInfo
+        locality_info = data.get("localityInfo", {}).get("informative", [])
+        deep_name = ""
+        for item in sorted(locality_info, key=lambda x: x.get("order", 0), reverse=True):
+            n = (item.get("name") or "").strip()
+            desc = (item.get("description") or "").lower()
+            if n and any(k in desc for k in ("suburb", "neighbourhood", "sector", "colony", "locality", "quarter")):
+                deep_name = n
+                break
+        area = deep_name or data.get("locality") or data.get("city") or ""
         city = data.get("city") or data.get("principalSubdivision") or ""
         state = data.get("principalSubdivision") or ""
         pincode = data.get("postcode") or ""
@@ -150,14 +169,19 @@ async def _fallback_reverse_geocode(latitude: float, longitude: float) -> Dict[s
     except Exception:
         pass
 
-    # 2. Try OpenStreetMap Nominatim
+    # 2. Try OpenStreetMap Nominatim with landmark / colony prioritization
     try:
         url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={latitude}&lon={longitude}"
         data = await _call(url, headers={"User-Agent": "QuickPress/1.0"})
         addr = data.get("address", {})
         area = (
-            addr.get("suburb")
+            addr.get("amenity")
+            or addr.get("building")
             or addr.get("neighbourhood")
+            or addr.get("residential")
+            or addr.get("suburb")
+            or addr.get("subdistrict")
+            or addr.get("quarter")
             or addr.get("road")
             or addr.get("village")
             or addr.get("city_district")
