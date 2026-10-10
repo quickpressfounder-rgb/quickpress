@@ -63,7 +63,11 @@ async function httpRequest<T>(
   const token = options.anonymous ? null : readToken();
 
   try {
-    const response = await fetch(`${apiBaseUrl()}${withQuery(path, options.params)}`, {
+    let targetBase = apiBaseUrl();
+    if (targetBase.includes("-3292.up.railway.app")) {
+      targetBase = targetBase.replace(/-3292\.up\.railway\.app/g, ".up.railway.app");
+    }
+    const response = await fetch(`${targetBase}${withQuery(path, options.params)}`, {
       method,
       headers: {
         Accept: "application/json",

@@ -168,6 +168,31 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="bg-white" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: 'https://quickpress-api-production.up.railway.app' };
+              (function() {
+                if (window.__qp_fetch_patched) return;
+                window.__qp_fetch_patched = true;
+                var _origFetch = window.fetch;
+                window.fetch = function(input, init) {
+                  if (typeof input === 'string') {
+                    input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
+                    if (input.startsWith('/api/')) { input = 'https://quickpress-api-production.up.railway.app' + input; }
+                  } else if (input && input.url) {
+                    try {
+                      var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
+                      if (newUrl.startsWith('/api/')) { newUrl = 'https://quickpress-api-production.up.railway.app' + newUrl; }
+                      input = new Request(newUrl, input);
+                    } catch(e) {}
+                  }
+                  return _origFetch.call(this, input, init);
+                };
+              })();
+            `,
+          }}
+        />
         <HeadContent />
       </head>
       <body className="min-h-screen bg-white text-foreground antialiased selection:bg-primary/20" suppressHydrationWarning>
