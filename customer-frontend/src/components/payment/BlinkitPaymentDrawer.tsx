@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Trash2,
   Wallet,
   X,
 } from "lucide-react";
@@ -33,6 +34,12 @@ import {
   type UpiAppTarget,
 } from "@/lib/upi-intent";
 import { payWithRazorpay } from "@/api/payments/razorpay-api";
+import {
+  fetchPaymentMethods,
+  addPaymentMethod,
+  removePaymentMethod,
+  type PaymentMethod,
+} from "@/api/customer/payments-api";
 
 type UpiAppMeta = {
   name: string;
@@ -269,6 +276,31 @@ export function BlinkitPaymentDrawer({
   const [selectedBank, setSelectedBank] = useState<string>("HDFC Bank");
   const [searchBankQuery, setSearchBankQuery] = useState<string>("");
 
+  // Saved Payment Methods (1-Click Repeat Checkout)
+  const [savedMethods, setSavedMethods] = useState<PaymentMethod[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState<boolean>(false);
+  const [savedCardCvv, setSavedCardCvv] = useState<Record<string, string>>({});
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [saveUpiForFuture, setSaveUpiForFuture] = useState<boolean>(true);
+
+  const loadSavedMethods = async () => {
+    setLoadingSaved(true);
+    try {
+      const res = await fetchPaymentMethods({ forceRefresh: true });
+      setSavedMethods(res.methods || []);
+    } catch {
+      setSavedMethods([]);
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadSavedMethods();
+    }
+  }, [isOpen]);
+
   // Card helpers
   const cardBrandMeta = getCardBrandMeta(cardNumber);
 
@@ -371,7 +403,9 @@ export function BlinkitPaymentDrawer({
       toast.error("Please enter a valid expiry date (MM/YY)");
       return;
     }
-    const [mmStr, yyStr] = cardExpiry.split("/");
+    const parts = cardExpiry.split("/");
+    const mmStr = parts[0] || "";
+    const yyStr = parts[1] || "";
     const mm = parseInt(mmStr, 10);
     if (mm < 1 || mm > 12) {
       toast.error("Expiry month must be between 01 and 12");
@@ -384,6 +418,22 @@ export function BlinkitPaymentDrawer({
     if (!cardHolder.trim()) {
       toast.error("Please enter name on card");
       return;
+    }
+
+    if (saveCard) {
+      try {
+        const cleanDigits = rawNumber.slice(-4);
+        const brand = cardBrandMeta.label || "Card";
+        await addPaymentMethod({
+          kind: "credit-card",
+          name: cardHolder.trim() || `${brand} ending in ${cleanDigits}`,
+          masked: `•••• •••• •••• ${cleanDigits}`,
+          isDefault: true,
+        });
+        void loadSavedMethods();
+      } catch (err) {
+        console.warn("Could not save card to account:", err);
+      }
     }
 
     // Launch Real Razorpay 3D Secure Card Gateway directly
@@ -410,8 +460,64 @@ export function BlinkitPaymentDrawer({
       return;
     }
 
+    if (saveUpiForFuture) {
+      try {
+        await addPaymentMethod({
+          kind: "upi",
+          name: `UPI (${vpa})`,
+          masked: vpa,
+          isDefault: true,
+        });
+        void loadSavedMethods();
+      } catch (err) {
+        console.warn("Could not save UPI ID to account:", err);
+      }
+    }
+
     // Launch Real Razorpay UPI Collect to VPA
     await executeOnlinePayment(`UPI ID (${vpa})`, "upi", vpa);
+  };
+
+  const handlePaySavedCard = async (method: PaymentMethod) => {
+    const cvv = (savedCardCvv[method.id] || "").trim();
+    if (cvv.length < 3) {
+      setExpandedCardId(method.id);
+      toast.info("Please enter the 3-digit CVV for this card");
+      return;
+    }
+
+    await executeOnlinePayment(
+      `Saved ${method.name}`,
+      "card",
+      undefined,
+      undefined,
+      {
+        number: method.masked,
+        expiryMonth: "12",
+        expiryYear: "30",
+        cvv,
+        name: method.name,
+      }
+    );
+  };
+
+  const handlePaySavedUpi = async (method: PaymentMethod) => {
+    await executeOnlinePayment(
+      `Saved UPI (${method.masked})`,
+      "upi",
+      method.masked
+    );
+  };
+
+  const handleRemoveSavedMethod = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await removePaymentMethod(id);
+      setSavedMethods((prev) => prev.filter((m) => m.id !== id));
+      toast.success("Saved payment method removed");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to remove method");
+    }
   };
 
   const handleNetBankingSubmit = async () => {
@@ -834,6 +940,19 @@ export function BlinkitPaymentDrawer({
                     A payment request of <strong>₹{grandTotal}</strong> will be sent to your UPI app. Open PhonePe, Google Pay, or Paytm to authorize.
                   </div>
 
+                  <div className="flex items-center gap-2 pt-1 pb-1">
+                    <input
+                      type="checkbox"
+                      id="save-upi-checkbox"
+                      checked={saveUpiForFuture}
+                      onChange={(e) => setSaveUpiForFuture(e.target.checked)}
+                      className="size-4 rounded accent-[#0c831f] cursor-pointer"
+                    />
+                    <label htmlFor="save-upi-checkbox" className="text-xs font-bold text-zinc-700 cursor-pointer">
+                      Save this UPI ID for 1-click repeat checkout
+                    </label>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={Boolean(busyMethod) || !customVpa.trim()}
@@ -1102,6 +1221,187 @@ export function BlinkitPaymentDrawer({
                   <p className="text-[10px] text-center font-bold text-zinc-500">
                     Or select another payment method from the list below:
                   </p>
+                </div>
+              )}
+
+              {/* SAVED PAYMENT METHODS: 1-CLICK QUICK CHECKOUT */}
+              {savedMethods.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between px-1 mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-[11px] font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-amber-500 fill-amber-500" />
+                        <span>Saved Payment Methods</span>
+                      </h3>
+                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                        <span>⚡ 1-CLICK CHECKOUT</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-2xl bg-white border border-emerald-500/40 shadow-xs divide-y divide-zinc-100">
+                    {/* 1. Saved UPI Handles */}
+                    {savedMethods
+                      .filter((m) => m.kind === "upi")
+                      .map((method) => {
+                        const isBusy = busyMethod?.includes(method.masked);
+                        return (
+                          <div
+                            key={method.id}
+                            className="p-3.5 hover:bg-emerald-50/40 transition-colors flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white font-black text-xs shadow-2xs">
+                                UPI
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs sm:text-[13px] font-black text-zinc-900 truncate">
+                                    {method.masked}
+                                  </p>
+                                  {method.isDefault && (
+                                    <span className="bg-zinc-100 text-zinc-600 text-[9px] font-bold px-1.5 py-0.2 rounded">
+                                      Default
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] font-medium text-emerald-700">
+                                  1-Tap Instant Collect • Verified
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                disabled={Boolean(busyMethod)}
+                                onClick={() => void handlePaySavedUpi(method)}
+                                className="px-3.5 py-2 rounded-xl bg-[#0c831f] hover:bg-[#09731b] active:scale-95 text-white font-black text-xs transition cursor-pointer flex items-center gap-1 shadow-2xs disabled:opacity-50"
+                              >
+                                {isBusy ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : (
+                                  <>
+                                    <span>Pay ₹{grandTotal}</span>
+                                    <ChevronRight className="size-3.5 stroke-[3]" />
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => void handleRemoveSavedMethod(method.id, e)}
+                                title="Remove saved method"
+                                className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                    {/* 2. Saved Cards */}
+                    {savedMethods
+                      .filter((m) => m.kind === "credit-card" || m.kind === "debit-card")
+                      .map((method) => {
+                        const brandMeta = getCardBrandMeta(method.masked);
+                        const isExpanded = expandedCardId === method.id;
+                        const isBusy = busyMethod?.includes(method.name);
+                        const cvvVal = savedCardCvv[method.id] || "";
+
+                        return (
+                          <div
+                            key={method.id}
+                            className="p-3.5 hover:bg-emerald-50/30 transition-colors space-y-2.5"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${brandMeta.bg} text-white font-black text-[10px] shadow-2xs`}>
+                                  {brandMeta.label}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs sm:text-[13px] font-black text-zinc-900 truncate">
+                                      {method.name}
+                                    </p>
+                                    {method.isDefault && (
+                                      <span className="bg-zinc-100 text-zinc-600 text-[9px] font-bold px-1.5 py-0.2 rounded">
+                                        Default
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] font-mono font-bold text-zinc-500">
+                                    {method.masked}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                {!isExpanded ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedCardId(method.id)}
+                                    className="px-3 py-1.5 rounded-xl bg-emerald-50 text-[#0c831f] border border-emerald-300 hover:bg-emerald-100 active:scale-95 font-black text-xs transition cursor-pointer"
+                                  >
+                                    Pay ₹{grandTotal}
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={(e) => void handleRemoveSavedMethod(method.id, e)}
+                                  title="Remove saved card"
+                                  className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Inline CVV input for instant authentication */}
+                            {isExpanded && (
+                              <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                                <div className="flex items-center gap-2">
+                                  <label htmlFor={`cvv-${method.id}`} className="text-[10px] font-black uppercase text-zinc-500">
+                                    CVV
+                                  </label>
+                                  <input
+                                    id={`cvv-${method.id}`}
+                                    type="password"
+                                    maxLength={4}
+                                    placeholder="•••"
+                                    value={cvvVal}
+                                    onChange={(e) =>
+                                      setSavedCardCvv((prev) => ({
+                                        ...prev,
+                                        [method.id]: e.target.value.replace(/\D/g, ""),
+                                      }))
+                                    }
+                                    className="w-16 px-2.5 py-1.5 rounded-lg border border-zinc-300 bg-zinc-50 text-center font-mono font-black text-xs focus:bg-white focus:border-[#0c831f] focus:outline-none"
+                                  />
+                                  <span className="text-[10px] text-zinc-400">3 or 4 digits</span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={Boolean(busyMethod) || cvvVal.length < 3}
+                                  onClick={() => void handlePaySavedCard(method)}
+                                  className="px-4 py-2 rounded-xl bg-[#0c831f] hover:bg-[#09731b] active:scale-95 text-white font-black text-xs transition cursor-pointer flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+                                >
+                                  {isBusy ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Lock className="size-3 stroke-[2.5]" />
+                                      <span>Authenticate &amp; Pay ₹{grandTotal}</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
 

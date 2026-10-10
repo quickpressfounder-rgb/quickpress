@@ -78,9 +78,9 @@ export function loadRazorpayCheckout(): Promise<RazorpayConstructor> {
 }
 
 export type CheckoutProfile = {
-  name?: string;
-  email?: string;
-  contact?: string;
+  name?: string | undefined;
+  email?: string | undefined;
+  contact?: string | undefined;
 };
 
 declare global {
@@ -101,20 +101,20 @@ export type CheckoutCardDetails = {
   expiryMonth: string;
   expiryYear: string;
   cvv: string;
-  name?: string;
+  name?: string | undefined;
 };
 
 export type CheckoutOptions = {
-  description?: string;
-  profile?: CheckoutProfile;
-  themeColor?: string;
-  appName?: string;
-  preferredMethod?: "upi" | "card" | "netbanking" | "wallet";
-  upiAppPackage?: string;
-  vpa?: string;
-  bank?: string;
-  wallet?: string;
-  card?: CheckoutCardDetails;
+  description?: string | undefined;
+  profile?: CheckoutProfile | undefined;
+  themeColor?: string | undefined;
+  appName?: string | undefined;
+  preferredMethod?: "upi" | "card" | "netbanking" | "wallet" | undefined;
+  upiAppPackage?: string | undefined;
+  vpa?: string | undefined;
+  bank?: string | undefined;
+  wallet?: string | undefined;
+  card?: CheckoutCardDetails | undefined;
 };
 
 /**
