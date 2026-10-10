@@ -1,16 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
   AlertCircle,
-  Building2,
   Compass,
-  MapPin,
   MapPinOff,
   RefreshCw,
   Search,
 } from "lucide-react";
 
 import type { SavedLocation } from "@/api/customer/location";
-import { changeLocation } from "@/api/customer/services/location-service";
 
 export type ServicesUnavailableViewProps = {
   location?: SavedLocation | null;
@@ -22,10 +19,8 @@ export type ServicesUnavailableViewProps = {
 
 export function ServicesUnavailableView({
   location,
-  nearbyAreas = [],
   onRetry,
   isRetrying = false,
-  onSelectArea,
 }: ServicesUnavailableViewProps) {
   const navigate = useNavigate();
 
@@ -33,25 +28,6 @@ export function ServicesUnavailableView({
   const displayArea = location?.area || "Current Location";
   const displayCity = location?.city || "";
   const displayState = location?.state || "";
-
-  // Filter only valid non-empty live cities
-  const liveAdminCities = Array.from(
-    new Set((nearbyAreas || []).filter((c) => c && c.trim().length > 0)),
-  );
-
-  const handleChooseLiveCity = (cityName: string) => {
-    if (onSelectArea) {
-      onSelectArea(cityName);
-    } else {
-      const updated: SavedLocation = {
-        area: cityName,
-        city: cityName,
-        state: "",
-      };
-      changeLocation(updated);
-      if (onRetry) void onRetry();
-    }
-  };
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-8 md:max-w-lg md:py-12 animate-in fade-in duration-300">
@@ -104,39 +80,6 @@ export function ServicesUnavailableView({
             </div>
           </div>
         </div>
-
-        {/* Live Admin Operational Cities Only */}
-        {liveAdminCities.length > 0 ? (
-          <div className="mt-6 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4">
-            <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-2xs">
-                <Building2 className="size-3.5 stroke-[2.2]" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black uppercase tracking-wider text-emerald-900">
-                  Live Operational Cities
-                </p>
-                <p className="text-[11px] font-medium text-emerald-700">
-                  Services are currently live in:
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {liveAdminCities.map((city) => (
-                <button
-                  key={city}
-                  type="button"
-                  onClick={() => handleChooseLiveCity(city)}
-                  className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-white px-3.5 py-1.5 text-xs font-black text-emerald-900 shadow-2xs transition-all hover:bg-emerald-600 hover:text-white active:scale-95"
-                >
-                  <MapPin className="size-3 text-emerald-600" />
-                  <span>{city}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
 
         {/* Primary Action Buttons */}
         <div className="mt-6 space-y-2.5">
