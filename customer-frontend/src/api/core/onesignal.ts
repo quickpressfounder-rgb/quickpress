@@ -7,9 +7,18 @@
  * 3. Synchronization of subscription IDs with FastAPI Backend.
  */
 
-export const ONESIGNAL_APP_ID =
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_ONESIGNAL_APP_ID) ||
-  "184bda82-7c5b-4319-a977-4fcffbcca270";
+function readEnvAppId(): string {
+  try {
+    const val = (import.meta as any).env?.VITE_ONESIGNAL_APP_ID;
+    return typeof val === "string" ? val.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+let activeAppId: string = readEnvAppId();
+
+export const ONESIGNAL_APP_ID = activeAppId;
 
 declare global {
   interface Window {
@@ -21,18 +30,36 @@ declare global {
 let isInitialized = false;
 
 export function isOneSignalEnabled(): boolean {
+  const currentId = activeAppId || readEnvAppId();
   return Boolean(
     typeof window !== "undefined" &&
-      ONESIGNAL_APP_ID &&
-      ONESIGNAL_APP_ID.trim().length > 10
+      currentId &&
+      currentId.length > 10
   );
 }
 
 /**
- * Initializes OneSignal Web SDK safely if enabled.
+ * Initializes OneSignal Web SDK safely using environment variables or backend config.
  */
-export function initOneSignal(): void {
-  if (!isOneSignalEnabled() || isInitialized) return;
+export async function initOneSignal(): Promise<void> {
+  if (typeof window === "undefined" || isInitialized) return;
+
+  if (!activeAppId) {
+    activeAppId = readEnvAppId();
+  }
+
+  // If not configured in client environment, dynamically resolve from backend endpoint
+  if (!activeAppId) {
+    try {
+      const res = await fetch("/api/notifications/onesignal/config");
+      const data = await res.json();
+      if (data?.appId) {
+        activeAppId = String(data.appId).trim();
+      }
+    } catch {}
+  }
+
+  if (!activeAppId || activeAppId.length <= 10) return;
   isInitialized = true;
 
   // Dynamically load OneSignal Web SDK v16 script if not already in document
@@ -49,7 +76,7 @@ export function initOneSignal(): void {
     try {
       if (!OneSignal || typeof OneSignal.init !== "function") return;
       await OneSignal.init({
-        appId: ONESIGNAL_APP_ID,
+        appId: activeAppId,
         allowLocalhostAsSecureOrigin: true,
         notifyButton: {
           enable: false,

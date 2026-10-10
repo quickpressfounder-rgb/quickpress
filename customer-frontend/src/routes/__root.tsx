@@ -165,13 +165,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const envApiBase =
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
+    "https://quickpress-api-production.up.railway.app";
+
   return (
     <html lang="en" className="bg-white" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: 'https://quickpress-api-production.up.railway.app' };
+              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: '${envApiBase}' };
               (function() {
                 if (window.__qp_fetch_patched) return;
                 window.__qp_fetch_patched = true;
@@ -179,11 +183,11 @@ function RootShell({ children }: { children: ReactNode }) {
                 window.fetch = function(input, init) {
                   if (typeof input === 'string') {
                     input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                    if (input.startsWith('/api/')) { input = 'https://quickpress-api-production.up.railway.app' + input; }
+                    if (input.startsWith('/api/')) { input = '${envApiBase}' + input; }
                   } else if (input && input.url) {
                     try {
                       var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                      if (newUrl.startsWith('/api/')) { newUrl = 'https://quickpress-api-production.up.railway.app' + newUrl; }
+                      if (newUrl.startsWith('/api/')) { newUrl = '${envApiBase}' + newUrl; }
                       input = new Request(newUrl, input);
                     } catch(e) {}
                   }
