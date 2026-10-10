@@ -109,25 +109,25 @@ function PartnerSplashScreen() {
           <div className="flex items-center gap-2">
             <h1 className="text-[3rem] font-black leading-none tracking-[-0.05em] sm:text-[3.75rem] text-[#111827]">
               <span>Quick</span>
-              <span className="text-[#16A34A]">Press</span>
+              <span className="text-primary">Press</span>
             </h1>
-            <span className="rounded-full bg-[#111827] px-2.5 py-0.5 text-[11px] font-black tracking-widest text-[#F4B400] uppercase shadow-sm">
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-black tracking-widest text-primary uppercase shadow-sm border border-primary/20">
               PARTNER
             </span>
           </div>
 
-          <span className="splash-rise relative mt-3 block h-[3px] w-28 overflow-hidden rounded-full bg-[#F4B400]/25">
-            <span className="brand-sweep absolute inset-y-0 left-0 w-1/2 rounded-full bg-gradient-to-r from-transparent via-[#F4B400] to-transparent" />
+          <span className="splash-rise relative mt-3 block h-[3px] w-28 overflow-hidden rounded-full bg-primary/20">
+            <span className="brand-sweep absolute inset-y-0 left-0 w-1/2 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent" />
           </span>
 
           <p className="splash-rise mt-3 text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-500">
-            Laundry <span className="text-[#F4B400]">·</span> Pickup{" "}
-            <span className="text-[#F4B400]">·</span> Delivery
+            Laundry <span className="text-primary">·</span> Pickup{" "}
+            <span className="text-primary">·</span> Delivery
           </p>
 
           {/* Animated progressive loading bar */}
           <span className="splash-rise mt-8 block h-1.5 w-32 overflow-hidden rounded-full bg-zinc-200/80 border border-zinc-300/60 shadow-inner">
-            <span className="splash-bar block h-full w-1/3 rounded-full bg-gradient-to-r from-[#F4B400] to-[#16A34A]" />
+            <span className="splash-bar block h-full w-1/3 rounded-full bg-gradient-to-r from-primary to-sky-400" />
           </span>
         </div>
       </div>

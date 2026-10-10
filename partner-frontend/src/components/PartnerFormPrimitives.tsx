@@ -31,7 +31,7 @@ export function StepProgress({
         <p className="text-[0.68rem] font-bold uppercase tracking-widest text-zinc-500">
           Step {current + 1} of {steps.length}
         </p>
-        <p className="text-[0.75rem] font-black tracking-tight text-emerald-600">
+        <p className="text-[0.75rem] font-black tracking-tight text-primary">
           {Math.round(pct)}% Complete
         </p>
       </div>
@@ -39,7 +39,7 @@ export function StepProgress({
 
       <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
         <div
-          className="h-full rounded-full bg-[#F4B400] transition-all duration-500 ease-out shadow-xs"
+          className="h-full rounded-full bg-primary transition-all duration-500 ease-out shadow-xs"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -53,9 +53,9 @@ export function StepProgress({
             aria-label={`Go to ${label}`}
             className={`h-1.5 flex-1 min-w-[20px] rounded-full transition-all duration-300 cursor-pointer ${
               index < current
-                ? "bg-emerald-500 hover:opacity-80"
+                ? "bg-primary/60 hover:opacity-80"
                 : index === current
-                  ? "bg-[#F4B400]"
+                  ? "bg-primary"
                   : "bg-zinc-200 hover:bg-zinc-300"
             }`}
           />
@@ -94,7 +94,7 @@ export function FormField({
         {label}
       </label>
       <div
-        className={`flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 shadow-xs transition-all focus-within:border-[#F4B400] focus-within:ring-2 focus-within:ring-[#F4B400]/20 ${
+        className={`flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 shadow-xs transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 ${
           error ? "border-red-500 bg-red-50/20" : "border-zinc-200"
         }`}
       >
@@ -155,7 +155,7 @@ export function TextAreaField({
         {action}
       </div>
       <div
-        className={`rounded-2xl border bg-white px-4 py-3 shadow-xs transition-all focus-within:border-[#F4B400] focus-within:ring-2 focus-within:ring-[#F4B400]/20 ${
+        className={`rounded-2xl border bg-white px-4 py-3 shadow-xs transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 ${
           error ? "border-red-500 bg-red-50/20" : "border-zinc-200"
         }`}
       >
@@ -203,7 +203,7 @@ export function SelectField({
         {label}
       </label>
       <div
-        className={`flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 shadow-xs transition-all focus-within:border-[#F4B400] focus-within:ring-2 focus-within:ring-[#F4B400]/20 ${
+        className={`flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 shadow-xs transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 ${
           error ? "border-red-500 bg-red-50/20" : "border-zinc-200"
         }`}
       >
@@ -267,7 +267,7 @@ export function SliderField({
         max={max}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-zinc-200 accent-[#F4B400]"
+        className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-zinc-200 accent-primary"
       />
       <div className="flex justify-between text-[10px] font-bold text-zinc-400 px-1">
         <span>{min} {unit}</span>
@@ -537,8 +537,8 @@ export function GalleryUploader({
         })}
 
         {currentImages.length < max ? (
-          <label className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-zinc-300 bg-white text-center transition-all hover:border-[#F4B400] hover:bg-amber-50/40 active:scale-[0.97]">
-            <Plus className="size-5 text-amber-700" />
+          <label className="flex h-24 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-zinc-300 bg-white text-center transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.97]">
+            <Plus className="size-5 text-primary" />
             <span className="text-xs font-bold text-zinc-700">Add Photo</span>
             <input
               type="file"

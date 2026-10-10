@@ -130,10 +130,10 @@ export function OtpVerificationScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#111827] flex flex-col justify-between font-sans selection:bg-[#F4B400]/30">
+    <div className="min-h-screen bg-white text-[#111827] flex flex-col justify-between font-sans selection:bg-primary/20">
       {/* Background Ambience / Clean Modern Glow */}
-      <div className="pointer-events-none fixed -top-32 left-1/2 size-[30rem] -translate-x-1/2 rounded-full bg-emerald-500/5 blur-3xl" />
-      <div className="pointer-events-none fixed -bottom-40 left-1/2 size-[26rem] -translate-x-1/2 rounded-full bg-emerald-600/5 blur-3xl" />
+      <div className="pointer-events-none fixed -top-32 left-1/2 size-[30rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl" />
+      <div className="pointer-events-none fixed -bottom-40 left-1/2 size-[26rem] -translate-x-1/2 rounded-full bg-sky-500/5 blur-3xl" />
 
       {/* ========================================================================= */}
       {/* MOBILE OTP SCREEN (< md)                                                  */}
@@ -150,7 +150,7 @@ export function OtpVerificationScreen() {
               <ArrowLeft className="size-4" />
             </button>
             <span className="text-sm font-black text-[#111827]">
-              Quick<span className="text-[#16A34A]">Press</span>
+              Quick<span className="text-primary">Press</span>
             </span>
           </div>
 
@@ -159,7 +159,7 @@ export function OtpVerificationScreen() {
           </div>
 
           <div className="mt-6 rounded-3xl border border-zinc-200/90 bg-white/95 backdrop-blur-md p-6 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.07)]">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-amber-100/80 text-amber-900 border border-amber-200 mb-3">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 mb-3">
               <KeyRound className="size-5" />
             </div>
             <h1 className="text-2xl font-black tracking-tight text-[#111827]">
@@ -209,7 +209,7 @@ export function OtpVerificationScreen() {
               <button
                 type="submit"
                 disabled={busy || verified || digits.length !== 6}
-                className="btn-ripple mt-6 flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 font-black text-xs uppercase tracking-wider shadow-cta transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                className="btn-ripple mt-6 flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-xs uppercase tracking-wider shadow-md shadow-primary/20 transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
                 {busy ? (
                   <>
@@ -243,7 +243,7 @@ export function OtpVerificationScreen() {
 
         <div className="py-2 text-center">
           <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500">
-            <ShieldCheck className="size-3.5 text-[#16A34A]" />
+            <ShieldCheck className="size-3.5 text-primary" />
             <span>Encrypted Mobile Number Verification</span>
           </p>
         </div>
@@ -269,8 +269,8 @@ export function OtpVerificationScreen() {
         <main className="my-auto py-8 grid grid-cols-12 gap-10 items-center">
           {/* Left Security Highlights */}
           <div className="col-span-6 space-y-5 pr-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800 border border-emerald-200">
-              <ShieldCheck className="size-4 text-[#16A34A]" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary border border-primary/20">
+              <ShieldCheck className="size-4 text-primary" />
               <span>TWO-FACTOR ACCOUNT SECURITY</span>
             </div>
             <h2 className="text-4xl font-black leading-tight tracking-tight text-[#111827]">
@@ -291,7 +291,7 @@ export function OtpVerificationScreen() {
           <div className="col-span-6 flex justify-end">
             <div className="w-full max-w-md rounded-3xl border border-zinc-200/90 bg-white p-8 shadow-lg">
               <div className="mb-6">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">
                   Step 2 of 2
                 </span>
                 <h3 className="mt-3 text-2xl font-black tracking-tight text-[#111827]">
@@ -341,7 +341,7 @@ export function OtpVerificationScreen() {
                 <button
                   type="submit"
                   disabled={busy || verified || digits.length !== 6}
-                  className="flex w-full h-14 items-center justify-center gap-2 rounded-2xl bg-[#F4B400] font-black text-xs uppercase tracking-wider text-[#111827] shadow-sm transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  className="flex w-full h-14 items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark font-black text-xs uppercase tracking-wider text-white shadow-md shadow-primary/20 transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
                 >
                   {busy ? (
                     <>
@@ -376,7 +376,7 @@ export function OtpVerificationScreen() {
 
         <footer className="flex items-center justify-between border-t border-zinc-200/80 pt-6 text-xs text-zinc-500">
           <span>© 2026 QuickPress Technologies Inc.</span>
-          <span className="flex items-center gap-1 text-[#16A34A] font-semibold">
+          <span className="flex items-center gap-1 text-primary font-semibold">
             <CheckCircle2 className="size-3.5" /> Encrypted 256-Bit Authentication
           </span>
         </footer>

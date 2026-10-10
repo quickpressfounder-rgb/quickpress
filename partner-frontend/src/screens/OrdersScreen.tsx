@@ -129,8 +129,8 @@ export function OrdersScreen() {
                   onClick={() => setFilterTab(tab.id)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 ${
                     isActive
-                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-emerald-300"
+                      ? "bg-primary text-white shadow-sm shadow-primary/30"
+                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-primary/50"
                   }`}
                 >
                   <span>{tab.label}</span>
@@ -163,7 +163,7 @@ export function OrdersScreen() {
               <button
                 type="button"
                 onClick={isSearching ? resetSearch : () => void refresh()}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-black text-white shadow-sm shadow-emerald-600/25 active:scale-95 transition-all"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary-dark px-4 py-2 text-xs font-black text-white shadow-sm shadow-primary/25 active:scale-95 transition-all"
               >
                 <RotateCcw className="size-3" />
                 <span>{isSearching ? "Reset filter" : "Refresh Orders"}</span>
@@ -201,8 +201,8 @@ export function OrdersScreen() {
                   onClick={() => setFilterTab(tab.id)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 ${
                     isActive
-                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-emerald-300"
+                      ? "bg-primary text-white shadow-sm shadow-primary/30"
+                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-primary/50"
                   }`}
                 >
                   <span>{tab.label}</span>

@@ -573,13 +573,13 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       placeholder="e.g. 5387"
                       value={dispatchInputOtp}
                       onChange={(e) => setDispatchInputOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      className="w-32 rounded-xl border-2 border-emerald-400 bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-widest text-emerald-950 placeholder:text-zinc-300 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-xs"
+                      className="w-32 rounded-xl border-2 border-primary/40 bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-widest text-foreground placeholder:text-zinc-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
                     />
                     <button
                       type="button"
                       disabled={dispatchInputOtp.trim().length !== 4 || isVerifyingDispatch}
                       onClick={handleVerifyPartnerDispatch}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95"
                     >
                       {isVerifyingDispatch ? (
                         <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -1479,13 +1479,13 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                           placeholder="e.g. 5387"
                           value={dispatchInputOtp}
                           onChange={(e) => setDispatchInputOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          className="w-36 rounded-xl border-2 border-emerald-400 bg-white px-4 py-2.5 text-center font-mono text-xl font-black tracking-widest text-emerald-950 placeholder:text-zinc-300 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-xs"
+                          className="w-36 rounded-xl border-2 border-primary/40 bg-white px-4 py-2.5 text-center font-mono text-xl font-black tracking-widest text-foreground placeholder:text-zinc-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
                         />
                         <button
                           type="button"
                           disabled={dispatchInputOtp.trim().length !== 4 || isVerifyingDispatch}
                           onClick={handleVerifyPartnerDispatch}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-200 disabled:text-zinc-400 px-5 py-2.5 text-xs font-black text-white shadow-xs transition-all"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-zinc-200 disabled:text-zinc-400 px-5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95"
                         >
                           {isVerifyingDispatch ? (
                             <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

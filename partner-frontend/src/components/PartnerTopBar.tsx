@@ -58,7 +58,7 @@ export function PartnerLanguageAction() {
       type="button"
       aria-label="Change Language"
       onClick={openLanguageModal}
-      className="flex size-9 items-center justify-center rounded-xl bg-amber-50 border border-amber-300 text-amber-900 font-bold text-xs shadow-2xs hover:bg-amber-100 active:scale-95 transition-all cursor-pointer"
+      className="flex size-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-xs shadow-2xs hover:bg-primary/20 active:scale-95 transition-all cursor-pointer"
     >
       <span className="uppercase text-[11px] font-black">{language}</span>
     </button>

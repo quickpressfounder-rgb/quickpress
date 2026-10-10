@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "@/shared/lib/lovable-error-reporting";
 import { configureSessionRole } from "../api/core/session-store";
+import { initTheme } from "../lib/theme";
 import { PartnerProvider } from "../context/PartnerContext";
 import { PartnerOrdersProvider } from "../context/PartnerOrdersContext";
 import { PartnerServicesProvider } from "../context/PartnerServicesContext";
@@ -123,25 +124,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const envApiBase =
+    (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+    "https://quickpress-api-production.up.railway.app";
+
   return (
-    <html lang="en" className="bg-white" suppressHydrationWarning>
+    <html lang="en" className="bg-background text-foreground" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: 'https://quickpress-api-production.up.railway.app' };
+              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: '${envApiBase}' };
               (function() {
                 if (window.__qp_fetch_patched) return;
                 window.__qp_fetch_patched = true;
                 var _origFetch = window.fetch;
+                var _base = '${envApiBase}';
                 window.fetch = function(input, init) {
                   if (typeof input === 'string') {
                     input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                    if (input.startsWith('/api/')) { input = 'https://quickpress-api-production.up.railway.app' + input; }
+                    if (input.startsWith('/api/')) { input = _base + input; }
                   } else if (input && input.url) {
                     try {
                       var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                      if (newUrl.startsWith('/api/')) { newUrl = 'https://quickpress-api-production.up.railway.app' + newUrl; }
+                      if (newUrl.startsWith('/api/')) { newUrl = _base + newUrl; }
                       input = new Request(newUrl, input);
                     } catch(e) {}
                   }
@@ -153,7 +160,7 @@ function RootShell({ children }: { children: ReactNode }) {
         />
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-white text-foreground antialiased selection:bg-primary/20" suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20" suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
@@ -163,6 +170,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Initialize theme runtime (strictly defaults to light)
+  useEffect(() => {
+    return initTheme();
+  }, []);
 
   // Handles Android hardware back button and swipe back gestures gracefully step-by-step
   useBackNavigation();

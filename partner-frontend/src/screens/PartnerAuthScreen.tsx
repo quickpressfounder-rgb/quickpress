@@ -46,25 +46,25 @@ const BENEFIT_CARDS = [
     icon: ShoppingBag,
     title: "More Orders",
     desc: "Get customers from your local area effortlessly.",
-    color: "bg-amber-400/15 text-amber-600",
+    color: "bg-blue-500/15 text-blue-600",
   },
   {
     icon: Sliders,
     title: "Easy Service Management",
     desc: "Manage your laundry services, rates and active pricing.",
-    color: "bg-emerald-500/15 text-emerald-600",
+    color: "bg-sky-500/15 text-sky-600",
   },
   {
     icon: Coins,
     title: "Real-time Earnings",
     desc: "Track daily orders, gross revenue and weekly bank payouts.",
-    color: "bg-blue-500/15 text-blue-600",
+    color: "bg-indigo-500/15 text-indigo-600",
   },
   {
     icon: BarChart3,
     title: "Business Growth",
     desc: "Understand your operational performance with clear analytics.",
-    color: "bg-purple-500/15 text-purple-600",
+    color: "bg-cyan-500/15 text-cyan-600",
   },
 ];
 
@@ -189,10 +189,10 @@ export function PartnerAuthScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#111827] flex flex-col justify-between font-sans selection:bg-[#F4B400]/30">
+    <div className="min-h-screen bg-white text-[#111827] flex flex-col justify-between font-sans selection:bg-primary/20">
       {/* Background Ambience / Clean Modern Glow */}
-      <div className="pointer-events-none fixed -top-32 left-1/2 size-[30rem] -translate-x-1/2 rounded-full bg-emerald-500/5 blur-3xl" />
-      <div className="pointer-events-none fixed -bottom-40 left-1/2 size-[26rem] -translate-x-1/2 rounded-full bg-emerald-600/5 blur-3xl" />
+      <div className="pointer-events-none fixed -top-32 left-1/2 size-[30rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl" />
+      <div className="pointer-events-none fixed -bottom-40 left-1/2 size-[26rem] -translate-x-1/2 rounded-full bg-sky-500/5 blur-3xl" />
 
       {/* ========================================================================= */}
       {/* MOBILE EXPERIENCE (< 1024px)                                              */}
@@ -278,7 +278,7 @@ export function PartnerAuthScreen() {
               <button
                 type="submit"
                 disabled={busy || sent || value.length < 10}
-                className="btn-ripple flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-950 font-black text-sm uppercase tracking-wider shadow-cta transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                className="btn-ripple flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-sm uppercase tracking-wider shadow-md shadow-primary/20 transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
               >
                 {busy ? (
                   <>
@@ -327,7 +327,7 @@ export function PartnerAuthScreen() {
                 <button
                   type="button"
                   onClick={() => navigate({ to: partnerRoutes.registration })}
-                  className="font-black text-emerald-700 hover:text-emerald-800 hover:underline block sm:inline mt-1 sm:mt-0 cursor-pointer"
+                  className="font-black text-primary hover:text-primary-dark hover:underline block sm:inline mt-1 sm:mt-0 cursor-pointer"
                 >
                   Become a QuickPress Partner →
                 </button>
@@ -339,7 +339,7 @@ export function PartnerAuthScreen() {
         {/* Bottom Security Footer */}
         <div className="py-2 text-center">
           <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500">
-            <ShieldCheck className="size-3.5 text-[#16A34A]" />
+            <ShieldCheck className="size-3.5 text-primary" />
             <span>Secure 256-bit Encrypted Partner Portal</span>
           </p>
         </div>
@@ -368,7 +368,7 @@ export function PartnerAuthScreen() {
               href="tel:18002008899"
               className="flex items-center gap-1.5 text-xs font-bold text-zinc-600 hover:text-zinc-900"
             >
-              <Headphones className="size-4 text-[#16A34A]" />
+              <Headphones className="size-4 text-primary" />
               <span>Help: 1800-200-8899</span>
             </a>
           </div>
@@ -413,7 +413,7 @@ export function PartnerAuthScreen() {
 
             {/* Bottom Left Trust Guarantee */}
             <div className="flex items-center gap-3 pt-2 border-t border-zinc-200/80">
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-[#16A34A] shrink-0 border border-emerald-200">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0 border border-primary/20">
                 <ShieldCheck className="size-5" />
               </div>
               <div>
@@ -487,7 +487,7 @@ export function PartnerAuthScreen() {
                 <button
                   type="submit"
                   disabled={busy || sent || value.length < 10}
-                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#F4B400] text-[#111827] font-black text-sm uppercase tracking-wider shadow-sm transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-sm uppercase tracking-wider shadow-md shadow-primary/20 transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                 >
                   {busy ? (
                     <>
@@ -536,7 +536,7 @@ export function PartnerAuthScreen() {
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.registration })}
-                    className="font-black text-emerald-700 hover:underline cursor-pointer ml-1"
+                    className="font-black text-primary hover:text-primary-dark hover:underline cursor-pointer ml-1"
                   >
                     Become a QuickPress Partner
                   </button>
@@ -546,7 +546,7 @@ export function PartnerAuthScreen() {
               {/* Security Section Below Card */}
               <div className="mt-5 pt-3 border-t border-dashed border-zinc-200/80 text-center">
                 <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500">
-                  <ShieldCheck className="size-3.5 text-[#16A34A]" />
+                  <ShieldCheck className="size-3.5 text-primary" />
                   <span>🔒 Secure Partner Access · Your business data is protected</span>
                 </p>
               </div>

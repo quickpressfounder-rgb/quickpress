@@ -365,8 +365,8 @@ export function ZomatoHubView() {
                 onClick={() => setActiveFilterTab(tab.id)}
                 className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                   isActive
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 scale-102"
-                    : "border border-slate-200/90 bg-white text-slate-700 hover:border-emerald-300 dark:bg-card dark:border-border/80 dark:text-zinc-300"
+                    ? "bg-primary text-white shadow-md shadow-primary/30 scale-102"
+                    : "border border-slate-200/90 bg-white text-slate-700 hover:border-primary/40 dark:bg-card dark:border-border/80 dark:text-zinc-300"
                 }`}
               >
                 <span>{tab.label}</span>
@@ -453,7 +453,7 @@ export function ZomatoHubView() {
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.orders })}
-              className="text-xs font-black text-emerald-700 hover:underline flex items-center gap-1"
+              className="text-xs font-black text-primary hover:text-primary-dark hover:underline flex items-center gap-1"
             >
               View all orders <ArrowRight className="size-3.5" />
             </button>
@@ -481,7 +481,7 @@ export function ZomatoHubView() {
                       if (target.closest("button, a, input")) return;
                       navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
                     }}
-                    className="rounded-3xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md cursor-pointer space-y-3.5"
+                    className="rounded-3xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md cursor-pointer space-y-3.5"
                   >
                     {/* 1. TOP BAR: Order Code + Services + Status Badge */}
                     <div className="flex items-center justify-between gap-2">
@@ -490,7 +490,7 @@ export function ZomatoHubView() {
                           #{order.code}
                         </span>
                         {order.services && order.services.length > 0 ? (
-                          <span className="truncate rounded-lg bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                          <span className="truncate rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-1 text-[11px] font-bold text-primary">
                             {order.services.join(", ")}
                           </span>
                         ) : null}
@@ -729,7 +729,7 @@ export function ZomatoHubView() {
                           <button
                             type="button"
                             onClick={() => handleAction(order, "accept")}
-                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-emerald-600 bg-emerald-600 hover:bg-emerald-700 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-primary hover:bg-primary-dark py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
                           >
                             <Check className="size-3.5" />
                             <span>Accept</span>
@@ -744,7 +744,7 @@ export function ZomatoHubView() {
                         <button
                           type="button"
                           onClick={() => handleAction(order, "start_washing")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-emerald-600 bg-emerald-600 hover:bg-emerald-700 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-primary hover:bg-primary-dark py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
                         >
                           <span>Start Cleaning 🧺</span>
                           <ArrowRight className="size-3.5" />
@@ -753,7 +753,7 @@ export function ZomatoHubView() {
                         <button
                           type="button"
                           onClick={() => handleAction(order, "mark_ready")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-emerald-500 bg-gradient-to-r from-amber-500 to-emerald-600 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-gradient-to-r from-primary to-sky-500 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
                         >
                           <span>Mark Ready ✨</span>
                           <ArrowRight className="size-3.5" />
@@ -765,7 +765,7 @@ export function ZomatoHubView() {
                             setSelectedManageOrder(order);
                             setHubDispatchOtp("");
                           }}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-emerald-600 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-gradient-to-r from-primary to-sky-600 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
                         >
                           <ShieldCheck className="size-4" />
                           <span>Handover (OTP)</span>
@@ -854,28 +854,28 @@ export function ZomatoHubView() {
 
             {/* Dispatch OTP Verification Card for Handover to Captain */}
             {(selectedManageOrder.stage === "ready" || selectedManageOrder.stage === "dispatch_otp_pending" || selectedManageOrder.status === "ready_for_delivery") && (
-              <div className="mt-4 rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-50 to-white p-4 shadow-sm">
+              <div className="mt-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-white p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="flex size-7 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded-xl bg-primary text-white shadow-xs">
                       <ShieldCheck className="size-4" />
                     </div>
                     <div>
-                      <span className="text-[11px] font-black uppercase tracking-wider text-emerald-950 block">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-foreground block">
                         Captain Handover Verification
                       </span>
-                      <span className="text-[10px] font-bold text-emerald-700">
+                      <span className="text-[10px] font-bold text-primary">
                         कैप्टन को कपड़े सौंपने हेतु ओटीपी दर्ज करें
                       </span>
                     </div>
                   </div>
-                  <span className="rounded-full bg-emerald-600/15 px-2.5 py-0.5 text-[9px] font-black text-emerald-800">
+                  <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[9px] font-black text-primary">
                     Mandatory OTP
                   </span>
                 </div>
 
                 <p className="mt-2 text-xs font-semibold text-zinc-700 leading-relaxed">
-                  Ask the arriving Delivery Captain for their <strong className="text-emerald-900 font-black">4-digit Dispatch OTP</strong> shown in their app to handover clean laundry:
+                  Ask the arriving Delivery Captain for their <strong className="text-primary font-black">4-digit Dispatch OTP</strong> shown in their app to handover clean laundry:
                 </p>
 
                 {/* 4-Digit Numeric OTP Input + Handover Button */}
@@ -888,13 +888,13 @@ export function ZomatoHubView() {
                     placeholder="e.g. 5387"
                     value={hubDispatchOtp}
                     onChange={(e) => setHubDispatchOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    className="w-32 rounded-xl border-2 border-emerald-400 bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-widest text-emerald-950 placeholder:text-zinc-300 placeholder:text-xs placeholder:font-sans focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-xs"
+                    className="w-32 rounded-xl border-2 border-primary/40 bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-widest text-foreground placeholder:text-zinc-300 placeholder:text-xs placeholder:font-sans focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
                   />
                   <button
                     type="button"
                     disabled={hubDispatchOtp.trim().length !== 4 || isVerifyingHubDispatch}
                     onClick={handleHubVerifyDispatch}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95"
                   >
                     {isVerifyingHubDispatch ? (
                       <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
