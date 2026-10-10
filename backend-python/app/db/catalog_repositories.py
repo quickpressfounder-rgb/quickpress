@@ -347,6 +347,14 @@ class CatalogRepository:
         sort: str = "recommended",
     ) -> List[PartnerCardResponse]:
         """GET /api/partners — filtered, sorted and searched live partner cards."""
+        cache_key = f"catalog:partner_cards:{city or ''}:{area or ''}:{q or ''}:{sort}:{open_now}:{offers_only}:{round(lat, 2) if lat else ''}:{round(lng, 2) if lng else ''}"
+        cached = await hybrid_cache.get(cache_key)
+        if cached is not None and isinstance(cached, list):
+            try:
+                return [PartnerCardResponse(**item) for item in cached]
+            except Exception:
+                pass
+
         profiles = await self._approved_partner_profiles()
         cards: List[PartnerCardResponse] = []
 
@@ -475,7 +483,9 @@ class CatalogRepository:
         if open_now:
             cards = [card for card in cards if card.open]
 
-        return _sort_cards(cards, sort)
+        sorted_cards = _sort_cards(cards, sort)
+        await hybrid_cache.set(cache_key, [c.model_dump() for c in sorted_cards], ttl_seconds=60)
+        return sorted_cards
 
     async def partners(
         self,

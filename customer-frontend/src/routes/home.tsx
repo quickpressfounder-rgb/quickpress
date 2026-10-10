@@ -240,7 +240,15 @@ function HomeScreen() {
   }, [location?.city, location?.area, location?.latitude, location?.longitude]);
 
   const nearbyAreas = availability?.nearbyAreas ?? [];
-  const isServicesUnavailable = availability ? availability.available === false : false;
+  const isServicesUnavailable = useMemo(() => {
+    // If active partners are present, services are DEFINITELY available
+    if (partners.length > 0) return false;
+    // If partners finished loading, user has a city, and there are 0 partners: show unavailable
+    if (!sections.partners.loading && location?.city && partners.length === 0) return true;
+    // If availability API explicitly confirmed unavailability
+    if (availability && availability.available === false) return true;
+    return false;
+  }, [partners.length, sections.partners.loading, location?.city, availability]);
 
   // Header badge stays live: the notifications screen broadcasts every
   // read/delete so the count updates without a home refetch.

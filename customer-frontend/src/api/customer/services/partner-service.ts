@@ -53,12 +53,24 @@ export function fetchNearbyPartners(query: NearbyPartnerQuery = {}) {
   });
 }
 
+const AVAILABILITY_CACHE = new Map<string, { data: LocationAvailabilityResult; timestamp: number }>();
+const AVAILABILITY_CACHE_TTL = 30_000;
+
 /** Check real-time service availability for customer's location. */
 export async function checkLocationAvailability(
   location: SavedLocation,
   signal?: AbortSignal,
 ): Promise<LocationAvailabilityResult> {
-  return apiGet<LocationAvailabilityResult>(API_ENDPOINTS.checkLocationAvailability, {
+  const cityKey = (location.city || "").trim().toLowerCase();
+  const areaKey = (location.area || "").trim().toLowerCase();
+  const cacheKey = `${cityKey}:${areaKey}:${location.latitude ?? ""}:${location.longitude ?? ""}`;
+
+  const cached = AVAILABILITY_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < AVAILABILITY_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const result = await apiGet<LocationAvailabilityResult>(API_ENDPOINTS.checkLocationAvailability, {
     signal,
     params: {
       city: location.city || undefined,
@@ -67,6 +79,11 @@ export async function checkLocationAvailability(
       lng: location.longitude ?? undefined,
     },
   });
+
+  if (result) {
+    AVAILABILITY_CACHE.set(cacheKey, { data: result, timestamp: Date.now() });
+  }
+  return result;
 }
 
 export type WaitlistPayload = {

@@ -46,7 +46,7 @@ export function ServicesUnavailableView({
       const updated: SavedLocation = {
         area: cityName,
         city: cityName,
-        state: "Uttar Pradesh",
+        state: "",
       };
       changeLocation(updated);
       if (onRetry) void onRetry();

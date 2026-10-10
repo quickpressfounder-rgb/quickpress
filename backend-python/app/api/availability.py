@@ -12,6 +12,7 @@ banner, the service card and the reorder sheet share one renderer.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -76,65 +77,68 @@ async def check_location_availability(
     lat: Optional[float] = Query(default=None),
     lng: Optional[float] = Query(default=None),
 ):
-    """Strictly evaluates real partner & service availability based on Admin-approved cities."""
+    """Strictly evaluates real partner & service availability based on Admin-approved cities and active partners."""
     clean_city = (city or "").strip()
     clean_area = (area or "").strip()
 
-    # 1. Fetch admin-approved live cities from MongoDB
-    admin_cities = await database.find_many("admin_cities")
+    # Parallel I/O: Fetch admin cities and live partners concurrently
+    admin_cities_task = database.find_many("admin_cities")
+    partners_task = catalog.partners(
+        city=clean_city if clean_city else None,
+        area=clean_area if clean_area else None,
+        lat=lat,
+        lng=lng,
+        limit=20,
+    )
+    all_partners_task = catalog.partners(limit=50)
+
+    admin_cities, partners, all_partners = await asyncio.gather(
+        admin_cities_task,
+        partners_task,
+        all_partners_task,
+    )
+
     approved_live_cities = [
         str(c.get("city") or c.get("name") or "").strip().lower()
-        for c in admin_cities
+        for c in (admin_cities or [])
         if str(c.get("status") or "").strip().lower() in ("live", "active", "approved")
     ]
 
-    # 2. Check if requested city / area is admin-approved
-    is_city_approved = False
-    if clean_city:
-        is_city_approved = any(
-            ac in clean_city.lower() or clean_city.lower() in ac for ac in approved_live_cities
-        )
-    elif clean_area:
-        is_city_approved = any(
-            ac in clean_area.lower() for ac in approved_live_cities
-        )
-    else:
-        is_city_approved = False
-
     matched_partners = []
-    if is_city_approved:
-        partners = await catalog.partners(
-            city=clean_city if clean_city else None,
-            area=clean_area if clean_area else None,
-            lat=lat,
-            lng=lng,
-            limit=20,
-        )
+    if clean_city:
+        matched_partners = [
+            p
+            for p in (partners or [])
+            if clean_city.lower() in p.city.lower()
+            or clean_city.lower() in p.area.lower()
+            or (clean_area and clean_area.lower() in p.area.lower())
+        ]
+        if not matched_partners and clean_area:
+            matched_partners = [p for p in (partners or []) if clean_area.lower() in p.area.lower()]
+    elif clean_area:
+        matched_partners = [p for p in (partners or []) if clean_area.lower() in p.area.lower()]
+    else:
+        matched_partners = partners or []
 
-        if clean_city:
-            matched_partners = [
-                p
-                for p in partners
-                if clean_city.lower() in p.city.lower()
-                or clean_city.lower() in p.area.lower()
-                or (clean_area and clean_area.lower() in p.area.lower())
-            ]
-            if not matched_partners and clean_area:
-                matched_partners = [p for p in partners if clean_area.lower() in p.area.lower()]
-        else:
-            matched_partners = partners
+    # If city is specified, availability depends directly on having serviceable partners
+    if clean_city:
+        is_available = len(matched_partners) > 0
+    else:
+        is_available = True
 
-        # Strictly keep matched partners for this city only
-
-    # 3. Real nearby serviceable areas ONLY from approved Live cities in Admin Panel
-    live_city_names = [
+    # Real nearby serviceable areas from live Admin cities + cities with active partners
+    partner_cities = [
+        p.city.strip()
+        for p in (all_partners or [])
+        if p.city and p.city.strip()
+    ]
+    admin_city_names = [
         str(c.get("city") or c.get("name") or "").strip()
-        for c in admin_cities
+        for c in (admin_cities or [])
         if str(c.get("status") or "").strip().lower() in ("live", "active")
         and str(c.get("city") or c.get("name") or "").strip()
     ]
-    nearby_areas = sorted(list(set(live_city_names)))
-    is_available = is_city_approved
+    nearby_areas = sorted(list(set(admin_city_names + partner_cities)))
 
     return {
         "success": True,
@@ -145,7 +149,7 @@ async def check_location_availability(
         "location": {
             "area": clean_area,
             "city": clean_city,
-            "state": "Uttar Pradesh",
+            "state": "",
             "pincode": pincode or "",
             "lat": lat,
             "lng": lng,

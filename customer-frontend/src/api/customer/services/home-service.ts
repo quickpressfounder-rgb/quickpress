@@ -106,12 +106,29 @@ export function initialSections(): HomeSections {
   if (typeof window === "undefined") {
     return emptySections();
   }
+  const currentLoc = readLocation();
   const cachedProfile = readStaleCache<Profile>(CACHE_KEYS.profile);
-  const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location) || readLocation();
+  const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location) || currentLoc;
   const cachedBanners = readStaleCache<Banner[]>(CACHE_KEYS.banners);
   const cachedCategories = readStaleCache<Category[]>(CACHE_KEYS.categories) || DEFAULT_CATEGORIES;
-  const cachedPartners = readStaleCache<Partner[]>(CACHE_KEYS.partners);
-  const cachedPopular = readStaleCache<PopularService[]>(CACHE_KEYS.popular);
+
+  // City-scoped cache keys for partners and popular services
+  const cityKey = cachedLocation?.city ? cachedLocation.city.trim().toLowerCase() : "none";
+  const areaKey = cachedLocation?.area ? cachedLocation.area.trim().toLowerCase() : "none";
+  const partnerCacheKey = `${CACHE_KEYS.partners}:${cityKey}:${areaKey}`;
+  const cachedPartners =
+    readStaleCache<Partner[]>(partnerCacheKey as any) ||
+    readStaleCache<Partner[]>(CACHE_KEYS.partners);
+
+  const popParams = new URLSearchParams();
+  if (cachedLocation?.city) popParams.set("city", cachedLocation.city);
+  if (cachedLocation?.area) popParams.set("area", cachedLocation.area);
+  const popQuery = popParams.toString();
+  const popCacheKey = popQuery ? `${CACHE_KEYS.popular}:${popQuery}` : CACHE_KEYS.popular;
+  const cachedPopular =
+    readStaleCache<PopularService[]>(popCacheKey as any) ||
+    readStaleCache<PopularService[]>(CACHE_KEYS.popular);
+
   const cachedRecommendations = readStaleCache<Recommendation[]>(CACHE_KEYS.recommendations);
   const cachedOffers = readStaleCache<Offer[]>(CACHE_KEYS.offers);
   const cachedRecentOrders = readStaleCache<RecentOrder[]>(CACHE_KEYS.recentOrders);
@@ -163,13 +180,23 @@ export async function loadHome(options: LoadHomeOptions): Promise<void> {
   const { forceRefresh, signal, onSection } = options;
   const shared = { forceRefresh, signal } as const;
 
-  // Sab independent sections turant parallel me start hote hain; sirf partners
-  // location par depend karta hai, isliye wahi await hota hai.
+  const currentLoc = readLocation();
+
+  // All 10 sections fire IN PARALLEL at millisecond zero without waterfalls
   const profilePromise = settle("profile", fetchProfile(shared), onSection);
 
   const locationPromise = fetchLocation(shared).then(
     (location) => {
       onSection("location", { data: location, loading: false, error: null });
+      // If live location resolved differently from currentLoc, re-fetch partners & popular in background
+      if (
+        location &&
+        currentLoc &&
+        (location.city !== currentLoc.city || location.area !== currentLoc.area)
+      ) {
+        void settle("partners", fetchNearbyPartners({ ...shared, location }), onSection);
+        void settle("popular", fetchPopularServices({ ...shared, location }), onSection);
+      }
       return location;
     },
     () => {
@@ -178,24 +205,37 @@ export async function loadHome(options: LoadHomeOptions): Promise<void> {
     },
   );
 
-  const partnersPromise = locationPromise.then((location) =>
-    settle("partners", fetchNearbyPartners({ ...shared, location }), onSection),
+  // Directly start partners, popular and recentOrders using current location at millisecond zero!
+  const partnersPromise = settle(
+    "partners",
+    fetchNearbyPartners({ ...shared, location: currentLoc }),
+    onSection,
   );
 
-  const popularPromise = locationPromise.then((location) =>
-    settle("popular", fetchPopularServices({ ...shared, location }), onSection),
+  const popularPromise = settle(
+    "popular",
+    fetchPopularServices({ ...shared, location: currentLoc }),
+    onSection,
   );
+
+  const recentOrdersPromise = settle("recentOrders", fetchRecentOrders(shared), onSection);
+  const bannersPromise = settle("banners", fetchBanners(shared), onSection);
+  const categoriesPromise = settle("categories", fetchCategories(shared), onSection);
+  const recommendationsPromise = settle("recommendations", fetchRecommendations(shared), onSection);
+  const offersPromise = settle("offers", fetchOffers(shared), onSection);
+  const notificationsPromise = settle("notifications", fetchUnreadNotificationCount(shared), onSection);
 
   await Promise.all([
     profilePromise,
+    locationPromise,
     partnersPromise,
     popularPromise,
-    settle("banners", fetchBanners(shared), onSection),
-    settle("categories", fetchCategories(shared), onSection),
-    settle("recommendations", fetchRecommendations(shared), onSection),
-    settle("offers", fetchOffers(shared), onSection),
-    settle("recentOrders", fetchRecentOrders(shared), onSection),
-    settle("notifications", fetchUnreadNotificationCount(shared), onSection),
+    recentOrdersPromise,
+    bannersPromise,
+    categoriesPromise,
+    recommendationsPromise,
+    offersPromise,
+    notificationsPromise,
   ]);
 }
 

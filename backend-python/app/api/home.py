@@ -15,10 +15,14 @@ token; the catalog reads stay public so the Home screen renders for guests.
 from __future__ import annotations
 
 import asyncio
+import logging
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+logger = logging.getLogger(__name__)
 
 from app.core.deps import current_user
 from app.core.http_cache import (
@@ -392,10 +396,20 @@ def format_real_order_status(raw: str) -> str:
     return raw.replace("_", " ").title()
 
 
+_RECENT_ORDERS_CACHE: dict[str, tuple[float, list[dict]]] = {}
+_RECENT_ORDERS_TTL = 15.0
+
+
 @router.get("/orders/recent")
 async def get_recent_orders(user: Optional[User] = Depends(optional_user)) -> list[dict]:
     if not user:
         return []
+
+    cache_key = str(user.id)
+    now = time.monotonic()
+    cached = _RECENT_ORDERS_CACHE.get(cache_key)
+    if cached and (now - cached[0]) < _RECENT_ORDERS_TTL:
+        return cached[1]
 
     from app.db.client import database
     from app.db.order_repositories import COLLECTION
@@ -408,6 +422,7 @@ async def get_recent_orders(user: Optional[User] = Depends(optional_user)) -> li
             limit=5,
         )
         if not docs:
+            _RECENT_ORDERS_CACHE[cache_key] = (now, [])
             return []
 
         result = []
@@ -430,6 +445,7 @@ async def get_recent_orders(user: Optional[User] = Depends(optional_user)) -> li
                 "rawStatus": raw_status,
                 "total": float(grand_total),
             })
+        _RECENT_ORDERS_CACHE[cache_key] = (now, result)
         return result
     except Exception as e:
         logger.debug("Failed to fast-fetch recent orders: %s", e)
