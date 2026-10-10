@@ -141,11 +141,11 @@ export function useHomeData(): UseHomeData {
     });
   }, [load]);
 
-  // Auto-detect real live device GPS location on start if no location saved yet
+  // Auto-detect real live device GPS location on start if no valid city saved yet
   useEffect(() => {
     if (autoDetectTriggered.current) return;
     const saved = readLocation();
-    if (!saved) {
+    if (!saved || !saved.city || saved.area === "Current Location") {
       autoDetectTriggered.current = true;
       void useCurrentLocation();
     }

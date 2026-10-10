@@ -11,9 +11,22 @@ export type SavedLocation = {
 
 const KEY = "quickpress:location";
 
+export function isValidLocation(location: SavedLocation | null | undefined): boolean {
+  if (!location) return false;
+  const area = (location.area || "").trim();
+  const city = (location.city || "").trim();
+  // An unconfigured location has no city and either empty area or "Current Location"
+  if (!city && (!area || area.toLowerCase() === "current location")) return false;
+  return true;
+}
+
 export function saveLocation(location: SavedLocation) {
   if (typeof window === "undefined") return;
   try {
+    if (!isValidLocation(location)) {
+      window.localStorage.removeItem(KEY);
+      return;
+    }
     window.localStorage.setItem(KEY, JSON.stringify(location));
   } catch {
     /* storage unavailable */
@@ -24,7 +37,13 @@ export function readLocation(): SavedLocation | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as SavedLocation) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedLocation;
+    if (!isValidLocation(parsed)) {
+      window.localStorage.removeItem(KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -387,6 +406,7 @@ export async function getCurrentDeviceLocation(
  * without ever showing a wrong city from another state!
  */
 export async function detectIpLocation(): Promise<SavedLocation | null> {
+  // 1. Primary: BigDataCloud client reverse geocoding
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -396,12 +416,12 @@ export async function detectIpLocation(): Promise<SavedLocation | null> {
     clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
-      const city = data.city || data.locality || data.principalSubdivision || "";
-      const state = data.principalSubdivision || "";
-      const area = data.locality || city || "Current Location";
+      const city = (data.city || data.locality || data.principalSubdivision || "").trim();
+      const state = (data.principalSubdivision || "").trim();
+      const area = (data.locality || city || state || "").trim();
       if (city || state) {
         return {
-          area,
+          area: area || city,
           city,
           state,
           latitude: typeof data.latitude === "number" ? data.latitude : undefined,
@@ -409,9 +429,30 @@ export async function detectIpLocation(): Promise<SavedLocation | null> {
         };
       }
     }
-  } catch {
-    /* IP lookup unavailable */
-  }
+  } catch {}
+
+  // 2. High-speed secondary fallback: ipapi.co
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch("https://ipapi.co/json/", { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      const city = (data.city || "").trim();
+      const state = (data.region || "").trim();
+      if (city || state) {
+        return {
+          area: city || state,
+          city,
+          state,
+          latitude: typeof data.latitude === "number" ? data.latitude : undefined,
+          longitude: typeof data.longitude === "number" ? data.longitude : undefined,
+        };
+      }
+    }
+  } catch {}
+
   return null;
 }
 

@@ -255,8 +255,11 @@ function HomeScreen() {
     const area = (location.area || "").trim();
     const city = (location.city || "").trim();
 
+    if (!city && (!area || area.toLowerCase() === "current location")) {
+      return "Detecting live location…";
+    }
     if (!area || area.toLowerCase() === "current location") {
-      return city || "Current Location";
+      return city || "Detecting live location…";
     }
     if (!city || area.toLowerCase() === city.toLowerCase()) {
       return area;

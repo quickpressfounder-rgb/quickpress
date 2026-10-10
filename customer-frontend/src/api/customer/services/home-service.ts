@@ -108,7 +108,8 @@ export function initialSections(): HomeSections {
   }
   const currentLoc = readLocation();
   const cachedProfile = readStaleCache<Profile>(CACHE_KEYS.profile);
-  const cachedLocation = readStaleCache<SavedLocation>(CACHE_KEYS.location) || currentLoc;
+  const rawLoc = readStaleCache<SavedLocation>(CACHE_KEYS.location) || currentLoc;
+  const cachedLocation = (rawLoc && rawLoc.city && rawLoc.area !== "Current Location") ? rawLoc : null;
   const cachedBanners = readStaleCache<Banner[]>(CACHE_KEYS.banners);
   const cachedCategories = readStaleCache<Category[]>(CACHE_KEYS.categories) || DEFAULT_CATEGORIES;
 
@@ -136,7 +137,7 @@ export function initialSections(): HomeSections {
 
   return {
     profile: { data: cachedProfile, loading: !cachedProfile, error: null },
-    location: { data: cachedLocation, loading: false, error: null },
+    location: { data: cachedLocation, loading: !cachedLocation, error: null },
     banners: { data: cachedBanners, loading: !cachedBanners, error: null },
     categories: { data: cachedCategories, loading: false, error: null },
     partners: { data: cachedPartners, loading: !cachedPartners, error: null },
