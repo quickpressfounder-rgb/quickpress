@@ -18,6 +18,7 @@ import {
   razorpayMode,
   type CheckoutOutcome,
   type CheckoutProfile,
+  type CheckoutCardDetails,
 } from "../core/razorpay";
 import type {
   GatewayPayment,
@@ -157,8 +158,11 @@ export interface PayWithRazorpayInput {
   customerPhone?: string | undefined;
   customerEmail?: string | undefined;
   preferredMethod?: "upi" | "card" | "netbanking" | "wallet" | undefined;
+  upiAppPackage?: string | undefined;
   vpa?: string | undefined;
   bank?: string | undefined;
+  wallet?: string | undefined;
+  card?: CheckoutCardDetails | undefined;
 }
 
 /**
@@ -166,7 +170,8 @@ export interface PayWithRazorpayInput {
  * 1. Creates order on server with wallet allocation.
  * 2. If fully covered by wallet, bypasses checkout modal.
  * 3. Opens Razorpay standard checkout modal (Native Android SDK on APK, Web SDK on browser).
- * 4. Verifies HMAC-SHA256 signature server-to-server.
+ * 4. Supports direct 1-click Headless routing (Direct UPI Intent to PhonePe/GPay/Paytm, Bank Netbanking, Card 3DS).
+ * 5. Verifies HMAC-SHA256 signature server-to-server.
  */
 export async function payWithRazorpay(input: PayWithRazorpayInput): Promise<PayResult> {
   try {
@@ -195,8 +200,11 @@ export async function payWithRazorpay(input: PayWithRazorpayInput): Promise<PayR
       appName: "QuickPress",
       themeColor: "#0c831f",
       preferredMethod: input.preferredMethod,
+      upiAppPackage: input.upiAppPackage,
       vpa: input.vpa,
       bank: input.bank,
+      wallet: input.wallet,
+      card: input.card,
     });
 
     if (outcome.status === "dismissed") {

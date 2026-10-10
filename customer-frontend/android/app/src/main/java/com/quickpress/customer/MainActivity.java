@@ -335,6 +335,12 @@ public class MainActivity extends BridgeActivity implements PaymentResultWithDat
                                 if (options.has("key")) {
                                     checkout.setKeyID(options.getString("key"));
                                 }
+                                if (options.has("upi_app_package_name")) {
+                                    options.put("method", "upi");
+                                    if (!options.has("_[flow]")) {
+                                        options.put("_[flow]", "intent");
+                                    }
+                                }
                                 checkout.open(MainActivity.this, options);
                             } catch (Exception e) {
                                 sendRazorpayEvent("razorpay:error", -1, e.getMessage(), "{}");

@@ -287,12 +287,15 @@ export function BlinkitPaymentDrawer({
     }
   };
 
-  // Official Real Razorpay Live SDK Payment Runner
+  // Official Real Razorpay Live SDK Payment Runner (Direct 1-Click Intent)
   const executeOnlinePayment = async (
     methodLabel: string,
     preferredMethod: "upi" | "card" | "netbanking" | "wallet" = "upi",
     vpa?: string,
-    bank?: string
+    bank?: string,
+    card?: { number: string; expiryMonth: string; expiryYear: string; cvv: string; name?: string },
+    upiAppPackage?: string,
+    wallet?: string
   ) => {
     if (busyMethod) return;
 
@@ -307,16 +310,19 @@ export function BlinkitPaymentDrawer({
     setPaymentFailure(null);
 
     try {
-      toast.info(`Connecting to Real Razorpay Gateway for ${methodLabel}...`);
+      toast.info(`Connecting to ${methodLabel}...`);
 
       const outcome = await payWithRazorpay({
         amount: grandTotal,
         purpose: `QuickPress Laundry (${methodLabel})`,
-        customerName: cardHolder.trim() || customerName.trim() || "QuickPress Customer",
+        customerName: (card?.name || cardHolder).trim() || customerName.trim() || "QuickPress Customer",
         customerPhone: cleanPhone || "9999999999",
         preferredMethod,
+        upiAppPackage,
         vpa,
         bank,
+        wallet,
+        card,
       });
 
       if (outcome.status === "success") {
@@ -365,7 +371,7 @@ export function BlinkitPaymentDrawer({
       toast.error("Please enter a valid expiry date (MM/YY)");
       return;
     }
-    const [mmStr] = cardExpiry.split("/");
+    const [mmStr, yyStr] = cardExpiry.split("/");
     const mm = parseInt(mmStr, 10);
     if (mm < 1 || mm > 12) {
       toast.error("Expiry month must be between 01 and 12");
@@ -380,8 +386,20 @@ export function BlinkitPaymentDrawer({
       return;
     }
 
-    // Launch Real Razorpay 3D Secure Card Gateway
-    await executeOnlinePayment("Credit / Debit Card", "card");
+    // Launch Real Razorpay 3D Secure Card Gateway directly
+    await executeOnlinePayment(
+      "Credit / Debit Card",
+      "card",
+      undefined,
+      undefined,
+      {
+        number: rawNumber,
+        expiryMonth: mmStr,
+        expiryYear: yyStr || "",
+        cvv: cardCvv,
+        name: cardHolder.trim(),
+      }
+    );
   };
 
   const handleUpiIdSubmit = async (e: React.FormEvent) => {
@@ -403,7 +421,7 @@ export function BlinkitPaymentDrawer({
     }
 
     const bankCode = BANK_CODE_MAP[selectedBank] || "HDFC";
-    // Launch Real Razorpay Net Banking for selected bank
+    // Launch Real Razorpay Net Banking for selected bank directly
     await executeOnlinePayment(`Net Banking (${selectedBank})`, "netbanking", undefined, bankCode);
   };
 
@@ -1170,7 +1188,7 @@ export function BlinkitPaymentDrawer({
                             key={app.packageName}
                             type="button"
                             disabled={Boolean(busyMethod)}
-                            onClick={() => void executeOnlinePayment(meta.name, "upi")}
+                            onClick={() => void executeOnlinePayment(meta.name, "upi", undefined, undefined, undefined, app.packageName)}
                             className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                           >
                             <div className="flex items-center gap-3">
@@ -1212,7 +1230,7 @@ export function BlinkitPaymentDrawer({
                       <button
                         type="button"
                         disabled={Boolean(busyMethod)}
-                        onClick={() => void executeOnlinePayment("Google Pay", "upi")}
+                        onClick={() => void executeOnlinePayment("Google Pay", "upi", undefined, undefined, undefined, "com.google.android.apps.nbu.paisa.user")}
                         className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                       >
                         <div className="flex items-center gap-3">
@@ -1243,7 +1261,7 @@ export function BlinkitPaymentDrawer({
                       <button
                         type="button"
                         disabled={Boolean(busyMethod)}
-                        onClick={() => void executeOnlinePayment("PhonePe UPI", "upi")}
+                        onClick={() => void executeOnlinePayment("PhonePe UPI", "upi", undefined, undefined, undefined, "com.phonepe.app")}
                         className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                       >
                         <div className="flex items-center gap-3">
@@ -1274,7 +1292,7 @@ export function BlinkitPaymentDrawer({
                       <button
                         type="button"
                         disabled={Boolean(busyMethod)}
-                        onClick={() => void executeOnlinePayment("Paytm UPI", "upi")}
+                        onClick={() => void executeOnlinePayment("Paytm UPI", "upi", undefined, undefined, undefined, "net.one97.paytm")}
                         className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                       >
                         <div className="flex items-center gap-3">
@@ -1389,7 +1407,7 @@ export function BlinkitPaymentDrawer({
                   <button
                     type="button"
                     disabled={Boolean(busyMethod)}
-                    onClick={() => void executeOnlinePayment("Amazon Pay", "wallet")}
+                    onClick={() => void executeOnlinePayment("Amazon Pay", "wallet", undefined, undefined, undefined, undefined, "amazonpay")}
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">
@@ -1411,7 +1429,7 @@ export function BlinkitPaymentDrawer({
                   <button
                     type="button"
                     disabled={Boolean(busyMethod)}
-                    onClick={() => void executeOnlinePayment("Mobikwik", "wallet")}
+                    onClick={() => void executeOnlinePayment("Mobikwik", "wallet", undefined, undefined, undefined, undefined, "mobikwik")}
                     className="flex w-full items-center justify-between p-3.5 hover:bg-zinc-50 transition-colors text-left cursor-pointer active:bg-zinc-100"
                   >
                     <div className="flex items-center gap-3">

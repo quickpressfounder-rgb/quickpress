@@ -46,7 +46,23 @@ export function isCapacitorNative(): boolean {
 }
 
 export function apiBaseUrl(): string {
-  // 1. If window.__QUICKPRESS_CONFIG__.API_BASE_URL is set (injected by WebView or SSR script)
+  // 1. Read explicit environment variable (VITE_API_BASE_URL or VITE_API_URL)
+  let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).trim().replace(/\/+$/, "");
+  if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
+    custom = custom.replace("-3292", "");
+  }
+  if (custom) {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname;
+      const isPrivateIp = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
+      if (isPrivateIp && custom.includes("localhost")) {
+        return custom.replace("localhost", host);
+      }
+    }
+    return custom;
+  }
+
+  // 2. If window.__QUICKPRESS_CONFIG__.API_BASE_URL is set (injected by WebView or SSR script)
   if (typeof window !== "undefined") {
     const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
     if (globalBase && typeof globalBase === "string" && globalBase.trim()) {
@@ -54,51 +70,29 @@ export function apiBaseUrl(): string {
     }
   }
 
-  // 2. Read explicit environment variable (VITE_API_BASE_URL or VITE_API_URL)
-  let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-  if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
-    custom = custom.replace("-3292", "");
-  }
-
   // 3. Inside Capacitor Android/iOS native container
   if (isCapacitorNative()) {
-    return custom || DEFAULT_FALLBACK_URL;
+    return DEFAULT_FALLBACK_URL;
   }
 
   if (typeof window !== "undefined") {
-    const isHttps = window.location.protocol === "https:";
     const host = window.location.hostname;
 
     // Localhost development
     if (host === "localhost" || host === "127.0.0.1") {
-      if (custom && (custom.startsWith("http://") || custom.startsWith("https://"))) {
-        return custom;
-      }
       return "http://localhost:8000";
     }
 
     // Access via private LAN IP (e.g. mobile device testing on Wi-Fi)
     const isPrivateIp = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
     if (isPrivateIp) {
-      if (custom && custom.includes("localhost")) {
-        return custom.replace("localhost", host);
-      }
-      if (custom && custom.includes("127.0.0.1")) {
-        return custom.replace("127.0.0.1", host);
-      }
       return `http://${host}:8000`;
     }
 
-    // Explicit custom URL from environment takes priority
-    if (custom) {
-      return custom;
-    }
-
-    // Fallback on HTTPS or other public domain
     return DEFAULT_FALLBACK_URL;
   }
 
-  return custom || DEFAULT_FALLBACK_URL;
+  return DEFAULT_FALLBACK_URL;
 }
 
 export function appEnvironment(): AppEnvironment {

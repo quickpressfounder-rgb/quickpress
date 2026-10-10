@@ -132,19 +132,26 @@ export function ZomatoPaymentSheet({
   // Razorpay In-App Payment Flow (UPI, Cards, Net Banking, Wallets)
   const handleRazorpayPayment = async (
     methodLabel: string,
-    preferredMethod: "upi" | "card" | "netbanking" | "wallet" | "online" = "online"
+    preferredMethod: "upi" | "card" | "netbanking" | "wallet" | "online" = "online",
+    upiAppPackage?: string,
+    wallet?: string,
+    bank?: string
   ) => {
     if (processingMethod) return;
     setProcessingMethod(methodLabel);
 
     try {
-      toast.info(`Launching ${methodLabel} via Razorpay...`);
+      toast.info(`Connecting to ${methodLabel}...`);
 
       const outcome = await payWithRazorpay({
         amount: grandTotal,
         purpose: "QuickPress Laundry Order",
         customerName: customerName.trim(),
         customerPhone: customerPhone.replace(/\D/g, ""),
+        preferredMethod: preferredMethod === "online" ? undefined : preferredMethod,
+        upiAppPackage,
+        wallet,
+        bank,
       });
 
       if (outcome.status === "success") {
@@ -512,7 +519,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleCashfreePayment("PhonePe", "upi")}
+                  onClick={() => handleCashfreePayment("PhonePe", "upi", "com.phonepe.app")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -541,7 +548,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleCashfreePayment("Google Pay", "upi")}
+                  onClick={() => handleCashfreePayment("Google Pay", "upi", "com.google.android.apps.nbu.paisa.user")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -565,7 +572,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleCashfreePayment("Paytm", "upi")}
+                  onClick={() => handleCashfreePayment("Paytm", "upi", "net.one97.paytm")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -589,7 +596,7 @@ export function ZomatoPaymentSheet({
                 <button
                   type="button"
                   disabled={Boolean(processingMethod)}
-                  onClick={() => handleCashfreePayment("CRED", "upi")}
+                  onClick={() => handleCashfreePayment("CRED", "upi", "com.dreamplug.androidapp")}
                   className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -660,7 +667,7 @@ export function ZomatoPaymentSheet({
               <button
                 type="button"
                 disabled={Boolean(processingMethod)}
-                onClick={() => handleCashfreePayment("Amazon Pay", "wallet")}
+                onClick={() => handleCashfreePayment("Amazon Pay", "wallet", undefined, "amazonpay")}
                 className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -682,7 +689,7 @@ export function ZomatoPaymentSheet({
               <button
                 type="button"
                 disabled={Boolean(processingMethod)}
-                onClick={() => handleCashfreePayment("Mobikwik", "wallet")}
+                onClick={() => handleCashfreePayment("Mobikwik", "wallet", undefined, "mobikwik")}
                 className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-zinc-50/80 active:bg-zinc-100 rounded-xl transition-all text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0">

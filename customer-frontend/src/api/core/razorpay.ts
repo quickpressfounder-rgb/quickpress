@@ -96,21 +96,35 @@ export type CheckoutOutcome =
   | { status: "failed"; reason: string; code: string }
   | { status: "dismissed"; reason: string; code: "checkout_dismissed" };
 
+export type CheckoutCardDetails = {
+  number: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  name?: string;
+};
+
+export type CheckoutOptions = {
+  description?: string;
+  profile?: CheckoutProfile;
+  themeColor?: string;
+  appName?: string;
+  preferredMethod?: "upi" | "card" | "netbanking" | "wallet";
+  upiAppPackage?: string;
+  vpa?: string;
+  bank?: string;
+  wallet?: string;
+  card?: CheckoutCardDetails;
+};
+
 /**
  * Opens Razorpay Checkout modal for a server-created order.
  * Automatically selects Native Android Razorpay SDK if available, or Web Checkout SDK.
+ * Supports direct headless intent routing (Zomato-style 1-Click UPI/Card/NetBanking).
  */
 export async function openRazorpayCheckout(
   order: RazorpayOrderResult,
-  options: {
-    description?: string;
-    profile?: CheckoutProfile;
-    themeColor?: string;
-    appName?: string;
-    preferredMethod?: "upi" | "card" | "netbanking" | "wallet";
-    vpa?: string;
-    bank?: string;
-  } = {},
+  options: CheckoutOptions = {},
 ): Promise<CheckoutOutcome> {
   if (!order.keyId) {
     throw new ApiError("unconfigured", "Razorpay Key ID is missing.");
@@ -141,10 +155,44 @@ export async function openRazorpayCheckout(
       ...(options.preferredMethod ? { method: options.preferredMethod } : {}),
       ...(options.vpa ? { vpa: options.vpa } : {}),
       ...(options.bank ? { bank: options.bank } : {}),
+      ...(options.wallet ? { wallet: options.wallet } : {}),
     },
     notes: order.notes,
     theme: { color: options.themeColor ?? "#0c831f" },
   };
+
+  // Direct Method Routing (Zomato-style 1-Click Intent / Direct 3DS)
+  if (options.preferredMethod === "upi") {
+    razorpayPayload.method = "upi";
+    if (options.upiAppPackage) {
+      razorpayPayload["_[flow]"] = "intent";
+      razorpayPayload.upi_app_package_name = options.upiAppPackage;
+    }
+    if (options.vpa) {
+      razorpayPayload.vpa = options.vpa;
+    }
+  } else if (options.preferredMethod === "card") {
+    razorpayPayload.method = "card";
+    if (options.card) {
+      razorpayPayload["card[number]"] = options.card.number.replace(/\s/g, "");
+      razorpayPayload["card[expiry_month]"] = options.card.expiryMonth;
+      razorpayPayload["card[expiry_year]"] = options.card.expiryYear;
+      razorpayPayload["card[cvv]"] = options.card.cvv;
+      if (options.card.name) {
+        razorpayPayload["card[name]"] = options.card.name;
+      }
+    }
+  } else if (options.preferredMethod === "netbanking") {
+    razorpayPayload.method = "netbanking";
+    if (options.bank) {
+      razorpayPayload.bank = options.bank;
+    }
+  } else if (options.preferredMethod === "wallet") {
+    razorpayPayload.method = "wallet";
+    if (options.wallet) {
+      razorpayPayload.wallet = options.wallet;
+    }
+  }
 
   // 1. Check if running inside Native Android APK with official Razorpay Native SDK
   if (typeof window !== "undefined" && window.NativeRazorpay && typeof window.NativeRazorpay.openRazorpay === "function") {
