@@ -44,6 +44,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.deps import bearer_scheme, current_user, optional_user
 from app.core.identifiers import generate_partner_id
+from app.db.repositories import users
 from app.db.client import database
 from app.db.invoice_repositories import InvoiceError, invoice_repository
 from app.db.notification_repositories import notification_repository

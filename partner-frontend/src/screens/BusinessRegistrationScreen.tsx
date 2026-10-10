@@ -63,7 +63,6 @@ import { toast } from "sonner";
 import { Toaster } from "@/shared/ui/sonner";
 import { PartnerAuthHeader } from "../components/PartnerAuthHeader";
 import { MapPicker, type PickedLocation } from "../components/MapPicker";
-import { AadhaarKycModal, type AadhaarExtractedData } from "../components/onboarding/AadhaarKycModal";
 import {
   PartnerAgreementSignaturePad,
   type AgreementSignatureData,
@@ -77,13 +76,9 @@ import { partnerRoutes } from "../navigation/partner-routes";
 import {
   checkPartnerVerificationStatus,
   registerBusiness,
-  sendPartnerAadhaarOtp,
   uploadPartnerDocument,
-  verifyPartnerAadhaarOtp,
-  verifyPartnerBankAccount,
   verifyPartnerGst,
   verifyPartnerIfsc,
-  verifyPartnerPan,
 } from "@/api/partner/partner-auth-api";
 import {
   fetchMasterCatalogServices,
@@ -450,13 +445,6 @@ export function BusinessRegistrationScreen() {
 
   // STEP 2: KYC & Photo
   const [aadhaarNumber, setAadhaarNumber] = useState("");
-  const [aadhaarOtpSent, setAadhaarOtpSent] = useState(false);
-  const [aadhaarOtpCode, setAadhaarOtpCode] = useState("");
-  const [aadhaarClientId, setAadhaarClientId] = useState("");
-  const [aadhaarOtpLoading, setAadhaarOtpLoading] = useState(false);
-  const [aadhaarVerified, setAadhaarVerified] = useState(false);
-  const [aadhaarKycData, setAadhaarKycData] = useState<AadhaarExtractedData | null>(null);
-  const [showAadhaarModal, setShowAadhaarModal] = useState(false);
   const [aadhaarFrontUrl, setAadhaarFrontUrl] = useState("");
   const [aadhaarBackUrl, setAadhaarBackUrl] = useState("");
   const [isUploadingAadhaarFront, setIsUploadingAadhaarFront] = useState(false);
@@ -464,15 +452,6 @@ export function BusinessRegistrationScreen() {
 
   // PAN
   const [panNumber, setPanNumber] = useState("");
-  const [verifyingPan, setVerifyingPan] = useState(false);
-  const [panVerified, setPanVerified] = useState(false);
-  const [panData, setPanData] = useState<{
-    panNumber: string;
-    fullName: string;
-    category: string;
-    status: string;
-    verifiedAt: string;
-  } | null>(null);
   const [panCardUrl, setPanCardUrl] = useState("");
   const [isUploadingPanCard, setIsUploadingPanCard] = useState(false);
 
@@ -558,9 +537,6 @@ export function BusinessRegistrationScreen() {
   const [ifsc, setIfsc] = useState("");
   const [verifyingIfsc, setVerifyingIfsc] = useState(false);
   const [ifscDetails, setIfscDetails] = useState<{ bank: string; branch: string; city: string } | null>(null);
-  const [verifyingBank, setVerifyingBank] = useState(false);
-  const [bankVerified, setBankVerified] = useState(false);
-  const [bankVerifiedName, setBankVerifiedName] = useState("");
   const [chequePhotoUrl, setChequePhotoUrlUrl] = useState("");
   const [isUploadingCheque, setIsUploadingCheque] = useState(false);
 
@@ -657,11 +633,9 @@ export function BusinessRegistrationScreen() {
         if (d.dob) setDob(d.dob);
         if (d.alternatePhone) setAlternatePhone(d.alternatePhone);
         if (d.aadhaarNumber) setAadhaarNumber(d.aadhaarNumber);
-        if (d.aadhaarVerified) setAadhaarVerified(true);
         if (d.aadhaarFrontUrl) setAadhaarFrontUrl(d.aadhaarFrontUrl);
         if (d.aadhaarBackUrl) setAadhaarBackUrl(d.aadhaarBackUrl);
         if (d.panNumber) setPanNumber(d.panNumber);
-        if (d.panVerified) setPanVerified(true);
         if (d.panCardUrl) setPanCardUrl(d.panCardUrl);
         if (d.ownerPhotoUrl) setOwnerPhotoUrl(d.ownerPhotoUrl);
         if (d.shopName) setShopName(d.shopName);
@@ -685,7 +659,6 @@ export function BusinessRegistrationScreen() {
           setConfirmAccountNumber(d.accountNumber);
         }
         if (d.ifsc) setIfsc(d.ifsc);
-        if (d.bankVerified) setBankVerified(true);
         if (d.chequePhotoUrl) setChequePhotoUrlUrl(d.chequePhotoUrl);
       }
     } catch {}
@@ -719,16 +692,10 @@ export function BusinessRegistrationScreen() {
           if (d.gender) setGender(d.gender);
           if (d.dob) setDob(d.dob);
           if (d.alternatePhone) setAlternatePhone(d.alternatePhone);
-          if (d.aadhaar) {
-            setAadhaarNumber(d.aadhaar);
-            setAadhaarVerified(true);
-          }
+          if (d.aadhaar) setAadhaarNumber(d.aadhaar);
           if (d.aadhaarFront) setAadhaarFrontUrl(d.aadhaarFront);
           if (d.aadhaarBack) setAadhaarBackUrl(d.aadhaarBack);
-          if (d.pan) {
-            setPanNumber(d.pan);
-            setPanVerified(true);
-          }
+          if (d.pan) setPanNumber(d.pan);
           if (d.panCard) setPanCardUrl(d.panCard);
           if (d.ownerPhoto || d.photo) setOwnerPhotoUrl(d.ownerPhoto || d.photo);
           if (d.shopName || d.businessName) setShopName(d.shopName || d.businessName);
@@ -748,7 +715,6 @@ export function BusinessRegistrationScreen() {
           if (d.accountNumber) {
             setAccountNumber(d.accountNumber);
             setConfirmAccountNumber(d.accountNumber);
-            setBankVerified(true);
           }
           if (d.ifsc) setIfsc(d.ifsc);
           if (d.chequePhoto) setChequePhotoUrlUrl(d.chequePhoto);
@@ -805,11 +771,9 @@ export function BusinessRegistrationScreen() {
       dob,
       alternatePhone,
       aadhaarNumber,
-      aadhaarVerified,
       aadhaarFrontUrl,
       aadhaarBackUrl,
       panNumber,
-      panVerified,
       panCardUrl,
       ownerPhotoUrl,
       shopName,
@@ -830,7 +794,6 @@ export function BusinessRegistrationScreen() {
       accountHolder,
       accountNumber,
       ifsc,
-      bankVerified,
       chequePhotoUrl,
     };
     try {
@@ -844,11 +807,9 @@ export function BusinessRegistrationScreen() {
     dob,
     alternatePhone,
     aadhaarNumber,
-    aadhaarVerified,
     aadhaarFrontUrl,
     aadhaarBackUrl,
     panNumber,
-    panVerified,
     panCardUrl,
     ownerPhotoUrl,
     shopName,
@@ -869,133 +830,19 @@ export function BusinessRegistrationScreen() {
     accountHolder,
     accountNumber,
     ifsc,
-    bankVerified,
     chequePhotoUrl,
   ]);
 
-  // Synchronize accountHolder with ownerName if not manually modified
+  // Synchronize accountHolder with ownerName (same name as Step 1)
   useEffect(() => {
-    if (ownerName && !accountHolder) {
-      setAccountHolder(ownerName);
+    if (ownerName.trim()) {
+      setAccountHolder(ownerName.trim());
     }
-  }, [ownerName, accountHolder]);
+  }, [ownerName]);
 
   /* ------------------- KYC Verification Handlers ------------------- */
 
-  // 1. Aadhaar OTP
-  const handleSendAadhaarOtp = async () => {
-    const clean = aadhaarNumber.replace(/\D/g, "");
-    if (clean.length !== 12) {
-      toast.error("Please enter a valid 12-digit Aadhaar number");
-      return;
-    }
-    setAadhaarOtpLoading(true);
-    try {
-      const res = await sendPartnerAadhaarOtp(clean);
-      setAadhaarClientId(res.clientId || "");
-      setAadhaarOtpSent(true);
-      toast.success(`OTP sent to mobile registered with Aadhaar ${res.maskedAadhaar || clean.slice(-4)}`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send Aadhaar OTP. Please check the Aadhaar number.");
-    } finally {
-      setAadhaarOtpLoading(false);
-    }
-  };
-
-  const handleVerifyAadhaarOtp = async () => {
-    if (aadhaarOtpCode.trim().length < 6) {
-      toast.error("Please enter the 6-digit Aadhaar OTP");
-      return;
-    }
-    setAadhaarOtpLoading(true);
-    try {
-      const res = await verifyPartnerAadhaarOtp(
-        aadhaarNumber.replace(/\D/g, ""),
-        aadhaarOtpCode.trim(),
-        aadhaarClientId,
-        ownerName
-      );
-      if (res.valid) {
-        const kycPayload: AadhaarExtractedData = {
-          aadhaar: res.aadhaar || aadhaarNumber,
-          maskedAadhaar: res.maskedAadhaar || `XXXX-XXXX-${aadhaarNumber.slice(-4)}`,
-          fullName: res.fullName || ownerName || "Authorized Signatory",
-          gender: res.gender || gender || "Male",
-          dob: res.dob || dob || "1990-01-01",
-          address: res.address || shopAddress || "Main Market, Kasganj",
-          city: res.city || city || "Kasganj",
-          state: res.state || "Uttar Pradesh",
-          pincode: res.pincode || pincode || "207123",
-          photo: res.photo || "",
-        };
-        setAadhaarKycData(kycPayload);
-        setShowAadhaarModal(true);
-        setAadhaarVerified(true);
-        if (res.fullName && !ownerName) setOwnerName(res.fullName);
-        toast.success("Owner Aadhaar e-KYC verified successfully! ✓");
-      } else {
-        toast.error("Aadhaar OTP verification failed. Please try again.");
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Invalid Aadhaar OTP");
-    } finally {
-      setAadhaarOtpLoading(false);
-    }
-  };
-
-  const handleApplyAadhaarKyc = () => {
-    if (!aadhaarKycData) return;
-    if (aadhaarKycData.fullName) setOwnerName(aadhaarKycData.fullName);
-    if (!shopAddress && aadhaarKycData.address) setShopAddress(aadhaarKycData.address);
-    if (aadhaarKycData.dob) setDob(aadhaarKycData.dob);
-    if (aadhaarKycData.photo && !ownerPhotoUrl) setOwnerPhotoUrl(aadhaarKycData.photo);
-    setShowAadhaarModal(false);
-    toast.success("Details auto-filled from verified Aadhaar e-KYC! ✓");
-  };
-
-  // 2. PAN Verification
-  const handleVerifyPan = async () => {
-    const clean = panNumber.trim().toUpperCase();
-    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(clean)) {
-      toast.error("Please enter a valid 10-character PAN (e.g. ABCDE1234F)");
-      return;
-    }
-    setVerifyingPan(true);
-    try {
-      const res = await verifyPartnerPan(clean, ownerName);
-      if (res.valid) {
-        setPanVerified(true);
-        const entityChar = clean.charAt(3);
-        const categoryMap: Record<string, string> = {
-          P: "Individual / Sole Proprietor",
-          C: "Company (Private / Public)",
-          F: "Partnership Firm / LLP",
-          H: "Hindu Undivided Family (HUF)",
-          A: "Association of Persons (AOP)",
-          T: "Trust / Society",
-        };
-        setPanData({
-          panNumber: clean,
-          fullName: res.fullName || ownerName || "Registered Taxpayer",
-          category: categoryMap[entityChar] || "Individual / Sole Proprietor",
-          status: "ACTIVE & OPERATIVE",
-          verifiedAt: new Date().toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }),
-        });
-        if (res.fullName && !ownerName) setOwnerName(res.fullName);
-        toast.success("PAN verified via Income Tax Department Registry ✓");
-      } else {
-        toast.error("PAN number could not be verified. Please verify the number.");
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to verify PAN");
-    } finally {
-      setVerifyingPan(false);
-    }
-  };
+  // Verification Handlers
 
   // 3. GSTIN Verification
   const handleVerifyGst = async () => {
@@ -1064,46 +911,7 @@ export function BusinessRegistrationScreen() {
     await autoVerifyIfscCode();
   };
 
-  // 5. Bank Account Penny Drop Verification
-  const handleVerifyBankAccount = async () => {
-    const cleanAcc = accountNumber.trim();
-    const cleanIfsc = ifsc.trim().toUpperCase();
-    if (!cleanAcc || cleanAcc.length < 8) {
-      toast.error("Please enter a valid Bank Account Number");
-      return;
-    }
-    if (cleanAcc !== confirmAccountNumber.trim()) {
-      toast.error("Account Numbers do not match!");
-      return;
-    }
-    if (!cleanIfsc || cleanIfsc.length !== 11) {
-      toast.error("Please enter a valid 11-character IFSC code");
-      return;
-    }
 
-    setVerifyingBank(true);
-    try {
-      const res = await verifyPartnerBankAccount(cleanAcc, cleanIfsc, accountHolder || ownerName);
-      if (res.valid) {
-        setBankVerified(true);
-        const registered = res.registeredName || accountHolder || ownerName;
-        setBankVerifiedName(registered);
-
-        const matchResult = compareKycNames(ownerName || accountHolder, registered);
-        if (matchResult.isMatch) {
-          toast.success(`Bank Verified: ${registered} (${matchResult.message}) ✓`);
-        } else {
-          toast.warning(matchResult.message);
-        }
-      } else {
-        toast.error("Penny drop verification failed. Please check account details.");
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Bank verification failed");
-    } finally {
-      setVerifyingBank(false);
-    }
-  };
 
   /* ------------------- Step Navigation & Validation ------------------- */
 
@@ -1483,7 +1291,7 @@ export function BusinessRegistrationScreen() {
             type="button"
             onClick={handlePrevStep}
             disabled={currentStep === 1}
-            className="p-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition disabled:opacity-30 disabled:pointer-events-none"
+            className="p-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             aria-label="Previous Step"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -1491,29 +1299,44 @@ export function BusinessRegistrationScreen() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                QuickPress Partner
+                {t("QuickPress Partner", "QuickPress Partner")}
               </span>
-              <span className="text-xs font-bold text-neutral-900">Merchant Onboarding</span>
+              <span className="text-xs font-bold text-neutral-900">
+                {t("Merchant Onboarding", "Merchant Onboarding")}
+              </span>
             </div>
             <p className="text-[10px] text-neutral-500 font-medium">
-              Official Laundry &amp; Dry-Cleaning Store Registration
+              {t("Official Laundry & Dry-Cleaning Store Registration", "Official Laundry & Dry-Cleaning Store Registration")}
             </p>
           </div>
         </div>
 
-        <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-lg shadow-2xs">
-          Step {currentStep} of 6
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Prominent Language Switcher Button */}
+          <button
+            type="button"
+            onClick={openLanguageModal}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-extrabold rounded-xl transition active:scale-95 shadow-2xs cursor-pointer"
+            title="Change Language / भाषा बदलें"
+          >
+            <Globe className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span className="uppercase">{language}</span>
+          </button>
+
+          <span className="text-[11px] font-bold px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-lg shadow-2xs">
+            {t("Step", "Step")} {currentStep} / 6
+          </span>
+        </div>
       </header>
 
       {/* 2. Step Progress Tracker (Clean Real Mobility App Style) */}
       <div className="bg-white px-4 pt-3 pb-3 border-b border-neutral-200 shadow-2xs">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black text-neutral-800 tracking-tight">
-            {STEPS[currentStep - 1]?.title}
+            {t(STEPS[currentStep - 1]?.title, STEPS[currentStep - 1]?.title)}
           </span>
           <span className="text-[11px] font-bold text-emerald-700">
-            {Math.round((currentStep / 6) * 100)}% Completed
+            {Math.round((currentStep / 6) * 100)}% {t("Completed", "Completed")}
           </span>
         </div>
 
@@ -1559,7 +1382,7 @@ export function BusinessRegistrationScreen() {
                 >
                   {isDone ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Icon className="w-3.5 h-3.5" />}
                 </div>
-                <span className="text-[10px] truncate max-w-full">{st.short}</span>
+                <span className="text-[10px] truncate max-w-full">{t(st.short, st.short)}</span>
               </div>
             );
           })}
@@ -1612,13 +1435,24 @@ export function BusinessRegistrationScreen() {
               {/* Owner Full Name */}
               <div>
                 <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  Owner Full Name <span className="text-red-500">*</span>
+                  {t("Store Owner Full Name", "Owner Full Name")} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setOwnerName(val);
+                      setAccountHolder(val);
+                      if (fieldErrors["ownerName"]) {
+                        setFieldErrors((prev) => {
+                          const next = { ...prev };
+                          delete next["ownerName"];
+                          return next;
+                        });
+                      }
+                    }}
                     placeholder="e.g. Ramesh Chandra Agrawal"
                     className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
                       fieldErrors["ownerName"]
@@ -1626,14 +1460,9 @@ export function BusinessRegistrationScreen() {
                         : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
                     }`}
                   />
-                  {aadhaarVerified && (
-                    <span className="absolute right-3 top-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
-                      <Check className="w-3 h-3 text-[#00C853]" /> UIDAI Match
-                    </span>
-                  )}
                 </div>
                 <p className="mt-1 text-[10px] text-neutral-400">
-                  Name should match exactly with your Aadhaar and Bank Account
+                  {t("Name should match exactly with your Aadhaar and Bank Account", "Name should match exactly with your Aadhaar and Bank Account")}
                 </p>
               </div>
 
@@ -1743,20 +1572,20 @@ export function BusinessRegistrationScreen() {
                     <IdCard className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-neutral-900">1. UIDAI Aadhaar Verification</h3>
-                    <p className="text-[10px] text-neutral-500 font-medium">12-Digit Government Aadhaar Card Number</p>
+                    <h3 className="text-xs font-black text-neutral-900">{t("1. UIDAI Aadhaar Verification", "1. UIDAI Aadhaar Verification")}</h3>
+                    <p className="text-[10px] text-neutral-500 font-medium">{t("12-Digit Government Aadhaar Card Number", "12-Digit Government Aadhaar Card Number")}</p>
                   </div>
                 </div>
                 {aadhaarNumber.replace(/\D/g, "").length === 12 && (
                   <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <BadgeCheck className="w-3 h-3 text-[#00C853]" /> 12 Digits Valid ✓
+                    <BadgeCheck className="w-3 h-3 text-[#00C853]" /> {t("Valid 12 Digits ✓", "12 Digits Valid ✓")}
                   </span>
                 )}
               </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-neutral-700 mb-1">
-                  12-Digit Aadhaar Card Number <span className="text-red-500">*</span>
+                  {t("12-Digit Aadhaar Card Number", "12-Digit Aadhaar Card Number")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1789,8 +1618,8 @@ export function BusinessRegistrationScreen() {
               {/* Aadhaar Photos (Front & Back) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <DocumentUploadSlot
-                  label="Aadhaar Front Photo"
-                  sublabel="Clear photo of front side"
+                  label={t("Aadhaar Front Photo", "Aadhaar Front Photo")}
+                  sublabel={t("Clear photo of front side", "Clear photo of front side")}
                   docType="aadhaar_front"
                   value={aadhaarFrontUrl}
                   onChange={setAadhaarFrontUrl}
@@ -1800,8 +1629,8 @@ export function BusinessRegistrationScreen() {
                   error={fieldErrors["aadhaarFrontUrl"]}
                 />
                 <DocumentUploadSlot
-                  label="Aadhaar Back Photo"
-                  sublabel="Back side with address"
+                  label={t("Aadhaar Back Photo", "Aadhaar Back Photo")}
+                  sublabel={t("Back side with address", "Back side with address")}
                   docType="aadhaar_back"
                   value={aadhaarBackUrl}
                   onChange={setAadhaarBackUrl}
@@ -1821,13 +1650,13 @@ export function BusinessRegistrationScreen() {
                     <CreditCard className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-neutral-900">2. Business PAN Card</h3>
-                    <p className="text-[10px] text-neutral-500 font-medium">Income Tax Department PAN identification</p>
+                    <h3 className="text-xs font-black text-neutral-900">{t("2. Business PAN Card", "2. Business PAN Card")}</h3>
+                    <p className="text-[10px] text-neutral-500 font-medium">{t("Income Tax Department PAN identification", "Income Tax Department PAN identification")}</p>
                   </div>
                 </div>
                 {/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panNumber.trim().toUpperCase()) && (
                   <span className="text-[10px] font-bold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <BadgeCheck className="w-3 h-3 text-purple-600" /> Valid PAN Format ✓
+                    <BadgeCheck className="w-3 h-3 text-purple-600" /> {t("Valid PAN Format ✓", "Valid PAN Format ✓")}
                   </span>
                 )}
               </div>
@@ -2403,9 +2232,9 @@ export function BusinessRegistrationScreen() {
             <div className="p-4.5 bg-white border border-neutral-200 rounded-3xl space-y-4 shadow-xs">
               <div className="pb-3 border-b border-neutral-100 flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-black text-neutral-900">Step 5: Bank Account &amp; Payouts</h3>
+                  <h3 className="text-sm font-black text-neutral-900">{t("Bank Details", "Step 5: Bank Account & Payouts")}</h3>
                   <p className="text-[11px] text-neutral-500 font-medium">
-                    Automated daily earnings settlement via RBI/NPCI Penny Drop
+                    {t("Automated daily earnings settlement via RBI/NPCI", "Direct settlement account for daily payouts and earnings")}
                   </p>
                 </div>
                 <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-700">
@@ -2416,7 +2245,7 @@ export function BusinessRegistrationScreen() {
               {/* Bank Selection */}
               <div>
                 <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  Bank Name <span className="text-red-500">*</span>
+                  {t("Select Bank Name", "Bank Name")} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={bankName}
@@ -2434,56 +2263,64 @@ export function BusinessRegistrationScreen() {
                     type="text"
                     value={customBankName}
                     onChange={(e) => setCustomBankName(e.target.value)}
-                    placeholder="Enter official bank name..."
+                    placeholder={t("Enter official bank name...", "Enter official bank name...")}
                     className="mt-2 w-full px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-semibold"
                   />
                 )}
               </div>
 
-              {/* Account Holder Name */}
+              {/* Account Holder Name (Auto-synced with Step 1 Owner Name) */}
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  Beneficiary / Account Holder Name <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-neutral-700">
+                    {t("Beneficiary / Account Holder Name", "Beneficiary / Account Holder Name")} <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <UserCheck className="w-3 h-3 text-[#00C853]" />
+                    {t("Same as Store Owner Name", "Same as Store Owner Name")}
+                  </span>
+                </div>
                 <input
                   type="text"
-                  value={accountHolder}
+                  value={accountHolder || ownerName}
                   onChange={(e) => setAccountHolder(e.target.value)}
-                  placeholder="Exact name as in bank records"
+                  placeholder={t("Exact name as in bank records", "Exact name as in bank records")}
                   className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
                     fieldErrors["accountHolder"]
                       ? "border-red-400 bg-red-50/20"
                       : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
                   }`}
                 />
+                <p className="mt-1 text-[10px] text-neutral-500">
+                  {t("Auto-filled from Step 1 Owner Name to ensure matching KYC & payout settlement", `Auto-filled: ${ownerName || "Owner Name"}`)}
+                </p>
               </div>
 
               {/* Account Number & Confirm Account Number */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 mb-1">
-                    Account Number <span className="text-red-500">*</span>
+                    {t("Account Number", "Account Number")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
                     value={accountNumber}
                     onChange={(e) => {
                       setAccountNumber(e.target.value.replace(/\D/g, ""));
-                      if (bankVerified) setBankVerified(false);
                     }}
-                    placeholder="Account Number"
+                    placeholder={t("Bank Account Number", "Account Number")}
                     className="w-full px-3.5 py-2.5 font-mono rounded-xl border border-neutral-200 text-xs font-semibold"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 mb-1">
-                    Re-Enter Account Number <span className="text-red-500">*</span>
+                    {t("Re-Enter Account Number", "Re-Enter Account Number")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={confirmAccountNumber}
                     onChange={(e) => setConfirmAccountNumber(e.target.value.replace(/\D/g, ""))}
-                    placeholder="Confirm Account Number"
+                    placeholder={t("Re-Enter Account Number", "Confirm Account Number")}
                     className={`w-full px-3.5 py-2.5 font-mono rounded-xl border text-xs font-semibold ${
                       confirmAccountNumber && confirmAccountNumber !== accountNumber
                         ? "border-red-400 bg-red-50/20"
@@ -2496,7 +2333,7 @@ export function BusinessRegistrationScreen() {
               {/* IFSC Code with Real Live RBI Verification */}
               <div>
                 <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  11-Character Bank IFSC Code <span className="text-red-500">*</span>
+                  {t("11-Character Bank IFSC Code", "11-Character Bank IFSC Code")} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <input
@@ -2538,7 +2375,7 @@ export function BusinessRegistrationScreen() {
                       <div className="font-bold text-emerald-950 flex items-center gap-1.5">
                         <span>{ifscDetails.bank}</span>
                         <span className="text-[10px] bg-emerald-200/80 text-emerald-900 font-extrabold px-1.5 py-0.2 rounded-full">
-                          RBI Verified ✓
+                          {t("RBI Verified ✓", "RBI Verified ✓")}
                         </span>
                       </div>
                       <p className="text-[11px] text-emerald-800">
@@ -2551,8 +2388,8 @@ export function BusinessRegistrationScreen() {
 
               {/* Cancelled Cheque / Passbook upload */}
               <DocumentUploadSlot
-                label="Cancelled Cheque or Bank Passbook Photo"
-                sublabel="Photo showing Account No., IFSC & Account Name"
+                label={t("Cancelled Cheque or Bank Passbook Photo", "Cancelled Cheque or Bank Passbook Photo")}
+                sublabel={t("Photo showing Account No., IFSC & Account Name", "Photo showing Account No., IFSC & Account Name")}
                 docType="bank_cheque"
                 value={chequePhotoUrl}
                 onChange={setChequePhotoUrlUrl}
@@ -2676,12 +2513,16 @@ export function BusinessRegistrationScreen() {
                 {busy ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Submitting Partner Application...</span>
+                    <span>{t("Submitting...", "Submitting Partner Application...")}</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-                    <span>{isResubmissionFlow ? "Re-Submit Application for Approval" : "Submit Registration for Approval"}</span>
+                    <span>
+                      {isResubmissionFlow
+                        ? t("Re-Submit Application for Approval", "Re-Submit Application for Approval")
+                        : t("Submit Application", "Submit Registration for Approval")}
+                    </span>
                   </>
                 )}
               </button>
@@ -2698,18 +2539,18 @@ export function BusinessRegistrationScreen() {
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="py-3 px-4 rounded-2xl border border-neutral-200 hover:bg-neutral-100 text-neutral-700 font-bold text-xs transition active:scale-95 shrink-0"
+                className="py-3 px-4 rounded-2xl border border-neutral-200 hover:bg-neutral-100 text-neutral-700 font-bold text-xs transition active:scale-95 shrink-0 cursor-pointer"
               >
-                Back
+                {t("Back", "Back")}
               </button>
             )}
 
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Continue to Step {currentStep + 1}</span>
+              <span>{t("Save & Continue", `Continue to Step ${currentStep + 1}`)}</span>
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
@@ -2728,15 +2569,7 @@ export function BusinessRegistrationScreen() {
         }}
       />
 
-      {/* Aadhaar e-KYC Preview Modal */}
-      {showAadhaarModal && aadhaarKycData && (
-        <AadhaarKycModal
-          isOpen={showAadhaarModal}
-          data={aadhaarKycData}
-          onClose={() => setShowAadhaarModal(false)}
-          onApply={handleApplyAadhaarKyc}
-        />
-      )}
+
 
       {/* Interactive Map Picker Modal */}
       {showMapPicker && (

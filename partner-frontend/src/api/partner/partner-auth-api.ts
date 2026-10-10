@@ -102,7 +102,7 @@ export async function registerBusiness(
     businessName: string;
     isVerified: boolean;
     isOnboarded: boolean;
-  }>("/api/partner/onboarding", payload);
+  }>("/api/partner/onboarding", payload, { timeoutMs: 120000 });
 
   const currentSession = readSession(ROLE);
   const updatedSession: PartnerSession = {
