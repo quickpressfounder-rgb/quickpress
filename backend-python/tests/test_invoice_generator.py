@@ -68,24 +68,24 @@ async def test_invoice_pdf_generation():
     assert len(pdf_bytes) > 1000
     assert pdf_bytes.startswith(b"%PDF")
 
-    # Verify 3 pages were created
+    # Verify 2 pages were created
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    assert len(doc) == 3
+    assert len(doc) == 2
 
-    # Check page 1 text
+    # Check page 1 text (Tax Invoice on behalf of Laundromat Partner)
     page1_text = doc[0].get_text()
-    assert "Payment Summary" in page1_text
+    assert "Tax Invoice" in page1_text
+    assert "ORIGINAL For Recipient" in page1_text
     assert "RD17821057521220686" in page1_text
-    assert "20.00" in page1_text
     assert "Kasganj" in page1_text
+    assert "Aarav Sharma" in page1_text
+    assert "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED" in page1_text
 
-    # Check page 2 text
+    # Check page 2 text (Tax Invoice by QuickPress Platform)
     page2_text = doc[1].get_text()
     assert "Tax Invoice" in page2_text
-    assert "ANKIT SAHU" in page2_text
-    assert "09AAHCR1710J1ZE" in page2_text
-
-    # Check page 3 text
-    page3_text = doc[2].get_text()
-    assert "QuickPress Technologies Private Limited" in page3_text
-    assert "Thank you Aarav Sharma" in page3_text
+    assert "ORIGINAL FOR RECIPIENT" in page2_text
+    assert "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED" in page2_text
+    assert "999799" in page2_text
+    assert "Platform fee" in page2_text
+    assert "RD17821057521220686" in page2_text

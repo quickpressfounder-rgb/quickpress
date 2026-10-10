@@ -136,13 +136,13 @@ async def test_customer_and_partner_invoice_flow():
         assert res_part_pdf.status_code == 200
         assert res_part_pdf.content.startswith(b"%PDF")
 
-        # F. Verify 3-page structure with PyMuPDF
+        # F. Verify 2-page structure with PyMuPDF
         doc = fitz.open(stream=res_part_pdf.content, filetype="pdf")
-        assert len(doc) == 3
+        assert len(doc) == 2
         text_all = "".join(page.get_text() for page in doc)
-        assert "Payment Summary" in text_all
         assert "Tax Invoice" in text_all
-        assert "QuickPress Technologies Private Limited" in text_all
+        assert "ORIGINAL For Recipient" in text_all
+        assert "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED" in text_all
         assert "649.00" in text_all
         assert "Aarav Sharma" in text_all
 

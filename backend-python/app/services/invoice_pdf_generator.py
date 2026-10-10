@@ -48,24 +48,81 @@ except Exception:
     FONT_BOLD = "Helvetica-Bold"
 
 
+# Company Legal Defaults (Configurable via backend environment variables)
+COMPANY_LEGAL_NAME = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED")
+COMPANY_TRADE_NAME = "QuickPress"
+COMPANY_CIN = os.getenv("COMPANY_CIN", "U74999UP2024PTC198141")
+COMPANY_PAN = os.getenv("COMPANY_PAN", "AADCB1234K")
+COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "09AADCB1234K1Z8")
+COMPANY_ADDRESS = os.getenv(
+    "COMPANY_ADDRESS",
+    "Pioneer Tech Park, Near Highway, Kasganj, Uttar Pradesh - 207123, India",
+)
+COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "support@quickpress.online")
+COMPANY_STATE = os.getenv("COMPANY_STATE", "Uttar Pradesh")
+COMPANY_STATE_CODE = os.getenv("COMPANY_STATE_CODE", "09")
+
+
+def num_to_words_inr(amount: float) -> str:
+    """Convert number to standard Indian English currency words (e.g. 'One Hundred Eighty Four Rupees And Eighty Paisa Only')."""
+    units = [
+        "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+        "Seventeen", "Eighteen", "Nineteen",
+    ]
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+    def convert_upto_999(n: int) -> str:
+        res = []
+        if n >= 100:
+            res.append(units[n // 100] + " Hundred")
+            n %= 100
+        if n >= 20:
+            res.append(tens[n // 10])
+            n %= 10
+        if n > 0:
+            res.append(units[n])
+        return " ".join(res)
+
+    def convert_integer(n: int) -> str:
+        if n == 0:
+            return "Zero"
+        parts = []
+        crores = n // 10000000
+        n %= 10000000
+        if crores > 0:
+            parts.append(convert_upto_999(crores) + " Crore")
+        lakhs = n // 100000
+        n %= 100000
+        if lakhs > 0:
+            parts.append(convert_upto_999(lakhs) + " Lakh")
+        thousands = n // 1000
+        n %= 1000
+        if thousands > 0:
+            parts.append(convert_upto_999(thousands) + " Thousand")
+        if n > 0:
+            parts.append(convert_upto_999(n))
+        return " ".join(parts)
+
+    rupees = int(amount)
+    paise = int(round((amount - rupees) * 100))
+    rupee_str = convert_integer(rupees) + " Rupee" + ("s" if rupees != 1 else "")
+    if paise > 0:
+        return f"{rupee_str} And {convert_upto_999(paise)} Paisa Only"
+    return f"{rupee_str} Only"
+
+
 def _format_date(dt_val: Any) -> str:
     if not dt_val:
-        now = datetime.now()
-        day = now.day
-        suffix = "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
-        return now.strftime(f"%b {day}{suffix} %Y, %I:%M %p")
+        return datetime.now().strftime("%d/%m/%Y")
     if isinstance(dt_val, str):
         try:
             dt = datetime.fromisoformat(dt_val.replace("Z", "+00:00"))
-            day = dt.day
-            suffix = "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
-            return dt.strftime(f"%b {day}{suffix} %Y, %I:%M %p")
+            return dt.strftime("%d/%m/%Y")
         except Exception:
-            return dt_val
+            return dt_val[:10] if len(dt_val) >= 10 else dt_val
     if isinstance(dt_val, datetime):
-        day = dt_val.day
-        suffix = "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
-        return dt_val.strftime(f"%b {day}{suffix} %Y, %I:%M %p")
+        return dt_val.strftime("%d/%m/%Y")
     return str(dt_val)
 
 
@@ -76,8 +133,12 @@ def _fmt_money(val: Any) -> str:
         return "0.00"
 
 
+
 def generate_invoice_pdf(data: Dict[str, Any], output_target: Any = None) -> bytes:
-    """Generate a 3-page PDF bytes buffer or write to output file/stream."""
+    """Generate 2-page QuickPress Tax Invoice matching Indian GST marketplace format:
+    Page 1: Tax Invoice on behalf of Partner (SAC 999791: Laundry & Garment Care Services, 5% GST)
+    Page 2: Tax Invoice by Platform (QUICKPRESS TECHNOLOGIES PVT LTD, SAC 999799 Platform fee & Delivery, 18% GST)
+    """
     buffer = io.BytesIO() if output_target is None else output_target
 
     doc = SimpleDocTemplate(
@@ -85,613 +146,551 @@ def generate_invoice_pdf(data: Dict[str, Any], output_target: Any = None) -> byt
         pagesize=A4,
         leftMargin=36,
         rightMargin=36,
-        topMargin=36,
-        bottomMargin=36,
+        topMargin=32,
+        bottomMargin=32,
     )
 
     styles = getSampleStyleSheet()
 
     # Typography styles
-    title_style = ParagraphStyle(
-        "DocTitle",
+    text_bold = ParagraphStyle(
+        "PBold",
         parent=styles["Normal"],
         fontName=FONT_BOLD,
-        fontSize=16,
-        leading=20,
+        fontSize=8.5,
+        leading=11.5,
         textColor=colors.HexColor("#0f172a"),
     )
-
-    brand_style = ParagraphStyle(
-        "BrandWordmark",
-        parent=styles["Normal"],
-        fontName=FONT_BOLD,
-        fontSize=18,
-        leading=22,
-        alignment=2,  # Right
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    meta_label = ParagraphStyle(
-        "MetaLabel",
+    text_reg = ParagraphStyle(
+        "PReg",
         parent=styles["Normal"],
         fontName=FONT_REGULAR,
-        fontSize=9,
-        leading=13,
-        textColor=colors.HexColor("#64748b"),
-    )
-
-    meta_val = ParagraphStyle(
-        "MetaVal",
-        parent=styles["Normal"],
-        fontName=FONT_BOLD,
-        fontSize=9,
-        leading=13,
-        alignment=2,
+        fontSize=8.5,
+        leading=11.5,
         textColor=colors.HexColor("#0f172a"),
     )
-
-    meta_val_left = ParagraphStyle(
-        "MetaValLeft",
-        parent=styles["Normal"],
-        fontName=FONT_BOLD,
-        fontSize=9,
-        leading=13,
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    center_total_label = ParagraphStyle(
-        "CenterTotalLabel",
-        parent=styles["Normal"],
-        fontName=FONT_REGULAR,
-        fontSize=10,
-        leading=14,
-        alignment=1,
-        textColor=colors.HexColor("#64748b"),
-    )
-
-    center_total_val = ParagraphStyle(
-        "CenterTotalVal",
-        parent=styles["Normal"],
-        fontName=FONT_BOLD,
-        fontSize=24,
-        leading=28,
-        alignment=1,
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    card_title = ParagraphStyle(
-        "CardTitle",
-        parent=styles["Normal"],
-        fontName=FONT_BOLD,
-        fontSize=12,
-        leading=16,
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    item_label = ParagraphStyle(
-        "ItemLabel",
-        parent=styles["Normal"],
-        fontName=FONT_REGULAR,
-        fontSize=9,
-        leading=13,
-        textColor=colors.HexColor("#334155"),
-    )
-
-    item_val = ParagraphStyle(
-        "ItemVal",
-        parent=styles["Normal"],
-        fontName=FONT_REGULAR,
-        fontSize=9,
-        leading=13,
-        alignment=2,
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    item_bold_label = ParagraphStyle(
-        "ItemBoldLabel",
-        parent=styles["Normal"],
-        fontName=FONT_BOLD,
-        fontSize=10,
-        leading=14,
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    item_bold_val = ParagraphStyle(
-        "ItemBoldVal",
-        parent=styles["Normal"],
-        fontName=FONT_BOLD,
-        fontSize=10,
-        leading=14,
-        alignment=2,
-        textColor=colors.HexColor("#0f172a"),
-    )
-
-    disclaimer_style = ParagraphStyle(
-        "Disclaimer",
+    text_small = ParagraphStyle(
+        "PSmall",
         parent=styles["Normal"],
         fontName=FONT_REGULAR,
         fontSize=7.5,
-        leading=11,
-        alignment=1,  # Center
-        textColor=colors.HexColor("#64748b"),
+        leading=10,
+        textColor=colors.HexColor("#475569"),
     )
-
-    thanks_style = ParagraphStyle(
-        "Thanks",
+    text_title_center = ParagraphStyle(
+        "PTitleCenter",
         parent=styles["Normal"],
         fontName=FONT_BOLD,
-        fontSize=9,
-        leading=13,
+        fontSize=12,
+        leading=15,
+        textColor=colors.HexColor("#0f172a"),
         alignment=1,
+    )
+    text_sub_center = ParagraphStyle(
+        "PSubCenter",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR,
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor("#334155"),
+        alignment=1,
+    )
+    table_cell = ParagraphStyle(
+        "TCell",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR,
+        fontSize=7.5,
+        leading=10,
         textColor=colors.HexColor("#0f172a"),
     )
-
-    brand_html = '<font color="#0f172a">Quick</font><font color="#059669">Press</font>'
-    currency = "₹" if FONT_REGULAR == "Roboto" else "Rs."
+    table_cell_bold = ParagraphStyle(
+        "TCellBold",
+        parent=styles["Normal"],
+        fontName=FONT_BOLD,
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#0f172a"),
+    )
+    table_cell_right = ParagraphStyle(
+        "TCellRight",
+        parent=styles["Normal"],
+        fontName=FONT_REGULAR,
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#0f172a"),
+        alignment=2,
+    )
+    table_cell_right_bold = ParagraphStyle(
+        "TCellRightBold",
+        parent=styles["Normal"],
+        fontName=FONT_BOLD,
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#0f172a"),
+        alignment=2,
+    )
 
     story = []
 
-    # =========================================================================
-    # PAGE 1: PAYMENT SUMMARY
-    # =========================================================================
-    hdr_data = [
-        [Paragraph("Payment Summary", title_style), Paragraph(brand_html, brand_style)],
-    ]
-    hdr_table = Table(hdr_data, colWidths=[320, 200])
-    hdr_table.setStyle(
-        TableStyle(
+    # ==========================================
+    # PAGE 1: Tax Invoice on behalf of Partner
+    # ==========================================
+
+    # 1. Header Banner: Left QuickPress branding, Right quickpress brand name
+    logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "logo.png")
+    if os.path.exists(logo_path):
+        logo_elem = RLImage(logo_path, width=72, height=22)
+    else:
+        logo_elem = Paragraph("<b>quickpress</b>", ParagraphStyle("BrandL", fontName=FONT_BOLD, fontSize=16, leading=18, textColor=colors.HexColor("#059669")))
+
+    header_brand_table = Table(
+        [
             [
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                logo_elem,
+                Paragraph("<b>quickpress</b>", ParagraphStyle("BrandR", fontName=FONT_BOLD, fontSize=18, leading=20, textColor=colors.HexColor("#0f172a"), alignment=2)),
             ]
-        )
+        ],
+        colWidths=[260, 263],
     )
-    story.append(hdr_table)
+    header_brand_table.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ])
+    )
+    story.append(header_brand_table)
     story.append(Spacer(1, 10))
 
-    order_num = str(data.get("order_number") or data.get("orderNumber") or "QP-2026-001")
-    order_time_str = _format_date(data.get("order_time") or data.get("invoiceDate"))
+    # Center Title
+    story.append(Paragraph("<b>Tax Invoice</b>", text_title_center))
+    story.append(Spacer(1, 2))
+    story.append(Paragraph("ORIGINAL For Recipient", text_sub_center))
+    story.append(Spacer(1, 12))
 
-    meta_data = [
-        [Paragraph("Ride / Order ID", meta_label), Paragraph(order_num, meta_val)],
-        [Paragraph("Time of Order", meta_label), Paragraph(order_time_str, meta_val)],
+    # Service Provider (Laundromat Partner) Block
+    partner_legal_name = data.get("partner_legal_name") or data.get("partner_name") or "Authorized Laundromat Partner"
+    partner_store_name = data.get("partner_name") or "QuickPress Partner Store"
+    partner_address = data.get("partner_address") or "Partner Store Address, Kasganj, Uttar Pradesh"
+    partner_gstin = data.get("partner_gst") or "UNREGISTERED"
+    invoice_no = data.get("invoice_no") or "QP26UP000123"
+    invoice_date = data.get("invoice_date") or datetime.now().strftime("%d/%m/%Y")
+
+    p1_details_text = f"""<b>Tax Invoice on behalf of -</b><br/><br/>
+<b>Legal Entity Name :</b> {partner_legal_name}<br/>
+<b>Laundromat Name :</b> {partner_store_name}<br/>
+<b>Laundromat Address :</b> {partner_address}<br/>
+<b>Laundromat GSTIN :</b> {partner_gstin}<br/>
+<b>Invoice No. :</b> {invoice_no}<br/>
+<b>Invoice Date :</b> {invoice_date}"""
+
+    story.append(Paragraph(p1_details_text, text_reg))
+    story.append(Spacer(1, 10))
+
+    # Customer Block
+    customer_name = data.get("customer_name") or "Valued Customer"
+    delivery_address = data.get("pickup_address") or data.get("drop_address") or "Customer Registered Address, Kasganj, UP"
+    place_of_supply = data.get("place_of_supply") or "Uttar Pradesh(09)"
+
+    cust_block_text = f"""<b>Customer Name :</b> {customer_name}<br/>
+<b>Delivery Address :</b> {delivery_address}<br/>
+<b>State name & Place of Supply :</b> {place_of_supply}"""
+    story.append(Paragraph(cust_block_text, text_reg))
+    story.append(Spacer(1, 10))
+
+    # Service Description & HSN
+    sac_code = data.get("sac_code") or "999791"
+    service_desc = data.get("service_description") or "Laundry and Dry Cleaning Services"
+    hsn_block_text = f"""<b>HSN/SAC Code :</b> {sac_code}<br/>
+<b>Service Description :</b> {service_desc}"""
+    story.append(Paragraph(hsn_block_text, text_reg))
+    story.append(Spacer(1, 12))
+
+    # Items Grid Table
+    table_headers = [
+        Paragraph("<b>Particulars</b>", table_cell_bold),
+        Paragraph("<b>Gross<br/>value</b>", table_cell_right_bold),
+        Paragraph("<b>Discount</b>", table_cell_right_bold),
+        Paragraph("<b>Net<br/>value</b>", table_cell_right_bold),
+        Paragraph("<b>CGST<br/>(Rate)</b>", table_cell_right_bold),
+        Paragraph("<b>CGST<br/>(INR)</b>", table_cell_right_bold),
+        Paragraph("<b>SGST<br/>(Rate)</b>", table_cell_right_bold),
+        Paragraph("<b>SGST<br/>(INR)</b>", table_cell_right_bold),
+        Paragraph("<b>Total</b>", table_cell_right_bold),
     ]
-    meta_table = Table(meta_data, colWidths=[200, 320])
-    meta_table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
+
+    p1_rows = [table_headers]
+
+    items_list = data.get("items") or []
+    if not items_list:
+        service_label = data.get("service_name") or "Laundry & Dry Cleaning Service"
+        ride_charge = float(data.get("ride_charge") or data.get("total_amount") or 184.80)
+        net_val = round(ride_charge / 1.05, 2)
+        tax_val = round((ride_charge - net_val) / 2, 2)
+        items_list = [{
+            "name": f"1 x {service_label}",
+            "gross_value": net_val,
+            "discount": 0.0,
+            "net_value": net_val,
+            "cgst_rate": "2.5%",
+            "cgst_amt": tax_val,
+            "sgst_rate": "2.5%",
+            "sgst_amt": tax_val,
+            "total": ride_charge,
+        }]
+
+    tot_gross = 0.0
+    tot_disc = 0.0
+    tot_net = 0.0
+    tot_cgst = 0.0
+    tot_sgst = 0.0
+    tot_final = 0.0
+
+    for itm in items_list:
+        g_val = float(itm.get("gross_value") or itm.get("total") or 0)
+        d_val = float(itm.get("discount") or 0)
+        n_val = float(itm.get("net_value") or (g_val - d_val))
+        cgst_r = itm.get("cgst_rate") or "2.5%"
+        cgst_a = float(itm.get("cgst_amt") or 0)
+        sgst_r = itm.get("sgst_rate") or "2.5%"
+        sgst_a = float(itm.get("sgst_amt") or 0)
+        row_tot = float(itm.get("total") or (n_val + cgst_a + sgst_a))
+
+        tot_gross += g_val
+        tot_disc += d_val
+        tot_net += n_val
+        tot_cgst += cgst_a
+        tot_sgst += sgst_a
+        tot_final += row_tot
+
+        p1_rows.append([
+            Paragraph(str(itm.get("name") or "Laundry Service"), table_cell),
+            Paragraph(_fmt_money(g_val), table_cell_right),
+            Paragraph(_fmt_money(d_val), table_cell_right),
+            Paragraph(_fmt_money(n_val), table_cell_right),
+            Paragraph(cgst_r, table_cell_right),
+            Paragraph(_fmt_money(cgst_a), table_cell_right),
+            Paragraph(sgst_r, table_cell_right),
+            Paragraph(_fmt_money(sgst_a), table_cell_right),
+            Paragraph(_fmt_money(row_tot), table_cell_right),
+        ])
+
+    # Summary Rows
+    p1_rows.append([
+        Paragraph("<b>Item(s) Total</b>", table_cell_bold),
+        Paragraph(f"<b>{_fmt_money(tot_gross)}</b>", table_cell_right_bold),
+        Paragraph(f"<b>{_fmt_money(tot_disc)}</b>", table_cell_right_bold),
+        Paragraph(f"<b>{_fmt_money(tot_net)}</b>", table_cell_right_bold),
+        Paragraph("", table_cell_right),
+        Paragraph(f"<b>{_fmt_money(tot_cgst)}</b>", table_cell_right_bold),
+        Paragraph("", table_cell_right),
+        Paragraph(f"<b>{_fmt_money(tot_sgst)}</b>", table_cell_right_bold),
+        Paragraph(f"<b>{_fmt_money(tot_final)}</b>", table_cell_right_bold),
+    ])
+
+    p1_rows.append([
+        Paragraph("<b>Total Value</b>", table_cell_bold),
+        Paragraph("", table_cell_right),
+        Paragraph("", table_cell_right),
+        Paragraph(f"<b>{_fmt_money(tot_net)}</b>", table_cell_right_bold),
+        Paragraph("", table_cell_right),
+        Paragraph(f"<b>{_fmt_money(tot_cgst)}</b>", table_cell_right_bold),
+        Paragraph("", table_cell_right),
+        Paragraph(f"<b>{_fmt_money(tot_sgst)}</b>", table_cell_right_bold),
+        Paragraph(f"<b>{_fmt_money(tot_final)}</b>", table_cell_right_bold),
+    ])
+
+    col_widths = [163, 45, 45, 45, 40, 45, 40, 45, 55]
+    items_table = Table(p1_rows, colWidths=col_widths, repeatRows=1)
+    items_table.setStyle(
+        TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#0f172a")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 3),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f8fafc")),
+            ("BACKGROUND", (0, -2), (-1, -1), colors.HexColor("#f8fafc")),
+        ])
     )
-    story.append(meta_table)
-    story.append(Spacer(1, 18))
+    story.append(items_table)
+    story.append(Spacer(1, 10))
 
-    # Big Central Total
-    grand_total_str = _fmt_money(data.get("total_amount") or data.get("grandTotal") or 0)
-    story.append(Paragraph("Total", center_total_label))
-    story.append(Spacer(1, 4))
-    story.append(Paragraph(f"{currency} {grand_total_str}", center_total_val))
-    story.append(Spacer(1, 18))
+    # Amount in words
+    amount_in_words_str = num_to_words_inr(tot_final)
+    story.append(Paragraph(f"<b>Amount (in words):</b> {amount_in_words_str}", text_reg))
+    story.append(Spacer(1, 8))
 
-    # Route / Location Card
-    pickup_addr = str(data.get("pickup_address") or "Customer Pickup Address, Uttar Pradesh 207123, India")
-    drop_addr = str(data.get("drop_address") or "QuickPress Express Hub, Uttar Pradesh 207123, India")
-    distance_str = str(data.get("distance") or "2.28 kms")
-    duration_str = str(data.get("duration") or "5.92 mins")
+    # Settlement details
+    order_id = data.get("order_number") or data.get("order_id") or "QP-2026-001"
+    order_date = data.get("order_time") or invoice_date
+    total_order_amount = float(data.get("total_amount") or tot_final)
+    order_amount_ref = f" (Total Order Value: INR {_fmt_money(total_order_amount)})" if total_order_amount > 0 and abs(total_order_amount - tot_final) > 0.01 else ""
+    settlement_text = (
+        f"Amount of INR {_fmt_money(tot_final)}{order_amount_ref} settled through digital mode/payment received against "
+        f"Order ID: {order_id} dated {_format_date(order_date)}.<br/>"
+        "Supply attracts reverse charge : No"
+    )
+    story.append(Paragraph(settlement_text, text_reg))
+    story.append(Spacer(1, 36))
 
-    loc_card_data = [
+    # Facilitator Block & Signature (Page 1 Footer)
+    company_pan = data.get("company_pan") or COMPANY_PAN
+    company_cin = data.get("company_cin") or COMPANY_CIN
+    company_gst = data.get("company_gst") or COMPANY_GSTIN
+    company_legal = data.get("company_legal_name") or COMPANY_LEGAL_NAME
+
+    facilitator_info = f"""<b>For {company_legal} (AS MARKETPLACE FACILITATOR)</b><br/><br/>
+QuickPress PAN : {company_pan}<br/>
+QuickPress CIN : {company_cin}<br/>
+QuickPress GST : {company_gst}<br/>
+QuickPress Support : {COMPANY_EMAIL}"""
+
+    sig_markup = """<font size="14" color="#059669"><i>QuickPress Tech</i></font><br/>
+<font size="8" color="#0f172a"><b>Authorised Signatory</b></font>"""
+
+    p1_footer_table = Table(
         [
-            Paragraph(f"<font color='#059669'>&#9679;</font>&nbsp;&nbsp;<b>Pickup:</b> {pickup_addr}", item_label),
-            Paragraph(f"<b>{distance_str}</b><br/><font color='#64748b' size='7.5'>DISTANCE</font>", meta_val),
+            [
+                Paragraph(facilitator_info, text_reg),
+                Paragraph(sig_markup, ParagraphStyle("P1Sig", parent=text_reg, alignment=2)),
+            ]
         ],
-        [
-            Paragraph(f"<font color='#dc2626'>&#9679;</font>&nbsp;&nbsp;<b>Delivery Hub:</b> {drop_addr}", item_label),
-            Paragraph(f"<b>{duration_str}</b><br/><font color='#64748b' size='7.5'>DURATION</font>", meta_val),
-        ],
-    ]
-    loc_table = Table(loc_card_data, colWidths=[380, 120])
-    loc_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#f1f5f9")),
-                ("ROUNDEDCORNERS", [8, 8, 8, 8]),
-                ("TOPPADDING", (0, 0), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-                ("LEFTPADDING", (0, 0), (-1, -1), 14),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("LINEBELOW", (0, 0), (-1, 0), 0.5, colors.HexColor("#e2e8f0")),
-            ]
-        )
+        colWidths=[360, 163],
     )
-    story.append(loc_table)
-    story.append(Spacer(1, 16))
-
-    # Bill Details Card (Page 1)
-    ride_charge_str = _fmt_money(data.get("ride_charge") or data.get("service_charge") or 0)
-    booking_fee_str = _fmt_money(data.get("booking_fee") or data.get("convenience_fee") or 0)
-    discount_val = float(data.get("discount") or 0)
-
-    bill_rows = [
-        [Paragraph("Bill Details", card_title), Paragraph("", item_val)],
-        [Spacer(1, 4), Spacer(1, 4)],
-        [
-            Paragraph(str(data.get("service_name") or "Ride Charge"), item_label),
-            Paragraph(f"{currency} {ride_charge_str}", item_val),
-        ],
-        [
-            Paragraph("Booking Fees & Convenience Charges", item_label),
-            Paragraph(f"{currency} {booking_fee_str}", item_val),
-        ],
-    ]
-    if discount_val > 0:
-        bill_rows.append(
-            [
-                Paragraph("Discount Applied", item_label),
-                Paragraph(f"-{currency} {_fmt_money(discount_val)}", item_val),
-            ]
-        )
-
-    bill_rows.extend(
-        [
-            [Spacer(1, 4), Spacer(1, 4)],
-            [
-                Paragraph(
-                    "Total Amount<br/><font color='#64748b' size='7.5'>(Inclusive of Taxes)</font>",
-                    item_bold_label,
-                ),
-                Paragraph(f"{currency} {grand_total_str}", item_bold_val),
-            ],
-        ]
+    p1_footer_table.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ])
     )
+    story.append(p1_footer_table)
 
-    bill_table = Table(bill_rows, colWidths=[360, 140])
-    bill_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#f1f5f9")),
-                ("ROUNDEDCORNERS", [8, 8, 8, 8]),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ("LEFTPADDING", (0, 0), (-1, -1), 14),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("LINEABOVE", (0, -1), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ]
-        )
-    )
-    story.append(bill_table)
-    story.append(Spacer(1, 16))
-
-    # Payment Method Card (Page 1)
-    pay_method = str(data.get("payment_method") or "UPI")
-    pay_data = [
-        [
-            Paragraph(
-                f"<b>You Paid Using</b><br/><font color='#64748b' size='8.5'>{pay_method}</font>",
-                item_label,
-            ),
-            Paragraph(f"{currency} {grand_total_str}", item_bold_val),
-        ]
-    ]
-    pay_table = Table(pay_data, colWidths=[360, 140])
-    pay_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#f1f5f9")),
-                ("ROUNDEDCORNERS", [8, 8, 8, 8]),
-                ("TOPPADDING", (0, 0), (-1, -1), 12),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-                ("LEFTPADDING", (0, 0), (-1, -1), 14),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ]
-        )
-    )
-    story.append(pay_table)
-
-    # =========================================================================
-    # PAGE 2: TAX INVOICE (SERVICE PROVIDER)
-    # =========================================================================
+    # ==========================================
+    # PAGE 2: Tax Invoice by Platform
+    # ==========================================
     story.append(PageBreak())
 
-    hdr2_data = [
+    # Page 2 Header Banner
+    p2_header_table = Table(
         [
-            Paragraph(
-                f"Tax Invoice<br/><font color='#64748b' size='8.5'>{order_num}</font>",
-                title_style,
-            ),
-            Paragraph(brand_html, brand_style),
+            [
+                logo_elem,
+                Paragraph("<b>ORIGINAL FOR RECIPIENT</b>", ParagraphStyle("P2Orig", fontName=FONT_BOLD, fontSize=10, leading=12, textColor=colors.HexColor("#0f172a"), alignment=1)),
+                Paragraph("<b>quickpress</b>", ParagraphStyle("P2BrandR", fontName=FONT_BOLD, fontSize=18, leading=20, textColor=colors.HexColor("#0f172a"), alignment=2)),
+            ]
+        ],
+        colWidths=[140, 243, 140],
+    )
+    p2_header_table.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ])
+    )
+    story.append(p2_header_table)
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("<b>Tax Invoice</b>", ParagraphStyle("P2Title", fontName=FONT_BOLD, fontSize=12, leading=15, textColor=colors.HexColor("#0f172a"))))
+    story.append(Spacer(1, 6))
+
+    # Platform Details Box
+    plat_invoice_no = data.get("platform_invoice_no") or f"QP26UPOT{str(abs(hash(order_id)))[:8]}"
+    plat_invoice_date = data.get("platform_invoice_date") or _format_date(order_date)
+
+    p2_company_grid = [
+        [
+            Paragraph(f"<b>{company_legal}</b>", table_cell_bold),
+            "",
+        ],
+        [
+            Paragraph(f"<b>Address:</b> {COMPANY_ADDRESS}", table_cell),
+            Paragraph(f"<b>PAN:</b> {company_pan}", table_cell),
+        ],
+        [
+            Paragraph(f"<b>State:</b> {COMPANY_STATE}", table_cell),
+            Paragraph(f"<b>CIN:</b> {company_cin}", table_cell),
+        ],
+        [
+            Paragraph(f"<b>Email ID:</b> {COMPANY_EMAIL}", table_cell),
+            Paragraph(f"<b>GSTIN:</b> {company_gst}", table_cell),
+        ],
+        [
+            Paragraph(f"<b>Invoice No:</b> {plat_invoice_no}", table_cell),
+            Paragraph(f"<b>Invoice Date:</b> {plat_invoice_date}", table_cell),
         ],
     ]
-    hdr2_table = Table(hdr2_data, colWidths=[320, 200])
-    hdr2_table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
+    p2_comp_table = Table(p2_company_grid, colWidths=[310, 213])
+    p2_comp_table.setStyle(
+        TableStyle([
+            ("SPAN", (0, 0), (1, 0)),
+            ("BACKGROUND", (0, 0), (1, 0), colors.HexColor("#94a3b8")),
+            ("TEXTCOLOR", (0, 0), (1, 0), colors.white),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f8fafc")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ])
     )
-    story.append(hdr2_table)
-    story.append(Spacer(1, 16))
+    story.append(p2_comp_table)
+    story.append(Spacer(1, 8))
 
-    invoice_no = str(data.get("invoice_no") or data.get("invoiceNumber") or "2627UP0027124245")
-    invoice_date_str = _format_date(data.get("invoice_date") or data.get("invoiceDate"))
-    state_str = str(data.get("state") or "Uttar Pradesh")
-    place_of_supply = str(data.get("place_of_supply") or state_str)
-    partner_gst = str(data.get("partner_gst") or data.get("gstNumber") or "09AAHCR1710J1ZE")
-    captain_name = str(data.get("captain_name") or "Delivery Captain")
-    customer_name = str(data.get("customer_name") or "Valued Customer")
-
-    p2_grid = [
-        [Paragraph("Invoice No.", meta_label), Paragraph(invoice_no, meta_val)],
-        [Paragraph("Invoice Date", meta_label), Paragraph(invoice_date_str, meta_val)],
-        [Paragraph("State", meta_label), Paragraph(state_str, meta_val)],
+    # Customer Details Box
+    p2_cust_grid = [
         [
-            Paragraph("Tax Category", meta_label),
-            Paragraph(
-                "Other local transportation services of passengers / garment care n.e.c. (996419)",
-                meta_val,
-            ),
-        ],
-        [Paragraph("Place of Supply", meta_label), Paragraph(place_of_supply, meta_val)],
-        [Paragraph("GST Number", meta_label), Paragraph(partner_gst, meta_val)],
-        [Paragraph("Vehicle / Service Hub", meta_label), Paragraph(str(data.get("partner_name") or "UP87Z6110"), meta_val)],
-        [Paragraph("Captain / Rider Name", meta_label), Paragraph(captain_name, meta_val)],
-        [Paragraph("Customer Name", meta_label), Paragraph(customer_name, meta_val)],
-        [Paragraph("Customer Pick Up Address", meta_label), Paragraph(pickup_addr, meta_val)],
-    ]
-    p2_grid_table = Table(p2_grid, colWidths=[200, 320])
-    p2_grid_table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("LINEBELOW", (0, 3), (-1, 3), 0.5, colors.HexColor("#e2e8f0")),
-            ]
-        )
-    )
-    story.append(p2_grid_table)
-    story.append(Spacer(1, 18))
-
-    # Bill Details Card (Page 2)
-    captain_fee = _fmt_money(data.get("captain_fee") or (float(ride_charge_str) * 0.95))
-    cgst_amt_p2 = _fmt_money(data.get("cgst_amt_p2") or (float(ride_charge_str) * 0.025))
-    sgst_amt_p2 = _fmt_money(data.get("sgst_amt_p2") or (float(ride_charge_str) * 0.025))
-    igst_amt_p2 = _fmt_money(data.get("igst_amt_p2") or 0.0)
-
-    p2_bill_rows = [
-        [Paragraph("Bill Details", card_title), Paragraph("", item_val)],
-        [Spacer(1, 4), Spacer(1, 4)],
-        [
-            Paragraph(str(data.get("service_fee_label") or "Captain Fee"), item_label),
-            Paragraph(f"{currency} {captain_fee}", item_val),
+            Paragraph("<b>Customer Details</b>", table_cell_bold),
+            "",
         ],
         [
-            Paragraph(f"CGST ({data.get('cgst_rate_p2', '2.5')}%)", item_label),
-            Paragraph(f"{currency} {cgst_amt_p2}", item_val),
+            Paragraph(f"<b>Name:</b> {customer_name}", table_cell),
+            Paragraph("<b>GSTIN:</b> UNREGISTERED", table_cell),
         ],
         [
-            Paragraph(f"SGST ({data.get('sgst_rate_p2', '2.5')}%)", item_label),
-            Paragraph(f"{currency} {sgst_amt_p2}", item_val),
-        ],
-        [
-            Paragraph(f"IGST ({data.get('igst_rate_p2', '0')}%)", item_label),
-            Paragraph(f"{currency} {igst_amt_p2}", item_val),
-        ],
-        [Spacer(1, 4), Spacer(1, 4)],
-        [
-            Paragraph(
-                "Ride Charge<br/><font color='#64748b' size='7.5'>(Inclusive of Taxes)</font>",
-                item_bold_label,
-            ),
-            Paragraph(f"{currency} {ride_charge_str}", item_bold_val),
+            Paragraph(f"<b>Delivery Address:</b> {delivery_address}", table_cell),
+            Paragraph(f"<b>Place of Supply:</b> {place_of_supply}", table_cell),
         ],
     ]
-    p2_bill_table = Table(p2_bill_rows, colWidths=[360, 140])
-    p2_bill_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#f1f5f9")),
-                ("ROUNDEDCORNERS", [8, 8, 8, 8]),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ("LEFTPADDING", (0, 0), (-1, -1), 14),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("LINEABOVE", (0, -1), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ]
-        )
+    p2_cust_table = Table(p2_cust_grid, colWidths=[310, 213])
+    p2_cust_table.setStyle(
+        TableStyle([
+            ("SPAN", (0, 0), (1, 0)),
+            ("BACKGROUND", (0, 0), (1, 0), colors.HexColor("#94a3b8")),
+            ("TEXTCOLOR", (0, 0), (1, 0), colors.white),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f8fafc")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ])
     )
-    story.append(p2_bill_table)
-    story.append(Spacer(1, 30))
+    story.append(p2_cust_table)
+    story.append(Spacer(1, 8))
 
-    # Disclaimer (Page 2)
-    p2_disclaimer = (
-        "This document is issued by Transport / Laundry Service Provider and not by "
-        "QuickPress Technologies Private Limited. QuickPress acts only as an Electronic "
-        "Commerce Operator for the transportation and garment care services."
-    )
-    story.append(Paragraph(p2_disclaimer, disclaimer_style))
-
-    # =========================================================================
-    # PAGE 3: TAX INVOICE (PLATFORM FEE + QR CODE)
-    # =========================================================================
-    story.append(PageBreak())
-
-    hdr3_data = [
+    # Service Details Box
+    p2_serv_grid = [
         [
-            Paragraph(
-                f"Tax Invoice<br/><font color='#64748b' size='8.5'>{order_num}</font>",
-                title_style,
-            ),
-            Paragraph(brand_html, brand_style),
+            Paragraph("<b>Service Details</b>", table_cell_bold),
+            "",
+        ],
+        [
+            Paragraph("<b>HSN Code:</b> 999799", table_cell),
+            Paragraph("<b>Supply Description:</b> Other Services N.E.C / Platform Convenience", table_cell),
         ],
     ]
-    hdr3_table = Table(hdr3_data, colWidths=[320, 200])
-    hdr3_table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
+    p2_serv_table = Table(p2_serv_grid, colWidths=[200, 323])
+    p2_serv_table.setStyle(
+        TableStyle([
+            ("SPAN", (0, 0), (1, 0)),
+            ("BACKGROUND", (0, 0), (1, 0), colors.HexColor("#94a3b8")),
+            ("TEXTCOLOR", (0, 0), (1, 0), colors.white),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f8fafc")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ])
     )
-    story.append(hdr3_table)
-    story.append(Spacer(1, 16))
+    story.append(p2_serv_table)
+    story.append(Spacer(1, 10))
 
-    # Generate QR Code image
-    qr_data_str = f"https://quickpress.in/invoices/{invoice_no}?auth=verify"
-    qr = qrcode.QRCode(version=1, box_size=3, border=0)
-    qr.add_data(qr_data_str)
-    qr.make(fit=True)
-    qr_img = qr.make_image(fill_color="black", back_color="white")
-    qr_buffer = io.BytesIO()
-    qr_img.save(qr_buffer, format="PNG")
-    qr_buffer.seek(0)
-    rl_qr = RLImage(qr_buffer, width=80, height=80)
+    # Fee Items Table
+    booking_fee = float(data.get("booking_fee") or 14.75)
+    taxable_platform = round(booking_fee / 1.18, 2)
+    cgst_platform = round((booking_fee - taxable_platform) / 2, 2)
+    sgst_platform = round((booking_fee - taxable_platform) / 2, 2)
 
-    company_address_html = f"""
-    <b>QuickPress Technologies Private Limited</b><br/>
-    3rd Floor, D-51, Bhagwati Tower,<br/>
-    Vibhuti Khand, Gomti Nagar, Lucknow,<br/>
-    Uttar Pradesh, 226010<br/><br/>
-    <b>{customer_name}</b><br/>
-    {pickup_addr}
-    """
-
-    top_p3_data = [[Paragraph(company_address_html, meta_val_left), rl_qr]]
-    top_p3_table = Table(top_p3_data, colWidths=[420, 100])
-    top_p3_table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-    story.append(top_p3_table)
-    story.append(Spacer(1, 16))
-
-    company_gst = str(data.get("company_gst") or partner_gst)
-
-    # Grid of details (Page 3)
-    p3_grid = [
-        [Paragraph("Invoice No.", meta_label), Paragraph(invoice_no, meta_val)],
-        [Paragraph("Invoice Date", meta_label), Paragraph(invoice_date_str, meta_val)],
+    p2_fee_rows = [
         [
-            Paragraph("Tax Category", meta_label),
-            Paragraph("Other services n.e.c. (999799)", meta_val),
-        ],
-        [Paragraph("Place of Supply", meta_label), Paragraph(place_of_supply, meta_val)],
-        [Paragraph("GST", meta_label), Paragraph(company_gst, meta_val)],
-    ]
-    p3_grid_table = Table(p3_grid, colWidths=[200, 320])
-    p3_grid_table.setStyle(
-        TableStyle(
-            [
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-            ]
-        )
-    )
-    story.append(p3_grid_table)
-    story.append(Spacer(1, 18))
-
-    # Bill Details Card (Page 3)
-    booking_base = _fmt_money(data.get("booking_fee_base") or (float(booking_fee_str) / 1.18))
-    conv_base = _fmt_money(data.get("convenience_fee_base") or 0.0)
-    subtotal_p3 = _fmt_money(float(booking_base) + float(conv_base))
-    cgst_amt_p3 = _fmt_money(data.get("cgst_amt_p3") or (float(subtotal_p3) * 0.09))
-    sgst_amt_p3 = _fmt_money(data.get("sgst_amt_p3") or (float(subtotal_p3) * 0.09))
-    igst_amt_p3 = _fmt_money(data.get("igst_amt_p3") or 0.0)
-
-    p3_bill_rows = [
-        [Paragraph("Bill Details", card_title), Paragraph("", item_val)],
-        [Spacer(1, 4), Spacer(1, 4)],
-        [Paragraph("Booking Fee", item_label), Paragraph(f"{currency} {booking_base}", item_val)],
-        [
-            Paragraph("Convenience Charges", item_label),
-            Paragraph(f"{currency} {conv_base}", item_val),
-        ],
-        [Spacer(1, 3), Spacer(1, 3)],
-        [Paragraph("Sub Total", item_bold_label), Paragraph(f"{currency} {subtotal_p3}", item_bold_val)],
-        [
-            Paragraph(f"CGST ({data.get('cgst_rate_p3', '9')}%)", item_label),
-            Paragraph(f"{currency} {cgst_amt_p3}", item_val),
+            Paragraph("<b>Sr.No</b>", table_cell_bold),
+            Paragraph("<b>Particulars</b>", table_cell_bold),
+            Paragraph("<b>Taxable Amount</b>", table_cell_right_bold),
+            Paragraph("<b>CGST (9%)</b>", table_cell_right_bold),
+            Paragraph("<b>SGST (9%)</b>", table_cell_right_bold),
+            Paragraph("<b>Total</b>", table_cell_right_bold),
         ],
         [
-            Paragraph(f"SGST ({data.get('sgst_rate_p3', '9')}%)", item_label),
-            Paragraph(f"{currency} {sgst_amt_p3}", item_val),
+            "",
+            Paragraph(f"<b>Order ID :{order_id}</b><br/><b>Order Date :{_format_date(order_date)}</b>", table_cell),
+            "",
+            "",
+            "",
+            "",
         ],
         [
-            Paragraph(f"IGST ({data.get('igst_rate_p3', '0')}%)", item_label),
-            Paragraph(f"{currency} {igst_amt_p3}", item_val),
+            Paragraph("1", table_cell),
+            Paragraph("Platform fee", table_cell),
+            Paragraph(_fmt_money(taxable_platform), table_cell_right),
+            Paragraph(_fmt_money(cgst_platform), table_cell_right),
+            Paragraph(_fmt_money(sgst_platform), table_cell_right),
+            Paragraph(_fmt_money(booking_fee), table_cell_right),
         ],
-        [Spacer(1, 4), Spacer(1, 4)],
         [
-            Paragraph(
-                "Final Amount<br/><font color='#64748b' size='7.5'>(Inclusive of Taxes)</font>",
-                item_bold_label,
-            ),
-            Paragraph(f"{currency} {booking_fee_str}", item_bold_val),
+            "",
+            Paragraph("<b>Total</b>", table_cell_bold),
+            Paragraph(f"<b>{_fmt_money(taxable_platform)}</b>", table_cell_right_bold),
+            Paragraph(f"<b>{_fmt_money(cgst_platform)}</b>", table_cell_right_bold),
+            Paragraph(f"<b>{_fmt_money(sgst_platform)}</b>", table_cell_right_bold),
+            Paragraph(f"<b>{_fmt_money(booking_fee)}</b>", table_cell_right_bold),
         ],
     ]
-    p3_bill_table = Table(p3_bill_rows, colWidths=[360, 140])
-    p3_bill_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#f1f5f9")),
-                ("ROUNDEDCORNERS", [8, 8, 8, 8]),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ("LEFTPADDING", (0, 0), (-1, -1), 14),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("LINEABOVE", (0, 5), (-1, 5), 0.5, colors.HexColor("#e2e8f0")),
-                ("LINEABOVE", (0, -1), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ]
-        )
-    )
-    story.append(p3_bill_table)
-    story.append(Spacer(1, 30))
 
-    # Sign-off & Thanks (Page 3)
-    p3_system_gen = "This is a system generated invoice and hence no signature required"
-    p3_thanks = f"Thank you {customer_name}"
-    story.append(Paragraph(p3_system_gen, disclaimer_style))
-    story.append(Spacer(1, 4))
-    story.append(Paragraph(p3_thanks, thanks_style))
+    p2_fee_table = Table(p2_fee_rows, colWidths=[40, 223, 70, 65, 65, 60])
+    p2_fee_table.setStyle(
+        TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#94a3b8")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("SPAN", (1, 1), (-1, 1)),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("LINEABOVE", (0, 3), (-1, 3), 0.5, colors.HexColor("#94a3b8")),
+            ("LINEBELOW", (0, 3), (-1, 3), 0.5, colors.HexColor("#94a3b8")),
+        ])
+    )
+    story.append(p2_fee_table)
+    story.append(Spacer(1, 8))
+
+    # Note
+    p2_settle_text = (
+        f"Amount of ₹{_fmt_money(booking_fee)} settled through digital mode/payment received against "
+        f"Order id ({order_id}) dated ({_format_date(order_date)})<br/>"
+        "Tax is not payable on reverse charge basis"
+    )
+    story.append(Paragraph(p2_settle_text, text_reg))
+    story.append(Spacer(1, 60))
+
+    # Page 2 Footer Signatory
+    p2_sig_block = f"""<b>For {company_legal}</b><br/><br/>
+<font size="14" color="#059669"><i>QuickPress Tech</i></font><br/>
+<b>Authorised Signatory</b>"""
+    story.append(Paragraph(p2_sig_block, ParagraphStyle("P2Sig", parent=text_reg, alignment=2)))
+    story.append(Spacer(1, 20))
+
+    # Bottom Legal communication address & terms URL
+    comm_addr_text = (
+        f"Communication Address: {COMPANY_ADDRESS}<br/>"
+        "Please refer to https://quickpress.online/terms for current version of full terms & conditions "
+        "which are incorporated in this invoice by reference."
+    )
+    story.append(Paragraph(comm_addr_text, text_small))
 
     doc.build(story)
     if output_target is None:
@@ -700,7 +699,7 @@ def generate_invoice_pdf(data: Dict[str, Any], output_target: Any = None) -> byt
 
 
 def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Map an Invoice model / dictionary and its parent Order into the template payload."""
+    """Map an Invoice model / dictionary and its parent Order into the 2-page GST marketplace template payload."""
     if hasattr(invoice, "model_dump"):
         inv_dict = invoice.model_dump()
     elif hasattr(invoice, "dict"):
@@ -717,70 +716,110 @@ def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = No
     handling = float(totals.get("handlingFee") or totals.get("handling") or 0)
     discount = float(totals.get("discount") or 0)
 
-    # Booking & convenience split
-    booking_fee = max(delivery + pickup + handling, 1.18)
-    ride_charge = max(grand_total - booking_fee, items_total - discount)
-    if grand_total > 0 and (ride_charge + booking_fee) != grand_total:
-        ride_charge = grand_total - booking_fee
+    # Booking & platform fee
+    booking_fee = round(delivery + pickup + handling, 2)
+    if booking_fee <= 0:
+        booking_fee = 14.75  # Default convenience & platform fee (12.50 base + 2.25 18% GST)
+
+    ride_charge = grand_total - booking_fee if grand_total > booking_fee else (items_total - discount)
+    if ride_charge <= 0:
+        ride_charge = max(grand_total, 184.80)
 
     customer = inv_dict.get("customer") or {}
     partner = inv_dict.get("partner") or {}
     payment = inv_dict.get("payment") or {}
     gst = inv_dict.get("gst") or {}
 
-    cust_addr = customer.get("addressLine") or customer.get("city") or "Customer Registered Address"
+    order_num = inv_dict.get("orderNumber") or ord_dict.get("code") or "QP-2026-001"
+    order_time = inv_dict.get("invoiceDate") or ord_dict.get("createdAt") or datetime.now().isoformat()
+    invoice_num = inv_dict.get("invoiceNumber") or f"QP26UP{str(abs(hash(order_num)))[:8]}"
+
+    cust_addr = customer.get("addressLine") or customer.get("city") or "Customer Registered Address, Kasganj, UP"
     if customer.get("city") and customer.get("city") not in cust_addr:
         cust_addr = f"{cust_addr}, {customer.get('city')}"
 
-    part_addr = partner.get("addressLine") or partner.get("city") or "QuickPress Partner Store Hub"
+    part_addr = partner.get("addressLine") or partner.get("city") or "QuickPress Partner Store Hub, Uttar Pradesh"
 
-    captain_fee = round(ride_charge / 1.05, 2)
-    cgst_p2 = round((ride_charge - captain_fee) / 2, 2)
-    sgst_p2 = round((ride_charge - captain_fee) / 2, 2)
+    # Map items from invoice or order
+    raw_items = inv_dict.get("items") or ord_dict.get("items") or []
+    mapped_items = []
+    if raw_items:
+        total_raw_val = sum(float(it.get("total") or (float(it.get("unitPrice", 0)) * int(it.get("quantity", 1)))) for it in raw_items) or 1.0
+        for itm in raw_items:
+            qty = int(itm.get("quantity") or 1)
+            name = itm.get("name") or "Laundry Service"
+            item_tot = float(itm.get("total") or (float(itm.get("unitPrice", 0)) * qty))
+            item_disc = round(discount * (item_tot / total_raw_val), 2) if discount > 0 else 0.0
+            net_val = round(item_tot - item_disc, 2)
+            cgst_val = round(net_val * 0.025, 2)
+            sgst_val = round(net_val * 0.025, 2)
+            final_item_tot = round(net_val + cgst_val + sgst_val, 2)
+            mapped_items.append({
+                "name": f"{qty} x {name}",
+                "gross_value": item_tot,
+                "discount": item_disc,
+                "net_value": net_val,
+                "cgst_rate": "2.5%",
+                "cgst_amt": cgst_val,
+                "sgst_rate": "2.5%",
+                "sgst_amt": sgst_val,
+                "total": final_item_tot,
+            })
+    else:
+        serv_name = inv_dict.get("serviceLabel") or "Laundry and Dry Cleaning Services"
+        base_val = round(ride_charge / 1.05, 2)
+        cgst_val = round((ride_charge - base_val) / 2, 2)
+        sgst_val = round((ride_charge - base_val) / 2, 2)
+        mapped_items.append({
+            "name": f"1 x {serv_name}",
+            "gross_value": base_val,
+            "discount": discount,
+            "net_value": base_val,
+            "cgst_rate": "2.5%",
+            "cgst_amt": cgst_val,
+            "sgst_rate": "2.5%",
+            "sgst_amt": sgst_val,
+            "total": ride_charge,
+        })
 
-    booking_base = round(booking_fee / 1.18, 2)
-    cgst_p3 = round((booking_fee - booking_base) / 2, 2)
-    sgst_p3 = round((booking_fee - booking_base) / 2, 2)
+    partner_legal = partner.get("legalName") or partner.get("name") or "Authorized Laundromat Partner"
+    partner_gstin = gst.get("gstin") or partner.get("gstin") or "UNREGISTERED"
 
     return {
-        "order_number": inv_dict.get("orderNumber") or ord_dict.get("code") or "QP-2026-001",
-        "order_time": inv_dict.get("invoiceDate") or ord_dict.get("createdAt"),
+        "order_number": order_num,
+        "order_id": order_num,
+        "order_time": order_time,
         "total_amount": f"{grand_total:.2f}",
         "pickup_address": cust_addr,
         "drop_address": part_addr,
         "distance": ord_dict.get("distance") or "2.28 kms",
         "duration": ord_dict.get("duration") or "5.92 mins",
-        "service_name": inv_dict.get("serviceLabel") or "Ride Charge",
+        "service_name": inv_dict.get("serviceLabel") or "Laundry and Dry Cleaning Services",
         "ride_charge": f"{ride_charge:.2f}",
         "booking_fee": f"{booking_fee:.2f}",
         "discount": f"{discount:.2f}",
         "payment_method": payment.get("methodLabel") or payment.get("method") or "UPI",
-        "invoice_no": inv_dict.get("invoiceNumber") or "2627UP0027124245",
-        "invoice_date": inv_dict.get("invoiceDate"),
-        "state": "Uttar Pradesh",
-        "place_of_supply": gst.get("placeOfSupply") or "Uttar Pradesh",
-        "partner_gst": gst.get("gstin") or "09AAHCR1710J1ZE",
+        "invoice_no": invoice_num,
+        "invoice_date": _format_date(order_time),
+        "state": COMPANY_STATE,
+        "place_of_supply": gst.get("placeOfSupply") or f"{COMPANY_STATE}({COMPANY_STATE_CODE})",
+        "partner_gst": partner_gstin,
         "partner_name": partner.get("name") or "QuickPress Partner Hub",
+        "partner_legal_name": partner_legal,
+        "partner_address": part_addr,
+        "partner_reg_no": partner.get("registrationNumber") or "N/A",
         "captain_name": ord_dict.get("riderName") or "Delivery Captain",
         "customer_name": customer.get("name") or "Valued Customer",
-        "service_fee_label": "Captain Fee",
-        "captain_fee": f"{captain_fee:.2f}",
-        "cgst_rate_p2": "2.5",
-        "cgst_amt_p2": f"{cgst_p2:.2f}",
-        "sgst_rate_p2": "2.5",
-        "sgst_amt_p2": f"{sgst_p2:.2f}",
-        "igst_rate_p2": "0",
-        "igst_amt_p2": "0.00",
-        "company_gst": "09AAHCR1710J1ZE",
-        "booking_fee_base": f"{booking_base:.2f}",
-        "convenience_fee_base": "0.00",
-        "booking_subtotal": f"{booking_base:.2f}",
-        "cgst_rate_p3": "9",
-        "cgst_amt_p3": f"{cgst_p3:.2f}",
-        "sgst_rate_p3": "9",
-        "sgst_amt_p3": f"{sgst_p3:.2f}",
-        "igst_rate_p3": "0",
-        "igst_amt_p3": "0.00",
+        "items": mapped_items,
+        "sac_code": "999791",
+        "service_description": "Laundry and Dry Cleaning Services",
+        "platform_invoice_no": f"QP26UPOT{str(abs(hash(invoice_num)))[:8]}",
+        "platform_invoice_date": _format_date(order_time),
+        "company_legal_name": COMPANY_LEGAL_NAME,
+        "company_pan": COMPANY_PAN,
+        "company_cin": COMPANY_CIN,
+        "company_gst": COMPANY_GSTIN,
+        "company_address": COMPANY_ADDRESS,
     }
 
 
