@@ -207,6 +207,7 @@ class AdminPlanPayload(BaseModel):
     surgeWaiver: bool = False
     supportTier: str = "Standard"
     monthlyOrderLimit: int = 0
+    monthlyWeightLimitKg: int = 0
     freeExpressCount: int = 0
     description: str = ""
     benefits: List[MembershipBenefit] = Field(default_factory=list)

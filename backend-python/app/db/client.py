@@ -99,6 +99,12 @@ def _apply_update(target: Dict[str, Any], update: Dict[str, Any]) -> None:
             if k not in target or not isinstance(target[k], list):
                 target[k] = []
             target[k].append(v)
+    if "$addToSet" in update:
+        for k, v in update["$addToSet"].items():
+            if k not in target or not isinstance(target[k], list):
+                target[k] = []
+            if v not in target[k]:
+                target[k].append(v)
     if "$pull" in update:
         for k, v in update["$pull"].items():
             if k in target and isinstance(target[k], list):

@@ -153,6 +153,15 @@ def _apply_update(target: Dict[str, Any], update: Dict[str, Any]) -> None:
             else:
                 arr.append(v)
 
+    if "$addToSet" in update:
+        for k, v in update["$addToSet"].items():
+            arr = _get_nested(target, k)
+            if not isinstance(arr, list):
+                arr = []
+                _set_nested(target, k, arr)
+            if v not in arr:
+                arr.append(v)
+
     if "$pull" in update:
         for k, v in update["$pull"].items():
             arr = _get_nested(target, k)

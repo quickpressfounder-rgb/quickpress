@@ -136,18 +136,17 @@ class AdminMembershipRepository:
 
     async def list_plans(self, include_inactive: bool = True) -> List[MembershipPlan]:
         """List all membership plans sorted by order."""
-        query = {} if include_inactive else {"status": "Active"}
+        from app.db.membership_repositories import PLAN_SEED, BENEFIT_SEED
+        for b in BENEFIT_SEED:
+            await database.update_one(BENEFITS, {"_id": b["_id"]}, {"$setOnInsert": dict(b)}, upsert=True)
+        for p in PLAN_SEED:
+            if str(p.get("_id")) != "free":
+                await database.update_one(PLANS, {"_id": p["_id"]}, {"$setOnInsert": dict(p)}, upsert=True)
+
+        query = {} if include_inactive else {"status": {"$in": ["Active", "active"]}}
         docs = await database.find_many(PLANS, query)
-        if not docs and (not query or query == {"status": "Active"}):
-            from app.db.membership_repositories import PLAN_SEED, BENEFIT_SEED
-            for b in BENEFIT_SEED:
-                await database.update_one(BENEFITS, {"_id": b["_id"]}, {"$setOnInsert": dict(b)}, upsert=True)
-            for p in PLAN_SEED:
-                if str(p.get("_id")) != "free":
-                    await database.update_one(PLANS, {"_id": p["_id"]}, {"$setOnInsert": dict(p)}, upsert=True)
-            docs = await database.find_many(PLANS, query)
-            if not docs:
-                docs = [dict(item) for item in PLAN_SEED]
+        if not docs:
+            docs = [dict(item) for item in PLAN_SEED]
         
         # Filter out legacy free plan if present
         docs = [d for d in (docs or []) if str(d.get("_id")) != "free"]
@@ -275,6 +274,7 @@ class AdminMembershipRepository:
             "surge_waiver": payload.surgeWaiver,
             "support_tier": payload.supportTier,
             "monthly_order_limit": payload.monthlyOrderLimit,
+            "monthly_weight_limit_kg": payload.monthlyWeightLimitKg or 0,
             "free_express_count": payload.freeExpressCount,
             "description": payload.description,
             "created_at": _iso(now),
@@ -339,6 +339,7 @@ class AdminMembershipRepository:
             "surge_waiver": payload.surgeWaiver,
             "support_tier": payload.supportTier,
             "monthly_order_limit": payload.monthlyOrderLimit,
+            "monthly_weight_limit_kg": payload.monthlyWeightLimitKg or 0,
             "free_express_count": payload.freeExpressCount,
             "description": payload.description,
             "updated_at": _iso(utcnow()),
@@ -481,6 +482,15 @@ class AdminMembershipRepository:
         plan = await self.get_plan(payload.planId)
         plan_name = plan.name if plan else payload.planId.title()
 
+        # Resolve real user id if admin entered phone or email
+        user_doc = (
+            await database.find_one(USERS, {"_id": user_id})
+            or await database.find_one(USERS, {"id": user_id})
+            or await database.find_one(USERS, {"phone": user_id})
+            or await database.find_one(USERS, {"email": user_id})
+        ) or {}
+        real_user_id = str(user_doc.get("_id") or user_doc.get("id") or user_id)
+
         now = utcnow()
         validity = payload.validityDays
         if not validity:
@@ -489,8 +499,8 @@ class AdminMembershipRepository:
         expires_at = now + timedelta(days=validity)
 
         m_doc = {
-            "_id": f"mbs-{user_id}",
-            "user_id": user_id,
+            "_id": f"mbs-{real_user_id}",
+            "user_id": real_user_id,
             "plan_id": payload.planId,
             "status": "active",
             "billing_cycle": payload.billingCycle,
@@ -503,13 +513,13 @@ class AdminMembershipRepository:
             "updated_at": _iso(now),
         }
 
-        await database.collection(MEMBERSHIPS).update_one({"user_id": user_id}, {"$set": m_doc}, upsert=True)
+        await database.collection(MEMBERSHIPS).update_one({"user_id": real_user_id}, {"$set": m_doc}, upsert=True)
 
         # Log transaction
         tx_id = f"tx-{uuid.uuid4().hex[:12]}"
         tx_doc = {
             "_id": tx_id,
-            "user_id": user_id,
+            "user_id": real_user_id,
             "plan_id": payload.planId,
             "plan_name": plan_name,
             "type": "admin_grant",
@@ -526,16 +536,16 @@ class AdminMembershipRepository:
         await audit_repository.log(
             actor=_admin_actor_name(admin_user),
             action="membership.subscriber.grant",
-            target=user_id,
-            meta={"user_id": user_id, "plan_id": payload.planId, "days": validity},
+            target=real_user_id,
+            meta={"user_id": real_user_id, "plan_id": payload.planId, "days": validity},
         )
 
-        user_doc = await database.find_one(USERS, {"_id": user_id}) or {}
+        final_user = await database.find_one(USERS, {"_id": real_user_id}) or user_doc
         return MembershipSubscriberItem(
-            userId=user_id,
-            userName=user_doc.get("display_name") or user_doc.get("name") or "Customer",
-            userPhone=user_doc.get("phone") or "",
-            userEmail=user_doc.get("email") or "",
+            userId=real_user_id,
+            userName=final_user.get("display_name") or final_user.get("name") or "Customer",
+            userPhone=final_user.get("phone") or "",
+            userEmail=final_user.get("email") or "",
             planId=payload.planId,
             planName=plan_name,
             status="active",
@@ -556,11 +566,21 @@ class AdminMembershipRepository:
         """Cancel/revoke a customer's active membership."""
         now = utcnow()
         existing = await database.find_one(MEMBERSHIPS, {"user_id": user_id})
+        target_uid = user_id
+        if not existing:
+            user_doc = (
+                await database.find_one(USERS, {"phone": user_id})
+                or await database.find_one(USERS, {"email": user_id})
+                or await database.find_one(USERS, {"id": user_id})
+            )
+            if user_doc:
+                target_uid = str(user_doc.get("_id") or user_doc.get("id"))
+                existing = await database.find_one(MEMBERSHIPS, {"user_id": target_uid})
         if not existing:
             return False
 
         await database.collection(MEMBERSHIPS).update_one(
-            {"user_id": user_id},
+            {"user_id": target_uid},
             {
                 "$set": {
                     "status": "cancelled",

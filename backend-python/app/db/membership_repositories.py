@@ -350,21 +350,22 @@ class MembershipRepository:
         return documents
 
     async def _plan_documents(self) -> List[Dict[str, Any]]:
-        documents = await database.find_many(PLANS, {"status": {"$ne": "Archived"}})
-        if not documents:
-            documents = [dict(item) for item in PLAN_SEED]
-            for doc in documents:
+        for doc in PLAN_SEED:
+            if str(doc.get("_id") or "").lower() != "free":
                 try:
-                    await database.insert_one(PLANS, dict(doc))
+                    await database.update_one(PLANS, {"_id": doc["_id"]}, {"$setOnInsert": dict(doc)}, upsert=True)
                 except Exception:
                     pass
+        documents = await database.find_many(PLANS, {"status": {"$in": ["Active", "active"]}})
+        if not documents:
+            documents = [dict(item) for item in PLAN_SEED]
         documents = [
             d for d in documents
             if str(d.get("_id") or d.get("id") or "").lower() != "free"
+            and str(d.get("status", "Active")).lower() not in ["archived", "inactive"]
         ]
         documents.sort(key=lambda doc: int(doc.get("order") or 0))
         return documents
-
 
     def _benefit_model(self, document: Dict[str, Any]) -> MembershipBenefit:
         return MembershipBenefit(
@@ -394,6 +395,7 @@ class MembershipRepository:
             unique.append(benefit)
 
         monthly = int(document.get("monthly_price") or 0)
+        quarterly = int(document.get("quarterly_price") or (round(monthly * 2.8) if monthly else 0))
         yearly = int(document.get("yearly_price") or 0)
         savings = max(monthly * 12 - yearly, 0)
         return MembershipPlan(
@@ -401,6 +403,7 @@ class MembershipRepository:
             name=str(document.get("name") or plan_id.title()),
             tagline=str(document.get("tagline") or ""),
             monthlyPrice=monthly,
+            quarterlyPrice=quarterly,
             yearlyPrice=yearly,
             yearlySavings=savings,
             savingsLabel=(f"Save ₹{savings} a year" if savings > 0 else "Always free"),
@@ -412,13 +415,16 @@ class MembershipRepository:
             color=str(document.get("color") or "emerald"),
             order=int(document.get("order") or 0),
             discountPercent=int(document.get("discount_percent") or 0),
+            cashbackPercent=int(document.get("cashback_percent") or 0),
             freeDeliveryMinOrder=int(document.get("free_delivery_min_order") or 0),
             freePickup=bool(document.get("free_pickup", False)),
             priorityProcessing=bool(document.get("priority_processing", False)),
+            surgeWaiver=bool(document.get("surge_waiver", False)),
             supportTier=str(document.get("support_tier") or "Standard"),
             monthlyOrderLimit=int(document.get("monthly_order_limit") or 0),
             monthlyWeightLimitKg=int(document.get("monthly_weight_limit_kg") or 0),
             freeExpressCount=int(document.get("free_express_count") or 0),
+            description=str(document.get("description") or ""),
             benefits=unique,
         )
 
@@ -508,9 +514,15 @@ class MembershipRepository:
         )
 
     async def _plan_by_id(self, plan_id: str) -> Optional[MembershipPlan]:
+        doc = await database.find_one(PLANS, {"_id": plan_id})
+        if not doc:
+            doc = await database.find_one(PLANS, {"_id": plan_id.lower()})
+        if doc:
+            benefits = await self._benefit_documents()
+            return self._plan_model(doc, benefits)
         benefits = await self._benefit_documents()
         for document in await self._plan_documents():
-            if str(document.get("_id")) == plan_id:
+            if str(document.get("_id")).lower() == plan_id.lower():
                 return self._plan_model(document, benefits)
         return None
 
