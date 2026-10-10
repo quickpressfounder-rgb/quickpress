@@ -91,6 +91,51 @@ export const RiderTripDetailModal: React.FC<RiderTripDetailModalProps> = ({
     window.location.href = `tel:${phone}`;
   };
 
+  const CANONICAL_STATUS_LABELS: Record<string, string> = {
+    placed: "Placed",
+    pending_partner_acceptance: "Order Placed",
+    partner_accepted: "Store Accepted",
+    rider_searching: "Searching Captain",
+    rider_pickup_assigning: "Searching Captain",
+    pickup_rider_assigned: "Pickup Assigned",
+    rider_assigned: "Pickup Assigned",
+    rider_going_to_pickup: "Heading to Pickup",
+    pickup_rider_accepted: "Heading to Pickup",
+    rider_accepted: "Heading to Pickup",
+    pickup_otp_pending: "Pickup OTP Pending",
+    pickup_otp_verified: "Picked Up",
+    picked_up: "Picked Up",
+    in_transit_to_store: "In Transit to Store",
+    at_store: "At Store",
+    at_partner: "At Store",
+    "at-partner": "At Store",
+    store_drop_confirmed: "Store Received",
+    processing_started: "In Cleaning",
+    processing: "In Cleaning",
+    washing: "Washing",
+    ironing: "Ironing",
+    dry_cleaning: "Dry Cleaning",
+    ready: "Ready for Dispatch",
+    ready_for_delivery: "Ready for Dispatch",
+    completed: "Ready for Dispatch",
+    delivery_rider_assigned: "Delivery Assigned",
+    delivery_rider_accepted: "Delivery Accepted",
+    dispatch_otp_pending: "Dispatch OTP Pending",
+    dispatch_otp_verified: "Out for Delivery",
+    out_for_delivery: "Out for Delivery",
+    delivery_otp_pending: "Delivery OTP Pending",
+    delivery_otp_verified: "Delivered",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+    refund_pending: "Refund Pending",
+    refunded: "Refunded",
+  };
+
+  const statusKey = String((trip as any).canonicalStatus || trip.status || "").toLowerCase().trim();
+  const statusDisplay = CANONICAL_STATUS_LABELS[statusKey] || trip.status || "Active Trip";
+  const isDelivered = statusKey === "delivered" || statusKey === "completed";
+  const isCancelled = statusKey === "cancelled" || statusKey === "refunded" || statusKey === "rejected";
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
       <div
@@ -108,8 +153,16 @@ export const RiderTripDetailModal: React.FC<RiderTripDetailModalProps> = ({
                 <h3 className="text-sm font-black text-zinc-950">
                   Trip #{trip.orderCode || trip.orderId.slice(-6).toUpperCase()}
                 </h3>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  {trip.status || "Active Trip"}
+                <span
+                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                    isDelivered
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                      : isCancelled
+                      ? "bg-rose-100 text-rose-800 border-rose-300"
+                      : "bg-blue-100 text-blue-800 border-blue-300"
+                  }`}
+                >
+                  {statusDisplay}
                 </span>
               </div>
               <p className="text-[11px] font-medium text-zinc-500">

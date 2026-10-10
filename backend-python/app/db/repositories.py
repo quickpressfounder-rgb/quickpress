@@ -38,6 +38,24 @@ class UserRepository:
         doc = await self._c.find_one(query)
         return User.from_document(doc) if doc else None
 
+    async def by_phone_any_role(self, phone: str) -> Optional[User]:
+        if not phone:
+            return None
+        digits = "".join(ch for ch in str(phone) if ch.isdigit())
+        ten_digits = digits[-10:] if len(digits) >= 10 else digits
+        candidates = list({
+            str(phone).strip(),
+            ten_digits,
+            f"+91{ten_digits}",
+            f"+91 {ten_digits}",
+            f"91{ten_digits}",
+            f"0{ten_digits}",
+        })
+        doc = await self._c.find_one({"phone": {"$in": candidates}})
+        if doc:
+            return User.from_document(doc)
+        return None
+
     async def by_phone(self, phone: str, role: Optional[Role] = None) -> Optional[User]:
         if not phone:
             return None
@@ -272,11 +290,16 @@ class UserRepository:
         return refreshed or created
 
     async def create_phone_user(self, *, phone: str, role: Role) -> User:
-        existing = await self.by_phone(phone, role)
-        if existing:
-            await self._ensure_role_profile(existing)
-            refreshed = await self.by_id(existing.id)
-            return refreshed or existing
+        existing_any = await self.by_phone_any_role(phone)
+        if existing_any:
+            if existing_any.role != role:
+                raise ValueError(
+                    f"This mobile number (+91 {phone[-10:]}) is already registered as a {existing_any.role.value.capitalize()} account. Only 1 account is permitted per mobile number."
+                )
+            await self._ensure_role_profile(existing_any)
+            refreshed = await self.by_id(existing_any.id)
+            return refreshed or existing_any
+
         user = User(
             id=str(uuid.uuid4()),
             firebase_uid=f"phone-{phone}",

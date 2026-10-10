@@ -630,6 +630,38 @@ async def transition(
         changes=changes,
     )
 
+    # Broadcast real-time order status transition to Customer, Partner, Rider and Admin simultaneously
+    try:
+        from app.services.socket_service import broadcast_order_event
+        canonical_event = f"order.{target}"
+        evt_payload = {
+            "orderId": order_id_of(updated),
+            "id": order_id_of(updated),
+            "code": updated.get("code") or order_id_of(updated),
+            "status": target,
+            "canonicalStatus": target,
+            "target": target,
+            "actorRole": actor_role,
+            "actorId": actor_id,
+            "at": at,
+        }
+        asyncio.create_task(
+            broadcast_order_event(
+                canonical_event,
+                updated,
+                extra_data=evt_payload,
+            )
+        )
+        asyncio.create_task(
+            broadcast_order_event(
+                "order.status_changed",
+                updated,
+                extra_data=evt_payload,
+            )
+        )
+    except Exception as exc:
+        logger.warning(f"Failed to broadcast transition to Socket.IO: {exc}")
+
     # Referral, Settlement, and Automated Email Invoice Dispatch hooks on order delivery
     if target in (DELIVERED, COMPLETED):
         try:
@@ -694,25 +726,51 @@ PARTNER_STATUS = {
     PENDING: "new",
     PARTNER_ACCEPTED: "accepted",
     RIDER_SEARCHING: "accepted",
+    RIDER_PICKUP_ASSIGNING: "accepted",
     PICKUP_RIDER_ASSIGNED: "accepted",
     RIDER_ASSIGNED: "accepted",
+    RIDER_GOING_TO_PICKUP: "accepted",
     PICKUP_RIDER_ACCEPTED: "accepted",
     RIDER_ACCEPTED: "accepted",
     PICKUP_OTP_PENDING: "accepted",
+    PICKUP_OTP_VERIFIED: "picked",
     PICKED_UP: "picked",
+    IN_TRANSIT_TO_STORE: "picked",
+    AT_STORE: "at_partner",
     AT_PARTNER: "at_partner",
+    STORE_DROP_CONFIRMED: "at_partner",
+    PROCESSING_STARTED: "processing",
     PROCESSING: "processing",
-    IRONING: "ironing",
+    SORTING: "processing",
+    WASHING: "processing",
+    DRYING: "processing",
+    DRY_CLEANING: "processing",
+    IRONING: "processing",
+    QUALITY_CHECK: "processing",
+    PROCESSING_HOLD: "processing",
+    QUALITY_ISSUE: "processing",
+    PACKED: "ready",
+    PROCESSING_COMPLETED: "ready",
     READY_FOR_DELIVERY: "ready",
     READY: "ready",
-    COMPLETED: "delivered",
+    COMPLETED: "ready",
+    DELIVERY_RIDER_ASSIGNING: "ready",
     DELIVERY_RIDER_ASSIGNED: "ready",
+    DELIVERY_RIDER_2_ASSIGNED: "ready",
     DELIVERY_RIDER_ACCEPTED: "ready",
     DISPATCH_OTP_PENDING: "ready",
+    DISPATCH_OTP_VERIFIED: "out_for_delivery",
     OUT_FOR_DELIVERY: "out_for_delivery",
     DELIVERY_OTP_PENDING: "out_for_delivery",
+    DELIVERY_OTP_VERIFIED: "delivered",
     DELIVERED: "delivered",
     CANCELLED: "cancelled",
+    STORE_REJECTED: "cancelled",
+    PICKUP_FAILED: "cancelled",
+    CUSTOMER_UNAVAILABLE: "cancelled",
+    PAYMENT_FAILED: "cancelled",
+    REFUND_PENDING: "refund_pending",
+    REFUNDED: "refunded",
 }
 
 #: canonical status -> rider app status
@@ -721,47 +779,72 @@ RIDER_STATUS = {
     PENDING: "assigned",
     PARTNER_ACCEPTED: "assigned",
     RIDER_SEARCHING: "assigned",
-    PICKUP_RIDER_ASSIGNED: "accepted",
-    RIDER_ASSIGNED: "accepted",
+    RIDER_PICKUP_ASSIGNING: "assigned",
+    PICKUP_RIDER_ASSIGNED: "assigned",
+    RIDER_ASSIGNED: "assigned",
+    RIDER_GOING_TO_PICKUP: "accepted",
     PICKUP_RIDER_ACCEPTED: "accepted",
     RIDER_ACCEPTED: "accepted",
     PICKUP_OTP_PENDING: "accepted",
+    PICKUP_OTP_VERIFIED: "picked",
     PICKED_UP: "picked",
+    IN_TRANSIT_TO_STORE: "picked",
+    AT_STORE: "at-partner",
     AT_PARTNER: "at-partner",
+    STORE_DROP_CONFIRMED: "at-partner",
+    PROCESSING_STARTED: "at-partner",
     PROCESSING: "at-partner",
+    SORTING: "at-partner",
+    WASHING: "at-partner",
+    DRYING: "at-partner",
+    DRY_CLEANING: "at-partner",
     IRONING: "at-partner",
+    QUALITY_CHECK: "at-partner",
+    PACKED: "at-partner",
+    PROCESSING_COMPLETED: "at-partner",
     READY_FOR_DELIVERY: "at-partner",
     READY: "at-partner",
     COMPLETED: "at-partner",
-    DELIVERY_RIDER_ASSIGNED: "accepted",
+    DELIVERY_RIDER_ASSIGNING: "assigned",
+    DELIVERY_RIDER_ASSIGNED: "assigned",
+    DELIVERY_RIDER_2_ASSIGNED: "assigned",
     DELIVERY_RIDER_ACCEPTED: "accepted",
+    DISPATCH_OTP_PENDING: "accepted",
+    DISPATCH_OTP_VERIFIED: "ready-for-delivery",
     OUT_FOR_DELIVERY: "ready-for-delivery",
     DELIVERY_OTP_PENDING: "ready-for-delivery",
+    DELIVERY_OTP_VERIFIED: "delivered",
     DELIVERED: "delivered",
     CANCELLED: "cancelled",
+    STORE_REJECTED: "cancelled",
+    PICKUP_FAILED: "cancelled",
+    CUSTOMER_UNAVAILABLE: "cancelled",
+    PAYMENT_FAILED: "cancelled",
+    REFUND_PENDING: "cancelled",
+    REFUNDED: "cancelled",
 }
 
 _PARTNER_STAGES = [
     ("pending", "Order Placed", (PLACED, PENDING)),
-    ("accepted", "Accepted", (PARTNER_ACCEPTED, RIDER_SEARCHING)),
-    ("pickup_pending", "Waiting for Pickup", (PICKUP_RIDER_ASSIGNED, RIDER_ASSIGNED, PICKUP_RIDER_ACCEPTED, RIDER_ACCEPTED, PICKUP_OTP_PENDING)),
-    ("picked", "Pickup Completed", (PICKED_UP, AT_PARTNER)),
-    ("processing", "Processing", (PROCESSING, IRONING, "washing", "dry_cleaning")),
-    ("ready", "Ready for Delivery", (READY_FOR_DELIVERY, READY, COMPLETED)),
-    ("delivery_assigned", "Delivery Rider Assigned", (DELIVERY_RIDER_ASSIGNED, DELIVERY_RIDER_ACCEPTED)),
-    ("dispatch", "Dispatch / Handover", (DISPATCH_OTP_PENDING,)),
+    ("accepted", "Accepted", (PARTNER_ACCEPTED, RIDER_SEARCHING, RIDER_PICKUP_ASSIGNING)),
+    ("pickup_pending", "Waiting for Pickup", (PICKUP_RIDER_ASSIGNED, RIDER_ASSIGNED, RIDER_GOING_TO_PICKUP, PICKUP_RIDER_ACCEPTED, RIDER_ACCEPTED, PICKUP_OTP_PENDING)),
+    ("picked", "Pickup Completed", (PICKUP_OTP_VERIFIED, PICKED_UP, IN_TRANSIT_TO_STORE, AT_STORE, AT_PARTNER, STORE_DROP_CONFIRMED)),
+    ("processing", "Processing", (PROCESSING_STARTED, PROCESSING, SORTING, WASHING, DRYING, DRY_CLEANING, IRONING, QUALITY_CHECK)),
+    ("ready", "Ready for Delivery", (PACKED, PROCESSING_COMPLETED, READY_FOR_DELIVERY, READY, COMPLETED)),
+    ("delivery_assigned", "Delivery Rider Assigned", (DELIVERY_RIDER_ASSIGNING, DELIVERY_RIDER_ASSIGNED, DELIVERY_RIDER_2_ASSIGNED, DELIVERY_RIDER_ACCEPTED)),
+    ("dispatch", "Dispatch / Handover", (DISPATCH_OTP_PENDING, DISPATCH_OTP_VERIFIED)),
     ("out_for_delivery", "Out for Delivery", (OUT_FOR_DELIVERY, DELIVERY_OTP_PENDING)),
-    ("delivered", "Delivered", (DELIVERED,)),
+    ("delivered", "Delivered", (DELIVERY_OTP_VERIFIED, DELIVERED)),
 ]
 
 
 _RIDER_STAGES = [
-    ("assigned", "Assigned", (PICKUP_RIDER_ASSIGNED, RIDER_ASSIGNED, RIDER_SEARCHING, DELIVERY_RIDER_ASSIGNED)),
-    ("accepted", "Accepted", (PICKUP_RIDER_ACCEPTED, RIDER_ACCEPTED, PICKUP_OTP_PENDING, DELIVERY_RIDER_ACCEPTED, DISPATCH_OTP_PENDING)),
-    ("picked", "Picked up from customer", (PICKED_UP,)),
-    ("at-partner", "Dropped at store", (AT_PARTNER, PROCESSING, IRONING, READY_FOR_DELIVERY, READY, COMPLETED)),
-    ("ready-for-delivery", "Out for delivery", (OUT_FOR_DELIVERY, DELIVERY_OTP_PENDING)),
-    ("delivered", "Delivered", (DELIVERED,)),
+    ("assigned", "Assigned", (PLACED, PENDING, PARTNER_ACCEPTED, RIDER_SEARCHING, RIDER_PICKUP_ASSIGNING, PICKUP_RIDER_ASSIGNED, RIDER_ASSIGNED, DELIVERY_RIDER_ASSIGNING, DELIVERY_RIDER_ASSIGNED, DELIVERY_RIDER_2_ASSIGNED)),
+    ("accepted", "Accepted", (RIDER_GOING_TO_PICKUP, PICKUP_RIDER_ACCEPTED, RIDER_ACCEPTED, PICKUP_OTP_PENDING, DELIVERY_RIDER_ACCEPTED, DISPATCH_OTP_PENDING)),
+    ("picked", "Picked up from customer", (PICKUP_OTP_VERIFIED, PICKED_UP, IN_TRANSIT_TO_STORE)),
+    ("at-partner", "Dropped at store", (AT_STORE, AT_PARTNER, STORE_DROP_CONFIRMED, PROCESSING_STARTED, PROCESSING, SORTING, WASHING, DRYING, DRY_CLEANING, IRONING, QUALITY_CHECK, PACKED, PROCESSING_COMPLETED, READY_FOR_DELIVERY, READY, COMPLETED)),
+    ("ready-for-delivery", "Out for delivery", (DISPATCH_OTP_VERIFIED, OUT_FOR_DELIVERY, DELIVERY_OTP_PENDING)),
+    ("delivered", "Delivered", (DELIVERY_OTP_VERIFIED, DELIVERED)),
 ]
 
 

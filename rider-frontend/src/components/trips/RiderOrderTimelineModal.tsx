@@ -88,13 +88,14 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
     trip.paymentType === "cod" ||
     String(trip.paymentMode || "").toLowerCase().includes("cash");
 
-  const currentStage = (trip.stage || trip.status || "en_route_pickup").toLowerCase();
+  const currentStage = (trip.stage || trip.status || (trip as any).canonicalStatus || "en_route_pickup").toLowerCase();
   const isCompleted =
     currentStage === "completed" ||
     currentStage === "delivered" ||
+    currentStage === "delivery_otp_verified" ||
     currentStage === "dropped";
   const isCancelled =
-    currentStage === "cancelled" || currentStage === "rejected";
+    currentStage === "cancelled" || currentStage === "rejected" || currentStage === "refunded";
 
   const handleCopy = (text: string, label: string) => {
     try {
@@ -125,8 +126,17 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
       isDone:
         currentStage !== "en_route_pickup" &&
         currentStage !== "assigned" &&
+        currentStage !== "placed" &&
+        currentStage !== "pending" &&
+        currentStage !== "partner_accepted" &&
+        currentStage !== "rider_searching" &&
+        currentStage !== "pickup_rider_assigned" &&
         !isCancelled,
-      isCurrent: currentStage === "en_route_pickup",
+      isCurrent:
+        currentStage === "en_route_pickup" ||
+        currentStage === "rider_going_to_pickup" ||
+        currentStage === "pickup_rider_accepted" ||
+        currentStage === "accepted",
     },
     {
       id: "pickup_verified",
@@ -136,10 +146,29 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
       otp: trip.startOtp || trip.pickupOtp || "Verified at pickup",
       otpLabel: "Pickup OTP",
       isDone:
-        ["in_trip", "store_processing", "ready_pickup_store", "out_for_delivery", "completed", "delivered"].includes(
-          currentStage
-        ) && !isCancelled,
-      isCurrent: currentStage === "arrived_pickup",
+        [
+          "in_trip",
+          "picked",
+          "picked_up",
+          "pickup_otp_verified",
+          "in_transit_to_store",
+          "at_store",
+          "at_partner",
+          "at-partner",
+          "store_drop_confirmed",
+          "store_processing",
+          "processing",
+          "washing",
+          "ironing",
+          "ready",
+          "ready_pickup_store",
+          "ready_for_delivery",
+          "out_for_delivery",
+          "delivery_otp_pending",
+          "completed",
+          "delivered",
+        ].includes(currentStage) && !isCancelled,
+      isCurrent: currentStage === "arrived_pickup" || currentStage === "pickup_otp_pending",
     },
     {
       id: "hub_intake",
@@ -153,10 +182,28 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
       phoneLabel: "Call Store",
       address: trip.partnerAddress,
       isDone:
-        ["store_processing", "ready_pickup_store", "out_for_delivery", "completed", "delivered"].includes(
-          currentStage
-        ) && !isCancelled,
-      isCurrent: currentStage === "in_trip",
+        [
+          "store_drop_confirmed",
+          "store_processing",
+          "processing",
+          "washing",
+          "ironing",
+          "ready",
+          "ready_pickup_store",
+          "ready_for_delivery",
+          "out_for_delivery",
+          "delivery_otp_pending",
+          "completed",
+          "delivered",
+        ].includes(currentStage) && !isCancelled,
+      isCurrent:
+        currentStage === "in_trip" ||
+        currentStage === "picked" ||
+        currentStage === "picked_up" ||
+        currentStage === "in_transit_to_store" ||
+        currentStage === "at_store" ||
+        currentStage === "at_partner" ||
+        currentStage === "at-partner",
     },
     {
       id: "dispatch_handoff",
@@ -166,11 +213,20 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
       otp: trip.dispatchOtp,
       otpLabel: "Dispatch OTP",
       isDone:
-        ["out_for_delivery", "completed", "delivered"].includes(currentStage) &&
-        !isCancelled,
+        [
+          "dispatch_otp_verified",
+          "out_for_delivery",
+          "delivery_otp_pending",
+          "completed",
+          "delivered",
+        ].includes(currentStage) && !isCancelled,
       isCurrent:
         currentStage === "ready_pickup_store" ||
-        currentStage === "store_processing",
+        currentStage === "store_processing" ||
+        currentStage === "processing" ||
+        currentStage === "ready" ||
+        currentStage === "ready_for_delivery" ||
+        currentStage === "dispatch_otp_pending",
     },
     {
       id: "delivered",
@@ -180,7 +236,7 @@ export const RiderOrderTimelineModal: React.FC<RiderOrderTimelineModalProps> = (
       otp: trip.deliveryOtp,
       otpLabel: "Delivery OTP",
       isDone: isCompleted,
-      isCurrent: currentStage === "out_for_delivery",
+      isCurrent: currentStage === "out_for_delivery" || currentStage === "delivery_otp_pending",
     },
   ];
 

@@ -47,6 +47,7 @@ import { STAGE_LABEL, type ManagedOrder } from "../data/partner-orders-mock";
 
 import { useEffect, useState } from "react";
 import { fetchPartnerOrder, verifyPartnerDispatchOtp } from "@/api/partner/partner-orders-api";
+import { subscribePartnerOrders } from "@/lib/partner-socket";
 import { PartnerReviewModal } from "../components/orders/PartnerReviewModal";
 
 
@@ -162,10 +163,20 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               rawStatus === "store_received" ||
               rawStatus === "store_drop_confirmed"
                 ? "at_partner"
-                : rawStatus === "processing_started" || rawStatus === "processing"
-                ? "washing"
-                : rawStatus === "ready_for_delivery" || rawStatus === "ready"
+                : rawStatus === "processing_started" || rawStatus === "processing" || rawStatus === "washing" || rawStatus === "sorting" || rawStatus === "dry_cleaning" || rawStatus === "ironing" || rawStatus === "drying"
+                ? "processing"
+                : rawStatus === "ready_for_delivery" || rawStatus === "ready" || rawStatus === "packed" || rawStatus === "processing_completed"
                 ? "ready"
+                : rawStatus === "out_for_delivery" || rawStatus === "delivery_otp_pending" || rawStatus === "dispatch_otp_verified"
+                ? "out_for_delivery"
+                : rawStatus === "delivered"
+                ? "delivered"
+                : rawStatus === "completed"
+                ? "completed"
+                : rawStatus === "cancelled" || rawStatus === "store_rejected" || rawStatus === "payment_failed"
+                ? "cancelled"
+                : rawStatus === "refund_pending" || rawStatus === "refunded"
+                ? "refunded"
                 : (remote.status as any) || "new";
 
             setFetchedOrder({
@@ -206,7 +217,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               },
               timeline: timeline.map((entry) => ({ id: entry.id || "", label: entry.label || "", time: entry.time || "" })),
               invoiceNo: null,
-              cancelReason: remote.status === "cancelled" ? (cancelledEntry?.label ?? (remote as any).cancelledReason ?? "Cancelled") : null,
+              cancelReason: (remote.status === "cancelled" || (remote as any).canonicalStatus === "cancelled" || (remote as any).canonicalStatus === "refunded") ? (cancelledEntry?.label ?? (remote as any).cancelledReason ?? "Cancelled") : null,
               assignedRider: (remote as any).riderName || null,
             });
           }
@@ -220,9 +231,17 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
     fetchOrder();
     const interval = setInterval(fetchOrder, 3500);
 
+    const unsub = subscribePartnerOrders((data) => {
+      const changedId = data?.orderId || data?.id || data?._id || data?.code;
+      if (!changedId || changedId === orderId) {
+        fetchOrder();
+      }
+    });
+
     return () => {
       active = false;
       clearInterval(interval);
+      unsub();
     };
   }, [orderId]);
 

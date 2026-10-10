@@ -321,13 +321,15 @@ async def broadcast_order_event(
         await sio.emit(event_name, payload, room=f"user:{customer_id}")
         await sio.emit(event_name, payload, room=f"customer:{customer_id}")
 
-    # 3. Emit to partner room
+    # 3. Emit to partner room and partners channel
     if partner_id:
         await sio.emit(event_name, payload, room=f"partner:{partner_id}")
+    await sio.emit(event_name, payload, room="partners")
 
-    # 4. Emit to assigned rider room
+    # 4. Emit to assigned rider room and riders channel
     if rider_id:
         await sio.emit(event_name, payload, room=f"rider:{rider_id}")
+    await sio.emit(event_name, payload, room="riders")
 
     # 5. Emit to admin room
     await sio.emit(event_name, payload, room="admins")

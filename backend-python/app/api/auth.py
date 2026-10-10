@@ -151,7 +151,15 @@ async def send_otp(payload: SendOtpRequest) -> SendOtpResponse:
         _log.warning("Non-blocking OTP audit/rate check skipped: %s", exc)
 
     try:
-        existing = await asyncio.wait_for(users.by_phone(phone, payload.role), timeout=3.0)
+        existing_any = await asyncio.wait_for(users.by_phone_any_role(phone), timeout=2.0)
+        if existing_any and existing_any.role != payload.role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"This mobile number (+91 {phone[-10:]}) is already registered as a {existing_any.role.value.capitalize()} account. Only 1 account is permitted per mobile number.",
+            )
+        existing = existing_any if (existing_any and existing_any.role == payload.role) else None
+    except HTTPException:
+        raise
     except Exception:
         existing = None
 
@@ -210,12 +218,21 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
             )
         rate_limiter.reset_failed_attempts(f"otp:{phone}")
 
+    # 2.5 Strict Single Account Validation: Ensure phone does not belong to another role
+    existing_any = await users.by_phone_any_role(phone)
+    if existing_any and existing_any.role != payload.role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"This mobile number (+91 {phone[-10:]}) is already registered as a {existing_any.role.value.capitalize()} account. Only 1 account is permitted per mobile number.",
+        )
+
     # 3. Retrieve or provision user with resilient timeouts
-    user = None
-    try:
-        user = await asyncio.wait_for(users.by_phone(phone, payload.role), timeout=8.0)
-    except Exception as exc:
-        _log.warning("User by_phone lookup timed out/failed: %s", exc)
+    user = existing_any if (existing_any and existing_any.role == payload.role) else None
+    if user is None:
+        try:
+            user = await asyncio.wait_for(users.by_phone(phone, payload.role), timeout=8.0)
+        except Exception as exc:
+            _log.warning("User by_phone lookup timed out/failed: %s", exc)
 
     is_new = user is None
     if user is None:

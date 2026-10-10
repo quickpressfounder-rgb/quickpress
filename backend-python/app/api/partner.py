@@ -47,7 +47,12 @@ from app.core.identifiers import generate_partner_id
 from app.db.client import database
 from app.db.invoice_repositories import InvoiceError, invoice_repository
 from app.db.notification_repositories import notification_repository
-from app.db.repositories import users
+from app.core.identity_guard import (
+    assert_aadhaar_unique,
+    assert_pan_unique,
+    assert_phone_unique,
+    clean_digits,
+)
 from app.db.partner_repositories import (
     InvalidTransitionError,
     PartnerAccessError,
@@ -99,6 +104,9 @@ async def send_partner_aadhaar_otp(body: dict) -> dict:
     if len(set(raw_num)) == 1:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
+    partner_id = body.get("partnerId") or body.get("storeId")
+    await assert_aadhaar_unique(raw_num, allowed_entity_id=partner_id)
+
     masked = f"XXXX XXXX {raw_num[-4:]}"
     return {
         "ok": True,
@@ -126,6 +134,9 @@ async def verify_partner_aadhaar(body: dict) -> dict:
         raise HTTPException(status_code=400, detail="Please enter a valid 12-digit Aadhaar number")
     if len(set(raw_num)) == 1:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
+
+    partner_id = body.get("partnerId") or body.get("storeId")
+    await assert_aadhaar_unique(raw_num, allowed_entity_id=partner_id)
 
     masked = f"XXXX XXXX {raw_num[-4:]}"
     candidate_name = str(body.get("fullName") or body.get("ownerName") or body.get("name") or "").strip()
@@ -189,6 +200,9 @@ async def verify_partner_pan(body: dict) -> dict:
     pan = str(body.get("panNumber") or body.get("pan") or "").strip().upper()
     if not pan or len(pan) != 10:
         raise HTTPException(status_code=400, detail="Please enter a valid 10-character PAN number")
+
+    partner_id = body.get("partnerId") or body.get("storeId")
+    await assert_pan_unique(pan, allowed_entity_id=partner_id)
 
     return {
         "ok": True,
@@ -1309,27 +1323,13 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "isVerified": True,
     }
 
-    # 1. Aadhaar Uniqueness Check (Only against active approved stores)
+    # 1. Aadhaar Uniqueness Check (Platform-wide across Partners and Riders)
     if clean_aadhaar and len(clean_aadhaar) == 12:
-        existing_aadhaar = await database.find_one("partner_profiles", {"aadhaar": clean_aadhaar, **conflict_filter})
-        if not existing_aadhaar:
-            existing_aadhaar = await database.find_one("partners", {"aadhaar": clean_aadhaar, **conflict_filter})
-        if existing_aadhaar:
-            raise HTTPException(
-                status_code=400,
-                detail=f"This Aadhaar Number (XXXX-XXXX-{clean_aadhaar[-4:]}) is already registered with an active store ({existing_aadhaar.get('businessName', 'Partner')}).",
-            )
+        await assert_aadhaar_unique(clean_aadhaar, allowed_entity_id=store_id_str)
 
-    # 2. PAN Uniqueness Check (Only against active approved stores)
+    # 2. PAN Uniqueness Check (Platform-wide across Partners and Riders)
     if clean_pan and len(clean_pan) == 10:
-        existing_pan = await database.find_one("partner_profiles", {"pan": clean_pan, **conflict_filter})
-        if not existing_pan:
-            existing_pan = await database.find_one("partners", {"pan": clean_pan, **conflict_filter})
-        if existing_pan:
-            raise HTTPException(
-                status_code=400,
-                detail=f"This PAN Number ({clean_pan}) is already registered with an active Partner store.",
-            )
+        await assert_pan_unique(clean_pan, allowed_entity_id=store_id_str)
 
     # 3. Email Uniqueness Check (Only against active approved stores)
     if clean_email:

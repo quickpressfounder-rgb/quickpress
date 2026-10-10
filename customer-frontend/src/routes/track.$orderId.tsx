@@ -304,7 +304,7 @@ function TrackOrderScreen() {
 
   const steps = detail?.timeline ?? tracking?.steps ?? [];
   const stageIndex = detail?.stageIndex ?? tracking?.stageIndex ?? 0;
-  const cancelled = detail?.cancelled ?? (detail?.status === "cancelled") ?? false;
+  const cancelled = detail?.cancelled ?? (detail?.status === "cancelled" || detail?.status === "refund_pending" || detail?.status === "refunded") ?? false;
   const cancellable = detail?.cancellable ?? false;
 
   const progress = useMemo(

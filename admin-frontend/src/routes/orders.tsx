@@ -82,6 +82,7 @@ import { fetchRiders, type AdminRider } from "../api/riders";
 import { fetchPartners, type AdminPartner } from "../api/partners";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
+import { onRealtimeEvent } from "../api/core/socket-client";
 
 export const Route = createFileRoute("/orders")({
   beforeLoad: requireAdminSession,
@@ -167,6 +168,20 @@ export function OrdersPage() {
   const [showDayWiseReport, setShowDayWiseReport] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+
+  // Real-time synchronization: Invalidate admin orders on incoming lifecycle events
+  useEffect(() => {
+    const unsubOrder = onRealtimeEvent("order.created", () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+    });
+    const unsubStatus = onRealtimeEvent("order.status_changed", () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+    });
+    return () => {
+      unsubOrder();
+      unsubStatus();
+    };
+  }, [queryClient]);
 
   // Selected Order for Dedicated Full Page View (View A)
   const [selected, setSelected] = useState<AdminOrder | null>(null);
@@ -1119,6 +1134,19 @@ function Order360FullPage({
     queryKey: ["admin", "orders", order.id],
     queryFn: () => fetchOrder(order.id),
   });
+
+  // Real-time synchronization for Order 360 Full Page
+  useEffect(() => {
+    const unsub = onRealtimeEvent("order.status_changed", (payload) => {
+      const pId = (payload as any)?.orderId || (payload as any)?.id || (payload as any)?.code;
+      if (!pId || pId === order.id || pId === (order as any).code) {
+        queryClient.invalidateQueries({ queryKey: ["admin", "orders", order.id] });
+      }
+    });
+    return () => {
+      unsub();
+    };
+  }, [order.id, queryClient]);
 
   // Action Modals State
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);

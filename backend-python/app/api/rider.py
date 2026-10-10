@@ -88,12 +88,14 @@ from app.services.cashfree_verification import (
 @public_router.post("/verify/aadhaar/send-otp")
 @router.post("/verify/aadhaar/send-otp")
 async def send_aadhaar_otp(body: dict) -> dict:
+    from app.core.identity_guard import assert_aadhaar_unique
     raw_num = str(body.get("aadhaarNumber") or body.get("aadhaar") or "").replace(" ", "").replace("-", "").strip()
     if not raw_num or len(raw_num) != 12 or not raw_num.isdigit():
         raise HTTPException(status_code=400, detail="Please enter a valid 12-digit Aadhaar number")
     if len(set(raw_num)) == 1:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
+    await assert_aadhaar_unique(raw_num)
     return await send_cashfree_aadhaar_otp(raw_num)
 
 
@@ -102,12 +104,16 @@ async def send_aadhaar_otp(body: dict) -> dict:
 @public_router.post("/verify/aadhaar")
 @router.post("/verify/aadhaar")
 async def verify_aadhaar(body: dict) -> dict:
+    from app.core.identity_guard import assert_aadhaar_unique
     raw_num = str(body.get("aadhaarNumber") or body.get("aadhaar") or "").replace(" ", "").replace("-", "").strip()
     otp = str(body.get("otp") or body.get("code") or "").strip()
     ref_id = str(body.get("refId") or body.get("clientId") or "").strip()
     candidate_name = str(body.get("fullName") or body.get("name") or "").strip()
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""
+
+    if raw_num and len(raw_num) == 12:
+        await assert_aadhaar_unique(raw_num)
 
     if otp:
         return await verify_cashfree_aadhaar_otp(ref_id=ref_id, otp=otp, candidate_name=candidate_name)
@@ -137,10 +143,12 @@ async def verify_aadhaar(body: dict) -> dict:
 @router.post("/verify/pan")
 async def verify_pan(body: dict) -> dict:
     import re
+    from app.core.identity_guard import assert_pan_unique
     pan = str(body.get("panNumber") or body.get("pan") or "").replace(" ", "").strip().upper()
     if not pan or len(pan) != 10 or not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", pan):
         raise HTTPException(status_code=400, detail="Please enter a valid 10-digit PAN (e.g. ABCDE1234F)")
 
+    await assert_pan_unique(pan)
     candidate_name = str(body.get("fullName") or body.get("name") or "").strip().upper()
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""
@@ -151,10 +159,12 @@ async def verify_pan(body: dict) -> dict:
 @public_router.post("/verify/dl")
 @router.post("/verify/dl")
 async def verify_dl(body: dict) -> dict:
+    from app.core.identity_guard import assert_dl_unique
     dl = str(body.get("dlNumber") or body.get("license") or body.get("licenseNumber") or "").replace("-", "").replace(" ", "").strip().upper()
     if not dl or len(dl) < 10:
         raise HTTPException(status_code=400, detail="Please enter a valid Driving Licence number (e.g. UP87 20210001234)")
 
+    await assert_dl_unique(dl)
     candidate_name = str(body.get("fullName") or body.get("name") or "").strip().upper()
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""
@@ -166,10 +176,12 @@ async def verify_dl(body: dict) -> dict:
 @public_router.post("/verify/rc")
 @router.post("/verify/rc")
 async def verify_rc(body: dict) -> dict:
+    from app.core.identity_guard import assert_rc_unique
     rc = str(body.get("rcNumber") or body.get("vehicleNumber") or "").replace("-", "").replace(" ", "").strip().upper()
     if not rc or len(rc) < 6:
         raise HTTPException(status_code=400, detail="Please enter a valid Vehicle Registration / RC Number")
 
+    await assert_rc_unique(rc)
     candidate_name = str(body.get("fullName") or body.get("name") or "").strip().upper()
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""
