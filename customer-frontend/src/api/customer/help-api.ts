@@ -27,7 +27,15 @@ import {
 } from "./api/cache";
 import { isOnline } from "./api/network";
 
-export type TicketCategory = "order" | "payment" | "refund" | "partner-complaint" | "general";
+export type TicketCategory =
+  | "order"
+  | "payment"
+  | "refund"
+  | "partner-complaint"
+  | "general"
+  | "wash-quality"
+  | "missing-garment"
+  | "delay";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
 export type TicketStatus = "open" | "in-progress" | "awaiting-customer" | "resolved" | "closed";
 export type MessageAuthor = "customer" | "support" | "system";
@@ -66,6 +74,8 @@ export type TicketMessage = {
   authorName: string;
   body: string;
   attachmentName: string | null;
+  attachmentUrl?: string | null;
+  photos?: string[];
   createdAt: string;
 };
 
@@ -81,6 +91,8 @@ export type SupportTicket = {
   orderId: string | null;
   orderNumber: string | null;
   attachmentName: string | null;
+  attachmentUrl?: string | null;
+  photos?: string[];
   messageCount: number;
   unreadCount: number;
   lastMessageAt: string | null;
@@ -104,6 +116,8 @@ export type CreateTicketPayload = {
   priority?: TicketPriority;
   orderId?: string;
   attachmentName?: string;
+  attachmentUrl?: string;
+  photos?: string[];
 };
 
 /* --------------------- static presentation-only content -------------------- */
@@ -169,12 +183,12 @@ export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
   closed: "Closed",
 };
 
-export const TICKET_CATEGORY_OPTIONS: { id: TicketCategory; label: string }[] = [
-  { id: "order", label: "Order Issue" },
-  { id: "payment", label: "Payment Issue" },
-  { id: "refund", label: "Refund" },
-  { id: "partner-complaint", label: "Partner Complaint" },
-  { id: "general", label: "General Issue" },
+export const TICKET_CATEGORY_OPTIONS: { id: TicketCategory; label: string; icon?: string }[] = [
+  { id: "wash-quality", label: "Wash / Quality Issue" },
+  { id: "missing-garment", label: "Missing / Wrong Cloth" },
+  { id: "delay", label: "Pickup / Delivery Delay" },
+  { id: "payment", label: "Payment & Refund" },
+  { id: "general", label: "General Inquiry" },
 ];
 
 type RawFaq = Partial<Faq>;
@@ -214,6 +228,11 @@ function toCategory(raw: RawCategory, index: number): FaqCategory {
 }
 
 function toMessage(raw: RawMessage, index: number, ticketId: string): TicketMessage {
+  const photoList = Array.isArray(raw.photos)
+    ? raw.photos
+    : raw.attachmentUrl
+      ? [raw.attachmentUrl]
+      : [];
   return {
     id: raw.id ?? `msg-${index}`,
     ticketId: raw.ticketId ?? ticketId,
@@ -221,12 +240,19 @@ function toMessage(raw: RawMessage, index: number, ticketId: string): TicketMess
     authorName: raw.authorName ?? "",
     body: raw.body ?? "",
     attachmentName: raw.attachmentName ?? null,
+    attachmentUrl: raw.attachmentUrl ?? (photoList[0] || null),
+    photos: photoList,
     createdAt: raw.createdAt ?? new Date().toISOString(),
   };
 }
 
 function toTicket(raw: RawTicket, index = 0): SupportTicket {
   const id = raw.id ?? `tkt-${index}`;
+  const photoList = Array.isArray(raw.photos)
+    ? raw.photos
+    : raw.attachmentUrl
+      ? [raw.attachmentUrl]
+      : [];
   return {
     id,
     ticketNumber: raw.ticketNumber ?? "—",
@@ -241,6 +267,8 @@ function toTicket(raw: RawTicket, index = 0): SupportTicket {
     orderId: raw.orderId ?? null,
     orderNumber: raw.orderNumber ?? null,
     attachmentName: raw.attachmentName ?? null,
+    attachmentUrl: raw.attachmentUrl ?? (photoList[0] || null),
+    photos: photoList,
     messageCount: Number(raw.messageCount ?? 0),
     unreadCount: Number(raw.unreadCount ?? 0),
     lastMessageAt: raw.lastMessageAt ?? null,
@@ -473,6 +501,15 @@ export async function fetchTicket(
   }
 }
 
+/** Upload a support photo to Cloudinary CDN. */
+export async function uploadSupportPhoto(dataUrlOrHttpUrl: string): Promise<string> {
+  if (!isOnline()) throw new ApiError("offline", "Reconnect to upload image.");
+  const res = await apiPostJson<{ url: string; field?: string }>("/api/help/upload", {
+    image: dataUrlOrHttpUrl,
+  });
+  return res.url;
+}
+
 /** POST /api/help/tickets. */
 export async function createSupportTicket(payload: CreateTicketPayload): Promise<SupportTicket> {
   if (!isOnline()) throw new ApiError("offline", "Reconnect to raise a support ticket.");
@@ -483,6 +520,8 @@ export async function createSupportTicket(payload: CreateTicketPayload): Promise
     priority: payload.priority ?? "medium",
     ...(payload.orderId ? { orderId: payload.orderId } : {}),
     ...(payload.attachmentName ? { attachmentName: payload.attachmentName } : {}),
+    ...(payload.attachmentUrl ? { attachmentUrl: payload.attachmentUrl } : {}),
+    ...(payload.photos && payload.photos.length > 0 ? { photos: payload.photos } : {}),
   });
   clearCache(CACHE_KEYS.supportTickets);
   const ticket = toTicket(raw);
@@ -495,11 +534,18 @@ export async function replyToTicket(
   ticketId: string,
   body: string,
   attachmentName?: string,
+  attachmentUrl?: string,
+  photos?: string[],
 ): Promise<SupportTicket> {
   if (!isOnline()) throw new ApiError("offline", "Reconnect to send this reply.");
   const raw = await apiPostJson<RawTicket>(
     `/api/help/tickets/${encodeURIComponent(ticketId)}/reply`,
-    { body, ...(attachmentName ? { attachmentName } : {}) },
+    {
+      body,
+      ...(attachmentName ? { attachmentName } : {}),
+      ...(attachmentUrl ? { attachmentUrl } : {}),
+      ...(photos && photos.length > 0 ? { photos } : {}),
+    },
   );
   clearCache(CACHE_KEYS.supportTickets);
   writeScopedCache("ticket-detail", ticketId, raw);

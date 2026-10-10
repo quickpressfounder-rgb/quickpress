@@ -13,11 +13,14 @@ token and is scoped to `current_user`.
 
 from __future__ import annotations
 
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
+from app.core.cloudinary import upload_image
 from app.core.deps import current_user
 from app.core.http_cache import CACHE_STATIC_CATALOG, apply_cache_headers
 from app.db.support_repositories import SupportError, support_repository
+from app.models.media import ImageUploadPayload, MediaResponse
 from app.models.support import (
     CreateTicketPayload,
     FaqCategoriesResponse,
@@ -29,6 +32,15 @@ from app.models.support import (
 from app.models.user import User
 
 router = APIRouter(tags=["help"])
+
+
+@router.post("/help/upload", response_model=MediaResponse)
+async def upload_support_photo(
+    payload: ImageUploadPayload, user: User = Depends(current_user)
+) -> MediaResponse:
+    photo_uid = uuid.uuid4().hex[:8]
+    url = await upload_image(payload.image, kind="support_ticket", public_id=f"{user.id}-help-{photo_uid}")
+    return MediaResponse(url=url, field="attachmentUrl")
 
 
 @router.get("/help/faqs", response_model=FaqListResponse)

@@ -18,6 +18,9 @@ TicketCategory = Literal[
     "refund",
     "partner-complaint",
     "general",
+    "wash-quality",
+    "missing-garment",
+    "delay",
 ]
 
 TicketPriority = Literal["low", "medium", "high", "urgent"]
@@ -65,6 +68,8 @@ class TicketMessage(BaseModel):
     authorName: str = ""
     body: str = ""
     attachmentName: Optional[str] = None
+    attachmentUrl: Optional[str] = None
+    photos: List[str] = Field(default_factory=list)
     createdAt: str
 
 
@@ -80,6 +85,8 @@ class SupportTicket(BaseModel):
     orderId: Optional[str] = None
     orderNumber: Optional[str] = None
     attachmentName: Optional[str] = None
+    attachmentUrl: Optional[str] = None
+    photos: List[str] = Field(default_factory=list)
     messageCount: int = 0
     unreadCount: int = 0
     lastMessageAt: Optional[str] = None
@@ -101,14 +108,16 @@ class CreateTicketPayload(BaseModel):
     description: str = Field(min_length=5, max_length=2000)
     priority: TicketPriority = "medium"
     orderId: Optional[str] = Field(default=None, max_length=64)
-    #: Image upload lands in Sprint 3 — the file name is stored as a
-    #: placeholder so the conversation already renders the attachment chip.
     attachmentName: Optional[str] = Field(default=None, max_length=160)
+    attachmentUrl: Optional[str] = Field(default=None, max_length=1000)
+    photos: List[str] = Field(default_factory=list)
 
 
 class TicketReplyPayload(BaseModel):
     body: str = Field(min_length=1, max_length=2000)
     attachmentName: Optional[str] = Field(default=None, max_length=160)
+    attachmentUrl: Optional[str] = Field(default=None, max_length=1000)
+    photos: List[str] = Field(default_factory=list)
 
 
 class TicketResponse(BaseModel):

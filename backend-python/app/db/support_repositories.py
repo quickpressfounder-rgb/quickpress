@@ -77,11 +77,14 @@ CATEGORY_LABELS: Dict[str, str] = {
     "refund": "Refund Related",
     "partner-complaint": "Partner Complaint",
     "general": "General Issue",
+    "wash-quality": "Wash & Quality Issue",
+    "missing-garment": "Missing / Wrong Garment",
+    "delay": "Pickup / Delivery Delay",
 }
 
 FIRST_RESPONSE = (
     "Thanks for reaching out — your ticket is with our support team. "
-    "You'll get a reply here within 24 hours."
+    "We have received your issue and photos, and an executive is reviewing it right now."
 )
 
 FAQ_CATEGORY_SEED: List[Dict[str, Any]] = [
@@ -242,6 +245,8 @@ class SupportRepository:
                 authorName=document.get("author_name") or "",
                 body=document.get("body") or "",
                 attachmentName=document.get("attachment_name"),
+                attachmentUrl=document.get("attachment_url") or (document.get("photos", [None])[0] if document.get("photos") else None),
+                photos=list(document.get("photos") or ([document["attachment_url"]] if document.get("attachment_url") else [])),
                 createdAt=_iso(document.get("created_at")) or "",
             )
             for document in documents
@@ -267,6 +272,8 @@ class SupportRepository:
             orderId=document.get("order_id"),
             orderNumber=document.get("order_number"),
             attachmentName=document.get("attachment_name"),
+            attachmentUrl=document.get("attachment_url") or (document.get("photos", [None])[0] if document.get("photos") else None),
+            photos=list(document.get("photos") or ([document["attachment_url"]] if document.get("attachment_url") else [])),
             messageCount=int(message_count or 0),
             unreadCount=int(document.get("unread_count") or 0),
             lastMessageAt=_iso(document.get("last_message_at")),
@@ -284,9 +291,12 @@ class SupportRepository:
         author_name: str,
         body: str,
         attachment_name: Optional[str] = None,
+        attachment_url: Optional[str] = None,
+        photos: Optional[List[str]] = None,
     ) -> TicketMessage:
         """Single seam a real-time transport will hook into later."""
         now = _iso(utcnow())
+        photo_list = list(photos or ([attachment_url] if attachment_url else []))
         document = {
             "_id": f"msg-{uuid.uuid4().hex[:12]}",
             "ticket_id": ticket_id,
@@ -295,6 +305,8 @@ class SupportRepository:
             "author_name": author_name,
             "body": body,
             "attachment_name": attachment_name,
+            "attachment_url": attachment_url or (photo_list[0] if photo_list else None),
+            "photos": photo_list,
             "created_at": now,
         }
         await database.collection(MESSAGES).insert_one(document)
@@ -308,6 +320,8 @@ class SupportRepository:
             authorName=author_name,
             body=body,
             attachmentName=attachment_name,
+            attachmentUrl=document.get("attachment_url"),
+            photos=photo_list,
             createdAt=now or "",
         )
 
@@ -321,6 +335,9 @@ class SupportRepository:
                 raise SupportError("Order not found", 404)
             order_number = str(order.get("code") or order.get("_id"))
 
+        photo_list = list(payload.photos or ([payload.attachmentUrl] if payload.attachmentUrl else []))
+        primary_photo = payload.attachmentUrl or (photo_list[0] if photo_list else None)
+
         document = {
             "_id": ticket_id,
             "user_id": user.id,
@@ -333,6 +350,8 @@ class SupportRepository:
             "order_id": payload.orderId,
             "order_number": order_number,
             "attachment_name": payload.attachmentName,
+            "attachment_url": primary_photo,
+            "photos": photo_list,
             "unread_count": 0,
             "created_at": now,
             "updated_at": now,
@@ -346,6 +365,8 @@ class SupportRepository:
             author_name=user.name or "You",
             body=payload.description.strip(),
             attachment_name=payload.attachmentName,
+            attachment_url=primary_photo,
+            photos=photo_list,
         )
         await self.add_message(
             ticket_id,
@@ -453,6 +474,8 @@ class SupportRepository:
             author_name=user.name or "You",
             body=payload.body.strip(),
             attachment_name=payload.attachmentName,
+            attachment_url=payload.attachmentUrl,
+            photos=payload.photos,
         )
         return await self.get_ticket(user, ticket.id)
 

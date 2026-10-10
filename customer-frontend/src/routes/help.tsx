@@ -1,11 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+  AlertCircle,
+  ArrowLeft,
+  Camera,
+  CheckCircle2,
   ChevronDown,
   Clock,
   CreditCard,
+  ExternalLink,
   FileText,
   Headphones,
-  ImagePlus,
+  HelpCircle,
+  Image as ImageIcon,
   LifeBuoy,
   Loader2,
   Mail,
@@ -13,15 +19,20 @@ import {
   MessagesSquare,
   Package,
   Percent,
+  Plus,
   RefreshCcw,
   Search,
   Send,
   Settings,
   Shield,
+  Sparkles,
+  Trash2,
   Truck,
+  Upload,
+  X,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { HelpSkeleton } from "@/components/account/AccountSkeletons";
@@ -31,35 +42,35 @@ import {
   createSupportTicket,
   fetchFaqCategories,
   fetchFaqList,
-  fetchHelpTopics,
   fetchSupportContact,
+  fetchTicket,
   fetchTickets,
   readCachedFaqs,
   readCachedTickets,
+  replyToTicket,
+  uploadSupportPhoto,
   TICKET_CATEGORY_OPTIONS,
   TICKET_STATUS_LABEL,
-
   type FaqCategory,
   type FaqList,
   type SupportTicket,
   type TicketCategory,
 } from "@/api/customer/help-api";
-
+import { fetchOrderHistory, type OrderRecord } from "@/api/customer/history-api";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
     meta: [
-      { title: "Help Center — QuickPress Support 24×7" },
+      { title: "Help Center & Live Support — QuickPress 24×7" },
       {
         name: "description",
         content:
-          "Get QuickPress support fast — live chat, call, WhatsApp and email, popular help topics, FAQs and raise a support ticket for any laundry order issue.",
+          "Fast QuickPress customer support with live chat, photo upload for garment issues, order-linked tickets and 24x7 helpline.",
       },
-      { property: "og:title", content: "Help Center — QuickPress Support" },
+      { property: "og:title", content: "Help Center & Live Support — QuickPress" },
       {
         property: "og:description",
-        content:
-          "Live chat, call, WhatsApp and email support plus FAQs and ticket raising for QuickPress laundry orders.",
+        content: "Live chat, garment photo verification, and order-linked support tickets.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -68,26 +79,79 @@ export const Route = createFileRoute("/help")({
   component: HelpScreen,
 });
 
-const TOPIC_ICON: Record<string, typeof Package> = {
-  track: Truck,
-  cancel: XCircle,
-  refund: RefreshCcw,
-  payment: CreditCard,
-  "pickup-delay": Clock,
-  "delivery-delay": Package,
-  coupons: Percent,
-  account: Settings,
+const SUB_REASONS: Record<string, string[]> = {
+  "wash-quality": [
+    "Stains not removed",
+    "Fabric damaged / Torn",
+    "Color bleeding / Faded",
+    "Bad smell / Improper wash",
+    "Crease / Ironing issue",
+  ],
+  "missing-garment": [
+    "One or more clothes missing",
+    "Received wrong garment",
+    "Cloth tag / hanger missing",
+  ],
+  delay: [
+    "Rider hasn't arrived for pickup",
+    "Delivery is past scheduled slot",
+    "Unable to contact rider",
+  ],
+  payment: [
+    "Double charged on UPI / Card",
+    "Refund not received in wallet",
+    "Coupon discount was not applied",
+  ],
+  general: [
+    "Inquiry about dry clean rates",
+    "Special garment care request",
+    "Account or profile question",
+  ],
 };
 
 function HelpScreen() {
   const navigate = useNavigate();
   const contact = fetchSupportContact();
-  const allTopics = fetchHelpTopics();
+
+  // Navigation & Tab state
+  const [activeTab, setActiveTab] = useState<"need-help" | "my-tickets">("need-help");
+  const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
+
+  // FAQ state
   const [faqList, setFaqList] = useState<FaqList | null>(null);
   const [categories, setCategories] = useState<FaqCategory[]>([]);
   const [faqsLoading, setFaqsLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [query, setQuery] = useState("");
+  const [term, setTerm] = useState("");
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
+
+  // Tickets state
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
 
+  // Order selection state
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
+
+  // Ticket creation form state
+  const [category, setCategory] = useState<TicketCategory>("wash-quality");
+  const [subReason, setSubReason] = useState<string>("");
+  const [description, setDescription] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Live Chat state
+  const [replyText, setReplyText] = useState("");
+  const [replyPhoto, setReplyPhoto] = useState<string | null>(null);
+  const [sendingReply, setSendingReply] = useState(false);
+  const [previewZoomPhoto, setPreviewZoomPhoto] = useState<string | null>(null);
+  const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const replyFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Load initial FAQs and tickets
   useEffect(() => {
     const cachedFaqs = readCachedFaqs();
     if (cachedFaqs) {
@@ -99,28 +163,40 @@ function HelpScreen() {
       setTickets(cachedTix.items);
     }
   }, []);
-  const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [query, setQuery] = useState("");
-  const [term, setTerm] = useState("");
-  const [openFaq, setOpenFaq] = useState<string | null>(null);
-  const [category, setCategory] = useState<TicketCategory>("general");
-  const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageName, setImageName] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
-  // Debounce the search box so every keystroke doesn't hit the API.
+  // Fetch recent orders for selection
+  useEffect(() => {
+    let active = true;
+    setLoadingOrders(true);
+    fetchOrderHistory()
+      .then((records) => {
+        if (active) {
+          setOrders(records.slice(0, 5));
+          if (records.length > 0 && !selectedOrder) {
+            setSelectedOrder(records[0]);
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingOrders(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Debounce FAQ search
   useEffect(() => {
     const timer = window.setTimeout(() => setTerm(query.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  // GET /api/help/faqs — re-runs on search term / category change.
+  // Fetch FAQs
   useEffect(() => {
     const controller = new AbortController();
     setFaqsLoading(true);
-    void fetchFaqList({
+    fetchFaqList({
       category: activeCategory,
       ...(term ? { q: term } : {}),
       signal: controller.signal,
@@ -130,454 +206,918 @@ function HelpScreen() {
         setFaqList(result);
         if (result.categories.length) setCategories(result.categories);
       })
-      .catch(() => {
-        /* cached content stays on screen; the ticket form remains usable */
-      })
+      .catch(() => {})
       .finally(() => {
         if (!controller.signal.aborted) setFaqsLoading(false);
       });
     return () => controller.abort();
   }, [activeCategory, term]);
 
-  // GET /api/help/categories + /api/help/tickets
-  useEffect(() => {
-    let active = true;
-    void fetchFaqCategories()
-      .then((result) => {
-        if (active && result.length) setCategories(result);
-      })
-      .catch(() => undefined);
-    void fetchTickets()
-      .then((result) => {
-        if (active) setTickets(result.items);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
+  // Fetch Tickets list
+  const refreshTickets = useCallback(() => {
+    fetchTickets()
+      .then((result) => setTickets(result.items))
+      .catch(() => {});
   }, []);
 
-  const normalized = term.toLowerCase();
+  useEffect(() => {
+    refreshTickets();
+  }, [refreshTickets]);
 
-  const topics = useMemo(
-    () =>
-      allTopics.filter(
-        (topic) =>
-          !normalized ||
-          topic.label.toLowerCase().includes(normalized) ||
-          topic.note.toLowerCase().includes(normalized),
-      ),
-    [allTopics, normalized],
-  );
+  // Auto-poll active ticket conversation every 4s
+  useEffect(() => {
+    if (!activeTicket?.id) return;
+    const interval = setInterval(() => {
+      fetchTicket(activeTicket.id)
+        .then((fresh) => {
+          setActiveTicket((curr) => (curr && curr.id === fresh.id ? fresh : curr));
+        })
+        .catch(() => {});
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [activeTicket?.id]);
 
-  // Filtering happens on the API; the list is rendered as returned.
-  const visibleFaqs = faqList?.items ?? [];
+  // Scroll chat to bottom when messages update
+  useEffect(() => {
+    if (activeTicket) {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeTicket?.messages]);
 
-  const quickActions = [
-    {
-      id: "call",
-      label: "Call Support",
-      icon: Headphones,
-      onClick: () => {
-        window.location.href = `tel:${contact.phone}`;
-      },
-    },
-    {
-      id: "whatsapp",
-      label: "WhatsApp",
-      icon: MessageCircle,
-      onClick: () => window.open(`https://wa.me/${contact.whatsapp}`, "_blank"),
-    },
-    {
-      id: "email",
-      label: "Email Us",
-      icon: Mail,
-      onClick: () => {
-        window.location.href = `mailto:${contact.email}`;
-      },
-    },
-  ];
+  // Handle image picker for Ticket creation
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-  // POST /api/help/tickets
-  const handleSubmitTicket = async () => {
+    if (photos.length + files.length > 3) {
+      toast.error("You can upload a maximum of 3 photos.");
+      return;
+    }
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setPhotos((prev) => [...prev, reader.result as string].slice(0, 3));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = "";
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle Photo select for live chat reply
+  const handleReplyPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setReplyPhoto(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  // Submit Ticket Creation (5-step flow result)
+  const handleCreateTicket = async () => {
+    const isPhotoCompulsory = category === "wash-quality" || category === "missing-garment";
+    if (isPhotoCompulsory && photos.length === 0) {
+      toast.error("Please upload at least 1 photo of the garment so we can verify the issue.");
+      return;
+    }
+
+    const finalSub = subReason
+      ? `${TICKET_CATEGORY_OPTIONS.find((c) => c.id === category)?.label}: ${subReason}`
+      : `${TICKET_CATEGORY_OPTIONS.find((c) => c.id === category)?.label || "Laundry Issue"}${
+          selectedOrder ? ` (#${selectedOrder.id})` : ""
+        }`;
+
+    const finalDesc = description.trim()
+      ? description.trim()
+      : subReason
+        ? `Issue reported: ${subReason}. Reference: ${selectedOrder?.id || "General inquiry"}.`
+        : "Customer reported an issue and requested assistance.";
+
     setSubmitting(true);
+    setUploadingPhotos(true);
+
     try {
+      // 1. Upload photos to Cloudinary CDN
+      const uploadedUrls: string[] = [];
+      for (const photoData of photos) {
+        try {
+          const url = await uploadSupportPhoto(photoData);
+          uploadedUrls.push(url);
+        } catch {
+          // Fallback to data url if offline/demo
+          uploadedUrls.push(photoData);
+        }
+      }
+
+      setUploadingPhotos(false);
+
+      // 2. Create Ticket
       const ticket = await createSupportTicket({
         category,
-        subject: subject.trim(),
-        description: description.trim(),
-        ...(imageName ? { attachmentName: imageName } : {}),
+        subject: finalSub,
+        description: finalDesc,
+        priority: isPhotoCompulsory ? "high" : "medium",
+        orderId: selectedOrder?.orderId || selectedOrder?.id || undefined,
+        attachmentUrl: uploadedUrls[0] || undefined,
+        photos: uploadedUrls,
       });
-      setSubject("");
+
+      toast.success(`Ticket #${ticket.ticketNumber} created!`);
+      refreshTickets();
+
+      // Reset form
       setDescription("");
-      setImageName(null);
-      setTickets((current) => [ticket, ...current]);
-      toast.success(`Ticket ${ticket.ticketNumber} created`);
+      setPhotos([]);
+      setSubReason("");
+
+      // Open Live Chat immediately!
+      setActiveTicket(ticket);
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "We couldn't raise your ticket.");
+      toast.error(cause instanceof Error ? cause.message : "Failed to create ticket.");
     } finally {
       setSubmitting(false);
+      setUploadingPhotos(false);
     }
   };
 
+  // Send Reply in Live Chat
+  const handleSendReply = async () => {
+    if (!activeTicket || (!replyText.trim() && !replyPhoto)) return;
 
-  return (
-    <main className="relative min-h-screen overflow-x-hidden scroll-smooth bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto w-full max-w-md">
-        <ScreenTopBar
-          title="Help Center"
-          action={
+    setSendingReply(true);
+    try {
+      let uploadedUrl: string | undefined = undefined;
+      if (replyPhoto) {
+        try {
+          uploadedUrl = await uploadSupportPhoto(replyPhoto);
+        } catch {
+          uploadedUrl = replyPhoto;
+        }
+      }
+
+      const bodyText = replyText.trim() || "Uploaded photo proof";
+      const updated = await replyToTicket(
+        activeTicket.id,
+        bodyText,
+        undefined,
+        uploadedUrl,
+        uploadedUrl ? [uploadedUrl] : undefined,
+      );
+
+      setActiveTicket(updated);
+      setReplyText("");
+      setReplyPhoto(null);
+      refreshTickets();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : "Failed to send message.");
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  const visibleFaqs = faqList?.items ?? [];
+
+  // =========================================================================
+  // VIEW: FULL SCREEN LIVE CHAT (When a ticket is open)
+  // =========================================================================
+  if (activeTicket) {
+    const isPhotoCompulsory =
+      activeTicket.category === "wash-quality" || activeTicket.category === "missing-garment";
+
+    return (
+      <main className="relative flex h-screen flex-col overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+        {/* Top Chat Bar */}
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/95 px-4 py-3 backdrop-blur-md dark:bg-zinc-900/95">
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              aria-label="Search support"
-              onClick={() => document.getElementById("help-search")?.focus()}
-              className="flex size-10 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-300 hover:bg-accent active:scale-[0.94]"
+              onClick={() => setActiveTicket(null)}
+              className="flex size-9 items-center justify-center rounded-2xl bg-muted text-foreground transition-transform active:scale-90"
+              aria-label="Back to tickets"
             >
-              <Search className="size-5" />
+              <ArrowLeft className="size-4" />
             </button>
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-xs">
+                  <LifeBuoy className="size-5" />
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-zinc-900" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-black tracking-tight text-foreground">
+                    QuickPress Care
+                  </p>
+                  <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.2 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                    Online
+                  </span>
+                </div>
+                <p className="text-[10px] font-medium text-muted-foreground">
+                  #{activeTicket.ticketNumber} · {TICKET_STATUS_LABEL[activeTicket.status] || activeTicket.status}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <a
+              href={`tel:${contact.phone}`}
+              className="flex size-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300"
+              aria-label="Call Support"
+            >
+              <Headphones className="size-4" />
+            </a>
+          </div>
+        </header>
+
+        {/* Order Reference Pill (if order linked) */}
+        {activeTicket.orderNumber ? (
+          <div className="flex items-center justify-between border-b border-border/60 bg-emerald-50/70 px-4 py-2 text-xs font-semibold text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+            <div className="flex items-center gap-1.5">
+              <Package className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Linked to Order #{activeTicket.orderNumber}</span>
+            </div>
+            <Link
+              to="/history"
+              className="flex items-center gap-0.5 text-[11px] font-bold text-emerald-700 underline dark:text-emerald-300"
+            >
+              View Order <ExternalLink className="size-2.5" />
+            </Link>
+          </div>
+        ) : null}
+
+        {/* Messages Stream */}
+        <div className="flex-1 space-y-3.5 overflow-y-auto p-4">
+          {/* Issue Header Info Card */}
+          <div className="mx-auto max-w-sm rounded-2xl border border-dashed border-border bg-muted/30 p-3 text-center">
+            <p className="text-[11px] font-bold text-foreground">
+              {activeTicket.subject}
+            </p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              {activeTicket.categoryLabel} · Priority: {activeTicket.priority.toUpperCase()}
+            </p>
+          </div>
+
+          {activeTicket.messages?.map((msg) => {
+            const isCustomer = msg.author === "customer";
+            const isSystem = msg.author === "system";
+
+            if (isSystem) {
+              return (
+                <div key={msg.id} className="my-2 flex justify-center">
+                  <div className="max-w-[85%] rounded-2xl bg-muted/60 px-3.5 py-1.5 text-center text-[11px] font-medium text-muted-foreground">
+                    {msg.body}
+                  </div>
+                </div>
+              );
+            }
+
+            const photosList = msg.photos || (msg.attachmentUrl ? [msg.attachmentUrl] : []);
+
+            return (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${isCustomer ? "items-end" : "items-start"}`}
+              >
+                <div className="flex items-end gap-1.5 max-w-[82%]">
+                  {!isCustomer && (
+                    <div className="mb-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-black text-white">
+                      Q
+                    </div>
+                  )}
+
+                  <div
+                    className={`rounded-2xl px-3.5 py-2.5 text-xs shadow-xs ${
+                      isCustomer
+                        ? "rounded-br-xs bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
+                        : "rounded-bl-xs border border-border bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+                    }`}
+                  >
+                    {/* Attached Photos */}
+                    {photosList.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {photosList.map((photoUrl, pIdx) => (
+                          <button
+                            key={pIdx}
+                            type="button"
+                            onClick={() => setPreviewZoomPhoto(photoUrl)}
+                            className="group relative size-20 overflow-hidden rounded-xl border border-black/10 bg-black/5"
+                          >
+                            <img
+                              src={photoUrl}
+                              alt="Garment attachment"
+                              className="size-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+                              <Search className="size-4 text-white" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
+
+                    <div
+                      className={`mt-1 flex items-center justify-end gap-1 text-[9px] ${
+                        isCustomer ? "text-emerald-100/80" : "text-muted-foreground"
+                      }`}
+                    >
+                      <span>
+                        {msg.createdAt
+                          ? new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : ""}
+                      </span>
+                      {isCustomer && <CheckCircle2 className="size-2.5" />}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <div ref={chatBottomRef} />
+        </div>
+
+        {/* Reply Photo Thumbnail Preview */}
+        {replyPhoto && (
+          <div className="flex items-center gap-2 border-t border-border bg-white px-4 py-2 dark:bg-zinc-900">
+            <div className="relative size-14 overflow-hidden rounded-xl border border-border">
+              <img src={replyPhoto} alt="Pending upload" className="size-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setReplyPhoto(null)}
+                className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Photo ready to send with reply</p>
+          </div>
+        )}
+
+        {/* Chat Input Bar */}
+        <footer className="border-t border-border bg-white p-3 dark:bg-zinc-900">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSendReply();
+            }}
+            className="flex items-center gap-2"
+          >
+            <input
+              type="file"
+              ref={replyFileInputRef}
+              onChange={handleReplyPhotoSelect}
+              accept="image/*"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => replyFileInputRef.current?.click()}
+              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="Attach photo"
+            >
+              <Camera className="size-4" />
+            </button>
+
+            <input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Type your message..."
+              disabled={sendingReply}
+              className="h-10 flex-1 rounded-2xl border border-border bg-muted/40 px-3.5 text-xs font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-emerald-500 focus:bg-background"
+            />
+
+            <button
+              type="submit"
+              disabled={sendingReply || (!replyText.trim() && !replyPhoto)}
+              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs transition-transform active:scale-95 disabled:opacity-40"
+              aria-label="Send"
+            >
+              {sendingReply ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+            </button>
+          </form>
+        </footer>
+
+        {/* Photo Zoom Modal */}
+        {previewZoomPhoto && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => setPreviewZoomPhoto(null)}
+              className="absolute right-4 top-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
+            >
+              <X className="size-5" />
+            </button>
+            <img
+              src={previewZoomPhoto}
+              alt="Zoomed garment proof"
+              className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl"
+            />
+          </div>
+        )}
+      </main>
+    );
+  }
+
+  // =========================================================================
+  // VIEW: MAIN HELP CENTER SCREEN
+  // =========================================================================
+  return (
+    <main className="relative min-h-screen overflow-x-hidden scroll-smooth bg-white pb-32 dark:bg-zinc-950">
+      <div className="relative mx-auto w-full max-w-md">
+        <ScreenTopBar
+          title="Help & Support"
+          action={
+            <a
+              href={`https://wa.me/${contact.whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="WhatsApp Support"
+              className="flex size-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+            >
+              <MessageCircle className="size-4" />
+            </a>
           }
         />
 
-        {!faqList && faqsLoading ? (
-          <HelpSkeleton />
+        {/* Segmented Top Tabs */}
+        <div className="px-5 pt-3">
+          <div className="flex rounded-2xl border border-border bg-muted/50 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("need-help")}
+              className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${
+                activeTab === "need-help"
+                  ? "bg-white text-emerald-800 shadow-xs dark:bg-zinc-900 dark:text-emerald-400"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Need Help?
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("my-tickets")}
+              className={`relative flex-1 rounded-xl py-2 text-xs font-black transition-all ${
+                activeTab === "my-tickets"
+                  ? "bg-white text-emerald-800 shadow-xs dark:bg-zinc-900 dark:text-emerald-400"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              My Tickets
+              {tickets.length > 0 && (
+                <span className="ml-1.5 rounded-full bg-emerald-600 px-1.5 py-0.2 text-[9px] font-bold text-white">
+                  {tickets.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
-        ) : (
-          <div className="px-5 pb-44 pt-4">
-            {/* Search */}
-            <div className="card-soft flex h-12 items-center gap-2 border border-border px-4">
-              <Search className="size-4 shrink-0 text-muted-foreground" />
-              <input
-                id="help-search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search help topics, orders, refunds…"
-                className="h-full w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:font-medium placeholder:text-muted-foreground/70"
-              />
-            </div>
+        {/* ----------------------------------------------------------------- */}
+        {/* TAB 1: NEED HELP? (5-STEP TICKET CREATION & LIVE CHAT FLOW) */}
+        {/* ----------------------------------------------------------------- */}
+        {activeTab === "need-help" ? (
+          <div className="px-5 pt-4 space-y-6">
+            {/* Step 1 & 2: Recent Orders Carousel */}
+            <section>
+              <div className="flex items-center justify-between mb-2.5">
+                <div>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-foreground">
+                    1. Select an Order
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    Choose the laundry order you need help with
+                  </p>
+                </div>
+                {selectedOrder && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrder(null)}
+                    className="text-[10px] font-bold text-emerald-600 underline dark:text-emerald-400"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
 
-            {/* Quick actions */}
-            <section className="stagger-children mt-5 grid grid-cols-4 gap-3">
-              {quickActions.map((action, index) => (
-                <button
-                  key={action.id}
-                  type="button"
-                  onClick={action.onClick} className="card-soft ripple flex flex-col items-center gap-2 border border-border px-2 py-3 transition-all duration-300 hover:border-primary/60 active:scale-[0.96]"
-                >
-                  <span className="flex size-9 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
-                    <action.icon className="size-4" strokeWidth={2.2} />
-                  </span>
-                  <span className="text-[0.66rem] font-bold tracking-tight text-foreground">
-                    {action.label}
-                  </span>
-                </button>
-              ))}
+              {loadingOrders ? (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  <div className="h-24 w-48 shrink-0 animate-pulse rounded-2xl bg-muted/60" />
+                  <div className="h-24 w-48 shrink-0 animate-pulse rounded-2xl bg-muted/60" />
+                </div>
+              ) : orders.length > 0 ? (
+                <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar">
+                  {orders.map((ord) => {
+                    const isSelected = selectedOrder?.id === ord.id;
+                    return (
+                      <button
+                        key={ord.id}
+                        type="button"
+                        onClick={() => setSelectedOrder(ord)}
+                        className={`flex w-52 shrink-0 flex-col justify-between rounded-2xl border p-3 text-left transition-all ${
+                          isSelected
+                            ? "border-emerald-600 bg-emerald-50/60 shadow-xs ring-2 ring-emerald-500/20 dark:bg-emerald-950/30"
+                            : "border-border bg-card hover:border-border/80"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black tracking-tight text-foreground">
+                              #{ord.id}
+                            </span>
+                            <span
+                              className={`rounded-full px-1.5 py-0.2 text-[9px] font-bold capitalize ${
+                                ord.status === "delivered"
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                  : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                              }`}
+                            >
+                              {ord.status}
+                            </span>
+                          </div>
+                          <p className="mt-1 truncate text-[11px] font-semibold text-muted-foreground">
+                            {ord.service} · {ord.store}
+                          </p>
+                        </div>
+                        <div className="mt-2.5 flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-foreground">₹{ord.total}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {ord.placedOn}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrder(null)}
+                    className={`flex w-36 shrink-0 flex-col items-center justify-center rounded-2xl border border-dashed p-3 text-center transition-all ${
+                      selectedOrder === null
+                        ? "border-emerald-600 bg-emerald-50/40 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"
+                        : "border-border text-muted-foreground hover:bg-muted/30"
+                    }`}
+                  >
+                    <HelpCircle className="size-5 mb-1 opacity-70" />
+                    <span className="text-[10px] font-bold">General Inquiry (No Order)</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-border bg-muted/20 p-3 text-center text-xs text-muted-foreground">
+                  No recent orders found. You can raise a general inquiry below.
+                </div>
+              )}
             </section>
 
-            {/* Popular topics */}
-            <section className="mt-7">
-              <h2 className="text-sm font-black tracking-tight text-foreground">
-                Popular Help Topics
+            {/* Step 3: Issue Category Selector */}
+            <section>
+              <h2 className="text-xs font-black uppercase tracking-wider text-foreground mb-2">
+                2. What issue are you facing?
               </h2>
-              <div className="stagger-children mt-4 grid grid-cols-2 gap-3">
-                {topics.map((topic, index) => {
-                  const Icon = TOPIC_ICON[topic.id] ?? LifeBuoy;
+              <div className="grid grid-cols-2 gap-2">
+                {TICKET_CATEGORY_OPTIONS.map((opt) => {
+                  const isSelected = category === opt.id;
                   return (
                     <button
-                      key={topic.id}
+                      key={opt.id}
                       type="button"
-                      onClick={() =>
-                        topic.id === "track"
-                          ? navigate({ to: "/history" })
-                          : toast(`${topic.label} — opening guide`)
-                      } className="card-soft ripple flex items-center gap-3 border border-border p-4 text-left transition-all duration-300 hover:border-primary/60 active:scale-[0.96]"
+                      onClick={() => {
+                        setCategory(opt.id);
+                        setSubReason("");
+                      }}
+                      className={`flex items-center gap-2 rounded-2xl border p-3 text-left transition-all ${
+                        isSelected
+                          ? "border-emerald-600 bg-emerald-50/70 font-black text-emerald-950 shadow-xs dark:bg-emerald-950/40 dark:text-emerald-200"
+                          : "border-border bg-card text-foreground hover:bg-muted/40 font-bold"
+                      }`}
                     >
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-brand-green">
-                        <Icon className="size-5" />
+                      <span className="text-base">
+                        {opt.id === "wash-quality"
+                          ? "🧼"
+                          : opt.id === "missing-garment"
+                            ? "👔"
+                            : opt.id === "delay"
+                              ? "⏱️"
+                              : opt.id === "payment"
+                                ? "💳"
+                                : "❓"}
                       </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-[0.78rem] font-bold leading-tight text-foreground">
-                          {topic.label}
-                        </span>
-                        <span className="block truncate text-[11px] text-muted-foreground">
-                          {topic.note}
-                        </span>
-                      </span>
+                      <span className="text-xs leading-tight">{opt.label}</span>
                     </button>
                   );
                 })}
-                {topics.length === 0 ? (
-                  <p className="col-span-2 text-center text-xs text-muted-foreground">
-                    No topics match “{query}”.
-                  </p>
-                ) : null}
-              </div>
-            </section>
-
-            {/* FAQ — GET /api/help/faqs + /api/help/categories */}
-            <section className="mt-7">
-              <h2 className="text-sm font-black tracking-tight text-foreground">
-                Frequently Asked Questions
-              </h2>
-
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                {[{ id: "all", name: "All" }, ...categories].map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    onClick={() => setActiveCategory(category.id)}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-colors ${
-                      activeCategory === category.id
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
               </div>
 
-              <div className="stagger-children mt-4 space-y-3">
-                {faqsLoading ? (
-                  <div className="h-16 animate-pulse rounded-3xl bg-muted/70" />
-                ) : null}
-                {visibleFaqs.map((faq) => {
-                  const open = openFaq === faq.id;
-                  return (
-                    <article
-                      key={faq.id} className="card-soft overflow-hidden border border-border transition-all duration-300 hover:border-primary/60"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setOpenFaq(open ? null : faq.id)}
-                        aria-expanded={open}
-                        className="flex w-full items-center gap-3 p-4 text-left"
-                      >
-                        <span className="min-w-0 flex-1 text-[0.8rem] font-bold leading-snug text-foreground">
-                          {faq.question}
-                        </span>
-                        <ChevronDown
-                          className={`size-4 shrink-0 text-muted-foreground transition-transform duration-300 ${
-                            open ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-                      {open ? (
-                        <p className="border-t border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-                          {faq.answer}
-                        </p>
-                      ) : null}
-                    </article>
-                  );
-                })}
-                {!faqsLoading && visibleFaqs.length === 0 ? (
-                  <p className="text-center text-xs text-muted-foreground">
-                    No answers match “{query}”. Raise a ticket below.
-                  </p>
-                ) : null}
-              </div>
-            </section>
-
-            {/* My tickets — GET /api/help/tickets */}
-            {tickets.length > 0 ? (
-              <section className="mt-7">
-                <h2 className="text-sm font-black tracking-tight text-foreground">My Tickets</h2>
-                <div className="stagger-children mt-4 space-y-3">
-                  {tickets.map((ticket) => (
-                    <article
-                      key={ticket.id}
-                      className="card-soft border border-border p-4 transition-all duration-300 hover:border-primary/60"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-[0.8rem] font-black tracking-tight text-foreground">
-                          {ticket.subject || ticket.ticketNumber}
-                        </span>
-                        <span className="ml-auto shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-brand-dark">
-                          {TICKET_STATUS_LABEL[ticket.status]}
-                        </span>
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
-                        {ticket.description}
-                      </p>
-                      <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/80">
-                        {ticket.ticketNumber} · {ticket.categoryLabel} · {ticket.messageCount}{" "}
-                        messages
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-
-            {/* Raise ticket — POST /api/support/ticket */}
-            <section className="mt-7">
-              <h2 className="text-sm font-black tracking-tight text-foreground">
-                Raise a Support Ticket
-              </h2>
-              <div className="card-soft mt-4 border border-border p-4">
-                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                  Category
-                </span>
-                <div className="mb-3 mt-1.5 flex flex-wrap gap-2">
-                  {TICKET_CATEGORY_OPTIONS.map((option) => (
+              {/* Sub-reasons chips */}
+              {SUB_REASONS[category] && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {SUB_REASONS[category].map((reason) => (
                     <button
-                      key={option.id}
+                      key={reason}
                       type="button"
-                      onClick={() => setCategory(option.id)}
-                      className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
-                        category === option.id
-                          ? "bg-primary text-primary-foreground"
+                      onClick={() => setSubReason(reason)}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                        subReason === reason
+                          ? "bg-emerald-600 text-white"
                           : "bg-muted text-muted-foreground hover:bg-accent"
                       }`}
                     >
-                      {option.label}
+                      {reason}
                     </button>
                   ))}
                 </div>
-                <label className="block">
-
-                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Subject
-                  </span>
-                  <input
-                    value={subject}
-                    onChange={(event) => setSubject(event.target.value)}
-                    placeholder="Order QP-48219 delivered late"
-                    className="mt-1.5 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm font-semibold text-foreground outline-none transition-colors placeholder:font-medium placeholder:text-muted-foreground/70 focus:border-primary"
-                  />
-                </label>
-
-                <label className="mt-3 block">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Description
-                  </span>
-                  <textarea
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    rows={4}
-                    placeholder="Tell us what happened so we can fix it quickly."
-                    className="mt-1.5 w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground outline-none transition-colors placeholder:font-medium placeholder:text-muted-foreground/70 focus:border-primary"
-                  />
-                </label>
-
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => setImageName(event.target.files?.[0]?.name ?? null)}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="mt-3 flex w-full items-center gap-3 rounded-3xl bg-muted/70 p-3 text-left transition-colors active:bg-muted"
-                >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-brand-dark">
-                    <ImagePlus className="size-5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-foreground">
-                      {imageName ?? "Upload Image"}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      JPG or PNG, up to 5 MB
-                    </span>
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={submitting || !subject.trim() || !description.trim()}
-                  onClick={() => void handleSubmitTicket()}
-                  className="ripple mt-4 flex h-13 w-full items-center justify-center gap-2 rounded-3xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-cta transition-all duration-300 active:scale-[0.97] disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}
-                  Submit Ticket
-                </button>
-              </div>
+              )}
             </section>
 
-            {/* Emergency support */}
-            <section className="mt-7">
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-950 p-5 shadow-soft text-white">
-                <div className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-400/25 blur-2xl" />
-                <div className="relative flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[0.68rem] font-bold uppercase tracking-widest text-emerald-100">
-                      Emergency Support
-                    </p>
-                    <p className="mt-1 text-lg font-black tracking-tight text-white">
-                      24×7 Customer Support
-                    </p>
-                    <p className="mt-1 text-xs text-emerald-100/90 font-medium">
-                      Average response time · {contact?.responseTime}
-                    </p>
-                  </div>
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur-sm border border-white/20 shadow-xs">
-                    <LifeBuoy className="size-5" />
+            {/* Step 4: Photo Proof Upload & Description */}
+            <section className="rounded-3xl border border-border bg-card p-4 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs font-black uppercase tracking-wider text-foreground">
+                  3. Upload Garment Photo
+                </h2>
+                {(category === "wash-quality" || category === "missing-garment") && (
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-black text-amber-600 dark:text-amber-400">
+                    Photo Required *
                   </span>
-                </div>
-                <a
-                  href={`tel:${contact?.phone}`}
-                  className="ripple relative mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-3xl bg-white text-sm font-black text-emerald-800 shadow-md transition-all duration-300 hover:bg-emerald-50 active:scale-[0.97]"
-                >
-                  <Headphones className="size-4" />
-                  Call {contact?.phoneLabel}
-                </a>
+                )}
               </div>
-            </section>
 
-            {/* Legal & Compliance Quick Links */}
-            <section className="mt-6 mb-8 rounded-3xl border border-border bg-card p-5 shadow-soft">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="size-4 text-primary" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
-                  Statutory Policies & Grievance
-                </h3>
-              </div>
-              <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
-                QuickPress operations comply with the Consumer Protection (E-Commerce) Rules 2020 & IT Act 2000.
+              <p className="text-[11px] text-muted-foreground mb-3">
+                {category === "wash-quality" || category === "missing-garment"
+                  ? "Please take a photo of the stain, fabric damage, or cloth tag for fast resolution."
+                  : "Optional: Upload photos to help our team understand the issue."}
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <Link
-                  to="/legal/$docSlug"
-                  params={{ docSlug: "terms-of-service" }}
-                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
-                >
-                  <FileText className="size-3.5 text-primary shrink-0" />
-                  <span className="truncate">Terms & SLAs</span>
-                </Link>
-                <Link
-                  to="/legal/$docSlug"
-                  params={{ docSlug: "privacy-policy" }}
-                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
-                >
-                  <Shield className="size-3.5 text-emerald-600 shrink-0" />
-                  <span className="truncate">Privacy Policy</span>
-                </Link>
-                <Link
-                  to="/legal/$docSlug"
-                  params={{ docSlug: "cancellation-refund-policy" }}
-                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
-                >
-                  <RefreshCcw className="size-3.5 text-amber-600 shrink-0" />
-                  <span className="truncate">Refunds & Cancel</span>
-                </Link>
-                <Link
-                  to="/legal/$docSlug"
-                  params={{ docSlug: "grievance-redressal" }}
-                  className="flex items-center gap-2 p-2.5 rounded-2xl border border-border bg-muted/20 hover:bg-muted/50 font-semibold text-foreground transition-colors"
-                >
-                  <LifeBuoy className="size-3.5 text-blue-600 shrink-0" />
-                  <span className="truncate">Grievance Officer</span>
-                </Link>
+
+              {/* Photo Previews & Picker */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoSelect}
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
+
+              <div className="flex flex-wrap gap-2.5">
+                {photos.map((photo, idx) => (
+                  <div
+                    key={idx}
+                    className="relative size-20 overflow-hidden rounded-2xl border border-border bg-muted/40 shadow-xs"
+                  >
+                    <img src={photo} alt="Preview" className="size-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(idx)}
+                      className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                      aria-label="Remove photo"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+
+                {photos.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex size-20 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-500/40 bg-emerald-50/40 text-emerald-700 transition-colors hover:border-emerald-600 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-300"
+                  >
+                    <Camera className="size-5" />
+                    <span className="mt-1 text-[9px] font-black">
+                      {photos.length === 0 ? "Add Photo" : "Add More"}
+                    </span>
+                  </button>
+                )}
               </div>
+
+              {/* Description Input */}
+              <div className="mt-4">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">
+                  Describe what happened
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g. White shirt ke sleeve par coffee daag reh gaya hai..."
+                  rows={2}
+                  className="w-full rounded-2xl border border-border bg-muted/30 p-3 text-xs font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-emerald-500 focus:bg-background"
+                />
+              </div>
+
+              {/* Step 5 CTA: Create Ticket & Live Chat */}
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => void handleCreateTicket()}
+                className="ripple mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-xs font-black tracking-wide text-white shadow-md transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {uploadingPhotos ? "Uploading photos..." : "Creating ticket..."}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="size-4" />
+                    Create Ticket & Start Live Chat
+                  </>
+                )}
+              </button>
             </section>
 
+            {/* Quick Actions (Call, WhatsApp, Email) */}
+            <section className="grid grid-cols-3 gap-2.5">
+              <a
+                href={`tel:${contact.phone}`}
+                className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-3 text-center transition-colors hover:bg-muted/40"
+              >
+                <Headphones className="size-5 text-emerald-600 dark:text-emerald-400 mb-1" />
+                <span className="text-[11px] font-bold text-foreground">Call Support</span>
+                <span className="text-[9px] text-muted-foreground">Toll Free</span>
+              </a>
+
+              <a
+                href={`https://wa.me/${contact.whatsapp}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-3 text-center transition-colors hover:bg-muted/40"
+              >
+                <MessageCircle className="size-5 text-emerald-600 dark:text-emerald-400 mb-1" />
+                <span className="text-[11px] font-bold text-foreground">WhatsApp</span>
+                <span className="text-[9px] text-muted-foreground">Chat Instantly</span>
+              </a>
+
+              <a
+                href={`mailto:${contact.email}`}
+                className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card p-3 text-center transition-colors hover:bg-muted/40"
+              >
+                <Mail className="size-5 text-emerald-600 dark:text-emerald-400 mb-1" />
+                <span className="text-[11px] font-bold text-foreground">Email Desk</span>
+                <span className="text-[9px] text-muted-foreground">24h SLA</span>
+              </a>
+            </section>
+
+            {/* Popular FAQs Section */}
+            <section className="rounded-3xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
+                  Frequently Asked Questions
+                </h3>
+                <span className="text-[10px] text-muted-foreground font-semibold">
+                  Instant Answers
+                </span>
+              </div>
+
+              {/* Search FAQ */}
+              <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 mb-3">
+                <Search className="size-3.5 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search questions..."
+                  className="w-full bg-transparent text-xs font-medium text-foreground outline-none placeholder:text-muted-foreground/60"
+                />
+              </div>
+
+              <div className="divide-y divide-border/60">
+                {visibleFaqs.slice(0, 5).map((faq) => {
+                  const isOpen = openFaq === faq.id;
+                  return (
+                    <div key={faq.id} className="py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setOpenFaq(isOpen ? null : faq.id)}
+                        className="flex w-full items-center justify-between text-left text-xs font-bold text-foreground"
+                      >
+                        <span className="pr-2">{faq.question}</span>
+                        <ChevronDown
+                          className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                      {isOpen && (
+                        <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+                          {faq.answer}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        ) : (
+          /* ----------------------------------------------------------------- */
+          /* TAB 2: MY TICKETS (HISTORY & STATUS TRACKING) */
+          /* ----------------------------------------------------------------- */
+          <div className="px-5 pt-4 space-y-3">
+            {tickets.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border p-8 text-center">
+                <MessagesSquare className="size-10 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm font-bold text-foreground">No support tickets raised</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                  If you face any issue with washing, delay, or missing clothes, tap "Need Help?" to create a ticket.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("need-help")}
+                  className="mt-4 rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs"
+                >
+                  Raise an Issue
+                </button>
+              </div>
+            ) : (
+              tickets.map((tkt) => {
+                const photosList = tkt.photos || (tkt.attachmentUrl ? [tkt.attachmentUrl] : []);
+                return (
+                  <article
+                    key={tkt.id}
+                    onClick={() => setActiveTicket(tkt)}
+                    className="group cursor-pointer rounded-2xl border border-border bg-card p-4 transition-all hover:border-emerald-500 hover:shadow-xs active:scale-[0.99]"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-foreground">
+                            #{tkt.ticketNumber}
+                          </span>
+                          {tkt.orderNumber && (
+                            <span className="rounded-md bg-muted px-1.5 py-0.2 text-[9px] font-bold text-muted-foreground">
+                              Order #{tkt.orderNumber}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs font-bold text-foreground line-clamp-1">
+                          {tkt.subject}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                          tkt.status === "open"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            : tkt.status === "in-progress"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                              : tkt.status === "resolved"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                        }`}
+                      >
+                        {TICKET_STATUS_LABEL[tkt.status] || tkt.status}
+                      </span>
+                    </div>
+
+                    <p className="mt-1.5 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                      {tkt.description}
+                    </p>
+
+                    {/* Photos indicator if attached */}
+                    {photosList.length > 0 && (
+                      <div className="mt-2.5 flex items-center gap-1.5">
+                        <ImageIcon className="size-3 text-emerald-600" />
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                          {photosList.length} Photo{photosList.length > 1 ? "s" : ""} verified
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px] text-muted-foreground">
+                      <span>{tkt.categoryLabel}</span>
+                      <span className="flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400 group-hover:underline">
+                        Open Chat ({tkt.messageCount}) &rarr;
+                      </span>
+                    </div>
+                  </article>
+                );
+              })
+            )}
           </div>
         )}
       </div>
