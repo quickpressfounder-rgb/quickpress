@@ -49,13 +49,7 @@ router = APIRouter(tags=["home"])
 optional_bearer = HTTPBearer(auto_error=False)
 
 GUEST_PROFILE = ProfileResponse(name="Guest", initials="G", unreadNotifications=0)
-DEFAULT_LOCATION = LocationResponse(
-    area="City Center",
-    city="Kasganj",
-    state="Uttar Pradesh",
-    latitude=27.8081,
-    longitude=78.6476,
-)
+DEFAULT_LOCATION = LocationResponse(area="Current Location", city="", state="")
 
 
 def _initials(name: str) -> str:

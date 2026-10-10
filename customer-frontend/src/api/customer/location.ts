@@ -31,22 +31,11 @@ export function readLocation(): SavedLocation | null {
 }
 
 /**
- * Kasganj Central Hub — Default platform serviceability baseline.
+ * Platform default location. Returns null so the app never forces
+ * an arbitrary hardcoded city (like Kasganj) on users in other states.
  */
-export const DEFAULT_FALLBACK_LOCATION: SavedLocation = {
-  area: "City Center",
-  city: "Kasganj",
-  state: "Uttar Pradesh",
-  latitude: 27.8081,
-  longitude: 78.6476,
-};
-
-export function getDefaultLocation(): SavedLocation {
-  return DEFAULT_FALLBACK_LOCATION;
-}
-
-export function isWithinKasganjBounds(lat: number, lng: number): boolean {
-  return lat >= 27.65 && lat <= 27.95 && lng >= 78.45 && lng <= 78.85;
+export function getDefaultLocation(): SavedLocation | null {
+  return null;
 }
 
 /**
@@ -153,11 +142,10 @@ export async function reverseGeocode(
     /* fallback to coordinate-based position */
   }
 
-  const isKasganj = isWithinKasganjBounds(latitude, longitude);
   const coordFallback: SavedLocation = {
-    area: isKasganj ? "City Center" : "Current Location",
-    city: isKasganj ? "Kasganj" : "Detected Location",
-    state: isKasganj ? "Uttar Pradesh" : "",
+    area: "Current Location",
+    city: "Detected Location",
+    state: "",
     latitude,
     longitude,
   };
@@ -343,8 +331,44 @@ export async function getCurrentDeviceLocation(
 }
 
 /**
- * Device GPS → reverse geocoding → the customer's *current device* location.
- * Resolves within <500ms on cached/network fix, or falls back safely without hanging.
+ * Fast client-side IP-based location detection:
+ * Used as a fallback when device GPS is denied or unavailable,
+ * detecting the user's real state & city via their internet connection (IP geolocation),
+ * without ever showing a wrong city from another state!
+ */
+export async function detectIpLocation(): Promise<SavedLocation | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en", {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      const city = data.city || data.locality || data.principalSubdivision || "";
+      const state = data.principalSubdivision || "";
+      const area = data.locality || city || "Current Location";
+      if (city || state) {
+        return {
+          area,
+          city,
+          state,
+          latitude: typeof data.latitude === "number" ? data.latitude : undefined,
+          longitude: typeof data.longitude === "number" ? data.longitude : undefined,
+        };
+      }
+    }
+  } catch {
+    /* IP lookup unavailable */
+  }
+  return null;
+}
+
+/**
+ * Device GPS → reverse geocoding → the customer's *real device* location.
+ * Resolves within <500ms on cached/network fix.
+ * If GPS fails and allowFallback is true, detects real IP location.
  */
 export async function detectDeviceLocation(
   options: { allowFallback?: boolean; timeoutMs?: number } = {},
@@ -356,9 +380,11 @@ export async function detectDeviceLocation(
     return location;
   } catch (err) {
     if (options.allowFallback) {
-      const fallback = getDefaultLocation();
-      saveLocation(fallback);
-      return fallback;
+      const ipLoc = await detectIpLocation();
+      if (ipLoc) {
+        saveLocation(ipLoc);
+        return ipLoc;
+      }
     }
     throw err;
   }

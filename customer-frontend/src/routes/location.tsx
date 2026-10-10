@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { LocationDetecting } from "@/components/LocationDetecting";
 import {
   detectDeviceLocation,
-  getDefaultLocation,
   GeoError,
   readLocation,
   saveLocation,
@@ -77,7 +76,7 @@ function LocationScreen() {
       }
 
       // 2. Fetch real device GPS coordinates & reverse geocode (<500ms fast lock)
-      const location = await detectDeviceLocation({ timeoutMs: 3200 });
+      const location = await detectDeviceLocation({ timeoutMs: 3200, allowFallback: true });
       saveLocation(location);
       setIsLocating(false);
       void navigate({ to: "/home" });
@@ -94,12 +93,6 @@ function LocationScreen() {
   useEffect(() => {
     void detect();
   }, [detect, attempt]);
-
-  const handleContinueWithKasganj = () => {
-    const fallback = getDefaultLocation();
-    saveLocation(fallback);
-    void navigate({ to: "/home" });
-  };
 
   if (isLocating) {
     return <LocationDetecting label="Detecting your location…" />;
@@ -141,16 +134,6 @@ function LocationScreen() {
         >
           <Search className="size-[18px]" aria-hidden />
           <span>Choose location manually</span>
-        </button>
-
-        {/* Tertiary CTA: Instant 1-tap fallback to Kasganj Hub */}
-        <button
-          type="button"
-          onClick={handleContinueWithKasganj}
-          className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-emerald-600/25 bg-emerald-500/10 text-[14px] font-bold text-emerald-700 dark:text-emerald-400 active:scale-[0.985] hover:bg-emerald-500/15"
-        >
-          <MapPin className="size-4" aria-hidden />
-          <span>Continue with Kasganj Central</span>
         </button>
       </div>
     </main>

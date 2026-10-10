@@ -22,7 +22,7 @@ export { readLocation, getDefaultLocation };
 
 /** Saved address chosen by the customer, if any. */
 export function readSavedLocation(): SavedLocation | null {
-  return readLocation() || getDefaultLocation();
+  return readLocation();
 }
 
 export function changeLocation(location: SavedLocation) {
@@ -30,8 +30,8 @@ export function changeLocation(location: SavedLocation) {
   writeCache(CACHE_KEYS.location, location);
 }
 
-/** Resolve the customer's current location: saved address, then cached, then API, then Default hub. */
-export function fetchLocation(options: { forceRefresh?: boolean | undefined; signal?: AbortSignal | undefined } = {}): Promise<SavedLocation> {
+/** Resolve the customer's current location: saved address, then cached, then API. */
+export function fetchLocation(options: { forceRefresh?: boolean | undefined; signal?: AbortSignal | undefined } = {}): Promise<SavedLocation | null> {
   const saved = readLocation();
   if (saved && !options.forceRefresh) return Promise.resolve(saved);
 
@@ -44,7 +44,7 @@ export function fetchLocation(options: { forceRefresh?: boolean | undefined; sig
     readCache: () => readCache<SavedLocation>(CACHE_KEYS.location),
     readStaleCache: () => readStaleCache<SavedLocation>(CACHE_KEYS.location),
     writeCache: (value) => writeCache(CACHE_KEYS.location, value),
-  }).catch(() => getDefaultLocation());
+  }).catch(() => null);
 }
 
 /** Location refresh strictly via real device GPS, then reverse geocoding. Falls back gracefully without hanging. */
