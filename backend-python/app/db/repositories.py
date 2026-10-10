@@ -82,7 +82,7 @@ class UserRepository:
             if cust:
                 user_id = cust.get("userId") or cust.get("user_id") or cust.get("_id")
                 if user_id:
-                    user_doc = await self._c.find_one({"_id": user_id})
+                    user_doc = await self._c.find_one({"_id": user_id, **({"role": "customer"} if role else {})})
                     if user_doc:
                         return User.from_document(user_doc)
         return None
@@ -290,19 +290,16 @@ class UserRepository:
         return refreshed or created
 
     async def create_phone_user(self, *, phone: str, role: Role) -> User:
-        existing_any = await self.by_phone_any_role(phone)
-        if existing_any:
-            if existing_any.role != role:
-                raise ValueError(
-                    f"This mobile number (+91 {phone[-10:]}) is already registered as a {existing_any.role.value.capitalize()} account. Only 1 account is permitted per mobile number."
-                )
-            await self._ensure_role_profile(existing_any)
-            refreshed = await self.by_id(existing_any.id)
-            return refreshed or existing_any
+        # Exactly 1 account per role per mobile number (1 customer + 1 partner + 1 rider)
+        existing_for_role = await self.by_phone(phone, role=role)
+        if existing_for_role:
+            await self._ensure_role_profile(existing_for_role)
+            refreshed = await self.by_id(existing_for_role.id)
+            return refreshed or existing_for_role
 
         user = User(
             id=str(uuid.uuid4()),
-            firebase_uid=f"phone-{phone}",
+            firebase_uid=f"phone-{phone}-{role.value}",
             role=role,
             phone=phone,
             status=UserStatus.active if role in (Role.customer, Role.admin) else UserStatus.pending,

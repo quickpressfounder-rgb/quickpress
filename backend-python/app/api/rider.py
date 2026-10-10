@@ -95,7 +95,7 @@ async def send_aadhaar_otp(body: dict) -> dict:
     if len(set(raw_num)) == 1:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
-    await assert_aadhaar_unique(raw_num)
+    await assert_aadhaar_unique(raw_num, entity_type="rider")
     return await send_cashfree_aadhaar_otp(raw_num)
 
 
@@ -113,7 +113,7 @@ async def verify_aadhaar(body: dict) -> dict:
         candidate_name = ""
 
     if raw_num and len(raw_num) == 12:
-        await assert_aadhaar_unique(raw_num)
+        await assert_aadhaar_unique(raw_num, entity_type="rider")
 
     if otp:
         return await verify_cashfree_aadhaar_otp(ref_id=ref_id, otp=otp, candidate_name=candidate_name)
@@ -148,7 +148,7 @@ async def verify_pan(body: dict) -> dict:
     if not pan or len(pan) != 10 or not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", pan):
         raise HTTPException(status_code=400, detail="Please enter a valid 10-digit PAN (e.g. ABCDE1234F)")
 
-    await assert_pan_unique(pan)
+    await assert_pan_unique(pan, entity_type="rider")
     candidate_name = str(body.get("fullName") or body.get("name") or "").strip().upper()
     if candidate_name.startswith("+") or candidate_name.replace(" ", "").replace("-", "").isdigit():
         candidate_name = ""

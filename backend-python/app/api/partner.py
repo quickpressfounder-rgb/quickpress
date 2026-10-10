@@ -105,7 +105,7 @@ async def send_partner_aadhaar_otp(body: dict) -> dict:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
     partner_id = body.get("partnerId") or body.get("storeId")
-    await assert_aadhaar_unique(raw_num, allowed_entity_id=partner_id)
+    await assert_aadhaar_unique(raw_num, allowed_entity_id=partner_id, entity_type="partner")
 
     masked = f"XXXX XXXX {raw_num[-4:]}"
     return {
@@ -136,7 +136,7 @@ async def verify_partner_aadhaar(body: dict) -> dict:
         raise HTTPException(status_code=400, detail="Invalid Aadhaar number format")
 
     partner_id = body.get("partnerId") or body.get("storeId")
-    await assert_aadhaar_unique(raw_num, allowed_entity_id=partner_id)
+    await assert_aadhaar_unique(raw_num, allowed_entity_id=partner_id, entity_type="partner")
 
     masked = f"XXXX XXXX {raw_num[-4:]}"
     candidate_name = str(body.get("fullName") or body.get("ownerName") or body.get("name") or "").strip()
@@ -202,7 +202,7 @@ async def verify_partner_pan(body: dict) -> dict:
         raise HTTPException(status_code=400, detail="Please enter a valid 10-character PAN number")
 
     partner_id = body.get("partnerId") or body.get("storeId")
-    await assert_pan_unique(pan, allowed_entity_id=partner_id)
+    await assert_pan_unique(pan, allowed_entity_id=partner_id, entity_type="partner")
 
     return {
         "ok": True,
@@ -1323,13 +1323,13 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "isVerified": True,
     }
 
-    # 1. Aadhaar Uniqueness Check (Platform-wide across Partners and Riders)
+    # 1. Aadhaar Uniqueness Check (Scoped to partner store accounts)
     if clean_aadhaar and len(clean_aadhaar) == 12:
-        await assert_aadhaar_unique(clean_aadhaar, allowed_entity_id=store_id_str)
+        await assert_aadhaar_unique(clean_aadhaar, allowed_entity_id=store_id_str, entity_type="partner")
 
-    # 2. PAN Uniqueness Check (Platform-wide across Partners and Riders)
+    # 2. PAN Uniqueness Check (Scoped to partner store accounts)
     if clean_pan and len(clean_pan) == 10:
-        await assert_pan_unique(clean_pan, allowed_entity_id=store_id_str)
+        await assert_pan_unique(clean_pan, allowed_entity_id=store_id_str, entity_type="partner")
 
     # 3. Email Uniqueness Check (Only against active approved stores)
     if clean_email:
