@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Clock,
   CreditCard,
   Crown,
   Home,
@@ -647,94 +646,71 @@ export function CheckoutPage() {
           </div>
         ) : null}
 
-        {/* SECTION 2: PICKUP SPEED & TURNAROUND */}
+        {/* SECTION 2: EXPRESS PRIORITY DELIVERY */}
         <div>
-          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-            Pickup Speed & Turnaround
-          </h2>
-          <section aria-label="Pickup Speed" className="bg-white rounded-2xl shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100 overflow-hidden">
-            {/* Standard Pickup */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setIsExpress(false)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsExpress(false); }}
-              className={`p-3.5 sm:p-4 cursor-pointer transition-colors ${
-                !isExpressActive ? "bg-emerald-50/40" : "hover:bg-zinc-50/80 bg-white"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-[#0c831f] border border-emerald-100">
-                    <Clock className="size-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs font-black text-zinc-950">Standard Pickup</p>
-                      <span className="bg-emerald-100 text-[#0c831f] text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                        FREE
-                      </span>
-                    </div>
-                    <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                      Captain assigned in 30–60 mins • Regular laundry queue (24–48 hrs)
-                    </p>
-                  </div>
+          <div className="flex items-center justify-between px-1 mb-1.5">
+            <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Delivery Speed Upgrade
+            </h2>
+            {isExpressActive && (
+              <span className="text-[10px] font-black text-[#0c831f] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                ⚡ Express Active
+              </span>
+            )}
+          </div>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (!isExpressEnabled) {
+                toast.info("Express pickup is temporarily disabled by operations.");
+                return;
+              }
+              setIsExpress((prev) => !prev);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                if (isExpressEnabled) setIsExpress((prev) => !prev);
+              }
+            }}
+            className={`rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer transition-all border shadow-2xs ${
+              isExpressActive
+                ? "bg-emerald-50/50 border-[#0c831f]"
+                : "bg-white border-zinc-200/90 hover:border-zinc-300"
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`size-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                  isExpressActive
+                    ? "bg-[#0c831f] text-white border-[#0c831f]"
+                    : "bg-emerald-50 text-[#0c831f] border-emerald-100"
+                }`}
+              >
+                <Zap className="size-5 fill-current" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-black text-zinc-950">Express Priority Pickup & Delivery</p>
+                  <span className="bg-[#0c831f] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
+                    +₹{expressFee}
+                  </span>
                 </div>
-                <div className="shrink-0">
-                  {!isExpressActive ? (
-                    <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                  ) : (
-                    <div className="size-5 rounded-full border-2 border-zinc-300" />
-                  )}
-                </div>
+                <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                  ⚡ Nearest Captain in 15 mins • Priority fast wash & delivery in 12–24 hrs
+                </p>
               </div>
             </div>
-
-            {/* Express Priority Delivery */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (!isExpressEnabled) {
-                  toast.info("Express pickup is temporarily disabled by operations.");
-                  return;
-                }
-                setIsExpress(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  if (isExpressEnabled) setIsExpress(true);
-                }
-              }}
-              className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                isExpressActive ? "bg-emerald-50/40" : "hover:bg-zinc-50/80 bg-white"
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-[#0c831f] border border-emerald-100">
-                  <Zap className="size-5 fill-current" />
+            <div className="shrink-0">
+              {isExpressActive ? (
+                <div className="size-6 rounded-full bg-[#0c831f] flex items-center justify-center text-white">
+                  <Check className="size-3.5 stroke-[3]" />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-black text-zinc-950">Express Priority Pickup & Delivery</p>
-                    <span className="bg-[#0c831f] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
-                      +₹{expressFee}
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                    ⚡ Nearest Captain in 15 mins • Priority fast wash & delivery in 12–24 hrs
-                  </p>
-                </div>
-              </div>
-              <div className="shrink-0">
-                {isExpressActive ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-300" />
-                )}
-              </div>
+              ) : (
+                <div className="size-6 rounded-full border-2 border-zinc-300 bg-white" />
+              )}
             </div>
-          </section>
+          </div>
         </div>
 
         {/* SECTION 3: CONTACT DETAILS */}
