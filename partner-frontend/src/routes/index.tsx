@@ -74,8 +74,8 @@ function PartnerSplashScreen() {
 
     Promise.all([
       initializePartnerApp(),
-      // Smooth visual splash hold duration (350ms)
-      new Promise((resolve) => setTimeout(resolve, 350)),
+      // Smooth visual splash hold duration (500ms)
+      new Promise((resolve) => setTimeout(resolve, 500)),
     ]).then(([{ loggedIn, isOnboarded, isVerified, isSuspended }]) => {
       if (cancelled) return;
       if (loggedIn) {
@@ -101,40 +101,32 @@ function PartnerSplashScreen() {
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-white px-6 text-[#111827] select-none font-sans">
       <div
-        className="relative flex flex-col items-center transition-opacity duration-500"
+        className="relative flex flex-col items-center transition-opacity duration-300"
         style={{ opacity: visible ? 1 : 0 }}
       >
-        {/* Wordmark + Partner Badge */}
-        <div className="splash-mark relative flex flex-col items-center">
-          <div className="flex items-center gap-2">
-            <h1 className="text-[3rem] font-black leading-none tracking-[-0.05em] sm:text-[3.75rem] text-[#111827]">
-              <span>Quick</span>
-              <span className="text-primary">Press</span>
-            </h1>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-black tracking-widest text-primary uppercase shadow-sm border border-primary/20">
-              PARTNER
+        {/* Transparent HD Partner Logo */}
+        <div className="relative flex flex-col items-center">
+          <img
+            src="/quickpress-partner-logo.png"
+            alt="QuickPress Partner Onboarding"
+            className="h-20 sm:h-24 w-auto max-w-[320px] sm:max-w-[420px] object-contain drop-shadow-xs"
+          />
+
+          {/* Minimalist subtle progress indicator without jerky background animations */}
+          <div className="mt-8 flex flex-col items-center gap-2.5">
+            <div className="h-1 w-28 overflow-hidden rounded-full bg-zinc-100 border border-zinc-200/60">
+              <div className="h-full w-2/3 rounded-full bg-emerald-600 transition-all duration-500" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              Starting up...
             </span>
           </div>
-
-          <span className="splash-rise relative mt-3 block h-[3px] w-28 overflow-hidden rounded-full bg-primary/20">
-            <span className="brand-sweep absolute inset-y-0 left-0 w-1/2 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent" />
-          </span>
-
-          <p className="splash-rise mt-3 text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-500">
-            Laundry <span className="text-primary">·</span> Pickup{" "}
-            <span className="text-primary">·</span> Delivery
-          </p>
-
-          {/* Animated progressive loading bar */}
-          <span className="splash-rise mt-8 block h-1.5 w-32 overflow-hidden rounded-full bg-zinc-200/80 border border-zinc-300/60 shadow-inner">
-            <span className="splash-bar block h-full w-1/3 rounded-full bg-gradient-to-r from-primary to-sky-400" />
-          </span>
         </div>
       </div>
 
       {/* Footer Tagline */}
       <p
-        className="absolute bottom-10 text-[11px] font-bold uppercase tracking-[0.24em] text-zinc-400 transition-opacity delay-300 duration-700"
+        className="absolute bottom-10 text-[11px] font-bold uppercase tracking-[0.24em] text-zinc-400 transition-opacity duration-500"
         style={{ opacity: visible ? 1 : 0 }}
       >
         Powering your laundry business
