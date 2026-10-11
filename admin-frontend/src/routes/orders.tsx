@@ -164,10 +164,31 @@ const PIPELINE_STAGES = [
   { id: 7, label: "Ride 2 (Delivery)" },
   { id: 8, label: "Out for Delivery" },
   { id: 9, label: "Delivered" },
+  { id: 10, label: "Cancelled" },
+  { id: 11, label: "Refunded" },
 ] as const;
 
-function getOrderStageId(statusStr?: string): number {
-  const s = (statusStr || "").toLowerCase();
+function getOrderStageId(orderOrStatus?: AdminOrder | string): number {
+  if (!orderOrStatus) return 1;
+  if (typeof orderOrStatus !== "string") {
+    const o = orderOrStatus;
+    const isRefunded =
+      o.status === "Refunded" ||
+      (o as any).status === "refunded" ||
+      o.payment === "Refunded" ||
+      Boolean(o.refundStatus && o.refundStatus !== "none") ||
+      Boolean(o.refundAmount && o.refundAmount > 0);
+    if (isRefunded) return 11;
+
+    const isCancelled = o.status === "Cancelled" || (o as any).status === "cancelled";
+    if (isCancelled) return 10;
+
+    return getOrderStageId(o.status);
+  }
+
+  const s = orderOrStatus.toLowerCase();
+  if (s === "refunded" || s.includes("refund")) return 11;
+  if (s === "cancelled" || s.includes("cancel")) return 10;
   if (s === "delivered") return 9;
   if (s.includes("out for delivery") || s.includes("out_for_delivery")) return 8;
   if (s.includes("delivery") && (s.includes("assigned") || s.includes("accepted"))) return 7;
@@ -177,6 +198,75 @@ function getOrderStageId(statusStr?: string): number {
   if (s.includes("pickup") && (s.includes("assigned") || s.includes("searching") || s.includes("accepted"))) return 3;
   if (s.includes("accepted")) return 2;
   return 1;
+}
+
+function parseOrderDate(dateStr?: string): Date | null {
+  if (!dateStr) return null;
+  const clean = dateStr.trim();
+  if (!clean) return null;
+
+  const lower = clean.toLowerCase();
+  const now = new Date();
+  if (lower.startsWith("today")) return now;
+  if (lower.startsWith("yesterday")) {
+    const y = new Date(now);
+    y.setDate(y.getDate() - 1);
+    return y;
+  }
+
+  const d = new Date(clean.includes("T") ? clean : clean.length === 10 ? `${clean}T00:00:00` : clean);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function matchesDateRange(dateStr: string | undefined, range: string): boolean {
+  if (!range || range === "all") return true;
+  if (!dateStr) return true;
+  const clean = dateStr.trim();
+  if (!clean) return true;
+
+  const lower = clean.toLowerCase();
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const endOfToday = startOfToday + 86400000;
+  const startOfYesterday = startOfToday - 86400000;
+
+  if (lower.startsWith("today")) {
+    return range === "today" || range === "7d" || range === "30d" || range === "this_month";
+  }
+  if (lower.startsWith("yesterday")) {
+    return range === "yesterday" || range === "7d" || range === "30d" || range === "this_month";
+  }
+
+  const d = new Date(clean.includes("T") ? clean : clean.length === 10 ? `${clean}T00:00:00` : clean);
+  if (isNaN(d.getTime())) return true;
+
+  const orderTime = d.getTime();
+  if (range === "today") {
+    return orderTime >= startOfToday && orderTime < endOfToday;
+  }
+  if (range === "yesterday") {
+    return orderTime >= startOfYesterday && orderTime < startOfToday;
+  }
+  if (range === "7d" || range === "7days") {
+    const sevenDaysAgo = startOfToday - 7 * 86400000;
+    return orderTime >= sevenDaysAgo;
+  }
+  if (range === "30d" || range === "month" || range === "this_month") {
+    const thirtyDaysAgo = startOfToday - 30 * 86400000;
+    return orderTime >= thirtyDaysAgo;
+  }
+  return true;
+}
+
+function matchesServiceType(serviceName: string | undefined, filter: string): boolean {
+  if (!filter || filter === "all") return true;
+  const s = (serviceName || "").toLowerCase();
+  const f = filter.toLowerCase();
+  if (f === "wash") return s.includes("wash") || s.includes("laundry") || s.includes("fold");
+  if (f === "dry") return s.includes("dry");
+  if (f === "iron") return s.includes("iron") || s.includes("steam") || s.includes("press");
+  if (f === "shoe") return s.includes("shoe");
+  return s.includes(f);
 }
 
 export function OrdersPage() {
@@ -191,7 +281,7 @@ export function OrdersPage() {
   const [city, setCity] = useState("all");
   const [area, setArea] = useState("all");
   const [actionQueue, setActionQueue] = useState<"all" | "new" | "cancelled" | "delivered" | "refund">("all");
-  const [dateRange, setDateRange] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month" | "all">("today");
+  const [dateRange, setDateRange] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month" | "all">("all");
   const [selectedPipelineStage, setSelectedPipelineStage] = useState<number | null>(null);
   const [serviceFilter, setServiceFilter] = useState("all");
   const [showDayWiseReport, setShowDayWiseReport] = useState(false);
@@ -220,20 +310,39 @@ export function OrdersPage() {
   const allPartners = partners.data ?? [];
   const allRiders = riders.data ?? [];
 
-  // 9-Stage Pipeline Counts
+  // 1. Scoped orders dynamically filtered by global scope controls: City and DateRange
+  const scopedOrders = useMemo(() => {
+    return allOrders.filter((order) => {
+      // 1. City Filter
+      if (city !== "all") {
+        const oCity = (order.city || "").trim().toLowerCase();
+        const targetCity = city.trim().toLowerCase();
+        if (oCity !== targetCity) return false;
+      }
+
+      // 2. Date Range Filter
+      if (!matchesDateRange(order.placedAt, dateRange)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [allOrders, city, dateRange]);
+
+  // 11-Stage Pipeline Counts (Scoped to City & DateRange)
   const pipelineCounts = useMemo(() => {
-    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
-    allOrders.forEach((o) => {
-      const stage = getOrderStageId(o.status);
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
+    scopedOrders.forEach((o) => {
+      const stage = getOrderStageId(o);
       counts[stage] = (counts[stage] || 0) + 1;
     });
     return counts;
-  }, [allOrders]);
+  }, [scopedOrders]);
 
-  // Top Dashboard-Grade Order Health & Economics Metrics
+  // Top Dashboard-Grade Order Health & Economics Metrics (Scoped to City & DateRange)
   const orderHealth = useMemo(() => {
-    const total = allOrders.length;
-    const active = allOrders.filter((o) =>
+    const total = scopedOrders.length;
+    const active = scopedOrders.filter((o) =>
       [
         "Pending",
         "Accepted",
@@ -245,19 +354,19 @@ export function OrdersPage() {
         "Out for delivery",
       ].includes(o.status)
     ).length;
-    const delivered = allOrders.filter((o) => o.status === "Delivered" || (o as any).status === "delivered").length;
-    const delayed = allOrders.filter((o) => Boolean((o as any).delayed || (o as any).isDelayed)).length;
+    const delivered = scopedOrders.filter((o) => o.status === "Delivered" || (o as any).status === "delivered").length;
+    const delayed = scopedOrders.filter((o) => Boolean((o as any).delayed || (o as any).isDelayed)).length;
     const fulfillmentPct = total > 0 ? Math.min(100, Math.round((delivered / total) * 100)) : 0;
 
-    const gmv = allOrders.reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
+    const gmv = scopedOrders.reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
     const aov = total > 0 ? Math.round(gmv / total) : 0;
-    const prepaid = allOrders.filter((o) => o.payment === "Paid").reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
-    const cod = allOrders.filter((o) => o.payment === "COD").reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
-    const refunds = allOrders.reduce((sum, o) => sum + (o.refundAmount || 0), 0);
+    const prepaid = scopedOrders.filter((o) => o.payment === "Paid").reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
+    const cod = scopedOrders.filter((o) => o.payment === "COD").reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
+    const refunds = scopedOrders.reduce((sum, o) => sum + (o.refundAmount || 0), 0);
 
-    const assigned = allOrders.filter((o) => o.rider && o.rider !== "Unassigned").length;
-    const unassigned = allOrders.filter((o) => !o.rider || o.rider === "Unassigned").length;
-    const reassigned = allOrders.filter((o) => Boolean(o.isReassigned)).length;
+    const assigned = scopedOrders.filter((o) => o.rider && o.rider !== "Unassigned").length;
+    const unassigned = scopedOrders.filter((o) => !o.rider || o.rider === "Unassigned").length;
+    const reassigned = scopedOrders.filter((o) => Boolean(o.isReassigned)).length;
     const fleetCoverPct = total > 0 ? Math.min(100, Math.round((assigned / total) * 100)) : 0;
 
     return {
@@ -276,7 +385,7 @@ export function OrdersPage() {
       reassigned,
       fleetCoverPct,
     };
-  }, [allOrders]);
+  }, [scopedOrders]);
 
   // Top Lifetime metrics (compatibility)
   const metrics = useMemo(() => {
@@ -316,24 +425,24 @@ export function OrdersPage() {
     return Array.from(set).filter(Boolean);
   }, [allPartners, city]);
 
-  // 4 Priority Action Center Queues Counts (New, Cancelled, Delivered, Refund)
+  // 4 Priority Action Center Queues Counts (Scoped to City & DateRange)
   const actionCounts = useMemo(() => {
     let newReq = 0;
     let cancelled = 0;
     let delivered = 0;
     let refund = 0;
 
-    allOrders.forEach((o) => {
+    scopedOrders.forEach((o) => {
       // 1. New Orders: Pending or Accepted without rider
       if (o.status === "Pending" || (o.status === "Accepted" && (!o.rider || o.rider === "Unassigned"))) {
         newReq++;
       }
       // 2. Cancelled
-      if (o.status === "Cancelled") {
+      if (o.status === "Cancelled" || (o as any).status === "cancelled") {
         cancelled++;
       }
       // 3. Delivered
-      if (o.status === "Delivered") {
+      if (o.status === "Delivered" || (o as any).status === "delivered") {
         delivered++;
       }
       // 4. Refund / Dispute
@@ -347,7 +456,7 @@ export function OrdersPage() {
     });
 
     return { newReq, cancelled, delivered, refund };
-  }, [allOrders]);
+  }, [scopedOrders]);
 
   interface QueueReadState {
     new?: boolean;
@@ -511,33 +620,46 @@ export function OrdersPage() {
   // Filtered rows for Directory Table
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return allOrders.filter((order) => {
-      const matchesQuery =
-        !q ||
-        [order.id, order.customer, order.phone, order.partner, order.rider, order.service]
+    return scopedOrders.filter((order) => {
+      // 1. Full-Text Search Query
+      if (q) {
+        const haystack = [
+          order.id,
+          order.customer,
+          order.phone,
+          order.partner,
+          order.rider,
+          order.service,
+          order.city,
+          order.status,
+          order.payment,
+        ]
+          .filter(Boolean)
           .join(" ")
-          .toLowerCase()
-          .includes(q);
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
 
-      // Priority Action Queue Filter
+      // 2. Priority Action Queue Filter
       if (actionQueue === "new") {
         if (!(order.status === "Pending" || (order.status === "Accepted" && (!order.rider || order.rider === "Unassigned"))))
           return false;
       } else if (actionQueue === "cancelled") {
-        if (order.status !== "Cancelled") return false;
+        const isCancelled = order.status === "Cancelled" || (order as any).status === "cancelled";
+        if (!isCancelled) return false;
       } else if (actionQueue === "delivered") {
-        if (order.status !== "Delivered") return false;
+        if (order.status !== "Delivered" && (order as any).status !== "delivered") return false;
       } else if (actionQueue === "refund") {
-        if (
-          !(
-            order.payment === "Refunded" ||
-            Boolean(order.refundStatus) ||
-            (typeof order.refundAmount === "number" && order.refundAmount > 0)
-          )
-        )
-          return false;
+        const isRefunded =
+          order.status === "Refunded" ||
+          (order as any).status === "refunded" ||
+          order.payment === "Refunded" ||
+          Boolean(order.refundStatus && order.refundStatus !== "none") ||
+          Boolean(order.refundAmount && order.refundAmount > 0);
+        if (!isRefunded) return false;
       }
 
+      // 3. Status Tab Filter
       const isOrderRefunded =
         order.status === "Refunded" ||
         (order as any).status === "refunded" ||
@@ -548,35 +670,38 @@ export function OrdersPage() {
       const isOrderCancelled =
         order.status === "Cancelled" || (order as any).status === "cancelled";
 
-      const matchesStatus =
-        activeTab === "all" ||
-        (activeTab === "reassigned"
-          ? Boolean(order.isReassigned)
-          : activeTab === "Refunded"
-          ? isOrderRefunded
-          : activeTab === "Cancelled"
-          ? isOrderCancelled
-          : order.status === activeTab);
-      // Pipeline Stage Filter (from 9-stage progression bar)
-      if (selectedPipelineStage !== null && getOrderStageId(order.status) !== selectedPipelineStage) {
+      if (activeTab === "reassigned") {
+        if (!order.isReassigned) return false;
+      } else if (activeTab === "Refunded") {
+        if (!isOrderRefunded) return false;
+      } else if (activeTab === "Cancelled") {
+        if (!isOrderCancelled) return false;
+      } else if (activeTab !== "all") {
+        if (order.status !== activeTab) return false;
+      }
+
+      // 4. Pipeline Stage Filter (Interactive 11 stages)
+      if (selectedPipelineStage !== null && getOrderStageId(order) !== selectedPipelineStage) {
         return false;
       }
 
-      // Service Filter
-      if (
-        serviceFilter !== "all" &&
-        !(order.service || "").toLowerCase().includes(serviceFilter.toLowerCase())
-      ) {
+      // 5. Service Type Filter
+      if (!matchesServiceType(order.service, serviceFilter)) {
         return false;
       }
 
-      const matchesCity = city === "all" || order.city.toLowerCase() === city.toLowerCase();
-      const matchesFrom = !from || order.placedAt >= from;
-      const matchesTo = !to || order.placedAt <= to;
+      // 6. Custom Date Range Pickers (From / To)
+      const orderDate = parseOrderDate(order.placedAt);
+      const orderYmd = orderDate
+        ? `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, "0")}-${String(orderDate.getDate()).padStart(2, "0")}`
+        : (order.placedAt || "").slice(0, 10);
 
-      return matchesQuery && matchesStatus && matchesCity && matchesFrom && matchesTo;
+      if (from && orderYmd < from) return false;
+      if (to && orderYmd > to) return false;
+
+      return true;
     });
-  }, [allOrders, query, activeTab, city, serviceFilter, selectedPipelineStage, actionQueue, from, to]);
+  }, [scopedOrders, query, activeTab, serviceFilter, selectedPipelineStage, actionQueue, from, to]);
 
   const handleExportCSV = () => {
     if (rows.length === 0) {
@@ -909,11 +1034,11 @@ export function OrdersPage() {
           </div>
 
           {/* =========================================================================
-              SECTION 3: 9-STAGE ORDER LIFECYCLE PIPELINE (INTERACTIVE FILTERING)
+              SECTION 3: 11-STAGE ORDER LIFECYCLE PIPELINE (INTERACTIVE FILTERING)
           ========================================================================= */}
           <SectionCard
             title="Order Lifecycle Pipeline"
-            description="Real-time multi-stage operational telemetry across pickup, cleaning, and delivery legs (Click any stage to filter table)"
+            description="Real-time multi-stage operational telemetry across pickup, cleaning, delivery, and terminal states (Click any stage to filter table)"
             actions={
               selectedPipelineStage !== null ? (
                 <button
@@ -927,13 +1052,16 @@ export function OrdersPage() {
               ) : undefined
             }
           >
-            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-9">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11">
               {PIPELINE_STAGES.map((stage) => {
                 const countVal = pipelineCounts[stage.id] || 0;
                 const hasItems = countVal > 0;
                 const isSelected = selectedPipelineStage === stage.id;
-                const isLateStage = stage.id >= 7;
-                const isMidStage = stage.id >= 4 && stage.id < 7;
+                const isCancelled = stage.id === 10;
+                const isRefunded = stage.id === 11;
+                const isDelivered = stage.id === 9;
+                const isDeliveryLeg = stage.id === 7 || stage.id === 8;
+                const isHubLeg = stage.id >= 4 && stage.id <= 6;
 
                 return (
                   <button
@@ -942,42 +1070,68 @@ export function OrdersPage() {
                     onClick={() =>
                       setSelectedPipelineStage((prev) => (prev === stage.id ? null : stage.id))
                     }
-                    className={`group relative flex flex-col items-center justify-between rounded-xl border p-3 text-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                    className={`group relative flex flex-col items-center justify-between rounded-xl border p-2.5 text-center transition-all duration-200 cursor-pointer active:scale-95 ${
                       isSelected
-                        ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600/30 shadow-sm"
+                        ? isCancelled
+                          ? "border-rose-600 bg-rose-50 ring-2 ring-rose-600/30 shadow-sm"
+                          : isRefunded
+                          ? "border-amber-600 bg-amber-50 ring-2 ring-amber-600/30 shadow-sm"
+                          : "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600/30 shadow-sm"
                         : hasItems
-                        ? isLateStage
+                        ? isCancelled
+                          ? "bg-linear-to-b from-rose-50/70 to-white border-rose-300 hover:border-rose-500 hover:shadow-xs"
+                          : isRefunded
+                          ? "bg-linear-to-b from-amber-50/70 to-white border-amber-300 hover:border-amber-500 hover:shadow-xs"
+                          : isDelivered
                           ? "bg-linear-to-b from-emerald-50/70 to-white border-emerald-300 hover:border-emerald-500 hover:shadow-xs"
-                          : isMidStage
+                          : isDeliveryLeg
+                          ? "bg-linear-to-b from-blue-50/70 to-white border-blue-300 hover:border-blue-500 hover:shadow-xs"
+                          : isHubLeg
                           ? "bg-linear-to-b from-purple-50/70 to-white border-purple-300 hover:border-purple-500 hover:shadow-xs"
                           : "bg-linear-to-b from-sky-50/70 to-white border-sky-300 hover:border-sky-500 hover:shadow-xs"
                         : "bg-zinc-50/60 border-zinc-200/80 hover:bg-white hover:border-zinc-300"
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-[9px] font-black text-zinc-400 font-mono">#{stage.id}</span>
+                      <span className="text-[9px] font-black text-zinc-400 font-mono">
+                        {isCancelled ? "⚠️ #10" : isRefunded ? "↺ #11" : `#${stage.id}`}
+                      </span>
                       {hasItems && (
-                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span
+                          className={`size-1.5 rounded-full animate-pulse ${
+                            isCancelled ? "bg-rose-500" : isRefunded ? "bg-amber-500" : "bg-emerald-500"
+                          }`}
+                        />
                       )}
                     </div>
 
                     <span
-                      className={`text-xl font-black transition-transform group-hover:scale-110 ${
+                      className={`text-lg font-black transition-transform group-hover:scale-110 ${
                         isSelected
-                          ? "text-emerald-800"
+                          ? isCancelled
+                            ? "text-rose-800"
+                            : isRefunded
+                            ? "text-amber-800"
+                            : "text-emerald-800"
                           : hasItems
-                          ? isLateStage
+                          ? isCancelled
+                            ? "text-rose-700"
+                            : isRefunded
+                            ? "text-amber-700"
+                            : isDelivered
                             ? "text-emerald-700"
-                            : isMidStage
+                            : isDeliveryLeg
+                            ? "text-blue-700"
+                            : isHubLeg
                             ? "text-purple-700"
                             : "text-sky-700"
-                          : "text-zinc-700"
+                          : "text-zinc-600"
                       }`}
                     >
                       {countVal}
                     </span>
 
-                    <span className="mt-1 text-[11px] font-bold text-zinc-700 leading-tight line-clamp-2">
+                    <span className="mt-1 text-[10px] font-bold text-zinc-700 leading-tight line-clamp-2">
                       {stage.label}
                     </span>
                   </button>
@@ -1375,14 +1529,14 @@ export function OrdersPage() {
 
                   const countNum =
                     tab.id === "all"
-                      ? allOrders.length
+                      ? scopedOrders.length
                       : tab.id === "reassigned"
-                      ? allOrders.filter((o) => o.isReassigned).length
+                      ? scopedOrders.filter((o) => o.isReassigned).length
                       : tab.id === "Refunded"
-                      ? allOrders.filter(isOrderRefunded).length
+                      ? scopedOrders.filter(isOrderRefunded).length
                       : tab.id === "Cancelled"
-                      ? allOrders.filter((o) => o.status === "Cancelled" || (o as any).status === "cancelled").length
-                      : allOrders.filter((o) => o.status === tab.id).length;
+                      ? scopedOrders.filter((o) => o.status === "Cancelled" || (o as any).status === "cancelled").length
+                      : scopedOrders.filter((o) => o.status === tab.id).length;
 
                   return (
                     <TabsTrigger
@@ -1461,7 +1615,7 @@ export function OrdersPage() {
           {/* 3. Orders Directory Table */}
           <SectionCard
             title="All Platform Orders"
-            description={`Showing ${rows.length} of ${allOrders.length} records. Click any row to inspect in dedicated full-page 360 mode.`}
+            description={`Showing ${rows.length} of ${scopedOrders.length} records${allOrders.length !== scopedOrders.length ? ` (filtered from ${allOrders.length} total)` : ""}. Click any row to inspect in dedicated full-page 360 mode.`}
           >
             <DataTable
               loading={orders.isLoading}
