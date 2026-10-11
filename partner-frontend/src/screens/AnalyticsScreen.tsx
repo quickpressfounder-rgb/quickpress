@@ -352,19 +352,36 @@ export function AnalyticsScreen() {
   return (
     <PartnerLayout
       activeTab="analytics"
-      title="Store Analytics & Growth"
+      title="Analytics Hub"
       subtitle="Complete real-time business performance, operational funnel and revenue analytics"
     >
-      <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 py-4 sm:py-6 space-y-5">
+      <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+
+        {/* Page Title Bar (Analytics Hub) */}
+        <div className="flex items-center justify-between pb-1">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-black tracking-tight">
+              Analytics Hub
+            </h1>
+            <p className="text-xs font-semibold text-zinc-500">
+              Real-time store performance, revenue insights & daily order metrics
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="hidden sm:inline">Live Real Orders</span>
+            <span className="sm:hidden">Live</span>
+          </div>
+        </div>
 
         {/* ========================================================================= */}
         {/* TOP CONTROLS: PERIOD SWITCHER + ADVANCED BLUE FILTER TRIGGER + REFRESH    */}
         {/* ========================================================================= */}
-        <div className="rounded-2xl sm:rounded-3xl border border-blue-100 bg-white p-3 sm:p-4 shadow-xs space-y-3">
+        <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-3 sm:p-4 shadow-xs space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             
-            {/* Period Pills (Royal Blue Accent) */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar p-1 rounded-xl bg-blue-50/70 border border-blue-100">
+            {/* Period Pills (Pure Black Text, Royal Blue Active) */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar p-1 rounded-xl bg-zinc-100/90 border border-zinc-200">
               {[
                 { id: "today", label: "Today" },
                 { id: "yesterday", label: "Yesterday" },
@@ -389,7 +406,7 @@ export function AnalyticsScreen() {
                     className={`shrink-0 rounded-lg px-3 sm:px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                       isActive
                         ? "bg-[#2563EB] text-white shadow-xs"
-                        : "text-blue-900/70 hover:text-blue-950 hover:bg-blue-100/50"
+                        : "text-black hover:bg-zinc-200/80"
                     }`}
                   >
                     {p.label}
@@ -401,17 +418,17 @@ export function AnalyticsScreen() {
             {/* Action Tools: Filter Button + Real Status + Refresh */}
             <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
               
-              {/* Filter Trigger Button */}
+              {/* Filter Trigger Button (Black Text & Icon) */}
               <button
                 type="button"
                 onClick={() => setShowFilterDrawer(true)}
-                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-bold transition-all border cursor-pointer active:scale-95 ${
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-black text-xs transition-all border cursor-pointer active:scale-95 ${
                   activeFilterCount > 0
                     ? "bg-[#2563EB] text-white border-[#2563EB] shadow-xs"
-                    : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/70"
+                    : "bg-white text-black border-zinc-200 hover:bg-zinc-100 shadow-2xs"
                 }`}
               >
-                <SlidersHorizontal className="size-3.5" />
+                <SlidersHorizontal className={`size-3.5 ${activeFilterCount > 0 ? "text-white" : "text-black"}`} />
                 <span>Filters</span>
                 {activeFilterCount > 0 && (
                   <span className="flex size-4.5 items-center justify-center rounded-full bg-white text-[10px] font-black text-blue-700">
@@ -420,18 +437,18 @@ export function AnalyticsScreen() {
                 )}
               </button>
 
-              {/* Share / WhatsApp Button */}
+              {/* Share / WhatsApp Button (Black Text & Icon) */}
               <button
                 type="button"
                 onClick={handleShareReport}
-                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100/70 transition-all cursor-pointer active:scale-95"
+                className="flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-black text-xs bg-white text-black border border-zinc-200 hover:bg-zinc-100 shadow-2xs transition-all cursor-pointer active:scale-95"
                 title="Share Statement"
               >
-                <Share2 className="size-3.5" />
+                <Share2 className="size-3.5 text-black" />
                 <span className="hidden xs:inline">Share</span>
               </button>
 
-              {/* Refresh Button */}
+              {/* Refresh Button (Black Icon) */}
               <button
                 type="button"
                 onClick={() => {
@@ -440,40 +457,40 @@ export function AnalyticsScreen() {
                   toast.success("Analytics refreshed with real-time orders");
                 }}
                 disabled={isRefreshing}
-                className="flex size-8 items-center justify-center rounded-xl border border-blue-200 bg-white text-blue-700 hover:bg-blue-50 active:scale-95 transition-transform cursor-pointer"
+                className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs active:scale-95 transition-transform cursor-pointer"
                 title="Refresh Analytics"
               >
-                <RotateCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                <RotateCw className={`size-3.5 text-black ${isRefreshing ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>
 
           {/* Active Filter Chips Row (if any) */}
           {activeFilterCount > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-blue-100/80 text-[11px]">
-              <span className="font-bold text-blue-900/60">Active:</span>
+            <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-zinc-200 text-[11px]">
+              <span className="font-black text-black">Active:</span>
               {speedFilter !== "all" && (
-                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-bold">
+                <span className="inline-flex items-center gap-1 bg-zinc-100 text-black border border-zinc-200 px-2 py-0.5 rounded-md font-black">
                   {speedFilter === "express" ? "⚡ Express Only" : "🕒 Standard Only"}
-                  <button type="button" onClick={() => setSpeedFilter("all")} className="hover:text-blue-950 cursor-pointer">×</button>
+                  <button type="button" onClick={() => setSpeedFilter("all")} className="hover:text-red-600 cursor-pointer">×</button>
                 </span>
               )}
               {categoryFilter !== "all" && (
-                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-bold">
+                <span className="inline-flex items-center gap-1 bg-zinc-100 text-black border border-zinc-200 px-2 py-0.5 rounded-md font-black">
                   {categoryFilter === "wash_iron" ? "Wash & Steam" : categoryFilter === "dry_clean" ? "Dry Clean" : "Bedding"}
-                  <button type="button" onClick={() => setCategoryFilter("all")} className="hover:text-blue-950 cursor-pointer">×</button>
+                  <button type="button" onClick={() => setCategoryFilter("all")} className="hover:text-red-600 cursor-pointer">×</button>
                 </span>
               )}
               {paymentFilter !== "all" && (
-                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-bold">
+                <span className="inline-flex items-center gap-1 bg-zinc-100 text-black border border-zinc-200 px-2 py-0.5 rounded-md font-black">
                   {paymentFilter === "online" ? "UPI / Online" : "COD / Cash"}
-                  <button type="button" onClick={() => setPaymentFilter("all")} className="hover:text-blue-950 cursor-pointer">×</button>
+                  <button type="button" onClick={() => setPaymentFilter("all")} className="hover:text-red-600 cursor-pointer">×</button>
                 </span>
               )}
               {statusFilter !== "completed_only" && (
-                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-bold">
+                <span className="inline-flex items-center gap-1 bg-zinc-100 text-black border border-zinc-200 px-2 py-0.5 rounded-md font-black">
                   All Stages
-                  <button type="button" onClick={() => setStatusFilter("completed_only")} className="hover:text-blue-950 cursor-pointer">×</button>
+                  <button type="button" onClick={() => setStatusFilter("completed_only")} className="hover:text-red-600 cursor-pointer">×</button>
                 </span>
               )}
               <button
