@@ -88,8 +88,20 @@ import { onRealtimeEvent } from "../api/core/socket-client";
 
 export const Route = createFileRoute("/orders")({
   beforeLoad: requireAdminSession,
+  ssr: false,
   head: () => adminHead("Orders Management", "Search, filter and manage every QuickPress order."),
   component: OrdersPage,
+  errorComponent: ({ error }) => (
+    <AdminShell title="Orders Control Center">
+      <div className="p-8 text-center text-rose-600 bg-rose-50 rounded-2xl border border-rose-200 m-6">
+        <h3 className="text-lg font-bold">Orders Management Loaded</h3>
+        <p className="text-xs text-rose-500 mt-1">{String((error as Error)?.message || error)}</p>
+        <Button onClick={() => window.location.reload()} className="mt-4 bg-rose-600 text-white font-bold text-xs">
+          Reload Page
+        </Button>
+      </div>
+    </AdminShell>
+  ),
 });
 
 const STATUS_TABS = [
@@ -466,14 +478,16 @@ export function OrdersPage() {
   }
 
   // Priority Action Center Read/Acknowledged state
-  const [readQueues, setReadQueues] = useState<QueueReadState>(() => {
+  const [readQueues, setReadQueues] = useState<QueueReadState>({});
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("qp_orders_read_queues");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+      if (saved) {
+        setReadQueues(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
 
   const toggleQueueRead = (queueKey: keyof QueueReadState, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -1617,6 +1631,26 @@ export function OrdersPage() {
             title="All Platform Orders"
             description={`Showing ${rows.length} of ${scopedOrders.length} records${allOrders.length !== scopedOrders.length ? ` (filtered from ${allOrders.length} total)` : ""}. Click any row to inspect in dedicated full-page 360 mode.`}
           >
+            {orders.isError && (
+              <div className="mb-4 flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0 text-rose-600" />
+                  <span className="font-medium">
+                    {(orders.error as any)?.userMessage ||
+                      (orders.error as Error)?.message ||
+                      "Failed to synchronize live orders from the server."}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-rose-300 bg-white text-xs font-bold text-rose-700 hover:bg-rose-100"
+                  onClick={() => orders.refetch()}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
             <DataTable
               loading={orders.isLoading}
               rows={rows}

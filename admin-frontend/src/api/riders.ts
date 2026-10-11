@@ -305,8 +305,10 @@ export async function fetchRiders(): Promise<AdminRider[]> {
       }
     }
     return items.map(toAdminRider);
-  } catch (err) {
-    console.error("fetchRiders error:", err);
+  } catch (err: any) {
+    if (err?.kind !== "unauthorized" && err?.status !== 401) {
+      console.error("fetchRiders error:", err);
+    }
     return [];
   }
 }

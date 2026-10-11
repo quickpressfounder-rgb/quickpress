@@ -8,8 +8,17 @@ export const getRouter = () => {
       queries: {
         staleTime: 1000 * 60 * 2, // 2 minutes fresh cache
         gcTime: 1000 * 60 * 30, // 30 minutes garbage collection
-        refetchOnWindowFocus: false, // Prevent reload stutter on tab switch
-        retry: 1,
+        retry: (failureCount, error: any) => {
+          if (
+            error?.status === 401 ||
+            error?.kind === "unauthorized" ||
+            error?.statusCode === 401 ||
+            (error instanceof Error && error.message.includes("401"))
+          ) {
+            return false;
+          }
+          return failureCount < 1;
+        },
       },
     },
   });

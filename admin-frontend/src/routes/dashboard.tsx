@@ -63,6 +63,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: requireAdminSession,
+  ssr: false,
   head: () => adminHead("Command Center Dashboard", "Live Platform Operations · QuickPress"),
   component: DashboardPage,
 });

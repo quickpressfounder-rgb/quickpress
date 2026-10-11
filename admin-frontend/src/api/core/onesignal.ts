@@ -27,8 +27,13 @@ export function initOneSignal(): void {
           enable: false,
         },
       });
-    } catch (err) {
-      console.warn("[OneSignal-Admin] Init warning:", err);
+    } catch (err: any) {
+      const isUnconfigured =
+        String(err?.message || "").includes("not configured") ||
+        String(err?.message || "").includes("App not configured");
+      if (!isUnconfigured) {
+        console.warn("[OneSignal-Admin] Init warning:", err);
+      }
     }
   });
 }

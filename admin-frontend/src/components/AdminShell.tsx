@@ -260,7 +260,7 @@ export function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Active Session and RBAC identity
-  const [session, setSession] = useState<AuthSession | null>(() => readSession("admin"));
+  const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
     setSession(readSession("admin"));
