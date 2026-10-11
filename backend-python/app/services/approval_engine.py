@@ -103,39 +103,62 @@ class PartnerApprovalEngine:
             if profile_patch:
                 profile_patch["updatedAt"] = now_iso
                 await database.update(PROFILES_COLLECTION, {"_id": partner_id}, profile_patch, upsert=True)
+                await database.update(PROFILES_COLLECTION, {"partnerId": partner_id}, profile_patch)
                 await database.update(ADMIN_PARTNERS_COLLECTION, {"_id": partner_id}, profile_patch, upsert=True)
+                await database.update(ADMIN_PARTNERS_COLLECTION, {"partnerId": partner_id}, profile_patch)
 
         # 2. Bank Account Update
         elif req_type == "bank_update":
+            acc_holder = str(changes.get("accountHolder") or changes.get("accountHolderName") or "").strip()
+            ifsc_code = str(changes.get("ifsc") or changes.get("ifscCode") or "").upper().strip()
+            acc_num = str(changes.get("accountNumber") or "").strip()
+            bank_name = str(changes.get("bankName") or "").strip()
+            upi_id = str(changes.get("upiId") or "").strip()
+
             bank_patch = {
-                "bankName": changes.get("bankName") or "",
-                "accountHolder": changes.get("accountHolder") or "",
-                "accountNumber": changes.get("accountNumber") or "",
-                "ifsc": changes.get("ifsc") or changes.get("ifscCode") or "",
+                "bankName": bank_name,
+                "accountHolder": acc_holder,
+                "accountHolderName": acc_holder,
+                "accountNumber": acc_num,
+                "ifsc": ifsc_code,
+                "ifscCode": ifsc_code,
+                "upiId": upi_id,
                 "bankVerified": True,
+                "isVerified": True,
                 "updatedAt": now_iso,
             }
+            if changes.get("chequePhoto"):
+                bank_patch["chequePhoto"] = changes.get("chequePhoto")
+
             await database.update(PROFILES_COLLECTION, {"_id": partner_id}, bank_patch, upsert=True)
+            await database.update(PROFILES_COLLECTION, {"partnerId": partner_id}, bank_patch)
             await database.update(ADMIN_PARTNERS_COLLECTION, {"_id": partner_id}, bank_patch, upsert=True)
+            await database.update(ADMIN_PARTNERS_COLLECTION, {"partnerId": partner_id}, bank_patch)
             await database.update("partner_bank_accounts", {"_id": partner_id}, {**bank_patch, "partnerId": partner_id}, upsert=True)
+            await database.update("partner_bank_accounts", {"partnerId": partner_id}, {**bank_patch, "partnerId": partner_id}, upsert=True)
 
         # 3. PAN / KYC Details Update
         elif req_type == "pan_update":
+            pan_val = str(changes.get("pan") or changes.get("panNumber") or "").upper().strip()
             pan_patch = {
-                "pan": str(changes.get("pan") or changes.get("panNumber") or "").upper(),
-                "panNumber": str(changes.get("pan") or changes.get("panNumber") or "").upper(),
+                "pan": pan_val,
+                "panNumber": pan_val,
                 "panVerified": True,
                 "updatedAt": now_iso,
             }
+            if changes.get("panCard"):
+                pan_patch["panCard"] = changes.get("panCard")
             await database.update(PROFILES_COLLECTION, {"_id": partner_id}, pan_patch, upsert=True)
+            await database.update(PROFILES_COLLECTION, {"partnerId": partner_id}, pan_patch)
             await database.update(ADMIN_PARTNERS_COLLECTION, {"_id": partner_id}, pan_patch, upsert=True)
+            await database.update(ADMIN_PARTNERS_COLLECTION, {"partnerId": partner_id}, pan_patch)
 
         # 3b. Comprehensive KYC & Documents Update
         elif req_type == "kyc_update":
             allowed_fields = (
                 "businessName", "ownerName", "phone", "email",
                 "pan", "panCard", "aadhaar", "aadhaarFront", "aadhaarBack",
-                "bankName", "accountHolder", "accountNumber", "ifsc", "chequePhoto",
+                "bankName", "accountHolder", "accountHolderName", "accountNumber", "ifsc", "ifscCode", "chequePhoto",
                 "gstin", "address", "city", "area", "pincode"
             )
             kyc_patch = {k: v for k, v in changes.items() if k in allowed_fields and v is not None}
@@ -143,20 +166,44 @@ class PartnerApprovalEngine:
                 kyc_patch["updatedAt"] = now_iso
                 kyc_patch["isVerified"] = True
                 kyc_patch["kycStatus"] = "verified"
+
+                # Normalize bank fields if present
+                if "ifsc" in kyc_patch and "ifscCode" not in kyc_patch:
+                    kyc_patch["ifscCode"] = str(kyc_patch["ifsc"]).upper()
+                elif "ifscCode" in kyc_patch and "ifsc" not in kyc_patch:
+                    kyc_patch["ifsc"] = str(kyc_patch["ifscCode"]).upper()
+
+                if "accountHolder" in kyc_patch and "accountHolderName" not in kyc_patch:
+                    kyc_patch["accountHolderName"] = kyc_patch["accountHolder"]
+                elif "accountHolderName" in kyc_patch and "accountHolder" not in kyc_patch:
+                    kyc_patch["accountHolder"] = kyc_patch["accountHolderName"]
+
+                if "pan" in kyc_patch and "panNumber" not in kyc_patch:
+                    kyc_patch["panNumber"] = str(kyc_patch["pan"]).upper()
+                elif "panNumber" in kyc_patch and "pan" not in kyc_patch:
+                    kyc_patch["pan"] = str(kyc_patch["panNumber"]).upper()
+
                 await database.update(PROFILES_COLLECTION, {"_id": partner_id}, kyc_patch, upsert=True)
                 await database.update(PROFILES_COLLECTION, {"partnerId": partner_id}, kyc_patch)
                 await database.update(ADMIN_PARTNERS_COLLECTION, {"_id": partner_id}, kyc_patch, upsert=True)
                 await database.update(ADMIN_PARTNERS_COLLECTION, {"partnerId": partner_id}, kyc_patch)
-                if any(k in kyc_patch for k in ("bankName", "accountNumber", "ifsc", "accountHolder")):
+
+                if any(k in kyc_patch for k in ("bankName", "accountNumber", "ifsc", "ifscCode", "accountHolder", "accountHolderName")):
                     bank_sub = {
                         "bankName": kyc_patch.get("bankName") or "",
-                        "accountHolder": kyc_patch.get("accountHolder") or "",
+                        "accountHolder": kyc_patch.get("accountHolder") or kyc_patch.get("accountHolderName") or "",
+                        "accountHolderName": kyc_patch.get("accountHolder") or kyc_patch.get("accountHolderName") or "",
                         "accountNumber": kyc_patch.get("accountNumber") or "",
-                        "ifsc": kyc_patch.get("ifsc") or "",
+                        "ifsc": str(kyc_patch.get("ifsc") or kyc_patch.get("ifscCode") or "").upper(),
+                        "ifscCode": str(kyc_patch.get("ifsc") or kyc_patch.get("ifscCode") or "").upper(),
                         "isVerified": True,
+                        "bankVerified": True,
                         "updatedAt": now_iso,
                     }
+                    if kyc_patch.get("chequePhoto"):
+                        bank_sub["chequePhoto"] = kyc_patch["chequePhoto"]
                     await database.update("partner_bank_accounts", {"_id": partner_id}, {**bank_sub, "partnerId": partner_id}, upsert=True)
+                    await database.update("partner_bank_accounts", {"partnerId": partner_id}, {**bank_sub, "partnerId": partner_id}, upsert=True)
 
         # 4. Service Creation
         elif req_type == "service_create":

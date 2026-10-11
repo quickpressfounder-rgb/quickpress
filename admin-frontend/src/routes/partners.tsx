@@ -87,6 +87,8 @@ import {
   type Partner360Data,
   type PartnerDashboardStats,
 } from "../api/partners";
+import { fetchPartnerApprovalRequests } from "../api/services";
+import { PartnerRequestsBox } from "./-partner-requests-box";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 import { onRealtimeEvent } from "../api/core/socket-client";
@@ -247,6 +249,20 @@ function PartnersPage() {
       unsubOnline();
     };
   }, [queryClient, selectedId]);
+
+  const [activeView, setActiveView] = useState<"directory" | "requests">("directory");
+
+  // Live partner approval requests query for Request Box & pending count badge
+  const partnerRequestsQuery = useQuery({
+    queryKey: ["admin", "partner-approvals", "all"],
+    queryFn: () => fetchPartnerApprovalRequests("all"),
+    staleTime: 15 * 1000,
+    refetchInterval: 20 * 1000,
+  });
+
+  const pendingRequestsCount = useMemo(() => {
+    return (partnerRequestsQuery.data ?? []).filter((r) => r.status === "pending").length;
+  }, [partnerRequestsQuery.data]);
 
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("all");
@@ -747,6 +763,8 @@ function PartnersPage() {
           ? profile?.header?.businessName
             ? `${profile.header.businessName} — Store 360° Profile`
             : "Partner Store 360° Details"
+          : activeView === "requests"
+          ? "Partner Requests & Approvals Box"
           : "Partner Control Center & 360° Management"
       }
     >
@@ -775,8 +793,32 @@ function PartnersPage() {
               </div>
             </div>
 
-            <div className="text-[11px] font-mono text-zinc-400">
-              Live Console Sync: <span className="text-emerald-600 font-bold">Active</span>
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedId(null);
+                  setActiveView("requests");
+                }}
+                className={`gap-1.5 font-bold text-xs rounded-xl h-8 shadow-xs transition-all ${
+                  pendingRequestsCount > 0
+                    ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                    : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                {pendingRequestsCount > 0 && <span className="size-2 rounded-full bg-amber-500 animate-ping" />}
+                <FileCheck2 className="size-3.5 text-amber-600" />
+                <span>Partner Request Box</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-600 text-white text-[10px] font-bold">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+              </Button>
+              <div className="text-[11px] font-mono text-zinc-400 hidden sm:block">
+                Live Console Sync: <span className="text-emerald-600 font-bold">Active</span>
+              </div>
             </div>
           </div>
 
@@ -1851,11 +1893,115 @@ function PartnersPage() {
             </div>
           ) : null}
         </div>
+      ) : activeView === "requests" ? (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          {/* Top Switcher Navigation Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">
+              <button
+                type="button"
+                onClick={() => setActiveView("directory")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <Store className="size-4 text-zinc-500" />
+                <span>Partner Stores Directory</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white text-zinc-600 border border-zinc-200">
+                  {allPartners.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("requests")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-white text-zinc-900 shadow-xs"
+              >
+                <FileCheck2 className="size-4 text-emerald-600" />
+                <span>Partner Request Box</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white animate-pulse">
+                    {pendingRequestsCount} Pending
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveView("directory")}
+              className="text-xs font-bold rounded-xl border-zinc-200 hover:bg-zinc-100 h-8.5 gap-1.5 self-start sm:self-center"
+            >
+              <ArrowLeft className="size-3.5 text-zinc-600" />
+              <span>Back to Store Directory</span>
+            </Button>
+          </div>
+
+          <PartnerRequestsBox
+            onSelectPartner={(pid) => {
+              setSelectedId(pid);
+              setActiveView("directory");
+            }}
+          />
+        </div>
       ) : (
         /* =========================================================================
             VIEW B: PARTNER DIRECTORY & NETWORK OVERVIEW (WHEN NO PARTNER SELECTED)
         ========================================================================= */
         <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Top Switcher Navigation Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">
+              <button
+                type="button"
+                onClick={() => setActiveView("directory")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-white text-zinc-900 shadow-xs"
+              >
+                <Store className="size-4 text-emerald-600" />
+                <span>Partner Stores Directory</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
+                  {allPartners.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("requests")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <FileCheck2 className="size-4 text-blue-600" />
+                <span>Partner Request Box</span>
+                {pendingRequestsCount > 0 ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white animate-pulse">
+                    {pendingRequestsCount} Pending
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white text-zinc-600 border border-zinc-200">
+                    {(partnerRequestsQuery.data ?? []).length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveView("requests")}
+              className={`text-xs font-bold rounded-xl h-8.5 gap-2 self-start sm:self-center transition-all ${
+                pendingRequestsCount > 0
+                  ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              {pendingRequestsCount > 0 && <span className="size-2 rounded-full bg-amber-500 animate-ping" />}
+              <FileCheck2 className="size-3.5 text-amber-600" />
+              <span>Review Partner Requests</span>
+              {pendingRequestsCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-600 text-white text-[10px] font-bold">
+                  {pendingRequestsCount}
+                </span>
+              )}
+            </Button>
+          </div>
           {/* Top KPI Metric Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <KpiCard

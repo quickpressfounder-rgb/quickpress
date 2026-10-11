@@ -119,12 +119,21 @@ export type PartnerServiceRow = {
 };
 
 export type PartnerApprovalRequest = {
-  id: string;
+  id?: string;
+  _id?: string;
   requestId: string;
   partnerId: string;
   businessName: string;
-  requestType: "profile_update" | "bank_update" | "pan_update" | "service_create" | "service_update";
-  targetId: string;
+  requestType:
+    | "profile_update"
+    | "name_update"
+    | "bank_update"
+    | "pan_update"
+    | "kyc_update"
+    | "service_create"
+    | "service_update"
+    | string;
+  targetId?: string;
   requestedChanges: Record<string, any>;
   reason: string;
   status: "pending" | "approved" | "rejected";
@@ -132,6 +141,8 @@ export type PartnerApprovalRequest = {
   reviewedAt?: string | null;
   reviewedBy?: string | null;
   rejectionReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type BackendService = {
