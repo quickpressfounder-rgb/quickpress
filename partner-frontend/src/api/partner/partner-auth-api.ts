@@ -374,3 +374,32 @@ export async function uploadPartnerDocument(imageOrDataUrl: string, documentType
   }>("/api/uploads/partner/document", { image: imageOrDataUrl, documentType, partnerId });
 }
 
+export async function sendPartnerEmailOtp(email: string, ownerName = "") {
+  return apiPostJson<{ ok: boolean; email: string; otpSent: boolean; message: string }>(
+    "/api/partner/verify/email/send-otp",
+    { email, ownerName }
+  );
+}
+
+export async function verifyPartnerEmailOtp(email: string, otp: string) {
+  return apiPostJson<{ ok: boolean; verified: boolean; email: string; message: string }>(
+    "/api/partner/verify/email/verify-otp",
+    { email, otp }
+  );
+}
+
+export async function sendPartnerAgreementOtp(email: string, ownerName = "", shopName = "") {
+  return apiPostJson<{ ok: boolean; email: string; otpSent: boolean; message: string }>(
+    "/api/partner/agreement/send-otp",
+    { email, ownerName, shopName }
+  );
+}
+
+export async function verifyPartnerAgreementOtp(email: string, otp: string) {
+  return apiPostJson<{ ok: boolean; verified: boolean; email: string; message: string }>(
+    "/api/partner/agreement/verify-otp",
+    { email, otp }
+  );
+}
+
+

@@ -76,7 +76,11 @@ import { partnerRoutes } from "../navigation/partner-routes";
 import {
   checkPartnerVerificationStatus,
   registerBusiness,
+  sendPartnerAgreementOtp,
+  sendPartnerEmailOtp,
   uploadPartnerDocument,
+  verifyPartnerAgreementOtp,
+  verifyPartnerEmailOtp,
   verifyPartnerGst,
   verifyPartnerIfsc,
 } from "@/api/partner/partner-auth-api";
@@ -439,6 +443,12 @@ export function BusinessRegistrationScreen() {
   const [ownerName, setOwnerName] = useState("");
   const [mobile, setMobile] = useState(phone || "");
   const [email, setEmail] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isSendingEmailOtp, setIsSendingEmailOtp] = useState(false);
+  const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [showEmailOtpBox, setShowEmailOtpBox] = useState(false);
+  const [emailOtpCountdown, setEmailOtpCountdown] = useState(0);
   const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
   const [dob, setDob] = useState("");
   const [alternatePhone, setAlternatePhone] = useState("");
@@ -544,6 +554,121 @@ export function BusinessRegistrationScreen() {
   const [agreementSignature, setAgreementSignature] = useState<AgreementSignatureData | null>(null);
   const [consentAadhaarEsign, setConsentAadhaarEsign] = useState(false);
   const [consentTermsAccepted, setConsentTermsAccepted] = useState(false);
+  const [isAgreementOtpVerified, setIsAgreementOtpVerified] = useState(false);
+  const [isSendingAgreementOtp, setIsSendingAgreementOtp] = useState(false);
+  const [isVerifyingAgreementOtp, setIsVerifyingAgreementOtp] = useState(false);
+  const [agreementOtp, setAgreementOtp] = useState("");
+  const [showAgreementOtpBox, setShowAgreementOtpBox] = useState(false);
+  const [agreementOtpCountdown, setAgreementOtpCountdown] = useState(0);
+
+  // Email & Agreement OTP countdown timers
+  useEffect(() => {
+    if (emailOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setEmailOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [emailOtpCountdown]);
+
+  useEffect(() => {
+    if (agreementOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setAgreementOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [agreementOtpCountdown]);
+
+  const handleSendEmailOtp = async () => {
+    const clean = email.trim().toLowerCase();
+    if (!clean || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      toast.error("Please enter a valid email address first");
+      return;
+    }
+    setIsSendingEmailOtp(true);
+    try {
+      const res = await sendPartnerEmailOtp(clean, ownerName.trim());
+      if (res.ok) {
+        setShowEmailOtpBox(true);
+        setEmailOtpCountdown(60);
+        toast.success(`6-Digit OTP sent to ${clean}`);
+      } else {
+        toast.error(res.message || "Could not send OTP to email");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send email verification code");
+    } finally {
+      setIsSendingEmailOtp(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    const cleanOtp = emailOtp.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      toast.error("Please enter the 6-digit OTP sent to your email");
+      return;
+    }
+    setIsVerifyingEmailOtp(true);
+    try {
+      const res = await verifyPartnerEmailOtp(email.trim().toLowerCase(), cleanOtp);
+      if (res.ok) {
+        setIsEmailVerified(true);
+        setShowEmailOtpBox(false);
+        toast.success("Business Email verified successfully! ✓");
+      } else {
+        toast.error(res.message || "Invalid OTP code");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Invalid or expired OTP");
+    } finally {
+      setIsVerifyingEmailOtp(false);
+    }
+  };
+
+  const handleSendAgreementOtp = async () => {
+    const clean = email.trim().toLowerCase();
+    if (!clean) {
+      toast.error("Verified email address is missing");
+      return;
+    }
+    setIsSendingAgreementOtp(true);
+    try {
+      const res = await sendPartnerAgreementOtp(clean, ownerName.trim(), shopName.trim());
+      if (res.ok) {
+        setShowAgreementOtpBox(true);
+        setAgreementOtpCountdown(60);
+        toast.success(`Agreement confirmation OTP sent to ${clean}`);
+      } else {
+        toast.error(res.message || "Could not send agreement OTP");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send agreement OTP");
+    } finally {
+      setIsSendingAgreementOtp(false);
+    }
+  };
+
+  const handleVerifyAgreementOtp = async () => {
+    const cleanOtp = agreementOtp.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      toast.error("Please enter the 6-digit Agreement OTP");
+      return;
+    }
+    setIsVerifyingAgreementOtp(true);
+    try {
+      const res = await verifyPartnerAgreementOtp(email.trim().toLowerCase(), cleanOtp);
+      if (res.ok) {
+        setIsAgreementOtpVerified(true);
+        setShowAgreementOtpBox(false);
+        toast.success("Agreement legally authorized and confirmed via Email OTP! ✓");
+      } else {
+        toast.error(res.message || "Invalid Agreement OTP code");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Invalid or expired Agreement OTP");
+    } finally {
+      setIsVerifyingAgreementOtp(false);
+    }
+  };
 
   // Approved cities from server
   const [approvedCities, setApprovedCities] = useState<string[]>(["Kasganj", "Aligarh", "Mathura", "Hathras"]);
@@ -961,6 +1086,9 @@ export function BusinessRegistrationScreen() {
       if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
         errors["email"] = "Please enter a valid email address for statements";
         missing.push("Valid Email Address");
+      } else if (!isEmailVerified) {
+        errors["email"] = "Please verify your official email address via OTP before continuing";
+        missing.push("Verified Email Address (Email OTP)");
       }
 
       if (missing.length > 0) {
@@ -1158,6 +1286,11 @@ export function BusinessRegistrationScreen() {
     }
     if (!agreementSignature?.signatureUrl) {
       toast.error("Please sign your digital signature before submitting");
+      triggerHaptic();
+      return;
+    }
+    if (!isAgreementOtpVerified) {
+      toast.error("Please enter the Email OTP to legally execute and confirm the agreement");
       triggerHaptic();
       return;
     }
@@ -1521,24 +1654,126 @@ export function BusinessRegistrationScreen() {
                 </div>
               </div>
 
-              {/* Email Address */}
+              {/* Email Address (with OTP Verification) */}
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  Official Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ramesh.laundry@gmail.com"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
-                    fieldErrors["email"]
-                      ? "border-red-400 bg-red-50/20 focus:ring-red-400"
-                      : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
-                  }`}
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-neutral-700">
+                    Official Email Address <span className="text-red-500">*</span>
+                  </label>
+                  {isEmailVerified && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEmailVerified(false);
+                        setShowEmailOtpBox(false);
+                        setEmailOtp("");
+                      }}
+                      className="text-[10px] font-bold text-neutral-500 hover:text-emerald-700 underline cursor-pointer"
+                    >
+                      Change Email
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative flex items-center">
+                  <input
+                    type="email"
+                    value={email}
+                    disabled={isEmailVerified}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setIsEmailVerified(false);
+                      setShowEmailOtpBox(false);
+                    }}
+                    placeholder="official.laundry@gmail.com"
+                    className={`w-full pl-3.5 pr-28 py-2.5 rounded-xl border text-xs font-semibold focus:outline-hidden focus:ring-2 transition ${
+                      isEmailVerified
+                        ? "border-emerald-300 bg-emerald-50/20 text-emerald-950 font-bold"
+                        : fieldErrors["email"]
+                        ? "border-red-400 bg-red-50/20 focus:ring-red-400"
+                        : "border-neutral-200 focus:border-emerald-500 focus:ring-emerald-100"
+                    }`}
+                  />
+
+                  {isEmailVerified ? (
+                    <span className="absolute right-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 shadow-2xs">
+                      <Check className="w-3 h-3 text-emerald-600 stroke-[3]" /> Email Verified ✓
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isSendingEmailOtp || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
+                      onClick={handleSendEmailOtp}
+                      className="absolute right-2 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition disabled:opacity-40 flex items-center gap-1 cursor-pointer shadow-2xs"
+                    >
+                      {isSendingEmailOtp ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3 h-3" />
+                          <span>Verify Email</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Inline Email OTP Box */}
+                {showEmailOtpBox && !isEmailVerified && (
+                  <div className="mt-2.5 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-900 flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Enter 6-Digit OTP sent to {email}</span>
+                      </span>
+                      {emailOtpCountdown > 0 ? (
+                        <span className="text-[10px] font-mono text-emerald-700 font-bold">
+                          ⏱ {emailOtpCountdown}s
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSendEmailOtp}
+                          className="text-[10px] font-black text-emerald-800 hover:underline cursor-pointer"
+                        >
+                          Resend OTP
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={emailOtp}
+                        onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="123456"
+                        className="flex-1 px-3 py-2 rounded-xl bg-white border border-emerald-300 text-center text-sm font-black tracking-widest text-emerald-950 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
+                      />
+                      <button
+                        type="button"
+                        disabled={isVerifyingEmailOtp || emailOtp.length !== 6}
+                        onClick={handleVerifyEmailOtp}
+                        className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs transition disabled:opacity-40 flex items-center gap-1 cursor-pointer shadow-xs"
+                      >
+                        {isVerifyingEmailOtp ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Verify Code</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <p className="mt-1 text-[10px] text-neutral-400">
-                  Daily order invoices, SLA statements and payment receipts will be sent here
+                  Signed bilateral franchise agreement &amp; daily statements will be sent here
                 </p>
               </div>
 
@@ -2573,10 +2808,131 @@ export function BusinessRegistrationScreen() {
                 </label>
               </div>
 
+              {/* Email OTP Agreement Execution Confirmation Card */}
+              <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Mail className="w-4 h-4 text-emerald-600" />
+                      <span>Execute Agreement via Email OTP *</span>
+                    </h4>
+                    <p className="text-[11px] font-semibold text-neutral-500">
+                      Legally seal bilateral contract with <strong>QUICKPRESS TECHNOLOGIES PVT LTD</strong>
+                    </p>
+                  </div>
+                  {isAgreementOtpVerified ? (
+                    <span className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white font-black text-[10px] flex items-center gap-1 shadow-2xs">
+                      <Check className="w-3 h-3 stroke-[3]" /> OTP Verified ✓
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-800 font-bold text-[10px] border border-amber-200">
+                      OTP Required
+                    </span>
+                  )}
+                </div>
+
+                {isAgreementOtpVerified ? (
+                  <div className="p-3 rounded-xl bg-white border border-emerald-300 flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <div className="text-xs">
+                      <span className="font-bold text-neutral-900 block">
+                        Agreement Confirmed &amp; Legally Authorized!
+                      </span>
+                      <span className="text-[11px] text-neutral-500">
+                        Official signed 3-page PDF agreement will be dispatched to <strong>{email}</strong> upon submission.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-neutral-600 font-medium">
+                        Verification destination: <strong>{email || "Verified Email"}</strong>
+                      </span>
+                      {!showAgreementOtpBox && (
+                        <button
+                          type="button"
+                          disabled={isSendingAgreementOtp || !agreementSignature?.signatureUrl}
+                          onClick={handleSendAgreementOtp}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition disabled:opacity-40 flex items-center gap-1 cursor-pointer shadow-xs"
+                        >
+                          {isSendingAgreementOtp ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Sending OTP...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Send Execution OTP</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {showAgreementOtpBox && (
+                      <div className="p-3 rounded-xl bg-white border border-emerald-300 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-emerald-900">
+                            Enter 6-Digit Execution Code
+                          </span>
+                          {agreementOtpCountdown > 0 ? (
+                            <span className="text-[10px] font-mono text-emerald-700 font-bold">
+                              ⏱ {agreementOtpCountdown}s
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleSendAgreementOtp}
+                              className="text-[10px] font-black text-emerald-800 hover:underline cursor-pointer"
+                            >
+                              Resend Code
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={agreementOtp}
+                            onChange={(e) => setAgreementOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                            placeholder="123456"
+                            className="flex-1 px-3 py-2 rounded-xl bg-neutral-50 border border-neutral-300 text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
+                          />
+                          <button
+                            type="button"
+                            disabled={isVerifyingAgreementOtp || agreementOtp.length !== 6}
+                            onClick={handleVerifyAgreementOtp}
+                            className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs transition disabled:opacity-40 flex items-center gap-1 cursor-pointer shadow-xs"
+                          >
+                            {isVerifyingAgreementOtp ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                <span>Confirm &amp; Sign</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Final Submit Button */}
               <button
                 type="button"
-                disabled={busy || !consentAadhaarEsign || !consentTermsAccepted || !agreementSignature?.signatureUrl}
+                disabled={
+                  busy ||
+                  !consentAadhaarEsign ||
+                  !consentTermsAccepted ||
+                  !agreementSignature?.signatureUrl ||
+                  !isAgreementOtpVerified
+                }
                 onClick={handleSubmitRegistration}
                 className="w-full py-4 px-6 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-sm shadow-lg shadow-primary/25 active:scale-98 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >

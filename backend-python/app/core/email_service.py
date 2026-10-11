@@ -212,6 +212,101 @@ async def send_resend_email(
         return {"ok": False, "method": "resend", "error": str(exc)}
 
 
+async def send_hostinger_email(
+    to: str,
+    subject: str,
+    html: str,
+    text: Optional[str] = None,
+    from_email: Optional[str] = None,
+    attachment_bytes: Optional[bytes] = None,
+    attachment_name: Optional[str] = None,
+    cc: Optional[List[str] | str] = None,
+) -> Dict[str, Any]:
+    """Send an email via Hostinger Business Email API or SMTP using credentials from .env."""
+    import base64
+    settings = get_settings()
+    api_key = settings.hostinger_email_api_key
+    sender = from_email or settings.hostinger_from_email or "QuickPress <info@withquickpress.com>"
+
+    if not api_key:
+        return {"ok": False, "error": "HOSTINGER_EMAIL_API_KEY not configured"}
+
+    # Attempt 1: Hostinger / Titan REST API
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        clean_to = to.strip().lower()
+        clean_cc: List[str] = []
+        if cc:
+            if isinstance(cc, list):
+                clean_cc = [str(c).strip().lower() for c in cc if str(c).strip()]
+            elif isinstance(cc, str):
+                clean_cc = [c.strip().lower() for c in cc.split(",") if c.strip()]
+
+        payload: Dict[str, Any] = {
+            "from": sender,
+            "to": [clean_to],
+            "subject": subject,
+            "html": html,
+        }
+        if clean_cc:
+            payload["cc"] = clean_cc
+        if text:
+            payload["text"] = text
+        if attachment_bytes:
+            payload["attachments"] = [
+                {
+                    "name": attachment_name or "QuickPress-Document.pdf",
+                    "content": base64.b64encode(attachment_bytes).decode("utf-8"),
+                    "contentType": "application/pdf",
+                }
+            ]
+
+        endpoints = [
+            "https://api.titan.email/v1/emails/send",
+            "https://api.hostinger.com/v1/mail/send",
+        ]
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            for endpoint in endpoints:
+                try:
+                    resp = await client.post(endpoint, json=payload, headers=headers)
+                    if resp.status_code in (200, 201, 202):
+                        data = resp.json() if resp.text.startswith("{") else {}
+                        logger.info("Hostinger API Email successfully dispatched to %s via %s", to, endpoint)
+                        return {"ok": True, "method": "hostinger_api", "id": data.get("id") or "hostinger-api-sent"}
+                except Exception:
+                    continue
+    except Exception as exc:
+        logger.warning("Hostinger API attempt notice: %s", exc)
+
+    # Attempt 2: Hostinger SMTP (smtp.hostinger.com:465) with secure token
+    host = settings.hostinger_smtp_host or "smtp.hostinger.com"
+    port = int(settings.hostinger_smtp_port or 465)
+    smtp_from_user = "info@withquickpress.com"
+    smtp_res = await asyncio.to_thread(
+        _send_smtp_sync,
+        host=host,
+        port=port,
+        user=smtp_from_user,
+        password=api_key.strip(),
+        to=to.strip().lower(),
+        subject=subject,
+        html=html,
+        text=text,
+        from_name="QuickPress",
+        attachment_bytes=attachment_bytes,
+        attachment_name=attachment_name,
+        cc=cc,
+    )
+    if smtp_res.get("ok"):
+        return {"ok": True, "method": "hostinger_smtp", "from": smtp_from_user}
+
+    return {"ok": False, "method": "hostinger", "error": smtp_res.get("error", "Hostinger gateway unavailable")}
+
+
 async def dispatch_email(
     to: str,
     subject: str,
@@ -230,7 +325,8 @@ async def dispatch_email(
 ) -> Dict[str, Any]:
     """
     Central Email Dispatch Pipeline.
-    Tries Gmail SMTP first, falls back to Resend API if needed, and permanently logs the audit record.
+    Prioritizes Hostinger Business Email (info@withquickpress.com), falls back to Gmail SMTP (official.quickpress@gmail.com),
+    and then Resend API, ensuring 100% deliverability with permanent audit logging.
     """
     settings = get_settings()
     res: Dict[str, Any] = {"ok": False}
@@ -292,9 +388,9 @@ async def dispatch_email(
             "error": error_msg,
         }
 
-    # 1. Try Gmail SMTP
-    if settings.smtp_user and settings.smtp_password:
-        res = await send_smtp_email(
+    # 1. Try Hostinger Business Email (info@withquickpress.com)
+    if settings.hostinger_email_api_key:
+        hostinger_res = await send_hostinger_email(
             to=to,
             subject=subject,
             html=final_html,
@@ -303,9 +399,28 @@ async def dispatch_email(
             attachment_name=attachment_name,
             cc=cc,
         )
-        method_used = "smtp"
+        if hostinger_res.get("ok"):
+            res = hostinger_res
+            method_used = hostinger_res.get("method", "hostinger")
 
-    # 2. Resend Fallback
+    # 2. Try Gmail SMTP (official.quickpress@gmail.com) if Hostinger not available or failed
+    if not res.get("ok") and settings.smtp_user and settings.smtp_password:
+        smtp_res = await send_smtp_email(
+            to=to,
+            subject=subject,
+            html=final_html,
+            text=text,
+            attachment_bytes=attachment_bytes,
+            attachment_name=attachment_name,
+            cc=cc,
+        )
+        if smtp_res.get("ok"):
+            res = smtp_res
+            method_used = "smtp"
+        else:
+            logger.warning("SMTP fallback failed: %s", smtp_res.get("error"))
+
+    # 3. Resend Fallback
     if not res.get("ok") and settings.resend_api_key:
         fallback_res = await send_resend_email(
             to=to,
@@ -319,7 +434,7 @@ async def dispatch_email(
             res = fallback_res
             method_used = "resend"
         else:
-            error_msg = f"SMTP error: {res.get('error')}; Resend error: {fallback_res.get('error')}"
+            error_msg = f"Hostinger/SMTP failed: {res.get('error')}; Resend error: {fallback_res.get('error')}"
     elif not res.get("ok"):
         error_msg = res.get("error") or "Email gateway dispatch failed"
 
@@ -1121,6 +1236,166 @@ async def send_partner_welcome_email(
         audience="partner",
         category="onboarding",
         metadata={"businessName": business_name},
+    )
+
+
+# (10A) Partner Email Verification & Agreement Confirmation OTP
+async def send_partner_email_otp(
+    to_email: str,
+    otp_code: str,
+    owner_name: Optional[str] = None,
+    purpose: str = "verification",  # "verification" or "agreement"
+) -> Dict[str, Any]:
+    """Send high-priority OTP code for partner email verification or legal agreement execution."""
+    is_agreement = (purpose == "agreement")
+    subject = (
+        "QuickPress SLA Agreement Execution OTP"
+        if is_agreement
+        else "QuickPress Merchant Email Verification OTP"
+    )
+    badge = "Legal E-Signature Security" if is_agreement else "Merchant Identity Verification"
+    headline = "Your 6-Digit Execution Code 🔐" if is_agreement else "Verify Your Merchant Email ✉️"
+    subheadline = (
+        "Required to legally bind and execute your QuickPress Franchise Agreement"
+        if is_agreement
+        else "Confirm your official merchant communications address"
+    )
+    greeting_name = owner_name or "Merchant Partner"
+
+    content = f"""
+      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
+        Dear <strong>{greeting_name}</strong>,
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        {'You are executing the QuickPress Master Merchant Franchise & SLA Agreement with QuickPress Technologies Private Limited. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for starting your store registration on QuickPress. Please enter the one-time verification code below to verify your business email address:'}
+      </p>
+
+      <div style="background: #f0fdf4; border: 2px dashed #059669; border-radius: 14px; padding: 22px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 1.5px;">Official One-Time Passcode</span>
+        <div style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #065f46; font-family: 'Courier New', Courier, monospace; margin: 12px 0;">
+          {otp_code}
+        </div>
+        <p style="font-size: 12px; color: #059669; margin: 0; font-weight: 600;">
+          ⏱️ Valid for 10 minutes · Single-use secure code
+        </p>
+      </div>
+
+      <div class="card" style="background: #fffbeb; border-color: #fef3c7;">
+        <p style="font-size: 12px; color: #92400e; margin: 0; line-height: 1.5;">
+          <strong>Security Notice:</strong> QuickPress executives will NEVER ask for this OTP. Never share this code over phone, WhatsApp, or SMS.
+        </p>
+      </div>
+    """
+
+    html = _render_base_email(
+        preheader_text=f"Your QuickPress OTP is {otp_code}. Valid for 10 minutes.",
+        badge_label=badge,
+        headline=headline,
+        subheadline=subheadline,
+        content_html=content,
+    )
+
+    return await dispatch_email(
+        to=to_email,
+        subject=subject,
+        html=html,
+        text=f"Your QuickPress OTP is {otp_code}. Valid for 10 minutes. Do not share with anyone.",
+        recipient_name=greeting_name,
+        audience="partner",
+        category="security",
+        metadata={"purpose": purpose},
+    )
+
+
+# (10B) Partner Signed Agreement Dispatch with PDF Attachment & CC
+async def send_partner_agreement_email(
+    partner_email: str,
+    business_name: str,
+    owner_name: str,
+    agreement_pdf_bytes: bytes,
+    agreement_filename: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Send signed Zomato-style franchise agreement PDF attachment to partner and CC official.quickpress@gmail.com."""
+    settings = get_settings()
+    clean_name = "".join(c for c in business_name if c.isalnum() or c in ("-", "_")).strip() or "Store"
+    filename = agreement_filename or f"QuickPress-Franchise-Agreement-{clean_name}.pdf"
+    subject = f"Executed Franchise Agreement & SLA — {business_name} [QuickPress Technologies Pvt Ltd]"
+
+    content = f"""
+      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
+        Dear <strong>{owner_name}</strong>,
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        Congratulations! Your <strong>QuickPress Merchant Partner &amp; SLA Franchise Agreement</strong> has been digitally executed and legally sealed under Section 10A of the Information Technology Act, 2000.
+      </p>
+
+      <div class="card">
+        <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #047857; text-transform: uppercase;">Agreement Summary &amp; Legal Signatories</h4>
+        <table style="width: 100%; font-size: 13px; color: #334155; line-height: 1.8;">
+          <tr>
+            <td style="font-weight: 700; width: 45%;">Corporate Entity:</td>
+            <td><strong>{settings.company_legal_name}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Authorized Signatory:</td>
+            <td><strong>{settings.company_signatory_name}</strong> (Director / Signatory)</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Merchant Partner:</td>
+            <td><strong>{business_name}</strong> ({owner_name})</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Commercial Terms:</td>
+            <td>15% Platform Commission · T+1 Automatic Payouts</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Official Support:</td>
+            <td>info@withquickpress.com</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 13px; color: #166534; font-weight: 600;">
+          📎 <strong>Attachment Included:</strong> Your official 3-page agreement containing the QuickPress corporate seal, authorized signature, and your uploaded merchant signature is attached as <code>{filename}</code>.
+        </p>
+      </div>
+
+      <p style="font-size: 13px; color: #64748b; line-height: 1.6;">
+        Please save the attached PDF for your permanent company records and tax filings. Our merchant operations team is now finalizing your store geofence and price catalog.
+      </p>
+
+      <div style="text-align: center; margin-top: 25px;">
+        <a href="https://quickpress-partner.vercel.app" class="btn">Access Partner Dashboard ➜</a>
+      </div>
+    """
+
+    html = _render_base_email(
+        preheader_text=f"Official signed agreement between QuickPress and {business_name} is attached.",
+        badge_label="Franchise SLA Agreement",
+        headline="Agreement Digitally Executed! 📜",
+        subheadline=f"Official Bilateral Contract for {business_name}",
+        content_html=content,
+    )
+
+    cc_email = settings.notification_email or "official.quickpress@gmail.com"
+
+    return await dispatch_email(
+        to=partner_email,
+        subject=subject,
+        html=html,
+        text=f"Your QuickPress Partner Agreement for {business_name} has been digitally signed and attached. Please find {filename} attached.",
+        recipient_name=owner_name,
+        audience="partner",
+        category="onboarding",
+        attachment_bytes=agreement_pdf_bytes,
+        attachment_name=filename,
+        cc=cc_email,
+        metadata={
+            "businessName": business_name,
+            "document": "partner_sla_agreement",
+            "signatory": settings.company_signatory_name,
+        },
     )
 
 

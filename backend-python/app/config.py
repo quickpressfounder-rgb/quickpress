@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     delivery_radius_km: float = 8.0
 
 
-    # --- Admin Security & Email Service (Resend & Gmail SMTP) -------------
+    # --- Admin Security & Email Service (Hostinger, Resend & Gmail SMTP) --
     admin_2fa_enabled: bool = True
     resend_api_key: str = ""
     resend_from_email: str = "QuickPress Security <onboarding@resend.dev>"
@@ -87,6 +87,14 @@ class Settings(BaseSettings):
     smtp_port: int = 465
     smtp_user: str = "official.quickpress@gmail.com"
     smtp_password: str = ""
+    smtp_from_name: str = "QuickPress"
+    hostinger_email_api_key: str = ""
+    hostinger_from_email: str = "QuickPress <info@withquickpress.com>"
+    hostinger_smtp_host: str = "smtp.hostinger.com"
+    hostinger_smtp_port: int = 465
+    company_legal_name: str = "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+    company_signatory_name: str = "Dhani Ram"
+    notification_email: str = "official.quickpress@gmail.com"
     # --- WhatsApp Business Cloud API (Meta Graph API) --------------------
     whatsapp_phone_number_id: str = ""
     whatsapp_access_token: str = ""

@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Camera,
   CheckCircle2,
   Eraser,
   FileText,
+  Image as ImageIcon,
   PenTool,
   Scale,
   Sparkles,
+  Upload,
   UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +22,7 @@ export interface AgreementSignatureData {
   agreementVersion: string;
   consentAgreed: boolean;
   aadhaarEsignVerified: boolean;
+  signatureType?: "upload" | "draw" | "adopt";
 }
 
 interface PartnerAgreementSignaturePadProps {
@@ -41,12 +45,14 @@ export function PartnerAgreementSignaturePad({
   initialSignature,
 }: PartnerAgreementSignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(Boolean(initialSignature));
   const [signatureData, setSignatureData] = useState<string>(initialSignature || "");
-  const [adoptedMode, setAdoptedMode] = useState<"draw" | "adopt">("draw");
+  const [signatureMode, setSignatureMode] = useState<"upload" | "draw" | "adopt">("upload");
   const [consentChecked, setConsentChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<"agreement" | "signature">("signature");
+  const [uploadedFileName, setUploadedFileName] = useState<string>("");
 
   const effectiveSignerName = ownerName || "Authorized Merchant Signatory";
   const rawAadhaar = (aadhaar || "").replace(/\s/g, "");
@@ -59,7 +65,6 @@ export function PartnerAgreementSignaturePad({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Resize canvas coordinate space for retina crispness
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * 2;
     canvas.height = rect.height * 2;
@@ -77,7 +82,46 @@ export function PartnerAgreementSignaturePad({
       };
       img.src = initialSignature;
     }
-  }, []);
+  }, [signatureMode]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file (PNG, JPG, or WEBP)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file size should be less than 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setSignatureData(result);
+      setHasDrawn(true);
+      setUploadedFileName(file.name);
+      toast.success("Signature photo uploaded successfully! ✓");
+
+      if (consentChecked) {
+        onSignatureConfirmed({
+          signatureUrl: result,
+          signedAt: new Date().toISOString(),
+          signerName: effectiveSignerName,
+          signerAadhaar: aadhaar,
+          signerPan: pan,
+          agreementVersion: "QP-SLA-2026.4",
+          consentAgreed: true,
+          aadhaarEsignVerified: true,
+          signatureType: "upload",
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -99,7 +143,6 @@ export function PartnerAgreementSignaturePad({
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (adoptedMode === "adopt") setAdoptedMode("draw");
     const { x, y } = getCoordinates(e);
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -141,6 +184,7 @@ export function PartnerAgreementSignaturePad({
           agreementVersion: "QP-SLA-2026.4",
           consentAgreed: true,
           aadhaarEsignVerified: true,
+          signatureType: "draw",
         });
       }
     }
@@ -148,14 +192,16 @@ export function PartnerAgreementSignaturePad({
 
   const clearSignature = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, rect.width, rect.height);
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        const rect = canvas.getBoundingClientRect();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+      }
+    }
     setHasDrawn(false);
     setSignatureData("");
-    setAdoptedMode("draw");
+    setUploadedFileName("");
   };
 
   const adoptVerifiedNameSignature = () => {
@@ -167,13 +213,11 @@ export function PartnerAgreementSignaturePad({
 
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    // Calligraphic legal cursive stamp
     ctx.font = "italic bold 28px 'Dancing Script', 'Brush Script MT', cursive, sans-serif";
     ctx.fillStyle = "#09090b";
     ctx.textAlign = "center";
     ctx.fillText(effectiveSignerName, rect.width / 2, rect.height / 2 + 6);
 
-    // Micro stamp line
     ctx.strokeStyle = "#cbd5e1";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -186,7 +230,7 @@ export function PartnerAgreementSignaturePad({
     ctx.fillText(`DIGITALLY E-SIGNED VIA AADHAAR (${maskedAadhaar})`, rect.width / 2, rect.height - 6);
 
     setHasDrawn(true);
-    setAdoptedMode("adopt");
+    setSignatureMode("adopt");
 
     const dataUrl = canvas.toDataURL("image/png");
     setSignatureData(dataUrl);
@@ -201,6 +245,7 @@ export function PartnerAgreementSignaturePad({
         agreementVersion: "QP-SLA-2026.4",
         consentAgreed: true,
         aadhaarEsignVerified: true,
+        signatureType: "adopt",
       });
     }
   };
@@ -217,6 +262,7 @@ export function PartnerAgreementSignaturePad({
         agreementVersion: "QP-SLA-2026.4",
         consentAgreed: true,
         aadhaarEsignVerified: true,
+        signatureType: signatureMode,
       });
     }
   };
@@ -275,15 +321,15 @@ export function PartnerAgreementSignaturePad({
 
           <div className="max-h-60 overflow-y-auto rounded-2xl bg-zinc-50 border border-zinc-200/80 p-4 text-[11px] text-zinc-700 space-y-3 leading-relaxed font-sans">
             <p>
-              <strong>1. PARTIES:</strong> This Agreement is executed between <strong>QuickPress Technologies Pvt Ltd</strong> (&quot;Platform&quot;) and <strong>{storeName || "The Partner Store"}</strong>, represented by authorized signatory <strong>{effectiveSignerName}</strong> (&quot;Merchant Partner&quot;).
+              <strong>1. PARTIES:</strong> This Agreement is executed between <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (&quot;Platform&quot;), represented by Director / Signatory <strong>Dhani Ram</strong>, and <strong>{storeName || "The Partner Store"}</strong>, represented by authorized signatory <strong>{effectiveSignerName}</strong> (&quot;Merchant Partner&quot;).
             </p>
 
             <p>
-              <strong>2. COMMISSION & SETTLEMENTS:</strong> The Platform deducts a standard 15% platform technology commission and 1% Government TCS under GST rules. Net partner earnings are settled automatically into the verified bank account ({pan ? `PAN: ${pan}` : ""}) on a daily automated cycle via NPCI IMPS/NEFT.
+              <strong>2. COMMISSION &amp; SETTLEMENTS:</strong> The Platform deducts a standard 15% platform technology commission and 1% Government TCS under GST rules. Net partner earnings are settled automatically into the verified bank account ({pan ? `PAN: ${pan}` : ""}) on a daily automated cycle via NPCI IMPS/NEFT.
             </p>
 
             <p>
-              <strong>3. QUALITY & 24-HR SLA COMMITMENT:</strong> The Partner warrants to process laundry items using approved professional detergents and machinery, maintaining agreed turnaround times (Standard 24 hrs / Express 12 hrs). Any garment damage or loss during store custody will be indemnified according to QuickPress Fair Compensation Guidelines.
+              <strong>3. QUALITY &amp; 24-HR SLA COMMITMENT:</strong> The Partner warrants to process laundry items using approved professional detergents and machinery, maintaining agreed turnaround times (Standard 24 hrs / Express 12 hrs). Any garment damage or loss during store custody will be indemnified according to QuickPress Fair Compensation Guidelines.
             </p>
 
             <p>
@@ -291,7 +337,7 @@ export function PartnerAgreementSignaturePad({
             </p>
 
             <p>
-              <strong>5. ELECTRONIC SIGNATURE VALIDITY:</strong> Under Section 3A of the Information Technology Act, 2000, electronic execution of this agreement holds full legal validity and enforceability equivalent to physical paper execution.
+              <strong>5. ELECTRONIC SIGNATURE VALIDITY:</strong> Under Section 3A and Section 10A of the Information Technology Act, 2000, electronic execution of this agreement holds full legal validity and enforceability equivalent to physical paper execution.
             </p>
           </div>
 
@@ -309,76 +355,214 @@ export function PartnerAgreementSignaturePad({
       ) : (
         /* Digital Signature Canvas & Consent */
         <div className="rounded-3xl border border-zinc-200 bg-white p-5 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between">
+          {/* Mode Switcher */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
             <div>
               <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
                 <PenTool className="size-4 text-emerald-600" />
-                <span>Authorized Digital Signature *</span>
+                <span>Merchant Authorized Signature *</span>
               </h4>
               <p className="text-[11px] font-semibold text-zinc-500">
-                Sign with your finger or stylus inside the signature box below.
+                Choose how you want to provide your signature
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={adoptVerifiedNameSignature}
-              className="flex items-center gap-1 rounded-xl bg-emerald-50 border border-emerald-300 px-2.5 py-1 text-[11px] font-black text-emerald-800 hover:bg-emerald-100 transition-all cursor-pointer"
-            >
-              <Sparkles className="size-3 text-emerald-600" />
-              <span>Use Aadhaar Name Signature</span>
-            </button>
-          </div>
-
-          {/* Canvas Box */}
-          <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50/80 touch-none">
-            <canvas
-              ref={canvasRef}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
-              className="h-40 w-full cursor-crosshair"
-            />
-
-            {!hasDrawn && (
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400">
-                <PenTool className="size-6 opacity-40 animate-pulse" />
-                <span className="text-xs font-bold">Draw Signature Here (Finger / Mouse)</span>
-              </div>
-            )}
-
-            {/* Clear Button */}
-            {hasDrawn && (
+            <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-2xl border border-zinc-200">
               <button
                 type="button"
-                onClick={clearSignature}
-                className="absolute top-3 right-3 flex items-center gap-1 rounded-xl bg-white/90 border border-zinc-200 px-2.5 py-1 text-[10px] font-black text-zinc-700 shadow-sm hover:bg-white active:scale-95 transition-all cursor-pointer"
+                onClick={() => setSignatureMode("upload")}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                  signatureMode === "upload"
+                    ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
               >
-                <Eraser className="size-3 text-rose-500" />
-                <span>Clear</span>
+                <Camera className="size-3.5 text-emerald-600" />
+                <span>Upload Photo (Recommended)</span>
               </button>
-            )}
+
+              <button
+                type="button"
+                onClick={() => setSignatureMode("draw")}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                  signatureMode === "draw"
+                    ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                <PenTool className="size-3.5 text-blue-600" />
+                <span>Draw</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={adoptVerifiedNameSignature}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                  signatureMode === "adopt"
+                    ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                <Sparkles className="size-3.5 text-amber-600" />
+                <span>Auto E-Sign</span>
+              </button>
+            </div>
           </div>
 
-          {/* Signer Legal Identity Stamp with Aadhaar & PAN */}
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-zinc-50 border border-zinc-200/80 p-3 text-xs">
-            <div className="flex items-center gap-2">
-              <UserCheck className="size-4 text-emerald-600" />
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Signatory:</span>
-                <div className="font-bold text-zinc-900">{effectiveSignerName}</div>
+          {/* Mode 1: Photo Upload */}
+          {signatureMode === "upload" && (
+            <div className="space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+
+              {signatureData && signatureMode === "upload" ? (
+                <div className="relative rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/20 p-4 flex flex-col items-center justify-center">
+                  <div className="max-h-36 overflow-hidden rounded-xl bg-white border border-emerald-200 p-2 shadow-xs">
+                    <img
+                      src={signatureData}
+                      alt="Uploaded Signature"
+                      className="max-h-28 object-contain mx-auto"
+                    />
+                  </div>
+                  <div className="mt-2 text-center">
+                    <span className="text-[11px] font-black text-emerald-800 flex items-center gap-1 justify-center">
+                      <CheckCircle2 className="size-3.5 text-emerald-600" />
+                      <span>Signature Photo Attached: {uploadedFileName || "Handwritten Signature"}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-1 text-[10px] font-bold text-emerald-700 underline hover:text-emerald-900 cursor-pointer"
+                    >
+                      Change Photo / Take Another
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={clearSignature}
+                    className="absolute top-3 right-3 flex items-center gap-1 rounded-xl bg-white/90 border border-zinc-200 px-2 py-1 text-[10px] font-black text-rose-600 shadow-xs hover:bg-white cursor-pointer"
+                  >
+                    <Eraser className="size-3 text-rose-500" />
+                    <span>Clear</span>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group rounded-2xl border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/30 hover:bg-emerald-50/60 p-6 flex flex-col items-center justify-center text-center cursor-pointer transition"
+                >
+                  <div className="size-12 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center shadow-xs text-emerald-700 group-hover:scale-105 transition">
+                    <Upload className="size-6" />
+                  </div>
+                  <h5 className="mt-3 text-xs font-black text-zinc-900">
+                    Click to Take Photo or Upload Signature
+                  </h5>
+                  <p className="mt-1 text-[11px] text-zinc-500 max-w-sm">
+                    Sign with pen on clean white paper, snap a photo using camera or choose from gallery. Supports JPG, PNG, WEBP.
+                  </p>
+                  <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-[11px] font-black shadow-xs">
+                    <Camera className="size-3.5" />
+                    <span>Open Camera / Browse</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mode 2 & 3: Canvas (Draw or Adopt) */}
+          {(signatureMode === "draw" || signatureMode === "adopt") && (
+            <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50/80 touch-none">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                className="h-40 w-full cursor-crosshair"
+              />
+
+              {!hasDrawn && (
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400">
+                  <PenTool className="size-6 opacity-40 animate-pulse" />
+                  <span className="text-xs font-bold">Draw Signature Here (Finger / Stylus)</span>
+                </div>
+              )}
+
+              {/* Clear Button */}
+              {hasDrawn && (
+                <button
+                  type="button"
+                  onClick={clearSignature}
+                  className="absolute top-3 right-3 flex items-center gap-1 rounded-xl bg-white/90 border border-zinc-200 px-2.5 py-1 text-[10px] font-black text-zinc-700 shadow-sm hover:bg-white active:scale-95 transition-all cursor-pointer"
+                >
+                  <Eraser className="size-3 text-rose-500" />
+                  <span>Clear</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Bilateral Signatory Preview (QuickPress Seal on Left, Merchant on Right) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            {/* Left: QuickPress Legal Seal */}
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/40 p-3.5 flex items-center gap-3">
+              <img
+                src="/assets/quickpress-seal.png"
+                alt="QuickPress Seal"
+                className="size-16 object-contain shrink-0 drop-shadow-xs"
+              />
+              <div className="min-w-0">
+                <span className="text-[9px] font-black text-blue-700 uppercase tracking-wider block">
+                  First Party (Platform)
+                </span>
+                <div className="text-xs font-black text-zinc-900 truncate">
+                  QUICKPRESS TECHNOLOGIES PVT LTD
+                </div>
+                <div className="text-[11px] font-bold text-zinc-700">
+                  Signatory: Dhani Ram
+                </div>
+                <div className="text-[10px] text-zinc-500 truncate">
+                  Director / Signatory · info@withquickpress.com
+                </div>
               </div>
             </div>
 
-            <div className="text-right">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">UIDAI Aadhaar:</span>
-              <div className="font-mono font-bold text-emerald-700 flex items-center gap-1 justify-end">
-                <CheckCircle2 className="size-3 text-emerald-600" />
-                <span>{maskedAadhaar} (Verified ✓)</span>
+            {/* Right: Partner Signatory Stamp */}
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3.5 flex items-center gap-3">
+              <div className="size-16 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                {signatureData ? (
+                  <img
+                    src={signatureData}
+                    alt="Merchant Sign"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <UserCheck className="size-8 text-emerald-600 opacity-40" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider block">
+                  Second Party (Merchant)
+                </span>
+                <div className="text-xs font-black text-zinc-900 truncate">
+                  {storeName || "Partner Store"}
+                </div>
+                <div className="text-[11px] font-bold text-zinc-700 truncate">
+                  Proprietor: {effectiveSignerName}
+                </div>
+                <div className="text-[10px] text-emerald-700 font-mono truncate">
+                  {maskedAadhaar} (Verified ✓)
+                </div>
               </div>
             </div>
           </div>
@@ -394,7 +578,7 @@ export function PartnerAgreementSignaturePad({
             <div className="text-[11px] leading-tight text-zinc-800">
               <strong className="font-black text-zinc-900">I hereby e-sign and agree to the QuickPress Merchant SLA:</strong>
               <p className="mt-0.5 text-[10px] text-zinc-600">
-                I declare that I am the authorized owner/signatory of <strong>{storeName || "this business"}</strong>. I agree to platform commissions, 24-hr turnaround SLA, and acknowledge that this digital signature is legally binding under Section 3A of the IT Act, 2000.
+                I declare that I am the authorized owner/signatory of <strong>{storeName || "this business"}</strong>. I agree to platform commissions, 24-hr turnaround SLA, and acknowledge that this digital signature is legally binding under Section 3A and Section 10A of the IT Act, 2000.
               </p>
             </div>
           </label>
@@ -403,7 +587,7 @@ export function PartnerAgreementSignaturePad({
           {hasDrawn && consentChecked && (
             <div className="flex items-center justify-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-100/80 border border-emerald-300 rounded-xl py-2">
               <CheckCircle2 className="size-4 text-emerald-600" />
-              <span>Merchant SLA Agreement Digitally E-Signed ✓</span>
+              <span>Merchant SLA Agreement Digitally Signed &amp; Attached ✓</span>
             </div>
           )}
         </div>

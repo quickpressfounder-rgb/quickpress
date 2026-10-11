@@ -327,6 +327,7 @@ class OnboardingPayload(BaseModel):
     signedAt: Optional[str] = None
     signedByName: Optional[str] = None
     agreementVersion: Optional[str] = "QP-SLA-2026.4"
+    agreementSignature: Optional[Dict[str, Any]] = None
 
 
 class OnboardingResponse(BaseModel):
