@@ -213,21 +213,16 @@ export function ZomatoHubView() {
     };
   }, [session?.businessName, session?.city]);
 
-  const handleConfirmStatusChange = async () => {
-    setIsUpdatingStatus(true);
-    try {
-      await toggleOnline();
-      setShowStatusConfirmModal(false);
-      toast.success(
-        !isOnline
-          ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
-          : "Store is now OFFLINE. New customer orders are paused."
-      );
-    } catch {
-      toast.error("Failed to update status");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+  const handleConfirmStatusChange = () => {
+    const nextState = !isOnline;
+    // Instant optimistic modal close and state toggle in < 5ms
+    setShowStatusConfirmModal(false);
+    toggleOnline();
+    toast.success(
+      nextState
+        ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
+        : "Store is now OFFLINE. New customer orders are paused."
+    );
   };
 
   const activeOrders = useMemo(() => {
@@ -293,7 +288,7 @@ export function ZomatoHubView() {
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-black">
                   QuickPress
                 </span>
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0.2 text-[9px] font-black text-blue-700 border border-blue-200 shrink-0">
@@ -392,48 +387,48 @@ export function ZomatoHubView() {
       {/* 1. OPERATIONAL DASHBOARD VIEW                                             */}
       {/* ========================================================================= */}
       <div className="space-y-4 px-4 pt-3 bg-white">
-        {/* Today's Overview Card: Flat Crisp Pure White Card with Blue Accents */}
+        {/* Today's Overview Card: Flat Crisp Pure White Card with Pure Black Text */}
         <div>
           <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
             <div className="flex items-start justify-between pb-4 border-b border-zinc-100">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-wider text-blue-600">
+                <p className="text-[11px] font-black uppercase tracking-wider text-black">
                   Today's Overview
                 </p>
                 <div className="mt-1 flex items-baseline gap-2">
                   <h3 className="text-3xl font-black tracking-tight text-black">
                     ₹{todayEarnings.toLocaleString("en-IN")}
                   </h3>
-                  <span className="text-xs font-bold text-zinc-600">Total Sales</span>
+                  <span className="text-xs font-bold text-black">Total Sales</span>
                 </div>
               </div>
               <div className="text-right">
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700 border border-blue-200 shadow-xs">
+                <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-black border border-zinc-200 shadow-xs">
                   {todayOrdersCount} Total Orders
                 </span>
               </div>
             </div>
 
-            {/* Order Flow Progress: Flat 4-Column Divided Grid */}
+            {/* Order Flow Progress: Flat 4-Column Divided Grid with Pure Black Text */}
             <div className="mt-4 grid grid-cols-4 rounded-xl border border-zinc-200 bg-zinc-50/60 divide-x divide-zinc-200 overflow-hidden text-center">
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">New</p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">New</p>
                 <p className="mt-0.5 text-lg font-black text-black">{counts.new || 0}</p>
               </div>
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Accepted</p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">Accepted</p>
                 <p className="mt-0.5 text-lg font-black text-black">
                   {(counts.accepted || 0) + (counts.pickup_pending || 0)}
                 </p>
               </div>
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">In Wash</p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">In Wash</p>
                 <p className="mt-0.5 text-lg font-black text-black">
                   {(counts.washing || 0) + (counts.dry_cleaning || 0) + (counts.ironing || 0)}
                 </p>
               </div>
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Ready</p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">Ready</p>
                 <p className="mt-0.5 text-lg font-black text-black">{counts.ready || 0}</p>
               </div>
             </div>

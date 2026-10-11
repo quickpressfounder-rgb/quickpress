@@ -156,7 +156,8 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   // Token refresh: keeps the access token valid while the app stays open.
   useEffect(() => startPartnerAutoRefresh(), []);
 
-  const setOnline = useCallback(async (next: boolean) => {
+  const setOnline = useCallback((next: boolean) => {
+    // 1. Instant optimistic state update (< 1ms)
     setIsOnlineState(next);
     if (typeof window !== "undefined") {
       try {
@@ -164,15 +165,14 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
         window.dispatchEvent(new CustomEvent("qp:partner-status-updated", { detail: { isOnline: next } }));
       } catch {}
     }
-    try {
-      await toggleStoreStatus(next);
-    } catch (err) {
+    // 2. Background server persistence (non-blocking)
+    toggleStoreStatus(next).catch((err) => {
       console.warn("[PartnerContext] Failed to persist store status:", err);
-    }
+    });
   }, []);
 
-  const toggleOnline = useCallback(async () => {
-    await setOnline(!isOnline);
+  const toggleOnline = useCallback(() => {
+    setOnline(!isOnline);
   }, [isOnline, setOnline]);
 
   const signIn = useCallback((next: PartnerSession) => {

@@ -94,24 +94,24 @@ export function OrdersScreen() {
       {/* ========================================================================= */}
       {/* MOBILE COMPACT ORDERS QUEUE (< md)                                        */}
       {/* ========================================================================= */}
-      <div className="min-h-screen bg-[#F4F5F7] pb-28 text-zinc-900 md:hidden">
+      <div className="min-h-screen bg-white pb-28 text-black md:hidden">
         {/* Sticky Filter Header with Search & Horizontal Stage Pills */}
-        <header className="sticky top-0 z-20 bg-white/95 dark:bg-card/95 backdrop-blur-2xl border-b border-slate-200/80 dark:border-border/60 px-4 pt-3 pb-2.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)]">
+        <header className="sticky top-0 z-20 bg-white border-b border-zinc-200 px-4 pt-3 pb-2.5 shadow-none">
           {/* Search Box */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by order ID, customer name or phone..."
-              className="h-10 w-full rounded-2xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-xs font-bold text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none"
+              className="h-10 w-full rounded-2xl border border-zinc-200 bg-white pl-10 pr-4 text-xs font-bold text-black placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
             />
             {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -127,16 +127,16 @@ export function OrdersScreen() {
                   key={tab.id}
                   type="button"
                   onClick={() => setFilterTab(tab.id)}
-                  className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 ${
+                  className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
                     isActive
-                      ? "bg-primary text-white shadow-sm shadow-primary/30"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-primary/50"
+                      ? "bg-blue-600 text-white border border-blue-600 shadow-xs"
+                      : "border border-zinc-200 bg-white text-black hover:border-blue-400 hover:text-blue-600"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                      isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-700"
+                      isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-black"
                     }`}
                   >
                     {tab.count}
@@ -152,18 +152,20 @@ export function OrdersScreen() {
           {isLoading ? (
             <OrderListSkeleton />
           ) : visible.length === 0 ? (
-            <div className="my-8 rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center shadow-sm">
-              <ShoppingBag className="mx-auto size-10 text-zinc-300" />
-              <h3 className="mt-3 text-sm font-black text-zinc-900">
+            <div className="my-8 rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-xs">
+              <div className="mx-auto size-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
+                <ShoppingBag className="size-6 text-blue-600" />
+              </div>
+              <h3 className="mt-3 text-sm font-black text-black">
                 {isSearching ? "No matching orders found" : `No orders in "${filterTab}" queue`}
               </h3>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs font-medium text-zinc-700">
                 {isSearching ? "Try searching for a different code or customer name." : "Incoming orders will appear here automatically."}
               </p>
               <button
                 type="button"
                 onClick={isSearching ? resetSearch : () => void refresh()}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary-dark px-4 py-2 text-xs font-black text-white shadow-sm shadow-primary/25 active:scale-95 transition-all"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer"
               >
                 <RotateCcw className="size-3" />
                 <span>{isSearching ? "Reset filter" : "Refresh Orders"}</span>

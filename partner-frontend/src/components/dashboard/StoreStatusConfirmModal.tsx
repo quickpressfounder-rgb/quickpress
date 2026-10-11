@@ -67,18 +67,18 @@ export function StoreStatusConfirmModal({
               <h3 className="text-lg font-black tracking-tight text-black">
                 Go Offline?
               </h3>
-              <p className="text-xs font-bold text-zinc-600 mt-0.5">
+              <p className="text-xs font-bold text-black mt-0.5">
                 क्या आप स्टोर को ऑफलाइन (बंद) करना चाहते हैं?
               </p>
             </div>
 
             {/* Explanatory notice */}
-            <p className="text-xs text-zinc-700 leading-relaxed font-medium">
-              You will <strong className="text-black font-bold">stop receiving new customer laundry orders</strong>. Nearby customers will see your store as closed.
+            <p className="text-xs text-black leading-relaxed font-semibold">
+              You will <strong className="text-black font-black">stop receiving new customer laundry orders</strong>. Nearby customers will see your store as closed.
             </p>
 
-            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-[11px] text-zinc-800 font-medium text-left flex items-start gap-2">
-              <span className="text-blue-600 text-sm shrink-0">ℹ️</span>
+            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-[11px] text-black font-semibold text-left flex items-start gap-2">
+              <span className="text-black text-sm shrink-0">ℹ️</span>
               <span>Existing in-wash and ready orders will NOT be affected and can still be completed and handed over to Captains.</span>
             </div>
 
@@ -88,7 +88,7 @@ export function StoreStatusConfirmModal({
                 type="button"
                 disabled={isLoading}
                 onClick={onClose}
-                className="flex-1 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 py-3 text-xs font-bold text-black active:scale-95 transition-all cursor-pointer"
+                className="flex-1 rounded-full border border-zinc-300 bg-white hover:bg-zinc-100 py-3 text-xs font-bold text-black active:scale-95 transition-all cursor-pointer"
               >
                 Keep Online
               </button>
@@ -117,7 +117,7 @@ export function StoreStatusConfirmModal({
             </div>
 
             {/* Target Status Pill */}
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-[11px] font-black uppercase text-blue-700 tracking-wider">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1 text-[11px] font-black uppercase text-black tracking-wider">
               <span className="size-1.5 rounded-full bg-blue-600" />
               <span>Switching to Online</span>
             </div>
@@ -127,17 +127,17 @@ export function StoreStatusConfirmModal({
               <h3 className="text-lg font-black tracking-tight text-black">
                 Go Online?
               </h3>
-              <p className="text-xs font-bold text-blue-700 mt-0.5">
+              <p className="text-xs font-bold text-black mt-0.5">
                 क्या आप स्टोर को ऑनलाइन (चालू) करना चाहते हैं?
               </p>
             </div>
 
             {/* Explanatory notice */}
-            <p className="text-xs text-zinc-700 leading-relaxed font-medium">
-              Your store will be instantly <strong className="text-black font-bold">visible to nearby customers</strong>. New laundry bookings will alert here in real-time.
+            <p className="text-xs text-black leading-relaxed font-semibold">
+              Your store will be instantly <strong className="text-black font-black">visible to nearby customers</strong>. New laundry bookings will alert here in real-time.
             </p>
 
-            <div className="rounded-xl bg-blue-50/70 border border-blue-200 p-3 text-[11px] text-blue-950 font-medium text-left flex items-start gap-2">
+            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-[11px] text-black font-semibold text-left flex items-start gap-2">
               <span className="text-blue-600 text-sm shrink-0">⚡</span>
               <span>Chime alerts are active. Keep your device volume audible to accept incoming orders within deadline.</span>
             </div>
@@ -148,7 +148,7 @@ export function StoreStatusConfirmModal({
                 type="button"
                 disabled={isLoading}
                 onClick={onClose}
-                className="flex-1 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 py-3 text-xs font-bold text-black active:scale-95 transition-all cursor-pointer"
+                className="flex-1 rounded-full border border-zinc-300 bg-white hover:bg-zinc-100 py-3 text-xs font-bold text-black active:scale-95 transition-all cursor-pointer"
               >
                 Cancel
               </button>

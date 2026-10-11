@@ -351,24 +351,18 @@ export function PartnerDashboardScreen() {
   const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  const handleConfirmToggleOnline = useCallback(async () => {
-    setIsUpdatingStatus(true);
-    try {
-      if (isOnline) {
-        stopPartnerOrderAlertRing();
-      }
-      await toggleOnline();
-      setShowStatusConfirmModal(false);
-      toast.success(
-        !isOnline
-          ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
-          : "Store is now OFFLINE. New customer orders are paused."
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't update store status");
-    } finally {
-      setIsUpdatingStatus(false);
+  const handleConfirmToggleOnline = useCallback(() => {
+    const nextState = !isOnline;
+    if (isOnline) {
+      stopPartnerOrderAlertRing();
     }
+    setShowStatusConfirmModal(false);
+    toggleOnline();
+    toast.success(
+      nextState
+        ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
+        : "Store is now OFFLINE. New customer orders are paused."
+    );
   }, [isOnline, toggleOnline]);
 
   const handleAccept = (order: LiveOrder) => {
