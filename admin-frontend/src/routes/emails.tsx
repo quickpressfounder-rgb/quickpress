@@ -37,7 +37,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import { toast } from "sonner";
-import { TemplateStudioTab, CampaignsTab, ThreadViewer } from "./email-studio-campaigns";
+import { TemplateStudioTab, CampaignsTab, ThreadViewer } from "./-email-studio-campaigns";
 
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";

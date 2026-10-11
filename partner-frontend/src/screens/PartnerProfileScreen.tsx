@@ -545,7 +545,7 @@ export function PartnerProfileScreen() {
                     onClick={() => logoInputRef.current?.click()}
                     disabled={uploadingLogo}
                     title="Change Store Logo"
-                    className="absolute -bottom-1 -right-1 flex size-5.5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md ring-2 ring-white transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
+                    className="absolute -bottom-1 -right-1 flex size-5.5 items-center justify-center rounded-full bg-primary text-white shadow-md ring-2 ring-white transition-all hover:bg-primary-dark active:scale-90 cursor-pointer"
                   >
                     {uploadingLogo ? (
                       <Loader2 className="size-3 animate-spin" />
@@ -648,16 +648,16 @@ export function PartnerProfileScreen() {
           {/* ================================================================= */}
           {/* DEDICATED SECTION: Services & Catalog Management                  */}
           {/* ================================================================= */}
-          <div className="rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-50/80 via-white to-white p-4.5 shadow-sm space-y-3.5">
+          <div className="rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-white to-white p-4.5 shadow-sm space-y-3.5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/30">
+                <div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-white shadow-md shadow-primary/30">
                   <Sparkles className="size-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-black text-zinc-900">Services & Rate Card</h3>
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800">
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black text-primary">
                       {activeServicesCount > 0 ? `${activeServicesCount} Live` : `${services.length} Total`}
                     </span>
                   </div>
@@ -698,7 +698,7 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.services })}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-600/25 active:scale-95 transition-all cursor-pointer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark py-2.5 text-xs font-black text-white shadow-md shadow-primary/25 active:scale-95 transition-all cursor-pointer"
               >
                 <span>Manage All Services</span>
                 <ArrowRight className="size-3.5" />
@@ -707,7 +707,7 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => navigate({ to: partnerRoutes.serviceNew })}
-                className="flex items-center justify-center gap-1.5 rounded-2xl border border-emerald-300 bg-white px-3.5 py-2.5 text-xs font-black text-emerald-700 shadow-2xs hover:bg-emerald-50 active:scale-95 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-white px-3.5 py-2.5 text-xs font-black text-primary shadow-2xs hover:bg-primary/10 active:scale-95 transition-all cursor-pointer"
               >
                 <span>+ Add Service</span>
               </button>
@@ -1372,7 +1372,7 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={handleDownloadCsv}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark py-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 cursor-pointer"
               >
                 <Download className="size-4" />
                 <span>Download Tax Summary CSV</span>
@@ -1581,7 +1581,7 @@ export function PartnerProfileScreen() {
                 onClick={() => logoInputRef.current?.click()}
                 disabled={uploadingLogo}
                 title="Change Store Logo"
-                className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md ring-2 ring-white transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
+                className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-primary text-white shadow-md ring-2 ring-white transition-all hover:bg-primary-dark active:scale-90 cursor-pointer"
               >
                 {uploadingLogo ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -1677,16 +1677,16 @@ export function PartnerProfileScreen() {
           {/* ================================================================= */}
           {/* SERVICES & CATALOG MANAGEMENT SECTION                             */}
           {/* ================================================================= */}
-          <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-card to-card p-6 shadow-sm">
+          <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-6 shadow-sm">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/30">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-white shadow-md shadow-primary/30">
                   <Sparkles className="size-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-black text-foreground">Services & Rate Card</h2>
-                    <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-black text-emerald-700">
+                    <span className="rounded-full bg-primary/15 border border-primary/30 px-2.5 py-0.5 text-xs font-black text-primary">
                       {activeServicesCount > 0 ? `${activeServicesCount} Live in Catalog` : `${services.length} Total Services`}
                     </span>
                   </div>
@@ -1707,7 +1707,7 @@ export function PartnerProfileScreen() {
                 <button
                   type="button"
                   onClick={() => navigate({ to: partnerRoutes.services })}
-                  className="flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-700 px-5 py-2 text-xs font-black text-white shadow-md shadow-emerald-600/25 active:scale-95 transition-all cursor-pointer"
+                  className="flex items-center gap-2 rounded-full bg-primary hover:bg-primary-dark px-5 py-2 text-xs font-black text-white shadow-md shadow-primary/25 active:scale-95 transition-all cursor-pointer"
                 >
                   <span>Manage Catalog</span>
                   <ArrowRight className="size-3.5" />

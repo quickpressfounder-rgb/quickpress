@@ -80,7 +80,7 @@ export function WalletScreen() {
                   type="button"
                   disabled={busy || wallet.availableBalance === 0}
                   onClick={() => void handleWithdraw()}
-                  className="relative mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-xs font-black text-brand-dark shadow-cta transition-all hover:brightness-105 active:scale-95 disabled:opacity-60"
+                  className="relative mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-xs font-black text-white shadow-cta transition-all hover:brightness-105 active:scale-95 disabled:opacity-60 cursor-pointer"
                 >
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <Banknote className="size-4" />}
                   Withdraw to Bank
@@ -99,7 +99,7 @@ export function WalletScreen() {
                   label="Auto Payout"
                   value={wallet.autoPayout ? "On" : "Off"}
                   hint="Daily T+1"
-                  tone="green"
+                  tone="primary"
                   delay={45}
                 />
               </div>
@@ -109,7 +109,7 @@ export function WalletScreen() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-xs">
               <div className="flex items-center gap-3">
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-xs">
-                  <FileText className="size-5 text-emerald-400" />
+                  <FileText className="size-5 text-primary" />
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-zinc-900">Monthly Settlement Statement & GST Invoices</h3>

@@ -1745,7 +1745,7 @@ export function BusinessRegistrationScreen() {
                   <button
                     type="button"
                     onClick={() => setIsCameraModalOpen(true)}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition"
+                    className="w-full py-3.5 px-4 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-primary/20 active:scale-95 transition cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
                     Open Camera &amp; Take Live Selfie
@@ -1869,7 +1869,7 @@ export function BusinessRegistrationScreen() {
                         type="button"
                         onClick={handleVerifyGst}
                         disabled={verifyingGst}
-                        className="px-2.5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold"
+                        className="px-2.5 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold cursor-pointer"
                       >
                         {verifyingGst ? <Loader2 className="w-3 h-3 animate-spin" /> : "Verify"}
                       </button>
@@ -2083,7 +2083,7 @@ export function BusinessRegistrationScreen() {
                     onClick={() => setServiceCategoryTab(cat.id)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                       serviceCategoryTab === cat.id
-                        ? "bg-emerald-600 text-white shadow-2xs"
+                        ? "bg-primary text-white shadow-2xs"
                         : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200/80"
                     }`}
                   >
@@ -2116,7 +2116,7 @@ export function BusinessRegistrationScreen() {
                       key={svc.id}
                       className={`p-3 rounded-2xl border transition-all ${
                         isSelected
-                          ? "bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-300/40"
+                          ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
                           : "bg-white border-neutral-200 opacity-75 hover:opacity-100"
                       }`}
                     >
@@ -2127,7 +2127,7 @@ export function BusinessRegistrationScreen() {
                         >
                           <div
                             className={`size-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition ${
-                              isSelected ? "bg-emerald-600 border-emerald-600 text-white" : "border-neutral-300 bg-white"
+                              isSelected ? "bg-primary border-primary text-white" : "border-neutral-300 bg-white"
                             }`}
                           >
                             {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -2508,7 +2508,7 @@ export function BusinessRegistrationScreen() {
                 type="button"
                 disabled={busy || !consentAadhaarEsign || !consentTermsAccepted || !agreementSignature?.signatureUrl}
                 onClick={handleSubmitRegistration}
-                className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg shadow-emerald-600/25 active:scale-98 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-4 px-6 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-sm shadow-lg shadow-primary/25 active:scale-98 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {busy ? (
                   <>
@@ -2548,7 +2548,7 @@ export function BusinessRegistrationScreen() {
             <button
               type="button"
               onClick={handleNextStep}
-              className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 py-3.5 px-5 rounded-2xl bg-primary hover:bg-primary-dark text-white font-black text-xs shadow-md shadow-primary/20 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>{t("Save & Continue", `Continue to Step ${currentStep + 1}`)}</span>
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />

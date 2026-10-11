@@ -17,6 +17,7 @@ import {
   Landmark,
   Mail,
   Compass,
+  Gift,
 } from "lucide-react";
 
 /** Central route map for the QuickPress Admin console. */

@@ -342,7 +342,7 @@ export function ManageServicesScreen() {
                       ) : null}
 
                       {svcOffers.length > 0 ? (
-                        <div className="mt-2 flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md inline-flex">
+                        <div className="mt-2 flex items-center gap-1 text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md inline-flex">
                           <Percent className="size-3" /> {svcOffers[0].title}
                         </div>
                       ) : null}
@@ -375,7 +375,7 @@ export function ManageServicesScreen() {
                             : svc.approvalStatus === "rejected"
                             ? "bg-rose-100 text-rose-800 border border-rose-300 cursor-not-allowed opacity-90"
                             : svc.enabled
-                            ? "bg-emerald-500 text-white shadow-xs"
+                            ? "bg-primary text-white shadow-xs"
                             : "bg-zinc-200 text-zinc-600"
                         }`}
                       >

@@ -506,7 +506,7 @@ export function EarningsScreen() {
                         toast.error(err?.message || "Failed to process instant payout");
                       }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-[11px] font-black shadow-xs active:scale-95 transition-all cursor-pointer"
                   >
                     <Zap className="size-3.5" />
                     <span>Instant Payout</span>
@@ -550,7 +550,7 @@ export function EarningsScreen() {
                   <button
                     type="button"
                     onClick={() => handleDownloadStatementPdf(selectedPastRange)}
-                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-red-200 bg-red-50 px-3.5 text-xs font-black text-red-700 shadow-xs transition-transform active:scale-95"
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-red-200 bg-red-50 px-3.5 text-xs font-black text-red-700 shadow-xs transition-transform active:scale-95 cursor-pointer"
                     title="Download Statement (PDF)"
                   >
                     <FileText className="size-3.5 text-red-600" />
@@ -559,10 +559,10 @@ export function EarningsScreen() {
                   <button
                     type="button"
                     onClick={() => handleDownloadStatementExcel(selectedPastRange)}
-                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-black text-emerald-700 shadow-xs transition-transform active:scale-95"
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-primary/20 bg-primary/10 px-3.5 text-xs font-black text-primary shadow-xs transition-transform active:scale-95 cursor-pointer"
                     title="Download Statement (Excel)"
                   >
-                    <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                    <FileSpreadsheet className="size-3.5 text-primary" />
                     <span>Excel</span>
                   </button>
                 </div>
@@ -959,7 +959,7 @@ export function EarningsScreen() {
                             toast.error(err?.message || "Failed to process instant payout");
                           }
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer"
                       >
                         <Zap className="size-3.5" />
                         <span>Instant Payout ⚡</span>
@@ -1001,7 +1001,7 @@ export function EarningsScreen() {
                       <button
                         type="button"
                         onClick={() => handleDownloadStatementPdf(selectedPastRange)}
-                        className="flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 hover:bg-red-100 active:scale-95 transition-all shadow-xs"
+                        className="flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 hover:bg-red-100 active:scale-95 transition-all shadow-xs cursor-pointer"
                         title="Download Statement (PDF)"
                       >
                         <FileText className="size-3.5 text-red-600" />
@@ -1011,10 +1011,10 @@ export function EarningsScreen() {
                       <button
                         type="button"
                         onClick={() => handleDownloadStatementExcel(selectedPastRange)}
-                        className="flex h-9 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all shadow-xs"
+                        className="flex h-9 items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-3 text-xs font-black text-primary hover:bg-primary/20 active:scale-95 transition-all shadow-xs cursor-pointer"
                         title="Download Statement (Excel)"
                       >
-                        <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                        <FileSpreadsheet className="size-3.5 text-primary" />
                         <span>Excel</span>
                       </button>
                     </div>

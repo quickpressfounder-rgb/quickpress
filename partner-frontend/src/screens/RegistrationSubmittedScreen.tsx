@@ -167,12 +167,12 @@ export function RegistrationSubmittedScreen() {
           /* STATE A: APPROVED & ACTIVE                                      */
           /* ============================================================== */
           <section className="animate-slide-up stagger-1 mt-8 flex flex-col items-center text-center">
-            <span className="animate-success-pop relative flex size-24 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 shadow-soft ring-8 ring-emerald-500/10">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/15" />
+            <span className="animate-success-pop relative flex size-24 items-center justify-center rounded-full bg-primary/15 text-primary shadow-soft ring-8 ring-primary/10">
+              <span className="absolute inset-0 animate-ping rounded-full bg-primary/15" />
               <BadgeCheck className="size-12" strokeWidth={2.6} />
             </span>
 
-            <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-4 py-1.5 text-[0.72rem] font-black uppercase tracking-widest text-emerald-700">
+            <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-4 py-1.5 text-[0.72rem] font-black uppercase tracking-widest text-primary">
               <Sparkles className="size-3.5" />
               Approved & Activated
             </span>
@@ -351,7 +351,7 @@ export function RegistrationSubmittedScreen() {
             <button
               type="button"
               disabled
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 py-4 text-sm font-black tracking-tight text-white shadow-cta"
+              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-black tracking-tight text-white shadow-cta"
             >
               <Loader2 className="size-4 animate-spin" />
               Approved! Redirecting to Dashboard...
@@ -360,7 +360,7 @@ export function RegistrationSubmittedScreen() {
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.dashboard })}
-              className="ripple focus-key flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-sm font-black tracking-tight text-white shadow-cta transition-all duration-300 active:scale-[0.97]"
+              className="ripple focus-key flex w-full items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark py-4 text-sm font-black tracking-tight text-white shadow-cta transition-all duration-300 active:scale-[0.97] cursor-pointer"
             >
               Go to Partner Dashboard
               <ArrowRight className="size-4" strokeWidth={2.6} />

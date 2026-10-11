@@ -78,6 +78,7 @@ import {
 } from "../api/staff";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
+import { readSession } from "@/api/core/session-store";
 
 export const Route = createFileRoute("/staff")({
   beforeLoad: requireAdminSession,
@@ -108,6 +109,7 @@ const ALL_PERMISSIONS = [
 
 export function StaffPage() {
   const queryClient = useQueryClient();
+  const session = typeof window !== "undefined" ? readSession("admin") : null;
   const staff = useQuery({ queryKey: ["admin", "staff"], queryFn: fetchStaff });
   const roles = useQuery({ queryKey: ["admin", "roles"], queryFn: fetchRoles });
   const logs = useQuery({ queryKey: ["admin", "activity-logs"], queryFn: () => fetchActivityLogs() });
