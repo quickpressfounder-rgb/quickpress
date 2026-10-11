@@ -17,7 +17,6 @@ import {
   Phone,
   Plus,
   QrCode,
-  ShieldCheck,
   ShoppingBag,
   Smartphone,
   Sparkles,
@@ -82,13 +81,6 @@ function getServiceImage(item: CartLine): string {
   return "/images/services/wash-fold.jpg";
 }
 
-const PICKUP_SLOTS = [
-  { id: "now", label: "⚡ 15–30 Mins (Now)" },
-  { id: "evening_1", label: "🌆 4 PM – 6 PM" },
-  { id: "evening_2", label: "🌙 7 PM – 9 PM" },
-  { id: "tomorrow_morning", label: "🌅 Tomorrow (8 AM – 10 AM)" },
-];
-
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [{ title: "Checkout — QuickPress" }],
@@ -108,7 +100,6 @@ export function CheckoutPage() {
   const [deliveryAddressId, setDeliveryAddressId] = useState<string>(() => cachedAddrs[0]?.id || "");
   const [sameAsPickup, setSameAsPickup] = useState<boolean>(true);
   const [isExpress, setIsExpress] = useState<boolean>(false);
-  const [selectedSlot, setSelectedSlot] = useState<string>("⚡ 15–30 Mins (Now)");
 
   // Address picker modals
   const [showPickupPicker, setShowPickupPicker] = useState<boolean>(false);
@@ -365,7 +356,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : selectedSlot,
+          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "Standard (30–60 mins)",
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -426,7 +417,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : selectedSlot,
+          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "Standard (30–60 mins)",
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -697,35 +688,6 @@ export function CheckoutPage() {
                   )}
                 </div>
               </div>
-
-              {/* Convenient Flat Time Slot Selector (When Standard Pickup is active) */}
-              {!isExpressActive && (
-                <div className="mt-3 pt-3 border-t border-emerald-100/70">
-                  <p className="text-[10px] font-bold text-zinc-600 mb-1.5">Choose Pickup Slot (पिकअप समय चुनें):</p>
-                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                    {PICKUP_SLOTS.map((slot) => {
-                      const isSelected = selectedSlot === slot.label;
-                      return (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSlot(slot.label);
-                          }}
-                          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-black transition-all active:scale-95 cursor-pointer ${
-                            isSelected
-                              ? "bg-[#0c831f] text-white shadow-2xs"
-                              : "bg-white border border-zinc-200 text-zinc-700 hover:border-zinc-300"
-                          }`}
-                        >
-                          {slot.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Express Priority Delivery */}
@@ -841,7 +803,6 @@ export function CheckoutPage() {
           </div>
           <section aria-label="Items Review" className="bg-white rounded-2xl shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100 overflow-hidden">
             {cart.lines.map((item) => {
-              const isKg = item.unit?.toLowerCase().includes("kg") || item.name.toLowerCase().includes("kg");
               const photoUrl = getServiceImage(item);
 
               return (
@@ -864,11 +825,6 @@ export function CheckoutPage() {
                     <p className="text-[11px] font-semibold text-zinc-500">
                       ₹{item.price} / {item.unit || "item"}
                     </p>
-                    {isKg && (
-                      <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
-                        💡 {item.qty} Kg ≈ approx {item.qty * 3} clothes
-                      </p>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2.5 shrink-0">
@@ -1122,17 +1078,6 @@ export function CheckoutPage() {
               </div>
             ) : null}
           </section>
-        </div>
-
-        {/* SECTION 7: TRUST & CANCELLATION */}
-        <div className="rounded-2xl bg-white border border-zinc-200/90 p-3.5 shadow-2xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-bold text-zinc-800">
-            <ShieldCheck className="size-4 text-[#0c831f] shrink-0" />
-            <span>100% Safe &amp; Secure Payments • Razorpay Verified</span>
-          </div>
-          <p className="text-[10.5px] text-zinc-500 leading-relaxed">
-            Cancellation Policy: Orders can be cancelled anytime before rider pickup dispatch for an instant 100% refund.
-          </p>
         </div>
       </div>
 
