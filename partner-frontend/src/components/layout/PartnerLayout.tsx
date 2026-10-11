@@ -104,17 +104,17 @@ export function PartnerLayout({
   // Show loading indicator while checking authentication session
   if (hydrating || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-white text-black">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-xs font-bold text-muted-foreground">Checking store session...</p>
+          <div className="size-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+          <p className="text-xs font-bold text-zinc-600">Checking store session...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen bg-white text-black">
       {/* Desktop Left Sidebar (>= md) */}
       <PartnerSidebar
         shopName={shopName}

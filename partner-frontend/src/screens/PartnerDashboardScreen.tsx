@@ -424,7 +424,7 @@ export function PartnerDashboardScreen() {
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
                   >
                     {t("View Queue", "View Queue")} <ArrowRight className="size-3.5" />
                   </button>
@@ -458,7 +458,7 @@ export function PartnerDashboardScreen() {
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
                   >
                     {t("View all", "View all")} ({orders.length}) <ArrowRight className="size-3.5" />
                   </button>

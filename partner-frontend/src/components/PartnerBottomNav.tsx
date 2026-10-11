@@ -90,7 +90,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
   const navContent = (
     <nav
       aria-label="Partner Navigation"
-      className={`fixed inset-x-0 bottom-0 z-40 w-full border-t border-slate-100 bg-white shadow-[0_-4px_24px_rgba(37,99,235,0.04)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 px-4 transition-transform duration-300 ease-in-out md:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-40 w-full border-t border-zinc-200 bg-white pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 px-4 transition-transform duration-300 ease-in-out md:hidden ${
         isVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
       }`}
     >
@@ -116,7 +116,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
               <div className="relative flex items-center justify-center">
                 <tab.icon
                   className={`size-5 transition-colors ${
-                    isActive ? "text-blue-600 stroke-[2.5]" : "text-slate-400 stroke-[1.8]"
+                    isActive ? "text-blue-600 stroke-[2.5]" : "text-zinc-700 stroke-[1.8]"
                   }`}
                 />
 
@@ -124,7 +124,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
                 {isHub || isStore ? (
                   <span
                     className={`absolute -top-0.5 -right-1 size-2 rounded-full ring-2 ring-white ${
-                      isStoreOnline ? "bg-[#00c6ff] shadow-[0_0_6px_#00c6ff]" : "bg-slate-400"
+                      isStoreOnline ? "bg-blue-600" : "bg-zinc-400"
                     }`}
                     title={isStoreOnline ? "Store Online" : "Store Offline"}
                   />
@@ -141,7 +141,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
               {/* Tab Name under Icon */}
               <span
                 className={`mt-1 text-[10.5px] tracking-tight transition-colors truncate max-w-[64px] ${
-                  isActive ? "font-black text-blue-600" : "font-medium text-slate-500"
+                  isActive ? "font-black text-blue-600" : "font-bold text-black"
                 }`}
               >
                 {label}

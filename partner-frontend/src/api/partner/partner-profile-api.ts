@@ -110,7 +110,10 @@ export async function uploadPartnerGalleryPhoto(image: string): Promise<{ url: s
 }
 
 export async function toggleStoreStatus(isOnline: boolean): Promise<PartnerProfile> {
-  return apiRequest<PartnerProfile>("PATCH", "/api/partner/store/status", { body: { isOnline } });
+  return apiRequest<PartnerProfile>("PATCH", "/api/partner/store/status", {
+    body: { isOnline },
+    timeoutMs: 30000,
+  });
 }
 
 export async function requestPartnerWithdraw(amount: number): Promise<{ balance: number }> {

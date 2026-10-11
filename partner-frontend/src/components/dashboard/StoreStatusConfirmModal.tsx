@@ -10,9 +10,10 @@ interface StoreStatusConfirmModalProps {
 
 /**
  * QuickPress Store Online / Offline Confirmation Popup
- * - Neon-Blue electric styling for Online confirmation
- * - Slate/Amber caution styling for Offline confirmation
- * - Prevents accidental status flips with clear explanation in Hindi + English
+ * - Clean White Background
+ * - Pure Black Headings & High-Contrast Typography
+ * - Visual Royal Blue Accents
+ * - Zero 3D element clutter
  */
 export function StoreStatusConfirmModal({
   isOpen,
@@ -25,26 +26,22 @@ export function StoreStatusConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Dimmed backdrop with soft blur */}
+      {/* Soft dark backdrop */}
       <div
         onClick={() => {
           if (!isLoading) onClose();
         }}
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-200"
+        className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-200"
       />
 
-      {/* Modal Dialog Card */}
-      <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white border border-slate-200/90 p-6 shadow-2xl animate-in zoom-in-95 fade-in duration-200 text-center">
-        {/* Decorative Neon Glow background lights */}
-        <div className="pointer-events-none absolute -top-16 -right-16 size-36 rounded-full bg-cyan-400/20 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 size-36 rounded-full bg-blue-600/15 blur-2xl" />
-
+      {/* Modal Dialog Card: Pure White, Flat, Hairline Border */}
+      <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white border border-zinc-200 p-6 shadow-xl animate-in zoom-in-95 fade-in duration-200 text-center">
         {/* Close Button */}
         <button
           type="button"
           disabled={isLoading}
           onClick={onClose}
-          className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
+          className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-black transition-colors disabled:opacity-50 cursor-pointer"
         >
           <X className="size-4" />
         </button>
@@ -54,34 +51,33 @@ export function StoreStatusConfirmModal({
           /* 🔴 CONFIRMATION TO GO OFFLINE                                  */
           /* ============================================================== */
           <div className="space-y-4">
-            {/* Caution Icon */}
-            <div className="relative mx-auto flex size-16 items-center justify-center rounded-3xl bg-slate-100 border-2 border-slate-300 text-slate-700 shadow-inner">
-              <PowerOff className="size-7 stroke-[2.2]" />
-              <span className="absolute -top-1 -right-1 size-3.5 rounded-full bg-amber-500 ring-2 ring-white" />
+            {/* Flat Caution Icon */}
+            <div className="relative mx-auto flex size-14 items-center justify-center rounded-2xl bg-zinc-100 border border-zinc-200 text-zinc-700">
+              <PowerOff className="size-6 stroke-[2.2]" />
             </div>
 
             {/* Target Status Pill */}
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-[11px] font-black uppercase text-amber-800 tracking-wider">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1 text-[11px] font-black uppercase text-black tracking-wider">
               <span className="size-1.5 rounded-full bg-amber-500" />
-              <span>Switching to OFFLINE</span>
+              <span>Switching to Offline</span>
             </div>
 
             {/* Headings */}
             <div>
-              <h3 className="text-lg font-black tracking-tight text-slate-900">
+              <h3 className="text-lg font-black tracking-tight text-black">
                 Go Offline?
               </h3>
-              <p className="text-xs font-bold text-slate-500 mt-0.5">
+              <p className="text-xs font-bold text-zinc-600 mt-0.5">
                 क्या आप स्टोर को ऑफलाइन (बंद) करना चाहते हैं?
               </p>
             </div>
 
             {/* Explanatory notice */}
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              You will <strong className="text-slate-900 font-bold">stop receiving new customer laundry orders</strong>. Nearby customers will see your store as closed.
+            <p className="text-xs text-zinc-700 leading-relaxed font-medium">
+              You will <strong className="text-black font-bold">stop receiving new customer laundry orders</strong>. Nearby customers will see your store as closed.
             </p>
 
-            <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-3 text-[11px] text-slate-600 font-medium text-left flex items-start gap-2">
+            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-[11px] text-zinc-800 font-medium text-left flex items-start gap-2">
               <span className="text-blue-600 text-sm shrink-0">ℹ️</span>
               <span>Existing in-wash and ready orders will NOT be affected and can still be completed and handed over to Captains.</span>
             </div>
@@ -92,7 +88,7 @@ export function StoreStatusConfirmModal({
                 type="button"
                 disabled={isLoading}
                 onClick={onClose}
-                className="flex-1 rounded-full border border-slate-200 bg-white hover:bg-slate-100 py-3 text-xs font-black text-slate-700 active:scale-95 transition-all cursor-pointer"
+                className="flex-1 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 py-3 text-xs font-bold text-black active:scale-95 transition-all cursor-pointer"
               >
                 Keep Online
               </button>
@@ -100,7 +96,7 @@ export function StoreStatusConfirmModal({
                 type="button"
                 disabled={isLoading}
                 onClick={() => void onConfirm()}
-                className="flex-1 rounded-full bg-slate-900 hover:bg-black text-white py-3 text-xs font-black shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
+                className="flex-1 rounded-full bg-black hover:bg-zinc-800 text-white py-3 text-xs font-black shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
               >
                 {isLoading ? (
                   <Loader2 className="size-4 animate-spin text-white" />
@@ -112,39 +108,37 @@ export function StoreStatusConfirmModal({
           </div>
         ) : (
           /* ============================================================== */
-          /* ⚡ CONFIRMATION TO GO ONLINE (ELECTRIC NEON-BLUE)              */
+          /* ⚡ CONFIRMATION TO GO ONLINE (CLEAN ROYAL BLUE)                 */
           /* ============================================================== */
           <div className="space-y-4">
-            {/* Glowing Neon-Blue Icon */}
-            <div className="relative mx-auto flex size-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-[#00c6ff] via-[#0099ff] to-[#0072ff] text-white shadow-[0_0_30px_rgba(0,198,255,0.6)]">
-              <Radio className="size-7 stroke-[2.2] animate-pulse" />
-              <span className="absolute -top-1 -right-1 size-3.5 rounded-full bg-cyan-300 ring-2 ring-white shadow-[0_0_8px_#00c6ff] animate-ping" />
-              <span className="absolute -top-1 -right-1 size-3.5 rounded-full bg-cyan-300 ring-2 ring-white" />
+            {/* Flat Royal Blue Icon */}
+            <div className="relative mx-auto flex size-14 items-center justify-center rounded-2xl bg-blue-50 border border-blue-200 text-blue-600">
+              <Radio className="size-6 stroke-[2.2]" />
             </div>
 
-            {/* Neon Blue Target Status Pill */}
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 border border-cyan-200/90 px-3 py-1 text-[11px] font-black uppercase text-cyan-800 tracking-wider shadow-[0_0_12px_rgba(0,198,255,0.2)]">
-              <span className="size-1.5 rounded-full bg-[#00c6ff] shadow-[0_0_6px_#00c6ff]" />
-              <span>Switching to ONLINE ⚡</span>
+            {/* Target Status Pill */}
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-[11px] font-black uppercase text-blue-700 tracking-wider">
+              <span className="size-1.5 rounded-full bg-blue-600" />
+              <span>Switching to Online</span>
             </div>
 
             {/* Headings */}
             <div>
-              <h3 className="text-lg font-black tracking-tight text-slate-900">
+              <h3 className="text-lg font-black tracking-tight text-black">
                 Go Online?
               </h3>
-              <p className="text-xs font-bold text-cyan-700 mt-0.5">
+              <p className="text-xs font-bold text-blue-700 mt-0.5">
                 क्या आप स्टोर को ऑनलाइन (चालू) करना चाहते हैं?
               </p>
             </div>
 
             {/* Explanatory notice */}
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Your store will be instantly <strong className="text-slate-900 font-bold">visible to nearby customers</strong>. New laundry bookings will alert here in real-time.
+            <p className="text-xs text-zinc-700 leading-relaxed font-medium">
+              Your store will be instantly <strong className="text-black font-bold">visible to nearby customers</strong>. New laundry bookings will alert here in real-time.
             </p>
 
-            <div className="rounded-2xl bg-cyan-50/70 border border-cyan-200/80 p-3 text-[11px] text-cyan-950 font-medium text-left flex items-start gap-2 shadow-2xs">
-              <span className="text-cyan-600 text-sm shrink-0">⚡</span>
+            <div className="rounded-xl bg-blue-50/70 border border-blue-200 p-3 text-[11px] text-blue-950 font-medium text-left flex items-start gap-2">
+              <span className="text-blue-600 text-sm shrink-0">⚡</span>
               <span>Chime alerts are active. Keep your device volume audible to accept incoming orders within deadline.</span>
             </div>
 
@@ -154,7 +148,7 @@ export function StoreStatusConfirmModal({
                 type="button"
                 disabled={isLoading}
                 onClick={onClose}
-                className="flex-1 rounded-full border border-slate-200 bg-white hover:bg-slate-100 py-3 text-xs font-black text-slate-700 active:scale-95 transition-all cursor-pointer"
+                className="flex-1 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 py-3 text-xs font-bold text-black active:scale-95 transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -162,14 +156,14 @@ export function StoreStatusConfirmModal({
                 type="button"
                 disabled={isLoading}
                 onClick={() => void onConfirm()}
-                className="flex-1 rounded-full bg-gradient-to-r from-[#00c6ff] via-[#0099ff] to-[#0072ff] hover:opacity-95 text-white py-3 text-xs font-black shadow-[0_0_20px_rgba(0,198,255,0.5)] active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
+                className="flex-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-xs font-black shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
               >
                 {isLoading ? (
                   <Loader2 className="size-4 animate-spin text-white" />
                 ) : (
                   <>
                     <CheckCircle2 className="size-3.5 stroke-[2.5]" />
-                    <span>Yes, Go Online ⚡</span>
+                    <span>Yes, Go Online</span>
                   </>
                 )}
               </button>
