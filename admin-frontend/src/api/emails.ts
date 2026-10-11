@@ -285,3 +285,144 @@ export async function createCampaign(payload: {
   );
 }
 
+// ============================================================================
+// MERCHANT SLA FRANCHISE AGREEMENTS API
+// ============================================================================
+
+export type MerchantAgreementRecord = {
+  id: string;
+  agreementId: string;
+  partnerId: string;
+  businessName: string;
+  ownerName: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  status: "digitally_executed" | "dispatched_pending" | "not_dispatched";
+  isAccepted: boolean;
+  signedAt?: string;
+  hasSignature: boolean;
+  signatureUrl?: string | null;
+  signatoryName: string;
+  companyLegalName: string;
+  lastDispatchedAt?: string;
+  dispatchStatus: string;
+  dispatchMethod: string;
+  ccEmail: string;
+  version: string;
+  pdfAvailable: boolean;
+};
+
+export type MerchantAgreementsResponse = {
+  items: MerchantAgreementRecord[];
+  count: number;
+  stats: {
+    totalAgreements: number;
+    acceptedCount: number;
+    pendingCount: number;
+    acceptanceRate: number;
+    gateway: string;
+    cc: string;
+    signatory: string;
+  };
+};
+
+export type DispatchAgreementPayload = {
+  partnerId?: string;
+  email: string;
+  businessName: string;
+  ownerName: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  address?: string;
+  pan?: string;
+  aadhaar?: string;
+  gstin?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  bankName?: string;
+  customMessage?: string;
+};
+
+export async function fetchMerchantAgreements(params?: {
+  search?: string;
+  status?: string;
+}): Promise<MerchantAgreementsResponse> {
+  try {
+    const query = new URLSearchParams();
+    if (params?.search) query.set("search", params.search);
+    if (params?.status) query.set("status", params.status);
+    const qStr = query.toString();
+    const res = await apiGetJson<MerchantAgreementsResponse>(
+      `/api/admin/emails/agreements${qStr ? `?${qStr}` : ""}`
+    );
+    return res || {
+      items: [],
+      count: 0,
+      stats: {
+        totalAgreements: 0,
+        acceptedCount: 0,
+        pendingCount: 0,
+        acceptanceRate: 0,
+        gateway: "Hostinger Business API",
+        cc: "official.quickpress@gmail.com",
+        signatory: "Dhani Ram",
+      },
+    };
+  } catch (err) {
+    console.error("fetchMerchantAgreements error:", err);
+    return {
+      items: [],
+      count: 0,
+      stats: {
+        totalAgreements: 0,
+        acceptedCount: 0,
+        pendingCount: 0,
+        acceptanceRate: 0,
+        gateway: "Hostinger Business API",
+        cc: "official.quickpress@gmail.com",
+        signatory: "Dhani Ram",
+      },
+    };
+  }
+}
+
+export async function dispatchMerchantAgreement(payload: DispatchAgreementPayload): Promise<{
+  ok: boolean;
+  agreementId: string;
+  email: string;
+  message: string;
+  method?: string;
+  cc?: string;
+}> {
+  return await apiPostJson<{
+    ok: boolean;
+    agreementId: string;
+    email: string;
+    message: string;
+    method?: string;
+    cc?: string;
+  }>("/api/admin/emails/agreements/send", payload);
+}
+
+export async function resendMerchantAgreement(agreementId: string): Promise<{
+  ok: boolean;
+  agreementId: string;
+  email: string;
+  message: string;
+}> {
+  return await apiPostJson<{
+    ok: boolean;
+    agreementId: string;
+    email: string;
+    message: string;
+  }>(`/api/admin/emails/agreements/${agreementId}/resend`, {});
+}
+
+export function getAgreementPdfUrl(agreementId: string): string {
+  return `/api/admin/emails/agreements/${agreementId}/pdf`;
+}
+
+

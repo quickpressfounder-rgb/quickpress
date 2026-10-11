@@ -35,9 +35,11 @@ import {
   MousePointerClick,
   Palette,
   Megaphone,
+  FileCheck2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { TemplateStudioTab, CampaignsTab, ThreadViewer } from "./-email-studio-campaigns";
+import { MerchantAgreementsTab } from "./-email-agreements";
 
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -111,7 +113,7 @@ function EmailHubPage() {
   const queryClient = useQueryClient();
 
   // Navigation main view tab
-  const [activeMainTab, setActiveMainTab] = useState<"logs" | "templates" | "campaigns">("logs");
+  const [activeMainTab, setActiveMainTab] = useState<"logs" | "agreements" | "templates" | "campaigns">("logs");
 
   // Filters state
   const [audienceFilter, setAudienceFilter] = useState<string>("all");
@@ -358,7 +360,7 @@ function EmailHubPage() {
           />
         </div>
 
-        {/* Main View Tabs (Surveillance Logs / Template Studio / Marketing Campaigns) */}
+        {/* Main View Tabs (Surveillance Logs / Agreements / Template Studio / Marketing Campaigns) */}
         <div className="flex border-b border-zinc-200 gap-8 overflow-x-auto pb-0">
           <button
             onClick={() => setActiveMainTab("logs")}
@@ -370,6 +372,17 @@ function EmailHubPage() {
           >
             <Mail className="h-4 w-4" />
             Surveillance &amp; Audit Logs
+          </button>
+          <button
+            onClick={() => setActiveMainTab("agreements")}
+            className={`pb-3 text-sm font-black flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+              activeMainTab === "agreements"
+                ? "border-emerald-600 text-emerald-700"
+                : "border-transparent text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <FileCheck2 className="h-4 w-4" />
+            Merchant Agreements
           </button>
           <button
             onClick={() => setActiveMainTab("templates")}
@@ -395,6 +408,7 @@ function EmailHubPage() {
           </button>
         </div>
 
+        {activeMainTab === "agreements" && <MerchantAgreementsTab />}
         {activeMainTab === "templates" && <TemplateStudioTab />}
         {activeMainTab === "campaigns" && <CampaignsTab />}
         {activeMainTab === "logs" && (
