@@ -374,6 +374,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           );
 
           if (unacknowledgedNew && !incomingOrderRef.current) {
+            seenOrderIdsRef.current.add(unacknowledgedNew.id);
             setSeenOrderIds((prev) => new Set([...prev, unacknowledgedNew.id]));
             setIncomingOrder(unacknowledgedNew);
             startOrderAlarm(unacknowledgedNew.code);

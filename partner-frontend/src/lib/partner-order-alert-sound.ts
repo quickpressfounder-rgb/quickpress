@@ -14,6 +14,14 @@ let activeHtml5Audio: HTMLAudioElement | null = null;
 let isAudioActive = false;
 let cachedPartnerWavUrl: string | null = null;
 
+function hasUserGesture(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  if ("userActivation" in navigator && (navigator as any).userActivation) {
+    return Boolean((navigator as any).userActivation.hasBeenActive);
+  }
+  return true;
+}
+
 function getAudioContext(): AudioContext | null {
   try {
     if (typeof window === "undefined") return null;
@@ -26,6 +34,9 @@ function getAudioContext(): AudioContext | null {
       audioCtx = new AudioContextClass();
     }
     if (audioCtx.state === "suspended") {
+      if (!hasUserGesture()) {
+        return audioCtx;
+      }
       audioCtx.resume().catch(() => {});
     }
     return audioCtx;
@@ -151,6 +162,7 @@ function getPartnerChimeWavUrl(): string {
 export function triggerPartnerHaptic(): void {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     try {
+      if (!hasUserGesture()) return;
       navigator.vibrate([350, 100, 350, 100, 600, 150, 600]);
     } catch {}
   }
@@ -309,7 +321,9 @@ export function playPartnerOrderAcceptedTone(): void {
 
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try {
-        navigator.vibrate([80, 40, 120]);
+        if (hasUserGesture()) {
+          navigator.vibrate([80, 40, 120]);
+        }
       } catch {}
     }
   } catch {}
@@ -338,7 +352,9 @@ export function playUrgentSlaBuzzer(): void {
     });
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try {
-        navigator.vibrate([150, 60, 150, 60, 150]);
+        if (hasUserGesture()) {
+          navigator.vibrate([150, 60, 150, 60, 150]);
+        }
       } catch {}
     }
   } catch {}

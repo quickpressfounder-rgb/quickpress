@@ -12,13 +12,23 @@ let audioCtx: AudioContext | null = null;
 let alarmIntervalId: ReturnType<typeof setInterval> | null = null;
 let isRinging = false;
 
+function hasUserGesture(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  if ("userActivation" in navigator && (navigator as any).userActivation) {
+    return Boolean((navigator as any).userActivation.hasBeenActive);
+  }
+  return true;
+}
+
 function getAudioContext(): AudioContext {
   if (!audioCtx) {
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     audioCtx = new AudioContextClass();
   }
   if (audioCtx.state === "suspended") {
-    void audioCtx.resume();
+    if (hasUserGesture()) {
+      void audioCtx.resume().catch(() => {});
+    }
   }
   return audioCtx;
 }

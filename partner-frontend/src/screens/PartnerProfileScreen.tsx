@@ -312,27 +312,47 @@ export function PartnerProfileScreen() {
     }
   };
 
-  // Toggle Rush Hour in DB
+  // Toggle Rush Hour in DB (debounced with unique toast ID to prevent duplicate popups)
+  const isUpdatingRushHourRef = useRef(false);
   const handleToggleRushHour = async () => {
+    if (isUpdatingRushHourRef.current) return;
+    isUpdatingRushHourRef.current = true;
     const next = !opsConfig.rushHour;
     setOpsConfig((prev) => ({ ...prev, rushHour: next }));
     try {
       await updateOperationsConfig({ rushHour: next });
-      toast.success(next ? "Rush hour (+30 min buffer) enabled" : "Rush hour mode disabled");
+      toast.dismiss("rush-hour-mode-toggle");
+      toast.success(next ? "Rush hour (+30 min buffer) enabled" : "Rush hour mode disabled", {
+        id: "rush-hour-mode-toggle",
+      });
     } catch {
-      toast.error("Failed to update rush hour settings");
+      toast.error("Failed to update rush hour settings", { id: "rush-hour-mode-toggle" });
+    } finally {
+      setTimeout(() => {
+        isUpdatingRushHourRef.current = false;
+      }, 500);
     }
   };
 
-  // Toggle Sound Alerts in DB
+  // Toggle Sound Alerts in DB (debounced with unique toast ID)
+  const isUpdatingSoundRef = useRef(false);
   const handleToggleSound = async () => {
+    if (isUpdatingSoundRef.current) return;
+    isUpdatingSoundRef.current = true;
     const next = !opsConfig.soundAlerts;
     setOpsConfig((prev) => ({ ...prev, soundAlerts: next }));
     try {
       await updateOperationsConfig({ soundAlerts: next });
-      toast.success(next ? "Order sound alerts enabled" : "Order sound alerts silenced");
+      toast.dismiss("sound-alerts-mode-toggle");
+      toast.success(next ? "Order sound alerts enabled" : "Order sound alerts silenced", {
+        id: "sound-alerts-mode-toggle",
+      });
     } catch {
-      toast.error("Failed to update sound settings");
+      toast.error("Failed to update sound settings", { id: "sound-alerts-mode-toggle" });
+    } finally {
+      setTimeout(() => {
+        isUpdatingSoundRef.current = false;
+      }, 500);
     }
   };
 
