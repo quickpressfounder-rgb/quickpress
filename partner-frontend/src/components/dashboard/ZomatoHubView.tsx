@@ -58,6 +58,13 @@ import type { ManagedOrder, PartnerOrderFilterTab } from "../../data/partner-ord
 import { STAGE_LABEL, isOrderMatchingTab } from "../../data/partner-orders-mock";
 import { OrderTimeline } from "../orders/OrderTimeline";
 import { OrderSlaCountdown } from "../orders/OrderSlaCountdown";
+import {
+  GarmentSummaryChips,
+  OrderSlaAcceptanceTimer,
+  DirectContactActions,
+  CardHandoverOtpInput,
+  PrintBagTagButton,
+} from "../orders/OrderQuickTools";
 import { StoreStatusConfirmModal } from "./StoreStatusConfirmModal";
 
 function getStageTimelineIndex(stage: string): number {
@@ -504,14 +511,22 @@ export function ZomatoHubView() {
                     }}
                     className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5 shadow-xs transition-all hover:border-blue-400 cursor-pointer space-y-3.5"
                   >
-                    {/* 1. TOP BAR: Order Code + Services + Status Badge */}
-                    <div className="flex items-center justify-between gap-2">
+                    {/* 1. TOP BAR: Order Code + Services + SLA Timer + Print Tag + Status Badge */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="inline-flex items-center rounded-lg bg-black px-2.5 py-1 text-xs font-black text-white tracking-wide shadow-xs">
                           #{order.code}
                         </span>
+                        {isNew && (
+                          <OrderSlaAcceptanceTimer
+                            placedAt={(order as any).placedAt || (order as any).placedAtRaw}
+                            deadline={(order as any).partnerAcceptDeadline}
+                            isNew={isNew}
+                          />
+                        )}
+                        <PrintBagTagButton order={order} />
                         {order.services && order.services.length > 0 ? (
-                          <span className="truncate rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                          <span className="truncate rounded-lg bg-blue-50 border border-blue-200 px-2 py-0.5 text-[11px] font-bold text-blue-700">
                             {order.services.join(", ")}
                           </span>
                         ) : null}
@@ -521,16 +536,16 @@ export function ZomatoHubView() {
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wider ${
                             isNew
-                              ? "bg-amber-50 text-amber-800 border border-amber-300 animate-pulse"
+                              ? "bg-amber-50 text-black border border-amber-300 font-bold"
                               : order.stage === "ready"
-                                ? "bg-blue-50 text-blue-700 border border-blue-200 font-bold"
-                                : "bg-blue-50 text-blue-700 border border-blue-200 font-bold"
+                                ? "bg-blue-50 text-black border border-blue-200 font-bold"
+                                : "bg-zinc-100 text-black border border-zinc-200 font-bold"
                           }`}
                         >
                           <span
                             className={`size-1.5 rounded-full ${
                               isNew
-                                ? "bg-amber-500"
+                                ? "bg-amber-500 animate-ping"
                                 : "bg-blue-600"
                             }`}
                           />
@@ -539,8 +554,8 @@ export function ZomatoHubView() {
                       </div>
                     </div>
 
-                    {/* 2. CUSTOMER NAME & SLA BAR */}
-                    <div className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50/70 p-3 border border-zinc-200">
+                    {/* 2. CUSTOMER INFO & DIRECT 1-TAP CONTACT ACTIONS */}
+                    <div className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50/70 p-3 border border-zinc-200 flex-wrap">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white font-black text-xs shadow-xs">
                           {getCustomerInitials(order.customerName)}
@@ -549,26 +564,37 @@ export function ZomatoHubView() {
                           <h4 className="text-sm font-black text-black truncate">
                             {getDisplayCustomerName(order.customerName)}
                           </h4>
-                          <p className="text-[11px] font-bold text-zinc-700 flex items-center gap-1.5">
-                            <span className="text-blue-700 font-black">
+                          <p className="text-[11px] font-bold text-black flex items-center gap-1.5">
+                            <span className="text-black font-black">
                               ★ {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
                             </span>
                             <span>•</span>
-                            <span>{order.customerOrders ? `${order.customerOrders} orders placed` : "Verified Customer"}</span>
+                            <span>{order.customerOrders ? `${order.customerOrders} orders` : "Verified Customer"}</span>
                           </p>
                         </div>
                       </div>
 
-                      <div className="shrink-0 text-right">
-                        <OrderSlaCountdown
-                          placedAt={(order as any).placedAt || (order as any).placedAtRaw}
-                          deadline={(order as any).partnerAcceptDeadline || (order as any).riderAcceptDeadline}
-                          acceptedAt={(order as any).partnerAcceptedAt}
-                          stage={order.stage}
-                          autoCancelled={(order as any).autoCancelled}
-                          cancellationReason={(order as any).cancellationReason || (order as any).cancelledReason}
-                        />
+                      {/* 1-Tap Call & WhatsApp to Customer / Captain */}
+                      <DirectContactActions
+                        customerName={order.customerName}
+                        customerPhone={order.customerPhone}
+                        orderCode={order.code}
+                        riderName={order.assignedRider?.name || (order as any).rider?.name}
+                        riderPhone={order.assignedRider?.phone || (order as any).rider?.phone}
+                      />
+                    </div>
+
+                    {/* 3. VISUAL GARMENT SUMMARY CHIPS (👕 3 Shirts | 👖 2 Trousers | 🛏️ 1 Bedsheet) */}
+                    <div className="rounded-xl bg-white p-2.5 border border-zinc-200 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-black uppercase text-black tracking-wider">
+                        <span>Garments Summary</span>
+                        <span className="text-zinc-500 font-bold">{order.itemCount} pieces</span>
                       </div>
+                      <GarmentSummaryChips
+                        items={order.items}
+                        itemCount={order.itemCount}
+                        services={order.services}
+                      />
                     </div>
 
                     {/* 3. ORDER DETAIL (Key Specs 3-column Grid) */}
@@ -718,6 +744,15 @@ export function ZomatoHubView() {
                         })}
                       </div>
                     </div>
+
+                    {/* 4.5 INSTANT 4-DIGIT HANDOVER OTP INPUT (WHEN CLOTHES ARE READY) */}
+                    {order.stage === "ready" && (
+                      <CardHandoverOtpInput
+                        orderId={order.id}
+                        orderCode={order.code}
+                        onVerifyOtp={verifyDispatchOtp}
+                      />
+                    )}
 
                     {/* 5. ACTION BUTTONS (Details & Primary Action in matching Pill style) */}
                     <div className="flex items-center gap-2.5 pt-1.5 border-t border-zinc-100">

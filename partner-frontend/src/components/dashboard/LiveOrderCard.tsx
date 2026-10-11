@@ -1,10 +1,17 @@
-import { Check, ChevronRight, Clock3, IndianRupee, MapPin, Timer, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, ChevronRight, Clock3, Flame, IndianRupee, MapPin, Timer, X } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { playUrgentSlaBuzzer } from "../../lib/partner-order-alert-sound";
+import {
+  GarmentSummaryChips,
+  DirectContactActions,
+  PrintBagTagButton,
+} from "../orders/OrderQuickTools";
 
 export type LiveOrder = {
   id: string;
   code: string;
   customerName: string;
+  customerPhone?: string;
   pickupTime: string;
   services: string[];
   amount: number;
@@ -12,14 +19,14 @@ export type LiveOrder = {
 };
 
 const STATUS_STYLE: Record<LiveOrder["status"], string> = {
-  pending: "bg-amber-50 text-amber-800 border border-amber-300",
-  accepted: "bg-blue-50 text-blue-800 border border-blue-300",
-  pickup: "bg-purple-50 text-purple-800 border border-purple-300",
-  washing: "bg-indigo-50 text-indigo-800 border border-indigo-300",
-  ironing: "bg-cyan-50 text-cyan-800 border border-cyan-300",
-  ready: "bg-emerald-50 text-emerald-800 border border-emerald-300",
-  delivered: "bg-zinc-100 text-zinc-600 border border-zinc-200",
-  cancelled: "bg-rose-50 text-rose-700 border border-rose-200",
+  pending: "bg-amber-50 text-black border border-amber-300 font-bold",
+  accepted: "bg-blue-50 text-black border border-blue-300 font-bold",
+  pickup: "bg-purple-50 text-black border border-purple-300 font-bold",
+  washing: "bg-indigo-50 text-black border border-indigo-300 font-bold",
+  ironing: "bg-cyan-50 text-black border border-cyan-300 font-bold",
+  ready: "bg-emerald-50 text-black border border-emerald-300 font-bold",
+  delivered: "bg-zinc-100 text-black border border-zinc-200 font-bold",
+  cancelled: "bg-rose-50 text-rose-700 border border-rose-200 font-bold",
 };
 
 const STATUS_LABEL_MAP: Record<LiveOrder["status"], string> = {
@@ -36,10 +43,11 @@ const STATUS_LABEL_MAP: Record<LiveOrder["status"], string> = {
 /**
  * Live Order Card for Dashboard (Mobile & Desktop)
  * Features:
- * - 60s live countdown with automatic rejection if time expires.
- * - Accept / Reject actions only in 'pending' stage.
- * - Forward-only progress once accepted (no status revert/back).
- * - Direct "View Details" to see full order breakdown.
+ * - 2-minute (120s) live countdown with intensifying urgent alert buzzer.
+ * - Accept / Reject actions in 'pending' stage.
+ * - 1-tap Call & WhatsApp actions.
+ * - Visual Garment Summary with emoji icons.
+ * - 1-Click Thermal Receipt & Bag Tag Print.
  */
 export function LiveOrderCard({
   order,
@@ -57,59 +65,71 @@ export function LiveOrderCard({
   onTrackMap?: (order: LiveOrder) => void;
 }) {
   const isPending = order.status === "pending";
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(120);
+  const lastBuzzerRef = useRef<number>(0);
 
   useEffect(() => {
     if (!isPending) return;
 
-    setCountdown(60);
+    setCountdown(120);
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          // Auto-reject when 1 minute expires
           onReject(order);
           return 0;
         }
-        return prev - 1;
+        const next = prev - 1;
+        if (next > 0 && next <= 45) {
+          const now = Date.now();
+          if (now - lastBuzzerRef.current > 7000) {
+            lastBuzzerRef.current = now;
+            playUrgentSlaBuzzer();
+          }
+        }
+        return next;
       });
     }, 1000);
 
     return () => clearInterval(timer);
   }, [isPending, order.id]);
 
-  const percent = (countdown / 60) * 100;
+  const percent = (countdown / 120) * 100;
+  const mins = Math.floor(countdown / 60);
+  const secs = countdown % 60;
+  const formattedTime = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  const isUrgent = countdown <= 45;
 
   return (
     <article
       className="card-soft animate-rise border border-zinc-200 bg-white p-4 shadow-xs transition-all duration-300 hover:border-zinc-300 hover:shadow-md rounded-2xl"
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* 60-Second Acceptance Alert Banner (Only for pending) */}
+      {/* 2-Minute Acceptance Alert Banner (Only for pending) */}
       {isPending && (
-        <div className="mb-3 overflow-hidden rounded-xl bg-amber-50/90 border border-amber-200 p-2.5">
-          <div className="flex items-center justify-between text-xs font-black text-amber-900">
-            <span className="flex items-center gap-1.5">
-              <Timer
-                className={`size-3.5 ${countdown <= 15 ? "text-red-600 animate-spin" : "text-amber-700"}`}
-              />
-              <span>Acceptance Window</span>
+        <div className={`mb-3 overflow-hidden rounded-xl border p-2.5 ${
+          isUrgent ? "bg-rose-50 border-rose-300 animate-pulse" : "bg-amber-50 border-amber-300"
+        }`}>
+          <div className="flex items-center justify-between text-xs font-black">
+            <span className="flex items-center gap-1.5 text-black">
+              {isUrgent ? <Flame className="size-3.5 text-rose-600 animate-bounce" /> : <Timer className="size-3.5 text-black" />}
+              <span>{isUrgent ? "URGENT SLA ACCEPTANCE" : "Acceptance Window (2m SLA)"}</span>
             </span>
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
-                countdown <= 15
-                  ? "bg-red-500 text-white animate-pulse"
-                  : "bg-amber-200/80 text-amber-900"
+                isUrgent
+                  ? "bg-rose-600 text-white shadow-xs"
+                  : "bg-amber-200 text-black"
               }`}
             >
-              {countdown}s remaining
+              {formattedTime} remaining
             </span>
           </div>
           {/* Progress countdown bar */}
-          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-amber-200/50">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200">
             <div
               className={`h-full transition-all duration-1000 ${
-                countdown <= 15 ? "bg-red-500" : countdown <= 30 ? "bg-amber-500" : "bg-emerald-500"
+                isUrgent ? "bg-rose-600" : countdown <= 60 ? "bg-amber-500" : "bg-blue-600"
               }`}
               style={{ width: `${percent}%` }}
             />
@@ -119,10 +139,18 @@ export function LiveOrderCard({
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-black tracking-tight text-zinc-900">
+          <p className="truncate text-sm font-black tracking-tight text-black">
             {order.customerName}
           </p>
-          <p className="mt-0.5 truncate text-[0.75rem] font-bold text-zinc-500">#{order.code}</p>
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <p className="truncate text-[0.75rem] font-black text-black">#{order.code}</p>
+            <PrintBagTagButton order={order} />
+          </div>
+          <DirectContactActions
+            customerName={order.customerName}
+            customerPhone={order.customerPhone}
+            orderCode={order.code}
+          />
         </div>
         <span
           className={`shrink-0 rounded-full px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-wider ${STATUS_STYLE[order.status]}`}
@@ -131,20 +159,14 @@ export function LiveOrderCard({
         </span>
       </div>
 
-      <div className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-        <Clock3 className="size-3.5 shrink-0 text-zinc-400" />
+      <div className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-black">
+        <Clock3 className="size-3.5 shrink-0 text-black" />
         <span className="truncate">{order.pickupTime}</span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {order.services.map((service) => (
-          <span
-            key={service}
-            className="rounded-lg bg-zinc-100 px-2 py-1 text-[0.68rem] font-bold tracking-tight text-zinc-700"
-          >
-            {service}
-          </span>
-        ))}
+      {/* Garments Visual Summary Chips */}
+      <div className="mt-2.5">
+        <GarmentSummaryChips services={order.services} />
       </div>
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-zinc-100 pt-3">

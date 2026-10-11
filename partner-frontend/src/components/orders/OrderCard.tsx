@@ -19,6 +19,14 @@ import {
   type PaymentStatus,
 } from "../../data/partner-orders-mock";
 import { partnerRoutes } from "../../navigation/partner-routes";
+import { usePartnerOrders } from "../../context/PartnerOrdersContext";
+import {
+  GarmentSummaryChips,
+  OrderSlaAcceptanceTimer,
+  DirectContactActions,
+  CardHandoverOtpInput,
+  PrintBagTagButton,
+} from "./OrderQuickTools";
 import { OrderActionBar } from "./OrderActionBar";
 import type { OrderActionId } from "./order-actions";
 
@@ -61,6 +69,8 @@ export const OrderCard = React.memo(function OrderCard({
 }) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const { verifyDispatchOtp } = usePartnerOrders();
+  const isNew = order.stage === "new";
 
   return (
     <article
@@ -83,15 +93,33 @@ export const OrderCard = React.memo(function OrderCard({
               {order.customerRating.toFixed(1)}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-[0.7rem] font-semibold text-muted-foreground">
-            {order.code} · {order.itemCount} items
-          </p>
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <p className="truncate text-[0.7rem] font-black text-foreground">
+              #{order.code} · {order.itemCount} items
+            </p>
+            {isNew && (
+              <OrderSlaAcceptanceTimer
+                placedAt={(order as any).placedAt || (order as any).placedAtRaw}
+                deadline={(order as any).partnerAcceptDeadline}
+                isNew={isNew}
+              />
+            )}
+            <PrintBagTagButton order={order} />
+          </div>
           {order.isExpress && (
             <div className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[0.65rem] font-black text-amber-700 dark:text-amber-400">
               <Zap className="size-3 fill-amber-500" />
               <span>⚡ EXPRESS + ₹{order.partnerExpressBonus || Math.round((order.expressFee || 40) * 0.2)} ({order.expressPartnerSharePercent || 20}% BONUS)</span>
             </div>
           )}
+          {/* Direct 1-Tap Call & WhatsApp to Customer / Captain */}
+          <DirectContactActions
+            customerName={order.customerName}
+            customerPhone={order.customerPhone}
+            orderCode={order.code}
+            riderName={order.assignedRider?.name || order.rider?.name}
+            riderPhone={order.assignedRider?.phone || order.rider?.phone}
+          />
         </div>
         <OrderStatusBadge order={order} />
       </div>
@@ -171,6 +199,28 @@ export const OrderCard = React.memo(function OrderCard({
           </div>
         </div>
       </div>
+
+      {/* Garments Visual Summary Chips (👕 3 Shirts | 👖 2 Trousers | 🛏️ 1 Bedsheet) */}
+      <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-2.5 space-y-1">
+        <div className="flex items-center justify-between text-[10px] font-black uppercase text-black tracking-wider">
+          <span>Garments Summary</span>
+          <span className="text-zinc-500 font-bold">{order.itemCount} items</span>
+        </div>
+        <GarmentSummaryChips
+          items={order.items}
+          itemCount={order.itemCount}
+          services={order.services}
+        />
+      </div>
+
+      {/* Instant 4-Digit Handover OTP Input (When Clothes Ready for Delivery) */}
+      {order.stage === "ready" && (
+        <CardHandoverOtpInput
+          orderId={order.id}
+          orderCode={order.code}
+          onVerifyOtp={verifyDispatchOtp}
+        />
+      )}
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
         <OrderActionBar

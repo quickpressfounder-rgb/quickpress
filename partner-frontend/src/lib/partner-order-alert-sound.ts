@@ -316,8 +316,38 @@ export function playPartnerOrderAcceptedTone(): void {
 }
 
 /**
+ * Urgent repeating buzzer tone when acceptance SLA is under 45 seconds.
+ */
+export function playUrgentSlaBuzzer(): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [0, 0.12, 0.24].forEach((offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(1046.5, now + offset); // High C6 pitch
+      gain.gain.setValueAtTime(0.001, now + offset);
+      gain.gain.linearRampToValueAtTime(0.35, now + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.09);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.1);
+    });
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate([150, 60, 150, 60, 150]);
+      } catch {}
+    }
+  } catch {}
+}
+
+/**
  * Test function for previewing the Laundromat Store Order Ringtone.
  */
 export function testPartnerSoundAndVibration(): void {
   playPartnerOrderChime();
 }
+
