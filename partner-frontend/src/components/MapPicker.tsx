@@ -40,30 +40,50 @@ import {
 import { getCurrentDeviceLocation, GeoError } from "@/api/partner/location";
 
 export type PickedLocation = {
+  lat: number;
+  lng: number;
   latitude: number;
   longitude: number;
   formattedAddress: string;
+  address: string;
   area: string;
   city: string;
   state: string;
   pincode: string;
 };
 
+export type MapPickerProps = {
+  isOpen?: boolean;
+  initial?: { latitude: number; longitude: number };
+  initialLat?: number | null;
+  initialLng?: number | null;
+  initialAddress?: string;
+  title?: string;
+  onConfirm?: (picked: PickedLocation) => void;
+  onLocationPicked?: (loc: PickedLocation) => void;
+  onClose: () => void;
+};
+
 const DEFAULT_COORDS = { latitude: 28.6139, longitude: 77.2090 };
 
 export function MapPicker({
+  isOpen = true,
   initial,
+  initialLat,
+  initialLng,
+  initialAddress,
   title = "Select Shop Location",
   onConfirm,
+  onLocationPicked,
   onClose,
-}: {
-  initial?: { latitude: number; longitude: number } | undefined;
-  title?: string;
-  onConfirm: (picked: PickedLocation) => void;
-  onClose: () => void;
-}) {
+}: MapPickerProps) {
+  const initialPoint =
+    initialLat != null && initialLng != null && !isNaN(initialLat) && !isNaN(initialLng) && (initialLat !== 0 || initialLng !== 0)
+      ? { latitude: initialLat, longitude: initialLng }
+      : initial ?? null;
+
   const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(
-    initial ?? null,
+    initialPoint,
   );
   const [zoomLevel, setZoomLevel] = useState(16);
   const [details, setDetails] = useState<GeocodeResult | null>(null);
@@ -159,8 +179,10 @@ export function MapPicker({
 
   // Initial load: GPS detection if no starting coordinates
   useEffect(() => {
-    if (!initial) {
+    if (!initialPoint) {
       void useCurrentLocation();
+    } else if (initialAddress && !details) {
+      setSearchQuery(initialAddress);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -244,18 +266,27 @@ export function MapPicker({
     const formatted =
       details?.formattedAddress ||
       [details?.area, details?.city, details?.state, details?.pincode].filter(Boolean).join(", ") ||
-      `Selected Location (${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)})`;
+      `Selected Location (${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)})`;
 
-    onConfirm({
+    const pickedObj: PickedLocation = {
+      lat: point.latitude,
+      lng: point.longitude,
       latitude: point.latitude,
       longitude: point.longitude,
       formattedAddress: formatted,
+      address: formatted,
       area: details?.area || details?.city || "Selected Area",
       city: details?.city || "",
       state: details?.state || "",
       pincode: details?.pincode || "",
-    });
+    };
+
+    onConfirm?.(pickedObj);
+    onLocationPicked?.(pickedObj);
+    onClose();
   };
+
+  if (!isOpen) return null;
 
   const modalContent = (
     <div className="fixed inset-0 z-[99999] flex flex-col bg-background select-none overflow-hidden animate-fade-in">
@@ -494,6 +525,18 @@ export function MapPicker({
                   ? `Lat: ${point.latitude.toFixed(5)}, Lng: ${point.longitude.toFixed(5)}`
                   : "Tap map or search to choose"}
             </p>
+
+            {point && (
+              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">
+                  <Compass className="size-3" />
+                  {point.latitude.toFixed(5)}°N, {point.longitude.toFixed(5)}°E
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <Check className="size-3" /> Rider Navigation Ready
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

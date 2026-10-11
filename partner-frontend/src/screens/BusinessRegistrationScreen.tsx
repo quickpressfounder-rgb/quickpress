@@ -144,26 +144,26 @@ const INDIAN_BANKS = [
 ];
 
 const DEFAULT_SERVICES: (MasterCatalogItem & { category?: string })[] = [
-  { id: "Shirt Steam Iron", name: "Shirt Steam Iron", price: 15, unit: "pc", defaultHours: 12, category: "iron", desc: "Crisp wrinkle-free hanger finish for formal and casual shirts." },
-  { id: "T-Shirt Steam Iron", name: "T-Shirt Steam Iron", price: 12, unit: "pc", defaultHours: 12, category: "iron", desc: "Gentle temperature-controlled steam press for cotton and polo tees." },
-  { id: "Trouser / Jeans Steam Iron", name: "Trouser / Jeans Steam Iron", price: 15, unit: "pc", defaultHours: 12, category: "iron", desc: "Sharp razor creases and flat line press for pants and denim." },
-  { id: "Kurta / Pyjama Steam Iron", name: "Kurta / Pyjama Steam Iron", price: 25, unit: "pc", defaultHours: 12, category: "iron", desc: "Traditional ethnic wear wrinkle-free steam pressing." },
-  { id: "Saree Steam Press", name: "Saree Steam Press", price: 59, unit: "pc", defaultHours: 12, category: "iron", desc: "Delicate temperature steam finish with roller packaging." },
-  { id: "Blazer / Coat Steam Iron", name: "Blazer / Coat Steam Iron", price: 69, unit: "pc", defaultHours: 12, category: "iron", desc: "Form-retaining 3D vertical steam pressing for coats." },
-  { id: "Shirt Dry Clean", name: "Shirt Dry Clean", price: 79, unit: "pc", defaultHours: 36, category: "dry-clean", desc: "Eco-friendly solvent stain removal and crisp collar finish." },
-  { id: "Trouser / Jeans Dry Clean", name: "Trouser / Jeans Dry Clean", price: 79, unit: "pc", defaultHours: 36, category: "dry-clean", desc: "Deep solvent cleaning, spot treatment and sharp creasing." },
-  { id: "2-Piece Suit Dry Clean", name: "2-Piece Suit Dry Clean", price: 249, unit: "set", defaultHours: 48, category: "dry-clean", desc: "Blazer + Trouser tailored luxury solvent care and hanger pack." },
-  { id: "3-Piece Suit Dry Clean", name: "3-Piece Suit Dry Clean", price: 349, unit: "set", defaultHours: 48, category: "dry-clean", desc: "Jacket + Waistcoat + Trouser complete executive dry clean." },
-  { id: "Winter Jacket / Bomber Dry Clean", name: "Winter Jacket / Bomber Dry Clean", price: 199, unit: "pc", defaultHours: 48, category: "dry-clean", desc: "Padded and down jacket deep soil and grime extraction." },
-  { id: "Wash & Fold (Per Kg)", name: "Wash & Fold (Per Kg)", price: 79, unit: "kg", defaultHours: 24, category: "wash", desc: "Daily wear clothes washed, dried & neatly folded." },
-  { id: "Wash & Steam Iron (Per Kg)", name: "Wash & Steam Iron (Per Kg)", price: 99, unit: "kg", defaultHours: 24, category: "wash", desc: "Wash with fabric conditioner & professional steam ironing." },
-  { id: "Silk Saree Dry Clean & Roll Polish", name: "Silk Saree Dry Clean & Roll Polish", price: 249, unit: "pc", defaultHours: 48, category: "premium", desc: "Delicate pure silk wash, stain removal and roll polish finish." },
-  { id: "Heavy Zari / Bridal Lehenga Spa", name: "Heavy Zari / Bridal Lehenga Spa", price: 499, unit: "pc", defaultHours: 72, category: "premium", desc: "Delicate stone and zari embroidery protection with hand finishing." },
-  { id: "Sneakers & Sports Shoes Deep Clean", name: "Sneakers & Sports Shoes Deep Clean", price: 249, unit: "pair", defaultHours: 48, category: "shoe-care", desc: "Deep sonic foam scrubbing, deodorizing and sole whitening." },
-  { id: "Leather Shoes Cleaning & Polish", name: "Leather Shoes Cleaning & Polish", price: 299, unit: "pair", defaultHours: 48, category: "shoe-care", desc: "Wax buffing, leather cream nourishment and mirror shine." },
-  { id: "Single Blanket / Quilt Wash", name: "Single Blanket / Quilt Wash", price: 249, unit: "pc", defaultHours: 48, category: "home-care", desc: "Winter comforter sanitized, washed & sun fluff-dried." },
-  { id: "Double Blanket / Heavy Rajai Wash", name: "Double Blanket / Heavy Rajai Wash", price: 349, unit: "pc", defaultHours: 48, category: "home-care", desc: "Heavy double winter quilt deep allergen extraction." },
-  { id: "Curtain Cleaning (Per Panel)", name: "Curtain Cleaning (Per Panel)", price: 199, unit: "panel", defaultHours: 36, category: "home-care", desc: "Dust-free steam extraction and anti-shrink washing." },
+  { id: "Shirt Steam Iron", name: "Shirt Steam Iron", price: 15, unit: "pc", defaultHours: 12, category: "iron", desc: "Crisp wrinkle-free hanger finish for formal and casual shirts.", image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=300&q=80" },
+  { id: "T-Shirt Steam Iron", name: "T-Shirt Steam Iron", price: 12, unit: "pc", defaultHours: 12, category: "iron", desc: "Gentle temperature-controlled steam press for cotton and polo tees.", image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80" },
+  { id: "Trouser / Jeans Steam Iron", name: "Trouser / Jeans Steam Iron", price: 15, unit: "pc", defaultHours: 12, category: "iron", desc: "Sharp razor creases and flat line press for pants and denim.", image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=300&q=80" },
+  { id: "Kurta / Pyjama Steam Iron", name: "Kurta / Pyjama Steam Iron", price: 25, unit: "pc", defaultHours: 12, category: "iron", desc: "Traditional ethnic wear wrinkle-free steam pressing.", image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=300&q=80" },
+  { id: "Saree Steam Press", name: "Saree Steam Press", price: 59, unit: "pc", defaultHours: 12, category: "iron", desc: "Delicate temperature steam finish with roller packaging.", image: "https://images.unsplash.com/photo-1610030469668-935cb1778912?auto=format&fit=crop&w=300&q=80" },
+  { id: "Blazer / Coat Steam Iron", name: "Blazer / Coat Steam Iron", price: 69, unit: "pc", defaultHours: 12, category: "iron", desc: "Form-retaining 3D vertical steam pressing for coats.", image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=300&q=80" },
+  { id: "Shirt Dry Clean", name: "Shirt Dry Clean", price: 79, unit: "pc", defaultHours: 36, category: "dry-clean", desc: "Eco-friendly solvent stain removal and crisp collar finish.", image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=300&q=80" },
+  { id: "Trouser / Jeans Dry Clean", name: "Trouser / Jeans Dry Clean", price: 79, unit: "pc", defaultHours: 36, category: "dry-clean", desc: "Deep solvent cleaning, spot treatment and sharp creasing.", image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=300&q=80" },
+  { id: "2-Piece Suit Dry Clean", name: "2-Piece Suit Dry Clean", price: 249, unit: "set", defaultHours: 48, category: "dry-clean", desc: "Blazer + Trouser tailored luxury solvent care and hanger pack.", image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=300&q=80" },
+  { id: "3-Piece Suit Dry Clean", name: "3-Piece Suit Dry Clean", price: 349, unit: "set", defaultHours: 48, category: "dry-clean", desc: "Jacket + Waistcoat + Trouser complete executive dry clean.", image: "https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?auto=format&fit=crop&w=300&q=80" },
+  { id: "Winter Jacket / Bomber Dry Clean", name: "Winter Jacket / Bomber Dry Clean", price: 199, unit: "pc", defaultHours: 48, category: "dry-clean", desc: "Padded and down jacket deep soil and grime extraction.", image: "https://images.unsplash.com/photo-1544022613-e87ca75a784a?auto=format&fit=crop&w=300&q=80" },
+  { id: "Wash & Fold (Per Kg)", name: "Wash & Fold (Per Kg)", price: 79, unit: "kg", defaultHours: 24, category: "wash", desc: "Daily wear clothes washed, dried & neatly folded.", image: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=300&q=80" },
+  { id: "Wash & Steam Iron (Per Kg)", name: "Wash & Steam Iron (Per Kg)", price: 99, unit: "kg", defaultHours: 24, category: "wash", desc: "Wash with fabric conditioner & professional steam ironing.", image: "https://images.unsplash.com/photo-1489274495757-95c7c837b101?auto=format&fit=crop&w=300&q=80" },
+  { id: "Silk Saree Dry Clean & Roll Polish", name: "Silk Saree Dry Clean & Roll Polish", price: 249, unit: "pc", defaultHours: 48, category: "premium", desc: "Delicate pure silk wash, stain removal and roll polish finish.", image: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=300&q=80" },
+  { id: "Heavy Zari / Bridal Lehenga Spa", name: "Heavy Zari / Bridal Lehenga Spa", price: 499, unit: "pc", defaultHours: 72, category: "premium", desc: "Delicate stone and zari embroidery protection with hand finishing.", image: "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=300&q=80" },
+  { id: "Sneakers & Sports Shoes Deep Clean", name: "Sneakers & Sports Shoes Deep Clean", price: 249, unit: "pair", defaultHours: 48, category: "shoe-care", desc: "Deep sonic foam scrubbing, deodorizing and sole whitening.", image: "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=300&q=80" },
+  { id: "Leather Shoes Cleaning & Polish", name: "Leather Shoes Cleaning & Polish", price: 299, unit: "pair", defaultHours: 48, category: "shoe-care", desc: "Wax buffing, leather cream nourishment and mirror shine.", image: "https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=300&q=80" },
+  { id: "Single Blanket / Quilt Wash", name: "Single Blanket / Quilt Wash", price: 249, unit: "pc", defaultHours: 48, category: "home-care", desc: "Winter comforter sanitized, washed & sun fluff-dried.", image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=300&q=80" },
+  { id: "Double Blanket / Heavy Rajai Wash", name: "Double Blanket / Heavy Rajai Wash", price: 349, unit: "pc", defaultHours: 48, category: "home-care", desc: "Heavy double winter quilt deep allergen extraction.", image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=300&q=80" },
+  { id: "Curtain Cleaning (Per Panel)", name: "Curtain Cleaning (Per Panel)", price: 199, unit: "panel", defaultHours: 36, category: "home-care", desc: "Dust-free steam extraction and anti-shrink washing.", image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=300&q=80" },
 ];
 
 const SERVICE_CATEGORY_TABS = [
@@ -593,17 +593,42 @@ export function BusinessRegistrationScreen() {
 
     fetchMasterCatalogServices().then((items) => {
       if (!alive || !Array.isArray(items) || items.length === 0) return;
-      setCatalogServices(items);
+      const mapped = items.map((s) => {
+        const matchDefault = DEFAULT_SERVICES.find(
+          (d) => d.id === s.id || d.name.toLowerCase() === s.name.toLowerCase()
+        );
+        return {
+          ...s,
+          category:
+            (s as any).category ||
+            matchDefault?.category ||
+            (s.name.toLowerCase().includes("iron")
+              ? "iron"
+              : s.name.toLowerCase().includes("dry")
+              ? "dry-clean"
+              : s.name.toLowerCase().includes("wash")
+              ? "wash"
+              : s.name.toLowerCase().includes("saree")
+              ? "premium"
+              : s.name.toLowerCase().includes("shoe")
+              ? "shoe-care"
+              : s.name.toLowerCase().includes("blanket")
+              ? "home-care"
+              : "iron"),
+          image: s.image || (s as any).imageUrl || matchDefault?.image || "",
+        };
+      });
+      setCatalogServices(mapped);
       setServicePrices((prev) => {
         const next = { ...prev };
-        for (const it of items) {
+        for (const it of mapped) {
           if (next[it.id] === undefined) next[it.id] = it.price;
         }
         return next;
       });
       setServiceTurnarounds((prev) => {
         const next = { ...prev };
-        for (const it of items) {
+        for (const it of mapped) {
           if (next[it.id] === undefined) next[it.id] = it.defaultHours;
         }
         return next;
@@ -1262,10 +1287,16 @@ export function BusinessRegistrationScreen() {
   };
 
   const handleLocationPicked = (loc: PickedLocation) => {
-    setPickedLatitude(loc.lat);
-    setPickedLongitude(loc.lng);
-    if (loc.address && !shopAddress) {
-      setShopAddress(loc.address);
+    const lat = loc.lat ?? loc.latitude;
+    const lng = loc.lng ?? loc.longitude;
+    const addr = loc.address ?? loc.formattedAddress ?? "";
+    setPickedLatitude(lat);
+    setPickedLongitude(lng);
+    if (addr) {
+      setShopAddress(addr);
+    }
+    if (loc.area) {
+      setArea(loc.area);
     }
     if (loc.pincode && loc.pincode.length === 6) {
       setPincode(loc.pincode);
@@ -1275,7 +1306,7 @@ export function BusinessRegistrationScreen() {
       if (match) setCity(match);
     }
     setShowMapPicker(false);
-    toast.success("Store location pinned on map ✓");
+    toast.success("Store GPS coordinates & address updated successfully! ✓");
   };
 
   /* ----------------------------- Render ----------------------------- */
@@ -1964,25 +1995,34 @@ export function BusinessRegistrationScreen() {
                 </div>
               )}
 
-              {/* Interactive Map Pin Button */}
-              <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-2xl flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                    <MapPin className="w-4 h-4" />
+              {/* Interactive Store GPS Pinpoint Card for Rider Navigation */}
+              <div className="p-3.5 bg-gradient-to-r from-emerald-500/5 via-neutral-50 to-emerald-500/5 border border-emerald-500/20 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="size-10 rounded-xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center shrink-0 ring-4 ring-emerald-500/10">
+                    <MapPin className="w-5 h-5 stroke-[2.4]" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-neutral-900">Pinpoint Store GPS on Map</p>
-                    <p className="text-[10px] text-neutral-500">
-                      Coords: {pickedLatitude.toFixed(4)}, {pickedLongitude.toFixed(4)}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs font-black text-neutral-900">Store GPS Map Coordinates</p>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-600/10 text-emerald-700">
+                        <Check className="size-2.5 stroke-[3]" /> Rider Navigation Ready
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-mono font-bold text-emerald-800 mt-0.5">
+                      GPS: {pickedLatitude.toFixed(5)}°N, {pickedLongitude.toFixed(5)}°E
+                    </p>
+                    <p className="text-[10px] text-neutral-500 truncate mt-0.5">
+                      {shopAddress ? shopAddress : "Used by captains for turn-by-turn navigation directly to your store"}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowMapPicker(true)}
-                  className="px-3 py-1.5 bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-800 text-xs font-bold rounded-xl transition shadow-2xs"
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
-                  Pick on Map
+                  <Navigation className="w-3.5 h-3.5" />
+                  <span>Pick on Map</span>
                 </button>
               </div>
 
@@ -2122,19 +2162,49 @@ export function BusinessRegistrationScreen() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div
-                          className="flex items-start gap-2.5 flex-1 cursor-pointer"
+                          className="flex items-start gap-3 flex-1 cursor-pointer min-w-0"
                           onClick={() => toggleService(svc.id)}
                         >
                           <div
-                            className={`size-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition ${
+                            className={`size-5 rounded-md border flex items-center justify-center shrink-0 mt-3 transition ${
                               isSelected ? "bg-primary border-primary text-white" : "border-neutral-300 bg-white"
                             }`}
                           >
                             {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                           </div>
-                          <div>
-                            <p className="text-xs font-black text-neutral-900">{svc.name}</p>
-                            <p className="text-[10px] text-neutral-500 font-medium line-clamp-1">{svc.desc}</p>
+
+                          {/* Service Thumbnail (Master Catalog Image) */}
+                          <div className="size-12 rounded-xl overflow-hidden bg-neutral-100 shrink-0 border border-neutral-200/80 relative self-center shadow-2xs">
+                            {svc.image ? (
+                              <img
+                                src={svc.image}
+                                alt={svc.name}
+                                className="size-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <div className="size-full flex items-center justify-center bg-primary/10 text-primary">
+                                <Sparkles className="size-5" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs font-black text-neutral-900">{svc.name}</p>
+                              {svc.category && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase tracking-wider">
+                                  {svc.category}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-neutral-500 font-medium line-clamp-1 mt-0.5">{svc.desc}</p>
+                            <p className="text-[9px] text-neutral-400 font-semibold mt-0.5">
+                              SLA: {turnaround}h · Per {svc.unit}
+                            </p>
                           </div>
                         </div>
 

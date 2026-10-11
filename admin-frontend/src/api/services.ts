@@ -297,7 +297,7 @@ export async function createService(payload: {
 
 export async function updateService(
   id: string,
-  payload: Partial<{ name: string; categoryId: string; price: number; unit: string; description: string; status: string; sla?: string }>,
+  payload: Partial<{ name: string; categoryId: string; price: number; unit: string; description: string; status: string; sla?: string; image?: string }>,
 ) {
   return await apiPutJson<BackendService>(`/api/admin/services/${encodeURIComponent(id)}`, payload);
 }

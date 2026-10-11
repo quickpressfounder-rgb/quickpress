@@ -81,18 +81,29 @@ async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
 @router.get("/services")
 async def get_public_services() -> List[Dict[str, Any]]:
     """Return all active master services for the public website without internal pricing."""
+    admin_svcs = await database.find_many("admin_services")
+    admin_map = {str(a.get("name", "")).strip().lower(): a for a in (admin_svcs or [])}
+
     services = await catalog.services()
     results = []
+    seen = set()
     for s in services:
+        s_name = s.name or getattr(s, "title", "Service")
+        s_key = s_name.strip().lower()
+        seen.add(s_key)
+        admin_match = admin_map.get(s_key)
+        img = (admin_match.get("image") if admin_match else None) or getattr(s, "image", None) or getattr(s, "imageUrl", "")
         turnaround = getattr(s, "processingTime", None) or getattr(s, "turnaround", "24-48 hours")
         results.append({
             "id": s.id,
             "slug": s.id,
-            "name": s.name or getattr(s, "title", "Service"),
-            "description": s.description or f"Professional {s.name} with door-to-door pickup & delivery.",
+            "name": s_name,
+            "description": s.description or f"Professional {s_name} with door-to-door pickup & delivery.",
             "tagline": getattr(s, "tagline", "Expert care for your garments"),
             "icon": getattr(s, "icon", "sparkles"),
-            "imageUrl": getattr(s, "image", None) or getattr(s, "imageUrl", ""),
+            "image": img,
+            "imageUrl": img,
+            "price": getattr(s, "finalPrice", getattr(s, "price", 79)),
             "turnaround": turnaround,
             "popular": getattr(s, "popular", False),
             "unit": getattr(s, "unit", "Item / Kg"),
@@ -103,6 +114,32 @@ async def get_public_services() -> List[Dict[str, Any]]:
                 "Crisp steam finish & safe packaging"
             ]
         })
+
+    for a in (admin_svcs or []):
+        a_name = str(a.get("name", "")).strip()
+        if a_name and a_name.lower() not in seen:
+            seen.add(a_name.lower())
+            img = a.get("image", "")
+            results.append({
+                "id": str(a.get("_id", a_name)),
+                "slug": str(a.get("_id", a_name)),
+                "name": a_name,
+                "description": a.get("description") or f"Professional {a_name} with door-to-door pickup & delivery.",
+                "tagline": "Expert care for your garments",
+                "icon": "sparkles",
+                "image": img,
+                "imageUrl": img,
+                "price": float(a.get("price", 79)),
+                "turnaround": f"{a.get('turnaroundHours', 24)} hours",
+                "popular": False,
+                "unit": a.get("unit", "Item / Kg"),
+                "features": [
+                    "Doorstep pickup & drop-off",
+                    "Color-separated washing",
+                    "Fabric-safe gentle detergent",
+                    "Crisp steam finish & safe packaging"
+                ]
+            })
     return results
 
 

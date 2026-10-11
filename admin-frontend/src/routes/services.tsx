@@ -1349,6 +1349,7 @@ function Service360Sheet({
     unit: "per kg",
     sla: "24 hrs",
     description: "",
+    image: "",
   });
 
   const updateMutation = useMutation({
@@ -1373,8 +1374,12 @@ function Service360Sheet({
         <div className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-black text-sm shadow-md">
-                {service.name.slice(0, 2).toUpperCase()}
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-black text-sm shadow-md overflow-hidden">
+                {(service as any).image ? (
+                  <img src={(service as any).image} alt={service.name} className="size-full object-cover" />
+                ) : (
+                  service.name.slice(0, 2).toUpperCase()
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -1413,6 +1418,7 @@ function Service360Sheet({
                       unit: service.unit,
                       sla: service.sla,
                       description: service.description,
+                      image: (service as any).image || "",
                     });
                   }
                   setIsEditing(!isEditing);
@@ -1485,6 +1491,15 @@ function Service360Sheet({
                   <Input
                     value={editForm.sla}
                     onChange={(e) => setEditForm((p) => ({ ...p, sla: e.target.value }))}
+                    className="h-9 text-xs bg-white"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[11px] font-bold text-zinc-600">Item Image URL (Catalog Thumbnail)</label>
+                  <Input
+                    placeholder="https://... (Garment image thumbnail)"
+                    value={editForm.image}
+                    onChange={(e) => setEditForm((p) => ({ ...p, image: e.target.value }))}
                     className="h-9 text-xs bg-white"
                   />
                 </div>
@@ -1683,6 +1698,7 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
   const [price, setPrice] = useState("");
   const [unit, setUnit] = useState("per kg");
   const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -1692,6 +1708,7 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
         price: parseFloat(price) || 0,
         unit,
         description,
+        image,
       }),
     onSuccess: () => {
       toast.success("New master service added to catalog! 🎉");
@@ -1699,6 +1716,7 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
       setName("");
       setPrice("");
       setDescription("");
+      setImage("");
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "stats"] });
     },
@@ -1765,6 +1783,11 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
                 <SelectItem value="per meter">per meter (Curtains)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-bold">Item Image URL</Label>
+            <Input placeholder="https://... (Catalog thumbnail image)" value={image} onChange={(e) => setImage(e.target.value)} className="h-9 text-xs" />
           </div>
 
           <div className="space-y-1">
