@@ -25,6 +25,8 @@ import {
   Phone,
   PhoneCall,
   Play,
+  PowerOff,
+  Radio,
   ReceiptText,
   RotateCcw,
   Settings,
@@ -56,6 +58,7 @@ import type { ManagedOrder, PartnerOrderFilterTab } from "../../data/partner-ord
 import { STAGE_LABEL, isOrderMatchingTab } from "../../data/partner-orders-mock";
 import { OrderTimeline } from "../orders/OrderTimeline";
 import { OrderSlaCountdown } from "../orders/OrderSlaCountdown";
+import { StoreStatusConfirmModal } from "./StoreStatusConfirmModal";
 
 function getStageTimelineIndex(stage: string): number {
   switch (stage) {
@@ -143,6 +146,8 @@ export function ZomatoHubView() {
   const [hubDispatchOtp, setHubDispatchOtp] = useState("");
   const [isVerifyingHubDispatch, setIsVerifyingHubDispatch] = useState(false);
   const [expandedItemsOrderIds, setExpandedItemsOrderIds] = useState<Record<string, boolean>>({});
+  const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const toggleItemsExpanded = (orderId: string) => {
     setExpandedItemsOrderIds((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
@@ -208,11 +213,20 @@ export function ZomatoHubView() {
     };
   }, [session?.businessName, session?.city]);
 
-  const handleToggleStore = async () => {
+  const handleConfirmStatusChange = async () => {
+    setIsUpdatingStatus(true);
     try {
       await toggleOnline();
+      setShowStatusConfirmModal(false);
+      toast.success(
+        !isOnline
+          ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
+          : "Store is now OFFLINE. New customer orders are paused."
+      );
     } catch {
       toast.error("Failed to update status");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -269,14 +283,14 @@ export function ZomatoHubView() {
                   <Store className="size-5 text-blue-600" />
                 )}
               </div>
-              {/* Online status blue pulse dot on avatar */}
+              {/* Online status neon-blue pulse dot on avatar */}
               <span
                 className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-white ${
-                  isOnline ? "bg-blue-600" : "bg-amber-500"
+                  isOnline ? "bg-[#00c6ff] shadow-[0_0_8px_#00c6ff]" : "bg-slate-400"
                 }`}
               >
                 {isOnline ? (
-                  <span className="absolute inset-0 size-full rounded-full bg-blue-400 animate-ping opacity-75" />
+                  <span className="absolute inset-0 size-full rounded-full bg-cyan-400 animate-ping opacity-75" />
                 ) : null}
               </span>
             </Link>
@@ -305,24 +319,24 @@ export function ZomatoHubView() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={handleToggleStore}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 shadow-xs cursor-pointer ${
+              onClick={() => setShowStatusConfirmModal(true)}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                 isOnline
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25"
-                  : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
+                  ? "bg-gradient-to-r from-[#00c6ff] via-[#0099ff] to-[#0072ff] text-white shadow-[0_0_16px_rgba(0,198,255,0.45)] border border-cyan-300/40 hover:opacity-95"
+                  : "bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-200/90 shadow-2xs"
               }`}
             >
               <span className="relative flex size-2">
                 {isOnline ? (
                   <>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                    <span className="relative inline-flex rounded-full size-2 bg-white" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-200 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-white shadow-[0_0_6px_#00c6ff]" />
                   </>
                 ) : (
-                  <span className="size-2 rounded-full bg-amber-500" />
+                  <span className="size-2 rounded-full bg-slate-400" />
                 )}
               </span>
-              <span>{isOnline ? "Online" : "Offline"}</span>
+              <span>{isOnline ? "Online ⚡" : "Offline"}</span>
               <ChevronRight className="size-3 stroke-[2.5]" />
             </button>
 
@@ -460,20 +474,44 @@ export function ZomatoHubView() {
           <div className="mt-2.5 space-y-3">
             {displayedOrders.length === 0 ? (
               <div className="rounded-3xl border border-blue-100 bg-white p-8 text-center shadow-[0_4px_24px_-4px_rgba(37,99,235,0.04)] space-y-3">
-                <div className="relative mx-auto size-14 flex items-center justify-center rounded-2xl bg-blue-50 border border-blue-200/60 text-blue-600">
-                  <Sparkles className="size-6" />
-                  <span className="absolute -top-1 -right-1 size-3 rounded-full bg-blue-600 animate-ping opacity-75" />
-                  <span className="absolute -top-1 -right-1 size-3 rounded-full bg-blue-600" />
+                <div className={`relative mx-auto size-14 flex items-center justify-center rounded-2xl ${
+                  isOnline
+                    ? "bg-cyan-50 border border-cyan-200/70 text-cyan-600 shadow-[0_0_20px_rgba(0,195,255,0.15)]"
+                    : "bg-slate-100 border border-slate-200 text-slate-500"
+                }`}>
+                  {isOnline ? <Sparkles className="size-6 text-cyan-500" /> : <PowerOff className="size-6 text-slate-500" />}
+                  {isOnline ? (
+                    <>
+                      <span className="absolute -top-1 -right-1 size-3 rounded-full bg-cyan-400 animate-ping opacity-75" />
+                      <span className="absolute -top-1 -right-1 size-3 rounded-full bg-[#00c6ff] shadow-[0_0_8px_#00c6ff]" />
+                    </>
+                  ) : (
+                    <span className="absolute -top-1 -right-1 size-3 rounded-full bg-slate-400 ring-2 ring-white" />
+                  )}
                 </div>
                 <div>
                   <h4 className="text-sm font-black text-slate-900">
-                    {activeFilterTab === "active" || activeFilterTab === "all"
-                      ? "Store is Online & Listening"
-                      : `No orders in "${activeFilterTab}" status`}
+                    {isOnline
+                      ? (activeFilterTab === "active" || activeFilterTab === "all"
+                          ? "Store is Online & Listening"
+                          : `No orders in "${activeFilterTab}" status`)
+                      : "Store is Offline (स्टोर ऑफलाइन है)"}
                   </h4>
                   <p className="mt-1 text-xs font-medium text-slate-500 max-w-xs mx-auto">
-                    New customer laundry pickups in {locationName} will alert here with chime sound automatically.
+                    {isOnline
+                      ? `New customer laundry pickups in ${locationName} will alert here with chime sound automatically.`
+                      : "You will not receive new customer orders while offline. Turn on your store to start receiving orders."}
                   </p>
+                  {!isOnline && (
+                    <button
+                      type="button"
+                      onClick={() => setShowStatusConfirmModal(true)}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#00c6ff] via-[#0099ff] to-[#0072ff] px-4 py-2 text-xs font-black text-white shadow-[0_0_16px_rgba(0,198,255,0.4)] active:scale-95 transition-all cursor-pointer hover:opacity-95"
+                    >
+                      <Radio className="size-3.5" />
+                      <span>Switch Store Online ⚡</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1034,6 +1072,15 @@ export function ZomatoHubView() {
           </div>
         </div>
       ) : null}
+
+      {/* Store Online / Offline Confirmation Popup Modal */}
+      <StoreStatusConfirmModal
+        isOpen={showStatusConfirmModal}
+        onClose={() => setShowStatusConfirmModal(false)}
+        currentOnline={isOnline}
+        onConfirm={handleConfirmStatusChange}
+        isLoading={isUpdatingStatus}
+      />
 
       {/* Action Sheets and Overlays */}
       {sheetNode}

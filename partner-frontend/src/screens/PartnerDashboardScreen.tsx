@@ -34,6 +34,7 @@ import {
 } from "../components/dashboard/DashboardStates";
 import { LiveOrderCard, type LiveOrder } from "../components/dashboard/LiveOrderCard";
 import { PullToRefresh } from "../components/dashboard/PullToRefresh";
+import { StoreStatusConfirmModal } from "../components/dashboard/StoreStatusConfirmModal";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { fetchPartnerProfile } from "@/api/partner/partner-profile-api";
 import { fetchDashboardSummary, setStoreOpen } from "@/api/partner/partner-dashboard-api";
@@ -347,14 +348,26 @@ export function PartnerDashboardScreen() {
   }, [orders]);
 
 
-  const handleToggleOnline = useCallback(async () => {
+  const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const handleConfirmToggleOnline = useCallback(async () => {
+    setIsUpdatingStatus(true);
     try {
       if (isOnline) {
         stopPartnerOrderAlertRing();
       }
       await toggleOnline();
+      setShowStatusConfirmModal(false);
+      toast.success(
+        !isOnline
+          ? "⚡ Store is now ONLINE! Ready to receive laundry orders."
+          : "Store is now OFFLINE. New customer orders are paused."
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't update store status");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   }, [isOnline, toggleOnline]);
 
@@ -452,7 +465,7 @@ export function PartnerDashboardScreen() {
                 </div>
                 <div className="mt-3.5">
                   {!isOnline ? (
-                    <OfflineEmptyState onGoOnline={() => void handleToggleOnline()} />
+                    <OfflineEmptyState onGoOnline={() => setShowStatusConfirmModal(true)} />
                   ) : liveOrders.length === 0 ? (
                     <NoOrdersEmptyState />
                   ) : (
@@ -583,6 +596,13 @@ export function PartnerDashboardScreen() {
 
       {sheetNode}
       {overlay}
+      <StoreStatusConfirmModal
+        isOpen={showStatusConfirmModal}
+        onClose={() => setShowStatusConfirmModal(false)}
+        currentOnline={isOnline}
+        onConfirm={handleConfirmToggleOnline}
+        isLoading={isUpdatingStatus}
+      />
       <Toaster />
     </PartnerLayout>
   );

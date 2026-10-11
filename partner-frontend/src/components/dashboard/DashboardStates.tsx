@@ -32,26 +32,26 @@ function EmptyShell({
 
 export function NoOrdersEmptyState() {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-dashed border-emerald-500/30 bg-gradient-to-b from-card via-card to-emerald-50/20 dark:to-emerald-950/10 p-6 md:p-8 text-center shadow-xs">
+    <div className="relative overflow-hidden rounded-3xl border border-dashed border-cyan-400/40 bg-gradient-to-b from-white via-white to-cyan-50/30 p-6 md:p-8 text-center shadow-xs">
       {/* Subtle animated radar ring */}
       <div className="mx-auto relative flex size-16 items-center justify-center">
-        <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400/20" />
-        <span className="absolute inline-flex size-12 rounded-full bg-emerald-500/10 border border-emerald-500/30" />
-        <span className="relative flex size-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm shadow-emerald-600/30">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-cyan-400/20" />
+        <span className="absolute inline-flex size-12 rounded-full bg-cyan-500/10 border border-cyan-500/30" />
+        <span className="relative flex size-10 items-center justify-center rounded-full bg-gradient-to-tr from-[#00c6ff] via-[#0099ff] to-[#0072ff] text-white shadow-md shadow-cyan-500/40">
           <Radio className="size-5 animate-pulse" />
         </span>
       </div>
 
       <div className="mt-4">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 border border-cyan-200/80 px-3 py-1 text-[11px] font-bold text-cyan-800 shadow-[0_0_12px_rgba(0,198,255,0.15)]">
+          <span className="size-1.5 rounded-full bg-[#00c6ff] shadow-[0_0_6px_#00c6ff] animate-pulse" />
           <span>Store Radar Active · Accepting Live Bookings</span>
         </div>
 
-        <h4 className="mt-2.5 text-base font-black tracking-tight text-foreground">
+        <h4 className="mt-2.5 text-base font-black tracking-tight text-slate-900">
           Listening for Live Customer Orders
         </h4>
-        <p className="mx-auto mt-1 max-w-md text-xs font-medium text-muted-foreground leading-relaxed">
+        <p className="mx-auto mt-1 max-w-md text-xs font-medium text-slate-500 leading-relaxed">
           Customer laundry bookings in your service radius will appear here instantly with live sound and terminal notifications.
         </p>
       </div>
@@ -62,16 +62,16 @@ export function NoOrdersEmptyState() {
 export function OfflineEmptyState({ onGoOnline }: { onGoOnline: () => void }) {
   return (
     <EmptyShell
-      icon={<PowerOff className="size-6" />}
+      icon={<PowerOff className="size-6 text-slate-600" />}
       title="You're offline"
       body="Customers can't book your shop while you're offline. Go online to start receiving orders."
       action={
         <button
           type="button"
           onClick={onGoOnline}
-          className="rounded-full bg-emerald-600 px-5 py-2 text-xs font-black text-white shadow-sm hover:bg-emerald-700 transition-all duration-300 active:scale-[0.95] cursor-pointer"
+          className="rounded-full bg-gradient-to-r from-[#00c6ff] via-[#0099ff] to-[#0072ff] px-5 py-2.5 text-xs font-black text-white shadow-[0_0_16px_rgba(0,198,255,0.4)] hover:opacity-95 transition-all duration-300 active:scale-[0.95] cursor-pointer"
         >
-          Go online
+          Go online ⚡
         </button>
       }
     />

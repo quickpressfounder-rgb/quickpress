@@ -124,7 +124,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
                 {isHub || isStore ? (
                   <span
                     className={`absolute -top-0.5 -right-1 size-2 rounded-full ring-2 ring-white ${
-                      isStoreOnline ? "bg-blue-600" : "bg-amber-500"
+                      isStoreOnline ? "bg-[#00c6ff] shadow-[0_0_6px_#00c6ff]" : "bg-slate-400"
                     }`}
                     title={isStoreOnline ? "Store Online" : "Store Offline"}
                   />
