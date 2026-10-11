@@ -279,10 +279,10 @@ export function PartnerProfileScreen() {
       .catch(() => undefined);
   }, []);
 
-  const storeName = profile?.businessName || profile?.name || profile?.ownerName || "QuickPress Partner Store";
+  const storeName = profile?.businessName || profile?.name || profile?.ownerName || "Partner Store";
   const city = profile?.city || "Kasganj";
   const partnerId = formatPartnerId(profile?.partnerId || (profile as any)?.id);
-  const phone = normalizeDisplayPhone(profile?.phone || profile?.ownerPhone) || "+91 92587 30561";
+  const phone = normalizeDisplayPhone(profile?.phone || profile?.ownerPhone) || "";
   const logoImg = profile?.logo || profile?.logoUrl || profile?.image;
   const [logoFailed, setLogoFailed] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -558,14 +558,16 @@ export function PartnerProfileScreen() {
                     <h2 className="truncate text-base font-black text-zinc-900">{storeName}</h2>
                     <BadgeCheck className="size-4 text-blue-500 fill-current shrink-0" />
                   </div>
-                  <p className="text-xs font-semibold text-zinc-500">{phone}</p>
+                  {phone ? <p className="text-xs font-semibold text-zinc-500">{phone}</p> : null}
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700">
-                      ID: {partnerId}
-                    </span>
+                    {partnerId ? (
+                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700">
+                        ID: {partnerId}
+                      </span>
+                    ) : null}
                     <span className="flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">
                       <Star className="size-2.5 fill-current text-amber-500" />
-                      {profile?.rating || "4.9"}
+                      {profile?.rating !== undefined ? Number(profile.rating).toFixed(1) : "5.0"}
                     </span>
                   </div>
                 </div>
@@ -584,7 +586,7 @@ export function PartnerProfileScreen() {
             <div className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-100 pt-3 text-center">
               <div className="rounded-2xl bg-zinc-50 p-2.5">
                 <p className="text-[10px] font-bold uppercase text-zinc-400">Total Orders</p>
-                <p className="text-sm font-black text-zinc-900">{profile?.totalOrders || "4"}</p>
+                <p className="text-sm font-black text-zinc-900">{profile?.totalOrders ?? 0}</p>
               </div>
               <div className="rounded-2xl bg-zinc-50 p-2.5">
                 <p className="text-[10px] font-bold uppercase text-zinc-400">City Outlet</p>
@@ -881,7 +883,7 @@ export function PartnerProfileScreen() {
                 </div>
               </div>
               <a
-                href="tel:+919258730561"
+                href="tel:18008890123"
                 className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800 active:scale-95"
               >
                 <PhoneCall className="size-3.5" />
@@ -1561,7 +1563,7 @@ export function PartnerProfileScreen() {
             </div>
             <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
               <p className="text-xs font-bold text-muted-foreground">{t("profile.completedOrders", "Completed Orders")}</p>
-              <p className="text-2xl font-black text-foreground">{profile?.totalOrders || 4}</p>
+              <p className="text-2xl font-black text-foreground">{profile?.totalOrders ?? 0}</p>
             </div>
             <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
               <p className="text-xs font-bold text-muted-foreground">{t("profile.location", "Location")}</p>

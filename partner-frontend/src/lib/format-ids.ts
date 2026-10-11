@@ -4,8 +4,9 @@
  */
 
 export function formatPartnerId(id?: string | null): string {
-  if (!id) return "PRT-100001";
+  if (!id) return "";
   const clean = String(id).trim();
+  if (!clean) return "";
   if (/^PRT-\d{6}$/i.test(clean)) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("PRT-")) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("PARTNER-")) return `PRT-${clean.slice(8).toUpperCase()}`;
@@ -19,7 +20,7 @@ export function formatPartnerId(id?: string | null): string {
   if (alnum.length >= 6) {
     return `PRT-${alnum.slice(0, 6)}`;
   }
-  return `PRT-${alnum.padEnd(6, "0")}`;
+  return alnum ? `PRT-${alnum.padEnd(6, "0")}` : "";
 }
 
 export function formatCaptainId(id?: string | null): string {

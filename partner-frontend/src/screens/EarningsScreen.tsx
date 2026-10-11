@@ -512,10 +512,6 @@ export function EarningsScreen() {
                   <p className="mt-0.5 text-xs font-black text-black">
                     {currentCycle?.payoutDate || "Monday, 10:00 AM"}
                   </p>
-                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Auto-Settling ✓</span>
-                  </div>
                 </div>
               </div>
 
@@ -1051,9 +1047,6 @@ export function EarningsScreen() {
                           Current 7-Day Cycle
                         </p>
                       </div>
-                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
-                        Auto-Settling ✓
-                      </span>
                     </div>
 
                     <p className="mt-3 text-3xl font-black text-black">
