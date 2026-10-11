@@ -58,7 +58,6 @@ import {
   Star,
   Store,
   Timer,
-  TrendingUp,
   UploadCloud,
   User,
   UserCheck,
@@ -598,52 +597,6 @@ export function PartnerProfileScreen() {
             </div>
           </div>
 
-          {/* ================================================================= */}
-          {/* DEDICATED SECTION: Store Analytics & Growth Performance           */}
-          {/* ================================================================= */}
-          <div className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-50/70 via-white to-white p-4.5 shadow-sm space-y-3.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-600/30">
-                  <TrendingUp className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-zinc-900">Store Analytics & Growth</h3>
-                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-800">
-                      Live
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-medium text-zinc-500">
-                    Daily revenue trends, order funnels, category velocity & peak hours
-                  </p>
-                </div>
-              </div>
-
-              <Link
-                to={partnerRoutes.analytics}
-                className="shrink-0 flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3 py-1.5 text-xs font-black text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-xs"
-              >
-                <span>Analytics</span>
-                <ChevronRight className="size-3.5" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-2xl bg-white border border-blue-100 p-2.5 shadow-2xs text-center">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">SLA Speed</p>
-                <p className="text-xs font-black text-emerald-700">99.4% On-time</p>
-              </div>
-              <div className="rounded-2xl bg-white border border-blue-100 p-2.5 shadow-2xs text-center">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">Turnaround</p>
-                <p className="text-xs font-black text-zinc-900">~2.4 hrs avg</p>
-              </div>
-              <div className="rounded-2xl bg-white border border-blue-100 p-2.5 shadow-2xs text-center">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">Net Share</p>
-                <p className="text-xs font-black text-blue-700">85% Payout</p>
-              </div>
-            </div>
-          </div>
 
           {/* ================================================================= */}
           {/* DEDICATED SECTION: Services & Catalog Management                  */}
@@ -1616,63 +1569,6 @@ export function PartnerProfileScreen() {
             </div>
           </div>
 
-          {/* ================================================================= */}
-          {/* STORE ANALYTICS & GROWTH SECTION                                  */}
-          {/* ================================================================= */}
-          <div className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-500/5 via-card to-card p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-600/30">
-                  <TrendingUp className="size-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-foreground">Store Analytics & Growth Insights</h2>
-                    <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-0.5 text-xs font-black text-blue-700 dark:text-blue-300">
-                      Live Telemetry
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Real-time revenue distributions, fulfillment SLA, category velocity, and peak ordering heatmap
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Link
-                  to={partnerRoutes.analytics}
-                  className="flex items-center gap-2 rounded-full bg-blue-600 hover:bg-blue-700 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-blue-600/25 active:scale-95 transition-all cursor-pointer"
-                >
-                  <span>Open Full Analytics Hub</span>
-                  <ArrowRight className="size-3.5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Quick KPI Preview Pills */}
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-border/60 pt-4">
-              <div className="rounded-2xl bg-muted/40 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Fulfillment SLA</p>
-                <p className="text-base font-black text-foreground">99.4% On-Time</p>
-                <p className="text-[10px] text-emerald-600 font-semibold">Standard & Express</p>
-              </div>
-              <div className="rounded-2xl bg-muted/40 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Avg Turnaround</p>
-                <p className="text-base font-black text-foreground">~2.4 Hours</p>
-                <p className="text-[10px] text-muted-foreground font-semibold">Processing Speed</p>
-              </div>
-              <div className="rounded-2xl bg-muted/40 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Partner Net Share</p>
-                <p className="text-base font-black text-blue-600 dark:text-blue-400">85% Gross Sales</p>
-                <p className="text-[10px] text-muted-foreground font-semibold">15% Platform Commission</p>
-              </div>
-              <div className="rounded-2xl bg-muted/40 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Customer Retention</p>
-                <p className="text-base font-black text-emerald-600 dark:text-emerald-400">4.9 ★ Rating</p>
-                <p className="text-[10px] text-muted-foreground font-semibold">Verified feedback</p>
-              </div>
-            </div>
-          </div>
 
           {/* ================================================================= */}
           {/* SERVICES & CATALOG MANAGEMENT SECTION                             */}

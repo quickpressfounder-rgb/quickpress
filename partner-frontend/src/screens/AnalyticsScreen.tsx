@@ -452,8 +452,8 @@ export function AnalyticsScreen() {
               })}
             </div>
 
-            {/* Action Tools: Filter Button + Real Status + Refresh */}
-            <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
+            {/* Action Tools: Filter Button on Left, Share + Refresh Grouped on Right */}
+            <div className="flex items-center justify-between gap-2 text-xs">
               
               {/* Filter Trigger Button (Black Text & Icon) */}
               <button
@@ -474,31 +474,34 @@ export function AnalyticsScreen() {
                 )}
               </button>
 
-              {/* Share / WhatsApp Button (Black Text & Icon) */}
-              <button
-                type="button"
-                onClick={handleShareReport}
-                className="flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-black text-xs bg-white text-black border border-zinc-200 hover:bg-zinc-100 shadow-2xs transition-all cursor-pointer active:scale-95"
-                title="Share Statement"
-              >
-                <Share2 className="size-3.5 text-black" />
-                <span className="hidden xs:inline">Share</span>
-              </button>
+              {/* Grouped Right Action Buttons: Share + Refresh */}
+              <div className="flex items-center gap-2">
+                {/* Share / Statement Button */}
+                <button
+                  type="button"
+                  onClick={handleShareReport}
+                  className="flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-black text-xs bg-white text-black border border-zinc-200 hover:bg-zinc-100 shadow-2xs transition-all cursor-pointer active:scale-95"
+                  title="Share Statement"
+                >
+                  <Share2 className="size-3.5 text-black" />
+                  <span>Share</span>
+                </button>
 
-              {/* Refresh Button (Black Icon) */}
-              <button
-                type="button"
-                onClick={() => {
-                  void loadBackend(period);
-                  void refreshOrders();
-                  toast.success("Analytics refreshed with real-time orders");
-                }}
-                disabled={isRefreshing}
-                className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs active:scale-95 transition-transform cursor-pointer"
-                title="Refresh Analytics"
-              >
-                <RotateCw className={`size-3.5 text-black ${isRefreshing ? "animate-spin" : ""}`} />
-              </button>
+                {/* Refresh Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void loadBackend(period);
+                    void refreshOrders();
+                    toast.success("Analytics refreshed with real-time orders");
+                  }}
+                  disabled={isRefreshing}
+                  className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs active:scale-95 transition-transform cursor-pointer"
+                  title="Refresh Analytics"
+                >
+                  <RotateCw className={`size-3.5 text-black ${isRefreshing ? "animate-spin" : ""}`} />
+                </button>
+              </div>
             </div>
           </div>
 
