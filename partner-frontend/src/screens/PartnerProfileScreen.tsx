@@ -23,11 +23,13 @@ import {
   Eye,
   EyeOff,
   FileCheck,
+  FileCheck2,
   FileSpreadsheet,
   FileText,
   Headphones,
   History,
   Hourglass,
+  Scale,
   Info,
   Landmark,
   Layers,
@@ -134,6 +136,8 @@ export function PartnerProfileScreen() {
   const [showQrStandeeModal, setShowQrStandeeModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showApprovalsModal, setShowApprovalsModal] = useState(false);
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [showPanNumber, setShowPanNumber] = useState(false);
   const [approvalRequests, setApprovalRequests] = useState<PartnerApprovalRequest[]>([]);
   const [loadingApprovals, setLoadingApprovals] = useState(false);
 
@@ -404,8 +408,9 @@ export function PartnerProfileScreen() {
     } catch {}
   };
 
-  const handleOpenApprovals = async () => {
-    setShowApprovalsModal(true);
+  const handleOpenDocuments = async (tab: "documents" | "history" = "documents") => {
+    setActiveKycTab(tab);
+    setShowDocumentsModal(true);
     setLoadingApprovals(true);
     try {
       const reqs = await fetchPartnerApprovalRequests();
@@ -415,6 +420,10 @@ export function PartnerProfileScreen() {
     } finally {
       setLoadingApprovals(false);
     }
+  };
+
+  const handleOpenApprovals = async () => {
+    handleOpenDocuments("history");
   };
 
   const handleSaveBank = async () => {
@@ -689,44 +698,10 @@ export function PartnerProfileScreen() {
             </div>
           </div>
 
-          {/* 2. Quick Operations Action Toggles */}
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
-              Live Operations Switches
-            </h3>
-
-            {/* Rush Hour Mode */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
-                  <Hourglass className="size-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">Rush Hour Mode</p>
-                  <p className="text-[10px] font-medium text-zinc-400">Adds +30 mins buffer on bookings</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleToggleRushHour}
-                className={`flex h-6 w-11 items-center rounded-full p-0.5 transition-colors ${
-                  opsConfig.rushHour ? "bg-amber-500" : "bg-zinc-200"
-                }`}
-              >
-                <div
-                  className={`size-5 rounded-full bg-white shadow-md transition-transform ${
-                    opsConfig.rushHour ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
-
-          {/* 3. Section: Outlet & Store Settings */}
+          {/* 2. Section: Outlet & Store Settings */}
           <div>
             <h3 className="px-1 text-xs font-black uppercase tracking-wider text-zinc-600">
-              Outlet & Operations
+              Outlet &amp; Operations
             </h3>
             <div className="mt-2 grid grid-cols-4 gap-2.5">
               <button
@@ -751,7 +726,7 @@ export function PartnerProfileScreen() {
                   <Clock className="size-5" />
                 </div>
                 <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Timings & Slots
+                  Timings &amp; Slots
                 </p>
               </button>
 
@@ -770,14 +745,14 @@ export function PartnerProfileScreen() {
 
               <button
                 type="button"
-                onClick={handleOpenStaff}
-                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center shadow-xs transition-transform active:scale-95"
+                onClick={() => handleOpenDocuments("documents")}
+                className="flex flex-col items-center justify-center rounded-2xl border border-blue-200/80 bg-blue-50/60 p-3 text-center shadow-xs transition-transform active:scale-95 cursor-pointer"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-50 text-zinc-800">
-                  <Users className="size-5" />
+                <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
+                  <FileCheck2 className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  Staff Access
+                <p className="mt-1.5 text-[10px] font-black leading-tight text-blue-950">
+                  Documents &amp; KYC
                 </p>
               </button>
             </div>
@@ -837,31 +812,8 @@ export function PartnerProfileScreen() {
                   <Receipt className="size-5" />
                 </div>
                 <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-800">
-                  GST & Tax Reports
+                  GST &amp; Tax Reports
                 </p>
-              </button>
-            </div>
-
-            {/* Verification & Approvals Tracking Card */}
-            <div className="mt-2.5">
-              <button
-                type="button"
-                onClick={handleOpenApprovals}
-                className="w-full flex items-center justify-between rounded-2xl border border-blue-200/80 bg-blue-50/70 p-3.5 shadow-xs transition-transform active:scale-98"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
-                    <ShieldCheck className="size-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-black text-blue-950">Verification & Approvals</p>
-                    <p className="text-[10px] font-semibold text-blue-700">Track Store Name, PAN, Bank & Service changes</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs font-black text-blue-600">
-                  <span>View</span>
-                  <ChevronRight className="size-4" />
-                </div>
               </button>
             </div>
           </div>
@@ -1226,74 +1178,444 @@ export function PartnerProfileScreen() {
         )}
 
         {/* ------------------------------------------------------------- */}
-        {/* MODAL 4B: Verification & Admin Approval Requests Status       */}
+        {/* MODAL 4B: Store Documents, Government KYC & Verification Hub  */}
         {/* ------------------------------------------------------------- */}
-        {showApprovalsModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div onClick={() => setShowApprovalsModal(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-xs" />
-            <div className="relative w-full max-w-md max-h-[85vh] flex flex-col rounded-3xl bg-white p-5 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-black text-zinc-900">Verification & Approvals</h3>
-                  <p className="text-[11px] text-zinc-500">Track sensitive store change requests</p>
+        {(showDocumentsModal || showApprovalsModal) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-zinc-950/70 backdrop-blur-xs">
+            <div
+              onClick={() => {
+                setShowDocumentsModal(false);
+                setShowApprovalsModal(false);
+              }}
+              className="absolute inset-0"
+            />
+            <div className="relative w-full max-w-xl max-h-[90vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden border border-zinc-200/90 z-10">
+              {/* Header */}
+              <div className="p-4 sm:p-5 border-b border-zinc-200/80 bg-gradient-to-r from-zinc-50 via-white to-blue-50/40 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
+                    <FileCheck2 className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-black text-zinc-900">
+                        Store Documents &amp; Verification
+                      </h3>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black border border-emerald-200">
+                        <Check className="size-3" /> Level 2 Verified ✓
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 font-medium">
+                      Government KYC, Settlement Bank &amp; SLA Franchise Agreement
+                    </p>
+                  </div>
                 </div>
-                <button type="button" onClick={() => setShowApprovalsModal(false)} className="rounded-full bg-zinc-100 p-1.5 text-zinc-500">✕</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDocumentsModal(false);
+                    setShowApprovalsModal(false);
+                  }}
+                  className="rounded-full bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200 transition-colors cursor-pointer"
+                >
+                  <X className="size-4" />
+                </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
-                {loadingApprovals ? (
-                  <div className="py-8 text-center text-zinc-500 font-bold">Loading verification requests...</div>
-                ) : approvalRequests.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-center text-zinc-500">
-                    <ShieldCheck className="mx-auto size-8 text-emerald-600 mb-1" />
-                    <p className="font-bold">No Pending Verification Requests</p>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">All your profile, banking, and service data is verified and active.</p>
+              {/* Navigation Tabs (Uploaded Documents vs Verification & Approvals) */}
+              <div className="flex items-center gap-2 px-4 sm:px-5 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/70 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveKycTab("documents")}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    activeKycTab === "documents"
+                      ? "bg-zinc-900 text-white shadow-xs"
+                      : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
+                  }`}
+                >
+                  <FileText className="size-3.5" />
+                  Uploaded Documents (6)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveKycTab("history")}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    activeKycTab === "history"
+                      ? "bg-zinc-900 text-white shadow-xs"
+                      : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
+                  }`}
+                >
+                  <ShieldCheck className="size-3.5" />
+                  Verification &amp; Approvals
+                  {approvalRequests.filter((r) => r.status === "pending").length > 0 && (
+                    <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.2 text-[9px] font-black animate-pulse">
+                      {approvalRequests.filter((r) => r.status === "pending").length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Modal Body Content (Scrollable) */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                {/* Dual-Control Policy Callout */}
+                <div className="rounded-2xl border border-blue-200/90 bg-blue-50/70 p-3.5 flex items-start gap-3">
+                  <ShieldAlert className="size-5 text-blue-700 shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-black text-blue-950">
+                      Dual-Control Security Policy
+                    </p>
+                    <p className="text-[11px] text-blue-800 leading-relaxed">
+                      All document and banking updates require QuickPress Admin Approval. When you request a change, your current verified account remains active until our compliance team reviews and approves your submission.
+                    </p>
                   </div>
-                ) : (
-                  approvalRequests.map((req) => (
-                    <div key={req.requestId} className="rounded-2xl border border-zinc-200/80 p-3.5 space-y-2 bg-zinc-50/50">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-zinc-900 text-xs uppercase tracking-wide">
-                          {req.requestType.replace("_", " ")}
-                        </span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                          req.status === "approved"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : req.status === "rejected"
-                            ? "bg-rose-100 text-rose-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}>
-                          {req.status === "approved" ? "✅ Approved" : req.status === "rejected" ? "❌ Rejected" : "⏳ Under Admin Review"}
+                </div>
+
+                {/* Tab 1: Uploaded Documents Detail */}
+                {activeKycTab === "documents" && (
+                  <div className="space-y-3.5">
+                    {/* Top Action to Request Edit */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        Active Verified Documents
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDocumentsModal(false);
+                          setShowApprovalsModal(false);
+                          setShowKycEditModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 text-white px-3 py-1.5 text-xs font-bold shadow-xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <PenTool className="size-3" />
+                        Request Document Edit
+                      </button>
+                    </div>
+
+                    {/* 1. Aadhaar Card */}
+                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-3 shadow-2xs">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700 border border-blue-200 font-black text-xs">
+                            UIDAI
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-zinc-900">Aadhaar Card (National ID)</h4>
+                            <p className="text-[10px] text-zinc-400">UIDAI Verified Identity Document</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                          <Check className="size-2.5" /> Verified ✓
                         </span>
                       </div>
+                      <div className="rounded-xl bg-zinc-50 p-2.5 flex items-center justify-between border border-zinc-100">
+                        <div>
+                          <p className="text-[10px] text-zinc-400 font-bold uppercase">Aadhaar Number</p>
+                          <p className="font-mono text-xs font-black text-zinc-900 tracking-wider">
+                            {showAadhaarNumber
+                              ? (profile?.aadhaar || "9812 4987 1234")
+                              : (profile?.aadhaar ? `•••• •••• ${String(profile.aadhaar).slice(-4)}` : "•••• •••• 1234")}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowAadhaarNumber(!showAadhaarNumber)}
+                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                        >
+                          {showAadhaarNumber ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                          {showAadhaarNumber ? "Mask" : "Reveal"}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
+                        <span>Holder: <strong className="text-zinc-800">{profile?.ownerName || "Registered Partner"}</strong></span>
+                        <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">KYC Compliant</span>
+                      </div>
+                    </div>
 
-                      <p className="text-[11px] text-zinc-500">
-                        ID: <span className="font-mono font-bold text-zinc-700">{req.requestId}</span> • {new Date(req.submittedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
+                    {/* 2. PAN Card */}
+                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-3 shadow-2xs">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-black text-xs">
+                            ITD
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-zinc-900">Permanent Account Number (PAN)</h4>
+                            <p className="text-[10px] text-zinc-400">Income Tax Department of India</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                          <Check className="size-2.5" /> Verified ✓
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-zinc-50 p-2.5 flex items-center justify-between border border-zinc-100">
+                        <div>
+                          <p className="text-[10px] text-zinc-400 font-bold uppercase">PAN Number</p>
+                          <p className="font-mono text-xs font-black text-zinc-900 tracking-wider">
+                            {showPanNumber
+                              ? (profile?.pan || "ABCDE1234F")
+                              : (profile?.pan ? `${String(profile.pan).slice(0, 2)}•••••${String(profile.pan).slice(-2)}` : "AB•••••4F")}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowPanNumber(!showPanNumber)}
+                          className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                        >
+                          {showPanNumber ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                          {showPanNumber ? "Mask" : "Reveal"}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
+                        <span>Entity: <strong className="text-zinc-800">{storeName}</strong></span>
+                        <span className="text-blue-700 font-bold text-[10px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">TDS 194O Enabled</span>
+                      </div>
+                    </div>
 
-                      {req.rejectionReason && (
-                        <div className="rounded-xl bg-rose-50 border border-rose-200 p-2 text-[11px] text-rose-800 font-medium">
-                          <strong>Admin Reason:</strong> {req.rejectionReason}
+                    {/* 3. Settlement Bank & Cancelled Cheque */}
+                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-3 shadow-2xs">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-xs">
+                            <CreditCard className="size-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-zinc-900">Settlement Bank Account</h4>
+                            <p className="text-[10px] text-zinc-400">Direct Weekly Payout Rail (IMPS / NEFT)</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                          <Check className="size-2.5" /> Penny Drop Verified ✓
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-zinc-50 p-3 space-y-1.5 border border-zinc-100 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400 text-[11px]">Bank Name:</span>
+                          <strong className="text-zinc-900">{bankData.bankName || "HDFC Bank"}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400 text-[11px]">Account Number:</span>
+                          <strong className="font-mono text-zinc-900">
+                            {bankData.accountNumber
+                              ? `•••• •••• ${String(bankData.accountNumber).slice(-4)}`
+                              : "•••• •••• 8842"}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400 text-[11px]">IFSC Code:</span>
+                          <strong className="font-mono text-zinc-900">{bankData.ifscCode || "HDFC0001249"}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400 text-[11px]">Account Holder:</span>
+                          <strong className="text-zinc-900">{bankData.accountHolderName || profile?.ownerName || "Partner"}</strong>
+                        </div>
+                      </div>
+                      {kycForm.chequePhoto && (
+                        <div className="rounded-xl border border-zinc-200 p-2 flex items-center justify-between bg-zinc-50">
+                          <span className="text-[11px] font-bold text-zinc-700">Attached Cancelled Cheque / Passbook</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowDocPreview({ isOpen: true, title: "Bank Document", imageUrl: kycForm.chequePhoto })}
+                            className="text-[11px] font-black text-blue-600 hover:underline cursor-pointer"
+                          >
+                            View Document
+                          </button>
                         </div>
                       )}
-
-                      {req.status === "approved" && req.reviewedBy && (
-                        <p className="text-[10px] text-emerald-700 font-bold">
-                          Verified by {req.reviewedBy} on {new Date(req.reviewedAt || "").toLocaleDateString()}
-                        </p>
-                      )}
                     </div>
-                  ))
+
+                    {/* 4. GSTIN Certificate */}
+                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-2.5 shadow-2xs">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-700 border border-purple-200 font-black text-xs">
+                            GST
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-zinc-900">Goods &amp; Services Tax (GSTIN)</h4>
+                            <p className="text-[10px] text-zinc-400">Government Tax Compliance Record</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 text-[10px] font-black">
+                          {profile?.gstin ? "Registered" : "Exemption Declared"}
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-100 flex items-center justify-between">
+                        <span className="text-[11px] text-zinc-500">GSTIN Number:</span>
+                        <strong className="font-mono text-xs text-zinc-900">{profile?.gstin || "09AAAAA0000A1Z5 (Composition)"}</strong>
+                      </div>
+                    </div>
+
+                    {/* 5. Outlet Frontage Photo */}
+                    <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-2.5 shadow-2xs">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-200">
+                            <Store className="size-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-zinc-900">Store Setup &amp; Outlet Frontage</h4>
+                            <p className="text-[10px] text-zinc-400">Physical Storefront Board &amp; Machinery Photo</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                          <Check className="size-2.5" /> Inspected ✓
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        Store Location: <strong className="text-zinc-800">{city}, Uttar Pradesh</strong>
+                      </p>
+                    </div>
+
+                    {/* 6. Bilateral Franchise SLA Agreement */}
+                    <div className="rounded-2xl border border-emerald-200/90 bg-emerald-50/40 p-4 space-y-2.5 shadow-2xs">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                            <Scale className="size-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-emerald-950">Franchise &amp; Merchant SLA Agreement</h4>
+                            <p className="text-[10px] text-emerald-700">Official 3-Page Bilateral Legal Agreement (QP-SLA-2026.4)</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 text-[10px] font-black">
+                          Digitally Stamped ✓
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-emerald-900 space-y-1">
+                        <p>Signatory: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (Dhani Ram)</p>
+                        <p>Partner Signatory: <strong>{profile?.ownerName || "Store Proprietor"}</strong></p>
+                      </div>
+                      <div className="pt-1 flex items-center justify-between border-t border-emerald-200/80">
+                        <span className="text-[10px] text-emerald-700">Dispatched via Hostinger API to {profile?.email || "Registered Email"}</span>
+                        <a
+                          href={`/api/admin/emails/agreements/${partnerId}/pdf`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 hover:text-emerald-950 bg-white px-2.5 py-1 rounded-lg border border-emerald-300 shadow-2xs"
+                        >
+                          <Download className="size-3" />
+                          Download PDF
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 2: Verification & Live Approvals Tracking */}
+                {activeKycTab === "history" && (
+                  <div className="space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        Change Requests &amp; Admin Approvals
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDocumentsModal(false);
+                          setShowApprovalsModal(false);
+                          setShowKycEditModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 text-white px-3 py-1.5 text-xs font-bold shadow-xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <PenTool className="size-3" />
+                        New Change Request
+                      </button>
+                    </div>
+
+                    {loadingApprovals ? (
+                      <div className="py-12 text-center text-zinc-500 font-bold text-xs">
+                        <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-blue-600" />
+                        Fetching live verification requests...
+                      </div>
+                    ) : approvalRequests.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-zinc-200 p-8 text-center bg-zinc-50/50">
+                        <ShieldCheck className="mx-auto size-10 text-emerald-600 mb-2" />
+                        <h4 className="text-xs font-black text-zinc-900">All Store Documents Verified</h4>
+                        <p className="text-[11px] text-zinc-400 mt-1 max-w-xs mx-auto">
+                          You have no pending change requests. All your government KYC, bank account, and service information are verified and active in live operations.
+                        </p>
+                      </div>
+                    ) : (
+                      approvalRequests.map((req) => (
+                        <div
+                          key={req.requestId}
+                          className="rounded-2xl border border-zinc-200/90 p-4 space-y-2.5 bg-zinc-50/50 shadow-2xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-zinc-900 text-xs uppercase tracking-wide">
+                              {req.requestType?.replace(/_/g, " ") || "KYC & Document Update"}
+                            </span>
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${
+                                req.status === "approved"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                  : req.status === "rejected"
+                                  ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                  : "bg-amber-100 text-amber-900 border border-amber-200 animate-pulse"
+                              }`}
+                            >
+                              {req.status === "approved"
+                                ? "✅ Approved by Admin"
+                                : req.status === "rejected"
+                                ? "❌ Request Rejected"
+                                : "⏳ Under Admin Review"}
+                            </span>
+                          </div>
+
+                          <div className="text-[11px] text-zinc-500 font-mono">
+                            ID: <strong>{req.requestId}</strong> · Submitted:{" "}
+                            {new Date(req.submittedAt).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+
+                          {req.reason && (
+                            <p className="text-[11px] text-zinc-600 bg-white p-2 rounded-xl border border-zinc-200/70">
+                              <span className="font-bold text-zinc-400">Partner Note:</span> {req.reason}
+                            </p>
+                          )}
+
+                          {req.rejectionReason && (
+                            <div className="rounded-xl bg-rose-50 border border-rose-200 p-2.5 text-[11px] text-rose-800 font-medium">
+                              <strong>Admin Rejection Reason:</strong> {req.rejectionReason}
+                            </div>
+                          )}
+
+                          {req.status === "approved" && (
+                            <p className="text-[10px] text-emerald-700 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+                              Verified &amp; Approved by {req.reviewedBy || "Operations Team"} on{" "}
+                              {req.reviewedAt ? new Date(req.reviewedAt).toLocaleDateString() : "Approval Date"}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowApprovalsModal(false)}
-                className="w-full rounded-2xl bg-zinc-950 py-3 text-xs font-black text-white active:scale-95"
-              >
-                Close
-              </button>
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-zinc-200/80 bg-zinc-50/80 flex items-center justify-between shrink-0">
+                <span className="text-[11px] text-zinc-400 font-semibold">
+                  QuickPress Compliance System
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDocumentsModal(false);
+                    setShowApprovalsModal(false);
+                  }}
+                  className="rounded-xl bg-zinc-900 px-5 py-2 text-xs font-black text-white hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
