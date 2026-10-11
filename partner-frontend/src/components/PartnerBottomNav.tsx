@@ -90,7 +90,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
   const navContent = (
     <nav
       aria-label="Partner Navigation"
-      className={`fixed inset-x-0 bottom-0 z-40 w-full border-t border-zinc-200/90 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl shadow-[0_-4px_24px_rgba(0,0,0,0.04)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 px-4 transition-transform duration-300 ease-in-out md:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-40 w-full border-t border-slate-100 bg-white shadow-[0_-4px_24px_rgba(37,99,235,0.04)] pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 px-4 transition-transform duration-300 ease-in-out md:hidden ${
         isVisible ? "translate-y-0" : "translate-y-full pointer-events-none"
       }`}
     >
@@ -116,15 +116,15 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
               <div className="relative flex items-center justify-center">
                 <tab.icon
                   className={`size-5 transition-colors ${
-                    isActive ? "text-black dark:text-white stroke-[2.5]" : "text-zinc-500 dark:text-zinc-400 stroke-[1.8]"
+                    isActive ? "text-blue-600 stroke-[2.5]" : "text-slate-400 stroke-[1.8]"
                   }`}
                 />
 
                 {/* Hub or Store Tab: Live Store Online/Offline Dot */}
                 {isHub || isStore ? (
                   <span
-                    className={`absolute -top-0.5 -right-1 size-2 rounded-full ring-2 ring-white dark:ring-zinc-900 ${
-                      isStoreOnline ? "bg-emerald-500" : "bg-amber-500"
+                    className={`absolute -top-0.5 -right-1 size-2 rounded-full ring-2 ring-white ${
+                      isStoreOnline ? "bg-blue-600" : "bg-amber-500"
                     }`}
                     title={isStoreOnline ? "Store Online" : "Store Offline"}
                   />
@@ -132,7 +132,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
 
                 {/* Orders Tab: Live Active Orders Count Badge */}
                 {isOrders && activeOrdersCount > 0 ? (
-                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white shadow-xs ring-2 ring-white dark:ring-zinc-900">
+                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-black text-white shadow-xs ring-2 ring-white">
                     {activeOrdersCount > 99 ? "99+" : activeOrdersCount}
                   </span>
                 ) : null}
@@ -141,7 +141,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
               {/* Tab Name under Icon */}
               <span
                 className={`mt-1 text-[10.5px] tracking-tight transition-colors truncate max-w-[64px] ${
-                  isActive ? "font-black text-black dark:text-white" : "font-semibold text-zinc-500 dark:text-zinc-400"
+                  isActive ? "font-black text-blue-600" : "font-medium text-slate-500"
                 }`}
               >
                 {label}
@@ -149,7 +149,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
 
               {/* Minimal Micro Indicator Dot under active label */}
               {isActive ? (
-                <span className="mt-0.5 size-1 rounded-full bg-black dark:bg-white" />
+                <span className="mt-0.5 size-1 rounded-full bg-blue-600" />
               ) : (
                 <span className="mt-0.5 size-1 rounded-full bg-transparent" />
               )}

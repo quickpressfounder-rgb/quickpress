@@ -246,9 +246,9 @@ export function ZomatoHubView() {
   }, [activeOrders, orders, activeFilterTab]);
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7] pb-28 text-zinc-900">
-      {/* Top Header: Premium QuickPress Brand Style */}
-      <header className="sticky top-0 z-30 bg-white/95 dark:bg-card/95 backdrop-blur-2xl border-b border-slate-200/80 dark:border-border/60 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] px-4 pt-3 pb-2.5 transition-all">
+    <div className="min-h-screen bg-white pb-28 text-slate-900">
+      {/* Top Header: Pure White Luxury Brand Header */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-2xl border-b border-slate-100 shadow-[0_4px_24px_-4px_rgba(37,99,235,0.04)] px-4 pt-3 pb-2.5 transition-all">
         <div className="flex items-center justify-between gap-2.5">
           {/* Store Logo & Details */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -257,7 +257,7 @@ export function ZomatoHubView() {
               title="Shop Profile & Photos"
               className="relative shrink-0 active:scale-95 transition-transform"
             >
-              <div className="size-11 rounded-2xl overflow-hidden border-2 border-emerald-500/25 bg-emerald-50 dark:bg-zinc-800 shadow-2xs flex items-center justify-center">
+              <div className="size-11 rounded-2xl overflow-hidden border-2 border-blue-500/30 bg-blue-50 shadow-2xs flex items-center justify-center">
                 {shopLogo ? (
                   <img
                     src={shopLogo}
@@ -266,36 +266,36 @@ export function ZomatoHubView() {
                     onError={() => setShopLogo("")}
                   />
                 ) : (
-                  <Store className="size-5 text-emerald-600" />
+                  <Store className="size-5 text-blue-600" />
                 )}
               </div>
-              {/* Online/Offline status pulse dot on avatar */}
+              {/* Online status blue pulse dot on avatar */}
               <span
-                className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-white dark:ring-zinc-900 ${
-                  isOnline ? "bg-emerald-500" : "bg-amber-500"
+                className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full ring-2 ring-white ${
+                  isOnline ? "bg-blue-600" : "bg-amber-500"
                 }`}
               >
                 {isOnline ? (
-                  <span className="absolute inset-0 size-full rounded-full bg-emerald-400 animate-ping opacity-75" />
+                  <span className="absolute inset-0 size-full rounded-full bg-blue-400 animate-ping opacity-75" />
                 ) : null}
               </span>
             </Link>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">
                   QuickPress
                 </span>
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 text-[9px] font-black text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                  <CheckCircle2 className="size-2.5 fill-emerald-600 text-white" />
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0.2 text-[9px] font-black text-blue-700 border border-blue-200/60 shrink-0">
+                  <CheckCircle2 className="size-2.5 fill-blue-600 text-white" />
                   <span>Verified</span>
                 </span>
               </div>
-              <h1 className="truncate text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+              <h1 className="truncate text-base font-black tracking-tight text-slate-900 leading-tight">
                 {shopName}
               </h1>
-              <p className="flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-zinc-400 truncate mt-0.5">
-                <MapPin className="size-3 text-emerald-600 shrink-0" />
+              <p className="flex items-center gap-1 text-[11px] font-medium text-slate-500 truncate mt-0.5">
+                <MapPin className="size-3 text-blue-600 shrink-0" />
                 <span>{locationName}</span>
               </p>
             </div>
@@ -306,10 +306,10 @@ export function ZomatoHubView() {
             <button
               type="button"
               onClick={handleToggleStore}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition-all active:scale-95 shadow-xs cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 shadow-xs cursor-pointer ${
                 isOnline
-                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25"
-                  : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/90 dark:bg-zinc-800 dark:text-zinc-300"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
               }`}
             >
               <span className="relative flex size-2">
@@ -330,31 +330,31 @@ export function ZomatoHubView() {
               type="button"
               onClick={openLanguageModal}
               title="Change Language"
-              className="flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all cursor-pointer dark:bg-card dark:border-border/80 dark:text-zinc-300"
+              className="flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs active:scale-95 transition-all cursor-pointer"
             >
-              <Globe className="size-4 text-emerald-600" />
+              <Globe className="size-4 text-blue-600" />
             </button>
 
             <Link
               to={partnerRoutes.notifications}
               title="Notifications"
-              className="relative flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all dark:bg-card dark:border-border/80 dark:text-zinc-300"
+              className="relative flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs active:scale-95 transition-all"
             >
               <Bell className="size-4" />
-              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-900" />
+              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-blue-600 ring-2 ring-white" />
             </Link>
 
             <Link
               to={partnerRoutes.settings}
               title="Settings"
-              className="flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all dark:bg-card dark:border-border/80 dark:text-zinc-300"
+              className="flex size-9 items-center justify-center rounded-2xl bg-white border border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600 shadow-2xs active:scale-95 transition-all"
             >
               <Menu className="size-4" />
             </Link>
           </div>
         </div>
 
-        {/* Canonical Order Status Filter Pills Bar */}
+        {/* Canonical Order Status Filter Pills Bar (Pure White + Royal Blue elements) */}
         <div className="no-scrollbar mt-3 flex items-center gap-2 overflow-x-auto pb-0.5">
           {FILTER_TABS.map((tab) => {
             const isActive = activeFilterTab === tab.id;
@@ -365,14 +365,14 @@ export function ZomatoHubView() {
                 onClick={() => setActiveFilterTab(tab.id)}
                 className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                   isActive
-                    ? "bg-primary text-white shadow-md shadow-primary/30 scale-102"
-                    : "border border-slate-200/90 bg-white text-slate-700 hover:border-primary/40 dark:bg-card dark:border-border/80 dark:text-zinc-300"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-102"
+                    : "border border-slate-200 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-600"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                    isActive ? "bg-white/25 text-white" : "bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300"
+                    isActive ? "bg-white/25 text-white" : "bg-slate-100 text-slate-600"
                   }`}
                 >
                   {tab.count}
@@ -386,55 +386,53 @@ export function ZomatoHubView() {
       {/* ========================================================================= */}
       {/* 1. OPERATIONAL DASHBOARD VIEW                                             */}
       {/* ========================================================================= */}
-      <div className="space-y-4 px-4 pt-3">
-        {/* Today So Far Card */}
+      <div className="space-y-4 px-4 pt-3 bg-white">
+        {/* Today's Overview Card: Luxury Pure White Card with Blue Accents */}
         <div>
-          <h2 className="text-xs font-black tracking-wider text-zinc-500 uppercase">
-            Today so far
-          </h2>
-          <div className="mt-1.5 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div className="flex items-baseline gap-6">
-                <div>
-                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                    Total sales
-                  </p>
-                  <p className="mt-0.5 text-2xl font-black text-zinc-900">
+          <div className="relative overflow-hidden rounded-3xl border border-blue-100 bg-white p-5 shadow-[0_4px_24px_-4px_rgba(37,99,235,0.06)]">
+            {/* Top Sapphire Blue Ambient Accent Line */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-600 via-sky-400 to-indigo-600" />
+
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+              <div>
+                <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-blue-600">
+                  Today's Overview
+                </p>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <h3 className="text-3xl font-black tracking-tight text-slate-950">
                     ₹{todayEarnings.toLocaleString("en-IN")}
-                  </p>
+                  </h3>
+                  <span className="text-xs font-bold text-slate-400">Total Sales</span>
                 </div>
-                <div>
-                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                    Total orders
-                  </p>
-                  <p className="mt-0.5 text-2xl font-black text-zinc-900">
-                    {todayOrdersCount}
-                  </p>
-                </div>
+              </div>
+              <div className="text-right">
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700 border border-blue-200/60 shadow-2xs">
+                  {todayOrdersCount} Total Orders
+                </span>
               </div>
             </div>
 
-            {/* Order Flow Progress */}
-            <div className="mt-5 grid grid-cols-4 gap-2 pt-3 border-t border-zinc-100 text-center">
-              <div className="rounded-xl bg-zinc-50 p-2">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase">New</p>
-                <p className="text-sm font-black text-zinc-900">{counts.new || 0}</p>
+            {/* Order Flow Progress Columns with Blue Palette */}
+            <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+              <div className="rounded-2xl bg-blue-50/50 border border-blue-100/70 p-2.5 transition-all">
+                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">New</p>
+                <p className="mt-1 text-base font-black text-slate-900">{counts.new || 0}</p>
               </div>
-              <div className="rounded-xl bg-zinc-50 p-2">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase">Accepted</p>
-                <p className="text-sm font-black text-zinc-900">
+              <div className="rounded-2xl bg-blue-50/50 border border-blue-100/70 p-2.5 transition-all">
+                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Accepted</p>
+                <p className="mt-1 text-base font-black text-slate-900">
                   {(counts.accepted || 0) + (counts.pickup_pending || 0)}
                 </p>
               </div>
-              <div className="rounded-xl bg-zinc-50 p-2">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase">Processing</p>
-                <p className="text-sm font-black text-zinc-900">
+              <div className="rounded-2xl bg-blue-50/50 border border-blue-100/70 p-2.5 transition-all">
+                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">In Wash</p>
+                <p className="mt-1 text-base font-black text-slate-900">
                   {(counts.washing || 0) + (counts.dry_cleaning || 0) + (counts.ironing || 0)}
                 </p>
               </div>
-              <div className="rounded-xl bg-zinc-50 p-2">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase">Ready</p>
-                <p className="text-sm font-black text-zinc-900">{counts.ready || 0}</p>
+              <div className="rounded-2xl bg-blue-50/50 border border-blue-100/70 p-2.5 transition-all">
+                <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Ready</p>
+                <p className="mt-1 text-base font-black text-slate-900">{counts.ready || 0}</p>
               </div>
             </div>
           </div>
@@ -443,7 +441,7 @@ export function ZomatoHubView() {
         {/* Orders Queue according to selected filter */}
         <div>
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-black tracking-tight text-zinc-900">
+            <h2 className="text-base font-black tracking-tight text-slate-950">
               {activeFilterTab === "active" || activeFilterTab === "all" ? (
                 <>Active Orders Queue ({displayedOrders.length})</>
               ) : (
@@ -453,7 +451,7 @@ export function ZomatoHubView() {
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.orders })}
-              className="text-xs font-black text-primary hover:text-primary-dark hover:underline flex items-center gap-1"
+              className="text-xs font-black text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
             >
               View all orders <ArrowRight className="size-3.5" />
             </button>
@@ -461,12 +459,22 @@ export function ZomatoHubView() {
 
           <div className="mt-2.5 space-y-3">
             {displayedOrders.length === 0 ? (
-              <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 text-center shadow-sm">
-                <ShoppingBag className="mx-auto size-8 text-zinc-300" />
-                <p className="mt-2 text-xs font-bold text-zinc-600">
-                  {activeFilterTab === "active" || activeFilterTab === "all" ? "No active orders right now" : `No active orders in "${activeFilterTab}" status`}
-                </p>
-                <p className="text-[10px] text-zinc-400">Incoming customer orders will appear here in real-time.</p>
+              <div className="rounded-3xl border border-blue-100 bg-white p-8 text-center shadow-[0_4px_24px_-4px_rgba(37,99,235,0.04)] space-y-3">
+                <div className="relative mx-auto size-14 flex items-center justify-center rounded-2xl bg-blue-50 border border-blue-200/60 text-blue-600">
+                  <Sparkles className="size-6" />
+                  <span className="absolute -top-1 -right-1 size-3 rounded-full bg-blue-600 animate-ping opacity-75" />
+                  <span className="absolute -top-1 -right-1 size-3 rounded-full bg-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900">
+                    {activeFilterTab === "active" || activeFilterTab === "all"
+                      ? "Store is Online & Listening"
+                      : `No orders in "${activeFilterTab}" status`}
+                  </h4>
+                  <p className="mt-1 text-xs font-medium text-slate-500 max-w-xs mx-auto">
+                    New customer laundry pickups in {locationName} will alert here with chime sound automatically.
+                  </p>
+                </div>
               </div>
             ) : (
               displayedOrders.map((order) => {
@@ -481,16 +489,16 @@ export function ZomatoHubView() {
                       if (target.closest("button, a, input")) return;
                       navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
                     }}
-                    className="rounded-3xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md cursor-pointer space-y-3.5"
+                    className="rounded-3xl border border-blue-100/80 bg-white p-4 sm:p-5 shadow-[0_2px_12px_-2px_rgba(37,99,235,0.05)] transition-all hover:border-blue-300 hover:shadow-md cursor-pointer space-y-3.5"
                   >
                     {/* 1. TOP BAR: Order Code + Services + Status Badge */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center rounded-lg bg-zinc-900 px-2.5 py-1 text-xs font-black text-white tracking-wide shadow-2xs">
+                        <span className="inline-flex items-center rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-black text-white tracking-wide shadow-2xs">
                           #{order.code}
                         </span>
                         {order.services && order.services.length > 0 ? (
-                          <span className="truncate rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-1 text-[11px] font-bold text-primary">
+                          <span className="truncate rounded-lg bg-blue-50 border border-blue-200/70 px-2.5 py-1 text-[11px] font-bold text-blue-700">
                             {order.services.join(", ")}
                           </span>
                         ) : null}
@@ -502,7 +510,7 @@ export function ZomatoHubView() {
                             isNew
                               ? "bg-amber-50 text-amber-800 border border-amber-300 animate-pulse"
                               : order.stage === "ready"
-                                ? "bg-emerald-50 text-emerald-800 border border-emerald-300"
+                                ? "bg-blue-50 text-blue-700 border border-blue-200 font-black"
                                 : "bg-blue-50 text-blue-800 border border-blue-200"
                           }`}
                         >
@@ -511,7 +519,7 @@ export function ZomatoHubView() {
                               isNew
                                 ? "bg-amber-500"
                                 : order.stage === "ready"
-                                  ? "bg-emerald-500"
+                                  ? "bg-blue-600"
                                   : "bg-blue-500"
                             }`}
                           />
@@ -521,17 +529,17 @@ export function ZomatoHubView() {
                     </div>
 
                     {/* 2. CUSTOMER NAME & SLA BAR */}
-                    <div className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-50/70 p-3 border border-zinc-100">
+                    <div className="flex items-center justify-between gap-3 rounded-2xl bg-blue-50/40 p-3 border border-blue-100/70">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-black text-xs shadow-xs">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-black text-xs shadow-xs">
                           {getCustomerInitials(order.customerName)}
                         </div>
                         <div className="min-w-0">
-                          <h4 className="text-sm font-black text-zinc-900 truncate">
+                          <h4 className="text-sm font-black text-slate-900 truncate">
                             {getDisplayCustomerName(order.customerName)}
                           </h4>
-                          <p className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1.5">
-                            <span className="text-emerald-700 font-bold">
+                          <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+                            <span className="text-blue-700 font-bold">
                               ★ {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
                             </span>
                             <span>•</span>
@@ -559,32 +567,32 @@ export function ZomatoHubView() {
                         onClick={() => toggleItemsExpanded(order.id)}
                         className={`rounded-xl p-2 border transition-all cursor-pointer text-center flex flex-col items-center justify-center group ${
                           expandedItemsOrderIds[order.id]
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs"
-                            : "bg-zinc-50 border-zinc-100/80 hover:bg-zinc-100/90 text-zinc-900"
+                            ? "bg-blue-50 border-blue-300 text-blue-900 shadow-2xs"
+                            : "bg-slate-50/80 border-slate-100 hover:bg-blue-50/50 hover:border-blue-200 text-slate-900"
                         }`}
                         title="Click to view items & pricing"
                       >
-                        <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-400 group-hover:text-emerald-700">
-                          <ReceiptText className="size-3 text-zinc-500 group-hover:text-emerald-600" />
+                        <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-400 group-hover:text-blue-700">
+                          <ReceiptText className="size-3 text-slate-500 group-hover:text-blue-600" />
                           <span>Items</span>
                           <ChevronDown
                             className={`size-3 transition-transform duration-200 ${
-                              expandedItemsOrderIds[order.id] ? "rotate-180 text-emerald-600" : ""
+                              expandedItemsOrderIds[order.id] ? "rotate-180 text-blue-600" : ""
                             }`}
                           />
                         </div>
-                        <p className="text-xs font-black mt-0.5 group-hover:text-emerald-700 flex items-center gap-1">
+                        <p className="text-xs font-black mt-0.5 group-hover:text-blue-700 flex items-center gap-1">
                           <span>{order.itemCount} items</span>
-                          <span className="text-[10px] font-semibold text-emerald-600 underline decoration-dotted">View</span>
+                          <span className="text-[10px] font-semibold text-blue-600 underline decoration-dotted">View</span>
                         </p>
                       </button>
-                      <div className="rounded-xl bg-zinc-50 p-2 border border-zinc-100/80">
-                        <p className="text-[10px] font-bold uppercase text-zinc-400">Order Amount</p>
-                        <p className="text-xs font-black text-emerald-700 mt-0.5">₹{order.amount}</p>
+                      <div className="rounded-xl bg-slate-50/80 p-2 border border-slate-100">
+                        <p className="text-[10px] font-bold uppercase text-slate-400">Order Amount</p>
+                        <p className="text-xs font-black text-blue-700 mt-0.5">₹{order.amount}</p>
                       </div>
-                      <div className="rounded-xl bg-zinc-50 p-2 border border-zinc-100/80">
-                        <p className="text-[10px] font-bold uppercase text-zinc-400">Schedule</p>
-                        <p className="text-xs font-black text-zinc-900 mt-0.5 truncate">
+                      <div className="rounded-xl bg-slate-50/80 p-2 border border-slate-100">
+                        <p className="text-[10px] font-bold uppercase text-slate-400">Schedule</p>
+                        <p className="text-xs font-black text-slate-900 mt-0.5 truncate">
                           {order.pickupTime || order.deliveryEta || "15-30 mins"}
                         </p>
                       </div>
@@ -592,19 +600,19 @@ export function ZomatoHubView() {
 
                     {/* EXPANDABLE ITEMS WITH PRICING BREAKDOWN */}
                     {expandedItemsOrderIds[order.id] && (
-                      <div className="rounded-2xl bg-zinc-50/95 border border-zinc-200/90 p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                        <div className="flex items-center justify-between pb-1.5 border-b border-zinc-200/60 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-                          <span className="flex items-center gap-1.5 text-zinc-800">
-                            <ReceiptText className="size-3.5 text-emerald-600" />
+                      <div className="rounded-2xl bg-blue-50/30 border border-blue-100 p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-blue-100 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                          <span className="flex items-center gap-1.5 text-slate-800">
+                            <ReceiptText className="size-3.5 text-blue-600" />
                             Items & Pricing Breakdown
                           </span>
-                          <span className="text-[10px] font-bold text-zinc-400">
+                          <span className="text-[10px] font-bold text-slate-400">
                             {order.items?.length || 0} {order.items?.length === 1 ? "item" : "items"}
                           </span>
                         </div>
 
                         {(!order.items || order.items.length === 0) ? (
-                          <div className="py-2.5 text-center text-xs text-zinc-500 font-medium bg-white rounded-xl border border-zinc-100">
+                          <div className="py-2.5 text-center text-xs text-slate-500 font-medium bg-white rounded-xl border border-slate-100">
                             Standard Laundry Service · Total: ₹{order.amount}
                           </div>
                         ) : (
@@ -612,23 +620,23 @@ export function ZomatoHubView() {
                             {order.items.map((item, idx) => (
                               <div
                                 key={item.id || idx}
-                                className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-white border border-zinc-100 text-xs shadow-2xs"
+                                className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-white border border-blue-100/60 text-xs shadow-2xs"
                               >
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-[10px] font-black text-emerald-700 border border-emerald-200/60">
+                                  <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-blue-50 text-[10px] font-black text-blue-700 border border-blue-200/60">
                                     {item.qty || 1}×
                                   </span>
                                   <div className="min-w-0">
-                                    <p className="font-black truncate text-zinc-900">{item.name}</p>
+                                    <p className="font-black truncate text-slate-900">{item.name}</p>
                                     {item.service && (
-                                      <p className="text-[10px] text-zinc-400 capitalize">{item.service}</p>
+                                      <p className="text-[10px] text-slate-400 capitalize">{item.service}</p>
                                     )}
                                   </div>
                                 </div>
-                                <div className="text-right shrink-0 font-black text-zinc-900 pl-2">
+                                <div className="text-right shrink-0 font-black text-slate-900 pl-2">
                                   <span>₹{(item.qty || 1) * (item.price || 0)}</span>
                                   {item.price ? (
-                                    <span className="block text-[9px] font-semibold text-zinc-400">₹{item.price}/ea</span>
+                                    <span className="block text-[9px] font-semibold text-slate-400">₹{item.price}/ea</span>
                                   ) : null}
                                 </div>
                               </div>
@@ -636,23 +644,23 @@ export function ZomatoHubView() {
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between pt-2 border-t border-zinc-200/80 text-xs font-black text-zinc-900">
-                          <span className="text-zinc-500 uppercase text-[10px] tracking-wider">Total Bill</span>
-                          <span className="text-sm font-black text-emerald-700">₹{order.amount}</span>
+                        <div className="flex items-center justify-between pt-2 border-t border-blue-100 text-xs font-black text-slate-900">
+                          <span className="text-slate-500 uppercase text-[10px] tracking-wider">Total Bill</span>
+                          <span className="text-sm font-black text-blue-700">₹{order.amount}</span>
                         </div>
                       </div>
                     )}
 
                     {/* Pickup Address preview if available */}
                     {order.pickupAddress ? (
-                      <div className="flex items-center gap-1.5 px-1 text-[11px] text-zinc-500">
-                        <MapPin className="size-3.5 shrink-0 text-zinc-400" />
+                      <div className="flex items-center gap-1.5 px-1 text-[11px] text-slate-500">
+                        <MapPin className="size-3.5 shrink-0 text-slate-400" />
                         <span className="truncate">{order.pickupAddress}</span>
                       </div>
                     ) : null}
 
                     {/* 4. TIMELINE (Horizontal Stepper) */}
-                    <div className="rounded-2xl bg-zinc-50/90 p-3 border border-zinc-100">
+                    <div className="rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center justify-between text-[9px] font-black uppercase">
                         {[
                           { key: "placed", label: "Placed" },
@@ -668,17 +676,17 @@ export function ZomatoHubView() {
                               {idx > 0 && (
                                 <div
                                   className={`absolute top-2.5 -left-1/2 w-full h-[2px] -z-0 transition-colors ${
-                                    idx <= stepIdx ? "bg-emerald-500" : "bg-zinc-200"
+                                    idx <= stepIdx ? "bg-blue-600" : "bg-slate-200"
                                   }`}
                                 />
                               )}
                               <div
                                 className={`relative z-10 flex size-5 items-center justify-center rounded-full text-[10px] font-black transition-all ${
                                   isCurrent
-                                    ? "bg-emerald-600 text-white ring-4 ring-emerald-600/20 shadow-xs scale-110"
+                                    ? "bg-blue-600 text-white ring-4 ring-blue-600/20 shadow-xs scale-110"
                                     : isDone
-                                      ? "bg-emerald-500 text-white"
-                                      : "bg-zinc-200 text-zinc-400"
+                                      ? "bg-blue-500 text-white"
+                                      : "bg-slate-200 text-slate-400"
                                 }`}
                               >
                                 {isDone ? "✓" : isCurrent ? "✓" : idx + 1}
@@ -686,10 +694,10 @@ export function ZomatoHubView() {
                               <span
                                 className={`mt-1.5 text-[9px] tracking-tight ${
                                   isCurrent
-                                    ? "text-emerald-800 font-black"
+                                    ? "text-blue-700 font-black"
                                     : isDone
-                                      ? "text-zinc-700 font-bold"
-                                      : "text-zinc-400 font-medium"
+                                      ? "text-slate-700 font-bold"
+                                      : "text-slate-400 font-medium"
                                 }`}
                               >
                                 {step.label}
@@ -701,7 +709,7 @@ export function ZomatoHubView() {
                     </div>
 
                     {/* 5. ACTION BUTTONS (Details & Primary Action in matching Pill style) */}
-                    <div className="flex items-center gap-2.5 pt-1.5 border-t border-zinc-100">
+                    <div className="flex items-center gap-2.5 pt-1.5 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() =>
@@ -710,9 +718,9 @@ export function ZomatoHubView() {
                             params: { orderId: order.id },
                           })
                         }
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-zinc-200/90 bg-zinc-50 hover:bg-zinc-100 py-2.5 sm:py-3 px-3 text-xs font-bold text-zinc-700 active:scale-95 shadow-2xs transition-all cursor-pointer"
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 py-2.5 sm:py-3 px-3 text-xs font-bold text-slate-700 active:scale-95 shadow-2xs transition-all cursor-pointer"
                       >
-                        <FileText className="size-3.5 text-zinc-500" />
+                        <FileText className="size-3.5 text-slate-500" />
                         <span>Order Details</span>
                       </button>
 
@@ -729,22 +737,22 @@ export function ZomatoHubView() {
                           <button
                             type="button"
                             onClick={() => handleAction(order, "accept")}
-                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-primary hover:bg-primary-dark py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-blue-600 bg-blue-600 hover:bg-blue-700 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                           >
                             <Check className="size-3.5" />
                             <span>Accept</span>
                           </button>
                         </div>
                       ) : order.stage === "accepted" || order.stage === "pickup_pending" ? (
-                        <div className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-amber-200 bg-amber-50/90 py-2.5 sm:py-3 px-3 text-xs font-bold text-amber-800 shadow-2xs">
-                          <Bike className="size-3.5 text-amber-700" />
+                        <div className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-blue-50/70 py-2.5 sm:py-3 px-3 text-xs font-bold text-blue-800 shadow-2xs">
+                          <Bike className="size-3.5 text-blue-700" />
                           <span>Clothes En Route</span>
                         </div>
                       ) : order.stage === "at_partner" ? (
                         <button
                           type="button"
                           onClick={() => handleAction(order, "start_washing")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-primary hover:bg-primary-dark py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-blue-600 bg-blue-600 hover:bg-blue-700 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                         >
                           <span>Start Cleaning 🧺</span>
                           <ArrowRight className="size-3.5" />
@@ -753,7 +761,7 @@ export function ZomatoHubView() {
                         <button
                           type="button"
                           onClick={() => handleAction(order, "mark_ready")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-gradient-to-r from-primary to-sky-500 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                         >
                           <span>Mark Ready ✨</span>
                           <ArrowRight className="size-3.5" />
@@ -765,7 +773,7 @@ export function ZomatoHubView() {
                             setSelectedManageOrder(order);
                             setHubDispatchOtp("");
                           }}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-primary bg-gradient-to-r from-primary to-sky-600 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-primary/20 transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                         >
                           <ShieldCheck className="size-4" />
                           <span>Handover (OTP)</span>
@@ -780,7 +788,7 @@ export function ZomatoHubView() {
                               params: { orderId: order.id },
                             })
                           }
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-zinc-900 bg-zinc-900 hover:bg-black py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-2xs transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-blue-600 bg-blue-600 hover:bg-blue-700 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                         >
                           <span>Manage Order</span>
                           <ArrowRight className="size-3.5" />
@@ -802,24 +810,24 @@ export function ZomatoHubView() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div
             onClick={() => setSelectedManageOrder(null)}
-            className="absolute inset-0 bg-zinc-950/60 backdrop-blur-xs transition-opacity"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
           />
-          <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-zinc-200 bg-white p-5 shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl animate-in slide-in-from-bottom duration-300">
             {/* Modal Header */}
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-lg bg-zinc-100 px-2 py-0.5 text-xs font-black text-zinc-800">
+                  <span className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-black text-blue-700">
                     #{selectedManageOrder.code}
                   </span>
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-700">
+                  <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-black uppercase text-blue-700 border border-blue-200">
                     {STAGE_LABEL[selectedManageOrder.stage] || selectedManageOrder.stage}
                   </span>
                 </div>
-                <h3 className="mt-1 text-base font-black text-zinc-900">
+                <h3 className="mt-1 text-base font-black text-slate-900">
                   {selectedManageOrder.customerName}
                 </h3>
-                <p className="text-xs text-zinc-500 font-medium">
+                <p className="text-xs text-slate-500 font-medium">
                   {selectedManageOrder.customerOrders ? `${selectedManageOrder.customerOrders} orders placed · ` : ""}Verified Customer
                 </p>
               </div>
@@ -827,18 +835,18 @@ export function ZomatoHubView() {
               <button
                 type="button"
                 onClick={() => setSelectedManageOrder(null)}
-                className="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 active:scale-95"
+                className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 active:scale-95"
               >
                 <X className="size-4" />
               </button>
             </div>
 
             {/* Booked Items Summary */}
-            <div className="mt-4 rounded-2xl bg-zinc-50 p-3.5 border border-zinc-100">
-              <p className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+            <div className="mt-4 rounded-2xl bg-slate-50 p-3.5 border border-slate-100">
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
                 Booked Items ({selectedManageOrder.items.length})
               </p>
-              <div className="mt-2 divide-y divide-zinc-200/60 text-xs font-bold text-zinc-800">
+              <div className="mt-2 divide-y divide-slate-200/60 text-xs font-bold text-slate-800">
                 {selectedManageOrder.items.map((item) => (
                   <div key={item.id} className="flex justify-between py-1.5 first:pt-0 last:pb-0">
                     <span>{item.qty}× {item.name}</span>
@@ -846,36 +854,36 @@ export function ZomatoHubView() {
                   </div>
                 ))}
               </div>
-              <div className="mt-2.5 flex justify-between border-t border-dashed border-zinc-300 pt-2 text-xs font-black text-zinc-900">
+              <div className="mt-2.5 flex justify-between border-t border-dashed border-slate-300 pt-2 text-xs font-black text-slate-900">
                 <span>Total Amount:</span>
-                <span className="text-emerald-700">₹{selectedManageOrder.amount}</span>
+                <span className="text-blue-700">₹{selectedManageOrder.amount}</span>
               </div>
             </div>
 
             {/* Dispatch OTP Verification Card for Handover to Captain */}
             {(selectedManageOrder.stage === "ready" || selectedManageOrder.stage === "dispatch_otp_pending" || selectedManageOrder.status === "ready_for_delivery") && (
-              <div className="mt-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-white p-4 shadow-sm">
+              <div className="mt-4 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 via-white to-blue-50/20 p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="flex size-7 items-center justify-center rounded-xl bg-primary text-white shadow-xs">
+                    <div className="flex size-7 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
                       <ShieldCheck className="size-4" />
                     </div>
                     <div>
-                      <span className="text-[11px] font-black uppercase tracking-wider text-foreground block">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-900 block">
                         Captain Handover Verification
                       </span>
-                      <span className="text-[10px] font-bold text-primary">
+                      <span className="text-[10px] font-bold text-blue-600">
                         कैप्टन को कपड़े सौंपने हेतु ओटीपी दर्ज करें
                       </span>
                     </div>
                   </div>
-                  <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[9px] font-black text-primary">
+                  <span className="rounded-full bg-blue-100 border border-blue-200 px-2.5 py-0.5 text-[9px] font-black text-blue-700">
                     Mandatory OTP
                   </span>
                 </div>
 
-                <p className="mt-2 text-xs font-semibold text-zinc-700 leading-relaxed">
-                  Ask the arriving Delivery Captain for their <strong className="text-primary font-black">4-digit Dispatch OTP</strong> shown in their app to handover clean laundry:
+                <p className="mt-2 text-xs font-semibold text-slate-700 leading-relaxed">
+                  Ask the arriving Delivery Captain for their <strong className="text-blue-600 font-black">4-digit Dispatch OTP</strong> shown in their app to handover clean laundry:
                 </p>
 
                 {/* 4-Digit Numeric OTP Input + Handover Button */}
@@ -888,13 +896,13 @@ export function ZomatoHubView() {
                     placeholder="e.g. 5387"
                     value={hubDispatchOtp}
                     onChange={(e) => setHubDispatchOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    className="w-32 rounded-xl border-2 border-primary/40 bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-widest text-foreground placeholder:text-zinc-300 placeholder:text-xs placeholder:font-sans focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
+                    className="w-32 rounded-xl border-2 border-blue-300 bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-widest text-slate-900 placeholder:text-slate-300 placeholder:text-xs placeholder:font-sans focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-xs"
                   />
                   <button
                     type="button"
                     disabled={hubDispatchOtp.trim().length !== 4 || isVerifyingHubDispatch}
                     onClick={handleHubVerifyDispatch}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 px-3.5 py-2.5 text-xs font-black text-white shadow-sm transition-all active:scale-95"
                   >
                     {isVerifyingHubDispatch ? (
                       <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -905,15 +913,15 @@ export function ZomatoHubView() {
                   </button>
                 </div>
 
-                <p className="mt-2 text-center text-[10px] font-medium text-zinc-500">
+                <p className="mt-2 text-center text-[10px] font-medium text-slate-500">
                   🔒 Handover is locked. Order cannot be released without entering the Captain's Dispatch OTP.
                 </p>
               </div>
             )}
 
             {/* Real Order Timeline */}
-            <div className="mt-4 rounded-2xl bg-zinc-50 p-4 border border-zinc-100">
-              <p className="text-[11px] font-black uppercase tracking-wider text-zinc-400 mb-3">
+            <div className="mt-4 rounded-2xl bg-slate-50 p-4 border border-slate-100">
+              <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-3">
                 Order Timeline
               </p>
               <OrderTimeline order={selectedManageOrder} />
@@ -939,13 +947,13 @@ export function ZomatoHubView() {
                       handleAction(selectedManageOrder, "accept");
                       setSelectedManageOrder(null);
                     }}
-                    className="flex-1 rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-sm active:scale-95"
+                    className="flex-1 rounded-2xl bg-blue-600 hover:bg-blue-700 py-3 text-xs font-black text-white shadow-sm active:scale-95"
                   >
                     Accept Order ✓
                   </button>
                 </div>
               ) : selectedManageOrder.stage === "accepted" || selectedManageOrder.stage === "pickup_pending" ? (
-                <div className="w-full rounded-2xl bg-amber-50 border border-amber-200/80 p-3 text-center text-xs font-bold text-amber-800 flex items-center justify-center gap-2">
+                <div className="w-full rounded-2xl bg-blue-50/80 border border-blue-200/80 p-3 text-center text-xs font-bold text-blue-800 flex items-center justify-center gap-2">
                   <span>🛵</span>
                   <span>Waiting for Captain to reach store with laundry (कैप्टन के कपड़े लेकर स्टोर पहुँचने की प्रतीक्षा है)</span>
                 </div>
@@ -956,7 +964,7 @@ export function ZomatoHubView() {
                     handleAction(selectedManageOrder, "start_washing");
                     setSelectedManageOrder(null);
                   }}
-                  className="w-full rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-sm active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 py-3 text-xs font-black text-white shadow-sm active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   <span>Start Cleaning 🧺</span>
                   <ArrowRight className="size-3" />
@@ -968,7 +976,7 @@ export function ZomatoHubView() {
                     handleAction(selectedManageOrder, "mark_ready");
                     setSelectedManageOrder(null);
                   }}
-                  className="w-full rounded-2xl bg-emerald-600 py-3 text-xs font-black text-white shadow-sm active:scale-95"
+                  className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 py-3 text-xs font-black text-white shadow-sm active:scale-95"
                 >
                   Mark Order Ready for Delivery ✓
                 </button>
@@ -982,7 +990,7 @@ export function ZomatoHubView() {
                     });
                     setSelectedManageOrder(null);
                   }}
-                  className="w-full rounded-2xl bg-emerald-600 hover:bg-emerald-700 py-3 text-xs font-black text-white shadow-md shadow-emerald-600/25 active:scale-95 transition-all"
+                  className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 py-3 text-xs font-black text-white shadow-md shadow-blue-600/25 active:scale-95 transition-all"
                 >
                   View Full Order Details →
                 </button>
@@ -997,9 +1005,9 @@ export function ZomatoHubView() {
                       window.open(`tel:${selectedManageOrder.customerPhone.replace(/\s/g, "")}`);
                     }
                   }}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50/70 py-2.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 cursor-pointer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-blue-200 bg-blue-50/70 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-100 active:scale-95 cursor-pointer"
                 >
-                  <PhoneCall className="size-3.5 text-emerald-600" />
+                  <PhoneCall className="size-3.5 text-blue-600" />
                   <span>Call Customer 🔒</span>
                 </button>
 
@@ -1015,9 +1023,9 @@ export function ZomatoHubView() {
                   <button
                     type="button"
                     title="Captain not assigned yet for this order"
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-50 py-2.5 text-xs font-bold text-zinc-500 opacity-60 cursor-not-allowed"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 py-2.5 text-xs font-bold text-slate-500 opacity-60 cursor-not-allowed"
                   >
-                    <Bike className="size-3.5 text-zinc-400" />
+                    <Bike className="size-3.5 text-slate-400" />
                     <span>Call Captain</span>
                   </button>
                 )}

@@ -491,7 +491,7 @@ export function PartnerDashboardScreen() {
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.analytics })}
-                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                    className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
                   >
                     {t("Detailed Analytics", "Detailed Analytics & Reports")} <ArrowRight className="size-3.5" />
                   </button>
@@ -512,7 +512,7 @@ export function PartnerDashboardScreen() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-800 text-white shadow-xs">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
                   <MapPin className="size-4" />
                 </div>
                 <div>
@@ -564,7 +564,7 @@ export function PartnerDashboardScreen() {
                 <div>
                   <span className="text-[10px] font-bold uppercase text-slate-500">Captain Status</span>
                   <p className="font-black text-slate-900 flex items-center gap-1.5 mt-0.5">
-                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="size-2 rounded-full bg-blue-600 animate-pulse" />
                     Approaching Store (~4 mins)
                   </p>
                 </div>
