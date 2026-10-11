@@ -47,6 +47,8 @@ import {
   Bike,
   Navigation,
   ShieldAlert,
+  TrendingUp,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -152,6 +154,31 @@ const parseOrderAmount = (totalStr?: string) => {
   return isNaN(parsed) ? 249 : parsed;
 };
 
+const PIPELINE_STAGES = [
+  { id: 1, label: "Order Created" },
+  { id: 2, label: "Partner Accepted" },
+  { id: 3, label: "Ride 1 (Pickup)" },
+  { id: 4, label: "Picked Up" },
+  { id: 5, label: "Processing (Wash)" },
+  { id: 6, label: "Order Ready" },
+  { id: 7, label: "Ride 2 (Delivery)" },
+  { id: 8, label: "Out for Delivery" },
+  { id: 9, label: "Delivered" },
+] as const;
+
+function getOrderStageId(statusStr?: string): number {
+  const s = (statusStr || "").toLowerCase();
+  if (s === "delivered") return 9;
+  if (s.includes("out for delivery") || s.includes("out_for_delivery")) return 8;
+  if (s.includes("delivery") && (s.includes("assigned") || s.includes("accepted"))) return 7;
+  if (s.includes("ready")) return 6;
+  if (s.includes("processing") || s.includes("wash") || s.includes("iron") || s.includes("cleaning")) return 5;
+  if (s.includes("picked up") || s.includes("picked_up") || s.includes("at_partner")) return 4;
+  if (s.includes("pickup") && (s.includes("assigned") || s.includes("searching") || s.includes("accepted"))) return 3;
+  if (s.includes("accepted")) return 2;
+  return 1;
+}
+
 export function OrdersPage() {
   const queryClient = useQueryClient();
   const orders = useQuery({ queryKey: ["admin", "orders"], queryFn: fetchOrders });
@@ -164,8 +191,11 @@ export function OrdersPage() {
   const [city, setCity] = useState("all");
   const [area, setArea] = useState("all");
   const [actionQueue, setActionQueue] = useState<"all" | "new" | "cancelled" | "delivered" | "refund">("all");
-  const [dateRange, setDateRange] = useState("today");
+  const [dateRange, setDateRange] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month" | "all">("today");
+  const [selectedPipelineStage, setSelectedPipelineStage] = useState<number | null>(null);
+  const [serviceFilter, setServiceFilter] = useState("all");
   const [showDayWiseReport, setShowDayWiseReport] = useState(false);
+  const [showTerritoryAudit, setShowTerritoryAudit] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -190,7 +220,65 @@ export function OrdersPage() {
   const allPartners = partners.data ?? [];
   const allRiders = riders.data ?? [];
 
-  // Top Lifetime metrics
+  // 9-Stage Pipeline Counts
+  const pipelineCounts = useMemo(() => {
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
+    allOrders.forEach((o) => {
+      const stage = getOrderStageId(o.status);
+      counts[stage] = (counts[stage] || 0) + 1;
+    });
+    return counts;
+  }, [allOrders]);
+
+  // Top Dashboard-Grade Order Health & Economics Metrics
+  const orderHealth = useMemo(() => {
+    const total = allOrders.length;
+    const active = allOrders.filter((o) =>
+      [
+        "Pending",
+        "Accepted",
+        "Pickup Assigned",
+        "Picked up",
+        "Processing",
+        "Ready for delivery",
+        "Delivery Assigned",
+        "Out for delivery",
+      ].includes(o.status)
+    ).length;
+    const delivered = allOrders.filter((o) => o.status === "Delivered" || (o as any).status === "delivered").length;
+    const delayed = allOrders.filter((o) => Boolean((o as any).delayed || (o as any).isDelayed)).length;
+    const fulfillmentPct = total > 0 ? Math.min(100, Math.round((delivered / total) * 100)) : 0;
+
+    const gmv = allOrders.reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
+    const aov = total > 0 ? Math.round(gmv / total) : 0;
+    const prepaid = allOrders.filter((o) => o.payment === "Paid").reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
+    const cod = allOrders.filter((o) => o.payment === "COD").reduce((sum, o) => sum + parseOrderAmount(o.total), 0);
+    const refunds = allOrders.reduce((sum, o) => sum + (o.refundAmount || 0), 0);
+
+    const assigned = allOrders.filter((o) => o.rider && o.rider !== "Unassigned").length;
+    const unassigned = allOrders.filter((o) => !o.rider || o.rider === "Unassigned").length;
+    const reassigned = allOrders.filter((o) => Boolean(o.isReassigned)).length;
+    const fleetCoverPct = total > 0 ? Math.min(100, Math.round((assigned / total) * 100)) : 0;
+
+    return {
+      total,
+      active,
+      delivered,
+      delayed,
+      fulfillmentPct,
+      gmv,
+      aov,
+      prepaid,
+      cod,
+      refunds,
+      assigned,
+      unassigned,
+      reassigned,
+      fleetCoverPct,
+    };
+  }, [allOrders]);
+
+  // Top Lifetime metrics (compatibility)
   const metrics = useMemo(() => {
     const total = allOrders.length;
     const active = allOrders.filter((o) =>
@@ -469,13 +557,26 @@ export function OrdersPage() {
           : activeTab === "Cancelled"
           ? isOrderCancelled
           : order.status === activeTab);
+      // Pipeline Stage Filter (from 9-stage progression bar)
+      if (selectedPipelineStage !== null && getOrderStageId(order.status) !== selectedPipelineStage) {
+        return false;
+      }
+
+      // Service Filter
+      if (
+        serviceFilter !== "all" &&
+        !(order.service || "").toLowerCase().includes(serviceFilter.toLowerCase())
+      ) {
+        return false;
+      }
+
       const matchesCity = city === "all" || order.city.toLowerCase() === city.toLowerCase();
       const matchesFrom = !from || order.placedAt >= from;
       const matchesTo = !to || order.placedAt <= to;
 
       return matchesQuery && matchesStatus && matchesCity && matchesFrom && matchesTo;
     });
-  }, [allOrders, query, activeTab, city, actionQueue, from, to]);
+  }, [allOrders, query, activeTab, city, serviceFilter, selectedPipelineStage, actionQueue, from, to]);
 
   const handleExportCSV = () => {
     if (rows.length === 0) {
@@ -567,52 +668,441 @@ export function OrdersPage() {
             VIEW B: ORDERS DIRECTORY & NETWORK OVERVIEW
         ========================================================================= */
         <div className="space-y-6 animate-in fade-in duration-150">
-          {/* 1. Top Lifetime Metric Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              kpi={{
-                id: "tot-orders",
-                label: "Total Orders",
-                value: metrics.total.toLocaleString("en-IN"),
-                hint: "Lifetime platform bookings",
-                positive: true,
-              }}
-            />
-            <KpiCard
-              kpi={{
-                id: "active-orders",
-                label: "Active In-Flight",
-                value: metrics.active.toLocaleString("en-IN"),
-                hint: "Currently being serviced",
-                positive: true,
-              }}
-            />
-            <KpiCard
-              kpi={{
-                id: "del-orders",
-                label: "Completed Deliveries",
-                value: metrics.delivered.toLocaleString("en-IN"),
-                hint: `${metrics.total ? Math.round((metrics.delivered / metrics.total) * 100) : 0}% fulfillment rate`,
-                positive: true,
-              }}
-            />
-            <KpiCard
-              kpi={{
-                id: "can-orders",
-                label: "Cancelled Orders",
-                value: metrics.cancelled.toLocaleString("en-IN"),
-                hint: "Customer or system cancellations",
-                positive: metrics.cancelled === 0,
-              }}
-            />
+          {/* =========================================================================
+              SECTION 1: TIMEFRAME PILLS & SCOPE CONTROLS (DASHBOARD PARITY)
+          ========================================================================= */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200/90 shadow-2xs">
+            {/* Timeframe selector pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mr-1.5">TIMEFRAME:</span>
+              {[
+                { id: "today", label: "Today" },
+                { id: "yesterday", label: "Yesterday" },
+                { id: "7d", label: "Last 7 Days" },
+                { id: "30d", label: "Last 30 Days" },
+                { id: "this_month", label: "This Month" },
+                { id: "all", label: "All Time" },
+              ].map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setDateRange(pill.id as any)}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                    dateRange === pill.id
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "bg-zinc-100/90 text-zinc-600 hover:bg-zinc-200/80"
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+
+            {/* City & Service Selectors */}
+            <div className="flex items-center gap-2">
+              <select
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  setArea("all");
+                }}
+                className="h-8 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 text-xs font-bold text-zinc-700 focus:border-emerald-600 focus:outline-none"
+              >
+                <option value="all">🏙️ All Cities ({allOrders.length})</option>
+                {cities.map((c) => (
+                  <option key={c} value={c}>
+                    {c} ({allOrders.filter((o) => o.city.toLowerCase() === c.toLowerCase()).length})
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={serviceFilter}
+                onChange={(e) => setServiceFilter(e.target.value)}
+                className="h-8 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 text-xs font-bold text-zinc-700 focus:border-emerald-600 focus:outline-none"
+              >
+                <option value="all">🧺 All Services</option>
+                <option value="wash">Wash &amp; Iron</option>
+                <option value="dry">Dry Cleaning</option>
+                <option value="iron">Steam Press</option>
+                <option value="shoe">Shoe Care</option>
+              </select>
+            </div>
           </div>
 
+          {/* =========================================================================
+              SECTION 2: TOP 3 HERO KPI CARDS (DASHBOARD PARITY - ELEVATED DESIGN)
+          ========================================================================= */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* 1. ORDERS HEALTH & FULFILLMENT */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-emerald-500/70 hover:shadow-lg hover:shadow-emerald-500/5">
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-emerald-500 via-teal-500 to-emerald-600" />
 
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">ORDERS HEALTH</span>
+                </div>
+                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50/80 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                  <TrendingUp className="size-3" />
+                  {orderHealth.fulfillmentPct}% Fulfilled
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-baseline justify-between">
+                <p className="text-3xl font-black text-zinc-900 group-hover:text-emerald-700 transition-colors">
+                  {orderHealth.total.toLocaleString("en-IN")}
+                </p>
+                <span className="text-xs font-semibold text-zinc-500">
+                  {orderHealth.delivered} of {orderHealth.total} delivered
+                </span>
+              </div>
+
+              {/* Progress Meter */}
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+                  style={{ width: `${orderHealth.fulfillmentPct}%` }}
+                />
+              </div>
+
+              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPipelineStage(null);
+                    setActionQueue("all");
+                    setActiveTab("all");
+                  }}
+                  className="rounded-lg p-1.5 transition-all hover:bg-emerald-100/70 hover:scale-[1.03] active:scale-95 cursor-pointer"
+                >
+                  <p className="text-[10px] text-zinc-500 font-bold">Active</p>
+                  <p className="font-black text-emerald-700 text-sm">{orderHealth.active}</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPipelineStage(9);
+                    setActiveTab("Delivered");
+                  }}
+                  className="rounded-lg p-1.5 transition-all hover:bg-zinc-200/70 hover:scale-[1.03] active:scale-95 cursor-pointer"
+                >
+                  <p className="text-[10px] text-zinc-500 font-bold">Delivered</p>
+                  <p className="font-black text-zinc-900 text-sm">{orderHealth.delivered}</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionQueue("cancelled");
+                  }}
+                  className="rounded-lg p-1.5 transition-all hover:bg-rose-100/70 hover:scale-[1.03] active:scale-95 cursor-pointer"
+                >
+                  <p className="text-[10px] text-zinc-500 font-bold">Delayed / SLA</p>
+                  <p className="font-black text-rose-600 text-sm">{orderHealth.delayed}</p>
+                </button>
+              </div>
+            </div>
+
+            {/* 2. ORDER GMV & BASKET ECONOMICS */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-indigo-500/70 hover:shadow-lg hover:shadow-indigo-500/5">
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-indigo-500 via-violet-500 to-purple-600" />
+
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">ORDER VALUE &amp; GMV</span>
+                </div>
+                <span className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-full border border-indigo-200/60">
+                  Avg ₹{orderHealth.aov} / basket
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-baseline justify-between">
+                <p className="text-3xl font-black text-indigo-700 group-hover:text-indigo-800 transition-colors">
+                  ₹{orderHealth.gmv.toLocaleString("en-IN")}
+                </p>
+                <span className="text-xs font-semibold text-zinc-500">
+                  100% Reconciled
+                </span>
+              </div>
+
+              {/* Progress Meter */}
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-indigo-500 to-violet-500 transition-all duration-500"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
+                <div className="rounded-lg p-1.5">
+                  <p className="text-[10px] text-zinc-500 font-bold truncate">Prepaid Online</p>
+                  <p className="font-black text-indigo-800 text-sm">₹{orderHealth.prepaid.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="rounded-lg p-1.5">
+                  <p className="text-[10px] text-zinc-500 font-bold truncate">Cash on Delivery</p>
+                  <p className="font-black text-amber-700 text-sm">₹{orderHealth.cod.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="rounded-lg p-1.5">
+                  <p className="text-[10px] text-zinc-500 font-bold truncate">Refunds</p>
+                  <p className="font-black text-rose-600 text-sm">₹{orderHealth.refunds.toLocaleString("en-IN")}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. FLEET & DISPATCH STATUS */}
+            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-sky-500/70 hover:shadow-lg hover:shadow-sky-500/5">
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-blue-500 via-sky-500 to-cyan-600" />
+
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">FLEET &amp; DISPATCH</span>
+                </div>
+                <span className="rounded-full bg-sky-50/80 px-2 py-0.5 text-[10px] font-bold text-sky-700 border border-sky-200/60">
+                  Live Logistics
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-baseline justify-between">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-black text-zinc-900 group-hover:text-sky-700 transition-colors">
+                    {orderHealth.assigned}
+                  </p>
+                  <span className="text-xs font-bold text-zinc-500">/ {orderHealth.total} orders</span>
+                </div>
+                <span className="text-xs font-semibold text-zinc-500">
+                  {orderHealth.fleetCoverPct}% Assigned
+                </span>
+              </div>
+
+              {/* Progress Meter */}
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-blue-500 to-cyan-500 transition-all duration-500"
+                  style={{ width: `${orderHealth.fleetCoverPct}%` }}
+                />
+              </div>
+
+              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
+                <div className="rounded-lg p-1.5">
+                  <p className="text-[10px] text-zinc-500 font-bold">With Captain</p>
+                  <p className="font-black text-sky-700 text-sm">{orderHealth.assigned}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionQueue("new")}
+                  className="rounded-lg p-1.5 transition-all hover:bg-rose-100/70 active:scale-95 cursor-pointer"
+                >
+                  <p className="text-[10px] text-zinc-500 font-bold">Needs Rider</p>
+                  <p className={`font-black text-sm ${orderHealth.unassigned > 0 ? "text-rose-600 animate-pulse" : "text-zinc-700"}`}>
+                    {orderHealth.unassigned}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("reassigned")}
+                  className="rounded-lg p-1.5 transition-all hover:bg-purple-100/70 active:scale-95 cursor-pointer"
+                >
+                  <p className="text-[10px] text-zinc-500 font-bold">2-Way Reassigned</p>
+                  <p className="font-black text-purple-700 text-sm">{orderHealth.reassigned}</p>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* =========================================================================
+              SECTION 3: 9-STAGE ORDER LIFECYCLE PIPELINE (INTERACTIVE FILTERING)
+          ========================================================================= */}
+          <SectionCard
+            title="Order Lifecycle Pipeline"
+            description="Real-time multi-stage operational telemetry across pickup, cleaning, and delivery legs (Click any stage to filter table)"
+            actions={
+              selectedPipelineStage !== null ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedPipelineStage(null)}
+                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Reset Filter ({PIPELINE_STAGES.find((s) => s.id === selectedPipelineStage)?.label})</span>
+                  <XCircle className="size-3.5" />
+                </button>
+              ) : undefined
+            }
+          >
+            <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-9">
+              {PIPELINE_STAGES.map((stage) => {
+                const countVal = pipelineCounts[stage.id] || 0;
+                const hasItems = countVal > 0;
+                const isSelected = selectedPipelineStage === stage.id;
+                const isLateStage = stage.id >= 7;
+                const isMidStage = stage.id >= 4 && stage.id < 7;
+
+                return (
+                  <button
+                    key={stage.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedPipelineStage((prev) => (prev === stage.id ? null : stage.id))
+                    }
+                    className={`group relative flex flex-col items-center justify-between rounded-xl border p-3 text-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                      isSelected
+                        ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600/30 shadow-sm"
+                        : hasItems
+                        ? isLateStage
+                          ? "bg-linear-to-b from-emerald-50/70 to-white border-emerald-300 hover:border-emerald-500 hover:shadow-xs"
+                          : isMidStage
+                          ? "bg-linear-to-b from-purple-50/70 to-white border-purple-300 hover:border-purple-500 hover:shadow-xs"
+                          : "bg-linear-to-b from-sky-50/70 to-white border-sky-300 hover:border-sky-500 hover:shadow-xs"
+                        : "bg-zinc-50/60 border-zinc-200/80 hover:bg-white hover:border-zinc-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <span className="text-[9px] font-black text-zinc-400 font-mono">#{stage.id}</span>
+                      {hasItems && (
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      )}
+                    </div>
+
+                    <span
+                      className={`text-xl font-black transition-transform group-hover:scale-110 ${
+                        isSelected
+                          ? "text-emerald-800"
+                          : hasItems
+                          ? isLateStage
+                            ? "text-emerald-700"
+                            : isMidStage
+                            ? "text-purple-700"
+                            : "text-sky-700"
+                          : "text-zinc-700"
+                      }`}
+                    >
+                      {countVal}
+                    </span>
+
+                    <span className="mt-1 text-[11px] font-bold text-zinc-700 leading-tight line-clamp-2">
+                      {stage.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </SectionCard>
+
+          {/* =========================================================================
+              SECTION 4: FAST OPERATIONAL TRIAGE QUEUES
+          ========================================================================= */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActionQueue("all");
+                  setSelectedPipelineStage(null);
+                  setActiveTab("all");
+                }}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  actionQueue === "all" && selectedPipelineStage === null && activeTab === "all"
+                    ? "bg-zinc-900 text-white shadow-xs"
+                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                }`}
+              >
+                <span>All Orders</span>
+                <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[10px] font-black">
+                  {allOrders.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActionQueue("new");
+                  setSelectedPipelineStage(null);
+                }}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  actionQueue === "new"
+                    ? "bg-rose-600 text-white shadow-xs"
+                    : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
+                }`}
+              >
+                <span>🚨 Needs Rider</span>
+                <span className="rounded-full bg-rose-200/60 px-1.5 py-0.2 text-[10px] font-black">
+                  {actionCounts.newReq}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPipelineStage(5);
+                  setActionQueue("all");
+                }}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  selectedPipelineStage === 5
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
+                }`}
+              >
+                <span>🧺 In Wash &amp; Hub</span>
+                <span className="rounded-full bg-purple-200/60 px-1.5 py-0.2 text-[10px] font-black">
+                  {(pipelineCounts[5] ?? 0) + (pipelineCounts[6] ?? 0)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPipelineStage(8);
+                  setActionQueue("all");
+                }}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  selectedPipelineStage === 8
+                    ? "bg-sky-600 text-white shadow-xs"
+                    : "bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100"
+                }`}
+              >
+                <span>🚚 In Transit</span>
+                <span className="rounded-full bg-sky-200/60 px-1.5 py-0.2 text-[10px] font-black">
+                  {(pipelineCounts[3] ?? 0) + (pipelineCounts[8] ?? 0)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActionQueue("cancelled");
+                  setSelectedPipelineStage(null);
+                }}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  actionQueue === "cancelled"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                }`}
+              >
+                <span>⚠️ Issues / Cancelled</span>
+                <span className="rounded-full bg-amber-200/60 px-1.5 py-0.2 text-[10px] font-black">
+                  {actionCounts.cancelled + actionCounts.refund}
+                </span>
+              </button>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTerritoryAudit((prev) => !prev)}
+              className={`h-8 rounded-xl border text-xs font-bold shadow-2xs gap-1.5 transition-all ${
+                showTerritoryAudit
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              <MapPin className="size-3 text-emerald-600" />
+              <span>{showTerritoryAudit ? "Hide Territory Audit ▲" : "Territory & Pricing Audit ▼"}</span>
+            </Button>
+          </div>
 
           {/* =========================================================================
               CITY & AREA WISE PERFORMANCE & DAY-WISE REPORT ENGINE (PRICING & DISTANCE)
           ========================================================================= */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-xs space-y-4">
+          {showTerritoryAudit && (
+            <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-xs space-y-4 animate-in fade-in duration-200">
             {/* Selector Bar */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-zinc-100 pb-4">
               <div className="flex items-center gap-2.5">
@@ -676,7 +1166,7 @@ export function OrdersPage() {
 
                 {/* Period Filter */}
                 <div className="w-36">
-                  <Select value={dateRange} onValueChange={(val) => setDateRange(val)}>
+                  <Select value={dateRange} onValueChange={(val) => setDateRange(val as any)}>
                     <SelectTrigger className="h-9 text-xs bg-zinc-50 border-zinc-200 font-medium">
                       <SelectValue placeholder="Timeframe" />
                     </SelectTrigger>
@@ -869,6 +1359,7 @@ export function OrdersPage() {
               </div>
             )}
           </div>
+        )}
 
           {/* 2. Status Tabs & Directory Filters Bar */}
           <SectionCard>
@@ -909,7 +1400,7 @@ export function OrdersPage() {
               </TabsList>
             </Tabs>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <div className="relative lg:col-span-2">
                 <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
                 <input
@@ -921,11 +1412,11 @@ export function OrdersPage() {
               </div>
 
               <Select value={city} onValueChange={setCity}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
+                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs font-medium">
                   <SelectValue placeholder="City" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
+                  <SelectItem value="all">🏙️ All Cities</SelectItem>
                   {cities.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
@@ -934,21 +1425,34 @@ export function OrdersPage() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2">
+              <Select value={serviceFilter} onValueChange={setServiceFilter}>
+                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs font-medium">
+                  <SelectValue placeholder="Service" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">🧺 All Services</SelectItem>
+                  <SelectItem value="wash">Wash &amp; Iron</SelectItem>
+                  <SelectItem value="dry">Dry Cleaning</SelectItem>
+                  <SelectItem value="iron">Steam Press</SelectItem>
+                  <SelectItem value="shoe">Shoe Care</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-1.5">
                 <input
                   type="date"
                   value={from}
                   onChange={(e) => setFrom(e.target.value)}
                   aria-label="From date"
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 text-xs text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-2 text-[11px] text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
                 />
-                <span className="text-zinc-400 text-xs">to</span>
+                <span className="text-zinc-400 text-xs font-medium">to</span>
                 <input
                   type="date"
                   value={to}
                   onChange={(e) => setTo(e.target.value)}
                   aria-label="To date"
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 text-xs text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-2 text-[11px] text-zinc-700 focus:bg-white focus:border-emerald-600 focus:outline-none"
                 />
               </div>
             </div>
