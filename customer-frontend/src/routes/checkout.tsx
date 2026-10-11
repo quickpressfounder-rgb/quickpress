@@ -65,6 +65,30 @@ function normalizeIndianPhone(phone: string): string {
   return digits;
 }
 
+function getServiceImage(item: CartLine): string {
+  if (item.image && item.image.trim() && !item.image.includes("placeholder")) {
+    return item.image;
+  }
+  const name = (item.name || "").toLowerCase();
+  if (name.includes("steam") || name.includes("iron")) return "/images/services/steam-iron.jpg";
+  if (name.includes("dry") || name.includes("suit") || name.includes("blazer")) return "/images/services/dry-cleaning.jpg";
+  if (name.includes("shoe") || name.includes("sneaker")) return "/images/services/shoe-cleaning.jpg";
+  if (name.includes("blanket") || name.includes("quilt") || name.includes("duvet")) return "/images/services/blanket-cleaning.jpg";
+  if (name.includes("carpet") || name.includes("rug")) return "/images/services/carpet-cleaning.jpg";
+  if (name.includes("curtain") || name.includes("drape")) return "/images/services/curtain-cleaning.jpg";
+  if (name.includes("bag") || name.includes("leather")) return "/images/services/bag-leather-cleaning.jpg";
+  if (name.includes("express")) return "/images/services/express-laundry.jpg";
+  if (name.includes("premium")) return "/images/services/premium-laundry.jpg";
+  return "/images/services/wash-fold.jpg";
+}
+
+const PICKUP_SLOTS = [
+  { id: "now", label: "⚡ 15–30 Mins (Now)" },
+  { id: "evening_1", label: "🌆 4 PM – 6 PM" },
+  { id: "evening_2", label: "🌙 7 PM – 9 PM" },
+  { id: "tomorrow_morning", label: "🌅 Tomorrow (8 AM – 10 AM)" },
+];
+
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [{ title: "Checkout — QuickPress" }],
@@ -84,6 +108,7 @@ export function CheckoutPage() {
   const [deliveryAddressId, setDeliveryAddressId] = useState<string>(() => cachedAddrs[0]?.id || "");
   const [sameAsPickup, setSameAsPickup] = useState<boolean>(true);
   const [isExpress, setIsExpress] = useState<boolean>(false);
+  const [selectedSlot, setSelectedSlot] = useState<string>("⚡ 15–30 Mins (Now)");
 
   // Address picker modals
   const [showPickupPicker, setShowPickupPicker] = useState<boolean>(false);
@@ -340,7 +365,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "15-30 mins",
+          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : selectedSlot,
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -401,7 +426,7 @@ export function CheckoutPage() {
         deliveryAddress: selectedDelivery,
         pickup: {
           day: "Today",
-          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : "15-30 mins",
+          slot: isExpressActive ? "⚡ 15-Min Express Pickup" : selectedSlot,
           express: isExpressActive,
         },
         isExpress: isExpressActive,
@@ -643,36 +668,67 @@ export function CheckoutPage() {
               tabIndex={0}
               onClick={() => setIsExpress(false)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsExpress(false); }}
-              className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                !isExpressActive ? "bg-emerald-50/30" : "hover:bg-zinc-50/80 bg-white"
+              className={`p-3.5 sm:p-4 cursor-pointer transition-colors ${
+                !isExpressActive ? "bg-emerald-50/40" : "hover:bg-zinc-50/80 bg-white"
               }`}
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-[#0c831f] border border-emerald-100">
-                  <Clock className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-black text-zinc-950">Standard Pickup</p>
-                    <span className="bg-emerald-100 text-[#0c831f] text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                      FREE
-                    </span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-[#0c831f] border border-emerald-100">
+                    <Clock className="size-5" />
                   </div>
-                  <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                    Captain assigned in 30–60 mins • Regular laundry queue
-                  </p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs font-black text-zinc-950">Standard Pickup</p>
+                      <span className="bg-emerald-100 text-[#0c831f] text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                        FREE
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                      Captain assigned in 30–60 mins • Regular laundry queue (24–48 hrs)
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {!isExpressActive ? (
+                    <Check className="size-5 text-[#0c831f] stroke-[3]" />
+                  ) : (
+                    <div className="size-5 rounded-full border-2 border-zinc-300" />
+                  )}
                 </div>
               </div>
-              <div className="shrink-0">
-                {!isExpressActive ? (
-                  <Check className="size-5 text-[#0c831f] stroke-[3]" />
-                ) : (
-                  <div className="size-5 rounded-full border-2 border-zinc-300" />
-                )}
-              </div>
+
+              {/* Convenient Flat Time Slot Selector (When Standard Pickup is active) */}
+              {!isExpressActive && (
+                <div className="mt-3 pt-3 border-t border-emerald-100/70">
+                  <p className="text-[10px] font-bold text-zinc-600 mb-1.5">Choose Pickup Slot (पिकअप समय चुनें):</p>
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                    {PICKUP_SLOTS.map((slot) => {
+                      const isSelected = selectedSlot === slot.label;
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSlot(slot.label);
+                          }}
+                          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-black transition-all active:scale-95 cursor-pointer ${
+                            isSelected
+                              ? "bg-[#0c831f] text-white shadow-2xs"
+                              : "bg-white border border-zinc-200 text-zinc-700 hover:border-zinc-300"
+                          }`}
+                        >
+                          {slot.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Express Priority */}
+            {/* Express Priority Delivery */}
             <div
               role="button"
               tabIndex={0}
@@ -689,7 +745,7 @@ export function CheckoutPage() {
                 }
               }}
               className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                isExpressActive ? "bg-emerald-50/30" : "hover:bg-zinc-50/80 bg-white"
+                isExpressActive ? "bg-emerald-50/40" : "hover:bg-zinc-50/80 bg-white"
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -698,13 +754,13 @@ export function CheckoutPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-black text-zinc-950">Express Priority Pickup</p>
+                    <p className="text-xs font-black text-zinc-950">Express Priority Pickup & Delivery</p>
                     <span className="bg-[#0c831f] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
                       +₹{expressFee}
                     </span>
                   </div>
                   <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                    Nearest Captain dispatched in 15 mins • Priority fast wash
+                    ⚡ Nearest Captain in 15 mins • Priority fast wash & delivery in 12–24 hrs
                   </p>
                 </div>
               </div>
@@ -721,10 +777,18 @@ export function CheckoutPage() {
 
         {/* SECTION 3: CONTACT DETAILS */}
         <div>
-          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-            Contact Details
-          </h2>
-          <section aria-label="Customer Details" className="bg-white rounded-2xl p-4 border border-zinc-200/90 shadow-2xs space-y-2.5">
+          <div className="flex items-center justify-between px-1 mb-1.5">
+            <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Contact Details
+            </h2>
+            {isAuthenticated && (
+              <span className="flex items-center gap-1 text-[10px] font-black text-[#0c831f]">
+                <CheckCircle2 className="size-3" />
+                Verified
+              </span>
+            )}
+          </div>
+          <section aria-label="Customer Details" className="bg-white rounded-2xl p-3.5 border border-zinc-200/90 shadow-2xs space-y-2.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div className="relative">
                 <User className="absolute left-3 top-2.5 size-4 text-zinc-400" />
@@ -737,7 +801,10 @@ export function CheckoutPage() {
                 />
               </div>
               <div className="relative">
-                <Phone className="absolute left-3 top-2.5 size-4 text-zinc-400" />
+                <div className="absolute left-3 top-2.5 flex items-center gap-1 text-zinc-400">
+                  <Phone className="size-3.5 text-zinc-400" />
+                  <span className="text-[11px] font-bold text-zinc-600">+91</span>
+                </div>
                 <input
                   type="tel"
                   maxLength={10}
@@ -747,61 +814,93 @@ export function CheckoutPage() {
                     setCustomerPhone(digits.slice(0, 10));
                   }}
                   placeholder="10-digit Phone"
-                  className="w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-900 placeholder:font-normal focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden"
+                  className="w-full pl-16 pr-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-900 placeholder:font-normal focus:border-[#0c831f] focus:ring-1 focus:ring-[#0c831f] focus:outline-hidden"
                 />
               </div>
             </div>
           </section>
         </div>
 
-        {/* SECTION 4: ITEMS SELECTED */}
+        {/* SECTION 4: ITEMS SELECTED (WITH REAL SERVICE PHOTO) */}
         <div>
-          <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500 flex items-center justify-between">
-            <span>Items Selected ({cart.count})</span>
-            <span className="text-[#0c831f] font-bold">₹{itemsSubtotal}</span>
-          </h2>
-          <section aria-label="Items Review" className="bg-white rounded-2xl shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100 overflow-hidden">
-            {cart.lines.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 p-3 sm:p-3.5 bg-white hover:bg-zinc-50/70 transition-colors"
+          <div className="flex items-center justify-between px-1 mb-1.5">
+            <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Items Selected ({cart.count})
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-[#0c831f] font-black text-xs">₹{itemsSubtotal}</span>
+              <span className="text-zinc-300">•</span>
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/home" })}
+                className="text-xs font-black text-[#0c831f] hover:underline cursor-pointer"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-black text-zinc-900">{item.name}</p>
-                  <p className="text-[11px] font-semibold text-zinc-500">
-                    ₹{item.price} / {item.unit || "item"}
-                  </p>
-                </div>
+                + Add More
+              </button>
+            </div>
+          </div>
+          <section aria-label="Items Review" className="bg-white rounded-2xl shadow-2xs border border-zinc-200/90 divide-y divide-zinc-100 overflow-hidden">
+            {cart.lines.map((item) => {
+              const isKg = item.unit?.toLowerCase().includes("kg") || item.name.toLowerCase().includes("kg");
+              const photoUrl = getServiceImage(item);
 
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-1 shadow-2xs">
-                    <button
-                      type="button"
-                      aria-label="Decrease quantity"
-                      onClick={() => (item.qty === 1 ? cart.remove(item.id) : cart.step(item.id, -1))}
-                      className="size-5 flex items-center justify-center text-zinc-700 active:scale-90 cursor-pointer"
-                    >
-                      {item.qty === 1 ? <Trash2 className="size-3 text-red-500" /> : <Minus className="size-3 stroke-[2.5]" />}
-                    </button>
-                    <span className="w-5 text-center text-xs font-black text-zinc-900 tabular-nums">
-                      {item.qty}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Increase quantity"
-                      onClick={() => cart.step(item.id, 1)}
-                      className="size-5 flex items-center justify-center rounded bg-[#0c831f] text-white active:scale-90 cursor-pointer"
-                    >
-                      <Plus className="size-3 stroke-[2.5]" />
-                    </button>
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 p-3 sm:p-3.5 bg-white hover:bg-zinc-50/70 transition-colors"
+                >
+                  {/* Photo Thumbnail (Flat, Real Photo, Zero 3D) */}
+                  <div className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100">
+                    <img
+                      src={photoUrl}
+                      alt={item.name}
+                      className="size-full object-cover"
+                      loading="lazy"
+                    />
                   </div>
 
-                  <span className="text-xs font-black text-zinc-900 min-w-12 text-right tabular-nums">
-                    ₹{item.price * item.qty}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-black text-zinc-900">{item.name}</p>
+                    <p className="text-[11px] font-semibold text-zinc-500">
+                      ₹{item.price} / {item.unit || "item"}
+                    </p>
+                    {isKg && (
+                      <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                        💡 {item.qty} Kg ≈ approx {item.qty * 3} clothes
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-1 shadow-2xs">
+                      <button
+                        type="button"
+                        aria-label="Decrease quantity"
+                        onClick={() => (item.qty === 1 ? cart.remove(item.id) : cart.step(item.id, -1))}
+                        className="size-5 flex items-center justify-center text-zinc-700 active:scale-90 cursor-pointer"
+                      >
+                        {item.qty === 1 ? <Trash2 className="size-3 text-red-500" /> : <Minus className="size-3 stroke-[2.5]" />}
+                      </button>
+                      <span className="w-5 text-center text-xs font-black text-zinc-900 tabular-nums">
+                        {item.qty}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Increase quantity"
+                        onClick={() => cart.step(item.id, 1)}
+                        className="size-5 flex items-center justify-center rounded bg-[#0c831f] text-white active:scale-90 cursor-pointer"
+                      >
+                        <Plus className="size-3 stroke-[2.5]" />
+                      </button>
+                    </div>
+
+                    <span className="text-xs font-black text-zinc-900 min-w-12 text-right tabular-nums">
+                      ₹{item.price * item.qty}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </section>
         </div>
 
