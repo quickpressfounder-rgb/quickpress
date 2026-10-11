@@ -70,6 +70,7 @@ export function AnalyticsScreen() {
   const [backendData, setBackendData] = useState<PartnerAnalyticsData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [chartMode, setChartMode] = useState<"revenue" | "orders">("revenue");
+  const [chartView, setChartView] = useState<"area" | "bars">("area");
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
 
   // Count active filters (excluding defaults)
@@ -301,6 +302,42 @@ export function AnalyticsScreen() {
     });
     return max > 0 ? maxIdx : -1;
   }, [chartMode, revenueTrend, ordersTrend]);
+
+  // SVG Area Spline & Curve calculation for rich graphic
+  const svgPoints = useMemo(() => {
+    const arr = chartMode === "revenue" ? revenueTrend : ordersTrend;
+    const count = arr.length;
+    if (count === 0) return [];
+    const effectiveMax = Math.max(...arr, chartMode === "revenue" ? 500 : 5);
+    const width = 640;
+    const height = 140;
+    const padX = 28;
+    const padTop = 15;
+    const padBottom = 15;
+    const usableW = width - padX * 2;
+    const usableH = height - padTop - padBottom;
+
+    return arr.map((val, i) => {
+      const x = padX + (i / Math.max(1, count - 1)) * usableW;
+      const yRatio = effectiveMax > 0 ? val / effectiveMax : 0;
+      const y = padTop + (1 - yRatio) * usableH;
+      return { x, y, val, label: trendLabels[i] || `Day ${i + 1}` };
+    });
+  }, [chartMode, revenueTrend, ordersTrend, trendLabels]);
+
+  const { linePath, areaPath } = useMemo(() => {
+    if (svgPoints.length < 2) return { linePath: "", areaPath: "" };
+    let d = `M ${svgPoints[0].x} ${svgPoints[0].y}`;
+    for (let i = 0; i < svgPoints.length - 1; i++) {
+      const p0 = svgPoints[i];
+      const p1 = svgPoints[i + 1];
+      const mx = (p0.x + p1.x) / 2;
+      d += ` C ${mx} ${p0.y}, ${mx} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+    const baselineY = 140 - 15;
+    const area = `${d} L ${svgPoints[svgPoints.length - 1].x} ${baselineY} L ${svgPoints[0].x} ${baselineY} Z`;
+    return { linePath: d, areaPath: area };
+  }, [svgPoints]);
 
   // Top Services
   const topServices: TopServiceStat[] = useMemo(() => {
@@ -670,13 +707,13 @@ export function AnalyticsScreen() {
         </div>
 
         {/* ========================================================================= */}
-        {/* SECTION 2: INTERACTIVE ROYAL BLUE PERFORMANCE TREND BAR CHART             */}
+        {/* SECTION 2: INTERACTIVE ROYAL BLUE PERFORMANCE TREND GRAPHIC               */}
         {/* ========================================================================= */}
         <div className="rounded-2xl sm:rounded-3xl border border-blue-100 bg-white p-4 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-blue-100/80 pb-4">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black tracking-tight text-zinc-900">
+                <h3 className="text-base font-black tracking-tight text-black">
                   Performance & Revenue Trend
                 </h3>
                 <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-black text-blue-700 border border-blue-200">
@@ -684,175 +721,325 @@ export function AnalyticsScreen() {
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-zinc-500">
-                Earnings and booking distribution for {period === "today" ? "today" : period === "yesterday" ? "yesterday" : `the past ${period}`}
+                Daily earnings & booking volume distribution for {period === "today" ? "today" : period === "yesterday" ? "yesterday" : `the past ${period}`}
               </p>
             </div>
 
-            {/* Mode Switcher: Revenue vs Orders */}
-            <div className="flex items-center gap-1 bg-blue-50/70 p-1 rounded-xl border border-blue-100 self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setChartMode("revenue")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-all cursor-pointer ${
-                  chartMode === "revenue"
-                    ? "bg-[#2563EB] text-white shadow-xs"
-                    : "text-blue-900/70 hover:text-blue-950"
-                }`}
-              >
-                <DollarSign className="size-3.5" />
-                <span>Revenue (₹)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setChartMode("orders")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-all cursor-pointer ${
-                  chartMode === "orders"
-                    ? "bg-[#2563EB] text-white shadow-xs"
-                    : "text-blue-900/70 hover:text-blue-950"
-                }`}
-              >
-                <Package className="size-3.5" />
-                <span>Orders (Count)</span>
-              </button>
+            {/* Graphic Controls: View Mode (Area vs Bars) + Metric (Revenue vs Orders) */}
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              
+              {/* Curve vs Pillars Toggle */}
+              <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setChartView("area")}
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
+                    chartView === "area"
+                      ? "bg-[#2563EB] text-white shadow-xs"
+                      : "text-black hover:bg-zinc-200/70"
+                  }`}
+                  title="Spline Area Waveform"
+                >
+                  <TrendingUp className="size-3.5" />
+                  <span>Wave Curve</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartView("bars")}
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
+                    chartView === "bars"
+                      ? "bg-[#2563EB] text-white shadow-xs"
+                      : "text-black hover:bg-zinc-200/70"
+                  }`}
+                  title="Vertical Bar Columns"
+                >
+                  <BarChart3 className="size-3.5" />
+                  <span>Bars</span>
+                </button>
+              </div>
+
+              {/* Metric Switcher: Revenue vs Orders */}
+              <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setChartMode("revenue")}
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
+                    chartMode === "revenue"
+                      ? "bg-[#2563EB] text-white shadow-xs"
+                      : "text-black hover:bg-zinc-200/70"
+                  }`}
+                >
+                  <DollarSign className="size-3.5" />
+                  <span>Revenue (₹)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartMode("orders")}
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
+                    chartMode === "orders"
+                      ? "bg-[#2563EB] text-white shadow-xs"
+                      : "text-black hover:bg-zinc-200/70"
+                  }`}
+                >
+                  <Package className="size-3.5" />
+                  <span>Orders</span>
+                </button>
+              </div>
+
             </div>
           </div>
 
-          {/* Interactive Bar Chart Area */}
-          <div className="pt-2">
-            <div className="flex h-56 items-end gap-2 sm:gap-3 pt-6 border-b border-blue-100 pb-3">
-              {trendLabels.map((label, idx) => {
-                const count = ordersTrend[idx] ?? 0;
-                const rev = revenueTrend[idx] ?? 0;
-                const value = chartMode === "revenue" ? rev : count;
-                const heightPercent = Math.max(12, Math.min(100, Math.round((value / maxVal) * 100)));
-                const isHovered = hoveredBarIndex === idx;
-                const isPeak = idx === peakDayIndex;
-
-                return (
-                  <div
-                    key={label + idx}
-                    onMouseEnter={() => setHoveredBarIndex(idx)}
-                    onMouseLeave={() => setHoveredBarIndex(null)}
-                    onClick={() => setHoveredBarIndex(isHovered ? null : idx)}
-                    className="group relative flex flex-1 flex-col items-center justify-end h-full cursor-pointer select-none"
-                  >
-                    {/* Tooltip on hover/touch */}
-                    <div
-                      className={`absolute -top-11 z-20 whitespace-nowrap rounded-xl bg-zinc-950 px-2.5 py-1 text-[11px] font-black text-white shadow-lg transition-all pointer-events-none ${
-                        isHovered ? "opacity-100 scale-100 -translate-y-1" : "opacity-0 scale-95"
-                      }`}
-                    >
-                      {chartMode === "revenue" ? inr(rev) : `${count} orders`}
-                      <span className="block text-[9px] font-medium text-blue-300">{label}</span>
-                    </div>
-
-                    {/* Peak Day Badge */}
-                    {isPeak && (
-                      <span className="mb-1 hidden sm:flex items-center gap-0.5 text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded-full border border-blue-200">
-                        <Flame className="size-2.5 text-blue-600 fill-current" /> Peak
-                      </span>
-                    )}
-
-                    {/* Value above bar */}
-                    <span className="mb-1 text-[10px] font-black text-zinc-500 group-hover:text-zinc-900">
-                      {chartMode === "revenue" ? (rev > 0 ? inr(rev) : "₹0") : count}
-                    </span>
-
-                    {/* Animated Royal Blue Bar Pillar */}
-                    <div
-                      style={{ height: `${heightPercent}%` }}
-                      className={`w-full max-w-[40px] rounded-t-xl transition-all duration-300 ${
-                        isHovered
-                          ? "bg-[#1D4ED8] shadow-md shadow-blue-500/30 scale-105"
-                          : isPeak
-                          ? "bg-gradient-to-t from-[#2563EB] to-[#3B82F6] shadow-sm"
-                          : "bg-gradient-to-t from-[#2563EB]/90 to-[#60A5FA] hover:brightness-110"
-                      }`}
-                    />
-
-                    {/* Date label at bottom */}
-                    <span className="mt-2 text-[10px] font-bold text-zinc-500 truncate max-w-full">
-                      {label.slice(5) || label}
-                    </span>
-                  </div>
-                );
-              })}
+          {/* Quick Snapshot Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+            <div className="rounded-xl bg-blue-50/70 border border-blue-100 p-2.5">
+              <span className="text-[10px] font-bold text-zinc-500">Period Total</span>
+              <p className="text-sm font-black text-black">{inr(totalRevenue)}</p>
             </div>
+            <div className="rounded-xl bg-emerald-50/70 border border-emerald-100 p-2.5">
+              <span className="text-[10px] font-bold text-emerald-700">Fulfilled Orders</span>
+              <p className="text-sm font-black text-emerald-700">{completedOrders} bookings</p>
+            </div>
+            <div className="rounded-xl bg-sky-50/70 border border-sky-100 p-2.5">
+              <span className="text-[10px] font-bold text-sky-700">Daily Average</span>
+              <p className="text-sm font-black text-black">{inr(Math.round(totalRevenue / Math.max(1, trendLabels.length)))}/day</p>
+            </div>
+            <div className="rounded-xl bg-amber-50/70 border border-amber-100 p-2.5">
+              <span className="text-[10px] font-bold text-amber-700">Peak Demand Day</span>
+              <p className="text-sm font-black text-amber-700">{trendLabels[peakDayIndex] || "Sunday"}</p>
+            </div>
+          </div>
 
-            {/* Bottom summary bar */}
-            <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-zinc-500 gap-2">
-              <div className="flex items-center gap-4">
-                <span>Total in period: <strong className="text-zinc-900">{inr(totalRevenue)}</strong></span>
-                <span>Completed: <strong className="text-zinc-900">{completedOrders} bookings</strong></span>
+          {/* Interactive SVG Spline Area Waveform Graphic */}
+          {chartView === "area" ? (
+            <div className="relative pt-2">
+              {/* Tooltip on hover/touch */}
+              {hoveredBarIndex !== null && (
+                <div
+                  className="absolute -top-3 z-30 whitespace-nowrap rounded-xl bg-zinc-950 px-3 py-1.5 text-xs font-black text-white shadow-xl pointer-events-none transition-all"
+                  style={{
+                    left: `${((hoveredBarIndex / Math.max(1, trendLabels.length - 1)) * 88) + 4}%`,
+                  }}
+                >
+                  <p className="text-[10px] text-blue-300 font-semibold">{trendLabels[hoveredBarIndex]}</p>
+                  <p className="text-xs font-black text-white">
+                    {chartMode === "revenue"
+                      ? inr(revenueTrend[hoveredBarIndex] || 0)
+                      : `${ordersTrend[hoveredBarIndex] || 0} orders`}
+                  </p>
+                </div>
+              )}
+
+              {/* SVG Graphic */}
+              <div className="relative w-full h-44 sm:h-52 select-none">
+                <svg viewBox="0 0 640 140" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="blueAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563EB" stopOpacity="0.32" />
+                      <stop offset="60%" stopColor="#3B82F6" stopOpacity="0.10" />
+                      <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.0" />
+                    </linearGradient>
+                    <filter id="splineGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#2563EB" floodOpacity="0.25" />
+                    </filter>
+                  </defs>
+
+                  {/* Horizontal Grid Guidelines */}
+                  <line x1="28" y1="20" x2="612" y2="20" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="4 4" />
+                  <line x1="28" y1="72" x2="612" y2="72" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="4 4" />
+                  <line x1="28" y1="125" x2="612" y2="125" stroke="#E2E8F0" strokeWidth="1.5" />
+
+                  {/* Area Fill */}
+                  {areaPath && <path d={areaPath} fill="url(#blueAreaGrad)" />}
+
+                  {/* Spline Line */}
+                  {linePath && (
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="#2563EB"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      filter="url(#splineGlow)"
+                    />
+                  )}
+
+                  {/* Interactive Nodes & Vertical Cursor */}
+                  {svgPoints.map((pt, i) => {
+                    const isHovered = hoveredBarIndex === i;
+                    const isPeak = i === peakDayIndex && pt.val > 0;
+                    return (
+                      <g key={i} className="cursor-pointer">
+                        {/* Hover vertical dotted line */}
+                        {isHovered && (
+                          <line
+                            x1={pt.x}
+                            y1="15"
+                            x2={pt.x}
+                            y2="125"
+                            stroke="#93C5FD"
+                            strokeWidth="1.5"
+                            strokeDasharray="3 3"
+                          />
+                        )}
+
+                        {/* Outer Ring */}
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isHovered ? 8 : isPeak ? 6 : 4.5}
+                          fill={isHovered ? "#93C5FD" : isPeak ? "#BFDBFE" : "#DBEAFE"}
+                          className="transition-all duration-200"
+                        />
+
+                        {/* Inner Core */}
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isHovered ? 4.5 : isPeak ? 3.5 : 2.5}
+                          fill="#2563EB"
+                          stroke="#FFFFFF"
+                          strokeWidth="1.5"
+                        />
+
+                        {/* Hit Area */}
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r="18"
+                          fill="transparent"
+                          onMouseEnter={() => setHoveredBarIndex(i)}
+                          onMouseLeave={() => setHoveredBarIndex(null)}
+                          onClick={() => setHoveredBarIndex(isHovered ? null : i)}
+                        />
+                      </g>
+                    );
+                  })}
+                </svg>
+
+                {/* Empty State Overlay when all values are 0 */}
+                {maxVal <= (chartMode === "revenue" ? 500 : 5) && totalRevenue === 0 && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div className="rounded-2xl bg-white/95 border border-blue-200 px-3.5 py-2 shadow-xs flex items-center gap-2 backdrop-blur-xs">
+                      <div className="size-6 rounded-lg bg-blue-50 text-[#2563EB] flex items-center justify-center">
+                        <TrendingUp className="size-3.5" />
+                      </div>
+                      <p className="text-[11px] font-black text-black">
+                        Daily Sales Waveform Active • Updates dynamically with orders
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-semibold">
-                <Clock className="size-3 text-blue-600" />
-                <span>Live Supabase & Socket Sync</span>
+
+              {/* Day Labels and Values row */}
+              <div className="flex items-center justify-between px-2 pt-2 border-t border-zinc-100 text-[11px]">
+                {trendLabels.map((lbl, idx) => {
+                  const val = chartMode === "revenue" ? revenueTrend[idx] || 0 : ordersTrend[idx] || 0;
+                  const isHovered = hoveredBarIndex === idx;
+                  return (
+                    <div
+                      key={lbl + idx}
+                      onMouseEnter={() => setHoveredBarIndex(idx)}
+                      onMouseLeave={() => setHoveredBarIndex(null)}
+                      onClick={() => setHoveredBarIndex(isHovered ? null : idx)}
+                      className="flex flex-col items-center cursor-pointer"
+                    >
+                      <span className={`text-[10px] font-black tabular-nums transition-colors ${isHovered ? "text-[#2563EB]" : "text-zinc-500"}`}>
+                        {chartMode === "revenue" ? (val > 0 ? inr(val) : "₹0") : val}
+                      </span>
+                      <span className={`font-black text-[10px] transition-colors ${isHovered ? "text-[#2563EB]" : "text-black"}`}>
+                        {lbl.slice(5) || lbl}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
+          ) : (
+            /* Bar Column Mode (When switched to Bars) */
+            <div className="pt-2">
+              <div className="flex h-44 sm:h-52 items-end gap-2 sm:gap-3 pt-6 border-b border-zinc-200 pb-3">
+                {trendLabels.map((label, idx) => {
+                  const count = ordersTrend[idx] ?? 0;
+                  const rev = revenueTrend[idx] ?? 0;
+                  const value = chartMode === "revenue" ? rev : count;
+                  const heightPercent = value > 0 ? Math.max(14, Math.min(100, Math.round((value / maxVal) * 100))) : 0;
+                  const isHovered = hoveredBarIndex === idx;
+                  const isPeak = idx === peakDayIndex && value > 0;
+
+                  return (
+                    <div
+                      key={label + idx}
+                      onMouseEnter={() => setHoveredBarIndex(idx)}
+                      onMouseLeave={() => setHoveredBarIndex(null)}
+                      onClick={() => setHoveredBarIndex(isHovered ? null : idx)}
+                      className="group relative flex flex-1 flex-col items-center justify-end h-full cursor-pointer select-none"
+                    >
+                      {/* Tooltip */}
+                      <div
+                        className={`absolute -top-11 z-20 whitespace-nowrap rounded-xl bg-zinc-950 px-2.5 py-1 text-[11px] font-black text-white shadow-lg transition-all pointer-events-none ${
+                          isHovered ? "opacity-100 scale-100 -translate-y-1" : "opacity-0 scale-95"
+                        }`}
+                      >
+                        {chartMode === "revenue" ? inr(rev) : `${count} orders`}
+                        <span className="block text-[9px] font-medium text-blue-300">{label}</span>
+                      </div>
+
+                      {/* Peak Badge */}
+                      {isPeak && (
+                        <span className="mb-1 hidden sm:flex items-center gap-0.5 text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded-full border border-blue-200">
+                          <Flame className="size-2.5 text-blue-600 fill-current" /> Peak
+                        </span>
+                      )}
+
+                      {/* Value above bar */}
+                      <span className="mb-1 text-[10px] font-black text-zinc-500 group-hover:text-black">
+                        {chartMode === "revenue" ? (rev > 0 ? inr(rev) : "₹0") : count}
+                      </span>
+
+                      {/* Bar Pillar OR Clean Baseline Tick */}
+                      {value > 0 ? (
+                        <div
+                          style={{ height: `${heightPercent}%` }}
+                          className={`w-full max-w-[38px] rounded-t-xl transition-all duration-300 ${
+                            isHovered
+                              ? "bg-[#1D4ED8] shadow-md shadow-blue-500/30 scale-105"
+                              : "bg-gradient-to-t from-[#2563EB] to-[#60A5FA] hover:brightness-110"
+                          }`}
+                        />
+                      ) : (
+                        <div className="h-1 w-6 rounded-full bg-zinc-300 group-hover:bg-[#2563EB] transition-colors" />
+                      )}
+
+                      {/* Date label at bottom */}
+                      <span className="mt-2 text-[10px] font-black text-black truncate max-w-full">
+                        {label.slice(5) || label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Bottom summary bar */}
+          <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-zinc-500 gap-2">
+            <div className="flex items-center gap-4">
+              <span>Total in period: <strong className="text-black">{inr(totalRevenue)}</strong></span>
+              <span>Completed: <strong className="text-black">{completedOrders} bookings</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-[#2563EB] font-bold">
+              <Clock className="size-3 text-[#2563EB]" />
+              <span>Live Supabase & Socket Sync</span>
             </div>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* SECTION 3: 4-COLUMN GRID (FUNNEL, SPEED MODES, TOP SERVICES, PEAK HOURS)  */}
+        {/* SECTION 3: 3 PANELS (SPEED MODES, TOP SERVICES, PEAK HOURS)               */}
         {/* ========================================================================= */}
-        <div className="grid gap-5 lg:grid-cols-2">
-
-          {/* 1. Operational Funnel & SLA Health */}
-          <div className="rounded-2xl sm:rounded-3xl border border-blue-100 bg-white p-4 sm:p-6 shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between border-b border-blue-100/80 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB]">
-                    <Layers className="size-4" />
-                  </span>
-                  <div>
-                    <h4 className="text-sm font-black text-zinc-900">Operational Funnel & Health</h4>
-                    <p className="text-[11px] text-zinc-500">Order lifecycle from doorstep pickup to delivery</p>
-                  </div>
-                </div>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">
-                  99.4% SLA Pass
-                </span>
-              </div>
-
-              {/* Progress Stage Pipeline */}
-              <div className="mt-4 space-y-3">
-                {[
-                  { label: "Orders Received & Confirmed", count: clientAggregated.totalOrders, pct: 100, color: "bg-[#2563EB]" },
-                  { label: "Washing & Fabric Processing", count: Math.max(completedOrders, clientAggregated.activeOrders), pct: clientAggregated.totalOrders > 0 ? Math.round((Math.max(completedOrders, clientAggregated.activeOrders) / clientAggregated.totalOrders) * 100) : 100, color: "bg-indigo-600" },
-                  { label: "Steam Press & Tag Quality Check", count: completedOrders, pct: clientAggregated.totalOrders > 0 ? Math.round((completedOrders / clientAggregated.totalOrders) * 100) : 100, color: "bg-sky-600" },
-                  { label: "Doorstep Delivered to Customer", count: completedOrders, pct: clientAggregated.totalOrders > 0 ? Math.round((completedOrders / clientAggregated.totalOrders) * 100) : 100, color: "bg-emerald-600" },
-                ].map((stg) => (
-                  <div key={stg.label}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="font-bold text-zinc-800">{stg.label}</span>
-                      <span className="font-black text-zinc-500">{stg.count} ({stg.pct}%)</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-blue-50 overflow-hidden">
-                      <div style={{ width: `${stg.pct}%` }} className={`h-full rounded-full ${stg.color}`} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* SLA Metrics Row */}
-            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-blue-100/80 pt-4 text-center">
-              <div className="rounded-xl bg-blue-50/70 p-2.5 border border-blue-100">
-                <p className="text-[10px] font-bold text-zinc-500">Avg Turnaround</p>
-                <p className="text-sm font-black text-zinc-900">18.4 hrs</p>
-              </div>
-              <div className="rounded-xl bg-emerald-50/70 p-2.5 border border-emerald-100">
-                <p className="text-[10px] font-bold text-emerald-700">Fulfillment</p>
-                <p className="text-sm font-black text-emerald-700">100%</p>
-              </div>
-              <div className="rounded-xl bg-amber-50/70 p-2.5 border border-amber-100">
-                <p className="text-[10px] font-bold text-amber-700">Store Rating</p>
-                <p className="text-sm font-black text-amber-600">4.9 ★</p>
-              </div>
-            </div>
-          </div>
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
 
           {/* 2. Express Delivery vs Standard Turnaround */}
           <div className="rounded-2xl sm:rounded-3xl border border-blue-100 bg-white p-4 sm:p-6 shadow-xs flex flex-col justify-between">
