@@ -363,9 +363,12 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
     story.append(Spacer(1, 8))
 
     # Audit Footer
+    from app.config import get_settings
+    settings = get_settings()
+    audit_email = settings.smtp_user or "official.quickpress@gmail.com"
     audit_text = (
         f"<b>DIGITAL AUDIT TRAIL:</b> Agreement ID: {agreement_ref} | Captain ID: {rider_id} | "
-        f"Verified Email: {captain_email} | Platform Dispatch: Hostinger SMTP | Legal Entity: {company_name} | Copy CC: official.quickpress@gmail.com"
+        f"Verified Email: {captain_email} | Platform Dispatch: Hostinger SMTP | Legal Entity: {company_name} | Copy CC: {audit_email}"
     )
     story.append(Paragraph(audit_text, p_small))
 

@@ -483,6 +483,9 @@ def _render_base_email(
     footer_note: Optional[str] = None,
 ) -> str:
     """Generate cohesive, premium QuickPress branded HTML container."""
+    settings = get_settings()
+    contact_email = settings.smtp_user or "info@withquickpress.com"
+    footer_line = footer_note or f"Questions? Reach us anytime at {contact_email}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -618,7 +621,7 @@ def _render_base_email(
     </div>
     <div class="footer">
       <strong style="color: #ffffff;">QuickPress Laundry &amp; Dry Cleaning Services</strong><br>
-      {footer_note or 'Questions? Reach us anytime at official.quickpress@gmail.com'}<br>
+      {footer_line}<br>
       <span style="font-size: 11px; color: #64748b; display: inline-block; margin-top: 6px;">
         Eco-Friendly Care · 7-Step Inspection · Kasganj Operations Hub
       </span>
@@ -1350,7 +1353,7 @@ async def send_partner_agreement_email(
           </tr>
           <tr>
             <td style="font-weight: 700;">Official Support:</td>
-            <td>info@withquickpress.com</td>
+            <td>{settings.smtp_user or "info@withquickpress.com"}</td>
           </tr>
         </table>
       </div>
@@ -1378,7 +1381,7 @@ async def send_partner_agreement_email(
         content_html=content,
     )
 
-    cc_email = settings.notification_email or "official.quickpress@gmail.com"
+    cc_email = settings.notification_email or settings.smtp_user or "official.quickpress@gmail.com"
 
     return await dispatch_email(
         to=partner_email,
@@ -1514,7 +1517,7 @@ async def send_rider_agreement_email(
           </tr>
           <tr>
             <td style="font-weight: 700;">Official Support:</td>
-            <td>info@withquickpress.com</td>
+            <td>{settings.smtp_user or "info@withquickpress.com"}</td>
           </tr>
         </table>
       </div>
@@ -1538,7 +1541,7 @@ async def send_rider_agreement_email(
         content_html=content,
     )
 
-    cc_email = settings.notification_email or "official.quickpress@gmail.com"
+    cc_email = settings.notification_email or settings.smtp_user or "official.quickpress@gmail.com"
 
     return await dispatch_email(
         to=rider_email,
