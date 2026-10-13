@@ -196,7 +196,9 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
     # 2. Twilio OTP Code Verification
     if payload.code:
         is_valid = verify_stored_otp(phone, payload.code)
-        if not is_valid and payload.code not in ("123456", "000000"):
+        is_dev = settings.app_env in ("development", "test", "local")
+        allowed_dev_codes = ("123456", "000000") if is_dev else ()
+        if not is_valid and payload.code not in allowed_dev_codes:
             failures, lock_time = rate_limiter.record_failed_attempt(f"otp:{phone}", max_failures=5, lock_duration=900)
             if lock_time:
                 raise HTTPException(

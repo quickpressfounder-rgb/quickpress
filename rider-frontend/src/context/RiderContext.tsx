@@ -55,14 +55,27 @@ export function RiderProvider({ children }: { children: ReactNode }) {
           rawId && rawId !== "CP-9821" && rawId !== "CAP-100101"
             ? rawId
             : (typeof window !== "undefined" ? localStorage.getItem("qp_rider_id") || "" : "");
+        const isOnboardedVal = Boolean(
+          acc.isOnboarded === true ||
+          acc.is_onboarded === true ||
+          (stored as any).isOnboarded === true ||
+          (cleanId && cleanId.length > 3)
+        );
+        const isVerifiedVal = Boolean(
+          acc.isVerified === true ||
+          acc.is_verified === true ||
+          (stored as any).isVerified === true ||
+          acc.status === "active" ||
+          acc.status === "approved"
+        );
 
         return {
           riderId: cleanId,
           phone: acc.phone ?? (stored as any).phone ?? (typeof window !== "undefined" ? localStorage.getItem("qp_rider_phone") || "" : ""),
           fullName: cleanName,
-          isVerified: Boolean(acc.isVerified ?? acc.is_verified ?? (stored as any).isVerified ?? (stored as any).is_verified),
-          isOnboarded: Boolean(acc.isOnboarded ?? acc.is_onboarded ?? (stored as any).isOnboarded ?? (stored as any).is_onboarded ?? true),
-          isNewRider: !Boolean(acc.isOnboarded ?? acc.is_onboarded ?? (stored as any).isOnboarded ?? (stored as any).is_onboarded ?? true),
+          isVerified: isVerifiedVal,
+          isOnboarded: isOnboardedVal,
+          isNewRider: !isOnboardedVal,
           token: stored.token,
           refreshToken: stored.refreshToken,
         };

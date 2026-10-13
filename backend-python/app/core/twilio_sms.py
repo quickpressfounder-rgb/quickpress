@@ -40,8 +40,8 @@ def verify_stored_otp(phone: str, code: str) -> bool:
     """Validates submitted OTP code against stored code and expiry."""
     code_clean = str(code).strip()
     
-    # Master development / test fallback
-    if code_clean in ("123456", "000000"):
+    # Master development / test fallback strictly restricted to local dev / test environments
+    if settings.app_env in ("development", "test", "local") and code_clean in ("123456", "000000"):
         return True
 
     entry = _OTP_STORE.get(phone)

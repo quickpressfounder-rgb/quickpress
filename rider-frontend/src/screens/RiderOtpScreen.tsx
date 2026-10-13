@@ -100,9 +100,17 @@ export function RiderOtpScreen() {
       const sessionResult = await verifyOtp(effectivePhone, codeToVerify);
       signIn(sessionResult);
 
-      // 2. Direct entrance to Dashboard / Home
-      toast.success("Welcome, Captain! Redirecting to Dashboard... 🚀");
-      navigate({ to: "/dashboard", replace: true });
+      // 2. Strict Onboarding & Verification Navigation
+      if (!sessionResult.isOnboarded) {
+        toast.info("Welcome, Captain! Please complete your registration. 📋");
+        navigate({ to: "/registration", replace: true });
+      } else if (!sessionResult.isVerified) {
+        toast.info("Your application is under verification by Admin. ⏳");
+        navigate({ to: "/verification", replace: true });
+      } else {
+        toast.success("Welcome back, Captain! Redirecting to Hub... 🚀");
+        navigate({ to: "/dashboard", replace: true });
+      }
     } catch (err: any) {
       toast.error(err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.");
       setIsAutoSubmitting(false);

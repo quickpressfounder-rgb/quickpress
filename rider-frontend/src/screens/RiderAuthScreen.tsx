@@ -32,11 +32,17 @@ export function RiderAuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fast synchronous session check: redirect immediately if already authenticated
+  // Fast synchronous session check: redirect if already authenticated
   useEffect(() => {
     const sess = readSession("rider") || readSession();
     if (sess && sess.token) {
-      navigate({ to: "/dashboard", replace: true });
+      if (!isRiderOnboarded(sess)) {
+        navigate({ to: "/registration", replace: true });
+      } else if (!isRiderApproved(sess)) {
+        navigate({ to: "/verification", replace: true });
+      } else {
+        navigate({ to: "/dashboard", replace: true });
+      }
     }
   }, [navigate]);
 

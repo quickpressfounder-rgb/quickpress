@@ -18,7 +18,13 @@ export const Route = createFileRoute("/auth")({
         }
       }
       if (sess && sess.token) {
-        throw redirect({ to: "/dashboard" });
+        if (!isRiderOnboarded(sess)) {
+          throw redirect({ to: "/registration" });
+        } else if (!isRiderApproved(sess)) {
+          throw redirect({ to: "/verification" });
+        } else {
+          throw redirect({ to: "/dashboard" });
+        }
       }
     }
   },
