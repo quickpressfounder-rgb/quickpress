@@ -6,8 +6,9 @@
  */
 
 export function formatCaptainId(id?: string | null): string {
-  if (!id) return "CAP-100001";
+  if (!id) return "";
   const clean = String(id).trim();
+  if (!clean || clean === "CAP-100001" || clean === "CAP-100101" || clean === "CP-9821" || clean === "RDR-8821") return "";
   if (/^CAP-\d{6}$/i.test(clean)) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("CAP-")) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("RDR-")) return `CAP-${clean.slice(4).toUpperCase()}`;

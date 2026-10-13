@@ -6,8 +6,11 @@
  */
 
 export function formatCaptainId(id?: string | null): string {
-  if (!id) return "CAP-100001";
+  if (!id) return "";
   const clean = String(id).trim();
+  if (!clean || clean === "CAP-100001" || clean === "CAP-100101" || clean === "CP-9821" || clean === "RDR-8821") {
+    return "";
+  }
   if (/^CAP-\d{6}$/i.test(clean)) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("CAP-")) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("RDR-")) return `CAP-${clean.slice(4).toUpperCase()}`;
@@ -29,8 +32,9 @@ export function formatCaptainId(id?: string | null): string {
 }
 
 export function formatPartnerId(id?: string | null): string {
-  if (!id) return "PRT-100001";
+  if (!id) return "";
   const clean = String(id).trim();
+  if (!clean || clean === "PRT-100001") return "";
   if (/^PRT-\d{6}$/i.test(clean)) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("PRT-")) return clean.toUpperCase();
   if (clean.toUpperCase().startsWith("PARTNER-")) return `PRT-${clean.slice(8).toUpperCase()}`;

@@ -77,9 +77,9 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
                   {captainName}
                 </h1>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-800 border border-amber-200/60">
-                    <Star className="size-3 fill-amber-500 text-amber-500" />
-                    4.94 Rating
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-800 border border-emerald-200/60">
+                    <Star className="size-3 fill-emerald-500 text-emerald-500" />
+                    {todayDeliveries > 0 ? `${todayDeliveries} Deliveries Today` : "Ready for Orders"}
                   </span>
                   <span className="text-zinc-300">·</span>
                   <span className="text-xs font-bold text-zinc-600">

@@ -251,8 +251,13 @@ export function RiderProvider({ children }: { children: ReactNode }) {
         window.localStorage.removeItem("qp_access_token");
         window.localStorage.removeItem("qp_active_rider_order");
         window.localStorage.removeItem("qp_rider_profile_photo");
+        window.localStorage.removeItem("qp_rider_government_name");
+        window.localStorage.removeItem("qp_rider_id");
+        window.localStorage.removeItem("qp_rider_phone");
         window.sessionStorage.removeItem("qp.rider.pendingPhone");
         window.sessionStorage.removeItem("qp_rider_token");
+        window.sessionStorage.removeItem("qp_rider_government_name");
+        window.sessionStorage.removeItem("qp_rider_id");
       } catch {}
     }
     void logoutRider().catch(() => undefined);

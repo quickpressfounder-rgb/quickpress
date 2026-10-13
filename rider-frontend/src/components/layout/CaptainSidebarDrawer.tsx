@@ -43,9 +43,9 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
   isOpen,
   onClose,
   captainName = "Captain",
-  captainId = "RDR-8821",
+  captainId = "",
   captainPhoto,
-  rating = 4.9,
+  rating,
   onLogout,
   onOpenLanguage,
   onOpenOnboarding,
@@ -142,15 +142,23 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                 )}
                 <div>
                   <h3 className="text-sm font-black text-neutral-950 leading-tight">
-                    {captainName}
+                    {captainName || "Captain"}
                   </h3>
-                  <p className="text-[11px] font-bold text-neutral-500 mt-0.5 font-mono">
-                    ID: {formatCaptainId(captainId)}
-                  </p>
+                  {captainId && formatCaptainId(captainId) ? (
+                    <p className="text-[11px] font-bold text-neutral-500 mt-0.5 font-mono">
+                      ID: {formatCaptainId(captainId)}
+                    </p>
+                  ) : null}
                   <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded-md">
-                      {rating.toFixed(1)} ★ Verified
-                    </span>
+                    {session?.isVerified ? (
+                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md">
+                        {rating && rating > 0 ? `${rating.toFixed(1)} ★ ` : ""}Verified Captain
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-md">
+                        Under Verification
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -44,20 +44,12 @@ export function RiderDashboardScreen() {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [todayDeliveries, setTodayDeliveries] = useState(0);
   const [captainName, setCaptainName] = useState(() => {
-    if (typeof window !== "undefined") {
-      const cached = localStorage.getItem("qp_rider_government_name");
-      if (cached) return cached;
-    }
     const name = session?.fullName;
-    return name && name !== "Delivery Captain" && name !== "Delivery Partner" ? name : "";
+    return name && name !== "Delivery Captain" && name !== "Delivery Partner" ? name : "Captain";
   });
   const [captainId, setCaptainId] = useState(() => {
-    if (typeof window !== "undefined") {
-      const cached = localStorage.getItem("qp_rider_id");
-      if (cached) return formatCaptainId(cached);
-    }
     const rid = session?.riderId;
-    return rid && rid !== "CAP-100101" && rid !== "CP-9821" ? formatCaptainId(rid) : "";
+    return rid && rid !== "CAP-100101" && rid !== "CP-9821" && rid !== "RDR-8821" ? formatCaptainId(rid) : "";
   });
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);

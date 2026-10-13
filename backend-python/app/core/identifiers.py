@@ -9,8 +9,10 @@ from app.db.client import database
 def format_captain_id(raw_id: Optional[str]) -> str:
     """Format any raw ID/UUID into a clean code word: CAP-XXXXXX (e.g. CAP-919300)."""
     if not raw_id:
-        return "CAP-100001"
+        return ""
     clean = str(raw_id).strip()
+    if not clean or clean in ("CAP-100001", "CAP-100101", "CP-9821", "RDR-8821"):
+        return ""
     if clean.upper().startswith("CAP-"):
         return clean.upper()
     if clean.upper().startswith("RDR-"):
@@ -34,8 +36,10 @@ def format_captain_id(raw_id: Optional[str]) -> str:
 def format_partner_id(raw_id: Optional[str]) -> str:
     """Format any raw ID/UUID into a clean code word: PRT-XXXXXX (e.g. PRT-619284)."""
     if not raw_id:
-        return "PRT-100001"
+        return ""
     clean = str(raw_id).strip()
+    if not clean or clean in ("PRT-100001", "PRT-100101"):
+        return ""
     if clean.upper().startswith("PRT-"):
         return clean.upper()
     if clean.upper().startswith("PARTNER-"):
