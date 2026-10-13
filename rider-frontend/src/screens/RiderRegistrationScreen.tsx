@@ -17,15 +17,17 @@ import {
   FileCheck2,
   FileText,
   IdCard,
-  Info,
+  KeyRound,
   Lock,
   Loader2,
+  Mail,
   MapPin,
   PenTool,
   RefreshCw,
   RotateCcw,
   Scale,
   Search,
+  Send,
   ShieldAlert,
   ShieldCheck,
   Upload,
@@ -36,7 +38,14 @@ import React, { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
-import { submitRiderRegistration, uploadRiderDocument } from "../api/rider/rider-auth-api";
+import {
+  submitRiderRegistration,
+  uploadRiderDocument,
+  sendRiderEmailOtp,
+  verifyRiderEmailOtp,
+  sendRiderAgreementOtp,
+  verifyRiderAgreementOtp,
+} from "../api/rider/rider-auth-api";
 import { apiGetJson, apiPostJson } from "../api/core/transport";
 import { readSession, writeSession } from "../api/core/session-store";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
@@ -423,6 +432,13 @@ export function RiderRegistrationScreen() {
 
   // STEP 1: Personal Data
   const [fullName, setFullName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
+  const [isSendingEmailOtp, setIsSendingEmailOtp] = useState<boolean>(false);
+  const [showEmailOtpBox, setShowEmailOtpBox] = useState<boolean>(false);
+  const [emailOtp, setEmailOtp] = useState<string>("");
+  const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState<boolean>(false);
+  const [emailOtpCountdown, setEmailOtpCountdown] = useState<number>(0);
   const [gender, setGender] = useState<string>("");
   const [dob, setDob] = useState<string>("");
   const [selectedCity, setSelectedCity] = useState<string>("");
@@ -507,6 +523,12 @@ export function RiderRegistrationScreen() {
   const [signatureDataUrl, setSignatureDataUrl] = useState<string>("");
   const [hasSignature, setHasSignature] = useState<boolean>(false);
   const [isSigning, setIsSigning] = useState<boolean>(false);
+  const [isSendingAgreementOtp, setIsSendingAgreementOtp] = useState<boolean>(false);
+  const [showAgreementOtpBox, setShowAgreementOtpBox] = useState<boolean>(false);
+  const [agreementOtp, setAgreementOtp] = useState<string>("");
+  const [isVerifyingAgreementOtp, setIsVerifyingAgreementOtp] = useState<boolean>(false);
+  const [agreementOtpCountdown, setAgreementOtpCountdown] = useState<number>(0);
+  const [isAgreementOtpVerified, setIsAgreementOtpVerified] = useState<boolean>(false);
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const agreementScrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -638,6 +660,123 @@ export function RiderRegistrationScreen() {
     );
   };
 
+  // Email & Agreement OTP Countdown Timers
+  useEffect(() => {
+    if (emailOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setEmailOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [emailOtpCountdown]);
+
+  useEffect(() => {
+    if (agreementOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setAgreementOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [agreementOtpCountdown]);
+
+  // Step 1: Email OTP Handlers
+  const handleSendEmailOtp = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setIsSendingEmailOtp(true);
+    try {
+      const res = await sendRiderEmailOtp(cleanEmail, fullName.trim() || "Delivery Captain");
+      if (res.ok) {
+        setShowEmailOtpBox(true);
+        setEmailOtpCountdown(60);
+        clearFieldError("email");
+        toast.success(`Verification OTP sent to ${cleanEmail} ✓`);
+      } else {
+        toast.error(res.message || "Failed to send email verification code");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send email OTP. Please retry.");
+    } finally {
+      setIsSendingEmailOtp(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = emailOtp.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      toast.error("Please enter the 6-digit OTP code");
+      return;
+    }
+    setIsVerifyingEmailOtp(true);
+    try {
+      const res = await verifyRiderEmailOtp(cleanEmail, cleanOtp);
+      if (res.ok) {
+        setIsEmailVerified(true);
+        setShowEmailOtpBox(false);
+        clearFieldError("email");
+        toast.success("Email verified successfully! ✓");
+      } else {
+        toast.error(res.message || "Invalid OTP code");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Invalid or expired OTP code");
+    } finally {
+      setIsVerifyingEmailOtp(false);
+    }
+  };
+
+  // Step 6: Agreement Authorization Email OTP Handlers
+  const handleSendAgreementOtp = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      toast.error("Verified email address is missing");
+      return;
+    }
+    setIsSendingAgreementOtp(true);
+    try {
+      const res = await sendRiderAgreementOtp(cleanEmail, officialApplicantName || fullName.trim() || "Delivery Captain");
+      if (res.ok) {
+        setShowAgreementOtpBox(true);
+        setAgreementOtpCountdown(60);
+        clearFieldError("agreementOtp");
+        toast.success(`Agreement authorization code sent to ${cleanEmail} ✓`);
+      } else {
+        toast.error(res.message || "Failed to send Agreement OTP");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send Agreement OTP. Please retry.");
+    } finally {
+      setIsSendingAgreementOtp(false);
+    }
+  };
+
+  const handleVerifyAgreementOtp = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = agreementOtp.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      toast.error("Please enter the 6-digit Agreement OTP");
+      return;
+    }
+    setIsVerifyingAgreementOtp(true);
+    try {
+      const res = await verifyRiderAgreementOtp(cleanEmail, cleanOtp);
+      if (res.ok) {
+        setIsAgreementOtpVerified(true);
+        setShowAgreementOtpBox(false);
+        clearFieldError("agreementOtp");
+        toast.success("Agreement legally authorized and confirmed via Email OTP! ✓");
+      } else {
+        toast.error(res.message || "Invalid Agreement OTP code");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Invalid or expired Agreement OTP");
+    } finally {
+      setIsVerifyingAgreementOtp(false);
+    }
+  };
+
   // Helper for doc upload states
   const setDocUploading = (docKey: string) => (isUp: boolean) => {
     setUploadingDocs((prev) => ({ ...prev, [docKey]: isUp }));
@@ -692,6 +831,10 @@ export function RiderRegistrationScreen() {
           if (statusRes.draftData) {
             const d = statusRes.draftData;
             if (d.fullName) setFullName((prev) => prev || d.fullName);
+            if (d.email) {
+              setEmail((prev) => prev || d.email);
+              setIsEmailVerified(true);
+            }
             if (d.gender) setGender((prev) => prev || d.gender);
             if (d.dob) setDob((prev) => prev || d.dob);
             if (d.city) setSelectedCity((prev) => prev || d.city);
@@ -1036,6 +1179,13 @@ export function RiderRegistrationScreen() {
         newErrors["fullName"] = "Kripya apna poora naam darj karein (Full Name as per ID is required)";
         missing.push("Poora Naam (Full Name)");
       }
+      if (!email.trim() || !email.includes("@") || !email.includes(".")) {
+        newErrors["email"] = "Kripya valid email address darj karein";
+        missing.push("Official Email Address");
+      } else if (!isEmailVerified) {
+        newErrors["email"] = "Kripya email address ko OTP se verify karein";
+        missing.push("Email OTP Verification");
+      }
       if (!gender) {
         newErrors["gender"] = "Kripya gender select karein (Gender is required)";
         missing.push("Gender (Male / Female / Other)");
@@ -1318,6 +1468,10 @@ export function RiderRegistrationScreen() {
       newErrors["hasSignature"] = "Kripya box ke andar apna digital signature karein";
       missing.push("Candidate Digital Signature");
     }
+    if (!isAgreementOtpVerified) {
+      newErrors["agreementOtp"] = "Kripya email par bheja gaya 6-digit Agreement Code darj karke verify karein";
+      missing.push("Email Agreement Authorization Code");
+    }
 
     if (missing.length > 0) {
       setFieldErrors(newErrors);
@@ -1349,6 +1503,9 @@ export function RiderRegistrationScreen() {
         name: officialApplicantName,
         phone: targetPhone.startsWith("+91") ? targetPhone : `+91${targetPhone.replace(/\D/g, "")}`,
         mobile: targetPhone.startsWith("+91") ? targetPhone : `+91${targetPhone.replace(/\D/g, "")}`,
+        email: email.trim().toLowerCase(),
+        isEmailVerified: true,
+        agreementOtpVerified: true,
         gender: gender || "male",
         dob,
         city: selectedCity.trim(),
@@ -1435,7 +1592,11 @@ export function RiderRegistrationScreen() {
         localStorage.setItem("qp_rider_government_name", officialApplicantName);
       } catch {}
 
-      toast.success(isResubmissionFlow ? "Updated application & documents re-submitted for Admin Approval! ✓" : "Application & Agreement submitted for Admin Approval! ✓");
+      toast.success(
+        isResubmissionFlow
+          ? "Updated application & documents re-submitted for Admin Approval! ✓"
+          : "Application & Signed Agreement submitted for Admin Approval! A copy has been emailed to you. ✓"
+      );
       navigate({ to: "/verification", replace: true });
     } catch (err: any) {
       toast.error(err?.message || "Registration submission failed. Please retry.");
@@ -1600,6 +1761,129 @@ export function RiderRegistrationScreen() {
                   <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
                     <span>{fieldErrors["fullName"]}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Official Email Address & Live OTP Verification */}
+              <div>
+                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Official Email Address <span className="text-red-500 font-black">*</span>
+                </label>
+                <div className="relative flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="e.g. ramesh.kumar@gmail.com"
+                      disabled={isEmailVerified}
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearFieldError("email");
+                        if (isEmailVerified) setIsEmailVerified(false);
+                      }}
+                      className={`w-full h-11 px-3.5 bg-white border rounded-xl text-xs font-bold text-neutral-900 transition-all ${
+                        isEmailVerified
+                          ? "bg-emerald-50/50 border-emerald-300 text-emerald-950 font-black"
+                          : fieldErrors["email"]
+                          ? "border-red-500 ring-2 ring-red-400/20 bg-red-50/10 focus:border-red-500"
+                          : "border-neutral-200 focus:border-[#00C853] focus:ring-2 focus:ring-[#00C853]/15"
+                      }`}
+                    />
+                    {isEmailVerified && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-black text-emerald-600 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Verified ✓</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {!isEmailVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendEmailOtp}
+                      disabled={isSendingEmailOtp || !email.includes("@") || emailOtpCountdown > 0}
+                      className="h-11 px-3.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-bold text-xs shrink-0 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {isSendingEmailOtp ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {emailOtpCountdown > 0
+                          ? `Resend (${emailOtpCountdown}s)`
+                          : showEmailOtpBox
+                          ? "Resend Code"
+                          : "Verify Email"}
+                      </span>
+                    </button>
+                  )}
+
+                  {isEmailVerified && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEmailVerified(false);
+                        setShowEmailOtpBox(false);
+                        setEmailOtp("");
+                      }}
+                      className="text-[11px] font-bold text-neutral-500 hover:text-neutral-800 underline shrink-0 px-1 cursor-pointer"
+                    >
+                      Change
+                    </button>
+                  )}
+                </div>
+
+                {/* Inline Email OTP Box */}
+                {!isEmailVerified && showEmailOtpBox && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-emerald-50/60 border border-emerald-200 space-y-2 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-bold text-emerald-950 flex items-center gap-1">
+                        <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Enter 6-Digit Email OTP:</span>
+                      </p>
+                      <span className="text-[10px] text-emerald-700 font-medium truncate max-w-[160px]">
+                        Sent to {email}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="tel"
+                        maxLength={6}
+                        placeholder="123456"
+                        value={emailOtp}
+                        onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ""))}
+                        className="flex-1 h-10 px-3 bg-white border border-emerald-300 rounded-xl text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyEmailOtp}
+                        disabled={isVerifyingEmailOtp || emailOtp.length !== 6}
+                        className="h-10 px-4 rounded-xl bg-[#00C853] hover:bg-[#00B548] disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-black text-xs shrink-0 transition-all active:scale-95 flex items-center gap-1 shadow-sm cursor-pointer"
+                      >
+                        {isVerifyingEmailOtp ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        )}
+                        <span>Confirm OTP</span>
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-neutral-500 font-medium">
+                      ⏱️ Check your email inbox/spam. Valid for 10 minutes.
+                    </p>
+                  </div>
+                )}
+
+                {fieldErrors["email"] && (
+                  <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <span>{fieldErrors["email"]}</span>
                   </p>
                 )}
               </div>
@@ -3036,6 +3320,91 @@ export function RiderRegistrationScreen() {
                     <span className="font-mono text-neutral-500">{new Date().toLocaleDateString("en-IN")}</span>
                   </div>
                 )}
+
+                {/* E-Signature Legal Authorization via Email OTP */}
+                <div className="mt-4 p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-900">
+                      <ShieldCheck className="w-4 h-4 text-[#00C853]" />
+                      <span>Legal E-Signature Authorization</span>
+                    </div>
+                    <span className="text-[10px] text-neutral-500 font-medium">IT Act, 2000 (Sec 10A)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs p-2 bg-white rounded-lg border border-neutral-200">
+                    <span className="text-neutral-500 text-[11px]">Signatory Email:</span>
+                    <span className="font-bold text-neutral-900 truncate max-w-[200px]">{email || targetPhone}</span>
+                  </div>
+
+                  {!isAgreementOtpVerified ? (
+                    <div className="space-y-2">
+                      {!showAgreementOtpBox ? (
+                        <button
+                          type="button"
+                          onClick={handleSendAgreementOtp}
+                          disabled={isSendingAgreementOtp || !hasSignature || !agreementConsent}
+                          className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-bold text-xs transition-all active:scale-95 shadow-xs cursor-pointer"
+                        >
+                          {isSendingAgreementOtp ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Send className="w-3.5 h-3.5" />
+                          )}
+                          <span>Send Agreement Authorization Code to Email</span>
+                        </button>
+                      ) : (
+                        <div className="space-y-2 animate-in fade-in">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-neutral-700">Enter 6-Digit Email Code:</span>
+                            <button
+                              type="button"
+                              onClick={handleSendAgreementOtp}
+                              disabled={isSendingAgreementOtp || agreementOtpCountdown > 0}
+                              className="text-[11px] font-bold text-emerald-700 hover:underline disabled:text-neutral-400 cursor-pointer"
+                            >
+                              {agreementOtpCountdown > 0 ? `Resend in ${agreementOtpCountdown}s` : "Resend Code"}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="tel"
+                              maxLength={6}
+                              placeholder="Enter 6-digit OTP"
+                              value={agreementOtp}
+                              onChange={(e) => setAgreementOtp(e.target.value.replace(/\D/g, ""))}
+                              className="flex-1 h-10 px-3 bg-white border border-neutral-300 rounded-xl text-center text-sm font-black tracking-widest text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#00C853]/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleVerifyAgreementOtp}
+                              disabled={isVerifyingAgreementOtp || agreementOtp.length !== 6}
+                              className="h-10 px-4 rounded-xl bg-[#00C853] hover:bg-[#00B248] disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-black text-xs shrink-0 transition-all active:scale-95 flex items-center gap-1 shadow-sm cursor-pointer"
+                            >
+                              {isVerifyingAgreementOtp ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              )}
+                              <span>Verify Code</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {fieldErrors["agreementOtp"] && (
+                        <p className="mt-1 text-[11px] font-bold text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                          <span>{fieldErrors["agreementOtp"]}</span>
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-2.5 bg-emerald-100/70 border border-emerald-300 rounded-xl text-emerald-950 text-xs font-bold flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Agreement legally authorized via Email OTP ✓</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -3047,8 +3416,8 @@ export function RiderRegistrationScreen() {
               <button
                 type="button"
                 onClick={handleFinalSubmit}
-                disabled={loading || !hasScrolledToBottom || !agreementConsent || !hasSignature}
-                className="w-full h-12 flex items-center justify-center gap-2 bg-[#00C853] hover:bg-[#00B248] text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !hasScrolledToBottom || !agreementConsent || !hasSignature || !isAgreementOtpVerified}
+                className="w-full h-12 flex items-center justify-center gap-2 bg-[#00C853] hover:bg-[#00B248] text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
@@ -3058,7 +3427,7 @@ export function RiderRegistrationScreen() {
                 ) : (
                   <>
                     <FileCheck2 className="w-4 h-4" />
-                    <span>Accept Agreement & Submit Application</span>
+                    <span>Accept Agreement & Submit to Admin</span>
                   </>
                 )}
               </button>

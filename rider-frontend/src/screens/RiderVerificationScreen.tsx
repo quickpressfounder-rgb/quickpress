@@ -287,6 +287,10 @@ export function RiderVerificationScreen() {
               <p className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">
                 Your Captain profile, driving license, and vehicle documents are currently being verified by the <strong>QuickPress Kasganj Admin Desk</strong>.
               </p>
+              <div className="p-2.5 bg-emerald-50 rounded-2xl border border-emerald-200/80 text-[11px] text-emerald-900 font-bold flex items-center justify-center gap-1.5 shadow-2xs">
+                <FileCheck2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Official Signed SLA Agreement dispatched to your verified email ✓</span>
+              </div>
             </div>
 
             {/* Estimated Turnaround Time */}

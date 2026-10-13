@@ -416,3 +416,32 @@ export function rememberRiderLogin(remember: boolean): void {
 export function startRiderAutoRefresh(): () => void {
   return startSessionAutoRefresh(ROLE);
 }
+
+export async function sendRiderEmailOtp(email: string, name = "") {
+  return apiPostJson<{ ok: boolean; email: string; otpSent: boolean; message: string }>(
+    "/api/rider/verify/email/send-otp",
+    { email, name }
+  );
+}
+
+export async function verifyRiderEmailOtp(email: string, otp: string) {
+  return apiPostJson<{ ok: boolean; verified: boolean; email: string; message: string }>(
+    "/api/rider/verify/email/verify-otp",
+    { email, otp }
+  );
+}
+
+export async function sendRiderAgreementOtp(email: string, name = "") {
+  return apiPostJson<{ ok: boolean; email: string; otpSent: boolean; message: string }>(
+    "/api/rider/agreement/send-otp",
+    { email, name }
+  );
+}
+
+export async function verifyRiderAgreementOtp(email: string, otp: string) {
+  return apiPostJson<{ ok: boolean; verified: boolean; email: string; message: string }>(
+    "/api/rider/agreement/verify-otp",
+    { email, otp }
+  );
+}
+

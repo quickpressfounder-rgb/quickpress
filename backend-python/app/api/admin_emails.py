@@ -490,43 +490,89 @@ async def dispatch_agreement_letter(payload: DispatchAgreementPayload, request: 
 @router.get("/agreements/{agreement_id}/pdf")
 async def download_agreement_pdf(agreement_id: str) -> Response:
     """Download / preview generated bilateral agreement PDF in browser."""
+    # 1. Check partner agreements
     agr = await database.find_one("partner_agreements", {"$or": [{"_id": agreement_id}, {"partnerId": agreement_id}]})
-    if not agr:
-        prof = await database.find_one("partner_profiles", {"$or": [{"_id": agreement_id}, {"partnerId": agreement_id}]})
-        if prof:
-            agr = {
-                "businessName": prof.get("shopName") or prof.get("businessName") or "Store Partner",
-                "ownerName": prof.get("ownerName") or "Proprietor",
-                "email": prof.get("email") or "",
-                "phone": prof.get("phone") or "",
-                "city": prof.get("city") or "Kasganj",
-                "state": prof.get("state") or "Uttar Pradesh",
-                "address": prof.get("address") or "",
-                "pan": prof.get("pan") or "",
-                "aadhaar": prof.get("aadhaar") or "",
-                "gstin": prof.get("gstin") or "",
-                "signedAt": datetime.now(timezone.utc).isoformat(),
+    if agr:
+        from app.services.partner_agreement_pdf_generator import generate_partner_agreement_pdf
+        pdf_bytes = generate_partner_agreement_pdf(agr)
+        clean_name = "".join(c for c in (agr.get("businessName") or "Store") if c.isalnum() or c in ("-", "_"))
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="QuickPress-Agreement-{clean_name}.pdf"',
+                "Content-Type": "application/pdf",
+            },
+        )
+
+    # 2. Check partner profiles
+    prof = await database.find_one("partner_profiles", {"$or": [{"_id": agreement_id}, {"partnerId": agreement_id}]})
+    if prof:
+        agr = {
+            "businessName": prof.get("shopName") or prof.get("businessName") or "Store Partner",
+            "ownerName": prof.get("ownerName") or "Proprietor",
+            "email": prof.get("email") or "",
+            "phone": prof.get("phone") or "",
+            "city": prof.get("city") or "Kasganj",
+            "state": prof.get("state") or "Uttar Pradesh",
+            "address": prof.get("address") or "",
+            "pan": prof.get("pan") or "",
+            "aadhaar": prof.get("aadhaar") or "",
+            "gstin": prof.get("gstin") or "",
+            "signedAt": datetime.now(timezone.utc).isoformat(),
+        }
+        from app.services.partner_agreement_pdf_generator import generate_partner_agreement_pdf
+        pdf_bytes = generate_partner_agreement_pdf(agr)
+        clean_name = "".join(c for c in (agr.get("businessName") or "Store") if c.isalnum() or c in ("-", "_"))
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="QuickPress-Agreement-{clean_name}.pdf"',
+                "Content-Type": "application/pdf",
+            },
+        )
+
+    # 3. Check rider agreements & profiles
+    rider_agr = await database.find_one("rider_agreements", {"$or": [{"_id": agreement_id}, {"riderId": agreement_id}]})
+    if not rider_agr:
+        rider_prof = await database.find_one("rider_profiles", {"$or": [{"_id": agreement_id}, {"riderId": agreement_id}]})
+        if rider_prof:
+            rider_agr = {
+                "riderId": str(rider_prof.get("riderId") or rider_prof.get("_id")),
+                "fullName": rider_prof.get("fullName") or rider_prof.get("name") or "Delivery Captain",
+                "email": rider_prof.get("email") or "",
+                "phone": rider_prof.get("phone") or "",
+                "city": rider_prof.get("city") or "Kasganj",
+                "vehicleModel": rider_prof.get("vehicleModel") or rider_prof.get("model") or "Two-Wheeler",
+                "vehicleNumber": rider_prof.get("vehicleNumber") or rider_prof.get("rcNumber") or "",
+                "license": rider_prof.get("license") or rider_prof.get("dlNumber") or "",
+                "bankName": rider_prof.get("bankName") or "",
+                "accountNumber": rider_prof.get("accountNumber") or "",
+                "ifsc": rider_prof.get("ifsc") or "",
+                "signatureUrl": rider_prof.get("agreementSignature") or rider_prof.get("signatureUrl") or "",
+                "signedAt": rider_prof.get("agreementSignedAt") or datetime.now(timezone.utc).isoformat(),
             }
-        else:
-            raise HTTPException(status_code=404, detail="Agreement record not found")
 
-    from app.services.partner_agreement_pdf_generator import generate_partner_agreement_pdf
-    pdf_bytes = generate_partner_agreement_pdf(agr)
+    if rider_agr:
+        from app.services.rider_agreement_pdf_generator import generate_rider_agreement_pdf
+        pdf_bytes = generate_rider_agreement_pdf(rider_agr)
+        clean_id = "".join(c for c in str(rider_agr.get("riderId") or "Captain") if c.isalnum() or c in ("-", "_"))
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="QuickPress-Captain-Agreement-{clean_id}.pdf"',
+                "Content-Type": "application/pdf",
+            },
+        )
 
-    clean_name = "".join(c for c in (agr.get("businessName") or "Store") if c.isalnum() or c in ("-", "_"))
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'inline; filename="QuickPress-Agreement-{clean_name}.pdf"',
-            "Content-Type": "application/pdf",
-        },
-    )
+    raise HTTPException(status_code=404, detail="Agreement record not found")
 
 
 @router.post("/agreements/{agreement_id}/resend")
 async def resend_agreement_letter(agreement_id: str, request: Request) -> Dict[str, Any]:
-    """1-Click re-dispatch of bilateral agreement letter to partner."""
+    """1-Click re-dispatch of bilateral agreement letter to partner or captain."""
     client_ip = get_client_ip(request)
     await email_rate_limiter.enforce(
         key=f"ip:{client_ip}:resend_agr",
@@ -534,29 +580,78 @@ async def resend_agreement_letter(agreement_id: str, request: Request) -> Dict[s
         max_requests=10,
         window_seconds=60,
     )
+
+    # 1. Try Partner agreement
     agr = await database.find_one("partner_agreements", {"$or": [{"_id": agreement_id}, {"partnerId": agreement_id}]})
-    if not agr:
-        raise HTTPException(status_code=404, detail="Agreement record not found")
+    if agr:
+        clean_email = (agr.get("email") or "").strip().lower()
+        if not clean_email:
+            raise HTTPException(status_code=400, detail="Partner email address is missing on agreement record")
 
-    clean_email = (agr.get("email") or "").strip().lower()
-    if not clean_email:
-        raise HTTPException(status_code=400, detail="Partner email address is missing on agreement record")
+        from app.services.partner_agreement_pdf_generator import generate_partner_agreement_pdf
+        from app.core.email_service import send_partner_agreement_email
 
-    from app.services.partner_agreement_pdf_generator import generate_partner_agreement_pdf
-    from app.core.email_service import send_partner_agreement_email
+        pdf_bytes = generate_partner_agreement_pdf(agr)
+        res = await send_partner_agreement_email(
+            partner_email=clean_email,
+            business_name=agr.get("businessName") or "Store Partner",
+            owner_name=agr.get("ownerName") or "Partner",
+            agreement_pdf_bytes=pdf_bytes,
+        )
+        return {
+            "ok": True,
+            "agreementId": agreement_id,
+            "email": clean_email,
+            "method": res.get("method", "hostinger"),
+            "message": f"Partner agreement letter re-dispatched to {clean_email} ✓",
+        }
 
-    pdf_bytes = generate_partner_agreement_pdf(agr)
-    res = await send_partner_agreement_email(
-        partner_email=clean_email,
-        business_name=agr.get("businessName") or "Store Partner",
-        owner_name=agr.get("ownerName") or "Partner",
-        agreement_pdf_bytes=pdf_bytes,
-    )
-    return {
-        "ok": True,
-        "agreementId": agreement_id,
-        "email": clean_email,
-        "method": res.get("method", "hostinger"),
-        "message": f"Agreement letter re-dispatched to {clean_email} ✓",
-    }
+    # 2. Try Rider agreement
+    rider_agr = await database.find_one("rider_agreements", {"$or": [{"_id": agreement_id}, {"riderId": agreement_id}]})
+    if not rider_agr:
+        rider_prof = await database.find_one("rider_profiles", {"$or": [{"_id": agreement_id}, {"riderId": agreement_id}]})
+        if rider_prof:
+            rider_agr = {
+                "riderId": str(rider_prof.get("riderId") or rider_prof.get("_id")),
+                "fullName": rider_prof.get("fullName") or rider_prof.get("name") or "Delivery Captain",
+                "email": rider_prof.get("email") or "",
+                "phone": rider_prof.get("phone") or "",
+                "city": rider_prof.get("city") or "Kasganj",
+                "vehicleModel": rider_prof.get("vehicleModel") or rider_prof.get("model") or "Two-Wheeler",
+                "vehicleNumber": rider_prof.get("vehicleNumber") or rider_prof.get("rcNumber") or "",
+                "license": rider_prof.get("license") or rider_prof.get("dlNumber") or "",
+                "bankName": rider_prof.get("bankName") or "",
+                "accountNumber": rider_prof.get("accountNumber") or "",
+                "ifsc": rider_prof.get("ifsc") or "",
+                "signatureUrl": rider_prof.get("agreementSignature") or rider_prof.get("signatureUrl") or "",
+                "signedAt": rider_prof.get("agreementSignedAt") or datetime.now(timezone.utc).isoformat(),
+            }
+
+    if rider_agr:
+        clean_email = (rider_agr.get("email") or "").strip().lower()
+        if not clean_email or "@" not in clean_email:
+            raise HTTPException(status_code=400, detail="Captain email address is missing on agreement record")
+
+        from app.services.rider_agreement_pdf_generator import generate_rider_agreement_pdf
+        from app.core.email_service import send_rider_agreement_email
+
+        pdf_bytes = generate_rider_agreement_pdf(rider_agr)
+        c_name = rider_agr.get("fullName") or rider_agr.get("name") or "Delivery Captain"
+        c_id = str(rider_agr.get("riderId") or "Captain")
+        res = await send_rider_agreement_email(
+            rider_email=clean_email,
+            rider_name=c_name,
+            rider_id=c_id,
+            agreement_pdf_bytes=pdf_bytes,
+        )
+        return {
+            "ok": True,
+            "agreementId": agreement_id,
+            "email": clean_email,
+            "method": res.get("method", "hostinger"),
+            "message": f"Captain agreement letter re-dispatched to {clean_email} ✓",
+        }
+
+    raise HTTPException(status_code=404, detail="Agreement record not found")
+
 

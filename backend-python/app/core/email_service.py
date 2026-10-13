@@ -1399,6 +1399,167 @@ async def send_partner_agreement_email(
     )
 
 
+# (10C) Rider / Captain Email Verification & Agreement Confirmation OTP
+async def send_rider_email_otp(
+    to_email: str,
+    otp_code: str,
+    rider_name: Optional[str] = None,
+    purpose: str = "verification",  # "verification" or "agreement"
+) -> Dict[str, Any]:
+    """Send high-priority OTP code for captain email verification or legal agreement execution."""
+    is_agreement = (purpose == "agreement")
+    subject = (
+        "QuickPress Captain SLA Agreement Execution OTP"
+        if is_agreement
+        else "QuickPress Captain Email Verification OTP"
+    )
+    badge = "Legal E-Signature Security" if is_agreement else "Captain Identity Verification"
+    headline = "Your 6-Digit Execution Code 🔐" if is_agreement else "Verify Your Captain Email ✉️"
+    subheadline = (
+        "Required to legally bind and execute your QuickPress Captain Delivery Agreement"
+        if is_agreement
+        else "Confirm your official delivery captain communications address"
+    )
+    greeting_name = rider_name or "Delivery Captain"
+
+    content = f"""
+      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
+        Dear <strong>{greeting_name}</strong>,
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        {'You are executing the QuickPress Master Delivery Captain & SLA Agreement with QuickPress Technologies Private Limited. Please use the one-time code below to authenticate and seal your bilateral contract:' if is_agreement else 'Thank you for registering as a Delivery Captain on QuickPress. Please enter the one-time verification code below to verify your email address:'}
+      </p>
+
+      <div style="background: #f0fdf4; border: 2px dashed #006045; border-radius: 14px; padding: 22px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 11px; font-weight: 800; color: #006045; text-transform: uppercase; letter-spacing: 1.5px;">Official One-Time Passcode</span>
+        <div style="font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #006045; font-family: 'Courier New', Courier, monospace; margin: 12px 0;">
+          {otp_code}
+        </div>
+        <p style="font-size: 12px; color: #059669; margin: 0; font-weight: 600;">
+          ⏱️ Valid for 10 minutes · Single-use secure code
+        </p>
+      </div>
+
+      <div class="card" style="background: #fffbeb; border-color: #fef3c7;">
+        <p style="font-size: 12px; color: #92400e; margin: 0; line-height: 1.5;">
+          <strong>Security Notice:</strong> QuickPress executives will NEVER ask for this OTP. Never share this code over phone, WhatsApp, or SMS.
+        </p>
+      </div>
+    """
+
+    html = _render_base_email(
+        preheader_text=f"Your QuickPress Captain OTP is {otp_code}. Valid for 10 minutes.",
+        badge_label=badge,
+        headline=headline,
+        subheadline=subheadline,
+        content_html=content,
+    )
+
+    return await dispatch_email(
+        to=to_email,
+        subject=subject,
+        html=html,
+        text=f"Your QuickPress Captain OTP is {otp_code}. Valid for 10 minutes. Do not share with anyone.",
+        recipient_name=greeting_name,
+        audience="rider",
+        category="security",
+        metadata={"purpose": purpose},
+    )
+
+
+# (10D) Rider / Captain Signed Agreement Dispatch with PDF Attachment & CC
+async def send_rider_agreement_email(
+    rider_email: str,
+    rider_name: str,
+    rider_id: str,
+    agreement_pdf_bytes: bytes,
+    agreement_filename: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Send signed Delivery Captain agreement PDF attachment to captain and CC official.quickpress@gmail.com."""
+    settings = get_settings()
+    clean_id = "".join(c for c in rider_id if c.isalnum() or c in ("-", "_")).strip() or "Captain"
+    filename = agreement_filename or f"QuickPress-Captain-Agreement-{clean_id}.pdf"
+    subject = f"Executed Delivery Captain Agreement & SLA — {rider_name} ({clean_id}) [QuickPress Technologies]"
+
+    content = f"""
+      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
+        Dear <strong>{rider_name}</strong> (Captain ID: <code>{clean_id}</code>),
+      </p>
+      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+        Congratulations! Your <strong>QuickPress Master Delivery Captain &amp; Service Level Agreement</strong> has been digitally executed and legally sealed under Section 10A of the Information Technology Act, 2000.
+      </p>
+
+      <div class="card">
+        <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #006045; text-transform: uppercase;">Agreement Summary &amp; Legal Signatories</h4>
+        <table style="width: 100%; font-size: 13px; color: #334155; line-height: 1.8;">
+          <tr>
+            <td style="font-weight: 700; width: 45%;">Corporate Entity:</td>
+            <td><strong>{settings.company_legal_name}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Authorized Signatory:</td>
+            <td><strong>{settings.company_signatory_name}</strong> (Director / Logistics Operations)</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Delivery Captain:</td>
+            <td><strong>{rider_name}</strong> ({clean_id})</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Verified Email:</td>
+            <td>{rider_email}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Payout Schedule:</td>
+            <td>Weekly Automated Bank / UPI Settlements</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700;">Official Support:</td>
+            <td>info@withquickpress.com</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 13px; color: #166534; font-weight: 600;">
+          📎 <strong>Attachment Included:</strong> Your official 3-page agreement containing the QuickPress corporate seal, authorized signature, and your uploaded digital signature is attached as <code>{filename}</code>.
+        </p>
+      </div>
+
+      <p style="font-size: 13px; color: #64748b; line-height: 1.6;">
+        Please save the attached PDF for your permanent records. Your application is now submitted to the QuickPress Kasganj Admin Desk for final review.
+      </p>
+    """
+
+    html = _render_base_email(
+        preheader_text=f"Official signed agreement between QuickPress and {rider_name} is attached.",
+        badge_label="Captain SLA Agreement",
+        headline="Captain Agreement Digitally Executed! 📜",
+        subheadline=f"Official Bilateral Contract for {rider_name}",
+        content_html=content,
+    )
+
+    cc_email = settings.notification_email or "official.quickpress@gmail.com"
+
+    return await dispatch_email(
+        to=rider_email,
+        subject=subject,
+        html=html,
+        text=f"Your QuickPress Captain Agreement for {rider_name} ({clean_id}) has been digitally signed and attached. Please find {filename} attached.",
+        recipient_name=rider_name,
+        audience="rider",
+        category="onboarding",
+        attachment_bytes=agreement_pdf_bytes,
+        attachment_name=filename,
+        cc=cc_email,
+        metadata={
+            "riderId": clean_id,
+            "riderName": rider_name,
+            "document": "rider_sla_agreement",
+            "signatory": settings.company_signatory_name,
+        },
+    )
+
+
 # (11) Partner KYC / Bank Verification Status Email
 async def send_partner_kyc_status_email(
     partner_email: str,
