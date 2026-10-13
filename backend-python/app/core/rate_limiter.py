@@ -94,19 +94,23 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
     """Sub-microsecond Sliding-Window Rate Limiter & Anti-Abuse Shield.
     
     Protects both server CPU and Supabase database from excessive polling,
-    brute force authentication attacks, and accidental client loops.
+    brute force authentication attacks, and accidental client loops while
+    allowing high-throughput legitimate user traffic and multi-tenant testing.
     """
 
     # Quotas: (max_requests, window_seconds)
-    SUDO_ADMIN_LIMIT = (6, 60)   # 6 requests / minute (Sudo re-auth & sensitive security)
-    AUTH_LIMIT = (12, 60)        # 12 requests / minute (OTP & Login)
-    PAYMENT_LIMIT = (15, 60)     # 15 requests / minute (Payment init, verification, wallet debit)
-    POLLING_LIMIT = (80, 60)     # 80 requests / minute (Rider/Partner live heartbeat)
-    MUTATION_LIMIT = (40, 60)    # 40 requests / minute (General mutating APIs)
-    GLOBAL_LIMIT = (150, 60)     # 150 requests / minute (General read APIs)
+    SUDO_ADMIN_LIMIT = (20, 60)   # 20 requests / minute (Sudo re-auth & sensitive security)
+    AUTH_LIMIT = (100, 60)        # 100 requests / minute (OTP dispatch & login mutations)
+    PAYMENT_LIMIT = (40, 60)      # 40 requests / minute (Payment init, verification, wallet debit)
+    POLLING_LIMIT = (150, 60)     # 150 requests / minute (Rider/Partner live heartbeat)
+    MUTATION_LIMIT = (80, 60)     # 80 requests / minute (General mutating APIs)
+    GLOBAL_LIMIT = (300, 60)      # 300 requests / minute (General read APIs)
 
     async def dispatch(self, request: Request, call_next):
-        # 1. Skip static assets, health probes, and API documentation
+        # 1. Skip preflights, static assets, health probes, and API documentation
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         path = request.url.path
         if (
             path == "/"
@@ -120,16 +124,50 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
-        # 2. Extract Client IP
+        # 2. Extract Canonical Client IP across Cloudflare, Vercel, and Railway reverse proxies
+        cf_ip = request.headers.get("cf-connecting-ip")
+        real_ip = request.headers.get("x-real-ip")
         forwarded = request.headers.get("x-forwarded-for")
-        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
 
-        # Allow internal automated test client (e.g. pytest TestClient)
-        if client_ip in ("testclient", "testserver"):
+        if cf_ip and cf_ip.strip():
+            client_ip = cf_ip.strip()
+        elif real_ip and real_ip.strip():
+            client_ip = real_ip.strip()
+        elif forwarded and forwarded.strip():
+            # First IP in X-Forwarded-For is canonical client originating IP
+            client_ip = forwarded.split(",")[0].strip()
+        else:
+            client_ip = request.client.host if request.client else "unknown"
+
+        # Allow internal automated test client (e.g. pytest TestClient) & local development hosts
+        if client_ip in ("testclient", "testserver", "localhost", "127.0.0.1", "::1"):
             return await call_next(request)
 
+        if client_ip == "unknown":
+            dev_id = request.headers.get("x-device-id") or request.headers.get("x-request-id")
+            if dev_id:
+                client_ip = f"dev:{dev_id[:32]}"
+
         # 3. Route-specific Rate Limit Policy
-        if path.startswith("/api/admin/security/sudo-confirm") or "/sudo" in path:
+        # Read & session endpoints must NOT consume strict OTP/Auth quotas
+        if (
+            request.method == "GET"
+            or path in (
+                "/api/auth/me",
+                "/api/auth/refresh",
+                "/api/auth/session",
+                "/api/auth/logout",
+                "/api/admin/auth/me",
+                "/api/admin/auth/refresh",
+                "/api/admin/auth/logout",
+            )
+            or path.endswith("/me")
+            or path.endswith("/refresh")
+            or path.endswith("/logout")
+        ):
+            tier_name = "api"
+            max_req, win_sec = self.GLOBAL_LIMIT
+        elif path.startswith("/api/admin/security/sudo-confirm") or "/sudo" in path:
             tier_name = "sudo"
             max_req, win_sec = self.SUDO_ADMIN_LIMIT
         elif path.startswith("/api/auth") or path.startswith("/api/admin/auth"):

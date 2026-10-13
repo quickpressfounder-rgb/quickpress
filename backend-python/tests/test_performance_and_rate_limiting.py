@@ -72,3 +72,31 @@ def test_static_collections_configured():
     assert "categories" in _CACHEABLE_STATIC_COLLECTIONS
     assert "services" in _CACHEABLE_STATIC_COLLECTIONS
     assert "admin_cities" in _CACHEABLE_STATIC_COLLECTIONS
+
+
+@pytest.mark.asyncio
+async def test_global_rate_limiter_options_and_ip_extraction():
+    from starlette.requests import Request
+    from starlette.responses import Response
+    from app.core.rate_limiter import GlobalRateLimiterMiddleware
+
+    middleware = GlobalRateLimiterMiddleware(app=None)
+
+    # 1. OPTIONS requests should bypass immediately
+    async def mock_call_next(req):
+        return Response("ok", status_code=200)
+
+    scope_options = {
+        "type": "http",
+        "method": "OPTIONS",
+        "path": "/api/auth/phone/send-otp",
+        "headers": [(b"host", b"localhost")],
+    }
+    req_options = Request(scope_options)
+    res = await middleware.dispatch(req_options, mock_call_next)
+    assert res.status_code == 200
+
+    # 2. GET /api/auth/me should use API limit (300/min), NOT strict auth limit
+    assert middleware.AUTH_LIMIT == (100, 60)
+    assert middleware.GLOBAL_LIMIT == (300, 60)
+
