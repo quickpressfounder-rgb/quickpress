@@ -17,6 +17,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EarningsRouteImport } from './routes/earnings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OtpRouteImport } from './routes/otp'
+import { Route as PermissionsRouteImport } from './routes/permissions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegistrationRouteImport } from './routes/registration'
 import { Route as RegistrationSubmittedRouteImport } from './routes/registration-submitted'
@@ -69,6 +70,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const OtpRoute = OtpRouteImport.update({
   id: '/otp',
   path: '/otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PermissionsRoute = PermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -146,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/earnings': typeof EarningsRoute
   '/notifications': typeof NotificationsRoute
   '/otp': typeof OtpRoute
+  '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/registration-submitted': typeof RegistrationSubmittedRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/earnings': typeof EarningsRoute
   '/notifications': typeof NotificationsRoute
   '/otp': typeof OtpRoute
+  '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/registration-submitted': typeof RegistrationSubmittedRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/earnings': typeof EarningsRoute
   '/notifications': typeof NotificationsRoute
   '/otp': typeof OtpRoute
+  '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/registration-submitted': typeof RegistrationSubmittedRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/earnings'
     | '/notifications'
     | '/otp'
+    | '/permissions'
     | '/profile'
     | '/registration'
     | '/registration-submitted'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/earnings'
     | '/notifications'
     | '/otp'
+    | '/permissions'
     | '/profile'
     | '/registration'
     | '/registration-submitted'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/earnings'
     | '/notifications'
     | '/otp'
+    | '/permissions'
     | '/profile'
     | '/registration'
     | '/registration-submitted'
@@ -286,6 +298,7 @@ export interface RootRouteChildren {
   EarningsRoute: typeof EarningsRoute
   NotificationsRoute: typeof NotificationsRoute
   OtpRoute: typeof OtpRoute
+  PermissionsRoute: typeof PermissionsRoute
   ProfileRoute: typeof ProfileRoute
   RegistrationRoute: typeof RegistrationRoute
   RegistrationSubmittedRoute: typeof RegistrationSubmittedRoute
@@ -354,6 +367,13 @@ declare module '@tanstack/react-router' {
       path: '/otp'
       fullPath: '/otp'
       preLoaderRoute: typeof OtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/permissions': {
+      id: '/permissions'
+      path: '/permissions'
+      fullPath: '/permissions'
+      preLoaderRoute: typeof PermissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -475,6 +495,7 @@ const rootRouteChildren: RootRouteChildren = {
   EarningsRoute: EarningsRoute,
   NotificationsRoute: NotificationsRoute,
   OtpRoute: OtpRoute,
+  PermissionsRoute: PermissionsRoute,
   ProfileRoute: ProfileRoute,
   RegistrationRoute: RegistrationRoute,
   RegistrationSubmittedRoute: RegistrationSubmittedRoute,

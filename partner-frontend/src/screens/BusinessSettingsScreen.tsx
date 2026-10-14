@@ -291,6 +291,30 @@ export function BusinessSettingsScreen() {
                     />
                   </div>
 
+                  {/* Device Permissions & Background Setup */}
+                  <div
+                    onClick={() => navigate({ to: partnerRoutes.permissions })}
+                    className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                        <Zap className="size-5" strokeWidth={2.2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-black text-zinc-900">Background Alerts & Permissions</p>
+                          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.2 text-[9px] font-black uppercase text-emerald-700">
+                            Configure
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium text-zinc-500 truncate">
+                          Battery optimization, lockscreen wakeup & order sirens
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="size-4 text-zinc-400" />
+                  </div>
+
                   {/* Test Store Order Ringtone */}
                   <div
                     onClick={() => {

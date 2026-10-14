@@ -42,6 +42,7 @@ export const partnerRoutes = {
   shop: "/shop",
   profile: "/profile",
   settings: "/settings",
+  permissions: "/permissions",
   notifications: "/notifications",
 } as const;
 
