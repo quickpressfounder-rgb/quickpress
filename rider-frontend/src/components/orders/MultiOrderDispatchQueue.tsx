@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Bike, X, Package, Shirt } from "lucide-react";
 import { useLanguage } from "../../lib/i18n";
+import { stopOrderAlertSound } from "../../lib/captain-audio";
 
 export interface OfferItem {
   id: string;
@@ -181,7 +182,10 @@ export const MultiOrderDispatchQueue: React.FC<MultiOrderDispatchQueueProps> = (
                   {/* Square Reject Button [ ✕ ] */}
                   <button
                     type="button"
-                    onClick={() => onReject(offer)}
+                    onClick={() => {
+                      stopOrderAlertSound();
+                      onReject(offer);
+                    }}
                     className="flex items-center justify-center w-14 h-12.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 rounded-2xl border border-neutral-200 active:scale-95 transition-all"
                     aria-label="Reject Order"
                   >
@@ -191,7 +195,10 @@ export const MultiOrderDispatchQueue: React.FC<MultiOrderDispatchQueueProps> = (
                   {/* Attention Yellow Accept Button */}
                   <button
                     type="button"
-                    onClick={() => onAccept(offer)}
+                    onClick={() => {
+                      stopOrderAlertSound();
+                      onAccept(offer);
+                    }}
                     className="flex-1 flex items-center justify-center gap-2 h-12.5 bg-[#FFC400] hover:bg-[#FBBF24] active:bg-[#F59E0B] text-neutral-950 font-black text-base rounded-2xl shadow-md active:scale-98 transition-all"
                   >
                     <span>Accept</span>

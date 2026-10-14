@@ -218,6 +218,8 @@ export function triggerHaptic(pattern: number | number[] = [100, 50, 100]) {
 
 let activeBellInterval: any = null;
 let activeBellAudio: HTMLAudioElement | null = null;
+let masterBellGainNode: GainNode | null = null;
+let liveBellOscillators: OscillatorNode[] = [];
 
 // High-Urgency Dispatch Radar Pulse & Accelerating Siren (On-The-Road Pro Rider)
 function playCaptainRadarSiren(ctx: AudioContext) {
@@ -226,6 +228,16 @@ function playCaptainRadarSiren(ctx: AudioContext) {
     void ctx.resume();
   }
   const now = ctx.currentTime;
+
+  // Master Gain Node for instant 0.01s cutoff
+  if (!masterBellGainNode) {
+    try {
+      masterBellGainNode = ctx.createGain();
+      masterBellGainNode.gain.setValueAtTime(1.0, now);
+      masterBellGainNode.connect(ctx.destination);
+    } catch {}
+  }
+  const targetOutput = masterBellGainNode || ctx.destination;
 
   // 1. Sub-bass speaker thump (120Hz)
   try {
@@ -237,9 +249,13 @@ function playCaptainRadarSiren(ctx: AudioContext) {
     subGain.gain.linearRampToValueAtTime(0.5, now + 0.005);
     subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
     subOsc.connect(subGain);
-    subGain.connect(ctx.destination);
+    subGain.connect(targetOutput);
     subOsc.start(now);
     subOsc.stop(now + 0.16);
+    liveBellOscillators.push(subOsc);
+    subOsc.onended = () => {
+      liveBellOscillators = liveBellOscillators.filter((o) => o !== subOsc);
+    };
   } catch {}
 
   // 2. Chirp 1 (1760Hz -> 2349Hz, sawtooth)
@@ -253,9 +269,13 @@ function playCaptainRadarSiren(ctx: AudioContext) {
     gain1.gain.linearRampToValueAtTime(0.55, now + 0.01);
     gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
     osc1.connect(gain1);
-    gain1.connect(ctx.destination);
+    gain1.connect(targetOutput);
     osc1.start(now);
     osc1.stop(now + 0.15);
+    liveBellOscillators.push(osc1);
+    osc1.onended = () => {
+      liveBellOscillators = liveBellOscillators.filter((o) => o !== osc1);
+    };
   } catch {}
 
   // 3. Chirp 2 (2349Hz -> 3136Hz, high triangle)
@@ -269,9 +289,13 @@ function playCaptainRadarSiren(ctx: AudioContext) {
     gain2.gain.linearRampToValueAtTime(0.65, now + 0.17);
     gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.31);
     osc2.connect(gain2);
-    gain2.connect(ctx.destination);
+    gain2.connect(targetOutput);
     osc2.start(now + 0.16);
     osc2.stop(now + 0.32);
+    liveBellOscillators.push(osc2);
+    osc2.onended = () => {
+      liveBellOscillators = liveBellOscillators.filter((o) => o !== osc2);
+    };
   } catch {}
 
   // 4. Triple Staccato Attention Pulses (2793.82 Hz - F7)
@@ -285,9 +309,13 @@ function playCaptainRadarSiren(ctx: AudioContext) {
       gainP.gain.linearRampToValueAtTime(0.7, now + offset + 0.005);
       gainP.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.08);
       oscP.connect(gainP);
-      gainP.connect(ctx.destination);
+      gainP.connect(targetOutput);
       oscP.start(now + offset);
       oscP.stop(now + offset + 0.09);
+      liveBellOscillators.push(oscP);
+      oscP.onended = () => {
+        liveBellOscillators = liveBellOscillators.filter((o) => o !== oscP);
+      };
     } catch {}
   });
 }
@@ -305,7 +333,7 @@ export function playOrderAlertSound() {
   try {
     stopOrderAlertSound();
 
-    // Engine 1: Web Audio API Oscillator synthesizer
+    // Engine 1: Web Audio API Oscillator synthesizer with master gain control
     const ctx = getAudioContext();
     if (ctx) {
       if (ctx.state === "suspended") {
@@ -353,8 +381,35 @@ export function playTripAssignedBell() {
 
 /**
  * Stop bell ringtone when trip is acknowledged, navigated, or accepted.
+ * Guarantees INSTANT ZERO-LATENCY (<0.01 sec) total cutoff of:
+ * 1. Web Audio Oscillators & scheduled synthesizer chirps
+ * 2. Native HTMLAudio element loops
+ * 3. Text-to-speech voice announcements
+ * 4. Device hardware vibration
  */
 export function stopOrderAlertSound() {
+  // 1. Immediately kill Web Audio master gain (cancels future scheduled audio events in <0.001s)
+  if (masterBellGainNode && activeAudioCtx) {
+    try {
+      masterBellGainNode.gain.cancelScheduledValues(activeAudioCtx.currentTime);
+      masterBellGainNode.gain.setValueAtTime(0, activeAudioCtx.currentTime);
+      masterBellGainNode.disconnect();
+    } catch {}
+    masterBellGainNode = null;
+  }
+
+  // 2. Stop all live active oscillators instantly
+  if (liveBellOscillators.length > 0) {
+    liveBellOscillators.forEach((osc) => {
+      try {
+        osc.stop();
+        osc.disconnect();
+      } catch {}
+    });
+    liveBellOscillators = [];
+  }
+
+  // 3. Clear repeating siren loop intervals
   if (activeBellInterval) {
     clearInterval(activeBellInterval);
     activeBellInterval = null;
@@ -375,12 +430,28 @@ export function stopOrderAlertSound() {
     } catch {}
     activeSirenOsc2 = null;
   }
+
+  // 4. Hard stop HTML5 fallback audio loop
   if (activeBellAudio) {
     try {
       activeBellAudio.pause();
       activeBellAudio.currentTime = 0;
     } catch {}
     activeBellAudio = null;
+  }
+
+  // 5. Instantly cancel Text-To-Speech announcement so it stops speaking right away
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
+  }
+
+  // 6. Stop hardware vibration immediately
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try {
+      navigator.vibrate(0);
+    } catch {}
   }
 }
 
