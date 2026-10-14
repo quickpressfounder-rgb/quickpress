@@ -120,33 +120,125 @@ const STAT_TONE: Record<QuickStat["tone"], string> = {
 };
 
 export function QuickStatsGrid({ stats }: { stats: QuickStat[] }) {
+  const navigate = useNavigate();
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
       {stats.map((stat, index) => (
-        <QuickStatCard key={stat.id} stat={stat} delay={index * 60} />
+        <QuickStatCard
+          key={stat.id}
+          stat={stat}
+          delay={index * 50}
+          onNavigate={() => {
+            if (stat.id === "new") navigate({ to: partnerRoutes.orders });
+            else if (stat.id === "processing") navigate({ to: partnerRoutes.orders });
+            else if (stat.id === "ready") navigate({ to: partnerRoutes.orders });
+            else if (stat.id === "completed") navigate({ to: partnerRoutes.orders });
+          }}
+        />
       ))}
     </div>
   );
 }
 
-function QuickStatCard({ stat, delay }: { stat: QuickStat; delay: number }) {
+function QuickStatCard({
+  stat,
+  delay,
+  onNavigate,
+}: {
+  stat: QuickStat;
+  delay: number;
+  onNavigate?: () => void;
+}) {
   const value = useCountUp(stat.value, 700 + delay);
   const Icon = STAT_ICON[stat.id as keyof typeof STAT_ICON] ?? ListOrdered;
 
+  // Rich themed styling per card category
+  const cardConfig = useMemo(() => {
+    switch (stat.id) {
+      case "new":
+        return {
+          title: "New Orders",
+          sub: "Awaiting store response",
+          badge: stat.value > 0 ? "Action Required" : "All Clear",
+          badgeColor:
+            stat.value > 0
+              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-black animate-pulse"
+              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700",
+          bg: "bg-gradient-to-br from-amber-500/10 via-amber-500/3 to-transparent border-amber-200/90 dark:border-amber-900/40 hover:border-amber-500/60",
+          iconColor: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25",
+        };
+      case "processing":
+        return {
+          title: "In Processing",
+          sub: "Washing, drying & steam iron",
+          badge: stat.value > 0 ? "In Production" : "Machines Idle",
+          badgeColor: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30",
+          bg: "bg-gradient-to-br from-sky-500/10 via-sky-500/3 to-transparent border-sky-200/90 dark:border-sky-900/40 hover:border-sky-500/60",
+          iconColor: "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/25",
+        };
+      case "ready":
+        return {
+          title: "Ready for Delivery",
+          sub: "Packed & verified for Captain",
+          badge: stat.value > 0 ? "Awaiting Rider" : "Zero Queued",
+          badgeColor: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+          bg: "bg-gradient-to-br from-indigo-500/10 via-indigo-500/3 to-transparent border-indigo-200/90 dark:border-indigo-900/40 hover:border-indigo-500/60",
+          iconColor: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/25",
+        };
+      case "completed":
+        return {
+          title: "Completed Today",
+          sub: "Delivered & revenue credited",
+          badge: "100% SLA On-Time",
+          badgeColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+          bg: "bg-gradient-to-br from-emerald-500/10 via-emerald-500/3 to-transparent border-emerald-200/90 dark:border-emerald-900/40 hover:border-emerald-500/60",
+          iconColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+        };
+      default:
+        return {
+          title: stat.label,
+          sub: "Store operational metric",
+          badge: "Active",
+          badgeColor: "bg-slate-100 text-slate-600 border-slate-200",
+          bg: "bg-white border-slate-200 hover:border-slate-400",
+          iconColor: "bg-slate-100 text-slate-700 border-slate-200",
+        };
+    }
+  }, [stat.id, stat.value, stat.label]);
+
   return (
     <div
-      className="card-soft animate-rise border border-border p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/60"
+      onClick={onNavigate}
+      className={`group relative overflow-hidden rounded-3xl border p-5 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md cursor-pointer ${cardConfig.bg}`}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <span
-        className={`flex size-9 items-center justify-center rounded-2xl ${STAT_TONE[stat.tone]}`}
-      >
-        <Icon className="size-4" strokeWidth={2.2} />
-      </span>
-      <p className="mt-3 text-2xl font-black tracking-tight text-foreground">{value}</p>
-      <p className="text-[0.66rem] font-semibold uppercase tracking-wider text-muted-foreground">
-        {stat.label}
-      </p>
+      <div className="flex items-center justify-between">
+        <span
+          className={`flex size-11 items-center justify-center rounded-2xl border shadow-xs transition-transform duration-300 group-hover:scale-105 ${cardConfig.iconColor}`}
+        >
+          <Icon className="size-5" strokeWidth={2.3} />
+        </span>
+
+        <div className="flex items-center gap-1.5">
+          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${cardConfig.badgeColor}`}>
+            {cardConfig.badge}
+          </span>
+          <ArrowUpRight className="size-3.5 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <p className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+          {value}
+        </p>
+        <p className="mt-0.5 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          {cardConfig.title}
+        </p>
+        <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+          {cardConfig.sub}
+        </p>
+      </div>
     </div>
   );
 }

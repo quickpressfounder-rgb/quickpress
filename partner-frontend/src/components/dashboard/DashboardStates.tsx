@@ -1,4 +1,5 @@
-import { Bike, Clock, Inbox, PowerOff, Radio, Sparkles, Wrench } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ArrowRight, Bike, Clock, Inbox, MapPin, PowerOff, Radio, Sparkles, Wrench, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -31,29 +32,85 @@ function EmptyShell({
 }
 
 export function NoOrdersEmptyState() {
+  const navigate = useNavigate();
+
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-dashed border-cyan-400/40 bg-gradient-to-b from-white via-white to-cyan-50/30 p-6 md:p-8 text-center shadow-xs">
-      {/* Subtle animated radar ring */}
-      <div className="mx-auto relative flex size-16 items-center justify-center">
-        <span className="absolute inline-flex size-full animate-ping rounded-full bg-cyan-400/20" />
-        <span className="absolute inline-flex size-12 rounded-full bg-cyan-500/10 border border-cyan-500/30" />
-        <span className="relative flex size-10 items-center justify-center rounded-full bg-gradient-to-tr from-[#00c6ff] via-[#0099ff] to-[#0072ff] text-white shadow-md shadow-cyan-500/40">
-          <Radio className="size-5 animate-pulse" />
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-gradient-to-b from-white via-slate-50/50 to-blue-50/20 p-6 md:p-8 text-center shadow-xs">
+      {/* Background Decorative Rings */}
+      <div className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-blue-500/5 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 -bottom-16 size-64 rounded-full bg-emerald-500/5 blur-3xl" />
+
+      {/* Modern Radar Animation Hub */}
+      <div className="mx-auto relative flex size-20 items-center justify-center">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-blue-500/20 duration-1000" />
+        <span className="absolute inline-flex size-14 rounded-full bg-blue-500/10 border border-blue-400/40" />
+        <span className="relative flex size-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 text-white shadow-lg shadow-blue-500/30">
+          <Radio className="size-5.5 animate-pulse" />
         </span>
       </div>
 
-      <div className="mt-4">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 border border-cyan-200/80 px-3 py-1 text-[11px] font-bold text-cyan-800 shadow-[0_0_12px_rgba(0,198,255,0.15)]">
-          <span className="size-1.5 rounded-full bg-[#00c6ff] shadow-[0_0_6px_#00c6ff] animate-pulse" />
-          <span>Store Radar Active · Accepting Live Bookings</span>
+      <div className="mt-4 max-w-xl mx-auto">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-xs">
+          <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
+          <span>Store Radar Active · Accepting Live Laundry Bookings</span>
         </div>
 
-        <h4 className="mt-2.5 text-base font-black tracking-tight text-slate-900">
-          Listening for Live Customer Orders
+        <h4 className="mt-3 text-lg md:text-xl font-black tracking-tight text-slate-900 dark:text-white">
+          Listening for Live Customer Orders in Real-Time
         </h4>
-        <p className="mx-auto mt-1 max-w-md text-xs font-medium text-slate-500 leading-relaxed">
-          Customer laundry bookings in your service radius will appear here instantly with live sound and terminal notifications.
+        <p className="mx-auto mt-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
+          Customer laundry bookings placed within your service radius will appear here instantly with live incoming order sound and push notifications.
         </p>
+
+        {/* 3 Telemetry Feature Chips for Desktop */}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 shadow-2xs">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <MapPin className="size-4 text-blue-600 shrink-0" />
+              <span className="text-[11px] font-bold">Geofence Radius</span>
+            </div>
+            <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">7.5 km Coverage</p>
+            <p className="text-[10px] text-slate-400">Kasganj Hub Active</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 shadow-2xs">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <Bike className="size-4 text-emerald-600 shrink-0" />
+              <span className="text-[11px] font-bold">Delivery Fleet</span>
+            </div>
+            <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">Captains on Duty</p>
+            <p className="text-[10px] text-slate-400">Nearest rider auto-dispatch</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 shadow-2xs">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <Zap className="size-4 text-amber-500 shrink-0" />
+              <span className="text-[11px] font-bold">Live Stream</span>
+            </div>
+            <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">Supabase Realtime</p>
+            <p className="text-[10px] text-slate-400">Instant WebSocket ping</p>
+          </div>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/orders" })}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-2.5 text-xs font-bold shadow-md hover:bg-slate-800 dark:hover:bg-slate-100 transition-all cursor-pointer active:scale-95"
+          >
+            <span>View Full Orders Queue</span>
+            <ArrowRight className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/services" })}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer active:scale-95"
+          >
+            <Sparkles className="size-3.5 text-blue-600" />
+            <span>Manage Price List & Services</span>
+          </button>
+        </div>
       </div>
     </div>
   );
