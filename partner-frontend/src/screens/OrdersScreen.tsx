@@ -51,13 +51,12 @@ export function OrdersScreen() {
   const { orders, counts, isLoading, isOffline, refresh } = usePartnerOrders();
   const { handleAction, sheetNode, overlay, busy } = useOrderActionHandler();
 
-  const [filterTab, setFilterTab] = useState<PartnerOrderFilterTab>("all");
+  const [filterTab, setFilterTab] = useState<PartnerOrderFilterTab>("active");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<OrderSortId>("latest");
 
   const STAGE_TABS: { id: PartnerOrderFilterTab; label: string; count: number }[] = useMemo(() => {
     return [
-      { id: "all", label: "All", count: orders.length },
       { id: "active", label: "Active", count: orders.filter((o) => isOrderMatchingTab(o, "active")).length },
       { id: "pickup", label: "Pickup", count: orders.filter((o) => isOrderMatchingTab(o, "pickup")).length },
       { id: "processing", label: "Processing", count: orders.filter((o) => isOrderMatchingTab(o, "processing")).length },
@@ -80,7 +79,7 @@ export function OrdersScreen() {
 
   const resetSearch = () => {
     setQuery("");
-    setFilterTab("all");
+    setFilterTab("active");
   };
 
   return (

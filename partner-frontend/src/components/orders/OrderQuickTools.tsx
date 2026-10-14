@@ -3,8 +3,6 @@ import {
   Bike,
   Clock,
   Flame,
-  MessageCircle,
-  MessageSquare,
   Phone,
   Printer,
   ShieldCheck,
@@ -222,16 +220,6 @@ export function DirectContactActions({
   const cleanPhone = (customerPhone || "9876543210").replace(/\D/g, "").slice(-10);
   const cleanRiderPhone = (riderPhone || "").replace(/\D/g, "").slice(-10);
 
-  const customerWaUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
-    `Hello ${customerName || "Customer"}, this is QuickPress Laundromat regarding your order #${orderCode}.`
-  )}`;
-
-  const riderWaUrl = cleanRiderPhone
-    ? `https://wa.me/91${cleanRiderPhone}?text=${encodeURIComponent(
-        `Hi Captain ${riderName || ""}, order #${orderCode} laundry is ready for pickup at QuickPress store.`
-      )}`
-    : null;
-
   return (
     <div
       onClick={(e) => e.stopPropagation()}
@@ -247,43 +235,16 @@ export function DirectContactActions({
         <span>Call</span>
       </a>
 
-      {/* 1-Tap WhatsApp Customer */}
-      <a
-        href={customerWaUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 text-[11px] font-black text-black active:scale-95 transition-all shadow-2xs"
-        title="WhatsApp Customer"
-      >
-        <MessageCircle className="size-3 text-emerald-700" />
-        <span>WhatsApp</span>
-      </a>
-
       {/* 1-Tap Call Captain (If Rider Assigned) */}
       {cleanRiderPhone ? (
-        <>
-          <a
-            href={`tel:+91${cleanRiderPhone}`}
-            className="inline-flex items-center gap-1 rounded-full border border-blue-300 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 text-[11px] font-black text-black active:scale-95 transition-all shadow-2xs"
-            title={`Call Captain (+91 ${cleanRiderPhone})`}
-          >
-            <Bike className="size-3 text-blue-700" />
-            <span>Call Captain</span>
-          </a>
-
-          {riderWaUrl && (
-            <a
-              href={riderWaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-blue-300 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 text-[11px] font-black text-black active:scale-95 transition-all shadow-2xs"
-              title="WhatsApp Captain"
-            >
-              <MessageSquare className="size-3 text-blue-700" />
-              <span>WA Captain</span>
-            </a>
-          )}
-        </>
+        <a
+          href={`tel:+91${cleanRiderPhone}`}
+          className="inline-flex items-center gap-1 rounded-full border border-blue-300 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 text-[11px] font-black text-black active:scale-95 transition-all shadow-2xs"
+          title={`Call Captain (+91 ${cleanRiderPhone})`}
+        >
+          <Bike className="size-3 text-blue-700" />
+          <span>Call Captain</span>
+        </a>
       ) : null}
     </div>
   );

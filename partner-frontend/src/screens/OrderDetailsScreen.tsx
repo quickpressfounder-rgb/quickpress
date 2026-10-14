@@ -978,7 +978,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                 Order Timeline
               </h2>
               <div className="mt-3">
-                <OrderTimeline timeline={timeline} stage={order.stage} />
+                <OrderTimeline order={order} timeline={timeline} stage={order.stage} />
               </div>
             </div>
           </div>
@@ -1604,7 +1604,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   />
                 </div>
                 <div className="mt-4">
-                  <OrderTimeline timeline={timeline} stage={order.stage} />
+                  <OrderTimeline order={order} timeline={timeline} stage={order.stage} />
                 </div>
               </section>
             </div>
