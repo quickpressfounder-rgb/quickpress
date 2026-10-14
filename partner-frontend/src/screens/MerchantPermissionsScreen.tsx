@@ -14,7 +14,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   Volume2,
   VolumeX,
   Zap,
@@ -31,7 +30,6 @@ import {
   isNativeAndroidApp,
   openAppSettings,
   openNotificationSettings,
-  requestAllPermissions,
   requestCameraPermission,
   requestIgnoreBatteryOptimization,
   requestLocationPermission,
@@ -78,18 +76,17 @@ export function MerchantPermissionsScreen() {
     };
   }, []);
 
-  const allGranted =
-    batteryIgnored &&
-    notificationsAllowed &&
-    overlaysAllowed &&
-    locationAllowed &&
-    cameraAllowed;
+  const totalSteps = 5;
+  const grantedCount = [
+    batteryIgnored,
+    notificationsAllowed,
+    overlaysAllowed,
+    locationAllowed,
+    cameraAllowed,
+  ].filter(Boolean).length;
 
-  const handleGrantAll = () => {
-    requestAllPermissions();
-    toast.success("Requesting permissions... Follow on-screen prompts to allow.");
-    setTimeout(refreshPermissionsState, 1500);
-  };
+  const allGranted = grantedCount === totalSteps;
+  const progressPercent = Math.round((grantedCount / totalSteps) * 100);
 
   const handleToggleSoundTest = () => {
     if (isTestingSound) {
@@ -132,7 +129,7 @@ export function MerchantPermissionsScreen() {
                 Device Permissions & Alerts
               </h1>
               <p className="text-[11px] font-medium text-zinc-500">
-                Setup 24/7 background ringtone & screen wakeup
+                Ek ek karke sabhi zaroori permissions allow karein
               </p>
             </div>
           </div>
@@ -150,38 +147,40 @@ export function MerchantPermissionsScreen() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 pt-4 space-y-4">
-        {/* Status Hero Card */}
+        {/* Status & Step Progress Hero Card */}
         <div
           className={`rounded-2xl p-5 border transition-all ${
             allGranted
               ? "bg-emerald-50/80 border-emerald-200 text-emerald-950"
-              : "bg-gradient-to-br from-blue-50 to-indigo-50/80 border-blue-200 text-blue-950"
+              : "bg-white border-zinc-200 text-zinc-900 shadow-2xs"
           }`}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider bg-white shadow-2xs">
+              <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider bg-zinc-100 shadow-2xs">
                 {allGranted ? (
                   <>
                     <CheckCircle2 className="size-3 text-emerald-600" />
-                    <span className="text-emerald-700">All Systems Ready</span>
+                    <span className="text-emerald-700">All 5 Permissions Allowed</span>
                   </>
                 ) : (
                   <>
                     <Zap className="size-3 text-blue-600 fill-blue-600" />
-                    <span className="text-blue-700">Setup Recommended</span>
+                    <span className="text-blue-700">
+                      Step-by-Step Setup ({grantedCount} of {totalSteps} Allowed)
+                    </span>
                   </>
                 )}
               </div>
               <h2 className="text-lg font-black tracking-tight">
                 {allGranted
-                  ? "Store alerts are fully optimized!"
-                  : "Allow background alerts so you never miss an order"}
+                  ? "Store alerts are fully enabled!"
+                  : "Neeche diye gaye har option ko ek-ek karke Allow karein"}
               </h2>
               <p className="text-xs text-zinc-600 leading-relaxed max-w-md">
                 {allGranted
-                  ? "Orders will ring out loud even if your phone screen is locked or another app is open."
-                  : "Zomato & Swiggy-style merchants require background permission so order sirens ring immediately."}
+                  ? "Aapka device naye orders ke liye 100% tayar hai. Phone screen lock hone par bhi order turant bajega."
+                  : "Har permission ke aage 'Allow' dabayein taaki background me order sound baj sake."}
               </p>
             </div>
 
@@ -198,45 +197,61 @@ export function MerchantPermissionsScreen() {
             </div>
           </div>
 
-          {/* Master One-Tap Button */}
-          {!allGranted && (
-            <div className="mt-4 pt-4 border-t border-blue-200/60 flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-blue-900">
-                One-tap configuration for all settings
-              </p>
-              <button
-                type="button"
-                onClick={handleGrantAll}
-                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
-              >
-                <Sparkles className="size-3.5 fill-white" />
-                <span>Allow All</span>
-              </button>
+          {/* Progress Bar */}
+          <div className="mt-4 pt-4 border-t border-zinc-100">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="font-bold text-zinc-700">Setup Progress</span>
+              <span className="font-black text-blue-600">
+                {grantedCount}/{totalSteps} Completed ({progressPercent}%)
+              </span>
             </div>
-          )}
+            <div className="h-2.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  allGranted ? "bg-emerald-500" : "bg-blue-600"
+                }`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Permission Cards List */}
-        <div className="space-y-2.5">
-          <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500 px-1">
-            Required Permissions & Features
-          </p>
+        {/* Individual Step Cards List */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Individual Permissions (Ek-ek karke allow karein)
+            </p>
+            <button
+              type="button"
+              onClick={refreshPermissionsState}
+              className="text-[11px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer flex items-center gap-1"
+            >
+              <RotateCcw className="size-3" />
+              <span>Refresh Status</span>
+            </button>
+          </div>
 
-          {/* 1. Battery Optimization */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs hover:border-zinc-300 transition">
+          {/* Step 1. Battery Optimization */}
+          <div className={`rounded-2xl border bg-white p-4 transition-all shadow-2xs ${
+            batteryIgnored ? "border-zinc-200" : "border-blue-300 ring-2 ring-blue-500/10"
+          }`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div
                   className={`flex size-10 shrink-0 items-center justify-center rounded-xl font-bold ${
                     batteryIgnored
                       ? "bg-emerald-100 text-emerald-700"
-                      : "bg-amber-100 text-amber-800"
+                      : "bg-blue-100 text-blue-700"
                   }`}
                 >
                   <BatteryCharging className="size-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-600">
+                      Step 1
+                    </span>
                     <h3 className="text-sm font-black text-zinc-950">
                       Unrestricted Battery (Doze Mode Bypass)
                     </h3>
@@ -247,11 +262,11 @@ export function MerchantPermissionsScreen() {
                           : "bg-amber-50 text-amber-800 border border-amber-200"
                       }`}
                     >
-                      {batteryIgnored ? "Active" : "Recommended"}
+                      {batteryIgnored ? "Allowed ✓" : "Allow Required"}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5 leading-snug">
-                    Prevents Android from putting the app to sleep. Guarantees 0-latency incoming order alerts when phone is idle.
+                  <p className="text-xs text-zinc-500 mt-1 leading-snug">
+                    Phone screen band hone par bhi app sleep nahi hogi. Order aate hi bina delay bajega.
                   </p>
                 </div>
               </div>
@@ -263,10 +278,10 @@ export function MerchantPermissionsScreen() {
                   setTimeout(refreshPermissionsState, 1500);
                 }}
                 disabled={batteryIgnored}
-                className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
                   batteryIgnored
                     ? "bg-zinc-100 text-zinc-400 cursor-default"
-                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-2xs"
+                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm"
                 }`}
               >
                 {batteryIgnored ? "Allowed ✓" : "Allow"}
@@ -274,21 +289,26 @@ export function MerchantPermissionsScreen() {
             </div>
           </div>
 
-          {/* 2. Order Notifications & Alarm Channel */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs hover:border-zinc-300 transition">
+          {/* Step 2. Order Notifications & Alarm Channel */}
+          <div className={`rounded-2xl border bg-white p-4 transition-all shadow-2xs ${
+            notificationsAllowed ? "border-zinc-200" : "border-blue-300 ring-2 ring-blue-500/10"
+          }`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div
                   className={`flex size-10 shrink-0 items-center justify-center rounded-xl font-bold ${
                     notificationsAllowed
                       ? "bg-emerald-100 text-emerald-700"
-                      : "bg-red-100 text-red-700"
+                      : "bg-blue-100 text-blue-700"
                   }`}
                 >
                   <BellRing className="size-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-600">
+                      Step 2
+                    </span>
                     <h3 className="text-sm font-black text-zinc-950">
                       High-Priority Order Siren & Push
                     </h3>
@@ -299,11 +319,11 @@ export function MerchantPermissionsScreen() {
                           : "bg-red-50 text-red-700 border border-red-200"
                       }`}
                     >
-                      {notificationsAllowed ? "Active" : "Required"}
+                      {notificationsAllowed ? "Allowed ✓" : "Allow Required"}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5 leading-snug">
-                    Bypasses silent mode and rings loud counter chimes even if phone is on DND.
+                  <p className="text-xs text-zinc-500 mt-1 leading-snug">
+                    Phone silent ya DND par ho toh bhi lock-screen par commercial order ringtone zor se bajegi.
                   </p>
                 </div>
               </div>
@@ -315,10 +335,10 @@ export function MerchantPermissionsScreen() {
                   setTimeout(refreshPermissionsState, 1500);
                 }}
                 disabled={notificationsAllowed}
-                className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
                   notificationsAllowed
                     ? "bg-zinc-100 text-zinc-400 cursor-default"
-                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-2xs"
+                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm"
                 }`}
               >
                 {notificationsAllowed ? "Allowed ✓" : "Allow"}
@@ -326,8 +346,10 @@ export function MerchantPermissionsScreen() {
             </div>
           </div>
 
-          {/* 3. Display Over Other Apps */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs hover:border-zinc-300 transition">
+          {/* Step 3. Display Over Other Apps */}
+          <div className={`rounded-2xl border bg-white p-4 transition-all shadow-2xs ${
+            overlaysAllowed ? "border-zinc-200" : "border-blue-300 ring-2 ring-blue-500/10"
+          }`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div
@@ -340,9 +362,12 @@ export function MerchantPermissionsScreen() {
                   <Layers className="size-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-600">
+                      Step 3
+                    </span>
                     <h3 className="text-sm font-black text-zinc-950">
-                      Display Over Other Apps (Overlay Popups)
+                      Display Over Other Apps (Overlay Popup)
                     </h3>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -351,11 +376,11 @@ export function MerchantPermissionsScreen() {
                           : "bg-zinc-100 text-zinc-700 border border-zinc-200"
                       }`}
                     >
-                      {overlaysAllowed ? "Active" : "Optional"}
+                      {overlaysAllowed ? "Allowed ✓" : "Allow"}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5 leading-snug">
-                    Shows incoming order cards with Accept/Reject buttons even while using WhatsApp, Maps or other apps.
+                  <p className="text-xs text-zinc-500 mt-1 leading-snug">
+                    WhatsApp ya koi dusri app use karte waqt bhi naye order ka card seedha screen ke upar dikhega.
                   </p>
                 </div>
               </div>
@@ -367,10 +392,10 @@ export function MerchantPermissionsScreen() {
                   setTimeout(refreshPermissionsState, 1500);
                 }}
                 disabled={overlaysAllowed}
-                className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
                   overlaysAllowed
                     ? "bg-zinc-100 text-zinc-400 cursor-default"
-                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-2xs"
+                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm"
                 }`}
               >
                 {overlaysAllowed ? "Allowed ✓" : "Allow"}
@@ -378,21 +403,26 @@ export function MerchantPermissionsScreen() {
             </div>
           </div>
 
-          {/* 4. Location Access */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs hover:border-zinc-300 transition">
+          {/* Step 4. Location Access */}
+          <div className={`rounded-2xl border bg-white p-4 transition-all shadow-2xs ${
+            locationAllowed ? "border-zinc-200" : "border-blue-300 ring-2 ring-blue-500/10"
+          }`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div
                   className={`flex size-10 shrink-0 items-center justify-center rounded-xl font-bold ${
                     locationAllowed
                       ? "bg-emerald-100 text-emerald-700"
-                      : "bg-amber-100 text-amber-800"
+                      : "bg-blue-100 text-blue-700"
                   }`}
                 >
                   <MapPin className="size-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-600">
+                      Step 4
+                    </span>
                     <h3 className="text-sm font-black text-zinc-950">
                       Store GPS Location
                     </h3>
@@ -403,11 +433,11 @@ export function MerchantPermissionsScreen() {
                           : "bg-amber-50 text-amber-800 border border-amber-200"
                       }`}
                     >
-                      {locationAllowed ? "Active" : "Required"}
+                      {locationAllowed ? "Allowed ✓" : "Allow"}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5 leading-snug">
-                    Ensures precise geofencing so delivery captains are automatically dispatched from nearby radius.
+                  <p className="text-xs text-zinc-500 mt-1 leading-snug">
+                    Pickup aur delivery captains ko aapke store ki accurate live location dikhane ke liye.
                   </p>
                 </div>
               </div>
@@ -419,10 +449,10 @@ export function MerchantPermissionsScreen() {
                   setTimeout(refreshPermissionsState, 1500);
                 }}
                 disabled={locationAllowed}
-                className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
                   locationAllowed
                     ? "bg-zinc-100 text-zinc-400 cursor-default"
-                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-2xs"
+                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm"
                 }`}
               >
                 {locationAllowed ? "Allowed ✓" : "Allow"}
@@ -430,23 +460,28 @@ export function MerchantPermissionsScreen() {
             </div>
           </div>
 
-          {/* 5. Camera Access */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs hover:border-zinc-300 transition">
+          {/* Step 5. Camera Access */}
+          <div className={`rounded-2xl border bg-white p-4 transition-all shadow-2xs ${
+            cameraAllowed ? "border-zinc-200" : "border-blue-300 ring-2 ring-blue-500/10"
+          }`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div
                   className={`flex size-10 shrink-0 items-center justify-center rounded-xl font-bold ${
                     cameraAllowed
                       ? "bg-emerald-100 text-emerald-700"
-                      : "bg-zinc-100 text-zinc-700"
+                      : "bg-blue-100 text-blue-700"
                   }`}
                 >
                   <Camera className="size-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-black uppercase text-zinc-600">
+                      Step 5
+                    </span>
                     <h3 className="text-sm font-black text-zinc-950">
-                      Camera (Garment Photos & Barcodes)
+                      Camera & Tag Scanning
                     </h3>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -455,11 +490,11 @@ export function MerchantPermissionsScreen() {
                           : "bg-zinc-100 text-zinc-700 border border-zinc-200"
                       }`}
                     >
-                      {cameraAllowed ? "Active" : "Optional"}
+                      {cameraAllowed ? "Allowed ✓" : "Allow"}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5 leading-snug">
-                    Take photos of pre-existing garment stains/defects upon captain delivery at your counter.
+                  <p className="text-xs text-zinc-500 mt-1 leading-snug">
+                    Kapdon ke tags scan karne aur delivery ke waqt kapdon ke daagh/defect photo kheenchne ke liye.
                   </p>
                 </div>
               </div>
@@ -471,10 +506,10 @@ export function MerchantPermissionsScreen() {
                   setTimeout(refreshPermissionsState, 1500);
                 }}
                 disabled={cameraAllowed}
-                className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer ${
                   cameraAllowed
                     ? "bg-zinc-100 text-zinc-400 cursor-default"
-                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-2xs"
+                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm"
                 }`}
               >
                 {cameraAllowed ? "Allowed ✓" : "Allow"}
