@@ -5,8 +5,11 @@ import subprocess
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/9ae7c0d2-c173-49e5-8148-83bbec7e4565"
-OLD_ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/3ab9df93-0c34-4b9b-8fdb-99d5f33cf43f"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/5704e1e6-724e-4d52-b79d-6a75a3604744"
+OLD_ARTIFACT_DIRS = [
+    "/Users/himanshupal/.gemini/antigravity-ide/brain/9ae7c0d2-c173-49e5-8148-83bbec7e4565",
+    "/Users/himanshupal/.gemini/antigravity-ide/brain/3ab9df93-0c34-4b9b-8fdb-99d5f33cf43f",
+]
 
 def run_cmd(cmd, cwd=ROOT_DIR):
     print(f"\n===> Executing: {cmd} (in {cwd})")
@@ -52,7 +55,7 @@ def main():
         shutil.copy2(cust_apk_src, os.path.join(ROOT_DIR, "QuickPress-Customer.apk"))
         shutil.copy2(cust_apk_src, os.path.join(apks_dir, "QuickPress-Customer.apk"))
         shutil.copy2(cust_apk_src, os.path.join(release_apks_dir, "quickpress-customer.apk"))
-        for ad in (ARTIFACT_DIR, OLD_ARTIFACT_DIR):
+        for ad in (ARTIFACT_DIR, *OLD_ARTIFACT_DIRS):
             if os.path.exists(ad):
                 shutil.copy2(cust_apk_src, os.path.join(ad, "QuickPress-Customer.apk"))
         print(f"✓ Customer APK updated: {os.path.getsize(cust_apk_src)} bytes")
@@ -74,7 +77,7 @@ def main():
         shutil.copy2(part_apk_src, os.path.join(ROOT_DIR, "QuickPress-Partner.apk"))
         shutil.copy2(part_apk_src, os.path.join(apks_dir, "QuickPress-Partner.apk"))
         shutil.copy2(part_apk_src, os.path.join(release_apks_dir, "quickpress-partner.apk"))
-        for ad in (ARTIFACT_DIR, OLD_ARTIFACT_DIR):
+        for ad in (ARTIFACT_DIR, *OLD_ARTIFACT_DIRS):
             if os.path.exists(ad):
                 shutil.copy2(part_apk_src, os.path.join(ad, "QuickPress-Partner.apk"))
         print(f"✓ Partner APK updated: {os.path.getsize(part_apk_src)} bytes")
@@ -96,7 +99,7 @@ def main():
         shutil.copy2(rdr_apk_src, os.path.join(ROOT_DIR, "QuickPress-Captain.apk"))
         shutil.copy2(rdr_apk_src, os.path.join(apks_dir, "QuickPress-Captain.apk"))
         shutil.copy2(rdr_apk_src, os.path.join(release_apks_dir, "quickpress-rider-captain.apk"))
-        for ad in (ARTIFACT_DIR, OLD_ARTIFACT_DIR):
+        for ad in (ARTIFACT_DIR, *OLD_ARTIFACT_DIRS):
             if os.path.exists(ad):
                 shutil.copy2(rdr_apk_src, os.path.join(ad, "QuickPress-Captain.apk"))
         print(f"✓ Rider APK updated: {os.path.getsize(rdr_apk_src)} bytes")
