@@ -16,6 +16,10 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
+import android.content.Intent;
+import android.os.PowerManager;
+import android.provider.Settings;
+import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,6 +83,35 @@ public class MainActivity extends BridgeActivity {
         });
         // 4. API Reachability Auto-Fix for Live Railway Production
         startPeriodicApiFix();
+
+        // 5. Check if launched from Floating Bubble with route
+        handleIncomingRoute(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIncomingRoute(intent);
+    }
+
+    private void handleIncomingRoute(Intent intent) {
+        if (intent == null) return;
+        final String route = intent.getStringExtra("route");
+        if (route != null && !route.isEmpty()) {
+            WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+            if (webView != null) {
+                webView.postDelayed(() -> {
+                    webView.evaluateJavascript(
+                        "(function() {" +
+                        "  if (window.__qpNavigate) { window.__qpNavigate('" + route + "'); }" +
+                        "  else { window.dispatchEvent(new CustomEvent('qp:navigate', { detail: { route: '" + route + "' } })); }" +
+                        "})()",
+                        null
+                    );
+                }, 400);
+            }
+        }
     }
 
     @Override
@@ -197,6 +230,10 @@ public class MainActivity extends BridgeActivity {
                 settings.setDatabaseEnabled(true);
                 settings.setGeolocationEnabled(true);
                 settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                settings.setMediaPlaybackRequiresUserGesture(false);
+
+                // Register Native Captain Bridge for Floating Bubble, Background GPS, and Screen Wakeup
+                webView.addJavascriptInterface(new QuickPressRiderBridge(), "QuickPressNativeBridge");
 
                 // Safely enable offscreen pre-rasterization via reflection if supported by Chromium engine
                 try {
@@ -265,6 +302,225 @@ public class MainActivity extends BridgeActivity {
             ordersChannel.enableVibration(true);
             ordersChannel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
             manager.createNotificationChannel(ordersChannel);
+        }
+    }
+
+    /**
+     * Native Android Captain Bridge:
+     * Handles Floating Overlay Bubble (Rapido style), Auto-Foreground on Incoming Order,
+     * Background GPS Location, and Battery Optimization Whitelist.
+     */
+    public class QuickPressRiderBridge {
+
+        @JavascriptInterface
+        public void startFloatingBubble() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (Settings.canDrawOverlays(MainActivity.this)) {
+                        Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
+                        intent.setAction(FloatingBubbleService.ACTION_START);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent);
+                        } else {
+                            startService(intent);
+                        }
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void stopFloatingBubble() {
+            runOnUiThread(() -> {
+                Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
+                intent.setAction(FloatingBubbleService.ACTION_STOP);
+                stopService(intent);
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isFloatingBubbleRunning() {
+            return FloatingBubbleService.isRunning;
+        }
+
+        @JavascriptInterface
+        public boolean canDrawOverlays() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                return Settings.canDrawOverlays(MainActivity.this);
+            }
+            return true;
+        }
+
+        @JavascriptInterface
+        public void requestOverlayPermission() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    try {
+                        Intent intent = new Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:" + getPackageName())
+                        );
+                        startActivity(intent);
+                    } catch (Exception ignored) {}
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isBatteryOptimizationIgnored() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+            }
+            return true;
+        }
+
+        @JavascriptInterface
+        public void requestIgnoreBatteryOptimization() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    try {
+                        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                        if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                            intent.setData(Uri.parse("package:" + getPackageName()));
+                            startActivity(intent);
+                        }
+                    } catch (Exception e) {
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                            startActivity(intent);
+                        } catch (Exception ignored) {}
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean areNotificationsEnabled() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                return checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                return manager != null && manager.areNotificationsEnabled();
+            }
+            return true;
+        }
+
+        @JavascriptInterface
+        public void openNotificationSettings() {
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                        intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                    } else {
+                        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                    }
+                    startActivity(intent);
+                } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isLocationGranted() {
+            return checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                   checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestLocationPermission() {
+            runOnUiThread(() -> {
+                requestPermissions(new String[]{
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                }, 1002);
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isBackgroundLocationGranted() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                return checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED;
+            }
+            return isLocationGranted();
+        }
+
+        @JavascriptInterface
+        public void requestBackgroundLocationPermission() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    requestPermissions(new String[]{android.Manifest.permission.ACCESS_BACKGROUND_LOCATION}, 1004);
+                } else {
+                    requestLocationPermission();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isCameraGranted() {
+            return checkSelfPermission(android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestCameraPermission() {
+            runOnUiThread(() -> {
+                requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 1003);
+            });
+        }
+
+        @JavascriptInterface
+        public void openAppSettings() {
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public void bringAppToFront(final String targetRoute) {
+            runOnUiThread(() -> {
+                try {
+                    PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                    if (pm != null) {
+                        PowerManager.WakeLock wl = pm.newWakeLock(
+                            PowerManager.SCREEN_BRIGHT_WAKE_LOCK |
+                            PowerManager.ACQUIRE_CAUSES_WAKEUP |
+                            PowerManager.ON_AFTER_RELEASE,
+                            "quickpress:captain_order_wakeup"
+                        );
+                        wl.acquire(15000);
+                    }
+
+                    Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                    intent.addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT |
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    );
+                    if (targetRoute != null && !targetRoute.isEmpty()) {
+                        intent.putExtra("route", targetRoute);
+                    }
+                    startActivity(intent);
+
+                    // Also notify the active webview
+                    WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+                    if (webView != null && targetRoute != null) {
+                        webView.evaluateJavascript(
+                            "(function() {" +
+                            "  if (window.__qpNavigate) { window.__qpNavigate('" + targetRoute + "'); }" +
+                            "  else { window.dispatchEvent(new CustomEvent('qp:navigate', { detail: { route: '" + targetRoute + "' } })); }" +
+                            "})()",
+                            null
+                        );
+                    }
+                } catch (Exception ignored) {}
+            });
         }
     }
 }

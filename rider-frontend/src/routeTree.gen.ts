@@ -26,6 +26,7 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OtpRouteImport } from './routes/otp'
+import { Route as PermissionsRouteImport } from './routes/permissions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegistrationRouteImport } from './routes/registration'
 import { Route as SupportRouteImport } from './routes/support'
@@ -117,6 +118,11 @@ const OtpRoute = OtpRouteImport.update({
   path: '/otp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PermissionsRoute = PermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/otp': typeof OtpRoute
+  '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/support': typeof SupportRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/otp': typeof OtpRoute
+  '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/support': typeof SupportRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/otp': typeof OtpRoute
+  '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/support': typeof SupportRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/orders'
     | '/otp'
+    | '/permissions'
     | '/profile'
     | '/registration'
     | '/support'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/orders'
     | '/otp'
+    | '/permissions'
     | '/profile'
     | '/registration'
     | '/support'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/orders'
     | '/otp'
+    | '/permissions'
     | '/profile'
     | '/registration'
     | '/support'
@@ -309,6 +321,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   OrdersRoute: typeof OrdersRoute
   OtpRoute: typeof OtpRoute
+  PermissionsRoute: typeof PermissionsRoute
   ProfileRoute: typeof ProfileRoute
   RegistrationRoute: typeof RegistrationRoute
   SupportRoute: typeof SupportRoute
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OtpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/permissions': {
+      id: '/permissions'
+      path: '/permissions'
+      fullPath: '/permissions'
+      preLoaderRoute: typeof PermissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -493,6 +513,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   OrdersRoute: OrdersRoute,
   OtpRoute: OtpRoute,
+  PermissionsRoute: PermissionsRoute,
   ProfileRoute: ProfileRoute,
   RegistrationRoute: RegistrationRoute,
   SupportRoute: SupportRoute,

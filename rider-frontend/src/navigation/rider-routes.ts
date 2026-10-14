@@ -34,6 +34,7 @@ export const riderRoutes = {
   leaderboard: "/leaderboard",
   notifications: "/notifications",
   profile: "/profile",
+  permissions: "/permissions",
 } as const;
 
 export const riderTabs = [

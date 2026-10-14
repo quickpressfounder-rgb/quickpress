@@ -108,8 +108,8 @@ export function RiderOtpScreen() {
         toast.info("Your application is under verification by Admin. ⏳");
         navigate({ to: "/verification", replace: true });
       } else {
-        toast.success("Welcome back, Captain! Redirecting to Hub... 🚀");
-        navigate({ to: "/dashboard", replace: true });
+        toast.success("Welcome back, Captain! Checking duty readiness... 🚀");
+        navigate({ to: "/permissions", replace: true });
       }
     } catch (err: any) {
       toast.error(err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.");

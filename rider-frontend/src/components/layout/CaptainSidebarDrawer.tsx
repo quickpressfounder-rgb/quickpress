@@ -10,6 +10,7 @@ import {
   Gift,
   HelpCircle,
   History,
+  Layers,
   LogOut,
   MapPin,
   ShieldCheck,
@@ -206,6 +207,15 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   onClick: () => {
                     onClose();
                     navigate({ to: "/incentives" });
+                  },
+                },
+                {
+                  icon: Layers,
+                  title: "Duty Permissions & Floating Bubble 🛵",
+                  sub: "Rapido floating bubble, background GPS & battery setup",
+                  onClick: () => {
+                    onClose();
+                    navigate({ to: "/permissions" });
                   },
                 },
                 {

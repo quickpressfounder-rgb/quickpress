@@ -33,6 +33,16 @@ import {
   subscribeRiderWallet,
 } from "../lib/rider-socket";
 import { riderLocationEngine } from "../lib/rider-location-service";
+import {
+  bringAppToFront,
+  canDrawOverlays,
+  isBackgroundLocationGranted,
+  isBatteryOptimizationIgnored,
+  isNativeAndroidApp,
+  registerGlobalNavigationHook,
+  startFloatingBubble,
+  stopFloatingBubble,
+} from "../lib/captain-device-opt";
 
 export function RiderDashboardScreen() {
   const navigate = useNavigate();
@@ -162,6 +172,10 @@ export function RiderDashboardScreen() {
       unlockAudioContext();
       triggerHaptic([350, 150, 350, 150, 600, 300]);
       playOrderAlertSound();
+
+      // Bring app to foreground if backgrounded or screen locked
+      bringAppToFront("/orders");
+
       const fare = Number(rawOffer?.fare || rawOffer?.estimatedEarning || 45);
       const isAutoAssigned = Boolean(rawOffer?.autoAssigned || rawOffer?.isAssigned || rawOffer?.status === "assigned");
       const pickupTitle = rawOffer?.pickupTitle || rawOffer?.partnerName || "पिकअप हब";
@@ -190,6 +204,33 @@ export function RiderDashboardScreen() {
     };
   }, [isOnline, navigate]);
 
+  // Hook up global navigation for Floating Bubble taps
+  useEffect(() => {
+    return registerGlobalNavigationHook((targetRoute) => {
+      navigate({ to: targetRoute as any });
+    });
+  }, [navigate]);
+
+  // Ensure Floating Bubble matches duty state on launch
+  useEffect(() => {
+    if (isOnline) {
+      startFloatingBubble();
+    } else {
+      stopFloatingBubble();
+    }
+  }, [isOnline]);
+
+  // Check duty permissions warning
+  const [showDutyNotice, setShowDutyNotice] = useState(false);
+  useEffect(() => {
+    if (isNativeAndroidApp()) {
+      const bgOk = isBackgroundLocationGranted();
+      const batteryOk = isBatteryOptimizationIgnored();
+      const overlayOk = canDrawOverlays();
+      setShowDutyNotice(!bgOk || !batteryOk || !overlayOk);
+    }
+  }, []);
+
   // Handle Duty Toggle
   const handleToggleDuty = async () => {
     unlockAudioContext();
@@ -201,6 +242,14 @@ export function RiderDashboardScreen() {
       playDutyToggleSound(nextState);
       speakDutyStatus(nextState);
       triggerHaptic();
+
+      // Manage Rapido-style Floating Bubble
+      if (nextState) {
+        startFloatingBubble();
+      } else {
+        stopFloatingBubble();
+      }
+
       toast.success(nextState ? "Captain is ON DUTY 🟢" : "Captain is OFF DUTY 🔴");
     } catch {
       toast.error("Failed to update duty status. Please check your network.");
@@ -242,6 +291,23 @@ export function RiderDashboardScreen() {
         notificationCount={unreadNotifCount}
         loading={dutyLoading}
       />
+
+      {/* 2.5 Duty Permissions & Floating Bubble Notice */}
+      {showDutyNotice && (
+        <div className="bg-amber-400 text-black px-4 py-2 flex items-center justify-between text-xs font-bold shadow-sm shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm">⚡</span>
+            <span className="truncate text-[11px] font-black">Enable Floating Bubble & GPS for Trips</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/permissions" })}
+            className="shrink-0 bg-black text-amber-300 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider active:scale-95 transition cursor-pointer"
+          >
+            Setup →
+          </button>
+        </div>
+      )}
 
       {/* 3. Screen Switcher: Offline Home vs Online Map (Order Queue is exclusively on /orders) */}
       {!isOnline ? (
