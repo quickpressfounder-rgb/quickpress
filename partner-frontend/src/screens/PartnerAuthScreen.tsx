@@ -177,7 +177,7 @@ export function PartnerAuthScreen() {
       } else if (!realIsVerified) {
         navigate({ to: partnerRoutes.registrationSubmitted });
       } else {
-        navigate({ to: partnerRoutes.dashboard });
+        navigate({ to: partnerRoutes.permissions });
       }
     } catch (cause) {
       toast.error(

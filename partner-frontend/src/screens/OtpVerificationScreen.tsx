@@ -106,7 +106,7 @@ export function OtpVerificationScreen() {
 
     window.setTimeout(() => {
       if (realIsOnboarded && realIsVerified) {
-        navigate({ to: partnerRoutes.dashboard });
+        navigate({ to: partnerRoutes.permissions });
       } else if (!realIsOnboarded) {
         navigate({ to: partnerRoutes.registration });
       } else {

@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  ArrowRight,
   BatteryCharging,
   BellRing,
   Camera,
@@ -105,7 +106,7 @@ export function MerchantPermissionsScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-20 text-zinc-900">
+    <div className="min-h-screen bg-zinc-50 pb-32 text-zinc-900">
       {/* Top Header */}
       <header className="sticky top-0 z-30 bg-white border-b border-zinc-200 px-4 py-3.5 shadow-2xs">
         <div className="flex items-center justify-between gap-3">
@@ -577,6 +578,36 @@ export function MerchantPermissionsScreen() {
           </button>
         </div>
       </main>
+
+      {/* Sticky Bottom Action Bar to Continue to Dashboard */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-zinc-200 px-4 py-3 shadow-lg">
+        <div className="mx-auto max-w-2xl flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-black text-zinc-900 truncate">
+              {allGranted ? "✓ Ready to accept orders" : `${grantedCount} of ${totalSteps} permissions allowed`}
+            </p>
+            <p className="text-[11px] text-zinc-500">
+              {allGranted ? "Your device is fully configured" : "Remaining can be configured anytime"}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              stopPartnerOrderAlertRing();
+              navigate({ to: partnerRoutes.dashboard });
+            }}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black transition-all cursor-pointer shadow-md active:scale-95 ${
+              allGranted
+                ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-500/20"
+                : "bg-zinc-900 text-white hover:bg-black"
+            }`}
+          >
+            <span>Continue to Dashboard</span>
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -428,10 +428,10 @@ export function ZomatoHubView() {
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                onClick={handleEnableOptimization}
+                onClick={() => navigate({ to: partnerRoutes.permissions })}
                 className="rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer hover:bg-amber-700"
               >
-                Enable
+                Configure
               </button>
               <button
                 type="button"
