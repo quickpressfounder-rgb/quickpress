@@ -1,3 +1,4 @@
+
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -169,7 +170,7 @@ export function PartnerAuthScreen() {
           realIsOnboarded = Boolean(statusRes.isOnboarded);
           realIsVerified = Boolean(statusRes.isVerified);
         }
-      } catch {}
+      } catch { }
       const resolved = { ...sess, isOnboarded: realIsOnboarded, isVerified: realIsVerified };
       signIn(resolved);
       if (!realIsOnboarded) {
@@ -242,11 +243,10 @@ export function PartnerAuthScreen() {
                   Mobile Number
                 </label>
                 <div
-                  className={`flex h-[54px] items-center rounded-2xl border-2 bg-zinc-50/90 px-3.5 transition-all ${
-                    error
+                  className={`flex h-[54px] items-center rounded-2xl border-2 bg-zinc-50/90 px-3.5 transition-all ${error
                       ? "border-red-500 bg-red-50/20"
                       : "border-zinc-200 focus-within:border-[#111827] focus-within:bg-white focus-within:shadow-sm"
-                  }`}
+                    }`}
                 >
                   <span className="flex items-center gap-1.5 border-r border-zinc-200 pr-3 text-xs font-black text-[#111827]">
                     <span>🇮🇳</span>
@@ -451,11 +451,10 @@ export function PartnerAuthScreen() {
                     Mobile Number
                   </label>
                   <div
-                    className={`flex h-14 items-center rounded-2xl border-2 bg-zinc-50/70 px-4 transition-all ${
-                      error
+                    className={`flex h-14 items-center rounded-2xl border-2 bg-zinc-50/70 px-4 transition-all ${error
                         ? "border-red-500 bg-red-50/20"
                         : "border-zinc-200 focus-within:border-[#111827] focus-within:bg-white"
-                    }`}
+                      }`}
                   >
                     <span className="flex items-center gap-2 border-r border-zinc-200 pr-3.5 text-sm font-black text-[#111827]">
                       <span>🇮🇳</span>

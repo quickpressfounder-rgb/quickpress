@@ -10,7 +10,6 @@ import {
   MapPinOff,
   Navigation,
   Search,
-  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -47,14 +46,6 @@ export const Route = createFileRoute("/services-unavailable")({
   }),
   component: ServicesUnavailablePage,
 });
-
-const KASGANJ_HUB: SavedLocation = {
-  area: "Kasganj Central",
-  city: "Kasganj",
-  state: "Uttar Pradesh",
-  latitude: 27.8083,
-  longitude: 78.6453,
-};
 
 function ServicesUnavailablePage() {
   const navigate = useNavigate();
@@ -107,12 +98,6 @@ function ServicesUnavailablePage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleSwitchToKasganjHub = () => {
-    saveLocation(KASGANJ_HUB);
-    toast.success("Switched to Kasganj Central Hub — all services live!");
-    void navigate({ to: "/home" });
   };
 
   return (
@@ -230,21 +215,6 @@ function ServicesUnavailablePage() {
                     </button>
                   </form>
                 )}
-              </div>
-
-              {/* Operational Hub Fast Explorer */}
-              <div className="mt-4 pt-3 border-t border-border text-center">
-                <p className="text-[11px] font-semibold text-muted-foreground">
-                  Want to explore available laundry services & prices?
-                </p>
-                <button
-                  type="button"
-                  onClick={handleSwitchToKasganjHub}
-                  className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/30 bg-card px-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 transition-all hover:bg-emerald-500/10 active:scale-[0.985]"
-                >
-                  <Sparkles className="size-3.5" />
-                  <span>Switch to Kasganj Hub (Explore Services)</span>
-                </button>
               </div>
             </div>
           </div>

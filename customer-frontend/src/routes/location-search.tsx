@@ -11,7 +11,6 @@ import {
   MapPin,
   Navigation,
   Search,
-  Sparkles,
   Star,
   X,
 } from "lucide-react";
@@ -64,15 +63,6 @@ export const Route = createFileRoute("/location-search")({
 type Place = SavedLocation & { id: string };
 
 const EMPTY_GROUPS: PlaceGroups = { recent: [], saved: [], nearby: [], popular: [] };
-
-const KASGANJ_HUB: Place = {
-  id: "hub:kasganj-central",
-  area: "Kasganj Central",
-  city: "Kasganj",
-  state: "Uttar Pradesh",
-  latitude: 27.8083,
-  longitude: 78.6453,
-};
 
 function LocationSearchScreen() {
   const navigate = useNavigate();
@@ -244,11 +234,6 @@ function LocationSearchScreen() {
     await processLocationSelection(loc);
   };
 
-  const handleSelectKasganjHub = async () => {
-    setSelected(KASGANJ_HUB);
-    await processLocationSelection(KASGANJ_HUB);
-  };
-
   return (
     <main className="relative min-h-screen overflow-hidden bg-white dark:bg-zinc-950">
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-32 pt-8">
@@ -351,37 +336,6 @@ function LocationSearchScreen() {
               </span>
               <ArrowRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
             </button>
-
-            {/* QuickPress Active Hubs */}
-            <div className="mt-5 rounded-2xl border border-border bg-gradient-to-r from-emerald-500/10 to-teal-500/5 p-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white">
-                    <Sparkles className="size-3" />
-                  </span>
-                  <span className="text-xs font-black text-foreground">
-                    Operational Hubs (All Services Active)
-                  </span>
-                </div>
-                <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase text-white">
-                  Live
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleSelectKasganjHub}
-                disabled={saving}
-                className="mt-2.5 flex w-full items-center justify-between rounded-xl bg-card p-3 border border-border shadow-xs hover:border-emerald-500 transition-all text-left"
-              >
-                <div>
-                  <p className="text-xs font-extrabold text-foreground">Kasganj Central Hub</p>
-                  <p className="text-[11px] text-muted-foreground">Wash & Fold · Dry Clean · Steam Iron · Express</p>
-                </div>
-                <span className="text-xs font-black text-emerald-600 flex items-center gap-1">
-                  Select <ArrowRight className="size-3" />
-                </span>
-              </button>
-            </div>
 
             {/* User Saved Addresses */}
             {userAddresses.length > 0 ? (
