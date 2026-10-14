@@ -10,16 +10,16 @@ export function isNativeAndroidApp(): boolean {
 }
 
 export function isBatteryOptimizationIgnored(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = (window as any).QuickPressNativeBridge;
   if (bridge && typeof bridge.isBatteryOptimizationIgnored === "function") {
     try {
       return Boolean(bridge.isBatteryOptimizationIgnored());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  return false;
 }
 
 export function requestIgnoreBatteryOptimization(): void {
@@ -35,16 +35,16 @@ export function requestIgnoreBatteryOptimization(): void {
 }
 
 export function canDrawOverlays(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = (window as any).QuickPressNativeBridge;
   if (bridge && typeof bridge.canDrawOverlays === "function") {
     try {
       return Boolean(bridge.canDrawOverlays());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  return false;
 }
 
 export function requestOverlayPermission(): void {
@@ -60,19 +60,19 @@ export function requestOverlayPermission(): void {
 }
 
 export function areNotificationsEnabled(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = (window as any).QuickPressNativeBridge;
   if (bridge && typeof bridge.areNotificationsEnabled === "function") {
     try {
       return Boolean(bridge.areNotificationsEnabled());
     } catch {
-      return true;
+      return false;
     }
   }
-  if ("Notification" in window) {
+  if (typeof window !== "undefined" && "Notification" in window) {
     return Notification.permission === "granted";
   }
-  return true;
+  return false;
 }
 
 export function openNotificationSettings(): void {
@@ -84,22 +84,25 @@ export function openNotificationSettings(): void {
       return;
     } catch {}
   }
-  if ("Notification" in window && Notification.permission !== "granted") {
+  if (typeof window !== "undefined" && "Notification" in window && Notification.permission !== "granted") {
     void Notification.requestPermission();
   }
 }
 
 export function isLocationGranted(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = (window as any).QuickPressNativeBridge;
   if (bridge && typeof bridge.isLocationGranted === "function") {
     try {
       return Boolean(bridge.isLocationGranted());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  if (typeof window !== "undefined" && window.localStorage.getItem("qp_loc_granted") === "true") {
+    return true;
+  }
+  return false;
 }
 
 export function requestLocationPermission(): void {
@@ -111,9 +114,11 @@ export function requestLocationPermission(): void {
       return;
     } catch {}
   }
-  if ("geolocation" in navigator) {
+  if (typeof window !== "undefined" && "geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(
-      () => {},
+      () => {
+        try { window.localStorage.setItem("qp_loc_granted", "true"); } catch {}
+      },
       () => {},
       { timeout: 5000 }
     );
@@ -121,16 +126,19 @@ export function requestLocationPermission(): void {
 }
 
 export function isCameraGranted(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = (window as any).QuickPressNativeBridge;
   if (bridge && typeof bridge.isCameraGranted === "function") {
     try {
       return Boolean(bridge.isCameraGranted());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  if (typeof window !== "undefined" && window.localStorage.getItem("qp_cam_granted") === "true") {
+    return true;
+  }
+  return false;
 }
 
 export function requestCameraPermission(): void {
@@ -142,8 +150,9 @@ export function requestCameraPermission(): void {
       return;
     } catch {}
   }
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  if (typeof window !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+      try { window.localStorage.setItem("qp_cam_granted", "true"); } catch {}
       stream.getTracks().forEach((track) => track.stop());
     }).catch(() => {});
   }

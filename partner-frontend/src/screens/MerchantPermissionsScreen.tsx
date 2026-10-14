@@ -48,11 +48,11 @@ export function MerchantPermissionsScreen() {
   const navigate = useNavigate();
   const isNative = isNativeAndroidApp();
 
-  const [batteryIgnored, setBatteryIgnored] = useState(true);
-  const [notificationsAllowed, setNotificationsAllowed] = useState(true);
-  const [overlaysAllowed, setOverlaysAllowed] = useState(true);
-  const [locationAllowed, setLocationAllowed] = useState(true);
-  const [cameraAllowed, setCameraAllowed] = useState(true);
+  const [batteryIgnored, setBatteryIgnored] = useState(false);
+  const [notificationsAllowed, setNotificationsAllowed] = useState(false);
+  const [overlaysAllowed, setOverlaysAllowed] = useState(false);
+  const [locationAllowed, setLocationAllowed] = useState(false);
+  const [cameraAllowed, setCameraAllowed] = useState(false);
   const [isTestingSound, setIsTestingSound] = useState(false);
 
   const refreshPermissionsState = () => {

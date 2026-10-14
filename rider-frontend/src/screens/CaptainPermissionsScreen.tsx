@@ -55,11 +55,11 @@ export function CaptainPermissionsScreen() {
   const navigate = useNavigate();
   const isNative = isNativeAndroidApp();
 
-  const [bgLocationGranted, setBgLocationGranted] = useState(true);
-  const [batteryIgnored, setBatteryIgnored] = useState(true);
-  const [overlaysAllowed, setOverlaysAllowed] = useState(true);
-  const [notificationsAllowed, setNotificationsAllowed] = useState(true);
-  const [cameraAllowed, setCameraAllowed] = useState(true);
+  const [bgLocationGranted, setBgLocationGranted] = useState(false);
+  const [batteryIgnored, setBatteryIgnored] = useState(false);
+  const [overlaysAllowed, setOverlaysAllowed] = useState(false);
+  const [notificationsAllowed, setNotificationsAllowed] = useState(false);
+  const [cameraAllowed, setCameraAllowed] = useState(false);
   const [isBubbleActive, setIsBubbleActive] = useState(false);
   const [isTestingSound, setIsTestingSound] = useState(false);
 

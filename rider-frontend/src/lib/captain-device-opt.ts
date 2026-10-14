@@ -71,16 +71,16 @@ export function isFloatingBubbleRunning(): boolean {
 }
 
 export function canDrawOverlays(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = window.QuickPressNativeBridge;
   if (bridge && typeof bridge.canDrawOverlays === "function") {
     try {
       return Boolean(bridge.canDrawOverlays());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  return false;
 }
 
 export function requestOverlayPermission(): void {
@@ -96,16 +96,16 @@ export function requestOverlayPermission(): void {
 }
 
 export function isBatteryOptimizationIgnored(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = window.QuickPressNativeBridge;
   if (bridge && typeof bridge.isBatteryOptimizationIgnored === "function") {
     try {
       return Boolean(bridge.isBatteryOptimizationIgnored());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  return false;
 }
 
 export function requestIgnoreBatteryOptimization(): void {
@@ -121,19 +121,19 @@ export function requestIgnoreBatteryOptimization(): void {
 }
 
 export function areNotificationsEnabled(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = window.QuickPressNativeBridge;
   if (bridge && typeof bridge.areNotificationsEnabled === "function") {
     try {
       return Boolean(bridge.areNotificationsEnabled());
     } catch {
-      return true;
+      return false;
     }
   }
   if (typeof Notification !== "undefined") {
     return Notification.permission === "granted";
   }
-  return true;
+  return false;
 }
 
 export function openNotificationSettings(): void {
@@ -153,16 +153,19 @@ export function openNotificationSettings(): void {
 }
 
 export function isLocationGranted(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = window.QuickPressNativeBridge;
   if (bridge && typeof bridge.isLocationGranted === "function") {
     try {
       return Boolean(bridge.isLocationGranted());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  if (typeof window !== "undefined" && window.localStorage.getItem("qp_rider_loc_granted") === "true") {
+    return true;
+  }
+  return false;
 }
 
 export function requestLocationPermission(): void {
@@ -178,7 +181,9 @@ export function requestLocationPermission(): void {
   }
   if (typeof navigator !== "undefined" && navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      () => {},
+      () => {
+        try { window.localStorage.setItem("qp_rider_loc_granted", "true"); } catch {}
+      },
       () => {},
       { timeout: 5000 }
     );
@@ -186,13 +191,13 @@ export function requestLocationPermission(): void {
 }
 
 export function isBackgroundLocationGranted(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = window.QuickPressNativeBridge;
   if (bridge && typeof bridge.isBackgroundLocationGranted === "function") {
     try {
       return Boolean(bridge.isBackgroundLocationGranted());
     } catch {
-      return true;
+      return false;
     }
   }
   return isLocationGranted();
@@ -213,16 +218,19 @@ export function requestBackgroundLocationPermission(): void {
 }
 
 export function isCameraGranted(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   const bridge = window.QuickPressNativeBridge;
   if (bridge && typeof bridge.isCameraGranted === "function") {
     try {
       return Boolean(bridge.isCameraGranted());
     } catch {
-      return true;
+      return false;
     }
   }
-  return true;
+  if (typeof window !== "undefined" && window.localStorage.getItem("qp_rider_cam_granted") === "true") {
+    return true;
+  }
+  return false;
 }
 
 export function requestCameraPermission(): void {
@@ -240,6 +248,7 @@ export function requestCameraPermission(): void {
     navigator.mediaDevices
       .getUserMedia({ video: true })
       .then((stream) => {
+        try { window.localStorage.setItem("qp_rider_cam_granted", "true"); } catch {}
         stream.getTracks().forEach((track) => track.stop());
       })
       .catch(() => {});

@@ -40,18 +40,34 @@ export function isCapacitorNative(): boolean {
     (window as any).Capacitor?.getPlatform?.() === "android" ||
     (window as any).Capacitor?.getPlatform?.() === "ios" ||
     (window as any).Capacitor !== undefined ||
+    (window as any).QuickPressNativeBridge !== undefined ||
     window.location.protocol === "capacitor:" ||
-    window.location.protocol === "ionic:"
+    window.location.protocol === "ionic:" ||
+    (typeof navigator !== "undefined" && (
+      navigator.userAgent.includes("Capacitor") ||
+      navigator.userAgent.includes("QuickPressRider") ||
+      navigator.userAgent.includes("wv") // Android WebView indicator
+    ))
   );
 }
 
 export function apiBaseUrl(): string {
-  let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
-  if (custom.includes("quickpress-api-production-3292.up.railway.app")) {
-    custom = custom.replace("-3292", "");
+  if (typeof window !== "undefined") {
+    const globalBase = (window as any).__QUICKPRESS_CONFIG__?.API_BASE_URL;
+    if (globalBase && typeof globalBase === "string" && globalBase.trim()) {
+      let cleaned = globalBase.trim().replace(/\/+$/, "").replace(/-3292/g, "");
+      if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+        return cleaned;
+      }
+    }
   }
 
-  // Inside Capacitor Android/iOS APK, ALWAYS connect to the live production Railway backend!
+  let custom = (readString("VITE_API_BASE_URL") || readString("VITE_API_URL")).replace(/\/+$/, "");
+  if (custom) {
+    custom = custom.replace(/-3292/g, "");
+  }
+
+  // Inside Capacitor Android APK or Native WebView, ALWAYS connect to live Railway backend
   if (isCapacitorNative()) {
     return custom && custom.startsWith("https://") ? custom : PRODUCTION_API_URL;
   }
@@ -67,24 +83,12 @@ export function apiBaseUrl(): string {
       return PRODUCTION_API_URL;
     }
 
-    if (host === "localhost" || host === "127.0.0.1") {
-      // If custom is explicitly given, use it; otherwise default to live backend
+    // On browser desktop localhost ONLY in dev mode with live local backend
+    if ((host === "localhost" || host === "127.0.0.1") && env()["DEV"] === true) {
       if (custom && (custom.startsWith("http://") || custom.startsWith("https://"))) {
         return custom;
       }
-      return PRODUCTION_API_URL;
     }
-
-    // LAN IP check
-    const isPrivateIp = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host);
-    if (isPrivateIp) {
-      if (custom.includes("localhost")) return custom.replace("localhost", host);
-      if (custom.includes("127.0.0.1")) return custom.replace("127.0.0.1", host);
-      return `http://${host}:8000`;
-    }
-
-    if (custom && custom.startsWith("https://")) return custom;
-    return PRODUCTION_API_URL;
   }
 
   if (custom && custom.startsWith("https://")) return custom;

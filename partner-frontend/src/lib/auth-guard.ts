@@ -18,8 +18,8 @@ export function requirePartnerAuth() {
   if (sess.status === "suspended" || (sess as any).isSuspended) {
     throw redirect({ to: partnerRoutes.suspended });
   }
-  const isOnboarded = sess.isOnboarded ?? sess.account?.isOnboarded;
-  if (isOnboarded === false) {
+  const isOnboarded = Boolean(sess.isOnboarded === true || sess.account?.isOnboarded === true);
+  if (!isOnboarded) {
     throw redirect({ to: partnerRoutes.registration });
   }
   const isVerified = Boolean(
