@@ -304,11 +304,43 @@ async def broadcast_order_event(
     partner_id = str((order.get("partner") or {}).get("id") or order.get("partnerId") or "")
     rider_id = str((order.get("rider") or {}).get("id") or order.get("riderId") or "")
 
+    cust = order.get("customer") or {}
+    addr = (order.get("pickup") or {}).get("address") or order.get("pickupAddress") or {}
+    pricing = order.get("pricing") or {}
+    items = order.get("items") or []
+
+    order_summary = {
+        "id": order_id,
+        "code": order.get("code") or order.get("order_code") or order_id,
+        "status": order.get("status") or "pending_partner_acceptance",
+        "amount": float(
+            order.get("payableAmount")
+            or pricing.get("grandTotal")
+            or pricing.get("total")
+            or order.get("total")
+            or order.get("amount")
+            or 0.0
+        ),
+        "customerName": cust.get("name") or order.get("customerName") or "Customer",
+        "customerPhone": cust.get("phone") or order.get("customerPhone") or "",
+        "address": addr.get("formatted") or addr.get("address") or (str(addr) if isinstance(addr, str) else ""),
+        "partnerId": partner_id,
+        "riderId": rider_id,
+        "items": items,
+        "itemCount": len(items) if items else (order.get("itemCount") or 1),
+        "serviceLabel": (order.get("pickup") or {}).get("serviceLabel") or order.get("serviceLabel") or "Laundry Service",
+        "slot": (order.get("pickup") or {}).get("slot") or order.get("slot") or "Today",
+        "paymentMode": (order.get("payment") or {}).get("mode") or order.get("paymentMode") or "cod",
+        "isExpress": bool(order.get("isExpress") or (order.get("pickup") or {}).get("express")),
+        "placedAt": order.get("createdAt") or order.get("created_at"),
+    }
+
     payload = {
         "orderId": order_id,
         "code": order.get("code") or order.get("order_code") or order_id,
         "status": order.get("status"),
         "timestamp": order.get("updatedAt"),
+        "order": order_summary,
         **(extra_data or {}),
     }
 

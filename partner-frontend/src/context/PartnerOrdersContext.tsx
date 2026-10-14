@@ -217,6 +217,11 @@ function toManagedOrder(order: PartnerOrder): ManagedOrder {
 
 import { IncomingOrderModal } from "../components/orders/IncomingOrderModal";
 import { startOrderAlarm, stopOrderAlarm } from "../lib/order-alarm";
+import {
+  acquirePartnerWakeLock,
+  releasePartnerWakeLock,
+  preWarmPartnerAudio,
+} from "../lib/partner-order-alert-sound";
 
 type OrdersStore = {
   orders: ManagedOrder[];
@@ -410,15 +415,72 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     }
   }, [load, isOperationalRoute]);
 
+  // Pre-warm audio and unlock audio context immediately on mount
+  useEffect(() => {
+    preWarmPartnerAudio();
+  }, []);
+
+  // Screen WakeLock: Keep merchant console screen active and prevent sleep
+  useEffect(() => {
+    if (hasActiveSessionToken("partner") && isOperationalRoute()) {
+      void acquirePartnerWakeLock();
+    }
+    return () => {
+      void releasePartnerWakeLock();
+    };
+  }, [isOperationalRoute]);
+
   // Real-time Socket.IO subscription for 0ms latency live order events
   useEffect(() => {
     if (!hasActiveSessionToken("partner")) return;
     const unsub = subscribePartnerOrders((data) => {
-      console.log("[PartnerOrdersContext] ⚡ Socket order event:", data);
+      console.log("[PartnerOrdersContext] ⚡ Fast Socket order event received:", data);
+
+      const orderId = String(data?.orderId || data?.id || (data?.order && (data.order.id || data.order._id)) || "").trim();
+      const code = String(data?.code || (data?.order && data.order.code) || orderId).trim();
+      const status = String(data?.status || (data?.order && data.order.status) || "").toLowerCase().trim();
+
+      // Check if this is an incoming order event requiring store acceptance
+      const isNewOrder =
+        status === "pending_partner_acceptance" ||
+        status === "created" ||
+        status === "new" ||
+        status === "placed" ||
+        !status;
+
+      if (isOperationalRoute() && isNewOrder && orderId) {
+        if (
+          !seenOrderIdsRef.current.has(orderId) &&
+          !acceptedOrderIds.current.has(orderId) &&
+          !cancelledOrderIds.current.has(orderId)
+        ) {
+          console.log("[PartnerOrdersContext] 🚀 INSTANT SUB-10MS CHIME TRIGGER for order:", code);
+          seenOrderIdsRef.current.add(orderId);
+          setSeenOrderIds((prev) => new Set([...prev, orderId]));
+
+          // ⚡ TRIGGER ORDER ALARM BELL INSTANTANEOUSLY (<0.010s)
+          startOrderAlarm(code);
+
+          // Build ManagedOrder from payload immediately if present so modal appears with 0ms delay
+          if (data?.order) {
+            const rawOrder = data.order;
+            const managed = toManagedOrder(rawOrder);
+            setIncomingOrder(managed);
+            setOrders((prev) => {
+              if (prev.some((o) => o.id === managed.id || o.code === managed.code)) return prev;
+              const next = [managed, ...prev];
+              writeCachedOrders(next);
+              return next;
+            });
+          }
+        }
+      }
+
+      // Reconcile complete database records in parallel
       void load({ silent: true });
     });
     return () => unsub();
-  }, [load]);
+  }, [load, isOperationalRoute]);
 
   // Gentle background safety poll (every 10s instead of thrashing every 3s)
   useEffect(() => {
@@ -435,6 +497,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return () => {
       stopOrderAlarm();
+      void releasePartnerWakeLock();
     };
   }, []);
 

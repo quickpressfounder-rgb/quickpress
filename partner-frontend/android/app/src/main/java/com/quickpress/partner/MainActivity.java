@@ -27,11 +27,12 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Enable Hardware Acceleration at the Window level
+        // 1. Enable Hardware Acceleration at the Window level and Keep Screen On for Merchant Orders
         getWindow().setFlags(
             WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
         );
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // 2. Unlock Highest Supported Display Refresh Rate (90Hz / 120Hz / 144Hz)
         unlockHighRefreshRate();
@@ -195,6 +196,7 @@ public class MainActivity extends BridgeActivity {
                 settings.setDatabaseEnabled(true);
                 settings.setGeolocationEnabled(true);
                 settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                settings.setMediaPlaybackRequiresUserGesture(false);
 
                 // Safely enable offscreen pre-rasterization via reflection if supported by Chromium engine
                 try {

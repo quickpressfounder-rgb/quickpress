@@ -677,13 +677,16 @@ class OrderRepository:
             at=created,
         )
 
+        import asyncio
         from app.core.async_queue import async_task_queue
         from app.services.socket_service import EVENT_ORDER_CREATED, broadcast_order_event
         from app.services.order_notifications import dispatch_order_created_notifications
 
-        # Offload real-time socket broadcast and multi-channel notifications to async worker queue.
-        # This keeps checkout response times sub-25ms while delivering all push events in background.
-        async_task_queue.enqueue(broadcast_order_event, EVENT_ORDER_CREATED, document)
+        # ⚡ Instantaneous Zero-Lag Socket Broadcast (0ms):
+        # Fire directly into asyncio event loop microtick so partner & fleet consoles ring immediately (<0.010s).
+        asyncio.create_task(broadcast_order_event(EVENT_ORDER_CREATED, document))
+
+        # Offload multi-channel push notifications (FCM/OneSignal/SMS) to async worker queue
         async_task_queue.enqueue(dispatch_order_created_notifications, document)
 
         # Partner Acceptance Gate: Rider assignment will ONLY occur after partner reviews and accepts the order.

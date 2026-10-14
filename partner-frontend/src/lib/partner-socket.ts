@@ -50,11 +50,11 @@ export function initPartnerSocket(): Socket | null {
   try {
     if (!socket) {
       socket = io(url, {
-        transports: ["polling", "websocket"],
+        transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
+        reconnectionDelay: 500,
+        reconnectionDelayMax: 2000,
         timeout: 10000,
         auth: {
           role: "partner",
@@ -66,7 +66,7 @@ export function initPartnerSocket(): Socket | null {
       });
 
       socket.on("connect", () => {
-        console.log("[PartnerSocket] Connected to realtime gateway:", socket?.id);
+        console.log("[PartnerSocket] ⚡ Connected to realtime gateway:", socket?.id);
         if (partnerId) socket?.emit("join", `partner:${partnerId}`);
         if (phone) socket?.emit("join", `phone:${phone}`);
         if (userId) socket?.emit("join", `user:${userId}`);
@@ -96,6 +96,8 @@ export function initPartnerSocket(): Socket | null {
       };
 
       socket.on("order.created", handleOrder);
+      socket.on("new_order", handleOrder);
+      socket.on("ORDER_CREATED", handleOrder);
       socket.on("order.rider_assigned", handleOrder);
       socket.on("order.picked_up", handleOrder);
       socket.on("order.ready", handleOrder);
