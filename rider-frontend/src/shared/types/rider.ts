@@ -193,5 +193,7 @@ export type RiderHistoryEntry = {
     storeTags?: string[];
     createdAt?: string;
   };
+  customerPhoneMasked?: string;
+  [key: string]: any;
 };
 
