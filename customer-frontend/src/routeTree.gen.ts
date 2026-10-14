@@ -31,6 +31,7 @@ import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReferralRouteImport } from './routes/referral'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as ServicesUnavailableRouteImport } from './routes/services-unavailable'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices.index'
 import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices.$invoiceId'
@@ -150,6 +151,11 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesUnavailableRoute = ServicesUnavailableRouteImport.update({
+  id: '/services-unavailable',
+  path: '/services-unavailable',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/referral': typeof ReferralRoute
   '/search': typeof SearchRoute
+  '/services-unavailable': typeof ServicesUnavailableRoute
   '/wallet': typeof WalletRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/legal/$docSlug': typeof LegalDocSlugRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/referral': typeof ReferralRoute
   '/search': typeof SearchRoute
+  '/services-unavailable': typeof ServicesUnavailableRoute
   '/wallet': typeof WalletRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/legal/$docSlug': typeof LegalDocSlugRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/referral': typeof ReferralRoute
   '/search': typeof SearchRoute
+  '/services-unavailable': typeof ServicesUnavailableRoute
   '/wallet': typeof WalletRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/legal/$docSlug': typeof LegalDocSlugRoute
@@ -313,6 +322,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/referral'
     | '/search'
+    | '/services-unavailable'
     | '/wallet'
     | '/invoices/$invoiceId'
     | '/legal/$docSlug'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/referral'
     | '/search'
+    | '/services-unavailable'
     | '/wallet'
     | '/invoices/$invoiceId'
     | '/legal/$docSlug'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/referral'
     | '/search'
+    | '/services-unavailable'
     | '/wallet'
     | '/invoices/$invoiceId'
     | '/legal/$docSlug'
@@ -410,6 +422,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ReferralRoute: typeof ReferralRoute
   SearchRoute: typeof SearchRoute
+  ServicesUnavailableRoute: typeof ServicesUnavailableRoute
   WalletRoute: typeof WalletRoute
   InvoicesInvoiceIdRoute: typeof InvoicesInvoiceIdRoute
   LegalDocSlugRoute: typeof LegalDocSlugRoute
@@ -576,6 +589,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services-unavailable': {
+      id: '/services-unavailable'
+      path: '/services-unavailable'
+      fullPath: '/services-unavailable'
+      preLoaderRoute: typeof ServicesUnavailableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wallet': {
       id: '/wallet'
       path: '/wallet'
@@ -658,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ReferralRoute: ReferralRoute,
   SearchRoute: SearchRoute,
+  ServicesUnavailableRoute: ServicesUnavailableRoute,
   WalletRoute: WalletRoute,
   InvoicesInvoiceIdRoute: InvoicesInvoiceIdRoute,
   LegalDocSlugRoute: LegalDocSlugRoute,

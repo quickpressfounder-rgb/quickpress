@@ -9,6 +9,7 @@ import {
   readLocation,
   saveLocation,
 } from "@/api/customer/location";
+import { checkLocationAvailability } from "@/api/customer/services/partner-service";
 
 export const Route = createFileRoute("/location")({
   head: () => ({
@@ -34,24 +35,16 @@ export const Route = createFileRoute("/location")({
 /**
  * Fast Location Screen:
  *
- *   1. Instantly redirects to /home if a location is already remembered (<1ms).
- *   2. Parallel dual-tier GPS lock (<500ms cached/cell fix).
- *   3. If GPS is off or denied, keeps the user in total control with 1-tap
- *      manual search or instant Kasganj Central hub continuation.
+ *   1. Parallel dual-tier GPS lock (<500ms cached/cell fix).
+ *   2. Checks real-time laundry service availability.
+ *   3. If available -> /home; if unavailable -> /services-unavailable.
+ *   4. If GPS is off or denied, allows 1-tap manual search.
  */
 function LocationScreen() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [attempt, setAttempt] = useState(0);
-
-  // Instant bypass if location is already saved
-  useEffect(() => {
-    const existing = readLocation();
-    if (existing?.latitude && existing?.longitude) {
-      void navigate({ to: "/home", replace: true });
-    }
-  }, [navigate]);
 
   const detect = useCallback(async () => {
     setError(null);
@@ -79,7 +72,27 @@ function LocationScreen() {
       const location = await detectDeviceLocation({ timeoutMs: 3200, allowFallback: true });
       saveLocation(location);
       setIsLocating(false);
-      void navigate({ to: "/home" });
+
+      // 3. Verify service availability
+      try {
+        const avail = await checkLocationAvailability(location);
+        if (avail && avail.available) {
+          void navigate({ to: "/home" });
+        } else {
+          void navigate({
+            to: "/services-unavailable" as any,
+            search: {
+              area: location.area || "",
+              city: location.city || "",
+              state: location.state || "",
+              lat: location.latitude ? String(location.latitude) : undefined,
+              lng: location.longitude ? String(location.longitude) : undefined,
+            } as any,
+          });
+        }
+      } catch {
+        void navigate({ to: "/home" });
+      }
     } catch (cause) {
       setIsLocating(false);
       const msg =

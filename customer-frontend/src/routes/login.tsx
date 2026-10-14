@@ -157,12 +157,10 @@ function AuthScreen() {
       setInitialSuggestedName(isGeneric ? "" : candidateName);
       setStep("name");
     } else {
-      if (redirectTarget) {
-        void navigate({ to: redirectTarget as any });
-      } else {
-        const savedLoc = readLocation();
-        void navigate({ to: savedLoc?.latitude ? "/home" : "/location" });
-      }
+      void navigate({
+        to: "/location-search",
+        search: (redirectTarget ? { redirect: redirectTarget, from: "login" } : { from: "login" }) as any,
+      });
     }
   };
 
@@ -870,13 +868,11 @@ function NameStep({
       window.dispatchEvent(new CustomEvent("qp:profile-updated", { detail: { name: cleanName } }));
       window.dispatchEvent(new Event("qp:login-success"));
 
-      // 5. Navigate to destination
-      if (redirectTarget) {
-        void navigate({ to: redirectTarget as any });
-      } else {
-        const savedLoc = readLocation();
-        void navigate({ to: savedLoc?.latitude ? "/home" : "/location" });
-      }
+      // 5. Navigate to location selection
+      void navigate({
+        to: "/location-search",
+        search: (redirectTarget ? { redirect: redirectTarget, from: "login" } : { from: "login" }) as any,
+      });
     } catch (cause: any) {
       console.error("Failed to save name:", cause);
       setError(cause?.message || "Could not save your name. Please try again.");
@@ -889,12 +885,10 @@ function NameStep({
     sessionStorage.setItem("qp_name_prompt_dismissed", "true");
     window.dispatchEvent(new Event("qp:request-post-login-permissions"));
     window.dispatchEvent(new Event("qp:login-success"));
-    if (redirectTarget) {
-      void navigate({ to: redirectTarget as any });
-    } else {
-      const savedLoc = readLocation();
-      void navigate({ to: savedLoc?.latitude ? "/home" : "/location" });
-    }
+    void navigate({
+      to: "/location-search",
+      search: (redirectTarget ? { redirect: redirectTarget, from: "login" } : { from: "login" }) as any,
+    });
   };
 
   return (
