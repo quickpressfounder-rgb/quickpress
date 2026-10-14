@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Edit2, Loader2, RotateCcw, ShieldCheck, Zap, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowLeft, Edit2, Loader2, RotateCcw, ShieldCheck, Zap } from "lucide-react";
 import React, { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ClipboardEvent } from "react";
 import { toast } from "sonner";
 
@@ -18,7 +18,6 @@ export function RiderOtpScreen() {
   // 6-digit OTP array
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
   const [timer, setTimer] = useState(30);
 
@@ -113,7 +112,6 @@ export function RiderOtpScreen() {
       }
     } catch (err: any) {
       toast.error(err?.message || "Invalid OTP code. Please enter valid 6-digit OTP.");
-      setIsAutoSubmitting(false);
     } finally {
       setLoading(false);
     }
@@ -135,11 +133,8 @@ export function RiderOtpScreen() {
               const spl = clean.split("");
               setDigits(spl);
               toast.success(`⚡ SMS OTP Auto-detected: ${clean}`);
-              setIsAutoSubmitting(true);
               triggerHaptic([40, 60]);
-              setTimeout(() => {
-                handleVerify(clean);
-              }, 250);
+              handleVerify(clean);
             }
           }
         })
@@ -166,11 +161,8 @@ export function RiderOtpScreen() {
     // ⚡ Instant Auto-Accept when all 6 digits are filled!
     if (cleanDigit && newDigits.every((d) => d.length === 1)) {
       const fullCode = newDigits.join("");
-      setIsAutoSubmitting(true);
       triggerHaptic([30, 50]);
-      setTimeout(() => {
-        handleVerify(fullCode);
-      }, 250);
+      handleVerify(fullCode);
     }
   };
 
@@ -199,11 +191,8 @@ export function RiderOtpScreen() {
 
     // ⚡ If 6 digits pasted, auto-accept immediately!
     if (pastedData.length === 6) {
-      setIsAutoSubmitting(true);
       triggerHaptic([30, 50]);
-      setTimeout(() => {
-        handleVerify(pastedData);
-      }, 250);
+      handleVerify(pastedData);
     }
   };
 
@@ -307,19 +296,6 @@ export function RiderOtpScreen() {
             ))}
           </div>
 
-          {/* Auto-Submitting Pill */}
-          {isAutoSubmitting ? (
-            <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 text-white text-xs font-black animate-pulse shadow-sm">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>✓ 6 Digits Entered! Auto-logging in... (लॉगिन हो रहा है)</span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50/80 py-1.5 px-3 rounded-xl border border-emerald-200">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>6 अंक भरते ही बिना बटन दबाए ऑटो लॉगिन होगा</span>
-            </div>
-          )}
-
           {/* Resend Timer Row */}
           <div className="flex items-center justify-between px-2 text-xs pt-1">
             <span className="text-neutral-500 font-medium">
@@ -352,7 +328,7 @@ export function RiderOtpScreen() {
           disabled={loading || otpCode.length !== 6}
           className="w-full h-13.5 flex items-center justify-center bg-[#00C853] hover:bg-[#00B248] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm tracking-wide rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-98 transition-all"
         >
-          {loading || isAutoSubmitting ? (
+          {loading ? (
             <div className="flex items-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin text-white" />
               <span>Verifying & Logging In...</span>

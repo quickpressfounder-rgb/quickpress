@@ -86,7 +86,7 @@ export async function submitRiderRegistration(payload: unknown): Promise<RiderSe
       fullName: string;
       isVerified: boolean;
       isOnboarded: boolean;
-    }>("/api/rider/onboarding", { payload }, { timeoutMs: 60_000 });
+    }>("/api/rider/auth/registration", { payload }, { timeoutMs: 15_000, anonymous: true });
   } catch (err: any) {
     res = await apiPostJson<{
       ok: true;
@@ -95,7 +95,7 @@ export async function submitRiderRegistration(payload: unknown): Promise<RiderSe
       fullName: string;
       isVerified: boolean;
       isOnboarded: boolean;
-    }>("/api/rider/auth/registration", { payload }, { timeoutMs: 60_000, anonymous: true });
+    }>("/api/rider/onboarding", { payload }, { timeoutMs: 15_000 });
   }
 
   const currentSession = readSession(ROLE);

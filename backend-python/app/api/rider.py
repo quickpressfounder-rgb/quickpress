@@ -8,6 +8,7 @@ account exists.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -1086,8 +1087,11 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
         },
     )
 
-    # 6. Generate official Captain SLA Agreement PDF and dispatch via email
-    await _dispatch_captain_agreement_pdf_and_email(rider_id_str, profile_data, payload)
+    # 6. Generate official Captain SLA Agreement PDF and dispatch via email in background
+    try:
+        asyncio.create_task(_dispatch_captain_agreement_pdf_and_email(rider_id_str, profile_data, payload))
+    except Exception as dispatch_err:
+        logger.warning("[RiderOnboarding] Background dispatch error: %s", dispatch_err)
 
     return {
         "ok": True,
@@ -1384,8 +1388,11 @@ async def submit_registration(body: dict) -> dict:
     except Exception:
         pass
 
-    # Generate official Captain SLA Agreement PDF and dispatch via email
-    await _dispatch_captain_agreement_pdf_and_email(rider_id, profile_data, payload)
+    # Generate official Captain SLA Agreement PDF and dispatch via email in background
+    try:
+        asyncio.create_task(_dispatch_captain_agreement_pdf_and_email(rider_id, profile_data, payload))
+    except Exception as dispatch_err:
+        logger.warning("[RiderRegistration] Background dispatch error: %s", dispatch_err)
 
     return {
         "ok": True,
