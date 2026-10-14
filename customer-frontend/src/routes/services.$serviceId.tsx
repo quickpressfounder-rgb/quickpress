@@ -9,7 +9,6 @@ import {
 } from "@/api/customer/favourites-api";
 import { FloatingCartBar } from "@/components/cart/FloatingCartBar";
 import { EmptyState } from "@/components/common/EmptyState";
-import { ServicesUnavailableView } from "@/components/common/ServicesUnavailableView";
 import { PartnerCard } from "@/components/service/PartnerCard";
 import { ServiceFilters } from "@/components/service/ServiceFilters";
 import { ServiceListingSkeleton } from "@/components/service/ServiceListingSkeleton";
@@ -313,10 +312,12 @@ function ServiceListingScreen() {
               ) : null}
 
               {data.partners.length === 0 ? (
-                <ServicesUnavailableView
-                  location={activeLocation}
-                  onRetry={() => void load()}
-                  isRetrying={refreshing}
+                <EmptyState
+                  icon={Store}
+                  title="No partner stores available in your area"
+                  description="We don't currently have active partners operating for this service in your selected location."
+                  actionLabel="Change Location"
+                  onAction={() => void navigate({ to: "/location-search" })}
                 />
               ) : partners.length === 0 ? (
                 <EmptyState

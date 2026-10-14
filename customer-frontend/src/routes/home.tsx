@@ -36,7 +36,6 @@ import { reorder } from "@/api/customer/history-api";
 import { FloatingCartBar } from "@/components/cart/FloatingCartBar";
 import { BottomNav } from "@/components/home/BottomNav";
 import { HomeSkeleton } from "@/components/home/HomeSkeleton";
-import { ServicesUnavailableView } from "@/components/common/ServicesUnavailableView";
 import { useHomeData } from "@/hooks/useHomeData";
 import { checkLocationAvailability } from "@/api/customer/services/partner-service";
 import type { SavedLocation } from "@/api/customer/services/location-service";
@@ -254,6 +253,23 @@ function HomeScreen() {
     return false;
   }, [partners.length, rawPartners.length, sections.partners.loading, location?.city, availability]);
 
+  // If services are unavailable for customer's location, route to dedicated /services-unavailable page
+  useEffect(() => {
+    if (isServicesUnavailable && location) {
+      void navigate({
+        to: "/services-unavailable" as any,
+        search: {
+          area: location.area || "",
+          city: location.city || "",
+          state: location.state || "",
+          lat: location.latitude ? String(location.latitude) : undefined,
+          lng: location.longitude ? String(location.longitude) : undefined,
+        } as any,
+        replace: true,
+      });
+    }
+  }, [isServicesUnavailable, location, navigate]);
+
   const displayLocationName = useMemo(() => {
     if (!location) return "Detecting live location…";
     const area = (location.area || "").trim();
@@ -456,22 +472,7 @@ function HomeScreen() {
               </div>
             ) : null}
 
-            {isServicesUnavailable ? (
-              <ServicesUnavailableView
-                location={location}
-                nearbyAreas={nearbyAreas}
-                onRetry={handleRefresh}
-                isRetrying={refreshing}
-                onSelectArea={(area) => {
-                  const chosen: SavedLocation = {
-                    area,
-                    city: area,
-                    state: "",
-                  };
-                  setLocation(chosen);
-                }}
-              />
-            ) : (
+            {isServicesUnavailable ? null : (
               <>
                 {/* Search */}
                 <section className="mt-6">
