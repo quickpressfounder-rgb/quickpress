@@ -56,6 +56,11 @@ import { useOrderActionHandler } from "../../hooks/use-order-action-handler";
 import { useLanguage } from "../../lib/i18n";
 import type { ManagedOrder, PartnerOrderFilterTab } from "../../data/partner-orders-mock";
 import { STAGE_LABEL, isOrderMatchingTab } from "../../data/partner-orders-mock";
+import {
+  isNativeAndroidApp,
+  isBatteryOptimizationIgnored,
+  requestIgnoreBatteryOptimization,
+} from "../../lib/merchant-device-opt";
 import { OrderTimeline } from "../orders/OrderTimeline";
 import { OrderSlaCountdown } from "../orders/OrderSlaCountdown";
 import {
@@ -232,6 +237,20 @@ export function ZomatoHubView() {
     );
   };
 
+  const [showBatteryNotice, setShowBatteryNotice] = useState(false);
+
+  useEffect(() => {
+    if (isNativeAndroidApp()) {
+      const ignored = isBatteryOptimizationIgnored();
+      setShowBatteryNotice(!ignored);
+    }
+  }, []);
+
+  const handleEnableOptimization = () => {
+    requestIgnoreBatteryOptimization();
+    setShowBatteryNotice(false);
+  };
+
   const activeOrders = useMemo(() => {
     return orders.filter(
       (order) => order.stage !== "completed" && order.stage !== "delivered" && order.stage !== "cancelled"
@@ -394,6 +413,37 @@ export function ZomatoHubView() {
       {/* 1. OPERATIONAL DASHBOARD VIEW                                             */}
       {/* ========================================================================= */}
       <div className="space-y-4 px-4 pt-3 bg-white">
+        {/* Battery Optimization & Background Alert Banner (Native Android only) */}
+        {showBatteryNotice && (
+          <div className="rounded-2xl bg-amber-50 border border-amber-200/90 p-3.5 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white text-xs font-black shadow-xs">
+                ⚡
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-black text-amber-950 truncate">Keep Orders Ringing 24/7</p>
+                <p className="text-[11px] font-medium text-amber-800 leading-tight">Allow background alerts when phone is locked or screen is off</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleEnableOptimization}
+                className="rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer hover:bg-amber-700"
+              >
+                Enable
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBatteryNotice(false)}
+                className="size-7 flex items-center justify-center text-amber-600/70 hover:text-amber-950 text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Today's Overview Card: Flat Crisp Pure White Card with Pure Black Text */}
         <div>
           <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">

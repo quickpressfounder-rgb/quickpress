@@ -304,6 +304,13 @@ export function playPartnerOrderChime(): void {
       source.start(0);
     }
 
+    // ⚡ Native Screen Wakeup (Turns lockscreen ON via PowerManager)
+    if (typeof window !== "undefined" && (window as any).QuickPressNativeBridge?.wakeScreen) {
+      try {
+        (window as any).QuickPressNativeBridge.wakeScreen();
+      } catch {}
+    }
+
     triggerPartnerHaptic();
   } catch (err) {
     console.debug("[PartnerAudio] playPartnerOrderChime error:", err);
@@ -478,6 +485,11 @@ export function playUrgentSlaBuzzer(): void {
  * Screen WakeLock API integration to prevent display dimming/sleep on merchant devices.
  */
 export async function acquirePartnerWakeLock(): Promise<void> {
+  if (typeof window !== "undefined" && (window as any).QuickPressNativeBridge?.wakeScreen) {
+    try {
+      (window as any).QuickPressNativeBridge.wakeScreen();
+    } catch {}
+  }
   if (typeof navigator !== "undefined" && "wakeLock" in navigator) {
     try {
       if (!wakeLockSentinel) {
