@@ -46,7 +46,7 @@ interface PartnerIncomingOrderAlertModalProps {
   onClose?: () => void;
 }
 
-const PARTNER_SLA_SECONDS = 300; // 5 minutes SLA
+const PARTNER_SLA_SECONDS = 180; // 3 minutes SLA
 
 export function PartnerIncomingOrderAlertModal({
   order,
@@ -197,13 +197,13 @@ export function PartnerIncomingOrderAlertModal({
           {/* Countdown Progress Bar */}
           <div className="mt-3.5">
             <div className="flex justify-between text-[11px] font-bold text-emerald-100 mb-1.5">
-              <span>5-Minute SLA Guarantee:</span>
+              <span>3-Minute SLA Guarantee:</span>
               <span className="text-amber-300 font-mono font-black">{formattedCountdown} remaining</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-black/20">
               <div
                 className={`h-full transition-all duration-1000 rounded-full ${
-                  countdown < 60 ? "bg-rose-400" : countdown < 120 ? "bg-amber-300" : "bg-gradient-to-r from-emerald-300 to-amber-300"
+                  countdown < 45 ? "bg-rose-400" : countdown < 90 ? "bg-amber-300" : "bg-gradient-to-r from-emerald-300 to-amber-300"
                 }`}
                 style={{ width: `${progressPercent}%` }}
               />

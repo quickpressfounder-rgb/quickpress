@@ -139,11 +139,11 @@ export function OrderSlaAcceptanceTimer({
     }
     if (placedAt) {
       const placed = new Date(placedAt).getTime();
-      const target = placed + 2 * 60 * 1000; // 2-minute SLA
+      const target = placed + 3 * 60 * 1000; // 3-minute SLA
       const diff = Math.floor((target - now) / 1000);
-      return diff > 0 ? Math.min(diff, 120) : 120;
+      return diff > 0 ? Math.min(diff, 180) : 180;
     }
-    return 120; // Default 2 minutes
+    return 180; // Default 3 minutes
   });
 
   const lastUrgentBuzzerRef = useRef<number>(0);

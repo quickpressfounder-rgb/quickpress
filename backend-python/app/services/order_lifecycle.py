@@ -114,8 +114,8 @@ REFUNDED = "refunded"
 TERMINAL = (COMPLETED, DELIVERED, CANCELLED, REFUNDED)
 
 # Platform SLA Guarantees (in seconds)
-PARTNER_ACCEPT_SLA_SECONDS = 600   # 10 minutes for Partner Store to accept
-RIDER_ACCEPT_SLA_SECONDS = 1800    # 30 minutes for Delivery Captain to accept pickup
+PARTNER_ACCEPT_SLA_SECONDS = 180   # 3 minutes for Partner Store to accept
+RIDER_ACCEPT_SLA_SECONDS = 120    # 2 minutes for Delivery Captain to accept pickup
 
 #: Documents created before the canonical lifecycle used aliases.
 LEGACY_STATUS_ALIASES = {

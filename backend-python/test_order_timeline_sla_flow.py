@@ -1,8 +1,8 @@
-"""End-to-End Test for Order Timeline & Partner 5-min / Rider 2-min SLA Auto-Cancellation.
+"""End-to-End Test for Order Timeline & Partner 3-min / Rider 2-min SLA Auto-Cancellation.
 
 Verifies:
 1. Order timeline generation with exact timestamps and done states.
-2. Partner 5-minute SLA: Unaccepted order auto-cancels with 100% wallet refund.
+2. Partner 3-minute SLA: Unaccepted order auto-cancels with 100% wallet refund.
 3. Rider 2-minute SLA: If partner accepts and rider does not accept within 2 mins (120s):
    - Rider assignment is cancelled ("rider cancle ho gaye").
    - Order is auto-cancelled with 100% refund.
@@ -31,8 +31,8 @@ async def run_suite():
     partner_sla = lifecycle.PARTNER_ACCEPT_SLA_SECONDS
     rider_sla = lifecycle.RIDER_ACCEPT_SLA_SECONDS
 
-    print(f"Platform SLA Constants: Partner = {partner_sla}s (5 min), Rider = {rider_sla}s (2 min)")
-    assert partner_sla == 300, f"Expected 300s Partner SLA, got {partner_sla}"
+    print(f"Platform SLA Constants: Partner = {partner_sla}s (3 min), Rider = {rider_sla}s (2 min)")
+    assert partner_sla == 180, f"Expected 180s Partner SLA, got {partner_sla}"
     assert rider_sla == 120, f"Expected 120s Rider SLA, got {rider_sla}"
 
     # Cleanup any existing test data
@@ -58,10 +58,10 @@ async def run_suite():
     })
 
     # -------------------------------------------------------------------------
-    # TEST 1: Partner 5-Min SLA Breach (Placed 320s ago)
+    # TEST 1: Partner 3-Min SLA Breach (Placed 200s ago)
     # -------------------------------------------------------------------------
-    print("\n[TEST 1] Partner 5-Minute SLA Auto-Cancellation...")
-    placed_at_1 = now - timedelta(seconds=320)
+    print("\n[TEST 1] Partner 3-Minute SLA Auto-Cancellation...")
+    placed_at_1 = now - timedelta(seconds=200)
     await database.insert("customer_orders", {
         "_id": "ord_timeline_partner_exp_01",
         "customerId": cust_id,
@@ -160,9 +160,9 @@ async def run_suite():
     # VERIFY TEST 1: Partner SLA Expired
     doc1 = await database.find_one("customer_orders", {"_id": "ord_timeline_partner_exp_01"})
     assert doc1.get("status") == "cancelled", f"Order 1 should be cancelled, got {doc1.get('status')}"
-    assert "5 minutes SLA" in doc1.get("cancellationReason", "")
+    assert "3 minutes SLA" in doc1.get("cancellationReason", "")
     assert doc1.get("slaBreached") == "partner_acceptance"
-    print("✓ TEST 1 PASSED: Order 1 cancelled per 5-min Partner SLA")
+    print("✓ TEST 1 PASSED: Order 1 cancelled per 3-min Partner SLA")
 
     # VERIFY TEST 2: Rider SLA Expired
     doc2 = await database.find_one("customer_orders", {"_id": "ord_timeline_rider_exp_02"})

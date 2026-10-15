@@ -65,13 +65,13 @@ export function LiveOrderCard({
   onTrackMap?: (order: LiveOrder) => void;
 }) {
   const isPending = order.status === "pending";
-  const [countdown, setCountdown] = useState(120);
+  const [countdown, setCountdown] = useState(180);
   const lastBuzzerRef = useRef<number>(0);
 
   useEffect(() => {
     if (!isPending) return;
 
-    setCountdown(120);
+    setCountdown(180);
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -94,7 +94,7 @@ export function LiveOrderCard({
     return () => clearInterval(timer);
   }, [isPending, order.id]);
 
-  const percent = (countdown / 120) * 100;
+  const percent = (countdown / 180) * 100;
   const mins = Math.floor(countdown / 60);
   const secs = countdown % 60;
   const formattedTime = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
@@ -105,7 +105,7 @@ export function LiveOrderCard({
       className="card-soft animate-rise border border-zinc-200 bg-white p-4 shadow-xs transition-all duration-300 hover:border-zinc-300 hover:shadow-md rounded-2xl"
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* 2-Minute Acceptance Alert Banner (Only for pending) */}
+      {/* 3-Minute Acceptance Alert Banner (Only for pending) */}
       {isPending && (
         <div className={`mb-3 overflow-hidden rounded-xl border p-2.5 ${
           isUrgent ? "bg-rose-50 border-rose-300 animate-pulse" : "bg-amber-50 border-amber-300"
@@ -113,7 +113,7 @@ export function LiveOrderCard({
           <div className="flex items-center justify-between text-xs font-black">
             <span className="flex items-center gap-1.5 text-black">
               {isUrgent ? <Flame className="size-3.5 text-rose-600 animate-bounce" /> : <Timer className="size-3.5 text-black" />}
-              <span>{isUrgent ? "URGENT SLA ACCEPTANCE" : "Acceptance Window (2m SLA)"}</span>
+              <span>{isUrgent ? "URGENT SLA ACCEPTANCE" : "Acceptance Window (3m SLA)"}</span>
             </span>
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-black ${

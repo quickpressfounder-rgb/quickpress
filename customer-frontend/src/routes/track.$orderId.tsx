@@ -89,7 +89,7 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
       const now = Date.now();
       if (isPartnerPending) {
         const base = detail?.placedAt || detail?.createdAt ? new Date(detail.placedAt || detail.createdAt).getTime() : now;
-        const target = detail?.partnerAcceptDeadline ? new Date(detail.partnerAcceptDeadline).getTime() : base + 5 * 60 * 1000;
+        const target = detail?.partnerAcceptDeadline ? new Date(detail.partnerAcceptDeadline).getTime() : base + 3 * 60 * 1000;
         return Math.max(0, Math.floor((target - now) / 1000));
       }
       if (isRiderPending) {
@@ -171,7 +171,7 @@ function LiveOrderSlaTracker({ detail }: { detail: any }) {
           </span>
         </div>
         <p className="mt-2 text-[11.5px] font-medium text-amber-900/85 dark:text-amber-200/85 leading-relaxed">
-          Store is reviewing your laundry items. If not accepted within 5 minutes, it will be automatically cancelled and refunded immediately.
+          Store is reviewing your laundry items. If not accepted within 3 minutes, it will be automatically cancelled and refunded immediately.
         </p>
       </div>
     );

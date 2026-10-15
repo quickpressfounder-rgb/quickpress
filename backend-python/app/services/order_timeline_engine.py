@@ -1,9 +1,9 @@
 """Order Timeline & SLA Auto-Cancellation Engine.
 
 Enforces strict platform SLA guarantees:
-1. Partner Acceptance SLA (5 minutes / 300s):
-   - Orders placed must be accepted by the assigned partner store within 5 minutes.
-   - If 5 minutes elapse without acceptance, the order is automatically cancelled,
+1. Partner Acceptance SLA (3 minutes / 180s):
+   - Orders placed must be accepted by the assigned partner store within 3 minutes.
+   - If 3 minutes elapse without acceptance, the order is automatically cancelled,
      refunded, and real-time alerts are broadcasted to all parties.
 
 2. Rider Acceptance SLA (2 minutes / 120s):
@@ -167,7 +167,7 @@ class OrderTimelineEngine:
             expired_rider_orders: List[str] = []
 
             # =========================================================================
-            # SLA RULE 1: Partner Acceptance Timeout (5 Minutes / 300 Seconds)
+            # SLA RULE 1: Partner Acceptance Timeout (3 Minutes / 180 Seconds)
             # =========================================================================
             pending_partner_orders = await database.find_many(
                 lifecycle.ORDERS,
@@ -199,7 +199,7 @@ class OrderTimelineEngine:
                         lifecycle.PARTNER_ACCEPT_SLA_SECONDS,
                     )
                     try:
-                        reason = "Auto-cancelled: Store did not accept order within 5 minutes SLA"
+                        reason = "Auto-cancelled: Store did not accept order within 3 minutes SLA"
                         updated = await lifecycle.transition(
                             order_id,
                             lifecycle.CANCELLED,
@@ -221,7 +221,7 @@ class OrderTimelineEngine:
                             },
                         )
 
-                        await self._process_auto_refund(updated, "Store did not accept in 5 min")
+                        await self._process_auto_refund(updated, "Store did not accept in 3 min")
                         expired_partner_orders.append(order_id)
 
                         # Broadcast cancellation event via Socket.IO
@@ -247,7 +247,7 @@ class OrderTimelineEngine:
                                 {
                                     "orderId": order_id,
                                     "orderCode": updated.get("code"),
-                                    "reason": "5-Minute Acceptance SLA Expired",
+                                    "reason": "3-Minute Acceptance SLA Expired",
                                 },
                                 room=f"partner:{partner_id}",
                             )

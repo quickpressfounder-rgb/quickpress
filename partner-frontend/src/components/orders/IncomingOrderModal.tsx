@@ -18,7 +18,7 @@ const REJECT_REASONS = [
   "Other issue",
 ];
 
-const PARTNER_SLA_SECONDS = 300; // 5 minutes SLA
+const PARTNER_SLA_SECONDS = 180; // 3 minutes SLA
 
 export function IncomingOrderModal({
   order,
@@ -57,9 +57,9 @@ export function IncomingOrderModal({
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          // Auto-reject on 5-minute window expiry
+          // Auto-reject on 3-minute window expiry
           stopOrderAlarm();
-          void onReject(order.id, "Auto-rejected: Store acceptance window expired (5 min SLA)");
+          void onReject(order.id, "Auto-rejected: Store acceptance window expired (3 min SLA)");
           onDismiss();
           return 0;
         }
@@ -127,7 +127,7 @@ export function IncomingOrderModal({
                   <Clock className="size-3.5" /> {formattedCountdown} left
                 </span>
                 <span className="text-[10px] font-semibold text-emerald-100 mt-0.5">
-                  5 Min Store SLA
+                  3 Min Store SLA
                 </span>
               </div>
 
@@ -150,7 +150,7 @@ export function IncomingOrderModal({
           <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/20">
             <div
               className={`h-full transition-all duration-1000 ${
-                countdown < 60 ? "bg-red-500" : countdown < 120 ? "bg-amber-400" : "bg-emerald-400"
+                countdown < 45 ? "bg-red-500" : countdown < 90 ? "bg-amber-400" : "bg-emerald-400"
               }`}
               style={{ width: `${progressPercent}%` }}
             />

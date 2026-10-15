@@ -1,8 +1,8 @@
 """
 Automated Integration Test for Order Timeline & SLA Auto-Cancellation Engine
 Tests:
-1. Partner Acceptance 5-min SLA timeout -> auto-cancelled, refund processed, socket event sent
-2. Rider Search 3-min SLA timeout -> ride and order auto-cancelled, refund processed
+1. Partner Acceptance 3-min SLA timeout -> auto-cancelled, refund processed, socket event sent
+2. Rider Search 2-min SLA timeout -> ride and order auto-cancelled, refund processed
 3. Active order within SLA is untouched
 """
 import asyncio
@@ -21,7 +21,7 @@ async def run_tests():
     print("🚀 Initializing Database Connection...")
     now = datetime.now(timezone.utc)
 
-    print("\n--- TEST 1: Partner Acceptance SLA Timeout (5 min breached) ---")
+    print("\n--- TEST 1: Partner Acceptance SLA Timeout (3 min breached) ---")
     order1_id = "test_sla_partner_timeout_001"
     customer1_id = "test_cust_sla_001"
 
@@ -127,13 +127,13 @@ async def run_tests():
     assert doc1.get("status") == "cancelled", f"Expected cancelled, got {doc1.get('status')}"
     assert bool(doc1.get("slaBreached")) is True
     assert doc1.get("autoCancelled") is True
-    assert "5 minutes SLA" in doc1.get("cancellationReason", "")
+    assert "3 minutes SLA" in doc1.get("cancellationReason", "")
 
     # Check Wallet refund for Customer 1
     wallet1 = await database.find_one("customer_wallets", {"customerId": customer1_id})
     print(f"Customer 1 Wallet Balance: {wallet1.get('balance')} (Expected 550.0: 100 + 450 refund)")
     assert wallet1.get("balance") == 550.0, f"Expected 550.0, got {wallet1.get('balance')}"
-    print("✅ TEST 1 PASSED: 5-Minute Partner SLA Auto-Cancellation & Wallet Refund Successful!")
+    print("✅ TEST 1 PASSED: 3-Minute Partner SLA Auto-Cancellation & Wallet Refund Successful!")
 
     # VERIFY TEST 2
     doc2 = await database.find_one("customer_orders", {"_id": order2_id})
