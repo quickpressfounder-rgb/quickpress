@@ -49,7 +49,7 @@ import { toast } from "sonner";
 import { partnerRoutes } from "../../navigation/partner-routes";
 import { fetchDashboardSummary, getCachedDashboardSummary, setStoreOpen } from "../../api/partner/partner-dashboard-api";
 import { fetchEarnings } from "../../api/partner/partner-earnings-api";
-import { fetchPartnerProfile, getCachedPartnerProfile } from "../../api/partner/partner-profile-api";
+import { fetchPartnerProfile, getCachedPartnerProfile, getCleanPartnerName, isPhoneNumber } from "../../api/partner/partner-profile-api";
 import { usePartnerContext } from "../../context/PartnerContext";
 import { usePartnerOrders } from "../../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../../hooks/use-order-action-handler";
@@ -139,14 +139,33 @@ export function ZomatoHubView() {
   const { t, openLanguageModal } = useLanguage();
 
   const [activeFilterTab, setActiveFilterTab] = useState<PartnerOrderFilterTab>("active");
-  const [shopName, setShopName] = useState(() =>
-    session?.businessName || cachedProfile?.businessName || cachedProfile?.ownerName || "Merchant Store"
-  );
-  const [shopLogo, setShopLogo] = useState<string>(() =>
-    (session as any)?.storeImage || (session as any)?.logoUrl || (session as any)?.logo || cachedProfile?.logo || cachedProfile?.storeImage || ""
-  );
+  const [shopName, setShopName] = useState(() => {
+    const cached = getCachedPartnerProfile();
+    return getCleanPartnerName([
+      cached?.businessName,
+      cached?.ownerName,
+      cached?.name,
+      session?.businessName,
+      session?.ownerName,
+      (session as any)?.account?.ownerName,
+      (session as any)?.account?.name,
+    ], "QuickPress Partner");
+  });
+  const [shopLogo, setShopLogo] = useState<string>(() => {
+    const cached = getCachedPartnerProfile();
+    return (
+      cached?.logo ||
+      cached?.logoUrl ||
+      cached?.storeImage ||
+      cached?.image ||
+      (session as any)?.storeImage ||
+      (session as any)?.logoUrl ||
+      (session as any)?.logo ||
+      ""
+    );
+  });
   const [locationName, setLocationName] = useState(() =>
-    cachedProfile?.city || session?.city || "Local Hub"
+    cachedProfile?.city || session?.city || "Kasganj"
   );
   const [todayEarnings, setTodayEarnings] = useState(() => cachedSummary?.todayEarnings ?? 0);
   const [todayOrdersCount, setTodayOrdersCount] = useState(() =>
@@ -186,13 +205,19 @@ export function ZomatoHubView() {
   };
 
   useEffect(() => {
-    if (session?.businessName) {
-      setShopName(session.businessName);
+    const cleanSessionName = getCleanPartnerName([
+      session?.businessName,
+      session?.ownerName,
+      (session as any)?.account?.ownerName,
+      (session as any)?.account?.name,
+    ], "");
+    if (cleanSessionName) {
+      setShopName(cleanSessionName);
     }
     if (session?.city) {
       setLocationName(session.city);
     }
-  }, [session?.businessName, session?.city]);
+  }, [session?.businessName, session?.ownerName, session?.city]);
 
   useEffect(() => {
     let alive = true;
@@ -203,10 +228,23 @@ export function ZomatoHubView() {
     ]).then(([profile, summary, earnings]) => {
       if (!alive) return;
       if (profile) {
-        setShopName(profile.businessName || profile.ownerName || session?.businessName || "Merchant Store");
-        setLocationName(profile.city ? `${profile.city}` : (session?.city || "Local Hub"));
-        if (profile.storeImage || profile.logoUrl) {
-          setShopLogo(profile.storeImage || profile.logoUrl);
+        const freshRealName = getCleanPartnerName([
+          profile.businessName,
+          profile.ownerName,
+          profile.name,
+          profile.storeName,
+          session?.businessName,
+          session?.ownerName,
+        ], "");
+        if (freshRealName) {
+          setShopName(freshRealName);
+        }
+        if (profile.city) {
+          setLocationName(profile.city);
+        }
+        const foundLogo = profile.storeImage || profile.logoUrl || profile.logo || profile.image;
+        if (foundLogo) {
+          setShopLogo(foundLogo);
         }
       }
       if (summary) {
@@ -224,6 +262,26 @@ export function ZomatoHubView() {
       alive = false;
     };
   }, [session?.businessName, session?.city]);
+
+  // Real-time synchronization when partner profile is updated
+  useEffect(() => {
+    const handleProfileUpdate = (e: any) => {
+      const updated = e?.detail;
+      if (!updated) return;
+      const updatedName = getCleanPartnerName([
+        updated.businessName,
+        updated.ownerName,
+        updated.name,
+        updated.storeName,
+      ], "");
+      if (updatedName) setShopName(updatedName);
+      if (updated.city) setLocationName(updated.city);
+      const foundLogo = updated.logo || updated.logoUrl || updated.storeImage || updated.image;
+      if (foundLogo) setShopLogo(foundLogo);
+    };
+    window.addEventListener("qp:partner-profile-updated", handleProfileUpdate);
+    return () => window.removeEventListener("qp:partner-profile-updated", handleProfileUpdate);
+  }, []);
 
   // Instant real-time listener for incoming orders (<10ms UI sync)
   useEffect(() => {

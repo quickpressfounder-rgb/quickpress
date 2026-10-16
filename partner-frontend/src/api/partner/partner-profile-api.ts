@@ -37,6 +37,52 @@ function toPartnerNotification(item: RawNotification): PartnerNotification {
 let memoryProfileCache: PartnerProfile | null = null;
 let inFlightProfilePromise: Promise<PartnerProfile> | null = null;
 
+export function isPhoneNumber(val?: string | null): boolean {
+  if (!val) return false;
+  const trimmed = String(val).trim();
+  const digitsOnly = trimmed.replace(/\D/g, "");
+  return (/^[+\d\s\-()]+$/.test(trimmed) && digitsOnly.length >= 10) || trimmed.startsWith("+");
+}
+
+export function getCleanPartnerName(
+  candidates: (string | null | undefined)[],
+  fallback = "QuickPress Partner"
+): string {
+  // First pass: Find explicit store/owner name that is not a placeholder or phone number
+  for (const c of candidates) {
+    if (c && typeof c === "string") {
+      const trimmed = c.trim();
+      if (
+        trimmed &&
+        !isPhoneNumber(trimmed) &&
+        trimmed.toLowerCase() !== "null" &&
+        trimmed.toLowerCase() !== "undefined" &&
+        trimmed.toLowerCase() !== "merchant store" &&
+        trimmed.toLowerCase() !== "quickpress partner" &&
+        trimmed.toLowerCase() !== "quickpress store" &&
+        trimmed.toLowerCase() !== "partner"
+      ) {
+        return trimmed;
+      }
+    }
+  }
+  // Second pass: Any non-phone non-empty string
+  for (const c of candidates) {
+    if (c && typeof c === "string") {
+      const trimmed = c.trim();
+      if (
+        trimmed &&
+        !isPhoneNumber(trimmed) &&
+        trimmed.toLowerCase() !== "null" &&
+        trimmed.toLowerCase() !== "undefined"
+      ) {
+        return trimmed;
+      }
+    }
+  }
+  return fallback;
+}
+
 export function getCachedPartnerProfile(): PartnerProfile | null {
   if (memoryProfileCache) return memoryProfileCache;
   if (typeof window === "undefined") return null;

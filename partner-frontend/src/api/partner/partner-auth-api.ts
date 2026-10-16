@@ -15,7 +15,7 @@ import { delay } from "../core/partner-client";
 import { apiGetJson, apiPostJson } from "../core/transport";
 import { readSession, setRememberSession, writeSession } from "../core/session-store";
 import { startSessionAutoRefresh } from "../core/session-refresh";
-
+import { getCachedPartnerProfile, getCleanPartnerName } from "./partner-profile-api";
 
 const ROLE: AccountRole = "partner";
 
@@ -26,7 +26,9 @@ function toPartnerSession(session: AuthSession): PartnerSession {
     (session as any).kycStatus === "verified" ||
     (session.account as any)?.kycStatus === "verified" ||
     (session.account as any)?.status === "approved" ||
-    (session as any).status === "approved"
+    (session as any).status === "approved" ||
+    (session.account as any)?.status === "active" ||
+    session.status === "active"
   );
   const isOnboarded = Boolean(
     session.account?.isOnboarded === true ||
@@ -37,13 +39,33 @@ function toPartnerSession(session: AuthSession): PartnerSession {
     ? "active"
     : (isOnboarded ? ((session.account as any)?.status || (session as any).status || "pending_verification") : "not_registered");
 
+  const cached = getCachedPartnerProfile();
+  const rawAccountName = session.account?.name ?? "";
+  const resolvedName = getCleanPartnerName([
+    cached?.businessName,
+    cached?.ownerName,
+    cached?.name,
+    (session.account as any)?.ownerName,
+    (session as any)?.ownerName,
+    (session as any)?.businessName,
+    rawAccountName,
+  ], "QuickPress Partner");
+
+  const resolvedOwner = getCleanPartnerName([
+    cached?.ownerName,
+    (session.account as any)?.ownerName,
+    (session as any)?.ownerName,
+    cached?.businessName,
+    rawAccountName,
+  ], "Partner");
+
   return {
     partnerId: session.account?.linkedId ?? session.account?.id,
     phone: session.account?.phone ?? "",
     email: session.account?.email,
-    businessName: session.account?.name ?? "",
-    ownerName: (session.account as any)?.ownerName ?? session.account?.name ?? "",
-    city: (session.account as any)?.city ?? "",
+    businessName: resolvedName,
+    ownerName: resolvedOwner,
+    city: (session.account as any)?.city ?? cached?.city ?? "",
     isVerified,
     isOnboarded,
     status,
@@ -226,7 +248,15 @@ export async function checkPartnerVerificationStatus(): Promise<PartnerVerificat
       res?.status !== "not_registered"
     );
 
-    const bName = res?.businessName || currentSession?.account?.name || "";
+    const cached = getCachedPartnerProfile();
+    const bName = getCleanPartnerName([
+      res?.businessName,
+      res?.ownerName,
+      cached?.businessName,
+      cached?.ownerName,
+      cached?.name,
+      currentSession?.account?.name,
+    ], "QuickPress Partner");
     const pId = res?.partnerId || currentSession?.account?.linkedId || "";
     const activeStatus = isVerified ? "active" : (res?.status || (isOnboarded ? "pending_verification" : "not_registered"));
 
@@ -242,7 +272,7 @@ export async function checkPartnerVerificationStatus(): Promise<PartnerVerificat
           isVerified,
           isOnboarded,
           linkedId: pId || currentSession.account.linkedId,
-          name: bName || currentSession.account.name,
+          name: bName,
         },
       };
       writeSession(updatedSession, ROLE);

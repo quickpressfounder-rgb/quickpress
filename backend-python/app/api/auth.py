@@ -69,8 +69,39 @@ async def _issue_session(user: User, is_new: bool = False) -> AuthSessionRespons
                 "finance", "wallet", "cities", "coupons", "memberships",
                 "analytics", "notifications", "support", "staff", "settings"
             ]
-            account.departmentRole = "Super Administrator"
-            account.scope = "All India Hubs"
+    # Attach Partner Real Identity & Store Name
+    if user.role == Role.partner:
+        try:
+            pid = user.linked_id
+            prof = None
+            if pid:
+                prof = await database.find_one("partner_profiles", {"$or": [{"_id": pid}, {"partnerId": pid}]})
+            if not prof and user.phone:
+                raw_p = user.phone.replace("+91", "").replace("+", "").strip()
+                prof = await database.find_one("partner_profiles", {
+                    "$or": [
+                        {"phone": user.phone},
+                        {"phone": raw_p},
+                        {"ownerPhone": user.phone},
+                        {"ownerPhone": raw_p},
+                    ]
+                })
+            if prof:
+                real_name = prof.get("businessName") or prof.get("ownerName") or prof.get("name")
+                if real_name:
+                    account.name = real_name
+                    if not user.display_name:
+                        await database.update(
+                            "users",
+                            {"_id": user.id},
+                            {"$set": {"display_name": real_name, "linked_id": str(prof.get("_id") or prof.get("partnerId"))}}
+                        )
+                if not account.linkedId:
+                    account.linkedId = str(prof.get("_id") or prof.get("partnerId") or "")
+                if prof.get("city") and not account.city:
+                    account.city = str(prof.get("city"))
+        except Exception:
+            pass
 
     return AuthSessionResponse(
         token=access_token,

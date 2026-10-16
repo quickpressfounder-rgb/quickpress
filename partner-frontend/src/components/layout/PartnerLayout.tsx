@@ -7,7 +7,7 @@ import { PartnerSidebar } from "./PartnerSidebar";
 import { PartnerDesktopTopBar } from "./PartnerDesktopTopBar";
 import { PartnerBottomNav } from "../PartnerBottomNav";
 import { partnerRoutes, type PartnerTabId } from "../../navigation/partner-routes";
-import { fetchPartnerProfile, getCachedPartnerProfile, toggleStoreStatus } from "../../api/partner/partner-profile-api";
+import { fetchPartnerProfile, getCachedPartnerProfile, getCleanPartnerName, toggleStoreStatus } from "../../api/partner/partner-profile-api";
 import { usePartnerContext } from "../../context/PartnerContext";
 
 export function PartnerLayout({
@@ -29,7 +29,19 @@ export function PartnerLayout({
 }) {
   const navigate = useNavigate();
   const { session, hydrating, isOnline, toggleOnline, signOut } = usePartnerContext();
-  const [shopName, setShopName] = useState<string>(() => session?.businessName || (session as any)?.name || "QuickPress Partner");
+  const [shopName, setShopName] = useState<string>(() => {
+    const cached = getCachedPartnerProfile();
+    return getCleanPartnerName([
+      cached?.businessName,
+      cached?.ownerName,
+      cached?.name,
+      session?.businessName,
+      session?.ownerName,
+      (session as any)?.account?.ownerName,
+      (session as any)?.account?.name,
+      (session as any)?.name,
+    ], "QuickPress Partner");
+  });
   const [shopLogo, setShopLogo] = useState<string>(() => {
     const cached = getCachedPartnerProfile();
     return (
@@ -52,12 +64,25 @@ export function PartnerLayout({
   }, [hydrating, session, navigate]);
 
   useEffect(() => {
+    const cleanSessionName = getCleanPartnerName([
+      session?.businessName,
+      session?.ownerName,
+      (session as any)?.account?.ownerName,
+      (session as any)?.account?.name,
+    ], "");
+    if (cleanSessionName) {
+      setShopName(cleanSessionName);
+    }
+  }, [session?.businessName, session?.ownerName]);
+
+  useEffect(() => {
     if (!session) return;
     let alive = true;
     fetchPartnerProfile()
       .then((p: any) => {
-        if (!alive) return;
-        setShopName(p.businessName || p.ownerName || "QuickPress Partner");
+        if (!alive || !p) return;
+        const real = getCleanPartnerName([p.businessName, p.ownerName, p.name, p.storeName], "");
+        if (real) setShopName(real);
         const found = p.logo || p.logoUrl || p.storeImage || p.image;
         if (found) {
           setShopLogo(found);
@@ -74,7 +99,13 @@ export function PartnerLayout({
     const handleProfileUpdate = (e: any) => {
       const updated = e.detail;
       if (!updated) return;
-      if (updated.businessName) setShopName(updated.businessName);
+      const updatedName = getCleanPartnerName([
+        updated.businessName,
+        updated.ownerName,
+        updated.name,
+        updated.storeName,
+      ], "");
+      if (updatedName) setShopName(updatedName);
       const found = updated.logo || updated.logoUrl || updated.storeImage || updated.image;
       if (found) setShopLogo(found);
     };
