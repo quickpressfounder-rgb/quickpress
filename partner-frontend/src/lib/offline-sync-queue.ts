@@ -104,6 +104,17 @@ class OfflineSyncQueue {
           this.saveQueue();
           this.notify();
         } catch (err: any) {
+          const status = err?.status || err?.statusCode || (err instanceof Response ? err.status : 0);
+          const is4xxClientError = (status >= 400 && status < 500) || err?.message?.includes("400") || err?.message?.includes("Bad Request");
+
+          if (is4xxClientError) {
+            console.warn("[OfflineSyncQueue] Discarding invalid 4xx client operation:", current.endpoint, err?.message || err);
+            this.queue.shift();
+            this.saveQueue();
+            this.notify();
+            continue;
+          }
+
           const isNetworkError =
             err?.code === "offline" ||
             err?.message?.includes("offline") ||
@@ -111,14 +122,15 @@ class OfflineSyncQueue {
             err?.message?.includes("NetworkError");
 
           if (isNetworkError) {
+            // Truly offline: stop processing queue until back online
             break;
           }
 
           current.retryCount += 1;
           current.lastAttemptAt = Date.now();
 
-          if (current.retryCount > 4) {
-            console.error("[OfflineSyncQueue] Discarding operation after 5 failed retries:", current);
+          if (current.retryCount > 2) {
+            console.warn("[OfflineSyncQueue] Discarding operation after max retries:", current.endpoint);
             this.queue.shift();
             this.saveQueue();
             this.notify();

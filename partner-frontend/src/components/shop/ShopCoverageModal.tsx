@@ -40,7 +40,7 @@ export function ShopCoverageModal({
   deliveryRadiusKm: initialDeliveryRadius,
   servicePincodes: initialPincodes = [],
   sectors: initialSectors = [],
-  city = "Kasganj",
+  city = "",
   onSave,
 }: ShopCoverageModalProps) {
   const [pickupRadius, setPickupRadius] = useState<number>(initialPickupRadius || 8);

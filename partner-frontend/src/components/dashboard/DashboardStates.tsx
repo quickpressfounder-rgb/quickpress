@@ -69,8 +69,8 @@ export function NoOrdersEmptyState() {
               <MapPin className="size-4 text-blue-600 shrink-0" />
               <span className="text-[11px] font-bold">Geofence Radius</span>
             </div>
-            <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">7.5 km Coverage</p>
-            <p className="text-[10px] text-slate-400">Kasganj Hub Active</p>
+            <p className="mt-1 text-xs font-black text-slate-900 dark:text-white">Hyper-Local Coverage</p>
+            <p className="text-[10px] text-slate-400">Store Hub Active</p>
           </div>
 
           <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 shadow-2xs">

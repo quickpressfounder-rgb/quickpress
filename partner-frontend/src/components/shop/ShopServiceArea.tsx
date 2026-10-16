@@ -14,14 +14,14 @@ export function ShopServiceArea({
     {
       icon: MapPin,
       label: "Registered Hub City",
-      value: area.city || "Kasganj",
+      value: area.city || "Operating City",
       desc: "Primary delivery hub and center",
       color: "bg-blue-50 text-blue-600",
     },
     {
       icon: Navigation,
       label: "Outlet Location / Area",
-      value: area.area || "Main Market",
+      value: area.area || "Store Outlet",
       desc: "Store physical address sector",
       color: "bg-emerald-50 text-emerald-600",
     },

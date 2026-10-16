@@ -140,13 +140,13 @@ export function ZomatoHubView() {
 
   const [activeFilterTab, setActiveFilterTab] = useState<PartnerOrderFilterTab>("active");
   const [shopName, setShopName] = useState(() =>
-    session?.businessName || cachedProfile?.businessName || cachedProfile?.ownerName || "QuickPress Laundry Store"
+    session?.businessName || cachedProfile?.businessName || cachedProfile?.ownerName || "Merchant Store"
   );
   const [shopLogo, setShopLogo] = useState<string>(() =>
     (session as any)?.storeImage || (session as any)?.logoUrl || (session as any)?.logo || cachedProfile?.logo || cachedProfile?.storeImage || ""
   );
   const [locationName, setLocationName] = useState(() =>
-    cachedProfile?.city || session?.city || "Kasganj"
+    cachedProfile?.city || session?.city || "Local Hub"
   );
   const [todayEarnings, setTodayEarnings] = useState(() => cachedSummary?.todayEarnings ?? 0);
   const [todayOrdersCount, setTodayOrdersCount] = useState(() =>
@@ -203,8 +203,8 @@ export function ZomatoHubView() {
     ]).then(([profile, summary, earnings]) => {
       if (!alive) return;
       if (profile) {
-        setShopName(profile.businessName || profile.ownerName || session?.businessName || "QuickPress Laundry Store");
-        setLocationName(profile.city ? `${profile.city}` : (session?.city || "Kasganj"));
+        setShopName(profile.businessName || profile.ownerName || session?.businessName || "Merchant Store");
+        setLocationName(profile.city ? `${profile.city}` : (session?.city || "Local Hub"));
         if (profile.storeImage || profile.logoUrl) {
           setShopLogo(profile.storeImage || profile.logoUrl);
         }

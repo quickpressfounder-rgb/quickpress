@@ -79,7 +79,7 @@ import { usePartnerContext } from "../context/PartnerContext";
 import { usePartnerServices } from "../context/PartnerServicesContext";
 import { usePartnerResource } from "../hooks/use-partner-resource";
 import { partnerRoutes } from "../navigation/partner-routes";
-import { fetchPartnerProfile, toggleStoreStatus, updatePartnerProfile } from "@/api/partner/partner-profile-api";
+import { fetchPartnerProfile, getCachedPartnerProfile, toggleStoreStatus, updatePartnerProfile } from "@/api/partner/partner-profile-api";
 import { useLanguage } from "../lib/i18n";
 import { compressImage } from "../lib/image-compression";
 import { formatPartnerId } from "../lib/format-ids";
@@ -283,11 +283,46 @@ export function PartnerProfileScreen() {
       .catch(() => undefined);
   }, []);
 
-  const storeName = profile?.businessName || profile?.name || profile?.ownerName || "Partner Store";
-  const city = profile?.city || "Kasganj";
-  const partnerId = formatPartnerId(profile?.partnerId || (profile as any)?.id);
-  const phone = normalizeDisplayPhone(profile?.phone || profile?.ownerPhone) || "";
-  const logoImg = profile?.logo || profile?.logoUrl || profile?.image;
+  const cachedProfile = getCachedPartnerProfile();
+  const effectiveProfile = profile || cachedProfile;
+
+  const storeName =
+    effectiveProfile?.businessName ||
+    effectiveProfile?.name ||
+    session?.businessName ||
+    effectiveProfile?.ownerName ||
+    session?.ownerName ||
+    "";
+  const city = effectiveProfile?.city || session?.city || "";
+  const partnerId = formatPartnerId(
+    effectiveProfile?.partnerId ||
+    (effectiveProfile as any)?.id ||
+    session?.partnerId ||
+    ""
+  );
+  const phone = normalizeDisplayPhone(
+    effectiveProfile?.phone ||
+    effectiveProfile?.ownerPhone ||
+    session?.phone ||
+    ""
+  );
+  const logoImg =
+    effectiveProfile?.logo ||
+    effectiveProfile?.logoUrl ||
+    effectiveProfile?.image ||
+    effectiveProfile?.storeImage ||
+    (session as any)?.storeImage ||
+    (session as any)?.logoUrl ||
+    (session as any)?.logo ||
+    "";
+
+  const kycStatusRaw = String(
+    effectiveProfile?.kycStatus ||
+    session?.kycStatus ||
+    (effectiveProfile?.isVerified || session?.isVerified ? "verified" : "pending")
+  ).toLowerCase();
+  const isKycVerified = kycStatusRaw === "verified" || kycStatusRaw === "active" || kycStatusRaw === "approved";
+  const isKycPending = kycStatusRaw === "pending" || kycStatusRaw === "under_review" || kycStatusRaw === "submitted";
   const [logoFailed, setLogoFailed] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -559,12 +594,14 @@ export function PartnerProfileScreen() {
                     {logoImg && !logoFailed ? (
                       <img
                         src={logoImg}
-                        alt={`${storeName} logo`}
+                        alt={`${storeName || "Store"} logo`}
                         onError={() => setLogoFailed(true)}
                         className="size-full object-cover"
                       />
-                    ) : (
+                    ) : storeName ? (
                       storeName.slice(0, 2).toUpperCase()
+                    ) : (
+                      <Store className="size-6 text-zinc-700" />
                     )}
                   </button>
 
@@ -584,8 +621,14 @@ export function PartnerProfileScreen() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <h2 className="truncate text-base font-black text-zinc-900">{storeName}</h2>
-                    <BadgeCheck className="size-4 text-blue-500 fill-current shrink-0" />
+                    <h2 className="truncate text-base font-black text-zinc-900">
+                      {storeName || (
+                        <span className="inline-block h-5 w-32 rounded bg-zinc-200 animate-pulse" />
+                      )}
+                    </h2>
+                    {isKycVerified ? (
+                      <BadgeCheck className="size-4 text-blue-500 fill-current shrink-0" />
+                    ) : null}
                   </div>
                   {phone ? <p className="text-xs font-semibold text-zinc-500">{phone}</p> : null}
                   <div className="mt-1 flex items-center gap-2">
@@ -596,7 +639,9 @@ export function PartnerProfileScreen() {
                     ) : null}
                     <span className="flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">
                       <Star className="size-2.5 fill-current text-amber-500" />
-                      {profile?.rating !== undefined ? Number(profile.rating).toFixed(1) : "5.0"}
+                      {effectiveProfile?.rating !== undefined && Number(effectiveProfile.rating) > 0
+                        ? Number(effectiveProfile.rating).toFixed(1)
+                        : "New"}
                     </span>
                   </div>
                 </div>
@@ -615,15 +660,21 @@ export function PartnerProfileScreen() {
             <div className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-100 pt-3 text-center">
               <div className="rounded-2xl bg-zinc-50 p-2.5">
                 <p className="text-[10px] font-bold uppercase text-zinc-400">Total Orders</p>
-                <p className="text-sm font-black text-zinc-900">{profile?.totalOrders ?? 0}</p>
+                <p className="text-sm font-black text-zinc-900">{effectiveProfile?.totalOrders ?? 0}</p>
               </div>
               <div className="rounded-2xl bg-zinc-50 p-2.5">
                 <p className="text-[10px] font-bold uppercase text-zinc-400">City Outlet</p>
-                <p className="text-sm font-black text-zinc-900 truncate">{city}</p>
+                <p className="text-sm font-black text-zinc-900 truncate">{city || session?.city || "—"}</p>
               </div>
               <div className="rounded-2xl bg-zinc-50 p-2.5">
                 <p className="text-[10px] font-bold uppercase text-zinc-400">KYC Status</p>
-                <p className="text-xs font-black text-emerald-600">VERIFIED ✓</p>
+                {isKycVerified ? (
+                  <p className="text-xs font-black text-emerald-600">VERIFIED ✓</p>
+                ) : isKycPending ? (
+                  <p className="text-xs font-black text-amber-600">PENDING ⏳</p>
+                ) : (
+                  <p className="text-xs font-black text-rose-600">ACTION REQ ⚠️</p>
+                )}
               </div>
             </div>
           </div>
@@ -2094,12 +2145,14 @@ export function PartnerProfileScreen() {
                       </button>
                     </div>
                     <p className="font-mono text-base font-black tracking-wider text-foreground">
-                      {showAadhaarNumber
-                        ? (profile?.aadhaar || "9812 4987 1234")
-                        : (profile?.aadhaar ? `•••• •••• ${String(profile.aadhaar).slice(-4)}` : "•••• •••• 1234")}
+                      {effectiveProfile?.aadhaar
+                        ? (showAadhaarNumber
+                            ? effectiveProfile.aadhaar
+                            : `•••• •••• ${String(effectiveProfile.aadhaar).slice(-4)}`)
+                        : "Not Uploaded"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      Authorized Signatory: <span className="font-bold text-foreground">{profile?.ownerName || "Rajesh Sharma"}</span>
+                      Authorized Signatory: <span className="font-bold text-foreground">{effectiveProfile?.ownerName || session?.ownerName || storeName || "Registered Partner"}</span>
                     </p>
                   </div>
 
@@ -2110,8 +2163,8 @@ export function PartnerProfileScreen() {
                         setShowDocPreview({
                           isOpen: true,
                           title: "Aadhaar Card (Front)",
-                          imageUrl: profile?.aadhaarFront || "",
-                          subtitle: `UIDAI Verified · ${profile?.ownerName || "Rajesh Sharma"}`,
+                          imageUrl: effectiveProfile?.aadhaarFront || "",
+                          subtitle: `UIDAI Verified · ${effectiveProfile?.ownerName || session?.ownerName || storeName}`,
                         })
                       }
                       className="flex-1 rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
@@ -2124,8 +2177,8 @@ export function PartnerProfileScreen() {
                         setShowDocPreview({
                           isOpen: true,
                           title: "Aadhaar Card (Back)",
-                          imageUrl: profile?.aadhaarBack || "",
-                          subtitle: `Address Verification · ${profile?.city || "Kasganj"}`,
+                          imageUrl: effectiveProfile?.aadhaarBack || "",
+                          subtitle: `Address Verification · ${city || session?.city || "Registered City"}`,
                         })
                       }
                       className="flex-1 rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
@@ -2161,7 +2214,7 @@ export function PartnerProfileScreen() {
                       </span>
                     </div>
                     <p className="font-mono text-base font-black tracking-widest text-foreground">
-                      {profile?.pan || "ABCDE1234F"}
+                      {effectiveProfile?.pan || "Not Provided"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       Entity: <span className="font-bold text-foreground">Authorized Partner</span> · TDS Rate: 1%
@@ -2175,8 +2228,8 @@ export function PartnerProfileScreen() {
                         setShowDocPreview({
                           isOpen: true,
                           title: "PAN Card Document",
-                          imageUrl: profile?.panCard || "",
-                          subtitle: `Permanent Account Number: ${profile?.pan || "ABCDE1234F"}`,
+                          imageUrl: effectiveProfile?.panCard || "",
+                          subtitle: `Permanent Account Number: ${effectiveProfile?.pan || "N/A"}`,
                         })
                       }
                       className="w-full rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
@@ -2206,18 +2259,20 @@ export function PartnerProfileScreen() {
 
                   <div className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-foreground">{profile?.bankName || "HDFC Bank"}</span>
-                      <span className="font-mono text-xs font-bold text-muted-foreground">
-                        IFSC: {profile?.ifsc || "HDFC0002733"}
-                      </span>
+                      <span className="text-xs font-black text-foreground">{effectiveProfile?.bankName || "Bank Account"}</span>
+                      {effectiveProfile?.ifsc ? (
+                        <span className="font-mono text-xs font-bold text-muted-foreground">
+                          IFSC: {effectiveProfile.ifsc}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="font-mono text-base font-black tracking-wider text-foreground">
-                      {profile?.accountNumber
-                        ? `•••• •••• ${String(profile.accountNumber).slice(-4)}`
-                        : "•••• •••• 4422"}
+                      {effectiveProfile?.accountNumber
+                        ? `•••• •••• ${String(effectiveProfile.accountNumber).slice(-4)}`
+                        : "A/C Linked"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {t("profile.accountHolder", "Beneficiary")}: <span className="font-bold text-foreground">{profile?.accountHolder || storeName}</span>
+                      {t("profile.accountHolder", "Beneficiary")}: <span className="font-bold text-foreground">{effectiveProfile?.accountHolder || storeName}</span>
                     </p>
                   </div>
 
@@ -2228,8 +2283,8 @@ export function PartnerProfileScreen() {
                         setShowDocPreview({
                           isOpen: true,
                           title: t("profile.cancelledCheque", "Cancelled Cheque / Passbook Proof"),
-                          imageUrl: profile?.chequePhoto || "",
-                          subtitle: `${profile?.bankName || "HDFC Bank"} · A/C: ${profile?.accountNumber || "50200088194422"}`,
+                          imageUrl: effectiveProfile?.chequePhoto || "",
+                          subtitle: `${effectiveProfile?.bankName || "Bank Proof"} · A/C: ${effectiveProfile?.accountNumber || "Linked"}`,
                         })
                       }
                       className="flex-1 rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"
@@ -2267,16 +2322,16 @@ export function PartnerProfileScreen() {
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-muted-foreground">GSTIN Number</span>
                       <span className="text-[10px] font-bold text-muted-foreground">
-                        {profile?.gstin ? "Registered" : "Composition / Exemption"}
+                        {effectiveProfile?.gstin ? "Registered" : "Composition / Exemption"}
                       </span>
                     </div>
                     <p className="font-mono text-sm font-black text-foreground">
-                      {profile?.gstin || "Unregistered (Below ₹40L Limit)"}
+                      {effectiveProfile?.gstin || "Unregistered (Below ₹40L Limit)"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       Registered Address:{" "}
                       <span className="font-semibold text-foreground">
-                        {profile?.address || "Shop No. 12, Station Road, Kasganj"} ({profile?.pincode || "207123"})
+                        {effectiveProfile?.address || "Store Address"} {effectiveProfile?.pincode ? `(${effectiveProfile.pincode})` : ""}
                       </span>
                     </p>
                   </div>
@@ -2288,8 +2343,8 @@ export function PartnerProfileScreen() {
                         setShowDocPreview({
                           isOpen: true,
                           title: "Master Partnership SLA Agreement",
-                          imageUrl: profile?.signatureUrl || "",
-                          subtitle: `Version: ${profile?.agreementVersion || "QP-SLA-2026.4"} · E-Signed by ${profile?.signedByName || profile?.ownerName || "Rajesh Sharma"}`,
+                          imageUrl: effectiveProfile?.signatureUrl || "",
+                          subtitle: `Version: ${effectiveProfile?.agreementVersion || "QP-SLA-v4"} · E-Signed by ${effectiveProfile?.signedByName || effectiveProfile?.ownerName || storeName}`,
                         })
                       }
                       className="w-full rounded-xl border border-border/80 bg-card py-2 text-center text-xs font-bold text-foreground hover:bg-muted/40 transition-all cursor-pointer"

@@ -494,23 +494,23 @@ export function PartnerDashboardScreen() {
                       </button>
 
                       <span className="rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 px-3 py-1 text-[11px] font-black tracking-wide">
-                        Kasganj Central Hub
+                        {session?.city ? `${session.city} Operations Hub` : "Store Operations Hub"}
                       </span>
 
                       <span className="text-slate-400 text-xs font-mono font-medium">
-                        ID: #PRT-{(session as any)?.account?.linkedId || (session as any)?.account?.id || (session as any)?.id || "10826"}
+                        ID: #PRT-{(session as any)?.partnerId || (session as any)?.account?.linkedId || (session as any)?.account?.id || (session as any)?.id || ""}
                       </span>
                     </div>
 
                     <div>
                       <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
-                        <span>{shop?.shopName || session?.businessName || "QuickPress Partner Store"}</span>
+                        <span>{shop?.shopName || session?.businessName || session?.ownerName || "Merchant Store"}</span>
                         <span className="text-emerald-400 text-xs font-black bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
                           <ShieldCheck className="size-3.5" /> Verified Partner
                         </span>
                       </h2>
                       <p className="mt-1 text-xs text-slate-300 font-medium max-w-xl leading-relaxed">
-                        Commercial Laundry & Garment Care Operations Console · 7.5 km Hyper-Local Coverage Active
+                        Commercial Laundry & Garment Care Operations Console · Hyper-Local Delivery Coverage Active
                       </p>
                     </div>
 

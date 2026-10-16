@@ -93,6 +93,8 @@ export async function logout(): Promise<void> {
   return logoutSession(ROLE);
 }
 
+import { setCachedPartnerProfile } from "./partner-profile-api";
+
 export async function registerBusiness(
   payload: BusinessRegistrationPayload,
 ): Promise<PartnerSession> {
@@ -110,9 +112,38 @@ export async function registerBusiness(
     phone: res.phone || currentSession?.account?.phone || payload.phone || "",
     email: currentSession?.account?.email || payload.email,
     businessName: res.businessName || payload.businessName,
+    ownerName: payload.ownerName,
+    city: payload.city,
     isVerified: res.isVerified,
     isOnboarded: true,
   };
+
+  try {
+    setCachedPartnerProfile({
+      partnerId: res.partnerId,
+      businessName: res.businessName || payload.businessName,
+      ownerName: payload.ownerName,
+      phone: res.phone || payload.phone || "",
+      email: payload.email || "",
+      city: payload.city,
+      area: payload.area,
+      address: payload.address,
+      pincode: payload.pincode,
+      logo: payload.logo,
+      logoUrl: payload.logo,
+      image: payload.logo,
+      storeImage: payload.logo,
+      banner: payload.banner,
+      bannerUrl: payload.banner,
+      rating: 5.0,
+      totalOrders: 0,
+      isVerified: res.isVerified,
+      status: "active",
+      isOnboarded: true,
+      category: payload.category,
+      gallery: payload.gallery || [],
+    } as any);
+  } catch {}
 
   if (currentSession && currentSession.account) {
     writeSession(
@@ -122,6 +153,8 @@ export async function registerBusiness(
           ...currentSession.account,
           linkedId: res.partnerId,
           name: res.businessName || payload.businessName,
+          ownerName: payload.ownerName,
+          city: payload.city,
           isVerified: res.isVerified,
           isOnboarded: true,
         },

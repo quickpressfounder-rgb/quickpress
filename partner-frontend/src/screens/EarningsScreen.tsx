@@ -246,13 +246,13 @@ export function EarningsScreen() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <h1 className="truncate text-base font-black tracking-tight text-black">
-                  {profile?.businessName || profile?.ownerName || "QuickPress Laundry Store"}
+                  {profile?.businessName || profile?.ownerName || "Merchant Store"}
                 </h1>
                 <ChevronDown className="size-4 text-zinc-500 shrink-0" />
               </div>
               <p className="mt-0.5 truncate text-[11px] font-semibold text-zinc-500">
                 ID: {formatPartnerId(profile?.partnerId)} •{" "}
-                {profile?.city ? `${profile.city} Locality, ${profile.city}` : "Kasganj Locality, Kasganj"}
+                {profile?.city ? `${profile.city} Operations Hub` : "Local Service Hub"}
               </p>
             </div>
 

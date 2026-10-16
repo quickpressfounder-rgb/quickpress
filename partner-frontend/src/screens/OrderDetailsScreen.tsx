@@ -642,7 +642,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                         </span>
                       </div>
                       <p className="text-xs font-bold text-zinc-900 leading-snug mt-0.5">
-                        {order.pickupAddress || order.address || "Customer Doorstep (Kasganj, Uttar Pradesh)"}
+                        {order.pickupAddress || order.address || "Customer Doorstep Address"}
                       </p>
                       {order.pickupTime ? (
                         <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
@@ -1164,7 +1164,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       </span>
                     </div>
                     <p className="mt-1 text-sm font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
-                      {order.pickupAddress || order.address || "Customer Doorstep (Kasganj, Uttar Pradesh)"}
+                      {order.pickupAddress || order.address || "Customer Doorstep Address"}
                     </p>
                     {order.pickupTime ? (
                       <p className="mt-1.5 text-xs font-semibold text-muted-foreground">

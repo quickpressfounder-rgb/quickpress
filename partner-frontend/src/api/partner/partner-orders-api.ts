@@ -67,7 +67,11 @@ export async function acceptPartnerOrder(orderId: string): Promise<PartnerOrder>
     const res = await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/accept`);
     return res;
   } catch (err: any) {
-    offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/accept`, undefined, `Accept order ${orderId}`);
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    const isNetworkErr = err?.code === "offline" || err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError");
+    if (isOffline || isNetworkErr) {
+      offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/accept`, undefined, `Accept order ${orderId}`);
+    }
     const cached = readCachedOrders().find((o) => o.id === orderId || (o as any).orderId === orderId);
     if (cached) {
       return { ...cached, status: "accepted" as any };
@@ -81,7 +85,11 @@ export async function rejectPartnerOrder(orderId: string, reason = ""): Promise<
   try {
     return await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/reject`, { reason });
   } catch (err: any) {
-    offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/reject`, { reason }, `Reject order ${orderId}`);
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    const isNetworkErr = err?.code === "offline" || err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError");
+    if (isOffline || isNetworkErr) {
+      offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/reject`, { reason }, `Reject order ${orderId}`);
+    }
     return { id: orderId, status: "cancelled" } as any;
   }
 }
@@ -91,7 +99,11 @@ export async function startProcessingOrder(orderId: string): Promise<PartnerOrde
   try {
     return await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/start-processing`);
   } catch (err: any) {
-    offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/start-processing`, undefined, `Process order ${orderId}`);
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    const isNetworkErr = err?.code === "offline" || err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError");
+    if (isOffline || isNetworkErr) {
+      offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/start-processing`, undefined, `Process order ${orderId}`);
+    }
     return { id: orderId, status: "processing" } as any;
   }
 }
@@ -101,7 +113,11 @@ export async function markReadyOrder(orderId: string): Promise<PartnerOrder> {
   try {
     return await apiPostJson<PartnerOrder>(`/api/partner/orders/${orderId}/ready`);
   } catch (err: any) {
-    offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/ready`, undefined, `Ready order ${orderId}`);
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    const isNetworkErr = err?.code === "offline" || err?.message?.includes("Failed to fetch") || err?.message?.includes("NetworkError");
+    if (isOffline || isNetworkErr) {
+      offlineSyncQueue.enqueue(`/api/partner/orders/${orderId}/ready`, undefined, `Ready order ${orderId}`);
+    }
     return { id: orderId, status: "ready" } as any;
   }
 }

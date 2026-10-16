@@ -156,17 +156,25 @@ class PartnerRepository:
     async def profile(self, partner_id: str) -> Dict[str, Any]:
         doc = await database.find_one(PROFILES, {"_id": partner_id}) or await database.find_one(PROFILES, {"partnerId": partner_id})
         if doc is None:
-            # Check admin_partners for any real onboarded details
-            admin_doc = await database.find_one("admin_partners", {"_id": partner_id}) or await database.find_one("admin_partners", {"partnerId": partner_id}) or {}
+            # Check admin_partners, partners, or partner_verifications for any real onboarded details
+            admin_doc = (
+                await database.find_one("admin_partners", {"_id": partner_id})
+                or await database.find_one("admin_partners", {"partnerId": partner_id})
+                or await database.find_one("partners", {"_id": partner_id})
+                or await database.find_one("partners", {"partner_id": partner_id})
+                or await database.find_one("partners", {"partnerId": partner_id})
+                or await database.find_one("partner_verifications", {"partnerId": partner_id})
+                or {}
+            )
             doc = {
                 "_id": partner_id,
                 "partnerId": partner_id,
-                "businessName": admin_doc.get("businessName") or admin_doc.get("storeName") or "QuickPress Partner Store",
+                "businessName": admin_doc.get("businessName") or admin_doc.get("storeName") or admin_doc.get("name") or "Merchant Partner Store",
                 "ownerName": admin_doc.get("ownerName") or "Partner",
                 "phone": admin_doc.get("phone") or "",
                 "email": admin_doc.get("email") or "",
-                "city": admin_doc.get("city") or "Kasganj",
-                "area": admin_doc.get("area") or "Main Market",
+                "city": admin_doc.get("city") or "",
+                "area": admin_doc.get("area") or admin_doc.get("address") or "",
                 "rating": float(admin_doc.get("rating") or 5.0),
                 "totalOrders": 0,
                 "joinedOn": datetime.now(timezone.utc).strftime("%B %Y"),

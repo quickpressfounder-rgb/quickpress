@@ -84,8 +84,8 @@ const EMPTY_HOURS: BusinessHours = {
 };
 
 const EMPTY_AREA: ServiceArea = {
-  city: "Kasganj",
-  area: "Main Market",
+  city: "",
+  area: "",
   pickupRadiusKm: 8,
   deliveryRadiusKm: 8,
 };
@@ -103,7 +103,7 @@ function toShopProfile(profile: PartnerProfile): ShopProfile {
   const banner = profile.banner || profile.bannerUrl || profile.cover;
   return {
     shopId: profile.partnerId,
-    name: profile.businessName || "QuickPress Laundry Store",
+    name: profile.businessName || profile.ownerName || "Merchant Store",
     ownerName: profile.ownerName || "Partner",
     description: profile.description || "Professional doorstep laundry, steam ironing, and premium dry cleaning store with high hygiene standards.",
     category: profile.category || "Laundry & Dry Clean",
@@ -116,7 +116,7 @@ function toShopProfile(profile: PartnerProfile): ShopProfile {
     gstNumber: profile.gstin || "",
     address: profile.address || "",
     area: profile.area || "",
-    city: profile.city || "Kasganj",
+    city: profile.city || "",
     gallery: Array.isArray(profile.gallery) ? profile.gallery : [],
     logo: logo,
     logoUrl: logo,
@@ -195,8 +195,8 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      const effectiveCity = profileDoc?.city || "Kasganj";
-      const effectiveArea = profileDoc?.area || profileDoc?.address || "Main Market";
+      const effectiveCity = profileDoc?.city || "";
+      const effectiveArea = profileDoc?.area || profileDoc?.address || "";
       const effectiveRadius = settingsDoc?.pickupRadiusKm || 8;
       const effectiveDeliveryRadius = settingsDoc?.deliveryRadiusKm || effectiveRadius;
       const effectivePincodes = settingsDoc?.servicePincodes || (profileDoc?.pincode ? [profileDoc.pincode] : []);

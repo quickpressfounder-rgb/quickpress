@@ -135,7 +135,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                 </h1>
                 <p className="truncate text-[11px] font-semibold text-zinc-500">
                   {partnerIdDisplay ? `ID: ${partnerIdDisplay} • ` : ""}
-                  {data?.city ? `${data.city} Locality, ${data.city}` : "Kasganj Locality, Kasganj"}
+                  {data?.city ? `${data.city} Operations Hub` : "Store Operations Hub"}
                 </p>
               </div>
             </div>
