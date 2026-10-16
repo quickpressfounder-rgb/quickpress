@@ -90,6 +90,7 @@ import { TaxComplianceCenterView } from "../components/finance/TaxComplianceCent
 import { TreasuryCenterView } from "../components/finance/TreasuryCenterView";
 import { ApprovalCenterView } from "../components/finance/ApprovalCenterView";
 import { AiFinanceAssistantView } from "../components/finance/AiFinanceAssistantView";
+import { SettlementEngineControlHub } from "../components/finance/SettlementEngineControlHub";
 import {
   fetchFinancialRules,
   updateFinancialRules,
@@ -3656,76 +3657,7 @@ export function FinanceEnginePage() {
               TAB 4: SETTLEMENTS & PAYOUTS
              ========================================================================= */}
           <TabsContent value="settlements" className="mt-6 space-y-6">
-            <SectionCard title="Weekly Settlement Batches & Payouts">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-zinc-100 font-black text-zinc-700 uppercase">
-                    <tr>
-                      <th className="p-2.5">Batch Cycle ID</th>
-                      <th className="p-2.5">Period</th>
-                      <th className="p-2.5">Orders</th>
-                      <th className="p-2.5">Merchants (₹)</th>
-                      <th className="p-2.5">Captains (₹)</th>
-                      <th className="p-2.5">Status</th>
-                      <th className="p-2.5">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-200">
-                    {(settlementsQuery.data || []).map((batch) => (
-                      <tr key={batch._id} className="hover:bg-zinc-50">
-                        <td className="p-2.5 font-bold font-mono text-zinc-900">{batch.cycleId}</td>
-                        <td className="p-2.5 text-zinc-600">{batch.startDate} to {batch.endDate}</td>
-                        <td className="p-2.5 font-mono">{batch.totalOrders}</td>
-                        <td className="p-2.5 font-mono font-bold text-sky-700">₹{batch.totalPartnerPayable}</td>
-                        <td className="p-2.5 font-mono font-bold text-emerald-700">₹{batch.totalRiderPayable}</td>
-                        <td className="p-2.5">
-                          <StatusPill status={batch.status} />
-                        </td>
-                        <td className="p-2.5">
-                          <div className="flex items-center gap-1.5">
-                            {batch.status === "GENERATED" && (
-                              <Button
-                                size="xs"
-                                onClick={() => approveBatchMutation.mutate(batch._id)}
-                                className="bg-emerald-600 text-white font-bold"
-                              >
-                                Approve
-                              </Button>
-                            )}
-                            {batch.status === "APPROVED" && (
-                              <Button
-                                size="xs"
-                                onClick={() =>
-                                  payoutBatchMutation.mutate({
-                                    batchId: batch._id,
-                                    payoutRef: `BANK-SETTLE-${Date.now()}`,
-                                  })
-                                }
-                                className="bg-blue-600 text-white font-bold"
-                              >
-                                Disburse
-                              </Button>
-                            )}
-                            {batch.status === "PAID" && (
-                              <span className="text-[11px] text-zinc-500 font-mono">
-                                Ref: {batch.payoutReference || "Paid"}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {(settlementsQuery.data || []).length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="p-8 text-center text-zinc-400">
-                          No settlement batches yet. Click &quot;Run Weekly Settlement&quot; to generate.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </SectionCard>
+            <SettlementEngineControlHub />
           </TabsContent>
 
           {/* =========================================================================

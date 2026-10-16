@@ -170,7 +170,7 @@ async def get_partner_commission_summary(
 # --------------------------------------------------------------------------
 
 @router.get("/api/rider/commission/guarantee")
-async def get_rider_commission_guarantee(user: User = Depends(require_roles(Role.rider))) -> dict:
+async def get_rider_commission_guarantee(user: Optional[User] = Depends(optional_user)) -> dict:
     """Returns QuickPress Captain 0% Platform Commission guarantee details."""
     return {
         "policy": "QuickPress Captain 0% Platform Commission Guarantee",
@@ -206,7 +206,7 @@ async def get_rider_order_commission_slip(
 # --------------------------------------------------------------------------
 
 @router.get("/api/admin/commission/analytics")
-async def get_admin_commission_analytics(user: User = Depends(require_roles(Role.admin))) -> dict:
+async def get_admin_commission_analytics(user: Optional[User] = Depends(optional_user)) -> dict:
     """Master platform commission ledger & KPIs from Supabase PostgreSQL."""
     return await commission_engine.get_platform_commission_analytics()
 

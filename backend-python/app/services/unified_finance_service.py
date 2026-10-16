@@ -191,9 +191,15 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "partnerCommissionType": "percentage",
         "platformCommissionPercent": 18.0,
         "standardRate": 0.18,
+        "silverRate": 0.15,
+        "goldRate": 0.12,
+        "silverThreshold": 100,
+        "goldThreshold": 300,
         "fixedAmountPerOrder": 0.0,
         "captainCommissionRate": 0.0,
         "riderCommissionRate": 0.0,
+        "riderFixedFeePerTrip": 0.0,
+        "partnerOverrides": {},
     },
 
     # 5. RIDER PAYOUT & EARNINGS ENGINE
@@ -1294,8 +1300,11 @@ class UnifiedFinanceService:
         self,
         cycle_start_str: Optional[str] = None,
         cycle_end_str: Optional[str] = None,
+        partner_id: Optional[str] = None,
+        rider_id: Optional[str] = None,
+        cycle_type: str = "WEEKLY",
     ) -> Dict[str, Any]:
-        """Generates settlement batches for Laundry Partners and Delivery Captains."""
+        """Generates settlement batches for Laundry Partners and Delivery Captains with live database enrichment."""
         now = datetime.now(timezone.utc)
         if not cycle_start_str or not cycle_end_str:
             start_dt = now - timedelta(days=now.weekday() + 7)  # Previous Monday
@@ -1306,7 +1315,8 @@ class UnifiedFinanceService:
             c_start = cycle_start_str
             c_end = cycle_end_str
 
-        cycle_id = f"CYCLE-{c_start.replace('-', '')}-{c_end.replace('-', '')}"
+        cycle_suffix = f"-{partner_id[:6]}" if partner_id else (f"-{rider_id[:6]}" if rider_id else "")
+        cycle_id = f"CYCLE-{c_start.replace('-', '')}-{c_end.replace('-', '')}{cycle_suffix}"
 
         # Fetch eligible orders completed in cycle
         all_fin = await database.find_many("order_financials", {})
@@ -1314,6 +1324,17 @@ class UnifiedFinanceService:
             f for f in all_fin
             if str(f.get("createdAt", ""))[:10] >= c_start and str(f.get("createdAt", ""))[:10] <= c_end
         ]
+
+        if partner_id:
+            cycle_orders = [f for f in cycle_orders if str(f.get("partnerId") or "") == str(partner_id)]
+        if rider_id:
+            cycle_orders = [f for f in cycle_orders if str(f.get("riderId") or "") == str(rider_id)]
+
+        # Fetch partner and rider profiles for enrichment
+        partner_profiles_raw = await database.find_many("partner_profiles", {})
+        partner_map = {str(p.get("partnerId") or p.get("id") or p.get("_id")): p for p in partner_profiles_raw}
+        rider_profiles_raw = await database.find_many("rider_profiles", {})
+        rider_map = {str(r.get("riderId") or r.get("id") or r.get("_id")): r for r in rider_profiles_raw}
 
         # Group by Laundry Partner
         partner_settlements: Dict[str, Dict[str, Any]] = {}
@@ -1324,44 +1345,79 @@ class UnifiedFinanceService:
             r_id = o.get("riderId")
 
             if p_id:
+                p_prof = partner_map.get(str(p_id), {})
+                p_bank = p_prof.get("bankDetails") or p_prof.get("bank") or {}
                 if p_id not in partner_settlements:
                     partner_settlements[p_id] = {
                         "partnerId": p_id,
+                        "partnerName": p_prof.get("businessName") or p_prof.get("storeName") or o.get("partnerName") or "Partner Store",
+                        "phone": p_prof.get("phone") or "",
+                        "bankAccount": p_bank.get("accountNumber") or p_bank.get("account_number") or "",
+                        "bankIfsc": p_bank.get("ifscCode") or p_bank.get("ifsc") or "",
                         "orderCount": 0,
                         "grossServiceAmount": 0.0,
                         "totalCommission": 0.0,
+                        "gstOnCommission": 0.0,
                         "totalTcs": 0.0,
                         "penalties": 0.0,
+                        "suppliesSpend": 0.0,
                         "incentives": 0.0,
                         "netSettlement": 0.0,
                     }
                 partner_settlements[p_id]["orderCount"] += 1
-                partner_settlements[p_id]["grossServiceAmount"] += float(o.get("laundryServiceAmount", 0.0))
-                partner_settlements[p_id]["totalCommission"] += float(o.get("quickpressCommission", 0.0))
-                partner_settlements[p_id]["totalTcs"] += float(o.get("tcsAmount", 0.0))
-                partner_settlements[p_id]["netSettlement"] += float(o.get("partnerSettlement", 0.0))
+                gross = float(o.get("laundryServiceAmount", 0.0))
+                comm = float(o.get("quickpressCommission", 0.0))
+                gst_comm = round(comm * 0.18, 2)
+                tcs = float(o.get("tcsAmount", 0.0))
+                net = float(o.get("partnerSettlement", 0.0))
+
+                partner_settlements[p_id]["grossServiceAmount"] += gross
+                partner_settlements[p_id]["totalCommission"] += comm
+                partner_settlements[p_id]["gstOnCommission"] += gst_comm
+                partner_settlements[p_id]["totalTcs"] += tcs
+                partner_settlements[p_id]["netSettlement"] += net
 
             if r_id:
+                r_prof = rider_map.get(str(r_id), {})
+                r_bank = r_prof.get("bankDetails") or r_prof.get("bank") or {}
                 if r_id not in rider_settlements:
                     rider_settlements[r_id] = {
                         "riderId": r_id,
+                        "riderName": r_prof.get("fullName") or r_prof.get("name") or o.get("riderName") or "QuickPress Captain",
+                        "phone": r_prof.get("phone") or "",
+                        "bankAccount": r_bank.get("accountNumber") or r_bank.get("account_number") or "",
+                        "upiId": r_prof.get("upiId") or r_bank.get("upiId") or "",
                         "deliveryCount": 0,
                         "deliveryFares": 0.0,
                         "incentives": 0.0,
                         "penalties": 0.0,
+                        "riderPlatformFee": 0.0,
                         "netSettlement": 0.0,
                     }
                 rider_settlements[r_id]["deliveryCount"] += 1
-                rider_settlements[r_id]["deliveryFares"] += float(o.get("deliverySettlement", 0.0))
-                rider_settlements[r_id]["netSettlement"] += float(o.get("deliverySettlement", 0.0))
+                fare = float(o.get("deliverySettlement", 0.0))
+                rider_settlements[r_id]["deliveryFares"] += fare
+                rider_settlements[r_id]["netSettlement"] += fare
 
-        # Convert to records
+        # Round totals cleanly
+        for p in partner_settlements.values():
+            p["grossServiceAmount"] = round(p["grossServiceAmount"], 2)
+            p["totalCommission"] = round(p["totalCommission"], 2)
+            p["gstOnCommission"] = round(p["gstOnCommission"], 2)
+            p["totalTcs"] = round(p["totalTcs"], 2)
+            p["netSettlement"] = round(p["netSettlement"], 2)
+
+        for r in rider_settlements.values():
+            r["deliveryFares"] = round(r["deliveryFares"], 2)
+            r["netSettlement"] = round(r["netSettlement"], 2)
+
         p_list = list(partner_settlements.values())
         r_list = list(rider_settlements.values())
 
         batch_doc = {
             "_id": cycle_id,
             "cycleId": cycle_id,
+            "cycleType": cycle_type,
             "startDate": c_start,
             "endDate": c_end,
             "totalOrders": len(cycle_orders),
@@ -1383,6 +1439,190 @@ class UnifiedFinanceService:
         )
 
         return batch_doc
+
+    async def get_partner_commissions_list(self) -> List[Dict[str, Any]]:
+        """Returns all registered partners with their live order counts, commission tiers, and custom overrides."""
+        from app.services.commission_engine import commission_engine
+        rules = await self.get_active_rules()
+        overrides = (rules.get("commission") or {}).get("partnerOverrides") or {}
+
+        partners = await database.find_many("partner_profiles", {})
+        if not partners:
+            partners = await database.find_many("users", {"role": "PARTNER"})
+
+        result = []
+        for p in partners:
+            p_id = str(p.get("partnerId") or p.get("id") or p.get("_id") or "")
+            if not p_id:
+                continue
+
+            monthly_orders = await commission_engine.get_partner_monthly_order_count(p_id)
+            tier_info = commission_engine.calculate_partner_tier(monthly_orders, rules=rules, partner_id=p_id)
+
+            override_entry = overrides.get(p_id)
+            has_override = override_entry is not None
+            custom_rate = None
+            custom_reason = None
+            if has_override:
+                if isinstance(override_entry, dict):
+                    custom_rate = float(override_entry.get("rate", 0.18))
+                    custom_reason = override_entry.get("reason", "Admin Override")
+                elif isinstance(override_entry, (int, float)):
+                    custom_rate = float(override_entry)
+                    custom_reason = "Admin Override"
+
+            bank_info = p.get("bankDetails") or p.get("bank") or {}
+
+            result.append({
+                "partnerId": p_id,
+                "businessName": p.get("businessName") or p.get("storeName") or p.get("name") or "Laundry Store",
+                "ownerName": p.get("ownerName") or p.get("fullName") or p.get("name") or "Store Owner",
+                "phone": p.get("phone") or p.get("mobileNumber") or "",
+                "city": p.get("city") or "Kasganj",
+                "monthlyOrders": monthly_orders,
+                "tier": tier_info["tier"],
+                "standardTierRatePct": tier_info["standardTierRate"] * 100,
+                "effectiveRatePct": tier_info["commissionRatePct"],
+                "isCustomOverride": has_override,
+                "customOverrideRatePct": round(custom_rate * 100, 1) if custom_rate is not None else None,
+                "customReason": custom_reason,
+                "bankAccount": bank_info.get("accountNumber") or bank_info.get("account_number") or "",
+                "bankIfsc": bank_info.get("ifscCode") or bank_info.get("ifsc") or "",
+                "isActive": bool(p.get("isActive", True)),
+            })
+
+        result.sort(key=lambda x: (x["isCustomOverride"], x["monthlyOrders"]), reverse=True)
+        return result
+
+    async def set_partner_custom_commission(
+        self, partner_id: str, custom_rate_pct: float, reason: str, admin_id: str
+    ) -> Dict[str, Any]:
+        """Configures or updates a partner-specific custom commission rate in financial_rules."""
+        rules = await self.get_active_rules()
+        comm = rules.setdefault("commission", {})
+        overrides = comm.setdefault("partnerOverrides", {})
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        overrides[str(partner_id)] = {
+            "rate": round(float(custom_rate_pct) / 100.0, 4),
+            "ratePct": round(float(custom_rate_pct), 2),
+            "reason": str(reason or "Admin Custom Override"),
+            "updatedAt": now_iso,
+            "adminId": str(admin_id),
+        }
+
+        await self.update_rules(
+            new_rules=rules,
+            admin_id=admin_id,
+            reason=f"Set custom commission for partner {partner_id} to {custom_rate_pct}% ({reason})",
+        )
+        return {
+            "ok": True,
+            "partnerId": partner_id,
+            "customRatePct": round(float(custom_rate_pct), 2),
+            "reason": reason,
+        }
+
+    async def remove_partner_custom_commission(
+        self, partner_id: str, admin_id: str
+    ) -> Dict[str, Any]:
+        """Removes a custom commission override for a partner, reverting to standard tier."""
+        rules = await self.get_active_rules()
+        comm = rules.setdefault("commission", {})
+        overrides = comm.setdefault("partnerOverrides", {})
+
+        if str(partner_id) in overrides:
+            del overrides[str(partner_id)]
+            await self.update_rules(
+                new_rules=rules,
+                admin_id=admin_id,
+                reason=f"Removed custom commission for partner {partner_id}, reverted to volume tier",
+            )
+
+        return {"ok": True, "partnerId": partner_id, "reverted": True}
+
+    async def disburse_settlement_batch(
+        self, batch_id: str, payout_reference: str, admin_id: str
+    ) -> Dict[str, Any]:
+        """Marks batch as PAID and posts balanced double-entry General Ledger transactions."""
+        from app.services.general_ledger_service import general_ledger_service
+
+        batch = await database.find_one("financial_settlement_batches", {"_id": batch_id})
+        if not batch:
+            batch = await database.find_one("financial_settlement_batches", {"cycleId": batch_id})
+        if not batch:
+            raise ValueError(f"Settlement batch '{batch_id}' not found")
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        await database.update_one(
+            "financial_settlement_batches",
+            {"_id": batch["_id"]},
+            {
+                "$set": {
+                    "status": "PAID",
+                    "payoutReference": payout_reference,
+                    "paidBy": admin_id,
+                    "paidAt": now_iso,
+                }
+            },
+        )
+
+        # Post General Ledger double-entry lines
+        partners = batch.get("partners") or []
+        riders = batch.get("riders") or []
+
+        for p in partners:
+            amt = float(p.get("netSettlement") or 0.0)
+            if amt > 0:
+                try:
+                    await general_ledger_service.post_partner_settlement_disbursed(
+                        settlement_id=str(batch["_id"]),
+                        partner_id=str(p.get("partnerId")),
+                        payout_amount=amt,
+                        bank_utr=payout_reference,
+                        approved_by=admin_id,
+                    )
+                except Exception as e:
+                    logger.warning("GL posting warning for partner %s: %s", p.get("partnerId"), e)
+
+        for r in riders:
+            amt = float(r.get("netSettlement") or 0.0)
+            if amt > 0:
+                try:
+                    await general_ledger_service.post_rider_settlement_disbursed(
+                        settlement_id=str(batch["_id"]),
+                        rider_id=str(r.get("riderId")),
+                        payout_amount=amt,
+                        bank_utr=payout_reference,
+                        approved_by=admin_id,
+                    )
+                except Exception as e:
+                    logger.warning("GL posting warning for rider %s: %s", r.get("riderId"), e)
+
+        return {"ok": True, "batchId": str(batch["_id"]), "status": "PAID", "payoutReference": payout_reference}
+
+    async def get_settlement_batch_statement(self, batch_id: str) -> Dict[str, Any]:
+        """Fetches full itemized financial statement for a settlement batch."""
+        batch = await database.find_one("financial_settlement_batches", {"_id": batch_id})
+        if not batch:
+            batch = await database.find_one("financial_settlement_batches", {"cycleId": batch_id})
+        if not batch:
+            raise ValueError(f"Settlement batch '{batch_id}' not found")
+
+        c_start = batch.get("startDate")
+        c_end = batch.get("endDate")
+        all_fin = await database.find_many("order_financials", {})
+        orders = [
+            f for f in all_fin
+            if str(f.get("createdAt", ""))[:10] >= c_start and str(f.get("createdAt", ""))[:10] <= c_end
+        ]
+
+        return {
+            "ok": True,
+            "batch": batch,
+            "orders": orders,
+            "totalOrders": len(orders),
+        }
 
     # ----------------------------------------------------------------------
     # 7. FINANCIAL REPORTING SUMMARY (P&L METRICS)

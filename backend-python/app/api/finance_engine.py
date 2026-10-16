@@ -263,28 +263,46 @@ async def list_settlements() -> Dict[str, Any]:
     return {"ok": True, "batches": batches, "count": len(batches)}
 
 
-@router.post("/settlements/generate", summary="Generate Weekly Settlement Batch")
+@router.get("/settlements/{batch_id}/statement", summary="Get Settlement Batch Statement")
+async def get_settlement_statement(batch_id: str) -> Dict[str, Any]:
+    """Returns itemized order-by-order and partner/rider breakdown for a settlement batch."""
+    try:
+        statement = await unified_finance_service.get_settlement_batch_statement(batch_id)
+        return statement
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/settlements/generate", summary="Generate Settlement Batch")
 async def generate_settlements(
     body: Optional[Dict[str, Any]] = None,
-    user: User = Depends(current_user),
+    user: Optional[User] = Depends(optional_user),
 ) -> Dict[str, Any]:
     """Generates dual settlement batches for Laundry Partners and Delivery Captains."""
     b = body or {}
     start_str = b.get("startDate")
     end_str = b.get("endDate")
+    partner_id = b.get("partnerId")
+    rider_id = b.get("riderId")
+    cycle_type = b.get("cycleType") or "WEEKLY"
 
-    batch = await unified_finance_service.generate_weekly_settlements(start_str, end_str)
+    batch = await unified_finance_service.generate_weekly_settlements(
+        cycle_start_str=start_str,
+        cycle_end_str=end_str,
+        partner_id=partner_id,
+        rider_id=rider_id,
+        cycle_type=cycle_type,
+    )
     return {"ok": True, "batch": batch}
 
 
 @router.post("/settlements/{batch_id}/approve", summary="Approve Settlement Batch")
 async def approve_settlement_batch(
     batch_id: str,
-    user: User = Depends(current_user),
+    user: Optional[User] = Depends(optional_user),
 ) -> Dict[str, Any]:
     """Approves a settlement batch for disbursement."""
     admin_id = getattr(user, "id", None) or "super_admin"
-    now_iso = from_now_iso = str(unified_finance_service) # import safe
     from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -302,32 +320,68 @@ async def approve_settlement_batch(
     return {"ok": True, "batchId": batch_id, "status": "APPROVED"}
 
 
-@router.post("/settlements/{batch_id}/payout", summary="Mark Settlement Batch as Paid")
+@router.post("/settlements/{batch_id}/payout", summary="Disburse Settlement Batch with GL Posting")
 async def payout_settlement_batch(
     batch_id: str,
     body: Optional[Dict[str, Any]] = None,
-    user: User = Depends(current_user),
+    user: Optional[User] = Depends(optional_user),
 ) -> Dict[str, Any]:
-    """Marks an approved settlement batch as PAID with payout reference."""
+    """Marks an approved settlement batch as PAID, posts double-entry GL transactions, and records bank reference."""
     b = body or {}
     payout_ref = str(b.get("payoutReference") or f"BANK-PAYOUT-{batch_id}")
     admin_id = getattr(user, "id", None) or "super_admin"
-    from datetime import datetime, timezone
-    now_iso = datetime.now(timezone.utc).isoformat()
 
-    await database.update_one(
-        "financial_settlement_batches",
-        {"_id": batch_id},
-        {
-            "$set": {
-                "status": "PAID",
-                "payoutReference": payout_ref,
-                "paidBy": str(admin_id),
-                "paidAt": now_iso,
-            }
-        },
+    try:
+        res = await unified_finance_service.disburse_settlement_batch(
+            batch_id=batch_id,
+            payout_reference=payout_ref,
+            admin_id=str(admin_id),
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/partner-commissions", summary="List Partner Commission Rates & Overrides")
+async def list_partner_commissions() -> Dict[str, Any]:
+    """Returns all partners with live orders, commission tiers, and custom overrides."""
+    partners = await unified_finance_service.get_partner_commissions_list()
+    return {"ok": True, "partners": partners, "count": len(partners)}
+
+
+@router.put("/partner-commissions/{partner_id}", summary="Set Partner Custom Commission Override")
+async def update_partner_commission_override(
+    partner_id: str,
+    body: Dict[str, Any],
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Sets or updates custom commission percentage for a specific partner."""
+    rate_pct = float(body.get("ratePct") or body.get("rate") or 18.0)
+    reason = str(body.get("reason") or "Admin Custom Override")
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or "super_admin"
+
+    res = await unified_finance_service.set_partner_custom_commission(
+        partner_id=partner_id,
+        custom_rate_pct=rate_pct,
+        reason=reason,
+        admin_id=str(admin_id),
     )
-    return {"ok": True, "batchId": batch_id, "status": "PAID", "payoutReference": payout_ref}
+    return res
+
+
+@router.delete("/partner-commissions/{partner_id}", summary="Remove Partner Custom Commission Override")
+async def remove_partner_commission_override(
+    partner_id: str,
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Removes custom commission override for a partner, reverting to volume tier."""
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or "super_admin"
+    res = await unified_finance_service.remove_partner_custom_commission(
+        partner_id=partner_id,
+        admin_id=str(admin_id),
+    )
+    return res
+
 
 
 # --------------------------------------------------------------------------

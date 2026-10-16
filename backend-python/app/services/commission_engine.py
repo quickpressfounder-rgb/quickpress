@@ -26,9 +26,13 @@ class CommissionEngine:
     """Master Commission Engine for QuickPress with live Supabase persistence."""
 
     def calculate_partner_tier(
-        self, monthly_order_count: int, rules: Optional[Dict[str, Any]] = None
+        self,
+        monthly_order_count: int,
+        rules: Optional[Dict[str, Any]] = None,
+        partner_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Determines partner commission tier, rate, and progress to next tier using live finance rules."""
+        """Determines partner commission tier, rate, and progress to next tier using live finance rules,
+        with full support for admin per-partner custom commission overrides."""
         comm_cfg = (rules or {}).get("commission", {})
         gold_th = int(comm_cfg.get("goldThreshold", 300))
         silver_th = int(comm_cfg.get("silverThreshold", 100))
@@ -36,52 +40,62 @@ class CommissionEngine:
         silver_rate = float(comm_cfg.get("silverRate", 0.15))
         standard_rate = float(comm_cfg.get("standardRate", 0.18))
 
+        # Check for admin custom commission override for this partner
+        overrides = comm_cfg.get("partnerOverrides") or {}
+        custom_rate: Optional[float] = None
+        custom_reason: Optional[str] = None
+        if partner_id:
+            pid_str = str(partner_id)
+            if pid_str in overrides:
+                entry = overrides[pid_str]
+                if isinstance(entry, dict):
+                    custom_rate = float(entry.get("rate", entry.get("commissionRate", 0.18)))
+                    custom_reason = entry.get("reason", "Admin Custom Override")
+                elif isinstance(entry, (int, float)):
+                    custom_rate = float(entry)
+                    custom_reason = "Admin Custom Override"
+
         if monthly_order_count >= gold_th:
-            return {
-                "tier": "Gold",
-                "commissionRate": gold_rate,
-                "commissionRatePct": round(gold_rate * 100, 1),
-                "nextTier": None,
-                "ordersNeeded": 0,
-                "progressPct": 100.0,
-                "badgeColor": "#FFD700",
-                "benefits": [
-                    f"Lowest {round(gold_rate * 100)}% platform commission",
-                    "Priority search ranking in customer app",
-                    "Dedicated account manager",
-                    "Free QuickPress branding packaging supplies",
-                ],
-            }
+            base_tier = "Gold"
+            tier_rate = gold_rate
+            next_tier = None
+            orders_needed = 0
+            progress_pct = 100.0
+            badge_color = "#FFD700"
         elif monthly_order_count >= silver_th:
-            return {
-                "tier": "Silver",
-                "commissionRate": silver_rate,
-                "commissionRatePct": round(silver_rate * 100, 1),
-                "nextTier": "Gold",
-                "ordersNeeded": max(1, gold_th - monthly_order_count),
-                "progressPct": round((monthly_order_count / gold_th) * 100, 1),
-                "badgeColor": "#C0C0C0",
-                "benefits": [
-                    f"Discounted {round(silver_rate * 100)}% platform commission",
-                    "Featured merchant badge in customer app",
-                    "Weekly express automated bank payouts",
-                ],
-            }
+            base_tier = "Silver"
+            tier_rate = silver_rate
+            next_tier = "Gold"
+            orders_needed = max(1, gold_th - monthly_order_count)
+            progress_pct = round((monthly_order_count / gold_th) * 100, 1)
+            badge_color = "#C0C0C0"
         else:
-            return {
-                "tier": "Standard",
-                "commissionRate": standard_rate,
-                "commissionRatePct": round(standard_rate * 100, 1),
-                "nextTier": "Silver",
-                "ordersNeeded": max(1, silver_th - monthly_order_count),
-                "progressPct": round((monthly_order_count / silver_th) * 100, 1),
-                "badgeColor": "#00C853",
-                "benefits": [
-                    f"Standard {round(standard_rate * 100)}% commission tier",
-                    "Free onboarding and laundry care guidelines",
-                    "Instant wallet credits on delivery completion",
-                ],
-            }
+            base_tier = "Standard"
+            tier_rate = standard_rate
+            next_tier = "Silver"
+            orders_needed = max(1, silver_th - monthly_order_count)
+            progress_pct = round((monthly_order_count / silver_th) * 100, 1)
+            badge_color = "#00C853"
+
+        effective_rate = custom_rate if custom_rate is not None else tier_rate
+        return {
+            "tier": base_tier,
+            "commissionRate": effective_rate,
+            "commissionRatePct": round(effective_rate * 100, 1),
+            "isCustomOverride": custom_rate is not None,
+            "customReason": custom_reason,
+            "standardTierRate": tier_rate,
+            "nextTier": next_tier,
+            "ordersNeeded": orders_needed,
+            "progressPct": progress_pct,
+            "badgeColor": badge_color,
+            "benefits": [
+                f"Active {round(effective_rate * 100)}% platform commission" + (" (Admin Custom Rate)" if custom_rate is not None else ""),
+                "Priority search ranking in customer app",
+                "Dedicated account manager",
+                "Free QuickPress branding packaging supplies",
+            ],
+        }
 
     async def get_partner_monthly_order_count(self, partner_id: str) -> int:
         """Queries Supabase for total orders completed by this partner in current month."""
@@ -107,7 +121,7 @@ class CommissionEngine:
         rules = await unified_finance_service.get_active_rules()
 
         monthly_orders = await self.get_partner_monthly_order_count(partner_id)
-        tier_info = self.calculate_partner_tier(monthly_orders, rules=rules)
+        tier_info = self.calculate_partner_tier(monthly_orders, rules=rules, partner_id=partner_id)
         tcs_rate = float(rules.get("gst", {}).get("tcsRate", 0.01))
         standard_rate = float(rules.get("commission", {}).get("standardRate", 0.18))
 
@@ -172,8 +186,8 @@ class CommissionEngine:
         rules = await unified_finance_service.get_active_rules()
 
         monthly_orders = await self.get_partner_monthly_order_count(p_id)
-        tier_data = self.calculate_partner_tier(monthly_orders, rules=rules)
-        partner_comm_rate = tier_data["commissionRate"]
+        tier_info = self.calculate_partner_tier(monthly_orders, rules=rules, partner_id=p_id)
+        partner_comm_rate = tier_info["commissionRate"]
 
         # 2. Subtotals & Order Value
         items_subtotal = float(
@@ -200,8 +214,7 @@ class CommissionEngine:
         tcs_deduction = round(items_subtotal * tcs_rate, 2)
         partner_net_earning = max(0.0, round(items_subtotal - partner_commission - tcs_deduction, 2))
 
-        # 4. Captain (Rider) Payout & Zero Commission Guarantee
-        # Captain pays 0% commission to platform! 100% of ride fare goes to rider.
+        # 4. Captain (Rider) Payout & Commission Control (Configurable by Admin)
         rider_info = order.get("rider") or {}
         r_id = rider_id or str(rider_info.get("id") or order.get("riderId") or order.get("rider_id") or "rider-1")
         rider_name = str(rider_info.get("name") or order.get("riderName") or "QuickPress Captain")
@@ -212,8 +225,12 @@ class CommissionEngine:
         delivery_leg_fare = float(order.get("deliveryLegPayout") or 30.0)
         rider_base_fare = round(pickup_leg_fare + delivery_leg_fare, 2)
         rider_tip = float(order.get("tip") or 0.0)
-        rider_commission_deduction = 0.0  # ZERO COMMISSION GUARANTEE
-        rider_net_payout = round(rider_base_fare + rider_tip, 2)
+
+        comm_cfg = rules.get("commission", {})
+        rider_comm_rate = float(comm_cfg.get("riderCommissionRate", comm_cfg.get("captainCommissionRate", 0.0)))
+        rider_fixed_fee = float(comm_cfg.get("riderFixedFeePerTrip", 0.0))
+        rider_commission_deduction = round((rider_base_fare * rider_comm_rate) + rider_fixed_fee, 2)
+        rider_net_payout = max(0.0, round(rider_base_fare - rider_commission_deduction + rider_tip, 2))
 
         # 5. Customer Fees & Taxes
         laundry_gst = float((order.get("totals") or {}).get("laundryGst") or round(items_subtotal * 0.05, 2))
@@ -242,8 +259,8 @@ class CommissionEngine:
             "partner": {
                 "partnerId": p_id,
                 "partnerName": partner_name,
-                "tier": tier_data["tier"],
-                "commissionRatePct": tier_data["commissionRatePct"],
+                "tier": tier_info["tier"],
+                "commissionRatePct": tier_info["commissionRatePct"],
                 "itemsGrossSubtotal": items_subtotal,
                 "platformCommissionAmount": partner_commission,
                 "gstOnCommission18": gst_on_platform_commission,
@@ -251,7 +268,7 @@ class CommissionEngine:
                 "netStoreEarning": partner_net_earning,
                 "settlementStatus": "SETTLED" if order.get("status") in ("delivered", "completed") else "PENDING_DELIVERY",
             },
-            # Captain Breakdown (Zero Commission Guarantee)
+            # Captain Breakdown (Zero or Configurable Commission)
             "captain": {
                 "riderId": r_id,
                 "riderName": rider_name,
@@ -259,10 +276,10 @@ class CommissionEngine:
                 "pickupLegFare": pickup_leg_fare,
                 "deliveryLegFare": delivery_leg_fare,
                 "tips": rider_tip,
-                "platformCommissionRatePct": 0.0,
-                "platformCommissionDeduction": 0.0,
+                "platformCommissionRatePct": round(rider_comm_rate * 100, 1),
+                "platformCommissionDeduction": rider_commission_deduction,
                 "netCaptainPayout": rider_net_payout,
-                "guarantee": "QuickPress 100% Net Fare Captain Guarantee (Zero Platform Cut)",
+                "guarantee": "QuickPress 100% Net Fare Captain Guarantee (Zero Platform Cut)" if rider_comm_rate == 0 else f"Platform Take-Rate: {round(rider_comm_rate * 100, 1)}%",
                 "settlementStatus": "CREDITED" if order.get("status") in ("delivered", "completed") else "PENDING_DELIVERY",
             },
             # Customer Transparent Bill Breakdown

@@ -2,7 +2,7 @@
  * Finance Engine API client for QuickPress Admin Console.
  */
 
-import { apiGetJson, apiPostJson, apiPutJson } from "@/api/core/transport";
+import { apiGetJson, apiPostJson, apiPutJson, apiDeleteJson } from "@/api/core/transport";
 
 export interface FinancialRules {
   pricing: {
@@ -32,6 +32,7 @@ export interface FinancialRules {
     partnerCommissionPercent?: number;
     fixedAmountPerOrder?: number;
     riderCommissionRate?: number;
+    riderFixedFeePerTrip?: number;
     platformCommissionRate?: number;
     standardRate: number;
     silverRate: number;
@@ -39,6 +40,7 @@ export interface FinancialRules {
     silverThreshold: number;
     goldThreshold: number;
     captainCommissionRate: number;
+    partnerOverrides?: Record<string, { rate: number; reason?: string; setAt?: string }>;
     categoryOverrides?: Array<{ id: string; category: string; rate: number; active: boolean }>;
     cityAreaOverrides?: Array<{ id: string; city: string; area: string; rate: number; active: boolean }>;
   };
@@ -53,6 +55,7 @@ export interface FinancialRules {
     subsidyFundingSource: "QUICKPRESS_FUNDED" | "PARTNER_FUNDED" | "SHARED_FUNDED";
     nightSurge: number;
     rainSurge: number;
+    rushHourSurge?: number;
     cityAreaPricing?: Array<{ id: string; city: string; area: string; baseFee: number; perKmRate: number; minFee: number; active: boolean }>;
   };
   cancellation: Record<
@@ -74,6 +77,9 @@ export interface FinancialRules {
     riderDaily: Array<{ trips: number; reward: number }>;
     riderWeeklyStreak: { trips: number; reward: number };
     partnerVolume: Array<{ orders: number; reward: number }>;
+    expressBonus?: number;
+    rainBonus?: number;
+    peakBonus?: number;
   };
   lateFee: {
     gracePeriodMinutes: number;
@@ -325,6 +331,83 @@ export async function fetchOrderFinancials(
   }>(`/api/finance-engine/orders/${encodeURIComponent(orderId)}/financials`);
 }
 
+export interface PartnerCommissionSummary {
+  partnerId: string;
+  businessName: string;
+  ownerName: string;
+  phone: string;
+  orderCount: number;
+  currentTier: string;
+  standardRatePct: number;
+  customCommissionPct: number | null;
+  effectiveCommissionPct: number;
+  overrideReason?: string;
+  overrideSetAt?: string;
+  bankDetails?: {
+    accountNumber?: string;
+    ifsc?: string;
+    bankName?: string;
+    accountHolderName?: string;
+    upiId?: string;
+  };
+}
+
+export interface SettlementBatchStatement {
+  batchId: string;
+  cycleId: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  generatedAt: string;
+  approvedAt?: string;
+  paidAt?: string;
+  payoutReference?: string;
+  summary: {
+    partnerCount: number;
+    riderCount: number;
+    totalPartnerGross: number;
+    totalPartnerCommission: number;
+    totalPartnerTds: number;
+    totalPartnerTcs: number;
+    totalPartnerGstOnCommission: number;
+    totalPartnerPayable: number;
+    totalRiderGross: number;
+    totalRiderCommission: number;
+    totalRiderTds: number;
+    totalRiderBonus: number;
+    totalRiderPayable: number;
+    grandTotalPayable: number;
+  };
+  partners: Array<{
+    partnerId: string;
+    name?: string;
+    orderCount: number;
+    grossOrderAmount: number;
+    commissionRate: number;
+    commissionAmount: number;
+    tcsAmount: number;
+    tdsAmount: number;
+    gstOnCommission: number;
+    netPayable: number;
+    bankAccount?: string;
+    ifsc?: string;
+    status: string;
+  }>;
+  riders: Array<{
+    riderId: string;
+    name?: string;
+    tripCount: number;
+    grossEarnings: number;
+    commissionDeduction: number;
+    bonusAmount: number;
+    tdsDeduction: number;
+    netPayable: number;
+    upiId?: string;
+    bankAccount?: string;
+    status: string;
+  }>;
+}
+
 export async function fetchSettlementBatches(): Promise<SettlementBatch[]> {
   const res = await apiGetJson<{ ok: boolean; batches: SettlementBatch[] }>(
     "/api/finance-engine/settlements",
@@ -332,13 +415,16 @@ export async function fetchSettlementBatches(): Promise<SettlementBatch[]> {
   return res.batches || [];
 }
 
-export async function generateSettlementBatch(
-  startDate?: string,
-  endDate?: string,
-): Promise<SettlementBatch> {
+export async function generateSettlementBatch(params?: {
+  startDate?: string;
+  endDate?: string;
+  partnerId?: string;
+  riderId?: string;
+  cycleType?: string;
+}): Promise<SettlementBatch> {
   const res = await apiPostJson<{ ok: boolean; batch: SettlementBatch }>(
     "/api/finance-engine/settlements/generate",
-    { startDate, endDate },
+    params || {},
   );
   return res.batch;
 }
@@ -353,10 +439,43 @@ export async function approveSettlementBatch(batchId: string): Promise<{ ok: boo
 export async function payoutSettlementBatch(
   batchId: string,
   payoutReference?: string,
-): Promise<{ ok: boolean; payoutReference: string }> {
-  return await apiPostJson<{ ok: boolean; payoutReference: string }>(
+): Promise<{ ok: boolean; payoutReference: string; postedJournalEntries?: number }> {
+  return await apiPostJson<{ ok: boolean; payoutReference: string; postedJournalEntries?: number }>(
     `/api/finance-engine/settlements/${encodeURIComponent(batchId)}/payout`,
     { payoutReference },
+  );
+}
+
+export async function fetchSettlementBatchStatement(batchId: string): Promise<SettlementBatchStatement> {
+  const res = await apiGetJson<{ ok: boolean; statement: SettlementBatchStatement }>(
+    `/api/finance-engine/settlements/${encodeURIComponent(batchId)}/statement`,
+  );
+  return res.statement;
+}
+
+export async function fetchPartnerCommissionsList(): Promise<PartnerCommissionSummary[]> {
+  const res = await apiGetJson<{ ok: boolean; partners: PartnerCommissionSummary[] }>(
+    "/api/finance-engine/partner-commissions",
+  );
+  return res.partners || [];
+}
+
+export async function updatePartnerCustomCommission(
+  partnerId: string,
+  ratePct: number,
+  reason: string = "Admin Override",
+): Promise<{ ok: boolean; partnerId: string; ratePct: number; reason: string }> {
+  return await apiPutJson<{ ok: boolean; partnerId: string; ratePct: number; reason: string }>(
+    `/api/finance-engine/partner-commissions/${encodeURIComponent(partnerId)}`,
+    { ratePct, reason },
+  );
+}
+
+export async function removePartnerCustomCommission(
+  partnerId: string,
+): Promise<{ ok: boolean; message: string }> {
+  return await apiDeleteJson<{ ok: boolean; message: string }>(
+    `/api/finance-engine/partner-commissions/${encodeURIComponent(partnerId)}`,
   );
 }
 
