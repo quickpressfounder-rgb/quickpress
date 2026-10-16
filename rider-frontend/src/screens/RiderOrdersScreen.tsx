@@ -28,11 +28,7 @@ import { useRiderContext } from "../context/RiderContext";
 import { useLanguage } from "../lib/i18n";
 import { subscribeRiderOffers, subscribeRiderOrders } from "../lib/rider-socket";
 import {
-  playOrderAlertSound,
-  playTripAssignedBell,
   playSuccessChime,
-  speakOrderAlert,
-  speakTripAssigned,
   speakText,
   stopOrderAlertSound,
   triggerHaptic,
@@ -97,8 +93,30 @@ export function RiderOrdersScreen() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedOfferForDetail, setSelectedOfferForDetail] = useState<OrderOfferItem | null>(null);
 
-  // Restore saved active order on client mount safely and verify server status
+  // Restore saved active order on client mount safely and listen for instant active order updates
   useEffect(() => {
+    const handleActiveOrderUpdate = (e: any) => {
+      if (e?.detail) {
+        setActiveOrder(e.detail);
+        setIsHudMinimized(false);
+        setOffers((prev) => prev.filter((o) => o.orderId !== e.detail.orderId && o.id !== e.detail.orderId));
+      }
+    };
+    window.addEventListener("qp:active_order_updated", handleActiveOrderUpdate);
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === ACTIVE_ORDER_STORAGE_KEY) {
+        if (!e.newValue) {
+          setActiveOrder(null);
+        } else {
+          try {
+            setActiveOrder(JSON.parse(e.newValue));
+          } catch {}
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
     try {
       const saved = localStorage.getItem(ACTIVE_ORDER_STORAGE_KEY);
       if (saved) {
@@ -146,6 +164,11 @@ export function RiderOrdersScreen() {
       }
       localStorage.removeItem("qp_test_rider_offer");
     } catch {}
+
+    return () => {
+      window.removeEventListener("qp:active_order_updated", handleActiveOrderUpdate);
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const [offers, setOffers] = useState<OrderOfferItem[]>([]);
@@ -216,17 +239,7 @@ export function RiderOrdersScreen() {
             expressRiderSharePercent: Number(r.expressRiderSharePercent || 80),
           };
         });
-        setOffers((prev) => {
-          if (prev.length === 0 && formatted.length > 0) {
-            try {
-              unlockAudioContext();
-              triggerHaptic([200, 100, 200, 100, 400]);
-              playOrderAlertSound();
-              speakOrderAlert(formatted[0].fare || 45, formatted[0].pickupTitle, formatted[0].dropTitle);
-            } catch {}
-          }
-          return formatted;
-        });
+        setOffers(formatted);
       } else {
         // In background polling, do not wipe existing active offers unless explicitly refreshed
         if (!isBackground) {
@@ -279,31 +292,38 @@ export function RiderOrdersScreen() {
       console.log("[RiderOrdersScreen] ⚡ Realtime order update:", eventData);
       const ev = eventData?.event || eventData?.type;
       const targetOrderId = eventData?.orderId || eventData?.order?._id;
+
       if (
         ev === "order.cancelled" ||
         ev === "rider.ride_cancelled" ||
         ev === "order.delivered" ||
-        ev === "order.completed"
+        ev === "order.completed" ||
+        ev === "ride.claimed"
       ) {
         if (targetOrderId) {
           setOffers((prev) => prev.filter((o) => o.orderId !== targetOrderId && o.id !== targetOrderId));
-          setActiveOrder((prev) => {
-            if (prev && (prev.orderId === targetOrderId || prev.id === targetOrderId)) {
-              try {
-                localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
-                localStorage.removeItem("qp_active_delivery_order");
-              } catch {}
-              return null;
-            }
-            return prev;
-          });
+          if (ev !== "ride.claimed") {
+            setActiveOrder((prev) => {
+              if (prev && (prev.orderId === targetOrderId || prev.id === targetOrderId)) {
+                try {
+                  localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+                  localStorage.removeItem("qp_active_delivery_order");
+                } catch {}
+                return null;
+              }
+              return prev;
+            });
+          }
         }
       }
 
-      // Handle direct trip assigned event
-      if (ev === "order.trip_assigned" || ev === "order.rider_assigned" || eventData?.autoAssigned) {
+      // Handle direct trip assigned event (when explicitly assigned to this captain)
+      if (ev === "order.trip_assigned" || ev === "order.rider_assigned") {
         const tId = eventData?.orderId || eventData?.id;
-        if (tId) {
+        const myRiderId = session?.riderId || (typeof window !== "undefined" ? localStorage.getItem("qp_rider_id") : "");
+        const assignedRider = eventData?.riderId || eventData?.rider?.id || eventData?.assignedRiderId;
+
+        if (tId && (!assignedRider || assignedRider === myRiderId)) {
           const directOrder: ActiveOrderData = {
             orderId: tId,
             orderCode: eventData.orderCode || tId.slice(-6).toUpperCase(),
@@ -339,18 +359,11 @@ export function RiderOrdersScreen() {
           } catch {}
           setActiveOrder(directOrder);
           setIsHudMinimized(false);
-          unlockAudioContext();
-          triggerHaptic([350, 150, 350, 150, 600, 300]);
-          playTripAssignedBell();
-          speakTripAssigned(directOrder.fare, directOrder.pickupTitle);
-          toast.success(`🔔 Trip #${directOrder.orderCode} Assigned! Bell baj rahi hai... 🛵`, {
-            duration: 6000,
-            action: {
-              label: "Mute Bell",
-              onClick: () => stopOrderAlertSound(),
-            },
-          });
+          setOffers((prev) => prev.filter((o) => o.orderId !== tId && o.id !== tId));
           return;
+        } else if (tId && assignedRider && assignedRider !== myRiderId) {
+          // Assigned to another captain, remove from our queue
+          setOffers((prev) => prev.filter((o) => o.orderId !== tId && o.id !== tId));
         }
       }
 
@@ -359,9 +372,9 @@ export function RiderOrdersScreen() {
     return () => {
       unsub();
     };
-  }, []);
+  }, [session?.riderId]);
 
-  // Subscribe to live WebSocket offers
+  // Subscribe to live WebSocket offers for 0-latency Live Queue updates
   useEffect(() => {
     const unsubscribe = subscribeRiderOffers((rawOffer: any) => {
       const c_lat = rawOffer.customerCoords?.lat ?? rawOffer.pickupCoords?.lat ?? rawOffer.pickupLocation?.latitude ?? rawOffer.pickupLocation?.lat;
@@ -408,76 +421,17 @@ export function RiderOrdersScreen() {
         expressRiderSharePercent: Number(rawOffer.expressRiderSharePercent || 80),
       };
 
-      const isDirectAssigned = Boolean(
-        rawOffer.autoAssigned ||
-        rawOffer.isAssigned ||
-        rawOffer.status === "assigned" ||
-        rawOffer.orderStatus === "pickup_rider_accepted" ||
-        rawOffer.orderStatus === "rider_assigned" ||
-        rawOffer.event === "order.trip_assigned"
-      );
-
-      // If directly assigned, auto-activate HUD immediately and ring bell
-      if (isDirectAssigned) {
-        const assignedOrder: ActiveOrderData = {
-          orderId: newOffer.orderId,
-          orderCode: newOffer.orderCode || (newOffer.orderId ? newOffer.orderId.slice(-6).toUpperCase() : "TRIP"),
-          customerName: newOffer.customerName || "Customer",
-          customerPhone: newOffer.customerPhone || "",
-          partnerName: newOffer.partnerName || "QuickPress Partner Store",
-          partnerPhone: newOffer.partnerPhone || "",
-          partnerAddress: newOffer.partnerAddress || newOffer.dropAddress,
-          pickupAddress: newOffer.pickupAddress || newOffer.pickupTitle || "Customer Pickup Location",
-          pickupTitle: newOffer.pickupTitle || "Pickup Location",
-          dropAddress: newOffer.dropAddress || newOffer.dropTitle || "QuickPress Partner Hub",
-          dropTitle: newOffer.dropTitle || "Partner Hub",
-          distanceMeters: Math.round((newOffer.pickupDistanceKm || 1.2) * 1000),
-          pickupDistanceKm: newOffer.pickupDistanceKm || 1.2,
-          dropDistanceKm: newOffer.dropDistanceKm || 2.5,
-          fare: newOffer.fare || 45.0,
-          amount: newOffer.amount || newOffer.fare || 45.0,
-          paymentMode: newOffer.paymentMode || "cod",
-          items: newOffer.items || [],
-          placedAt: newOffer.placedAt || new Date().toISOString(),
-          startOtp: newOffer.pickupOtp || "",
-          deliveryOtp: newOffer.deliveryOtp || "",
-          dispatchOtp: newOffer.dispatchOtp || "",
-          customerCoords: newOffer.customerCoords,
-          partnerCoords: newOffer.partnerCoords,
-          pickupCoords: newOffer.pickupCoords,
-          dropCoords: newOffer.dropCoords,
-          rideType: newOffer.rideType || "pickup",
-        };
-
-        try {
-          localStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, JSON.stringify(assignedOrder));
-          localStorage.setItem("qp_active_delivery_order", JSON.stringify(assignedOrder));
-        } catch {}
-        setActiveOrder(assignedOrder);
-        setIsHudMinimized(false);
-        unlockAudioContext();
-        triggerHaptic([350, 150, 350, 150, 600, 300]);
-        playTripAssignedBell();
-        speakTripAssigned(assignedOrder.fare, assignedOrder.pickupTitle);
-        toast.success(`🔔 Trip #${assignedOrder.orderCode} Assigned! Bell baj rahi hai... 🛵`, {
-          duration: 6000,
-          action: {
-            label: "Mute Bell",
-            onClick: () => stopOrderAlertSound(),
-          },
-        });
-        return;
-      }
-
-      unlockAudioContext();
-      triggerHaptic([350, 150, 350, 150, 600, 300]);
-      playTripAssignedBell();
-      speakOrderAlert(newOffer.fare || 45, newOffer.pickupTitle, newOffer.dropTitle);
-      setOffers((prev) => [newOffer, ...prev.filter((o) => o.id !== newOffer.id)]);
+      // Add offer to Live Queue instantly with deduplication (GlobalOrderDispatchListener handles modal & siren)
+      setOffers((prev) => {
+        const exists = prev.some((o) => o.orderId === newOffer.orderId || o.id === newOffer.id);
+        if (exists) {
+          return prev.map((o) => (o.orderId === newOffer.orderId || o.id === newOffer.id ? newOffer : o));
+        }
+        return [newOffer, ...prev];
+      });
     });
 
     return () => {
-      stopOrderAlertSound();
       unsubscribe();
     };
   }, []);

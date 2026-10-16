@@ -1,25 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useRiderContext } from "../../context/RiderContext";
 import { subscribeRiderOffers } from "../../lib/rider-socket";
 import { fetchRiderOffers } from "../../api/rider/rider-orders-api";
-import {
-  unlockAudioContext,
-  playOrderAlertSound,
-  playTripAssignedBell,
-  stopOrderAlertSound,
-  speakOrderAlert,
-  speakTripAssigned,
-  triggerHaptic,
-} from "../../lib/captain-audio";
+import { stopOrderAlertSound } from "../../lib/captain-audio";
 import { FlashTripOfferModal, type FlashOfferData } from "./FlashTripOfferModal";
 
 export const GlobalOrderDispatchListener: React.FC = () => {
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { session, isOnline } = useRiderContext();
-  const lastDispatchedOfferIdRef = useRef<string | null>(null);
+  const lastDispatchedOrderIdRef = useRef<string | null>(null);
+  const acceptedOrderIdsRef = useRef<Set<string>>(new Set());
+  const declinedOrderIdsRef = useRef<Set<string>>(new Set());
   const [activeFlashOffer, setActiveFlashOffer] = useState<FlashOfferData | null>(null);
 
   useEffect(() => {
@@ -33,92 +26,69 @@ export const GlobalOrderDispatchListener: React.FC = () => {
 
     const handleIncomingOffer = (offer: any) => {
       if (!offer) return;
-      // If event was a lifecycle ping without fare, fetch latest offers immediately
-      if (!offer.fare && !offer.estimatedEarning && (offer.orderId || offer.rideId)) {
-        fetchRiderOffers().then((offers) => {
-          if (Array.isArray(offers) && offers.length > 0) {
-            handleIncomingOffer(offers[0]);
-          }
-        }).catch(() => {});
+
+      const targetId = String(offer.orderId || offer.id || offer.rideId || "");
+      const offerId = String(offer.offerId || targetId || `offer-${Date.now()}`);
+
+      // Permanently skip already accepted or declined orders in this session
+      if (
+        (targetId && (acceptedOrderIdsRef.current.has(targetId) || declinedOrderIdsRef.current.has(targetId))) ||
+        (offerId && (acceptedOrderIdsRef.current.has(offerId) || declinedOrderIdsRef.current.has(offerId)))
+      ) {
         return;
       }
-      // Ignore only already completed, cancelled, or rejected orders
+
+      // Check if rider already has this trip active in local storage
+      try {
+        const saved = localStorage.getItem("qp_active_rider_order");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && (String(parsed.orderId) === targetId || String(parsed.id) === targetId)) {
+            return;
+          }
+        }
+      } catch {}
+
+      // If event was a lifecycle ping without fare, fetch latest offers
+      if (!offer.fare && !offer.estimatedEarning && targetId) {
+        fetchRiderOffers()
+          .then((offers) => {
+            if (Array.isArray(offers) && offers.length > 0) {
+              const fresh = offers.find(
+                (o) =>
+                  !acceptedOrderIdsRef.current.has(String(o.orderId || o.id || o.rideId)) &&
+                  !declinedOrderIdsRef.current.has(String(o.orderId || o.id || o.rideId))
+              );
+              if (fresh) handleIncomingOffer(fresh);
+            }
+          })
+          .catch(() => {});
+        return;
+      }
+
+      // Ignore terminal or finished order states
       const ordStatus = String(offer.orderStatus || offer.status || "").toLowerCase();
       if (ordStatus === "cancelled" || ordStatus === "completed" || ordStatus === "rejected" || ordStatus === "expired") {
         return;
       }
 
-      const offerId = offer.offerId || offer.orderId || offer.id || offer._id || `offer-${Date.now()}`;
-
-      // Prevent duplicate instant triggers for the same offer ID
-      if (lastDispatchedOfferIdRef.current === offerId) {
+      // Prevent duplicate modal triggers for the same order
+      if (lastDispatchedOrderIdRef.current === targetId && activeFlashOffer) {
         return;
       }
-      lastDispatchedOfferIdRef.current = offerId;
+      lastDispatchedOrderIdRef.current = targetId;
 
       const isExpress = Boolean(offer.isExpress || offer.express || (offer.rideDoc && offer.rideDoc.isExpress));
       const riderBonus = Number(offer.riderExpressBonus || (offer.rideDoc && offer.rideDoc.riderExpressBonus) || 32);
-      const isAutoAssigned = Boolean(
-        offer.autoAssigned ||
-        offer.isAssigned ||
-        ordStatus === "assigned" ||
-        ordStatus === "pickup_rider_accepted" ||
-        ordStatus === "rider_assigned" ||
-        offer.event === "order.trip_assigned"
-      );
-
-      const targetId = offer.orderId || offer.id || offer.rideId;
       const fare = Number(offer.fare || offer.estimatedEarning || 45);
       const pickupTitle = offer.pickupTitle || offer.pickupAddress || "Customer Pickup";
       const dropTitle = offer.dropTitle || offer.dropAddress || "QuickPress Partner Store";
 
-      // If directly assigned to this rider, immediately sync to active order state
-      if (isAutoAssigned && targetId) {
-        const pOtp = (typeof offer.otp?.pickup === "object" ? offer.otp?.pickup?.code : offer.otp?.pickup) || offer.pickupOtp || "";
-        const dOtp = (typeof offer.otp?.delivery === "object" ? offer.otp?.delivery?.code : offer.otp?.delivery) || offer.deliveryOtp || "";
-        const hOtp = (typeof offer.otp?.handover === "object" ? offer.otp?.handover?.code : offer.otp?.handover) || offer.handoverOtp || offer.dispatchOtp || "";
-
-        const activeOrderData = {
-          orderId: targetId,
-          orderCode: offer.orderCode || (targetId ? String(targetId).slice(-6).toUpperCase() : "TRIP"),
-          customerName: offer.customerName || "Customer",
-          customerPhone: offer.customerPhone || "",
-          partnerName: offer.partnerName || "QuickPress Partner Store",
-          partnerPhone: offer.partnerPhone || "",
-          partnerAddress: offer.partnerAddress || offer.dropAddress || "",
-          pickupAddress: offer.pickupAddress || pickupTitle,
-          pickupTitle: pickupTitle,
-          dropAddress: offer.dropAddress || dropTitle,
-          dropTitle: dropTitle,
-          distanceMeters: Math.round((offer.pickupDistanceKm || offer.distanceKm || 1.2) * 1000),
-          pickupDistanceKm: Number(offer.pickupDistanceKm || offer.distanceKm || 1.2),
-          dropDistanceKm: Number(offer.dropDistanceKm || 2.5),
-          fare: fare,
-          amount: Number(offer.amount || fare),
-          paymentMode: offer.paymentMode || "cod",
-          items: offer.items || [],
-          placedAt: offer.placedAt || new Date().toISOString(),
-          startOtp: String(pOtp),
-          deliveryOtp: String(dOtp),
-          dispatchOtp: String(hOtp),
-          customerCoords: offer.customerCoords,
-          partnerCoords: offer.partnerCoords,
-          pickupCoords: offer.pickupCoords,
-          dropCoords: offer.dropCoords,
-          rideType: offer.rideType || "pickup",
-        };
-
-        try {
-          localStorage.setItem("qp_active_rider_order", JSON.stringify(activeOrderData));
-          localStorage.setItem("qp_active_delivery_order", JSON.stringify(activeOrderData));
-        } catch {}
-      }
-
       const flashData: FlashOfferData = {
-        offerId: String(offerId),
-        orderId: String(targetId),
+        offerId: offerId,
+        orderId: targetId,
         rideId: String(offer.rideId || targetId),
-        orderCode: String(offer.orderCode || (targetId ? String(targetId).slice(-6).toUpperCase() : "TRIP")),
+        orderCode: String(offer.orderCode || (targetId ? targetId.slice(-6).toUpperCase() : "TRIP")),
         rideType: offer.rideType || "pickup",
         fare: fare,
         isExpress: isExpress,
@@ -148,23 +118,8 @@ export const GlobalOrderDispatchListener: React.FC = () => {
         dropCoords: offer.dropCoords,
       };
 
-      // Trigger Flash Offer Modal directly over whatever screen rider is currently viewing
+      // Trigger Flash Offer Modal (FlashTripOfferModal handles the siren, language speech, and countdown)
       setActiveFlashOffer(flashData);
-
-      // Play continuous high-priority bell ringtone & speech alert
-      try {
-        unlockAudioContext();
-        triggerHaptic([350, 150, 350, 150, 600, 300]);
-        playTripAssignedBell();
-
-        if (isAutoAssigned) {
-          speakTripAssigned(fare, pickupTitle);
-        } else {
-          speakOrderAlert(fare, pickupTitle, dropTitle);
-        }
-      } catch (err) {
-        console.warn("[GlobalOrderListener] Audio playback alert failed:", err);
-      }
 
       if (isExpress) {
         toast.warning(`⚡ EXPRESS PICKUP ALERT! +₹${riderBonus} Captain Bonus Shamil Hai!`, {
@@ -182,36 +137,56 @@ export const GlobalOrderDispatchListener: React.FC = () => {
     fetchRiderOffers()
       .then((offers) => {
         if (Array.isArray(offers) && offers.length > 0) {
-          handleIncomingOffer(offers[0]);
+          const fresh = offers.find(
+            (o) =>
+              !acceptedOrderIdsRef.current.has(String(o.orderId || o.id || o.rideId)) &&
+              !declinedOrderIdsRef.current.has(String(o.orderId || o.id || o.rideId))
+          );
+          if (fresh) handleIncomingOffer(fresh);
         }
       })
       .catch(() => {});
 
-    // 3. Fast polling backup (snappy 2.5-second safety heartbeat)
+    // 3. Snappy 3-second heartbeat polling
     const pollInterval = setInterval(async () => {
       try {
         const offers = await fetchRiderOffers();
         if (Array.isArray(offers) && offers.length > 0) {
-          handleIncomingOffer(offers[0]);
+          const fresh = offers.find(
+            (o) =>
+              !acceptedOrderIdsRef.current.has(String(o.orderId || o.id || o.rideId)) &&
+              !declinedOrderIdsRef.current.has(String(o.orderId || o.id || o.rideId))
+          );
+          if (fresh) {
+            handleIncomingOffer(fresh);
+          }
         } else {
-          // Reset last seen offer ID if queue cleared
-          lastDispatchedOfferIdRef.current = null;
+          lastDispatchedOrderIdRef.current = null;
         }
       } catch {
         // Quiet fallback
       }
-    }, 2500);
+    }, 3000);
 
     return () => {
       unsubscribe();
       clearInterval(pollInterval);
     };
-  }, [session?.token, isOnline, pathname, navigate]);
+  }, [session?.token, isOnline]);
 
   return (
     <FlashTripOfferModal
       offer={activeFlashOffer}
       onAccepted={(orderId, acceptedOffer) => {
+        // 1. Instantly kill siren & sound effects
+        stopOrderAlertSound();
+
+        // 2. Permanently remember this order was accepted so it never rings again
+        if (orderId) acceptedOrderIdsRef.current.add(String(orderId));
+        if (acceptedOffer.orderId) acceptedOrderIdsRef.current.add(String(acceptedOffer.orderId));
+        if (acceptedOffer.rideId) acceptedOrderIdsRef.current.add(String(acceptedOffer.rideId));
+        if (acceptedOffer.offerId) acceptedOrderIdsRef.current.add(String(acceptedOffer.offerId));
+
         const pOtp = (typeof acceptedOffer.otp?.pickup === "object" ? acceptedOffer.otp?.pickup?.code : acceptedOffer.otp?.pickup) || acceptedOffer.pickupOtp || "";
         const dOtp = (typeof acceptedOffer.otp?.delivery === "object" ? acceptedOffer.otp?.delivery?.code : acceptedOffer.otp?.delivery) || acceptedOffer.deliveryOtp || "";
         const hOtp = (typeof acceptedOffer.otp?.handover === "object" ? acceptedOffer.otp?.handover?.code : acceptedOffer.otp?.handover) || acceptedOffer.dispatchOtp || "";
@@ -249,12 +224,15 @@ export const GlobalOrderDispatchListener: React.FC = () => {
         try {
           localStorage.setItem("qp_active_rider_order", JSON.stringify(activeOrderData));
           localStorage.setItem("qp_active_delivery_order", JSON.stringify(activeOrderData));
+          window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: activeOrderData }));
         } catch {}
 
         setActiveFlashOffer(null);
         navigate({ to: "/orders" });
       }}
-      onDeclined={() => {
+      onDeclined={(declinedId) => {
+        stopOrderAlertSound();
+        if (declinedId) declinedOrderIdsRef.current.add(String(declinedId));
         setActiveFlashOffer(null);
       }}
     />

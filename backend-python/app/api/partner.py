@@ -987,9 +987,6 @@ async def accept_order(order_id: str, partner_id: str = Depends(_verified_partne
             order_code=doc.get("code"),
             tone="success",
         ))
-        # Trigger Smart 2-Ride Auto-Dispatch: Ride 1 (Pickup: Customer -> Partner)
-        from app.services.smart_2ride_engine import smart_2ride_engine
-        asyncio.create_task(smart_2ride_engine.create_ride_1_pickup(order_id))
     except PartnerAccessError as error:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
     except PartnerNotFoundError as error:

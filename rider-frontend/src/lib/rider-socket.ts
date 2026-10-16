@@ -106,7 +106,19 @@ export function initRiderSocket(): Socket | null {
         joinRiderRooms(socket!);
       });
 
+      const recentOffersMap = new Map<string, number>();
       const handleOffer = (data: any) => {
+        if (!data) return;
+        const offerKey = String(data.orderId || data.rideId || data.id || data.offerId || "");
+        if (offerKey) {
+          const lastTime = recentOffersMap.get(offerKey) || 0;
+          const now = Date.now();
+          if (now - lastTime < 1500) {
+            // Drop duplicate burst event for same order within 1.5 seconds
+            return;
+          }
+          recentOffersMap.set(offerKey, now);
+        }
         console.log("[RiderSocket] ⚡ Realtime order offer received:", data);
         offerListeners.forEach((listener) => {
           try {
@@ -170,7 +182,10 @@ export function initRiderSocket(): Socket | null {
       socket.on("order.rider_assigned", (data) => {
         console.log("[RiderSocket] 🎯 Rider Assigned event:", data);
         handleOrderEvent({ ...data, event: "order.rider_assigned" });
-        handleOffer({ ...data, autoAssigned: true });
+      });
+      socket.on("ride.claimed", (data) => {
+        console.log("[RiderSocket] 🏁 Ride Claimed event:", data);
+        handleOrderEvent({ ...data, event: "ride.claimed" });
       });
       socket.on("order.rider_offer", handleOffer);
       socket.on("new_order_offer", handleOffer);
@@ -178,11 +193,9 @@ export function initRiderSocket(): Socket | null {
       socket.on("dispatch.offer", handleOffer);
       socket.on("order.rider_searching", (data) => {
         handleOrderEvent(data);
-        handleOffer(data);
       });
       socket.on("order.partner_accepted", (data) => {
         handleOrderEvent(data);
-        handleOffer(data);
       });
 
       // Rider status & online events

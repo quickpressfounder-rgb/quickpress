@@ -187,6 +187,7 @@ class Smart2RideEngine:
 
     def __init__(self) -> None:
         self._active_timers: Dict[str, asyncio.Task] = {}
+        self._inflight_dispatches: set[str] = set()
 
     # -------------------------------------------------------------------------
     # 1. RIDE 1 CREATION (Pickup: Customer -> Partner)
@@ -204,6 +205,17 @@ class Smart2RideEngine:
             logger.info("Order %s has not been accepted by partner yet (status=%s). Cannot create Ride 1.", canonical_id, current_st)
             return None
 
+        if canonical_id in self._inflight_dispatches:
+            logger.info("Ride 1 creation already in-flight for order %s, skipping duplicate", canonical_id)
+            return await database.find_one(RIDES_COLLECTION, {"orderId": canonical_id, "rideType": "pickup"})
+
+        self._inflight_dispatches.add(canonical_id)
+        try:
+            return await self._create_ride_1_pickup_internal(canonical_id, order)
+        finally:
+            self._inflight_dispatches.discard(canonical_id)
+
+    async def _create_ride_1_pickup_internal(self, canonical_id: str, order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         now = lifecycle.now_iso()
 
         # Idempotency check: verify Ride 1 does not already exist
@@ -212,15 +224,17 @@ class Smart2RideEngine:
             {"orderId": canonical_id, "rideType": "pickup"},
         )
         if existing_ride:
-            if existing_ride.get("status") in ("NO_RIDER_FOUND", "SEARCHING_RIDER") and not existing_ride.get("riderId"):
-                logger.info("Re-dispatching existing unassigned Ride 1 (status=%s) for order %s", existing_ride.get("status"), canonical_id)
+            st = str(existing_ride.get("status") or "")
+            if existing_ride.get("riderId") or st in ("ACCEPTED", "SEARCHING_RIDER", "OFFER_SENT", "IN_PROGRESS", "COMPLETED"):
+                logger.info("Ride 1 (pickup) already active/dispatched (status=%s) for order %s", st, canonical_id)
+                return existing_ride
+            if st == "NO_RIDER_FOUND" and not existing_ride.get("riderId"):
+                logger.info("Re-dispatching existing unassigned Ride 1 (status=%s) for order %s", st, canonical_id)
                 await database.collection(RIDES_COLLECTION).update_one(
                     {"_id": existing_ride["_id"]},
                     {"$set": {"status": "SEARCHING_RIDER", "updatedAt": now, "attemptedRiderIds": []}},
                 )
                 asyncio.create_task(self.dispatch_next_offer(existing_ride["_id"]))
-            else:
-                logger.info("Ride 1 (pickup) already exists for order %s", canonical_id)
             return existing_ride
 
         # Extract Pickup (Customer) and Drop (Partner) Coordinates
@@ -1121,12 +1135,8 @@ class Smart2RideEngine:
                 socket_rooms.append(f"rider:{r_uid}")
 
             for s_room in socket_rooms:
-                await sio.emit(EVENT_ORDER_RIDER_OFFER, offer_doc, room=s_room)
                 await sio.emit("order.rider_offer", offer_doc, room=s_room)
                 await sio.emit("new_order_offer", offer_doc, room=s_room)
-                await sio.emit("order.offer", offer_doc, room=s_room)
-                await sio.emit("dispatch.offer", offer_doc, room=s_room)
-                await sio.emit("order.trip_assigned", {**offer_doc, "autoAssigned": False}, room=s_room)
 
             # High-priority external push notification
             try:
@@ -1166,12 +1176,8 @@ class Smart2RideEngine:
             "createdAt": now,
             "autoAssigned": False,
         }
-        await sio.emit(EVENT_ORDER_RIDER_OFFER, broadcast_payload, room="riders")
         await sio.emit("order.rider_offer", broadcast_payload, room="riders")
         await sio.emit("new_order_offer", broadcast_payload, room="riders")
-        await sio.emit("order.offer", broadcast_payload, room="riders")
-        await sio.emit("dispatch.offer", broadcast_payload, room="riders")
-        await sio.emit("order.trip_assigned", broadcast_payload, room="riders")
 
         # Log Automation Event: Auto-Dispatch Broadcast
         try:
