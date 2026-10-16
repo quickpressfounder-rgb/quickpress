@@ -29,7 +29,7 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
   disabled = false,
 }) => {
   const currentDigits = digits || otpDigits || ["", "", "", ""];
-  const displaySubtitle = subtitle || hint || "Ask 4-digit code from customer (कस्टमर से कोड पूछें)";
+  const displaySubtitle = subtitle || hint || "Ask 4-digit PIN from customer (कस्टमर से 4-अंक का पिन पूछें)";
 
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
@@ -128,35 +128,40 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
   const isComplete = currentDigits.every((d) => d.length === 1);
 
   return (
-    <div className={`rounded-2xl border-2 p-4 shadow-sm space-y-3 transition-all ${
-      isAutoSubmitting || isComplete
-        ? "border-emerald-500 bg-gradient-to-br from-emerald-100/90 via-emerald-50 to-teal-50 ring-2 ring-emerald-400/40"
-        : "border-emerald-500/40 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/70"
-    }`}>
+    <div
+      className={`rounded-3xl border-2 p-4.5 shadow-xl space-y-3.5 transition-all duration-300 ${
+        isAutoSubmitting || isComplete
+          ? "border-emerald-500 bg-gradient-to-br from-emerald-950/20 via-emerald-50/90 to-teal-50/90 ring-4 ring-emerald-500/20 shadow-emerald-500/10"
+          : "border-slate-200/90 bg-white/95 backdrop-blur-md shadow-slate-200/50"
+      }`}
+    >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className={`flex size-7.5 items-center justify-center rounded-xl text-white shadow-xs transition-colors ${
-            isAutoSubmitting ? "bg-emerald-600 animate-bounce" : "bg-emerald-600"
-          }`}>
-            <KeyRound className="size-4" />
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`flex size-9 items-center justify-center rounded-2xl text-white shadow-md transition-all ${
+              isAutoSubmitting ? "bg-emerald-600 animate-bounce scale-110" : "bg-gradient-to-br from-emerald-500 to-teal-600"
+            }`}
+          >
+            <KeyRound className="size-5" />
           </span>
           <div>
-            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950 block">
+            <h4 className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-slate-900 block leading-tight">
               {title}
             </h4>
-            <p className="text-[11px] font-semibold text-emerald-700">
+            <p className="text-[11px] font-bold text-emerald-700 leading-tight mt-0.5">
               {displaySubtitle}
             </p>
           </div>
         </div>
 
-        <span className="rounded-full bg-emerald-600/15 px-2.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-500/30">
-          Required OTP
+        <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-800 border border-emerald-500/30 flex items-center gap-1">
+          <span className="size-1.5 rounded-full bg-emerald-600 animate-pulse" />
+          <span>Security OTP</span>
         </span>
       </div>
 
       {/* 4 Digit Boxes */}
-      <div className="flex justify-center gap-2.5 sm:gap-3 py-1">
+      <div className="flex justify-center gap-2.5 sm:gap-3.5 py-1.5">
         {currentDigits.map((digit, idx) => (
           <input
             key={idx}
@@ -169,27 +174,27 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
             onChange={(e) => handleDigitChange(idx, e.target.value)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
             onPaste={handlePaste}
-            className={`w-13 h-14 sm:w-14 sm:h-15 text-center font-mono text-2xl font-black rounded-2xl border-2 transition-all shadow-xs ${
+            className={`w-14 h-16 sm:w-16 sm:h-18 text-center font-mono text-3xl font-black rounded-2xl border-2 transition-all duration-200 shadow-sm ${
               digit
-                ? "border-emerald-600 bg-white text-emerald-950 ring-2 ring-emerald-500/30 scale-105"
-                : "border-zinc-300 bg-zinc-50/80 text-zinc-900 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                ? "border-emerald-500 bg-emerald-50/80 text-emerald-950 ring-4 ring-emerald-500/20 scale-105 shadow-emerald-500/10"
+                : "border-slate-200 bg-slate-50 text-slate-900 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/20"
             }`}
-            placeholder="•"
+            placeholder="—"
           />
         ))}
       </div>
 
       {/* Auto-Submitting Visual Notification */}
       {isAutoSubmitting ? (
-        <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-black animate-pulse shadow-sm">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>✓ OTP Verified! Auto-Accepting Trip... (ऑटो सबमिट हो रहा है)</span>
+        <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black animate-pulse shadow-md">
+          <CheckCircle2 className="size-4.5" />
+          <span>✓ OTP Verified! Completing Trip...</span>
         </div>
       ) : (
-        <div className="flex items-center justify-between pt-1 border-t border-emerald-500/10 text-[10.5px] font-medium text-zinc-600">
-          <span className="flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-emerald-600" />
-            <span>4 अंक दर्ज होते ही बिना बटन दबाए ऑटो एक्सेप्ट होगा</span>
+        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] font-semibold text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="size-3.5 text-emerald-600" />
+            <span>4 अंक दर्ज करते ही ऑटो-वेरीफाई होगा</span>
           </span>
           {currentDigits.some((d) => d) && (
             <button
@@ -198,7 +203,7 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
                 updateDigits(["", "", "", ""]);
                 inputRefs[0].current?.focus();
               }}
-              className="font-bold text-rose-600 hover:underline"
+              className="font-bold text-rose-600 hover:text-rose-700 hover:underline px-2 py-0.5"
             >
               Clear
             </button>
@@ -209,7 +214,7 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
   );
 };
 
-interface RiderStoreDispatchDisplayProps {
+export interface RiderStoreDispatchDisplayProps {
   code?: string;
   dispatchOtp?: string;
   storeName: string;
@@ -258,37 +263,41 @@ export const RiderStoreDispatchDisplay: React.FC<RiderStoreDispatchDisplayProps>
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-200/90 bg-white text-neutral-900 p-3.5 shadow-sm space-y-2.5">
+    <div className="rounded-3xl border-2 border-slate-900 bg-slate-950 text-white p-4.5 shadow-2xl space-y-3.5 relative overflow-hidden">
+      {/* Background glow accent */}
+      <div className="absolute top-0 right-0 -mr-10 -mt-10 size-32 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
+
       {/* Header Row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-            <ShieldCheck className="size-4" />
+      <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950 font-black shadow-lg shrink-0">
+            <ShieldCheck className="size-5" />
           </span>
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block leading-tight">
-              Store Handover Dispatch Code
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block leading-tight">
+              Store Handshake Verification
             </span>
-            <h4 className="text-xs font-black text-neutral-900 leading-tight">
+            <h4 className="text-xs sm:text-[13px] font-black text-white leading-tight mt-0.5">
               Tell this 4-Digit Code to Store Partner
             </h4>
           </div>
         </div>
-        <span className="rounded-full bg-neutral-100 border border-neutral-200 px-2 py-0.5 text-[9px] font-bold text-neutral-600">
-          Handshake
+        <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-1 text-[10px] font-black text-emerald-300">
+          HANDSHAKE
         </span>
       </div>
 
-      <p className="text-[11px] text-neutral-600 font-medium leading-tight">
-        You are at <b className="text-neutral-900 font-bold">{storeName}</b>. Speak this code aloud to store staff to release the packed order:
+      <p className="text-[11.5px] text-slate-300 font-medium leading-relaxed relative z-10">
+        You are at <b className="text-white font-black underline decoration-emerald-400 decoration-2">{storeName}</b>.
+        Speak this code aloud to store staff to release the packed laundry:
       </p>
 
-      {/* Compact 4 Digit Display (White / Neutral Clean Pills) */}
-      <div className="flex justify-center items-center gap-2 py-0.5">
+      {/* 4 Digit Display Pills in high-contrast neon */}
+      <div className="flex justify-center items-center gap-3 py-1 relative z-10">
         {cleanCode.split("").map((digit, idx) => (
           <div
             key={idx}
-            className="w-11 h-12 flex items-center justify-center rounded-xl bg-neutral-50 text-neutral-900 font-mono text-2xl font-black shadow-2xs border border-neutral-300"
+            className="w-13 h-15 sm:w-15 sm:h-17 flex items-center justify-center rounded-2xl bg-slate-900 text-emerald-400 font-mono text-3xl font-black shadow-xl border-2 border-emerald-500/40 shadow-emerald-500/10"
           >
             {digit}
           </div>
@@ -296,31 +305,32 @@ export const RiderStoreDispatchDisplay: React.FC<RiderStoreDispatchDisplayProps>
       </div>
 
       {/* Action Buttons: Speak Out & Copy */}
-      <div className="flex items-center justify-center gap-2 pt-0.5">
+      <div className="flex items-center justify-center gap-2.5 pt-1 relative z-10">
         <button
           type="button"
           onClick={handleSpeak}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-black text-emerald-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 text-xs font-black active:scale-95 transition-all shadow-lg hover:brightness-105 cursor-pointer"
         >
-          <Volume2 className="size-3.5 text-emerald-600" />
+          <Volume2 className="size-4 text-slate-950" />
           <span>Speak Code (बोलकर बताएं)</span>
         </button>
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-xs font-bold text-neutral-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
+          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 active:scale-95 transition-all cursor-pointer"
         >
-          <Copy className="size-3.5 text-neutral-600" />
+          <Copy className="size-4 text-slate-300" />
           <span>Copy</span>
         </button>
       </div>
 
       {storeAddress && (
-        <div className="p-1.5 rounded-lg bg-neutral-50 border border-neutral-200 text-[10px] font-medium text-neutral-600 flex items-center gap-1">
-          <span>📍</span>
+        <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-[10.5px] font-medium text-slate-400 flex items-center gap-1.5 relative z-10">
+          <span className="text-emerald-400 shrink-0">📍</span>
           <span className="truncate">{storeAddress}</span>
         </div>
       )}
     </div>
   );
 };
+

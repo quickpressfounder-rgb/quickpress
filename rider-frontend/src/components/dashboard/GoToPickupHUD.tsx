@@ -5,10 +5,12 @@ import {
   ArrowLeft,
   ArrowRight,
   Bike,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   Clock,
+  Copy,
   Home,
   Crosshair,
   DollarSign,
@@ -19,6 +21,7 @@ import {
   Locate,
   MapPin,
   Menu,
+  MessageCircle,
   MessageSquare,
   Navigation,
   CornerUpRight,
@@ -263,6 +266,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showManualHandoverInput, setShowManualHandoverInput] = useState(false);
   const [showCaptainReviewModal, setShowCaptainReviewModal] = useState(false);
   const [hasRatedTrip, setHasRatedTrip] = useState(false);
+  const [isAddressCopied, setIsAddressCopied] = useState(false);
+
+  const handleCopyAddress = (address: string) => {
+    if (!address) return;
+    navigator.clipboard.writeText(address);
+    setIsAddressCopied(true);
+    toast.success("Address Copied! (पता कॉपी हो गया)");
+    setTimeout(() => setIsAddressCopied(false), 2000);
+  };
+
+  const handleOpenWhatsApp = (phone?: string, name?: string) => {
+    if (!phone) {
+      toast.error("Contact phone not available");
+      return;
+    }
+    let clean = phone.replace(/[^0-9]/g, "");
+    if (clean.length === 10) clean = "91" + clean;
+    const orderRef = order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "");
+    const msg = `Namaste ${name || "Ji"}, QuickPress Captain here for Order #${orderRef}. Main aapki location par aa raha hoon.`;
+    window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   // SLA Processing Timer for Leg 1 store processing
   const [processingRemainingSecs, setProcessingRemainingSecs] = useState<number>(() => {
@@ -692,6 +716,15 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       : stage === "ready_pickup_store" || (stage === "arrived_pickup" && isStorePickupForDelivery)
         ? (partnerStoreAddress || "Partner Store Kasganj")
         : (order.dropAddress || order.pickupAddress || "Customer Delivery Address");
+
+  const activeDestPhone =
+    currentLeg === "pickup_to_store"
+      ? stage === "in_trip"
+        ? (order.partnerPhone || order.customerPhone)
+        : order.customerPhone
+      : stage === "ready_pickup_store" || (stage === "arrived_pickup" && isStorePickupForDelivery)
+        ? (order.partnerPhone || order.customerPhone)
+        : (order.customerPhone || order.partnerPhone);
 
   const distanceRemainingKm =
     distanceMeters > 0
@@ -1453,15 +1486,15 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-white shadow-2xl overflow-y-auto text-neutral-900 select-none pb-24 overscroll-contain">
       {/* 1. Top Navigation Bar (Back Button + Menu + Title + Call) */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-3.5 pb-2.5 bg-white/95 backdrop-blur-md border-b border-neutral-100 shadow-xs"
+        className="sticky top-0 z-30 flex items-center justify-between px-3.5 pb-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shadow-lg"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
       >
         {/* Back Button (Returns to Trips List while keeping trip active) & Drawer */}
-        <div className="flex items-center gap-0.5 -ml-1">
+        <div className="flex items-center gap-1 -ml-1">
           <button
             type="button"
             onClick={handleBack}
-            className="flex items-center justify-center w-9 h-9 text-neutral-800 rounded-full hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer"
+            className="flex items-center justify-center w-9 h-9 text-slate-200 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 transition-all cursor-pointer border border-slate-700/60"
             aria-label="Back to Trips"
             title="Back to Trips (Trip Active Rahegi)"
           >
@@ -1470,23 +1503,29 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <button
             type="button"
             onClick={onOpenDrawer}
-            className="flex items-center justify-center w-9 h-9 text-neutral-800 rounded-full hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer"
+            className="flex items-center justify-center w-9 h-9 text-slate-200 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 transition-all cursor-pointer border border-slate-700/60"
             aria-label="Open Navigation Drawer"
           >
             <Menu className="w-5 h-5 stroke-[2.4]" />
           </button>
         </div>
 
-        {/* Screen Title */}
-        <h1 className={`text-sm sm:text-base font-black tracking-tight truncate max-w-[200px] sm:max-w-xs ${isDeliveryRide ? "text-blue-950" : "text-neutral-950"}`}>
-          {stage === "en_route_pickup" && (isDeliveryRide ? "📦 Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
-          {stage === "arrived_pickup" && (isDeliveryRide ? "📦 At Partner Store" : isHandoverRide ? "At Handover Point" : "At Pickup Location")}
-          {stage === "in_trip" && (isDeliveryRide ? "📦 En Route to Delivery" : order.rideType === "pickup" ? "Heading to Partner Store" : "Heading to Drop Zone")}
-          {stage === "store_processing" && "🧺 Washing & Ironing in Progress"}
-          {stage === "ready_pickup_store" && "📦 Collect from Store & Deliver"}
-          {stage === "handover_waiting" && "Order Handover in Progress"}
-          {stage === "completed" && (isDeliveryRide ? "🎉 Delivery Completed" : "Trip Completed")}
-        </h1>
+        {/* Screen Title & Live Pulse */}
+        <div className="flex items-center gap-1.5 min-w-0 px-1 text-center">
+          <span className="relative flex size-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
+          </span>
+          <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-white">
+            {stage === "en_route_pickup" && (isDeliveryRide ? "Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
+            {stage === "arrived_pickup" && (isDeliveryRide ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Pickup Location")}
+            {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : order.rideType === "pickup" ? "Heading to Store" : "Heading to Drop Zone")}
+            {stage === "store_processing" && "Store Laundry Processing"}
+            {stage === "ready_pickup_store" && "Collect from Store"}
+            {stage === "handover_waiting" && "Handover in Progress"}
+            {stage === "completed" && (isDeliveryRide ? "Delivery Completed" : "Trip Completed")}
+          </h1>
+        </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Trip Fare Breakdown & Route Sheet Button */}
@@ -1496,34 +1535,49 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               triggerHaptic(20);
               setShowTripDetailModal(true);
             }}
-            className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-2xs active:scale-95 transition-all cursor-pointer"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 shadow-xs active:scale-95 transition-all cursor-pointer"
             aria-label="Trip Breakdown"
             title="View Route & Fare Breakdown"
           >
-            <Sparkles className="w-4.5 h-4.5 text-emerald-700" />
+            <Sparkles className="w-4.5 h-4.5" />
           </button>
 
-          {/* Support / Call Customer Button (Black circle with Yellow telephone icon) */}
+          {/* Support / Call Customer Button */}
           <button
             type="button"
             onClick={() => setShowCallModal(true)}
-            className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-neutral-950 text-[#FBBF24] hover:bg-neutral-800 shadow-sm active:scale-95 transition-all cursor-pointer"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-md shadow-amber-400/20 active:scale-95 transition-all cursor-pointer font-black"
             aria-label="Call Customer"
+            title="Call Contact"
           >
-            <Phone className="w-4.5 h-4.5 fill-[#FBBF24] stroke-none" />
+            <Phone className="w-4.5 h-4.5 fill-slate-950 stroke-none" />
           </button>
         </div>
       </header>
 
-      {/* DELIVERY BLUE THEME BANNER */}
-      {isDeliveryRide && (
-        <div className="z-25 bg-blue-600 text-white px-4 py-1.5 flex items-center justify-between text-xs font-black shadow-xs animate-in fade-in duration-200">
-          <div className="flex items-center gap-1.5">
-            <Package className="w-4 h-4" />
-            <span>DELIVERY ORDER (स्टोर से ग्राहक तक डिलीवरी)</span>
+      {/* TWO-LEG TRIP BANNER (Emerald Leg 1 vs Blue Leg 2) */}
+      {isDeliveryRide ? (
+        <div className="z-25 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white px-3.5 py-2 flex items-center justify-between text-xs font-black shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center">
+              <Package className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span>DELIVERY ORDER · स्टोर से ग्राहक डिलीवरी (Drop Leg)</span>
           </div>
-          <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide">
-            BLUE
+          <span className="bg-blue-950/60 border border-blue-400/40 text-blue-200 px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider">
+            LEG 2
+          </span>
+        </div>
+      ) : (
+        <div className="z-25 bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white px-3.5 py-2 flex items-center justify-between text-xs font-black shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center">
+              <Shirt className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span>PICKUP ORDER · ग्राहक से कपड़े उठाएं (Pickup Leg)</span>
+          </div>
+          <span className="bg-emerald-950/60 border border-emerald-400/40 text-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider">
+            LEG 1
           </span>
         </div>
       )}
@@ -1572,17 +1626,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <span>✕</span>
               <span>Dismiss</span>
             </button>
-            <span className="text-[10px] font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md border border-neutral-200 font-mono">
+            <span className="text-[10px] font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 font-mono shadow-2xs">
               #{order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "LIVE")}
             </span>
-            <span className="text-[11px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+            <span className="text-[11px] font-black text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
               ₹{order.fare.toFixed(2)}
             </span>
           </div>
         </div>
 
         {/* Live Active Milestone Pill Banner */}
-        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-neutral-50 border border-emerald-200/80 text-[11px]">
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-neutral-50 border border-emerald-200/90 text-[11px] shadow-2xs">
           <div className="flex items-center gap-2 min-w-0">
             <span className="relative flex size-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -1592,18 +1646,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               {currentStagePillText}
             </span>
           </div>
-          <span className="text-[10px] font-black text-emerald-800 shrink-0 ml-1 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+          <span className="text-[10px] font-black text-emerald-900 shrink-0 ml-1.5 bg-white px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
             Step {activeStepIndex} of 6
           </span>
         </div>
 
         {/* 6 Step Progress Track Stepper */}
-        <div className="relative pt-1 pb-0.5">
+        <div className="relative pt-1.5 pb-0.5">
           {/* Background Track Line */}
-          <div className="absolute top-4 left-4 right-4 h-1 bg-neutral-200 rounded-full z-0 -translate-y-1/2">
+          <div className="absolute top-4 left-4 right-4 h-1.5 bg-neutral-200 rounded-full z-0 -translate-y-1/2">
             {/* Animated Active Fill Line */}
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full transition-all duration-500 shadow-xs"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
@@ -1669,34 +1723,34 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       </div>
 
       {/* 2. Map Box Card (Rapido Navigation Box Container) */}
-      <div className="relative w-full px-3 py-2 flex flex-col h-[280px] shrink-0 overflow-hidden bg-neutral-100/90">
-        <div className="relative w-full h-full rounded-3xl overflow-hidden border-2 border-neutral-300 shadow-md bg-slate-950">
+      <div className="relative w-full px-3 py-2 flex flex-col h-[310px] sm:h-[330px] shrink-0 overflow-hidden bg-neutral-100/90">
+        <div className="relative w-full h-full rounded-3xl overflow-hidden border border-slate-300/80 shadow-lg bg-slate-950">
           <div ref={mapContainerRef} className="w-full h-full" />
 
           {/* Rapido Top Floating Turn-by-Turn Maneuver Pill (In-App Live Navigation HUD) */}
           {(stage === "en_route_pickup" || stage === "in_trip") && (
             <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-auto">
-              <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md border border-slate-700/80 text-white shadow-2xl">
+              <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-slate-700/90 text-white shadow-2xl">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center shrink-0 shadow-md">
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 shadow-inner">
                     {nextTurnManeuver === "turn-right" || nextTurnManeuver === "slight-right" ? (
-                      <CornerUpRight className="w-5 h-5 text-[#00C853] stroke-[2.5]" />
+                      <CornerUpRight className="w-5 h-5 text-[#00E676] stroke-[2.5]" />
                     ) : nextTurnManeuver === "turn-left" || nextTurnManeuver === "slight-left" ? (
-                      <CornerUpLeft className="w-5 h-5 text-[#00C853] stroke-[2.5]" />
+                      <CornerUpLeft className="w-5 h-5 text-[#00E676] stroke-[2.5]" />
                     ) : (
-                      <Navigation className="w-5 h-5 text-[#00C853] -rotate-45 stroke-[2.5]" />
+                      <Navigation className="w-5 h-5 text-[#00E676] -rotate-45 stroke-[2.5]" />
                     )}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-sm font-black font-mono text-white">
+                      <span className="text-base font-black font-mono tracking-tight text-white">
                         {nextTurnDistanceM > 1000 ? `${(nextTurnDistanceM / 1000).toFixed(1)} km` : `${nextTurnDistanceM} m`}
                       </span>
-                      <span className="text-[9px] font-black text-[#00C853] uppercase tracking-wider">
+                      <span className="text-[9px] font-black text-[#00E676] uppercase tracking-wider bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-700/60">
                         {stage === "en_route_pickup" ? "To Pickup" : "In-Trip"}
                       </span>
                     </div>
-                    <p className="text-[11px] font-bold text-slate-200 truncate">
+                    <p className="text-[11px] font-bold text-slate-200 truncate mt-0.5">
                       {nextTurnInstruction || `Proceed towards ${activeDestTitle}`}
                     </p>
                   </div>
@@ -1706,11 +1760,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <button
                   type="button"
                   onClick={handleStartInAppNavigation}
-                  className="px-3 py-1.5 rounded-xl bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs shadow-lg flex items-center gap-1 active:scale-95 transition-all shrink-0 border border-emerald-400 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-xs shadow-lg flex items-center gap-1 active:scale-95 transition-all shrink-0 border border-emerald-300 cursor-pointer"
                   title="Open In-App Voice Turn-by-Turn Navigation"
                 >
-                  <Navigation className="w-3 h-3 fill-white stroke-none" />
-                  <span>Navigate</span>
+                  <Navigation className="w-3 h-3 fill-slate-950 stroke-none" />
+                  <span>Voice GPS</span>
                 </button>
               </div>
             </div>
@@ -1719,8 +1773,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           {/* Floating Distance Pill (Over destination pin) */}
           {stage === "en_route_pickup" && (
             <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-12 z-20 pointer-events-none animate-bounce duration-1000">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/95 text-white font-black text-[11px] rounded-full shadow-2xl border border-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-[#00C853] animate-ping" />
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-950/95 text-white font-black text-[11px] rounded-full shadow-2xl border border-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-[#00E676] animate-ping" />
                 <span>{distanceMeters} m away</span>
               </div>
             </div>
@@ -1775,7 +1829,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h2 className="text-base font-black text-zinc-950 leading-tight truncate">
                   {stage === "in_trip" && currentLeg === "pickup_to_store"
                     ? partnerStoreName
@@ -1786,14 +1840,35 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     #{order.orderCode.slice(-4).toUpperCase()}
                   </span>
                 )}
-                <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300">
+                <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-300">
                   ⭐ 4.9
                 </span>
               </div>
 
-              <p className="text-xs font-semibold text-zinc-600 leading-snug mt-1 line-clamp-1">
-                {activeDestAddress}
-              </p>
+              {/* Address with One-Tap Copy Button */}
+              <div className="flex items-center gap-1.5 mt-1">
+                <p className="text-xs font-semibold text-zinc-600 leading-snug line-clamp-1 flex-1">
+                  {activeDestAddress}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleCopyAddress(activeDestAddress)}
+                  className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 hover:text-emerald-700 bg-zinc-100 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-300 px-1.5 py-0.5 rounded transition-all active:scale-95 shrink-0"
+                  title="Copy address"
+                >
+                  {isAddressCopied ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span className="text-emerald-700">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
 
               {/* Status pills row */}
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -1816,26 +1891,40 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             </div>
           </div>
 
-          {/* Quick Contact Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Quick Contact Action Trio: Call, WhatsApp, In-App Chat */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* 1. Phone Call */}
             <button
               type="button"
               onClick={() => setShowCallModal(true)}
-              className="flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-md active:scale-95 transition-all"
+              className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-md active:scale-95 transition-all"
               aria-label="Call Customer / Store"
               title="Call"
             >
-              <Phone className="w-5 h-5 fill-white" />
+              <Phone className="w-4.5 h-4.5 fill-white" />
             </button>
+
+            {/* 2. WhatsApp Direct */}
+            <button
+              type="button"
+              onClick={() => handleOpenWhatsApp(activeDestPhone, activeDestTitle)}
+              className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] active:bg-[#1E9E4F] text-white shadow-md active:scale-95 transition-all"
+              aria-label="WhatsApp Customer / Store"
+              title="Chat on WhatsApp"
+            >
+              <MessageCircle className="w-4.5 h-4.5 fill-white" />
+            </button>
+
+            {/* 3. In-App Chat */}
             <button
               type="button"
               onClick={() => setShowChatModal(true)}
-              className="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white shadow-md active:scale-95 transition-all"
-              aria-label="Open Chat"
-              title="Chat"
+              className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-md active:scale-95 transition-all"
+              aria-label="Open In-App Chat"
+              title="In-App Chat"
             >
-              <MessageSquare className="w-5 h-5 fill-white" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+              <MessageSquare className="w-4.5 h-4.5 fill-white" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
             </button>
           </div>
         </div>
@@ -2732,44 +2821,61 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
       {/* 7. Call Customer Confirmation Modal */}
       {showCallModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white rounded-2xl p-5 shadow-2xl space-y-4 text-center">
-            <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4 text-center border border-zinc-200">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
               <PhoneCall className="w-7 h-7" />
             </div>
 
             <div>
-              <h3 className="text-base font-black text-neutral-900">Call {order.customerName || "Customer"}?</h3>
+              <h3 className="text-base font-black text-neutral-900">Contact {activeDestTitle || order.customerName || "Customer"}</h3>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 mt-2 text-[11px] font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>QuickPress Privacy Shield</span>
               </div>
-              <p className="text-xs font-mono font-bold text-neutral-700 mt-2">{order.customerPhone || "+91 98••• ••210"}</p>
-              <p className="text-[11px] text-neutral-400 mt-0.5">Customer phone number is protected & masked</p>
+              <p className="text-xs font-mono font-bold text-neutral-700 mt-2">{activeDestPhone || order.customerPhone || "+91 98••• ••210"}</p>
+              <p className="text-[11px] text-neutral-400 mt-0.5">Phone number is protected & masked</p>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowCallModal(false)}
-                className="flex-1 h-11 bg-neutral-100 font-bold text-xs rounded-xl text-neutral-700 hover:bg-neutral-200"
-              >
-                Cancel
-              </button>
+            <div className="space-y-2 pt-1">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCallModal(false)}
+                  className="flex-1 h-11 bg-neutral-100 font-bold text-xs rounded-xl text-neutral-700 hover:bg-neutral-200 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCallModal(false);
+                    toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
+                    const phone = activeDestPhone || order.customerPhone;
+                    if (phone && !phone.includes("••")) {
+                      window.open(`tel:${phone.replace(/\s/g, "")}`);
+                    } else {
+                      toast.success("Privacy Call: Patching through via virtual bridge 📞");
+                    }
+                  }}
+                  className="flex-1 h-11 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Phone className="w-4 h-4 fill-white" />
+                  <span>Call Securely</span>
+                </button>
+              </div>
+
+              {/* Direct WhatsApp Button */}
               <button
                 type="button"
                 onClick={() => {
                   setShowCallModal(false);
-                  toast.info("Connecting via QuickPress Privacy Call Bridge (Customer phone is shielded 🔒)");
-                  if (order.customerPhone && !order.customerPhone.includes("••")) {
-                    window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
-                  } else {
-                    toast.success("Privacy Call: Patching through to customer via virtual bridge 📞");
-                  }
+                  handleOpenWhatsApp(activeDestPhone, activeDestTitle);
                 }}
-                className="flex-1 h-11 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl shadow-md shadow-emerald-500/25"
+                className="w-full h-11 bg-[#25D366] hover:bg-[#20BA5A] text-white font-black text-xs rounded-xl shadow-md shadow-green-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
               >
-                Call Securely 📞
+                <MessageCircle className="w-4 h-4 fill-white" />
+                <span>Message on WhatsApp</span>
               </button>
             </div>
           </div>
