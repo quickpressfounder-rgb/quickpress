@@ -108,27 +108,27 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
         className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
       >
         {/* 1. Modal Top Bar */}
-        <div className="px-5 py-4 bg-zinc-950 text-white flex items-center justify-between shrink-0">
+        <div className="px-5 py-4 bg-white border-b border-zinc-200/80 text-zinc-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <div className="flex size-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
               <ShieldCheck className="size-5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-black tracking-tight text-white">KYC Document Viewer</h3>
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/40">
+                <h3 className="text-sm font-black tracking-tight text-zinc-950">KYC Document Viewer</h3>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                   Verified ✓
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-400">Government identity & vehicle proofs</p>
+              <p className="text-[10px] text-zinc-500 font-medium">Government identity & vehicle proofs</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="size-8 flex items-center justify-center rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            className="size-8 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
           >
-            <X className="size-5" />
+            <X className="size-4" />
           </button>
         </div>
 
@@ -213,13 +213,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
             <div className="space-y-3">
               {side === "front" && aadhaarFrontImg ? (
                 <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-md bg-zinc-50">
-                  <div className="p-2 bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-between">
+                  <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-zinc-800 text-[10px] font-bold flex items-center justify-between">
                     <span>Uploaded Aadhaar (Front)</span>
                     <a
                       href={aadhaarFrontImg}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-emerald-400 hover:underline"
+                      className="flex items-center gap-1 text-emerald-700 hover:underline"
                     >
                       <ExternalLink className="size-3" />
                       <span>Full Image</span>
@@ -233,13 +233,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
                 </div>
               ) : side === "back" && aadhaarBackImg ? (
                 <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-md bg-zinc-50">
-                  <div className="p-2 bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-between">
+                  <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-zinc-800 text-[10px] font-bold flex items-center justify-between">
                     <span>Uploaded Aadhaar (Back)</span>
                     <a
                       href={aadhaarBackImg}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-emerald-400 hover:underline"
+                      className="flex items-center gap-1 text-emerald-700 hover:underline"
                     >
                       <ExternalLink className="size-3" />
                       <span>Full Image</span>
@@ -397,13 +397,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
             <div className="space-y-3">
               {panImg ? (
                 <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-md bg-zinc-50">
-                  <div className="p-2 bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-between">
+                  <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-zinc-800 text-[10px] font-bold flex items-center justify-between">
                     <span>Uploaded PAN Card</span>
                     <a
                       href={panImg}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-emerald-400 hover:underline"
+                      className="flex items-center gap-1 text-emerald-700 hover:underline"
                     >
                       <ExternalLink className="size-3" />
                       <span>Full Image</span>
@@ -531,13 +531,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
             <div className="space-y-3">
               {side === "front" && dlFrontImg ? (
                 <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-md bg-zinc-50">
-                  <div className="p-2 bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-between">
+                  <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-zinc-800 text-[10px] font-bold flex items-center justify-between">
                     <span>Uploaded Driving License (Front)</span>
                     <a
                       href={dlFrontImg}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-emerald-400 hover:underline"
+                      className="flex items-center gap-1 text-emerald-700 hover:underline"
                     >
                       <ExternalLink className="size-3" />
                       <span>Full Image</span>
@@ -551,13 +551,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
                 </div>
               ) : side === "back" && dlBackImg ? (
                 <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-md bg-zinc-50">
-                  <div className="p-2 bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-between">
+                  <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-zinc-800 text-[10px] font-bold flex items-center justify-between">
                     <span>Uploaded Driving License (Back)</span>
                     <a
                       href={dlBackImg}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-emerald-400 hover:underline"
+                      className="flex items-center gap-1 text-emerald-700 hover:underline"
                     >
                       <ExternalLink className="size-3" />
                       <span>Full Image</span>
@@ -634,13 +634,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
             <div className="space-y-3">
               {side === "front" && rcFrontImg ? (
                 <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-md bg-zinc-50">
-                  <div className="p-2 bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-between">
+                  <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-zinc-800 text-[10px] font-bold flex items-center justify-between">
                     <span>Uploaded RC Certificate (Front)</span>
                     <a
                       href={rcFrontImg}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-emerald-400 hover:underline"
+                      className="flex items-center gap-1 text-emerald-700 hover:underline"
                     >
                       <ExternalLink className="size-3" />
                       <span>Full Image</span>
@@ -654,13 +654,13 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
                 </div>
               ) : side === "back" && rcBackImg ? (
                 <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-md bg-zinc-50">
-                  <div className="p-2 bg-zinc-900 text-white text-[10px] font-bold flex items-center justify-between">
+                  <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-zinc-800 text-[10px] font-bold flex items-center justify-between">
                     <span>Uploaded RC Certificate (Back)</span>
                     <a
                       href={rcBackImg}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-emerald-400 hover:underline"
+                      className="flex items-center gap-1 text-emerald-700 hover:underline"
                     >
                       <ExternalLink className="size-3" />
                       <span>Full Image</span>
@@ -728,7 +728,7 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
           <button
             type="button"
             onClick={handleDownload}
-            className="flex-1 py-3 bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all cursor-pointer"
+            className="flex-1 py-3 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all cursor-pointer"
           >
             <Download className="size-4" />
             <span>Download Digital Copy</span>
@@ -736,7 +736,7 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-3 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-bold text-xs rounded-xl active:scale-98 transition-all cursor-pointer"
+            className="px-5 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs rounded-xl active:scale-98 transition-all cursor-pointer border border-zinc-200"
           >
             Close
           </button>

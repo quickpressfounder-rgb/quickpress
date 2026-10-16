@@ -209,25 +209,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                     navigate({ to: "/incentives" });
                   },
                 },
-                {
-                  icon: Layers,
-                  title: "Duty Permissions & Floating Bubble 🛵",
-                  sub: "Rapido floating bubble, background GPS & battery setup",
-                  onClick: () => {
-                    onClose();
-                    navigate({ to: "/permissions" });
-                  },
-                },
-                {
-                  icon: Volume2,
-                  title: "Test Radar Alert Siren 🛵🔊",
-                  sub: "High-urgency highway dispatch tone preview",
-                  onClick: () => {
-                    triggerHaptic([100, 50, 100]);
-                    testCaptainAlertSound();
-                    toast.info("Testing High-Urgency Dispatch Radar Siren (4s)... 🛵🔊");
-                  },
-                },
+
                 {
                   icon: ShieldCheck,
                   title: t("profile.guidelines", "Captain Guidelines & SOP"),

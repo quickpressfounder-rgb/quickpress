@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
   ArrowDownLeft,
   ArrowLeft,
@@ -124,6 +124,9 @@ export function RiderWalletScreen() {
   // Active View Tab
   const [activeTab, setActiveTab] = useState<"passbook" | "breakdown" | "weekly" | "settlements">("passbook");
   const [filterTxn, setFilterTxn] = useState<"all" | "credits" | "debits" | "cod_deposits" | "incentives">("all");
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "yesterday" | "this_week" | "this_month" | "custom">("all");
+  const [customDate, setCustomDate] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [settlementOverview, setSettlementOverview] = useState<RiderSettlementOverview | null>(null);
   const [selectedCycleForDetail, setSelectedCycleForDetail] = useState<string | null>(null);
 
@@ -264,14 +267,73 @@ export function RiderWalletScreen() {
     }
   };
 
-  // Filtered Transactions
-  const filteredTransactions = transactions.filter((t) => {
-    if (filterTxn === "credits") return t.direction === "credit" && t.kind !== "incentive" && t.kind !== "cod_deposit";
-    if (filterTxn === "debits") return t.direction === "debit" || t.kind === "withdrawal";
-    if (filterTxn === "cod_deposits") return t.kind === "cod_deposit" || (t.title || "").toLowerCase().includes("cod");
-    if (filterTxn === "incentives") return t.kind === "incentive";
-    return true;
-  });
+  // Filtered Transactions with Type & Date-Wise logic
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      // 1. Transaction Type filter
+      if (filterTxn === "credits" && !(t.direction === "credit" && t.kind !== "incentive" && t.kind !== "cod_deposit")) return false;
+      if (filterTxn === "debits" && !(t.direction === "debit" || t.kind === "withdrawal")) return false;
+      if (filterTxn === "cod_deposits" && !(t.kind === "cod_deposit" || (t.title || "").toLowerCase().includes("cod"))) return false;
+      if (filterTxn === "incentives" && t.kind !== "incentive") return false;
+
+      // 2. Date / Day filter
+      if (dateFilter !== "all") {
+        if (!t.date) return false;
+        const d = new Date(t.date);
+        if (isNaN(d.getTime())) return true;
+        const now = new Date();
+
+        if (dateFilter === "today") {
+          return (
+            d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()
+          );
+        }
+        if (dateFilter === "yesterday") {
+          const yest = new Date(now);
+          yest.setDate(yest.getDate() - 1);
+          return (
+            d.getFullYear() === yest.getFullYear() &&
+            d.getMonth() === yest.getMonth() &&
+            d.getDate() === yest.getDate()
+          );
+        }
+        if (dateFilter === "this_week") {
+          const weekAgo = new Date(now);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return d >= weekAgo && d <= now;
+        }
+        if (dateFilter === "this_month") {
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        }
+        if (dateFilter === "custom" && customDate) {
+          const target = new Date(customDate);
+          if (!isNaN(target.getTime())) {
+            return (
+              d.getFullYear() === target.getFullYear() &&
+              d.getMonth() === target.getMonth() &&
+              d.getDate() === target.getDate()
+            );
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [transactions, filterTxn, dateFilter, customDate]);
+
+  const filteredTotalCredit = useMemo(() => {
+    return filteredTransactions
+      .filter((t) => t.direction === "credit")
+      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  }, [filteredTransactions]);
+
+  const filteredTotalDebit = useMemo(() => {
+    return filteredTransactions
+      .filter((t) => t.direction === "debit")
+      .reduce((acc, t) => acc + Number(t.amount || 0), 0);
+  }, [filteredTransactions]);
 
   // Pure Real Figures — Zero hardcoded mock numbers!
   const availableBalance = Number(wallet?.balance ?? 0);
@@ -282,10 +344,10 @@ export function RiderWalletScreen() {
 
   return (
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-900 select-none font-sans">
-      {/* 1. Header Bar */}
+      {/* 1. Header Bar with Android Status Bar Clearance */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200/70 shadow-2xs"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
         <div className="flex items-center gap-2.5">
           <button
@@ -498,11 +560,11 @@ export function RiderWalletScreen() {
           </div>
         </div>
 
-        {/* 3. NAVIGATION PILL TABS */}
-        <div className="flex items-center p-1 bg-white border border-zinc-200/80 rounded-2xl shadow-2xs">
+        {/* 3. VIEW MODE NAVIGATION (Horizontal Scrollable Tabs) */}
+        <div className="flex items-center gap-1.5 p-1.5 bg-white border border-zinc-200/80 rounded-2xl shadow-2xs overflow-x-auto no-scrollbar">
           {[
-            { id: "passbook", label: t("earnings.passbook") || "Passbook", icon: History },
-            { id: "settlements", label: "Settlements 🏛️", icon: Building2 },
+            { id: "passbook", label: "Passbook & Ledger", icon: History },
+            { id: "settlements", label: "Bank Settlements", icon: Building2 },
             { id: "breakdown", label: "Today's Fares", icon: PieChart },
             { id: "weekly", label: "Weekly Summary", icon: Calendar },
           ].map((tab) => {
@@ -516,13 +578,13 @@ export function RiderWalletScreen() {
                   triggerHaptic();
                   setActiveTab(tab.id as any);
                 }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl transition-all ${
+                className={`flex-1 min-w-[125px] flex items-center justify-center gap-1.5 py-2 px-3 text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                   active
-                    ? "bg-zinc-100 text-black font-black shadow-2xs"
-                    : "text-zinc-600 hover:text-black"
+                    ? "bg-zinc-900 text-white font-black shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-950 font-bold hover:bg-zinc-50"
                 }`}
               >
-                <Icon className={`size-3.5 ${active ? "text-emerald-600" : "text-zinc-400"}`} />
+                <Icon className={`size-3.5 shrink-0 ${active ? "text-emerald-400" : "text-zinc-400"}`} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -532,10 +594,91 @@ export function RiderWalletScreen() {
         {/* TAB 1: PASSBOOK & TRANSACTION LEDGER */}
         {activeTab === "passbook" && (
           <div className="space-y-3">
-            {/* Filter Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-medium no-scrollbar">
+            {/* DATE-WISE / DAY FILTER SECTION */}
+            <div className="bg-white rounded-2xl p-2.5 border border-zinc-200/80 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-black text-zinc-800 flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-emerald-600" />
+                  <span>Filter by Date / Period:</span>
+                </span>
+                {dateFilter !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic();
+                      setDateFilter("all");
+                      setCustomDate("");
+                    }}
+                    className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                  >
+                    Reset Date
+                  </button>
+                )}
+              </div>
+
+              {/* Date Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                {[
+                  { id: "all", label: "All Dates" },
+                  { id: "today", label: "Today" },
+                  { id: "yesterday", label: "Yesterday" },
+                  { id: "this_week", label: "Past 7 Days" },
+                  { id: "this_month", label: "This Month" },
+                  { id: "custom", label: customDate ? `📅 ${customDate}` : "📅 Pick Date" },
+                ].map((df) => {
+                  const active = dateFilter === df.id;
+                  return (
+                    <button
+                      key={df.id}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(20);
+                        if (df.id === "custom") {
+                          setShowDatePicker((prev) => !prev);
+                          setDateFilter("custom");
+                        } else {
+                          setDateFilter(df.id as any);
+                          setShowDatePicker(false);
+                        }
+                      }}
+                      className={`px-3 py-1.5 text-[11px] rounded-xl whitespace-nowrap transition-all cursor-pointer font-bold ${
+                        active
+                          ? "bg-emerald-600 text-white shadow-xs font-black"
+                          : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                      }`}
+                    >
+                      {df.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Date Input (Calendar Picker) */}
+              {(showDatePicker || dateFilter === "custom") && (
+                <div className="pt-2 border-t border-zinc-100 flex items-center gap-2 animate-in fade-in duration-150">
+                  <input
+                    type="date"
+                    value={customDate}
+                    max={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => {
+                      setCustomDate(e.target.value);
+                      setDateFilter("custom");
+                    }}
+                    className="flex-1 p-2 bg-zinc-50 border border-zinc-300 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none focus:border-emerald-500 shadow-2xs"
+                  />
+                  {customDate && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                      Applied ✓
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* TRANSACTION TYPE FILTER CHIPS */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs font-medium no-scrollbar">
               {[
-                { id: "all", label: `All (${transactions.length})` },
+                { id: "all", label: `All (${filteredTransactions.length})` },
                 { id: "credits", label: "Trip Fares (+)" },
                 { id: "debits", label: "Cashouts (-)" },
                 { id: "cod_deposits", label: "COD Settled 💸" },
@@ -544,10 +687,13 @@ export function RiderWalletScreen() {
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => setFilterTxn(f.id as any)}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+                  onClick={() => {
+                    triggerHaptic(20);
+                    setFilterTxn(f.id as any);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all cursor-pointer text-xs ${
                     filterTxn === f.id
-                      ? "bg-[#00C853] text-white font-black shadow-xs"
+                      ? "bg-zinc-900 text-white font-black shadow-xs"
                       : "bg-white text-zinc-700 font-bold border border-zinc-200 hover:bg-zinc-50"
                   }`}
                 >
@@ -555,6 +701,20 @@ export function RiderWalletScreen() {
                 </button>
               ))}
             </div>
+
+            {/* ACTIVE FILTER SUMMARY BAR */}
+            {(dateFilter !== "all" || filterTxn !== "all") && (
+              <div className="flex items-center justify-between px-3.5 py-2 bg-emerald-50/80 border border-emerald-200/90 rounded-2xl text-xs font-bold text-emerald-950">
+                <span>
+                  Filtered: {filteredTransactions.length} {filteredTransactions.length === 1 ? "entry" : "entries"}
+                  {dateFilter !== "all" ? ` (${dateFilter === "custom" && customDate ? customDate : dateFilter})` : ""}
+                </span>
+                <span className="font-black text-emerald-700">
+                  {filteredTotalCredit > 0 ? `+₹${filteredTotalCredit.toFixed(2)}` : ""}
+                  {filteredTotalDebit > 0 ? ` -₹${filteredTotalDebit.toFixed(2)}` : ""}
+                </span>
+              </div>
+            )}
 
             {/* Real Transaction Items */}
             {filteredTransactions.length === 0 ? (

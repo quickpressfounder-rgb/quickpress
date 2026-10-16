@@ -1257,28 +1257,28 @@ export function RiderProfileScreen() {
 
       {/* MODAL 2: OFFICIAL DIGITAL ID CARD MODAL */}
       {showIdCardModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            {/* ID Card Top Header */}
-            <div className="bg-zinc-950 p-4 text-white flex items-center justify-between border-b border-amber-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-zinc-100">
+            {/* ID Card Top Header (Matching White & Amber Theme) */}
+            <div className="bg-white p-4 text-zinc-900 flex items-center justify-between border-b border-zinc-200/80">
               <div className="flex items-center gap-2">
-                <span className="font-black tracking-tight text-base text-amber-400">QuickPress</span>
-                <span className="text-[10px] font-black px-1.5 py-0.5 bg-amber-400 text-zinc-950 rounded">
+                <span className="font-black tracking-tight text-base text-zinc-950">QuickPress</span>
+                <span className="text-[10px] font-black px-2 py-0.5 bg-[#FEF6E9] text-[#784606] border border-[#FCD89C] rounded-full">
                   Captain ID
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowIdCardModal(false)}
-                className="text-zinc-400 hover:text-white"
+                className="size-8 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
               >
-                <X className="size-5" />
+                <X className="size-4" />
               </button>
             </div>
 
             {/* ID Card Body */}
-            <div className="p-5 text-center space-y-3 bg-gradient-to-b from-amber-50/40 to-white">
-              <div className="size-20 rounded-2xl overflow-hidden bg-amber-400 border-4 border-white shadow-lg mx-auto flex items-center justify-center text-zinc-950 font-black text-3xl">
+            <div className="p-5 text-center space-y-3.5 bg-gradient-to-b from-[#FFFDF9] via-white to-white">
+              <div className="size-20 rounded-full overflow-hidden bg-amber-100 border-4 border-amber-300 shadow-md mx-auto flex items-center justify-center text-zinc-950 font-black text-2xl">
                 {displayPhoto ? (
                   <img src={displayPhoto} alt={fullName} className="size-full object-cover" />
                 ) : (
@@ -1288,49 +1288,61 @@ export function RiderProfileScreen() {
 
               <div>
                 <h3 className="text-lg font-black text-zinc-950">{fullName}</h3>
-                <p className="text-xs font-mono font-bold text-zinc-600">ID: {formatCaptainId(riderId)}</p>
-                <p className="text-[11px] font-bold text-emerald-700 bg-emerald-100 inline-block px-2.5 py-0.5 rounded-full mt-1">
+                <p className="text-xs font-mono font-bold text-zinc-600 mt-0.5">ID: {formatCaptainId(riderId)}</p>
+                <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 inline-block px-3 py-0.5 rounded-full mt-1.5 shadow-2xs">
                   ✓ Verified QuickPress Captain
                 </p>
               </div>
 
-              <div className="p-3 bg-white border border-zinc-200 rounded-xl text-left space-y-1.5 text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Vehicle:</span>
+              <div className="p-3.5 bg-zinc-50 border border-zinc-200/80 rounded-2xl text-left space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500 font-medium">Vehicle:</span>
                   <span className="font-mono font-black text-zinc-900">
                     {vehicleNumber || "Not Registered"}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">City Hub:</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500 font-medium">City Hub:</span>
                   <span className="font-black text-zinc-900">{city}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Status:</span>
-                  <span className="font-bold text-emerald-600">Active Duty Captain ✓</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500 font-medium">Duty Status:</span>
+                  <span className="font-bold text-emerald-600 flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Active Duty Captain ✓</span>
+                  </span>
                 </div>
               </div>
 
-              <div className="p-3 bg-zinc-50 rounded-xl border border-dashed border-zinc-300 flex items-center justify-center gap-3">
-                <QrCode className="size-12 text-zinc-900" />
+              <div className="p-3 bg-zinc-50/80 rounded-2xl border border-dashed border-zinc-300 flex items-center justify-center gap-3">
+                <QrCode className="size-11 text-zinc-900 shrink-0" />
                 <div className="text-left text-[10px] text-zinc-500">
                   <p className="font-black text-zinc-900">Authorized Courier Badge</p>
-                  <p>Scan to verify captain identity with QuickPress Logistics.</p>
+                  <p className="leading-tight mt-0.5">Scan to verify captain identity with QuickPress Logistics.</p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  toast.success("Captain ID Card downloaded! 🪪");
-                  setShowIdCardModal(false);
-                }}
-                className="w-full py-3 bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all"
-              >
-                <Download className="size-4" />
-                <span>Download Digital Badge</span>
-              </button>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic();
+                    toast.success("Captain ID Card downloaded! 🪪");
+                    setShowIdCardModal(false);
+                  }}
+                  className="flex-1 py-3 bg-[#00C853] hover:bg-[#00B248] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md cursor-pointer"
+                >
+                  <Download className="size-4" />
+                  <span>Download Digital Badge</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowIdCardModal(false)}
+                  className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs rounded-xl active:scale-98 transition-all cursor-pointer border border-zinc-200"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
