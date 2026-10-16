@@ -63,8 +63,13 @@ function getPartnerCredentials() {
   return { partnerId, phone, userId, token };
 }
 
-function joinPartnerRooms(sock: Socket, partnerId: string, phone: string, userId: string) {
+let lastJoinedRoomsKey = "";
+
+function joinPartnerRooms(sock: Socket, partnerId: string, phone: string, userId: string, force = false) {
   if (!sock || !sock.connected) return;
+  const key = `${sock.id}:${partnerId}:${phone}:${userId}`;
+  if (!force && lastJoinedRoomsKey === key) return;
+  lastJoinedRoomsKey = key;
   console.log("[PartnerSocket] ⚡ Joining partner realtime rooms:", { partnerId, phone, userId });
 
   // Join global partners channel
@@ -198,6 +203,7 @@ export function initPartnerSocket(): Socket | null {
       socket.on("partner.online_status", handleStatus);
 
       socket.on("disconnect", (reason) => {
+        lastJoinedRoomsKey = "";
         console.log("[PartnerSocket] Disconnected from gateway:", reason);
       });
     } else {

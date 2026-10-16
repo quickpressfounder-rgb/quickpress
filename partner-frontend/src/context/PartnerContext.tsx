@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -156,6 +157,8 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   // Token refresh: keeps the access token valid while the app stays open.
   useEffect(() => startPartnerAutoRefresh(), []);
 
+  const activeToggleAbortRef = useRef<AbortController | null>(null);
+
   const setOnline = useCallback((next: boolean) => {
     // 1. Instant optimistic state update (< 1ms)
     setIsOnlineState(next);
@@ -165,9 +168,18 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
         window.dispatchEvent(new CustomEvent("qp:partner-status-updated", { detail: { isOnline: next } }));
       } catch {}
     }
-    // 2. Background server persistence (non-blocking)
-    toggleStoreStatus(next).catch((err) => {
-      console.warn("[PartnerContext] Failed to persist store status:", err);
+
+    // 2. Abort prior in-flight toggle if user clicked rapidly
+    if (activeToggleAbortRef.current) {
+      activeToggleAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    activeToggleAbortRef.current = controller;
+
+    // 3. Background server persistence with graceful catch
+    toggleStoreStatus(next, controller.signal).catch((err: any) => {
+      if (err?.name === "AbortError" || controller.signal.aborted) return;
+      console.warn("[PartnerContext] Background store status sync:", err?.message || err);
     });
   }, []);
 

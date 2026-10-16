@@ -22,6 +22,30 @@ let isAudioActive = false;
 let cachedPartnerWavUrl: string | null = null;
 let wakeLockSentinel: any = null;
 
+let hasUserInteracted = false;
+if (typeof window !== "undefined") {
+  const markInteracted = () => {
+    hasUserInteracted = true;
+    window.removeEventListener("pointerdown", markInteracted);
+    window.removeEventListener("touchstart", markInteracted);
+    window.removeEventListener("click", markInteracted);
+    window.removeEventListener("keydown", markInteracted);
+  };
+  window.addEventListener("pointerdown", markInteracted, { passive: true });
+  window.addEventListener("touchstart", markInteracted, { passive: true });
+  window.addEventListener("click", markInteracted, { passive: true });
+  window.addEventListener("keydown", markInteracted, { passive: true });
+}
+
+function safeVibrate(pattern: number | number[]): void {
+  if (!hasUserInteracted) return;
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    try {
+      navigator.vibrate(pattern);
+    } catch {}
+  }
+}
+
 function getAudioContext(): AudioContext | null {
   try {
     if (typeof window === "undefined") return null;
@@ -262,11 +286,7 @@ function getPartnerChimeWavUrl(): string {
  * Triggers intense commercial merchant haptic vibration.
  */
 export function triggerPartnerHaptic(): void {
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    try {
-      navigator.vibrate([350, 100, 350, 100, 600, 150, 600]);
-    } catch {}
-  }
+  safeVibrate([350, 100, 350, 100, 600, 150, 600]);
 }
 
 /**
@@ -397,11 +417,7 @@ export function stopPartnerOrderAlertRing(): void {
   }
 
   // 4. Kill Vibration
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    try {
-      navigator.vibrate(0);
-    } catch {}
-  }
+  safeVibrate(0);
 }
 
 /**
@@ -440,11 +456,7 @@ export function playPartnerOrderAcceptedTone(): void {
       osc.stop(now + start + duration);
     });
 
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      try {
-        navigator.vibrate([80, 40, 120]);
-      } catch {}
-    }
+    safeVibrate([80, 40, 120]);
   } catch {}
 }
 
@@ -473,11 +485,7 @@ export function playUrgentSlaBuzzer(): void {
       osc.start(now + offset);
       osc.stop(now + offset + 0.1);
     });
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      try {
-        navigator.vibrate([150, 60, 150, 60, 150]);
-      } catch {}
-    }
+    safeVibrate([150, 60, 150, 60, 150]);
   } catch {}
 }
 

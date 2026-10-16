@@ -155,10 +155,11 @@ export async function uploadPartnerGalleryPhoto(image: string): Promise<{ url: s
   return apiPostJson<{ url: string; field: string }>("/api/uploads/partner/gallery", { image });
 }
 
-export async function toggleStoreStatus(isOnline: boolean): Promise<PartnerProfile> {
+export async function toggleStoreStatus(isOnline: boolean, signal?: AbortSignal): Promise<PartnerProfile> {
   return apiRequest<PartnerProfile>("PATCH", "/api/partner/store/status", {
     body: { isOnline },
-    timeoutMs: 30000,
+    timeoutMs: 25000,
+    signal,
   });
 }
 
