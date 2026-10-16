@@ -36,9 +36,7 @@ def main():
     print("============================================================")
 
     apks_dir = os.path.join(ROOT_DIR, "apks")
-    release_apks_dir = os.path.join(ROOT_DIR, "release-apks")
     os.makedirs(apks_dir, exist_ok=True)
-    os.makedirs(release_apks_dir, exist_ok=True)
 
     # 1. CUSTOMER APP
     print("\n--- [1/3] Building Customer App ---")
@@ -52,13 +50,8 @@ def main():
 
     cust_apk_src = os.path.join(cust_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(cust_apk_src):
-        shutil.copy2(cust_apk_src, os.path.join(ROOT_DIR, "QuickPress-Customer.apk"))
         shutil.copy2(cust_apk_src, os.path.join(apks_dir, "QuickPress-Customer.apk"))
-        shutil.copy2(cust_apk_src, os.path.join(release_apks_dir, "quickpress-customer.apk"))
-        for ad in (ARTIFACT_DIR, *OLD_ARTIFACT_DIRS):
-            if os.path.exists(ad):
-                shutil.copy2(cust_apk_src, os.path.join(ad, "QuickPress-Customer.apk"))
-        print(f"✓ Customer APK updated: {os.path.getsize(cust_apk_src)} bytes")
+        print(f"✓ Customer APK updated: {os.path.getsize(cust_apk_src)} bytes in apks/QuickPress-Customer.apk")
     else:
         raise RuntimeError("Customer APK build artifact not found!")
 
@@ -74,13 +67,8 @@ def main():
 
     part_apk_src = os.path.join(part_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(part_apk_src):
-        shutil.copy2(part_apk_src, os.path.join(ROOT_DIR, "QuickPress-Partner.apk"))
         shutil.copy2(part_apk_src, os.path.join(apks_dir, "QuickPress-Partner.apk"))
-        shutil.copy2(part_apk_src, os.path.join(release_apks_dir, "quickpress-partner.apk"))
-        for ad in (ARTIFACT_DIR, *OLD_ARTIFACT_DIRS):
-            if os.path.exists(ad):
-                shutil.copy2(part_apk_src, os.path.join(ad, "QuickPress-Partner.apk"))
-        print(f"✓ Partner APK updated: {os.path.getsize(part_apk_src)} bytes")
+        print(f"✓ Partner APK updated: {os.path.getsize(part_apk_src)} bytes in apks/QuickPress-Partner.apk")
     else:
         raise RuntimeError("Partner APK build artifact not found!")
 
@@ -96,13 +84,8 @@ def main():
 
     rdr_apk_src = os.path.join(rdr_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(rdr_apk_src):
-        shutil.copy2(rdr_apk_src, os.path.join(ROOT_DIR, "QuickPress-Captain.apk"))
         shutil.copy2(rdr_apk_src, os.path.join(apks_dir, "QuickPress-Captain.apk"))
-        shutil.copy2(rdr_apk_src, os.path.join(release_apks_dir, "quickpress-rider-captain.apk"))
-        for ad in (ARTIFACT_DIR, *OLD_ARTIFACT_DIRS):
-            if os.path.exists(ad):
-                shutil.copy2(rdr_apk_src, os.path.join(ad, "QuickPress-Captain.apk"))
-        print(f"✓ Rider APK updated: {os.path.getsize(rdr_apk_src)} bytes")
+        print(f"✓ Rider APK updated: {os.path.getsize(rdr_apk_src)} bytes in apks/QuickPress-Captain.apk")
     else:
         raise RuntimeError("Rider APK build artifact not found!")
 
