@@ -40,6 +40,7 @@ export type CustomerOrderRealtime = {
 export function useCustomerOrderRealtime(
   orderId: string | null | undefined,
   customerId?: string | null,
+  orderCode?: string | null,
 ): CustomerOrderRealtime {
   const [statusState, setStatusState] = useState<{
     status: string | null;
@@ -51,13 +52,18 @@ export function useCustomerOrderRealtime(
 
   useRealtimeRoom([
     orderId ? rooms.order(orderId) : "",
+    orderCode && orderCode !== orderId ? rooms.order(orderCode) : "",
     customerId ? rooms.customer(customerId) : "",
   ]);
 
   const onOrderEvent = useCallback(
     (payload: AnyRealtimePayload, event: string) => {
-      const order = payload as OrderEventPayload;
-      if (orderId && order.orderId && order.orderId !== orderId) return;
+      const order = payload as any;
+      const targetId = order?.orderId || order?.id || order?.orderCode || order?.code;
+      if (orderId && targetId) {
+        const matches = targetId === orderId || (orderCode && targetId === orderCode);
+        if (!matches) return;
+      }
       setStatusState({
         status: order.status ?? event.replace("order.", ""),
         etaMinutes: order.etaMinutes ?? null,
@@ -77,14 +83,19 @@ export function useCustomerOrderRealtime(
         ];
       });
     },
-    [orderId],
+    [orderId, orderCode],
   );
 
   useRealtimeEvent(ORDER_LIFECYCLE_EVENTS as string[], onOrderEvent);
 
   useRealtimeEvent([SOCKET_EVENTS.locationUpdated, "captain_location_update", "rider.location"], (payload) => {
     const location = payload as any;
-    if (orderId && location.orderId && location.orderId !== orderId) return;
+    if (!location) return;
+    const targetOrderId = location.orderId || location.id || location.orderCode || location.code;
+    if (orderId && targetOrderId) {
+      const matches = targetOrderId === orderId || (orderCode && targetOrderId === orderCode);
+      if (!matches) return;
+    }
     const lat = Number(location.lat ?? location.latitude ?? location.coords?.lat);
     const lng = Number(location.lng ?? location.longitude ?? location.coords?.lng);
     if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
@@ -92,7 +103,7 @@ export function useCustomerOrderRealtime(
         lat,
         lng,
         ...(location.heading === undefined ? {} : { heading: Number(location.heading) }),
-        at: location.at ?? new Date().toISOString(),
+        at: location.at ?? location.updatedAt ?? new Date().toISOString(),
       });
     }
   });

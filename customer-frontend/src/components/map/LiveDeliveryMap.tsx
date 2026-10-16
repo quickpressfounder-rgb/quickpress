@@ -321,6 +321,15 @@ export function LiveDeliveryMap({
           </button>
         </div>
       ) : null}
+      <style>{`
+        .custom-rider-icon {
+          transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), top 0.6s ease-out, left 0.6s ease-out;
+          will-change: transform;
+        }
+        .custom-rider-icon-inner {
+          transition: transform 0.4s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

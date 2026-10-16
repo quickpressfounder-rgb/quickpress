@@ -41,6 +41,7 @@ class RiderLocationEngine {
   private watchId: number | null = null;
   private isOnline = false;
   private activeOrderId: string | null = null;
+  private activeOrderCode: string | null = null;
 
   private currentData: RiderLocationData = {
     lat: 0,
@@ -79,9 +80,27 @@ class RiderLocationEngine {
     }
   }
 
-  public setActiveOrder(orderId: string | null) {
+  public setActiveOrder(orderId: string | null, orderCode?: string | null) {
     this.activeOrderId = orderId;
+    this.activeOrderCode = orderCode || null;
+    if (orderId && this.currentData.lat && this.currentData.lng) {
+      this.forceEmitLocation(orderId, orderCode || undefined);
+    }
   }
+
+  public forceEmitLocation(orderId?: string, orderCode?: string) {
+    if (this.currentData.lat && this.currentData.lng) {
+      emitRiderLocation({
+        lat: this.currentData.lat,
+        lng: this.currentData.lng,
+        orderId: orderId || this.activeOrderId || undefined,
+        orderCode: orderCode || this.activeOrderCode || undefined,
+        heading: this.currentData.heading ?? undefined,
+        speed: this.currentData.speed ?? undefined,
+      });
+    }
+  }
+
 
   public getCurrentLocation(): RiderLocationData {
     return this.currentData;
@@ -175,13 +194,14 @@ class RiderLocationEngine {
 
     if (!this.isOnline) return;
 
-    // 2. Throttled Socket.IO broadcast during active delivery (max once per 3500ms)
-    if (this.activeOrderId && now - this.lastSocketEmitTime >= 3500) {
+    // 2. Throttled Socket.IO broadcast during active delivery (max once per 3000ms)
+    if (this.activeOrderId && now - this.lastSocketEmitTime >= 3000) {
       this.lastSocketEmitTime = now;
       emitRiderLocation({
         lat: latitude,
         lng: longitude,
         orderId: this.activeOrderId,
+        orderCode: this.activeOrderCode || undefined,
         heading: heading ?? undefined,
         speed: speed ?? undefined,
       });

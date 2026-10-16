@@ -274,6 +274,7 @@ export function emitRiderLocation(data: {
   lat: number;
   lng: number;
   orderId?: string;
+  orderCode?: string;
   heading?: number;
   speed?: number;
 }): void {
@@ -290,6 +291,9 @@ export function emitRiderLocation(data: {
   const payload = {
     riderId,
     orderId: data.orderId,
+    orderCode: data.orderCode,
+    id: data.orderId,
+    code: data.orderCode,
     coords: { lat: data.lat, lng: data.lng },
     lat: data.lat,
     lng: data.lng,
@@ -297,9 +301,13 @@ export function emitRiderLocation(data: {
     longitude: data.lng,
     heading: data.heading,
     speed: data.speed,
+    at: new Date().toISOString(),
   };
 
   s.emit("update_location", payload);
   s.emit("captain_location_update", payload);
+  s.emit("location.update", payload);
+  s.emit("rider.location", payload);
 }
+
 

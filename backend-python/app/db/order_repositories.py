@@ -172,13 +172,34 @@ class OrderRepository:
         }
         # Enrich rider coordinates if present on document
         rider_dict = data.get("rider")
-        if isinstance(rider_dict, dict) and rider_dict:
+        rider_loc = data.get("riderLocation")
+        r_lat = None
+        r_lng = None
+        if isinstance(rider_loc, dict) and rider_loc:
+            r_lat = rider_loc.get("lat") or rider_loc.get("latitude")
+            r_lng = rider_loc.get("lng") or rider_loc.get("longitude")
+        elif isinstance(rider_dict, dict) and rider_dict:
             r_lat = rider_dict.get("lat") or rider_dict.get("latitude")
             r_lng = rider_dict.get("lng") or rider_dict.get("longitude")
-            if r_lat is not None and r_lng is not None:
-                rider_dict["latitude"] = float(r_lat)
-                rider_dict["longitude"] = float(r_lng)
-                rider_dict["location"] = {"latitude": float(r_lat), "longitude": float(r_lng)}
+
+        if r_lat is not None and r_lng is not None:
+            r_lat_f = float(r_lat)
+            r_lng_f = float(r_lng)
+            if not isinstance(rider_dict, dict):
+                rider_dict = {}
+                data["rider"] = rider_dict
+            rider_dict["latitude"] = r_lat_f
+            rider_dict["longitude"] = r_lng_f
+            rider_dict["location"] = {"latitude": r_lat_f, "longitude": r_lng_f}
+            data["riderLocation"] = {
+                "lat": r_lat_f,
+                "lng": r_lng_f,
+                "latitude": r_lat_f,
+                "longitude": r_lng_f,
+                "heading": (rider_loc or {}).get("heading") or (rider_dict or {}).get("heading"),
+                "speed": (rider_loc or {}).get("speed") or (rider_dict or {}).get("speed"),
+                "updatedAt": (rider_loc or {}).get("updatedAt") or data.get("updatedAt"),
+            }
 
         # Enrich SLA deadlines and remaining seconds
         deadlines = lifecycle.compute_order_deadlines(data)
@@ -265,10 +286,19 @@ class OrderRepository:
                 document["riderId"] = resolved["id"]
                 document["rider_id"] = resolved["id"]
                 if resolved.get("latitude") is not None and resolved.get("longitude") is not None:
+                    lat_f = float(resolved["latitude"])
+                    lng_f = float(resolved["longitude"])
                     document["rider"]["location"] = {
-                        "latitude": float(resolved["latitude"]),
-                        "longitude": float(resolved["longitude"]),
+                        "latitude": lat_f,
+                        "longitude": lng_f,
                     }
+                    if not document.get("riderLocation"):
+                        document["riderLocation"] = {
+                            "lat": lat_f,
+                            "lng": lng_f,
+                            "latitude": lat_f,
+                            "longitude": lng_f,
+                        }
         except Exception as e:
             logger.debug("Failed to enrich rider profile: %s", e)
 

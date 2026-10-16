@@ -161,9 +161,11 @@ async def location_update(sid: str, data: dict) -> None:
 
 async def _handle_location_update(sid: str, data: dict) -> None:
     from datetime import datetime, timezone
+    from app.db.client import database
     data = data or {}
-    rider_id = data.get("riderId")
-    order_id = data.get("orderId")
+    rider_id = data.get("riderId") or data.get("rider_id")
+    order_id = data.get("orderId") or data.get("order_id")
+    order_code = data.get("orderCode") or data.get("order_code") or data.get("code")
     coords = data.get("coords") or {
         "lat": data.get("lat") or data.get("latitude"),
         "lng": data.get("lng") or data.get("longitude"),
@@ -174,9 +176,76 @@ async def _handle_location_update(sid: str, data: dict) -> None:
     speed = data.get("speed")
     now_iso = datetime.now(timezone.utc).isoformat()
 
+    # Look up active order document in customer_orders
+    active_order = None
+    query_clauses = []
+    if order_id:
+        query_clauses.extend([
+            {"_id": str(order_id)},
+            {"id": str(order_id)},
+            {"orderId": str(order_id)},
+            {"orderCode": str(order_id)},
+            {"code": str(order_id)},
+        ])
+    if order_code:
+        query_clauses.extend([
+            {"orderCode": str(order_code)},
+            {"code": str(order_code)},
+            {"_id": str(order_code)},
+        ])
+    
+    if query_clauses:
+        try:
+            active_order = await database.find_one("customer_orders", {"$or": query_clauses})
+        except Exception:
+            active_order = None
+
+    if not active_order and rider_id:
+        try:
+            active_order = await database.find_one(
+                "customer_orders",
+                {
+                    "$or": [
+                        {"riderId": str(rider_id)},
+                        {"rider_id": str(rider_id)},
+                        {"assignedRiderId": str(rider_id)},
+                        {"rider.id": str(rider_id)},
+                        {"rider.riderId": str(rider_id)},
+                    ],
+                    "status": {
+                        "$nin": ["delivered", "cancelled", "completed", "refunded"]
+                    },
+                },
+            )
+        except Exception:
+            active_order = None
+
+    # Fallback to rides collection if active_order is not in customer_orders
+    if not active_order and rider_id:
+        try:
+            active_ride = await database.find_one(
+                "rides",
+                {
+                    "riderId": str(rider_id),
+                    "status": {"$in": ["ACCEPTED", "STARTED", "ARRIVED", "IN_PROGRESS", "PICKED_UP", "OUT_FOR_DELIVERY"]},
+                },
+            )
+            if active_ride and active_ride.get("orderId"):
+                order_id = str(active_ride["orderId"])
+        except Exception:
+            pass
+
+    o_id = str(active_order.get("_id") or active_order.get("id") or order_id or "") if active_order else str(order_id or "")
+    o_code = str(active_order.get("orderCode") or active_order.get("code") or order_code or "") if active_order else str(order_code or "")
+    c_id = str(active_order.get("userId") or (active_order.get("customer") or {}).get("id") or "") if active_order else ""
+    p_id = str((active_order.get("partner") or {}).get("id") or active_order.get("partnerId") or "") if active_order else ""
+
     payload = {
-        "riderId": rider_id,
-        "orderId": order_id,
+        "riderId": str(rider_id) if rider_id else None,
+        "orderId": o_id or o_code,
+        "orderCode": o_code or o_id,
+        "id": o_id or o_code,
+        "code": o_code or o_id,
         "coords": {"lat": lat, "lng": lng},
         "lat": lat,
         "lng": lng,
@@ -188,42 +257,77 @@ async def _handle_location_update(sid: str, data: dict) -> None:
         "updatedAt": now_iso,
     }
 
-    # If order_id not explicitly given, try to find active ride for this rider
-    if not order_id and rider_id:
+    # 1. Update customer_orders in database so REST endpoints and page reloads have fresh telemetry
+    if active_order and lat is not None and lng is not None:
         try:
-            from app.db.client import database
-            active_ride = await database.find_one(
-                "rides",
-                {"riderId": str(rider_id), "status": {"$in": ["ACCEPTED", "STARTED", "ARRIVED", "IN_PROGRESS", "PICKED_UP", "OUT_FOR_DELIVERY"]}}
-            )
-            if active_ride and active_ride.get("orderId"):
-                order_id = active_ride["orderId"]
-                payload["orderId"] = order_id
-        except Exception:
-            pass
+            loc_update = {
+                "riderLocation": {
+                    "lat": lat,
+                    "lng": lng,
+                    "latitude": lat,
+                    "longitude": lng,
+                    "heading": heading,
+                    "speed": speed,
+                    "updatedAt": now_iso,
+                },
+                "rider.latitude": lat,
+                "rider.longitude": lng,
+                "rider.location": {"latitude": lat, "longitude": lng},
+            }
+            await database.update("customer_orders", {"_id": active_order["_id"]}, loc_update)
+        except Exception as exc:
+            logger.debug("Failed to update rider location in customer_orders: %s", exc)
 
-    if order_id:
-        await sio.emit(EVENT_LOCATION_UPDATED, payload, room=f"order:{order_id}")
-        await sio.emit("captain_location_update", payload, room=f"order:{order_id}")
-
-    if rider_id:
-        await sio.emit(EVENT_LOCATION_UPDATED, payload, room=f"rider:{rider_id}")
-        await sio.emit("captain_location_update", payload, room=f"rider:{rider_id}")
-
-    # Also broadcast to admins telemetry room
-    await sio.emit(EVENT_LOCATION_UPDATED, payload, room="admins")
-    await sio.emit("captain_location_update", payload, room="admins")
-
-    # Update database location asynchronously
+    # 2. Update rider profile and live locations
     if rider_id and lat is not None and lng is not None:
         try:
-            from app.db.client import database
-            await database.collection("rider_profiles").update_one(
-                {"_id": str(rider_id)},
-                {"$set": {"latitude": lat, "longitude": lng, "lastLocationAt": now_iso}},
+            await database.update(
+                "rider_profiles",
+                {"$or": [{"_id": str(rider_id)}, {"riderId": str(rider_id)}]},
+                {"latitude": lat, "longitude": lng, "lat": lat, "lng": lng, "heading": heading, "speed": speed, "lastLocationAt": now_iso},
+                upsert=True,
             )
-        except Exception:
-            pass
+            await database.update(
+                "live_locations",
+                {"_id": f"rider:{rider_id}"},
+                {
+                    "kind": "rider",
+                    "latitude": lat,
+                    "longitude": lng,
+                    "heading": heading,
+                    "speedKmph": float(speed * 3.6) if speed else 0.0,
+                    "status": "online",
+                    "updatedAt": now_iso,
+                },
+                upsert=True,
+            )
+        except Exception as exc:
+            logger.debug("Failed to update rider_profiles / live_locations: %s", exc)
+
+    # 3. Broadcast to all relevant order rooms (by ID and by Code)
+    target_rooms = set()
+    if o_id:
+        target_rooms.add(f"order:{o_id}")
+    if o_code:
+        target_rooms.add(f"order:{o_code}")
+    if c_id:
+        target_rooms.add(f"customer:{c_id}")
+    if p_id:
+        target_rooms.add(f"partner:{p_id}")
+    if rider_id:
+        target_rooms.add(f"rider:{rider_id}")
+
+    for room_name in target_rooms:
+        await sio.emit(EVENT_LOCATION_UPDATED, payload, room=room_name)
+        await sio.emit("captain_location_update", payload, room=room_name)
+        await sio.emit("rider.location", payload, room=room_name)
+
+    # Broadcast to admin & partner telemetry rooms
+    await sio.emit(EVENT_LOCATION_UPDATED, payload, room="admins")
+    await sio.emit("captain_location_update", payload, room="admins")
+    await sio.emit("rider.location", payload, room="admins")
+    await sio.emit(EVENT_LOCATION_UPDATED, payload, room="partners")
+    await sio.emit("captain_location_update", payload, room="partners")
 
 
 async def broadcast_rider_status(

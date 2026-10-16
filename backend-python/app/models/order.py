@@ -171,6 +171,7 @@ class OrderResponse(BaseModel):
     riderExpressBonus: Optional[float] = 0.0
     expressPartnerSharePercent: Optional[float] = 20.0
     expressRiderSharePercent: Optional[float] = 80.0
+    riderLocation: Optional[Dict[str, Any]] = None
 
 
 class PlaceOrderResponse(BaseModel):

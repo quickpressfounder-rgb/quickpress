@@ -563,7 +563,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   // Track Captain's real-time device GPS coordinates via Singleton Engine & native Geolocation
   useEffect(() => {
-    riderLocationEngine.setActiveOrder(order.orderId);
+    riderLocationEngine.setActiveOrder(order.orderId, order.orderCode);
     riderLocationEngine.setOnline(true);
 
     const unsubscribe = riderLocationEngine.subscribe((loc) => {
@@ -586,6 +586,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             try {
               localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat, lng }));
             } catch {}
+            emitRiderLocation({
+              lat,
+              lng,
+              orderId: order.orderId,
+              orderCode: order.orderCode,
+              heading: pos.coords.heading ?? undefined,
+              speed: pos.coords.speed ?? undefined,
+            });
+            void pushRiderLocation(lat, lng, {
+              heading: pos.coords.heading ?? undefined,
+              speed: pos.coords.speed ?? undefined,
+            }).catch(() => undefined);
           }
         },
         (err) => console.warn("GPS initial error:", err),
@@ -601,6 +613,14 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             try {
               localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat, lng }));
             } catch {}
+            emitRiderLocation({
+              lat,
+              lng,
+              orderId: order.orderId,
+              orderCode: order.orderCode,
+              heading: pos.coords.heading ?? undefined,
+              speed: pos.coords.speed ?? undefined,
+            });
           }
         },
         (err) => console.warn("GPS watch error:", err),
@@ -608,14 +628,33 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       );
     }
 
+    // Heartbeat: Ensure rider GPS location is sent to backend / customer every 4 seconds during active delivery
+    const locationHeartbeat = setInterval(() => {
+      try {
+        const cached = localStorage.getItem("qp_rider_last_gps");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.lat && parsed?.lng) {
+            emitRiderLocation({
+              lat: parsed.lat,
+              lng: parsed.lng,
+              orderId: order.orderId,
+              orderCode: order.orderCode,
+            });
+          }
+        }
+      } catch {}
+    }, 4000);
+
     return () => {
       unsubscribe();
+      clearInterval(locationHeartbeat);
       if (watchId !== null && typeof window !== "undefined" && "geolocation" in navigator) {
         navigator.geolocation.clearWatch(watchId);
       }
       riderLocationEngine.setActiveOrder(null);
     };
-  }, [order.orderId]);
+  }, [order.orderId, order.orderCode]);
 
   const customerCoords = order.customerCoords || order.pickupCoords || order.dropCoords || captainCoords || { lat: 28.6139, lng: 77.2090 };
   const storeCoords = order.partnerCoords || (order.rideType === "pickup" ? (order.dropCoords || customerCoords) : (order.pickupCoords || customerCoords));

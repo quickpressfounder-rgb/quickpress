@@ -1581,15 +1581,51 @@ async def push_location(body: dict, user: User = Depends(current_user)) -> dict:
         from app.services.socket_service import EVENT_LOCATION_UPDATED, sio
         active_orders = await database.find_many(
             lifecycle.ORDERS,
-            {"rider.id": rider_id, "status": {"$nin": ["delivered", "cancelled"]}},
+            {
+                "$or": [
+                    {"rider.id": rider_id},
+                    {"riderId": rider_id},
+                    {"rider_id": rider_id},
+                    {"assignedRiderId": rider_id},
+                ],
+                "status": {"$nin": ["delivered", "cancelled", "completed", "refunded"]},
+            },
         )
         for ord_doc in active_orders:
             o_id = str(ord_doc.get("_id") or ord_doc.get("id") or "")
+            o_code = str(ord_doc.get("orderCode") or ord_doc.get("code") or "")
             u_id = str(ord_doc.get("userId") or (ord_doc.get("customer") or {}).get("id") or "")
             p_id = str((ord_doc.get("partner") or {}).get("id") or ord_doc.get("partnerId") or "")
+            
+            # Persist latest live GPS to the order document
+            try:
+                await database.update(
+                    lifecycle.ORDERS,
+                    {"_id": ord_doc["_id"]},
+                    {
+                        "riderLocation": {
+                            "lat": lat_f,
+                            "lng": lng_f,
+                            "latitude": lat_f,
+                            "longitude": lng_f,
+                            "heading": heading,
+                            "speed": speed,
+                            "updatedAt": now_iso,
+                        },
+                        "rider.latitude": lat_f,
+                        "rider.longitude": lng_f,
+                        "rider.location": {"latitude": lat_f, "longitude": lng_f},
+                    },
+                )
+            except Exception:
+                pass
+
             loc_payload = {
                 "riderId": rider_id,
-                "orderId": o_id,
+                "orderId": o_id or o_code,
+                "orderCode": o_code or o_id,
+                "id": o_id or o_code,
+                "code": o_code or o_id,
                 "lat": lat_f,
                 "lng": lng_f,
                 "latitude": lat_f,
@@ -1598,43 +1634,40 @@ async def push_location(body: dict, user: User = Depends(current_user)) -> dict:
                 "speed": speed,
                 "accuracy": accuracy,
                 "at": now_iso,
+                "updatedAt": now_iso,
             }
-            if o_id:
-                await sio.emit(EVENT_LOCATION_UPDATED, loc_payload, room=f"order:{o_id}")
-            if u_id:
-                await sio.emit(EVENT_LOCATION_UPDATED, loc_payload, room=f"customer:{u_id}")
-            if p_id:
-                await sio.emit(EVENT_LOCATION_UPDATED, loc_payload, room=f"partner:{p_id}")
-        
-        await sio.emit(
-            EVENT_LOCATION_UPDATED,
-            {
-                "riderId": rider_id,
-                "lat": lat_f,
-                "lng": lng_f,
-                "latitude": lat_f,
-                "longitude": lng_f,
-                "heading": heading,
-                "speed": speed,
-                "at": now_iso,
-            },
-            room="partners",
-        )
 
-        await sio.emit(
-            EVENT_LOCATION_UPDATED,
-            {
-                "riderId": rider_id,
-                "lat": lat_f,
-                "lng": lng_f,
-                "latitude": lat_f,
-                "longitude": lng_f,
-                "heading": heading,
-                "speed": speed,
-                "at": now_iso,
-            },
-            room="admins",
-        )
+            target_rooms = set()
+            if o_id:
+                target_rooms.add(f"order:{o_id}")
+            if o_code:
+                target_rooms.add(f"order:{o_code}")
+            if u_id:
+                target_rooms.add(f"customer:{u_id}")
+            if p_id:
+                target_rooms.add(f"partner:{p_id}")
+
+            for r_name in target_rooms:
+                await sio.emit(EVENT_LOCATION_UPDATED, loc_payload, room=r_name)
+                await sio.emit("captain_location_update", loc_payload, room=r_name)
+                await sio.emit("rider.location", loc_payload, room=r_name)
+        
+        telemetry_payload = {
+            "riderId": rider_id,
+            "lat": lat_f,
+            "lng": lng_f,
+            "latitude": lat_f,
+            "longitude": lng_f,
+            "heading": heading,
+            "speed": speed,
+            "at": now_iso,
+            "updatedAt": now_iso,
+        }
+        await sio.emit(EVENT_LOCATION_UPDATED, telemetry_payload, room="partners")
+        await sio.emit("captain_location_update", telemetry_payload, room="partners")
+        await sio.emit(EVENT_LOCATION_UPDATED, telemetry_payload, room="admins")
+        await sio.emit("captain_location_update", telemetry_payload, room="admins")
+        await sio.emit("rider.location", telemetry_payload, room="admins")
 
     return {"ok": True, "lat": lat, "lng": lng, "updatedAt": now_iso}
 

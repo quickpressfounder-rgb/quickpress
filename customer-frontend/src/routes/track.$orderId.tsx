@@ -294,7 +294,9 @@ function TrackOrderScreen() {
 
   /* Sprint 5.5 — Socket.IO push. Order lifecycle events refresh the timeline
      instantly; the 20s poll above stays as an offline/fallback safety net. */
-  const live = useCustomerOrderRealtime(orderId);
+  const orderCode = (detail as any)?.code || (detail as any)?.orderCode || "";
+  const customerId = (detail as any)?.customer?.id || (detail as any)?.customerId || "";
+  const live = useCustomerOrderRealtime(orderId, customerId, orderCode);
   useEffect(() => {
     if (!live.lastEvent) return;
     if (live.etaMinutes !== null) setEta(live.etaMinutes);
@@ -451,8 +453,8 @@ function TrackOrderScreen() {
               <div className="card-soft relative overflow-hidden border border-border">
                 <div className="relative min-h-[260px] bg-muted">
                   {(() => {
-                    const riderLat = live?.riderLocation?.lat ?? Number((detail?.rider as any)?.location?.latitude ?? (detail?.rider as any)?.latitude);
-                    const riderLng = live?.riderLocation?.lng ?? Number((detail?.rider as any)?.location?.longitude ?? (detail?.rider as any)?.longitude);
+                    const riderLat = live?.riderLocation?.lat ?? Number((detail as any)?.riderLocation?.lat ?? (detail as any)?.riderLocation?.latitude ?? (detail?.rider as any)?.location?.latitude ?? (detail?.rider as any)?.latitude);
+                    const riderLng = live?.riderLocation?.lng ?? Number((detail as any)?.riderLocation?.lng ?? (detail as any)?.riderLocation?.longitude ?? (detail?.rider as any)?.location?.longitude ?? (detail?.rider as any)?.longitude);
                     const hasRiderLocation = Boolean(riderLat && riderLng && !isNaN(riderLat) && !isNaN(riderLng));
 
                     const partnerLat = Number((detail?.partner as any)?.latitude ?? (detail?.partner as any)?.location?.latitude);
@@ -467,8 +469,15 @@ function TrackOrderScreen() {
                     const effectiveCustLat = hasCustLocation ? custLat : (deviceLocation?.lat ?? partnerLat ?? 28.5355);
                     const effectiveCustLng = hasCustLocation ? custLng : (deviceLocation?.lng ?? partnerLng ?? 77.3910);
 
+                    const riderHeading = live?.riderLocation?.heading ?? (detail as any)?.riderLocation?.heading ?? (detail?.rider as any)?.heading;
+
                     const riderCoord = hasRiderLocation
-                      ? { lat: riderLat, lng: riderLng, label: "Delivery Captain (Live)" }
+                      ? {
+                          lat: riderLat,
+                          lng: riderLng,
+                          heading: riderHeading,
+                          label: "Delivery Captain (Live)",
+                        }
                       : null;
 
                     const partnerCoord = hasPartnerLocation
@@ -482,12 +491,18 @@ function TrackOrderScreen() {
                       sublabel: (detail?.address as any)?.street || (detail?.address as any)?.line || "Doorstep Delivery",
                     };
 
+                    const rawStatus = (detail?.status || "").toLowerCase();
+                    const isHeadingToStore = rawStatus === "picked_up" || rawStatus === "in_transit_store" || rawStatus === "heading_to_store";
+                    const isDeliveryPhase = rawStatus.includes("delivery") || stageIndex >= 3;
+                    const activeDestination = isHeadingToStore ? (partnerCoord || custCoord) : custCoord;
+                    const phaseMode = isDeliveryPhase ? "delivery" : "pickup";
+
                     return (
                       <LiveDeliveryMap
                         riderLocation={riderCoord}
-                        destinationLocation={custCoord || partnerCoord}
+                        destinationLocation={activeDestination}
                         storeLocation={partnerCoord}
-                        phase={stageIndex <= 1 ? "pickup" : "delivery"}
+                        phase={phaseMode}
                         heightClassName="h-64 sm:h-72"
                         showControls={true}
                       />
