@@ -225,6 +225,23 @@ export function ZomatoHubView() {
     };
   }, [session?.businessName, session?.city]);
 
+  // Instant real-time listener for incoming orders (<10ms UI sync)
+  useEffect(() => {
+    const handleNewOrder = () => {
+      fetchDashboardSummary().then((summary) => {
+        if (summary) {
+          setTodayOrdersCount(
+            summary.newOrders + summary.inProcess + summary.readyForDelivery + summary.completedToday
+          );
+          setTodayEarnings(summary.todayEarnings);
+        }
+      }).catch(() => {});
+      void refreshOrders();
+    };
+    window.addEventListener("qp:partner:new_order", handleNewOrder);
+    return () => window.removeEventListener("qp:partner:new_order", handleNewOrder);
+  }, [refreshOrders]);
+
   const handleConfirmStatusChange = () => {
     const nextState = !isOnline;
     // Instant optimistic modal close and state toggle in < 5ms

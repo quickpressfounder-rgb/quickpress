@@ -531,6 +531,19 @@ class PartnerOrderRepository:
         partner_phone = (profile.get("phone") or profile.get("ownerPhone")) if profile else None
 
         id_candidates = {partner_id, partner_id.lower(), partner_id.upper()}
+        if partner_id.upper().startswith("PRT-"):
+            id_candidates.add(partner_id[4:])
+            id_candidates.add(partner_id[4:].lower())
+        else:
+            id_candidates.add(f"PRT-{partner_id}")
+            id_candidates.add(f"prt-{partner_id.lower()}")
+        if profile:
+            for k in ("_id", "partnerId", "id"):
+                val = profile.get(k)
+                if val:
+                    id_candidates.add(str(val))
+                    id_candidates.add(str(val).lower())
+                    id_candidates.add(str(val).upper())
         if user_id:
             id_candidates.add(user_id)
 

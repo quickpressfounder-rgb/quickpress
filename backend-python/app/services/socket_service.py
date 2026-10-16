@@ -43,6 +43,19 @@ EVENT_PARTNER_STATUS_CHANGED = "partner.status_changed"
 EVENT_PARTNER_ONLINE_STATUS = "partner.online_status"
 
 
+def _get_partner_room_variants(partner_id: str) -> list[str]:
+    """Generate both raw and 'PRT-' prefixed room names so socket events are never lost."""
+    if not partner_id:
+        return []
+    p = str(partner_id).strip()
+    rooms = {f"partner:{p}"}
+    if p.upper().startswith("PRT-"):
+        rooms.add(f"partner:{p[4:]}")
+    elif p.isalnum():
+        rooms.add(f"partner:PRT-{p}")
+    return list(rooms)
+
+
 @sio.event
 async def connect(sid: str, environ: dict, auth: Optional[dict] = None) -> None:
     logger.info("Socket.IO client connected: sid=%s, auth=%s", sid, auth)
@@ -65,7 +78,8 @@ async def connect(sid: str, environ: dict, auth: Optional[dict] = None) -> None:
             elif role == "rider":
                 await sio.enter_room(sid, "riders")
         if partner_id:
-            await sio.enter_room(sid, f"partner:{partner_id}")
+            for r in _get_partner_room_variants(partner_id):
+                await sio.enter_room(sid, r)
         if rider_id:
             await sio.enter_room(sid, f"rider:{rider_id}")
         if phone:
@@ -82,14 +96,24 @@ async def join(sid: str, data: Any) -> None:
     """Generic join room handler supporting string or dictionary payloads."""
     room = data if isinstance(data, str) else (data or {}).get("room")
     if room:
-        await sio.enter_room(sid, str(room))
+        room_str = str(room).strip()
+        await sio.enter_room(sid, room_str)
+        if room_str.startswith("partner:"):
+            pid = room_str[8:]
+            for r in _get_partner_room_variants(pid):
+                await sio.enter_room(sid, r)
 
 
 @sio.on("room.join")
 async def room_join(sid: str, data: Any) -> None:
     room = data if isinstance(data, str) else (data or {}).get("room")
     if room:
-        await sio.enter_room(sid, str(room))
+        room_str = str(room).strip()
+        await sio.enter_room(sid, room_str)
+        if room_str.startswith("partner:"):
+            pid = room_str[8:]
+            for r in _get_partner_room_variants(pid):
+                await sio.enter_room(sid, r)
 
 
 @sio.event
@@ -319,7 +343,14 @@ async def broadcast_order_event(
     """Broadcast an order transition to the canonical order room and interested roles."""
     order_id = str(order.get("_id") or order.get("id") or "")
     customer_id = str(order.get("userId") or (order.get("customer") or {}).get("id") or "")
-    partner_id = str((order.get("partner") or {}).get("id") or order.get("partnerId") or "")
+    partner_id = str(
+        (order.get("partner") or {}).get("id")
+        or order.get("partnerId")
+        or order.get("partner_id")
+        or order.get("store_id")
+        or (order.get("partner") or {}).get("_id")
+        or ""
+    ).strip()
     rider_id = str((order.get("rider") or {}).get("id") or order.get("riderId") or "")
 
     cust = order.get("customer") or {}
@@ -329,8 +360,10 @@ async def broadcast_order_event(
 
     order_summary = {
         "id": order_id,
+        "orderId": order_id,
         "code": order.get("code") or order.get("order_code") or order_id,
         "status": order.get("status") or "pending_partner_acceptance",
+        "stage": "new" if (order.get("status") or "pending_partner_acceptance") in ("placed", "pending_partner_acceptance", "new", "created") else order.get("status"),
         "amount": float(
             order.get("payableAmount")
             or pricing.get("grandTotal")
@@ -355,34 +388,57 @@ async def broadcast_order_event(
 
     payload = {
         "orderId": order_id,
+        "id": order_id,
         "code": order.get("code") or order.get("order_code") or order_id,
-        "status": order.get("status"),
-        "timestamp": order.get("updatedAt"),
+        "status": order.get("status") or "pending_partner_acceptance",
+        "stage": order_summary["stage"],
+        "partnerId": partner_id,
+        "amount": order_summary["amount"],
+        "customerName": order_summary["customerName"],
+        "customerPhone": order_summary["customerPhone"],
+        "address": order_summary["address"],
+        "items": items,
+        "timestamp": order.get("updatedAt") or order.get("createdAt"),
         "order": order_summary,
         **(extra_data or {}),
     }
 
-    # 1. Emit to order specific room
-    if order_id:
-        await sio.emit(event_name, payload, room=f"order:{order_id}")
+    # Determine event aliases so any frontend event listener captures the event instantaneously
+    events_to_emit = [event_name]
+    if event_name in (EVENT_ORDER_CREATED, "order.created", "new_order", "order:created", "ORDER_CREATED"):
+        events_to_emit = list(dict.fromkeys([
+            event_name,
+            "order.created",
+            "order:created",
+            "new_order",
+            "ORDER_CREATED",
+            "partner:order_created",
+            "order_created",
+        ]))
 
-    # 2. Emit to customer room
-    if customer_id:
-        await sio.emit(event_name, payload, room=f"user:{customer_id}")
-        await sio.emit(event_name, payload, room=f"customer:{customer_id}")
+    for ev in events_to_emit:
+        # 1. Emit to order specific room
+        if order_id:
+            await sio.emit(ev, payload, room=f"order:{order_id}")
 
-    # 3. Emit to partner room and partners channel
-    if partner_id:
-        await sio.emit(event_name, payload, room=f"partner:{partner_id}")
-    await sio.emit(event_name, payload, room="partners")
+        # 2. Emit to customer room
+        if customer_id:
+            await sio.emit(ev, payload, room=f"user:{customer_id}")
+            await sio.emit(ev, payload, room=f"customer:{customer_id}")
 
-    # 4. Emit to assigned rider room and riders channel
-    if rider_id:
-        await sio.emit(event_name, payload, room=f"rider:{rider_id}")
-    await sio.emit(event_name, payload, room="riders")
+        # 3. Emit to partner room variants and partners channel
+        if partner_id:
+            for r in _get_partner_room_variants(partner_id):
+                await sio.emit(ev, payload, room=r)
+        await sio.emit(ev, payload, room="partners")
 
-    # 5. Emit to admin room
-    await sio.emit(event_name, payload, room="admins")
+        # 4. Emit to assigned rider room and riders channel
+        if rider_id:
+            await sio.emit(ev, payload, room=f"rider:{rider_id}")
+        await sio.emit(ev, payload, room="riders")
+
+        # 5. Emit to admin room
+        await sio.emit(ev, payload, room="admins")
 
     # 6. Publish to RealtimeEventBus for SSE streams and pub/sub workers
     try:

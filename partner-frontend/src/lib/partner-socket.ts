@@ -5,6 +5,8 @@
 
 import { io, type Socket } from "socket.io-client";
 import { getStoredPartnerSession } from "../api/partner/partner-auth-api";
+import { readSession } from "../api/core/session-store";
+import { getCachedPartnerProfile } from "../api/partner/partner-profile-api";
 
 let socket: Socket | null = null;
 const orderListeners = new Set<(order: any) => void>();
@@ -25,27 +27,100 @@ function getSocketUrl(): string {
     }
     return clean;
   }
-  const isCapacitor = Boolean(
-    (window as any).Capacitor?.isNativePlatform?.() ||
-    (window as any).Capacitor !== undefined ||
-    window.location.protocol === "capacitor:"
-  );
-  if (isCapacitor || window.location.protocol === "https:") {
-    return PRODUCTION_SOCKET_URL;
-  }
   return PRODUCTION_SOCKET_URL;
+}
+
+function getPartnerCredentials() {
+  const rawSession: any = readSession("partner");
+  const storedPartner: any = getStoredPartnerSession();
+  const profile: any = getCachedPartnerProfile();
+
+  const partnerId = String(
+    profile?.partnerId ||
+    profile?.id ||
+    storedPartner?.partnerId ||
+    rawSession?.account?.linkedId ||
+    rawSession?.account?.id ||
+    ""
+  ).trim();
+
+  const phone = String(
+    storedPartner?.phone ||
+    rawSession?.account?.phone ||
+    profile?.phone ||
+    ""
+  ).replace("+", "").trim();
+
+  const userId = String(
+    rawSession?.account?.id ||
+    rawSession?.account?.user_id ||
+    storedPartner?.partnerId ||
+    ""
+  ).trim();
+
+  const token = String(rawSession?.token || "").trim();
+
+  return { partnerId, phone, userId, token };
+}
+
+function joinPartnerRooms(sock: Socket, partnerId: string, phone: string, userId: string) {
+  if (!sock || !sock.connected) return;
+  console.log("[PartnerSocket] ⚡ Joining partner realtime rooms:", { partnerId, phone, userId });
+
+  // Join global partners channel
+  sock.emit("join", "partners");
+
+  if (partnerId) {
+    sock.emit("join", `partner:${partnerId}`);
+    if (partnerId.toUpperCase().startsWith("PRT-")) {
+      sock.emit("join", `partner:${partnerId.slice(4)}`);
+    } else if (/^\d+$/.test(partnerId)) {
+      sock.emit("join", `partner:PRT-${partnerId}`);
+    }
+  }
+
+  if (phone) {
+    sock.emit("join", `phone:${phone}`);
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length >= 10) {
+      sock.emit("join", `phone:${digits.slice(-10)}`);
+      sock.emit("join", `phone:91${digits.slice(-10)}`);
+    }
+  }
+
+  if (userId) {
+    sock.emit("join", `user:${userId}`);
+  }
+}
+
+export function rebindPartnerSocket(): Socket | null {
+  if (typeof window === "undefined") return null;
+  const { partnerId, phone, userId, token } = getPartnerCredentials();
+
+  if (socket) {
+    socket.auth = {
+      role: "partner",
+      partnerId,
+      userId,
+      phone,
+      token,
+    };
+    if (socket.connected) {
+      joinPartnerRooms(socket, partnerId, phone, userId);
+    } else {
+      socket.connect();
+    }
+    return socket;
+  }
+
+  return initPartnerSocket();
 }
 
 export function initPartnerSocket(): Socket | null {
   if (typeof window === "undefined") return null;
-  if (socket && socket.connected) return socket;
 
+  const { partnerId, phone, userId, token } = getPartnerCredentials();
   const url = getSocketUrl();
-  const session: any = getStoredPartnerSession();
-  const partnerId = session?.partnerId || session?.account?.partnerId || session?.id || "";
-  const phone = (session?.phone || session?.account?.phone || "").replace("+", "").trim();
-  const userId = session?.account?.id || session?.account?.user_id || session?.userId || "";
-  const token = session?.token || "";
 
   try {
     if (!socket) {
@@ -65,13 +140,16 @@ export function initPartnerSocket(): Socket | null {
         },
       });
 
-      socket.on("connect", () => {
+      const handleConnect = () => {
         console.log("[PartnerSocket] ⚡ Connected to realtime gateway:", socket?.id);
-        if (partnerId) socket?.emit("join", `partner:${partnerId}`);
-        if (phone) socket?.emit("join", `phone:${phone}`);
-        if (userId) socket?.emit("join", `user:${userId}`);
-        socket?.emit("join", "partners");
-      });
+        const creds = getPartnerCredentials();
+        if (socket) {
+          joinPartnerRooms(socket, creds.partnerId, creds.phone, creds.userId);
+        }
+      };
+
+      socket.on("connect", handleConnect);
+      socket.on("reconnect", handleConnect);
 
       const handleOrder = (data: any) => {
         console.log("[PartnerSocket] ⚡ Realtime order event received:", data);
@@ -95,9 +173,16 @@ export function initPartnerSocket(): Socket | null {
         });
       };
 
+      // Listen for all incoming order creation aliases
       socket.on("order.created", handleOrder);
+      socket.on("order:created", handleOrder);
       socket.on("new_order", handleOrder);
       socket.on("ORDER_CREATED", handleOrder);
+      socket.on("partner:order_created", handleOrder);
+      socket.on("order_created", handleOrder);
+
+      // Lifecycle transition events
+      socket.on("order.partner_accepted", handleOrder);
       socket.on("order.rider_assigned", handleOrder);
       socket.on("order.picked_up", handleOrder);
       socket.on("order.ready", handleOrder);
@@ -106,15 +191,28 @@ export function initPartnerSocket(): Socket | null {
       socket.on("order.delivered", handleOrder);
       socket.on("order.cancelled", handleOrder);
       socket.on("order.status_changed", handleOrder);
+      socket.on("order.stage_updated", handleOrder);
 
+      // Partner store online/offline events
       socket.on("partner.status_changed", handleStatus);
       socket.on("partner.online_status", handleStatus);
 
       socket.on("disconnect", (reason) => {
         console.log("[PartnerSocket] Disconnected from gateway:", reason);
       });
-    } else if (!socket.connected) {
-      socket.connect();
+    } else {
+      socket.auth = {
+        role: "partner",
+        partnerId,
+        userId,
+        phone,
+        token,
+      };
+      if (socket.connected) {
+        joinPartnerRooms(socket, partnerId, phone, userId);
+      } else {
+        socket.connect();
+      }
     }
 
     return socket;
@@ -126,7 +224,7 @@ export function initPartnerSocket(): Socket | null {
 
 export function subscribePartnerOrders(callback: (order: any) => void): () => void {
   orderListeners.add(callback);
-  initPartnerSocket();
+  rebindPartnerSocket();
 
   return () => {
     orderListeners.delete(callback);
@@ -135,7 +233,7 @@ export function subscribePartnerOrders(callback: (order: any) => void): () => vo
 
 export function subscribePartnerStatus(callback: (status: any) => void): () => void {
   statusListeners.add(callback);
-  initPartnerSocket();
+  rebindPartnerSocket();
 
   return () => {
     statusListeners.delete(callback);

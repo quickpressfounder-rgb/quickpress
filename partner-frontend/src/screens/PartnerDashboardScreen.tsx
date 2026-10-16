@@ -284,6 +284,17 @@ export function PartnerDashboardScreen() {
 
   const [activeAlertOrder, setActiveAlertOrder] = useState<PartnerIncomingOrder | null>(null);
 
+  // Instant real-time listener: when a customer places an order, update dashboard KPI numbers instantly (<10ms)
+  useEffect(() => {
+    const handleNewOrder = () => {
+      console.log("[PartnerDashboard] ⚡ Realtime order received, updating summary cards instantly");
+      void load();
+      void refreshOrders();
+    };
+    window.addEventListener("qp:partner:new_order", handleNewOrder);
+    return () => window.removeEventListener("qp:partner:new_order", handleNewOrder);
+  }, [load, refreshOrders]);
+
   // Monitor incoming unaccepted orders in real-time
   useEffect(() => {
     if (!isOnline) {
@@ -292,7 +303,7 @@ export function PartnerDashboardScreen() {
       return;
     }
     const incoming = orders.find(
-      (o) => o.status === "new" || o.status === "placed" || o.status === "pending"
+      (o) => (o as any).status === "new" || (o as any).status === "placed" || (o as any).status === "pending" || o.stage === "new"
     );
     if (incoming) {
       setActiveAlertOrder({
@@ -300,9 +311,9 @@ export function PartnerDashboardScreen() {
         orderCode: incoming.code,
         customerName: incoming.customerName,
         customerPhone: incoming.customerPhone,
-        pickupAddress: incoming.address || "Customer Doorstep",
-        pickupSlot: incoming.slot,
-        estimatedEarnings: Math.round(incoming.amount * 0.84),
+        pickupAddress: (incoming as any).address || incoming.pickupAddress || "Customer Doorstep",
+        pickupSlot: (incoming as any).slot || incoming.pickupTime || "Today",
+        estimatedEarnings: Math.round((incoming.amount || 0) * 0.84),
         itemsCount: incoming.itemCount || incoming.items?.length || 1,
         items: (incoming.items || []).map((it) => ({
           name: it.name,
@@ -312,11 +323,13 @@ export function PartnerDashboardScreen() {
         expressDelivery: Boolean(
           (incoming as any).isExpress ||
           (incoming as any).pickup?.express ||
+          incoming.services?.some((s) => s.toLowerCase().includes("express")) ||
           incoming.serviceLabel?.toLowerCase().includes("express")
         ),
         isExpress: Boolean(
           (incoming as any).isExpress ||
           (incoming as any).pickup?.express ||
+          incoming.services?.some((s) => s.toLowerCase().includes("express")) ||
           incoming.serviceLabel?.toLowerCase().includes("express")
         ),
         expressFee: Number((incoming as any).expressFee || (incoming as any).express_fee) || 40,

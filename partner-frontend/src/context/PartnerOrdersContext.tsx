@@ -12,7 +12,7 @@ import {
 } from "@/api/partner/partner-orders-api";
 
 import { HIGH_VALUE_THRESHOLD, type ManagedOrder, type OrderStage } from "../data/partner-orders-mock";
-import { subscribePartnerOrders } from "@/lib/partner-socket";
+import { rebindPartnerSocket, subscribePartnerOrders } from "@/lib/partner-socket";
 import { hasActiveSessionToken } from "@/api/core/session-store";
 
 /* ------------------------------------------------------------------ */
@@ -155,60 +155,91 @@ const STATUS_TO_STAGE: Record<string, OrderStage> = {
   refund_processed: "refunded",
 };
 
-function toManagedOrder(order: PartnerOrder): ManagedOrder {
+function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
   const timeline = Array.isArray(order?.timeline) ? order.timeline : [];
   const items = Array.isArray(order?.items) ? order.items : [];
-  const cancelledEntry = timeline.find((entry) => /reject|cancel/i.test(entry.label));
+  const cancelledEntry = timeline.find((entry: any) => /reject|cancel/i.test(entry.label));
+  const rawStatus = String(order?.status || order?.stage || "new").toLowerCase().trim();
+  const stage: OrderStage = STATUS_TO_STAGE[rawStatus] ?? "new";
+  const rawAmount = Number(
+    order?.amount ??
+    order?.payableAmount ??
+    order?.grandTotal ??
+    order?.total ??
+    order?.charges?.total ??
+    0
+  );
+  const custName =
+    order?.customerName ||
+    order?.customer?.name ||
+    order?.user?.name ||
+    "QuickPress Customer";
+  const custPhone =
+    order?.customerPhone ||
+    order?.customer?.phone ||
+    order?.address?.phone ||
+    "";
+  const addressStr =
+    order?.address ||
+    order?.pickupAddress ||
+    order?.deliveryAddress ||
+    (typeof order?.address === "object" ? order?.address?.formatted || order?.address?.line || "" : "") ||
+    "Customer Doorstep";
+  const slotStr = order?.slot || order?.pickupTime || order?.pickup?.slot || "Today";
+  const codeStr = String(order?.code || order?.order_code || order?.id || order?.orderId || "").trim();
+  const idStr = String(order?.id || order?.orderId || order?._id || codeStr).trim();
+
   return {
-    id: order.id || (order as any).orderId || "",
-    code: order.code || order.id || (order as any).orderId || "",
-    stage: STATUS_TO_STAGE[order.status] ?? "new",
-    customerName: order.customerName || "Customer",
+    id: idStr,
+    code: codeStr,
+    stage,
+    customerName: custName,
     customerRating: 5.0,
-    customerPhone: order.customerPhone || "",
+    customerPhone: custPhone,
     customerOrders: 1,
-    pickupAddress: order.address || "",
-    deliveryAddress: order.address || "",
-    pickupTime: order.slot || "Today",
+    pickupAddress: addressStr,
+    deliveryAddress: addressStr,
+    pickupTime: slotStr,
     pickupDay: "today",
-    deliveryEta: order.slot || "Tomorrow",
+    deliveryEta: slotStr,
     distanceKm: 0,
-    services: order.serviceLabel ? [order.serviceLabel] : [],
-    itemCount: order.itemCount || items.reduce((sum, it) => sum + (it.qty || 1), 0) || 1,
-    amount: order.amount || 0,
-    paymentStatus: order.status === "cancelled" ? "refunded" : order.paymentMode === "cod" ? "pending" : "paid",
-    paymentMode: order.paymentMode || "cod",
-    placedAt: order.placedAt || "Recently",
+    services: order?.serviceLabel ? [order.serviceLabel] : (Array.isArray(order?.services) ? order.services : ["Laundry Service"]),
+    itemCount: order?.itemCount || items.reduce((sum: number, it: any) => sum + (it.qty || 1), 0) || 1,
+    amount: rawAmount,
+    paymentStatus: rawStatus === "cancelled" ? "refunded" : (order?.paymentMode === "cod" ? "pending" : "paid"),
+    paymentMode: order?.paymentMode || order?.payment?.mode || "cod",
+    placedAt: order?.placedAt || order?.createdAt || "Recently",
     placedMinutesAgo: 0,
-    specialInstructions: "",
-    items: items.map((item) => ({
-      id: item.id || "",
+    specialInstructions: order?.specialInstructions || order?.instructions || "",
+    items: items.map((item: any) => ({
+      id: item.id || item._id || "",
       name: item.name || "Laundry Service Item",
-      service: order.serviceLabel || "Laundry",
+      service: order?.serviceLabel || "Laundry",
       qty: item.qty || 1,
       price: item.price || 0,
     })),
     charges: {
-      subtotal: order.amount || 0,
+      subtotal: rawAmount,
       pickupFee: 0,
       taxes: 0,
       discount: 0,
-      total: order.amount || 0,
+      total: rawAmount,
     },
-    timeline: timeline.map((entry) => ({ id: entry.id || "", label: entry.label || "", time: entry.time || "" })),
+    timeline: timeline.map((entry: any) => ({ id: entry.id || "", label: entry.label || "", time: entry.time || "" })),
     invoiceNo: null,
-    cancelReason: order.status === "cancelled" ? (cancelledEntry?.label ?? (order as any).cancelledReason ?? "Cancelled") : null,
-    assignedRider: (order as any).riderName || null,
+    cancelReason: rawStatus === "cancelled" ? (cancelledEntry?.label ?? order?.cancelledReason ?? "Cancelled") : null,
+    assignedRider: order?.riderName || order?.rider?.name || null,
     isExpress: Boolean(
-      (order as any).isExpress ||
-      (order as any).pickup?.express ||
-      order.serviceLabel?.toLowerCase().includes("express") ||
-      (order as any).is_express
+      order?.isExpress ||
+      order?.pickup?.express ||
+      order?.serviceLabel?.toLowerCase().includes("express") ||
+      order?.is_express
     ),
-    expressFee: Number((order as any).expressFee || (order as any).express_fee) || 0,
-    partnerExpressBonus: Number((order as any).partnerExpressBonus || (order as any).partner_express_bonus) || 0,
-    expressPartnerSharePercent: Number((order as any).expressPartnerSharePercent || (order as any).express_partner_share_percent) || 20,
-  };
+    expressFee: Number(order?.expressFee || order?.express_fee) || 0,
+    partnerExpressBonus: Number(order?.partnerExpressBonus || order?.partner_express_bonus) || 0,
+    expressPartnerSharePercent: Number(order?.expressPartnerSharePercent || order?.express_partner_share_percent) || 20,
+    status: rawStatus,
+  } as any;
 }
 
 /* ------------------------------------------------------------------ */
@@ -433,12 +464,15 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
   // Real-time Socket.IO subscription for 0ms latency live order events
   useEffect(() => {
     if (!hasActiveSessionToken("partner")) return;
+    rebindPartnerSocket();
+
     const unsub = subscribePartnerOrders((data) => {
       console.log("[PartnerOrdersContext] ⚡ Fast Socket order event received:", data);
 
-      const orderId = String(data?.orderId || data?.id || (data?.order && (data.order.id || data.order._id)) || "").trim();
-      const code = String(data?.code || (data?.order && data.order.code) || orderId).trim();
-      const status = String(data?.status || (data?.order && data.order.status) || "").toLowerCase().trim();
+      const rawOrder = data?.order || data;
+      const orderId = String(rawOrder?.id || rawOrder?._id || data?.orderId || "").trim();
+      const code = String(rawOrder?.code || data?.code || orderId).trim();
+      const status = String(rawOrder?.status || data?.status || "new").toLowerCase().trim();
 
       // Check if this is an incoming order event requiring store acceptance
       const isNewOrder =
@@ -448,31 +482,56 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
         status === "placed" ||
         !status;
 
-      if (isOperationalRoute() && isNewOrder && orderId) {
+      if (isOperationalRoute() && isNewOrder && (orderId || code)) {
         if (
-          !seenOrderIdsRef.current.has(orderId) &&
-          !acceptedOrderIds.current.has(orderId) &&
-          !cancelledOrderIds.current.has(orderId)
+          (!orderId || !seenOrderIdsRef.current.has(orderId)) &&
+          (!orderId || !acceptedOrderIds.current.has(orderId)) &&
+          (!orderId || !cancelledOrderIds.current.has(orderId))
         ) {
-          console.log("[PartnerOrdersContext] 🚀 INSTANT SUB-10MS CHIME TRIGGER for order:", code);
-          seenOrderIdsRef.current.add(orderId);
-          setSeenOrderIds((prev) => new Set([...prev, orderId]));
+          console.log("[PartnerOrdersContext] 🚀 INSTANT ZERO-LAG ORDER DISPLAY for:", code);
+          if (orderId) seenOrderIdsRef.current.add(orderId);
+          setSeenOrderIds((prev) => new Set([...prev, orderId || code]));
 
           // ⚡ TRIGGER ORDER ALARM BELL INSTANTANEOUSLY (<0.010s)
           startOrderAlarm(code);
 
-          // Build ManagedOrder from payload immediately if present so modal appears with 0ms delay
-          if (data?.order) {
-            const rawOrder = data.order;
-            const managed = toManagedOrder(rawOrder);
-            setIncomingOrder(managed);
-            setOrders((prev) => {
-              if (prev.some((o) => o.id === managed.id || o.code === managed.code)) return prev;
-              const next = [managed, ...prev];
-              writeCachedOrders(next);
-              return next;
-            });
+          // Build ManagedOrder from payload immediately so modal and list update with 0ms delay
+          const managed = toManagedOrder(rawOrder);
+          if (orderId) managed.id = orderId;
+          if (code) managed.code = code;
+          managed.stage = "new";
+
+          setIncomingOrder(managed);
+          setOrders((prev) => {
+            const existingIdx = prev.findIndex((o) => o.id === managed.id || o.code === managed.code);
+            let next: ManagedOrder[];
+            if (existingIdx >= 0) {
+              next = [...prev];
+              next[existingIdx] = { ...next[existingIdx], ...managed };
+            } else {
+              next = [managed, ...prev];
+            }
+            writeCachedOrders(next);
+            return next;
+          });
+
+          // Dispatch DOM custom event so dashboard KPI cards and other screens update instantly
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("qp:partner:new_order", { detail: managed }));
           }
+        }
+      } else if (orderId) {
+        // Lifecycle event (accepted, in transit, ready, delivered, cancelled)
+        const newStage = STATUS_TO_STAGE[status];
+        if (newStage) {
+          setOrders((prev) => {
+            const idx = prev.findIndex((o) => o.id === orderId || o.code === code);
+            if (idx === -1) return prev;
+            const next = [...prev];
+            next[idx] = { ...next[idx], stage: newStage, status: status as any };
+            writeCachedOrders(next);
+            return next;
+          });
         }
       }
 
@@ -482,15 +541,33 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [load, isOperationalRoute]);
 
-  // Gentle background safety poll (every 10s instead of thrashing every 3s)
+  // Active fast polling when screen is active + tab visibility listener for instant refresh on focus
   useEffect(() => {
     if (!hasActiveSessionToken("partner")) return;
+
+    // Refresh immediately on tab focus or screen wake
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && hasActiveSessionToken("partner") && isOperationalRoute()) {
+        rebindPartnerSocket();
+        void load({ silent: true });
+      }
+    };
+
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
+
+    // Fast 3.5s interval when tab is focused, 10s when in background
     const pollInterval = setInterval(() => {
       if (hasActiveSessionToken("partner") && isOperationalRoute()) {
         void load({ silent: true });
       }
-    }, 10000);
-    return () => clearInterval(pollInterval);
+    }, typeof document !== "undefined" && document.visibilityState === "visible" ? 3500 : 10000);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+    };
   }, [load, isOperationalRoute]);
 
   // Stop alarm on unmount
