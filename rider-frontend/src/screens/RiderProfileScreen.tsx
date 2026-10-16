@@ -141,6 +141,19 @@ export function RiderProfileScreen() {
   const [panNumber, setPanNumber] = useState(() => initialCache?.pan || (initialCache as any)?.panNumber || "");
   const [dob, setDob] = useState(() => initialCache?.dob || "");
 
+  // Full-page Screen Views ("profile" | "guidelines" | "support")
+  const [selectedView, setSelectedView] = useState<"profile" | "guidelines" | "support">("profile");
+
+  // Modals & Accordion States
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showIdCardModal, setShowIdCardModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [selectedKycDoc, setSelectedKycDoc] = useState<KycDocType | null>(null);
+  const [isKycExpanded, setIsKycExpanded] = useState(false);
+  const [isBankExpanded, setIsBankExpanded] = useState(false);
+
   // Delete Account States
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteDob, setDeleteDob] = useState("");
@@ -368,7 +381,7 @@ export function RiderProfileScreen() {
     const normalize = (d: string) => {
       const clean = d.replace(/\//g, "-").trim();
       const p = clean.split("-");
-      if (p.length === 3) {
+      if (p.length === 3 && p[0] && p[1] && p[2]) {
         if (p[0].length === 2 && p[2].length === 4) return `${p[2]}-${p[1].padStart(2, "0")}-${p[0].padStart(2, "0")}`;
         if (p[0].length === 4 && p[1].length <= 2) return `${p[0]}-${p[1].padStart(2, "0")}-${p[2].padStart(2, "0")}`;
       }
@@ -516,7 +529,7 @@ export function RiderProfileScreen() {
           </button>
           <div>
             <h1 className="text-base font-black tracking-tight text-zinc-900 leading-tight">
-              {t("nav.profile") || "Captain Profile & Settings"}
+              Profile
             </h1>
             <p className="text-[10px] font-semibold text-zinc-400" suppressHydrationWarning>
               {fullName ? fullName : (phone ? normalizeDisplayPhone(phone) : "")}
@@ -528,11 +541,14 @@ export function RiderProfileScreen() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowIdCardModal(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl border border-amber-200 active:scale-95 transition-all"
+            onClick={() => {
+              triggerHaptic(20);
+              setShowIdCardModal(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FEF6E9] hover:bg-[#FDEED3] text-[#784606] font-bold text-xs rounded-2xl border border-[#FCD89C] active:scale-95 transition-all shadow-2xs"
             title="Digital Captain ID"
           >
-            <QrCode className="size-3.5 text-amber-700" />
+            <QrCode className="size-3.5 text-[#B46808]" />
             <span>ID Card</span>
           </button>
         </div>
@@ -540,13 +556,13 @@ export function RiderProfileScreen() {
 
       {/* 2. Scrollable Content Body */}
       <div className="space-y-3.5 p-4">
-        {/* HERO CARD: Rich Captain Profile Identity (Exact Partner Style) */}
-        <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
+        {/* HERO CARD: Rich Captain Profile Identity (Exact Screenshot 1 Style) */}
+        <div className="rounded-[28px] border border-zinc-200/80 bg-white p-4 shadow-sm space-y-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3.5 min-w-0">
-              {/* Real Registration Photo Avatar with Camera Button */}
+              {/* Real Registration Photo Avatar with Camera Button (Circular) */}
               <div className="relative shrink-0">
-                <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-950 font-black text-2xl shadow-xs overflow-hidden border-2 border-emerald-500/30">
+                <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-950 font-black text-2xl shadow-xs overflow-hidden border-2 border-emerald-500/30">
                   <img
                     src={displayPhoto}
                     alt={fullName || "Captain"}
@@ -559,11 +575,11 @@ export function RiderProfileScreen() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md hover:bg-emerald-700 active:scale-95 transition-all border border-white"
+                  className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md hover:bg-emerald-700 active:scale-95 transition-all border-2 border-white"
                   title="Update Registration Photo"
                   aria-label="Upload Photo"
                 >
-                  <Camera className="size-3.5 stroke-[2.2]" />
+                  <Camera className="size-3 stroke-[2.2]" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -577,22 +593,16 @@ export function RiderProfileScreen() {
               {/* Captain Basic Info */}
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {fullName ? (
-                    <h2 className="truncate text-base font-black text-zinc-900" suppressHydrationWarning>{fullName}</h2>
-                  ) : loading ? (
-                    <span className="inline-block h-5 w-28 bg-zinc-200 animate-pulse rounded-md" />
-                  ) : (
-                    <h2 className="truncate text-base font-black text-zinc-900" suppressHydrationWarning>
-                      {phone ? normalizeDisplayPhone(phone) : ""}
-                    </h2>
-                  )}
-                  <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                    <BadgeCheck className="size-3 text-emerald-600 fill-current shrink-0" />
+                  <h2 className="truncate text-base font-black text-zinc-900" suppressHydrationWarning>
+                    {fullName || (phone ? normalizeDisplayPhone(phone) : "Captain")}
+                  </h2>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-emerald-600" />
                     <span>Verified</span>
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-zinc-500" suppressHydrationWarning>
-                  {phone ? normalizeDisplayPhone(phone) : (loading ? "Loading..." : "Verified Partner")}
+                <p className="text-xs font-semibold text-zinc-500 mt-0.5" suppressHydrationWarning>
+                  {phone ? normalizeDisplayPhone(phone) : "Verified Partner"}
                 </p>
                 <div className="mt-1 flex items-center gap-2" suppressHydrationWarning>
                   <span className="flex items-center gap-1 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700" suppressHydrationWarning>
@@ -602,7 +612,7 @@ export function RiderProfileScreen() {
                         <button
                           type="button"
                           onClick={handleCopyId}
-                          className="text-zinc-400 hover:text-zinc-700 active:scale-95 cursor-pointer"
+                          className="text-zinc-400 hover:text-zinc-700 active:scale-95 cursor-pointer ml-0.5"
                           title="Copy Captain ID"
                         >
                           <Copy className="size-2.5" />
@@ -614,7 +624,7 @@ export function RiderProfileScreen() {
                   </span>
                   <span className="flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">
                     <Star className="size-2.5 fill-current text-amber-500" />
-                    {rating.toFixed(1)}
+                    {(Number(rating) || 5.0).toFixed(1)}
                   </span>
                 </div>
               </div>
@@ -622,7 +632,10 @@ export function RiderProfileScreen() {
 
             <button
               type="button"
-              onClick={() => setShowEditModal(true)}
+              onClick={() => {
+                triggerHaptic(20);
+                setShowEditModal(true);
+              }}
               className="rounded-full bg-zinc-100 p-2 text-zinc-700 hover:bg-zinc-200 active:scale-95 transition-all shrink-0"
               title="Edit Profile Details"
             >
@@ -630,19 +643,19 @@ export function RiderProfileScreen() {
             </button>
           </div>
 
-          {/* Quick 3-Pillar Stats (Total Deliveries · City Hub · KYC Status) */}
-          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-100 pt-3 text-center">
-            <div className="rounded-2xl bg-zinc-50 p-2.5">
+          {/* Quick 3-Pillar Stats Container (Matches Screenshot 1) */}
+          <div className="grid grid-cols-3 gap-2 bg-[#F8F9FA] rounded-2xl p-2.5 text-center border border-zinc-100">
+            <div className="p-1">
               <p className="text-[10px] font-bold text-zinc-400">Total Trips</p>
-              <p className="text-sm font-black text-zinc-900">{totalTrips}</p>
+              <p className="text-sm font-black text-zinc-900 mt-0.5">{Number(totalTrips || 0)}</p>
             </div>
-            <div className="rounded-2xl bg-zinc-50 p-2.5">
+            <div className="p-1 border-x border-zinc-200/60">
               <p className="text-[10px] font-bold text-zinc-400">City Hub</p>
-              <p className="text-sm font-black text-zinc-900 truncate">{city}</p>
+              <p className="text-sm font-black text-zinc-900 mt-0.5 truncate">{city}</p>
             </div>
-            <div className="rounded-2xl bg-zinc-50 p-2.5">
+            <div className="p-1">
               <p className="text-[10px] font-bold text-zinc-400">Kyc Status</p>
-              <p className="text-xs font-black text-emerald-600">Verified ✓</p>
+              <p className="text-xs font-black text-emerald-600 mt-1">Verified ✓</p>
             </div>
           </div>
         </div>
@@ -672,8 +685,8 @@ export function RiderProfileScreen() {
             className="flex items-center justify-between cursor-pointer select-none group"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100/80 text-emerald-800 shrink-0">
-                <Bike className="size-4" />
+              <div className="flex size-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 shrink-0">
+                <Bike className="size-4.5" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-xs font-black text-zinc-900 truncate">
@@ -682,22 +695,22 @@ export function RiderProfileScreen() {
               </div>
             </div>
 
-            {/* Interactive Checkbox / Accordion Toggle */}
-            <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-xl bg-zinc-50 group-hover:bg-zinc-100 border border-zinc-200/90 transition-all shrink-0">
+            {/* Interactive Pill Toggle (Exact Screenshot 1 Style) */}
+            <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-white group-hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs transition-all shrink-0">
               <div
-                className={`size-4 rounded-md border flex items-center justify-center transition-all ${
+                className={`size-3.5 rounded-full border flex items-center justify-center transition-all ${
                   isKycExpanded
-                    ? "bg-emerald-600 border-emerald-600 text-white shadow-2xs"
-                    : "border-zinc-400 bg-white"
+                    ? "bg-emerald-600 border-emerald-600 text-white"
+                    : "border-zinc-300 bg-white"
                 }`}
               >
-                {isKycExpanded && <Check className="size-3 stroke-[3]" />}
+                {isKycExpanded && <Check className="size-2 stroke-[3]" />}
               </div>
-              <span className="text-[10px] font-black text-zinc-700">
+              <span className="text-[10px] font-bold text-zinc-700">
                 {isKycExpanded ? "Close" : "Open"}
               </span>
               <ChevronDown
-                className={`size-3.5 text-zinc-500 transition-transform duration-200 ${
+                className={`size-3 text-zinc-400 transition-transform duration-200 ${
                   isKycExpanded ? "rotate-180" : ""
                 }`}
               />
@@ -817,8 +830,8 @@ export function RiderProfileScreen() {
             className="flex items-center justify-between cursor-pointer select-none group"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-amber-100/80 text-amber-800 shrink-0">
-                <Wallet className="size-4" />
+              <div className="flex size-9 items-center justify-center rounded-full bg-amber-100 text-amber-800 shrink-0">
+                <Wallet className="size-4.5" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-xs font-black text-zinc-900 truncate">
@@ -832,30 +845,31 @@ export function RiderProfileScreen() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  triggerHaptic(20);
                   setShowEditModal(true);
                 }}
-                className="text-xs font-bold text-emerald-600 hover:underline active:scale-95 px-1 py-0.5"
+                className="text-xs font-bold text-emerald-600 hover:underline active:scale-95 px-1 py-0.5 cursor-pointer"
                 title="Update bank details"
               >
                 Update
               </button>
 
-              {/* Interactive Checkbox / Accordion Toggle */}
-              <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-xl bg-zinc-50 group-hover:bg-zinc-100 border border-zinc-200/90 transition-all">
+              {/* Interactive Pill Toggle (Exact Screenshot 1 Style) */}
+              <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-white group-hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs transition-all">
                 <div
-                  className={`size-4 rounded-md border flex items-center justify-center transition-all ${
+                  className={`size-3.5 rounded-full border flex items-center justify-center transition-all ${
                     isBankExpanded
-                      ? "bg-emerald-600 border-emerald-600 text-white shadow-2xs"
-                      : "border-zinc-400 bg-white"
+                      ? "bg-emerald-600 border-emerald-600 text-white"
+                      : "border-zinc-300 bg-white"
                   }`}
                 >
-                  {isBankExpanded && <Check className="size-3 stroke-[3]" />}
+                  {isBankExpanded && <Check className="size-2 stroke-[3]" />}
                 </div>
-                <span className="text-[10px] font-black text-zinc-700">
+                <span className="text-[10px] font-bold text-zinc-700">
                   {isBankExpanded ? "Close" : "Open"}
                 </span>
                 <ChevronDown
-                  className={`size-3.5 text-zinc-500 transition-transform duration-200 ${
+                  className={`size-3 text-zinc-400 transition-transform duration-200 ${
                     isBankExpanded ? "rotate-180" : ""
                   }`}
                 />
@@ -905,8 +919,8 @@ export function RiderProfileScreen() {
             className="flex items-center justify-between cursor-pointer select-none group"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-blue-100/80 text-blue-800 shrink-0">
-                <HistoryIcon className="size-4" />
+              <div className="flex size-9 items-center justify-center rounded-full bg-blue-100 text-blue-800 shrink-0">
+                <HistoryIcon className="size-4.5" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-xs font-black text-zinc-900 truncate">
@@ -915,22 +929,22 @@ export function RiderProfileScreen() {
               </div>
             </div>
 
-            {/* Interactive Checkbox / Accordion Toggle */}
-            <div className="flex items-center gap-1.5 py-1 px-2.5 rounded-xl bg-zinc-50 group-hover:bg-zinc-100 border border-zinc-200/90 transition-all shrink-0">
+            {/* Interactive Pill Toggle (Exact Screenshot 1 Style) */}
+            <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-white group-hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs transition-all shrink-0">
               <div
-                className={`size-4 rounded-md border flex items-center justify-center transition-all ${
+                className={`size-3.5 rounded-full border flex items-center justify-center transition-all ${
                   isTripsExpanded
-                    ? "bg-blue-600 border-blue-600 text-white shadow-2xs"
-                    : "border-zinc-400 bg-white"
+                    ? "bg-blue-600 border-blue-600 text-white"
+                    : "border-zinc-300 bg-white"
                 }`}
               >
-                {isTripsExpanded && <Check className="size-3 stroke-[3]" />}
+                {isTripsExpanded && <Check className="size-2 stroke-[3]" />}
               </div>
-              <span className="text-[10px] font-black text-zinc-700">
+              <span className="text-[10px] font-bold text-zinc-700">
                 {isTripsExpanded ? "Close" : "Open"}
               </span>
               <ChevronDown
-                className={`size-3.5 text-zinc-500 transition-transform duration-200 ${
+                className={`size-3 text-zinc-400 transition-transform duration-200 ${
                   isTripsExpanded ? "rotate-180" : ""
                 }`}
               />
@@ -1005,8 +1019,8 @@ export function RiderProfileScreen() {
           )}
         </div>
 
-        {/* SECTION: KNOWLEDGE & SUPPORT ACTION CARDS */}
-        <div className="rounded-3xl border border-zinc-200/80 bg-white p-2 shadow-sm space-y-1">
+        {/* SECTION: KNOWLEDGE & SUPPORT ACTION CARDS (Screenshot 1 Layout) */}
+        <div className="rounded-[28px] border border-zinc-200/80 bg-white p-2 shadow-sm space-y-1">
           {/* Captain Guidelines & SOP */}
           <button
             type="button"
@@ -1017,8 +1031,8 @@ export function RiderProfileScreen() {
             className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
-                <FileText className="size-5" />
+              <div className="flex size-10 items-center justify-center rounded-full bg-amber-100/90 text-amber-800 shrink-0">
+                <FileText className="size-4.5" />
               </div>
               <div className="text-left">
                 <p className="text-xs font-black text-zinc-900">Captain Onboarding & Guidelines</p>
@@ -1038,12 +1052,12 @@ export function RiderProfileScreen() {
             className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all border-t border-zinc-100 cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-blue-100 text-blue-800">
-                <Headphones className="size-5" />
+              <div className="flex size-10 items-center justify-center rounded-full bg-blue-100/90 text-blue-800 shrink-0">
+                <Headphones className="size-4.5" />
               </div>
               <div className="text-left">
                 <p className="text-xs font-black text-zinc-900">24/7 Captain Helpline & Support</p>
-                <p className="text-[10px] font-semibold text-emerald-600">Live Chat, Support Tickets & Email</p>
+                <p className="text-[10px] font-medium text-emerald-600">Live Chat, Support Tickets & Email</p>
               </div>
             </div>
             <ChevronRight className="size-4 text-zinc-400" />
@@ -1052,17 +1066,20 @@ export function RiderProfileScreen() {
           {/* Language Switcher */}
           <button
             type="button"
-            onClick={() => navigate({ to: "/dashboard" })}
-            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all border-t border-zinc-100"
+            onClick={() => {
+              triggerHaptic(20);
+              navigate({ to: "/dashboard" });
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all border-t border-zinc-100 cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
-                <Globe className="size-5" />
+              <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100/90 text-emerald-800 shrink-0">
+                <Globe className="size-4.5" />
               </div>
               <div className="text-left">
                 <p className="text-xs font-black text-zinc-900">App Language</p>
                 <p className="text-[10px] font-medium text-zinc-500">
-                  Currently: {selectedLanguageObj?.nativeName || "English"} ({selectedLanguageObj?.name || "English"})
+                  Currently: {selectedLanguageObj?.nativeName || "English"} ({selectedLanguageObj?.englishName || "English"})
                 </p>
               </div>
             </div>
@@ -1070,28 +1087,31 @@ export function RiderProfileScreen() {
           </button>
         </div>
 
-        {/* LOGOUT & DELETE ACCOUNT BUTTONS */}
-        <div className="pt-2 space-y-2">
+        {/* LOGOUT & DELETE ACCOUNT BUTTONS (Exact Screenshot 1 Style) */}
+        <div className="pt-3 pb-2 space-y-4">
           <button
             type="button"
-            onClick={() => setShowLogoutModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs rounded-2xl active:scale-98 transition-all"
+            onClick={() => {
+              triggerHaptic(20);
+              setShowLogoutModal(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 py-1.5 text-zinc-900 hover:text-zinc-700 font-bold text-xs active:scale-98 transition-all cursor-pointer"
           >
-            <LogOut className="size-4 text-zinc-600" />
+            <LogOut className="size-4 text-zinc-800" />
             <span>Log Out of QuickPress Captain</span>
           </button>
 
           <button
             type="button"
             onClick={() => {
-              triggerHaptic();
+              triggerHaptic(20);
               setDeleteDob("");
               setDeleteError("");
               setShowDeleteModal(true);
             }}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-2xl border border-rose-200 active:scale-98 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#FFF1F2] hover:bg-[#FFE4E6] text-[#E11D48] font-bold text-xs rounded-full border border-[#FECDD3] active:scale-98 transition-all shadow-2xs cursor-pointer"
           >
-            <Trash2 className="size-4" />
+            <Trash2 className="size-4 text-[#E11D48]" />
             <span>Delete Rider Account</span>
           </button>
         </div>

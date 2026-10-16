@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RiderProfileScreen } from "../screens/RiderProfileScreen";
-import { requireRiderAuth } from "../lib/auth-guard";
+import { requireRiderSession } from "../lib/auth-guard";
 
 export const Route = createFileRoute("/profile")({
-  ssr: false,
   beforeLoad: () => {
-    requireRiderAuth();
+    requireRiderSession();
   },
   head: () => ({
     meta: [
