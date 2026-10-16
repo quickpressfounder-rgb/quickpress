@@ -17,7 +17,8 @@ OLD_ARTIFACT_DIRS = [
 def run_cmd(cmd, cwd=ROOT_DIR):
     print(f"\n===> Executing: {cmd} (in {cwd})")
     env = os.environ.copy()
-    env["PATH"] = f"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{env.get('PATH', '')}"
+    node22 = "/Users/himanshupal/.nvm/versions/node/v22.23.2/bin"
+    env["PATH"] = f"{node22}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{env.get('PATH', '')}"
     if "ANDROID_HOME" not in env or not env["ANDROID_HOME"]:
         sdk = os.path.expanduser("~/Library/Android/sdk")
         if os.path.exists(sdk):
@@ -66,6 +67,18 @@ def build_customer(apks_dir):
     else:
         raise RuntimeError("Customer APK build artifact not found!")
 
+    # Build AAB for Play Store
+    run_cmd("./gradlew bundleDebug", cust_android_dir)
+    cust_aab_src = os.path.join(cust_android_dir, "app", "build", "outputs", "bundle", "debug", "app-debug.aab")
+    if os.path.exists(cust_aab_src):
+        copy_to_artifacts(cust_aab_src, "QuickPress-Customer.aab", apks_dir)
+
+    # Sync iOS
+    cust_ios_dir = os.path.join(ROOT_DIR, "customer-frontend", "ios")
+    if os.path.exists(cust_ios_dir):
+        print("Syncing Customer iOS project...")
+        run_cmd("npx cap sync ios", os.path.join(ROOT_DIR, "customer-frontend"))
+
 def build_partner(apks_dir):
     print("\n--- [Partner App] Building Partner App ---")
     run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:partner", ROOT_DIR)
@@ -83,20 +96,33 @@ def build_partner(apks_dir):
         raise RuntimeError("Partner APK build artifact not found!")
 
 def build_rider(apks_dir):
-    print("\n--- [Rider App] Building Rider / Captain App ---")
+    print("\n--- [Rider App] Building Rider / Captain App (APK + Play Store AAB) ---")
     run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:rider", ROOT_DIR)
     rdr_web_dist = os.path.join(ROOT_DIR, "rider-frontend", ".output", "public")
     rdr_android_assets = os.path.join(ROOT_DIR, "rider-frontend", "android", "app", "src", "main", "assets", "public")
     sync_assets(rdr_web_dist, rdr_android_assets)
 
     rdr_android_dir = os.path.join(ROOT_DIR, "rider-frontend", "android")
+    # 1. Build APK (for direct device installation)
     run_cmd("./gradlew assembleDebug", rdr_android_dir)
-
     rdr_apk_src = os.path.join(rdr_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(rdr_apk_src):
         copy_to_artifacts(rdr_apk_src, "QuickPress-Captain.apk", apks_dir)
     else:
         raise RuntimeError("Rider APK build artifact not found!")
+
+    # 2. Build AAB (for Google Play Console)
+    print("\n--- [Rider App] Building Google Play Store AAB Bundle ---")
+    run_cmd("./gradlew bundleDebug", rdr_android_dir)
+    rdr_aab_src = os.path.join(rdr_android_dir, "app", "build", "outputs", "bundle", "debug", "app-debug.aab")
+    if os.path.exists(rdr_aab_src):
+        copy_to_artifacts(rdr_aab_src, "QuickPress-Captain.aab", apks_dir)
+
+    # 3. Sync iOS
+    rdr_ios_dir = os.path.join(ROOT_DIR, "rider-frontend", "ios")
+    if os.path.exists(rdr_ios_dir):
+        print("Syncing Rider iOS project...")
+        run_cmd("npx cap sync ios", os.path.join(ROOT_DIR, "rider-frontend"))
 
 def main():
     target = sys.argv[1].lower() if len(sys.argv) > 1 else "all"
