@@ -40,8 +40,8 @@ export function fetchNearbyPartners(query: NearbyPartnerQuery = {}) {
       apiGet<Partner[]>(API_ENDPOINTS.nearbyPartners, {
         signal: query.signal,
         params: {
-          lat: query.location?.latitude ?? undefined,
-          lng: query.location?.longitude ?? undefined,
+          lat: (query.location as any)?.latitude ?? (query.location as any)?.lat ?? undefined,
+          lng: (query.location as any)?.longitude ?? (query.location as any)?.lng ?? undefined,
           city: query.location?.city ?? undefined,
           area: query.location?.area ?? undefined,
           limit: query.limit ?? 10,

@@ -146,7 +146,7 @@ async def get_nearby_partners(
     area: Optional[str] = Query(default=None),
     limit: int = Query(default=10),
 ) -> list[PartnerCardResponse]:
-    apply_cache_headers(response, CACHE_SHORT_LIVED)
+    apply_cache_headers(response, "public, max-age=5, stale-while-revalidate=15")
     return await catalog.partners(city=city, lat=lat, lng=lng, area=area, limit=limit)
 
 

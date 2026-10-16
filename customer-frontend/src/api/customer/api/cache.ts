@@ -52,7 +52,7 @@ export const CACHE_TTL: Record<string, number> = {
   location: 30 * 60_000,
   banners: 5 * 60_000,
   categories: 60 * 60_000,
-  partners: 3 * 60_000,
+  partners: 5_000,
   offers: 10 * 60_000,
   popular: 30 * 60_000,
   recommendations: 10 * 60_000,

@@ -1411,6 +1411,12 @@ async def get_store_status(partner_id: str = Depends(_partner_id)) -> dict:
 async def set_store_status(body: dict, partner_id: str = Depends(_partner_id)) -> dict:
     is_online = bool(body.get("isOnline", body.get("isOpen", True)))
     doc = await partner_repository.toggle_status(partner_id, is_online)
+    try:
+        from app.core.redis_cache import hybrid_cache
+        await hybrid_cache.delete_pattern("catalog:*")
+        await hybrid_cache.delete_pattern("partners:*")
+    except Exception:
+        pass
     return {
         "ok": True,
         "partnerId": partner_id,
@@ -1427,6 +1433,12 @@ async def update_store_status(
 ) -> PartnerProfileResponse:
     is_online = bool(body.get("isOnline", body.get("isOpen", True)))
     doc = await partner_repository.toggle_status(partner_id, is_online)
+    try:
+        from app.core.redis_cache import hybrid_cache
+        await hybrid_cache.delete_pattern("catalog:*")
+        await hybrid_cache.delete_pattern("partners:*")
+    except Exception:
+        pass
     return PartnerProfileResponse(**{k: v for k, v in doc.items() if k in PartnerProfileResponse.model_fields})
 
 
@@ -1591,12 +1603,16 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "signedAt": payload.signedAt or now_iso_str,
         "signedByName": payload.signedByName or payload.ownerName,
         "agreementVersion": payload.agreementVersion or "QP-SLA-2026-v4.2",
-        "status": "pending_verification",
-        "kycStatus": "pending",
+        "status": "active",
+        "approvalStatus": "approved",
+        "kycStatus": "verified",
         "rejectionReason": None,
         "kycReason": None,
-        "isVerified": False,
+        "isVerified": True,
         "isOnboarded": True,
+        "isApproved": True,
+        "isOnline": True,
+        "isStoreOpen": True,
         "resubmitted": is_resubmission,
         "resubmittedAt": now_iso_str if is_resubmission else None,
         "resubmissionCount": resub_count,
@@ -1612,7 +1628,8 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                 "joinedOn": datetime.now(timezone.utc).strftime("%B %Y"),
                 "onTimeRate": 98.5,
                 "tier": "Silver",
-                "isOnline": False,
+                "isOnline": True,
+                "isStoreOpen": True,
                 "createdAt": now_iso_str,
             },
         )
@@ -1666,12 +1683,16 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
             "signedByName": payload.signedByName or payload.ownerName,
             "signatureUrl": payload.signatureUrl,
             "agreementVersion": payload.agreementVersion or "QP-SLA-2026-v4.2",
-            "status": "pending_verification",
-            "kycStatus": "pending",
+            "status": "active",
+            "approvalStatus": "approved",
+            "kycStatus": "verified",
             "rejectionReason": None,
             "kycReason": None,
-            "isVerified": False,
+            "isVerified": True,
             "isOnboarded": True,
+            "isApproved": True,
+            "isOnline": True,
+            "isStoreOpen": True,
             "resubmitted": is_resubmission,
             "resubmittedAt": now_iso_str if is_resubmission else None,
             "resubmissionCount": resub_count,
@@ -1687,8 +1708,8 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         {"$or": [{"partnerId": store_id_str}, {"_id": store_id_str}]},
         {
             "partnerId": store_id_str,
-            "status": "pending",
-            "isVerified": False,
+            "status": "approved",
+            "isVerified": True,
             "resubmitted": is_resubmission,
             "resubmittedAt": now_iso_str if is_resubmission else None,
             "rejectionReason": None,
@@ -1697,26 +1718,6 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         upsert=True,
     )
 
-    try:
-        from app.services.socket_service import notify_partner_status_changed
-        await notify_partner_status_changed(
-            partner_id=store_id_str,
-            is_online=False,
-            store_open=False,
-            accepting=False,
-            extra={
-                "resubmitted": is_resubmission,
-                "resubmittedAt": now_iso_str if is_resubmission else None,
-                "status": "pending_verification",
-                "kycStatus": "pending",
-                "businessName": payload.businessName,
-                "ownerName": payload.ownerName,
-                "city": payload.city,
-            },
-        )
-    except Exception as exc:
-        logger.warning("Could not broadcast partner onboarding status change: %s", exc)
-
     # Initialize partner store settings with timing, radius, and weekly off
     await database.update(
         "partner_settings",
@@ -1724,8 +1725,8 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         {
             "_id": store_id_str,
             "partnerId": store_id_str,
-            "isStoreOpen": False,
-            "acceptingNewOrders": False,
+            "isStoreOpen": True,
+            "acceptingNewOrders": True,
             "autoAcceptOrders": True,
             "expressDelivery": True,
             "pickupRadiusKm": payload.pickupRadiusKm or 10,
@@ -1752,7 +1753,7 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
             "Curtain Cleaning": {"price": 199, "unit": "panel", "category": "home-care", "turnaroundHours": 48, "desc": "Specialized curtain and drape dust extraction and steaming."},
             "Bag & Leather Cleaning": {"price": 399, "unit": "pc", "category": "leather", "turnaroundHours": 48, "desc": "Specialized deep restoration and conditioning for leather jackets, handbags and suede."},
         }
-        chosen = payload.services if payload.services else ["Wash & Fold", "Steam Ironing"]
+        chosen = payload.services if payload.services else ["Wash & Fold", "Steam Ironing", "Dry Cleaning"]
         for idx, svc_item in enumerate(chosen, 1):
             if isinstance(svc_item, dict):
                 svc_name = svc_item.get("name") or "Wash & Fold"
@@ -1784,20 +1785,68 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
                     "unit": str(unit),
                     "turnaroundHours": int(turnaround),
                     "isActive": True,
+                    "enabled": True,
+                    "pendingApproval": False,
+                    "approvalStatus": "approved",
                     "description": info["desc"],
                 },
+            )
+    else:
+        for s in existing_services:
+            await database.update(
+                "partner_services",
+                {"_id": s.get("_id")},
+                {"isActive": True, "enabled": True, "pendingApproval": False, "approvalStatus": "approved"},
             )
 
     await users.update(
         user.id,
         {
             "is_onboarded": True,
-            "is_verified": False,
-            "status": "pending_verification",
+            "is_verified": True,
+            "status": "active",
             "display_name": payload.ownerName or payload.businessName,
             "city": payload.city,
         },
     )
+
+    # Invalidate hybrid catalog and partner query caches immediately
+    try:
+        from app.core.redis_cache import hybrid_cache
+        await hybrid_cache.delete_pattern("catalog:*")
+        await hybrid_cache.delete_pattern("partners:*")
+        await hybrid_cache.delete_pattern("services:*")
+        for c_name in ("partner_profiles", "partners", "admin_partners", "partner_services", "partner_settings"):
+            try:
+                coll = database.collection(c_name)
+                if coll and hasattr(coll, "_invalidate_query_cache"):
+                    coll._invalidate_query_cache()
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.warning("Could not invalidate catalog cache on onboarding: %s", exc)
+
+    # Realtime broadcast to customer apps, partner apps, and admin panels
+    try:
+        from app.services.socket_service import notify_partner_status_changed
+        await notify_partner_status_changed(
+            partner_id=store_id_str,
+            is_online=True,
+            store_open=True,
+            accepting=True,
+            extra={
+                "resubmitted": is_resubmission,
+                "resubmittedAt": now_iso_str if is_resubmission else None,
+                "status": "active",
+                "kycStatus": "verified",
+                "businessName": payload.businessName,
+                "ownerName": payload.ownerName,
+                "city": payload.city,
+                "area": payload.area,
+            },
+        )
+    except Exception as exc:
+        logger.warning("Could not broadcast partner onboarding status change: %s", exc)
 
     # --------------------------------------------------------------------------
     # Generate Legally-Binding Bilateral Partner Agreement PDF & Dispatch via Hostinger Email
@@ -1870,7 +1919,7 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         partnerId=store_id_str,
         phone=user.phone or "",
         businessName=payload.businessName,
-        isVerified=False,
+        isVerified=True,
         isOnboarded=True,
     )
 

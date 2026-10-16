@@ -20,6 +20,7 @@ import {
 import { changeLocation, refreshLocationFromGps, readLocation } from "@/api/customer/services/location-service";
 import { greetingFor } from "@/api/customer/services/profile-service";
 import type { SavedLocation } from "@/api/customer/location";
+import { onRealtimeEvent } from "@/api/core/socket-client";
 
 export type UseHomeData = {
   sections: HomeSections;
@@ -139,6 +140,20 @@ export function useHomeData(): UseHomeData {
       setOnline(next);
       if (next) void load({ forceRefresh: true });
     });
+  }, [load]);
+
+  // Real-time catalog and partner sync: automatically re-fetch when any partner onboards or goes online
+  useEffect(() => {
+    const unsubStatus = onRealtimeEvent("partner.status_changed", () => {
+      void load({ forceRefresh: true });
+    });
+    const unsubCatalog = onRealtimeEvent("catalog.updated", () => {
+      void load({ forceRefresh: true });
+    });
+    return () => {
+      unsubStatus();
+      unsubCatalog();
+    };
   }, [load]);
 
   // Auto-detect real live device GPS location on start if no valid city saved yet

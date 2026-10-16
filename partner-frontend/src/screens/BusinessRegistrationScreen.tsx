@@ -1383,7 +1383,12 @@ export function BusinessRegistrationScreen() {
         isOnboarded: true,
       });
 
-      navigate({ to: partnerRoutes.registrationSubmitted });
+      if (result.isVerified) {
+        toast.success("Store onboarding completed & live! Welcome to QuickPress Partner Dashboard! 🚀");
+        navigate({ to: partnerRoutes.dashboard });
+      } else {
+        navigate({ to: partnerRoutes.registrationSubmitted });
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to submit registration. Please verify all details.");
       triggerHaptic();

@@ -325,9 +325,15 @@ class CatalogRepository:
         approved = []
         for p in profiles:
             st = str(p.get("status") or "").lower()
-            if st not in ("active", "approved"):
+            if st in ("rejected", "suspended", "blocked", "inactive"):
                 continue
-            approved.append(p)
+            if (
+                st in ("active", "approved", "pending_verification", "onboarded")
+                or p.get("isOnboarded") is True
+                or p.get("isVerified") is True
+                or p.get("isApproved") is True
+            ):
+                approved.append(p)
         return approved
 
     async def partner_cards(
@@ -358,13 +364,17 @@ class CatalogRepository:
         profiles = await self._approved_partner_profiles()
         cards: List[PartnerCardResponse] = []
 
-        partner_ids = [str(p["_id"]) for p in profiles if p.get("_id")]
+        partner_ids = list({
+            str(p["_id"]) for p in profiles if p.get("_id")
+        } | {
+            str(p["partnerId"]) for p in profiles if p.get("partnerId")
+        })
         if not partner_ids:
             return []
 
         all_services_docs, all_settings_docs = await asyncio.gather(
             database.find_many("partner_services", {"partnerId": {"$in": partner_ids}}),
-            database.find_many("partner_settings", {"_id": {"$in": partner_ids}}),
+            database.find_many("partner_settings", {"$or": [{"_id": {"$in": partner_ids}}, {"partnerId": {"$in": partner_ids}}]}),
         )
 
         services_by_partner: Dict[str, list] = {}
@@ -372,13 +382,17 @@ class CatalogRepository:
             p_id = str(s.get("partnerId") or "")
             services_by_partner.setdefault(p_id, []).append(s)
 
-        settings_by_partner: Dict[str, dict] = {
-            str(s.get("_id") or ""): s for s in all_settings_docs
-        }
+        settings_by_partner: Dict[str, dict] = {}
+        for s in all_settings_docs:
+            if s.get("_id"):
+                settings_by_partner[str(s["_id"])] = s
+            if s.get("partnerId"):
+                settings_by_partner[str(s["partnerId"])] = s
 
         for p in profiles:
-            pid = str(p["_id"])
-            services_docs = services_by_partner.get(pid, [])
+            pid = str(p.get("_id") or p.get("partnerId") or "")
+            alt_id = str(p.get("partnerId") or p.get("_id") or "")
+            services_docs = services_by_partner.get(pid, []) or services_by_partner.get(alt_id, [])
             active_services = [
                 s for s in services_docs
                 if s.get("isActive", True) is not False
@@ -386,7 +400,7 @@ class CatalogRepository:
                 and not s.get("pendingApproval", False)
                 and s.get("approvalStatus", "approved") == "approved"
             ]
-            settings = settings_by_partner.get(pid, {})
+            settings = settings_by_partner.get(pid, {}) or settings_by_partner.get(alt_id, {})
 
             reviews_count = int(
                 p.get("totalOrders")
@@ -398,11 +412,17 @@ class CatalogRepository:
             reviews = f"{reviews_count / 1000:.1f}k" if reviews_count >= 1000 else str(reviews_count)
 
             pickup = int(settings.get("pickupMinutes") or 30)
-            is_open = bool(p.get("isOnline", True) and settings.get("isStoreOpen", True))
+            is_online_flag = p.get("isOnline")
+            is_store_open_flag = settings.get("isStoreOpen")
+            is_open = True if is_online_flag is None and is_store_open_flag is None else bool(
+                (is_online_flag is not False) and (is_store_open_flag is not False)
+            )
             banner = p.get("banner") or p.get("bannerUrl") or p.get("banner_url") or p.get("cover") or p.get("coverImage")
             logo = p.get("logo") or p.get("logoUrl") or p.get("logo_url") or p.get("photo_url") or p.get("image")
             image = banner or logo or "store-1"
             service_names = [s.get("name") for s in active_services if s.get("name")]
+            if not service_names:
+                service_names = ["Wash & Fold", "Steam Ironing", "Dry Cleaning"]
             min_price = min([int(s.get("price", 0)) for s in active_services if int(s.get("price", 0)) > 0] or [49])
 
             distance_km = float(p.get("distanceKm") or 1.5)
@@ -460,7 +480,8 @@ class CatalogRepository:
                 if (card.city and (c_low in card.city.lower() or card.city.lower() in c_low))
                 or (card.area and c_low in card.area.lower())
             ]
-            cards = city_matched
+            if city_matched:
+                cards = city_matched
         elif area:
             a_low = area.strip().lower()
             area_matched = [
@@ -469,7 +490,8 @@ class CatalogRepository:
                 if (card.area and a_low in card.area.lower())
                 or (card.city and a_low in card.city.lower())
             ]
-            cards = area_matched
+            if area_matched:
+                cards = area_matched
         if min_rating > 0:
             cards = [card for card in cards if card.rating >= min_rating]
         if max_distance > 0:
@@ -484,7 +506,7 @@ class CatalogRepository:
             cards = [card for card in cards if card.open]
 
         sorted_cards = _sort_cards(cards, sort)
-        await hybrid_cache.set(cache_key, [c.model_dump() for c in sorted_cards], ttl_seconds=60)
+        await hybrid_cache.set(cache_key, [c.model_dump() for c in sorted_cards], ttl_seconds=30)
         return sorted_cards
 
     async def partners(

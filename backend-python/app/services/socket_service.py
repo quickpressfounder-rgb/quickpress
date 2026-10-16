@@ -286,10 +286,28 @@ async def broadcast_partner_status(
 
         # 3. Emit publicly so customer app store views update live
         await sio.emit(EVENT_PARTNER_STATUS_CHANGED, payload)
+        await sio.emit("catalog.updated", payload)
 
         logger.info("Broadcasted partner %s online status: %s (store_open=%s)", partner_id, is_online, store_open)
     except Exception as exc:
         logger.warning("Failed to broadcast partner status for %s: %s", partner_id, exc)
+
+
+async def notify_partner_status_changed(
+    partner_id: str,
+    is_online: bool,
+    store_open: bool = True,
+    accepting: bool = True,
+    extra: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Notify and broadcast partner status change across platform."""
+    await broadcast_partner_status(
+        partner_id=partner_id,
+        is_online=is_online,
+        is_store_open=store_open,
+        accepting_orders=accepting,
+        extra=extra,
+    )
 
 
 async def broadcast_order_event(
