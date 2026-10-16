@@ -212,6 +212,9 @@ export type BusinessSettings = {
   autoAcceptOrders: boolean;
   expressDelivery: boolean;
   pickupRadiusKm: number;
+  deliveryRadiusKm?: number;
+  servicePincodes?: string[];
+  sectors?: string[];
   openingTime: string;
   closingTime: string;
   weeklyOff: string;

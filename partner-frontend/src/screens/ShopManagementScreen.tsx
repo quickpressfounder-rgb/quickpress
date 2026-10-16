@@ -21,6 +21,7 @@ import { ShopGallery } from "../components/shop/ShopGallery";
 import { ShopHoursCard } from "../components/shop/ShopHoursCard";
 import { ShopProfileHeader } from "../components/shop/ShopProfileHeader";
 import { ShopServiceArea } from "../components/shop/ShopServiceArea";
+import { ShopCoverageModal } from "../components/shop/ShopCoverageModal";
 import { ShopProfileSkeleton } from "../components/shop/ShopSkeletons";
 import { ShopStatsGrid } from "../components/shop/ShopStatsGrid";
 import { ShopStatusSheet } from "../components/shop/ShopStatusSheet";
@@ -53,11 +54,13 @@ function ShopManagementContent() {
     updateProfile,
     setStatus,
     updateHours,
+    updateArea,
     addImage,
     removeImage,
   } = usePartnerShop();
 
   const [editOpen, setEditOpen] = useState(false);
+  const [coverageOpen, setCoverageOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -166,7 +169,7 @@ function ShopManagementContent() {
                     title="Pickup & Delivery Area Coverage"
                     action={<SectionIcon icon={MapPinned} color="bg-purple-50 text-purple-700" />}
                   />
-                  <ShopServiceArea area={area} />
+                  <ShopServiceArea area={area} onEdit={() => setCoverageOpen(true)} />
                 </section>
               </div>
 
@@ -204,6 +207,24 @@ function ShopManagementContent() {
             await updateProfile(patch);
             setEditOpen(false);
             setSuccess("Shop details updated successfully");
+          }}
+        />
+      ) : null}
+
+      {/* Coverage & Service Area Modal */}
+      {coverageOpen ? (
+        <ShopCoverageModal
+          open={coverageOpen}
+          onClose={() => setCoverageOpen(false)}
+          pickupRadiusKm={area.pickupRadiusKm}
+          deliveryRadiusKm={area.deliveryRadiusKm}
+          servicePincodes={area.servicePincodes}
+          sectors={area.sectors}
+          city={area.city}
+          onSave={async (patch) => {
+            await updateArea(patch);
+            setCoverageOpen(false);
+            setSuccess("Coverage radius & service PIN codes updated successfully");
           }}
         />
       ) : null}

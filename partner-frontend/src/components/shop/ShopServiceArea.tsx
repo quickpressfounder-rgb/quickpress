@@ -1,9 +1,15 @@
-import { Bike, Compass, MapPin, Navigation, ShieldCheck, Truck } from "lucide-react";
+import { Bike, Compass, MapPin, Navigation, Pencil, ShieldCheck, Truck } from "lucide-react";
 
 import type { ServiceArea } from "../../data/partner-shop-mock";
 
-/** Modern service area & coverage summary. */
-export function ShopServiceArea({ area }: { area: ServiceArea }) {
+/** Modern service area & coverage summary with PIN codes and edit trigger. */
+export function ShopServiceArea({
+  area,
+  onEdit,
+}: {
+  area: ServiceArea;
+  onEdit?: () => void;
+}) {
   const items = [
     {
       icon: MapPin,
@@ -61,9 +67,38 @@ export function ShopServiceArea({ area }: { area: ServiceArea }) {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-200/70 px-3.5 py-2.5 text-xs font-bold text-emerald-800">
-        <ShieldCheck className="size-4 shrink-0 text-emerald-600" />
-        <span>Rider auto-dispatch is active within {area.pickupRadiusKm || 8}.0 km coverage area.</span>
+      {/* PIN Codes & Sectors Pill Bar */}
+      {area.servicePincodes && area.servicePincodes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 p-3 rounded-2xl border border-zinc-200/80 bg-zinc-50/50">
+          <span className="text-[11px] font-black text-zinc-400 uppercase tracking-wider mr-1">
+            Service PINs:
+          </span>
+          {area.servicePincodes.map((pin) => (
+            <span
+              key={pin}
+              className="rounded-lg border border-blue-200 bg-white px-2 py-0.5 text-xs font-black text-blue-900 shadow-2xs"
+            >
+              {pin}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 rounded-2xl bg-emerald-50 border border-emerald-200/70 p-3 text-xs font-bold text-emerald-800">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <ShieldCheck className="size-4 shrink-0 text-emerald-600" />
+          <span className="truncate">Rider auto-dispatch is active within {area.pickupRadiusKm || 8}.0 km coverage area.</span>
+        </div>
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="shrink-0 flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-2xs cursor-pointer"
+          >
+            <Pencil className="size-3" />
+            <span>Edit Coverage</span>
+          </button>
+        )}
       </div>
     </div>
   );

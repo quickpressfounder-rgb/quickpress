@@ -149,6 +149,9 @@ class BusinessSettingsResponse(BaseModel):
     autoAcceptOrders: bool = True
     expressDelivery: bool = True
     pickupRadiusKm: int = 8
+    deliveryRadiusKm: int = 10
+    servicePincodes: List[str] = Field(default_factory=list)
+    sectors: List[str] = Field(default_factory=list)
     openingTime: str = "08:00"
     closingTime: str = "21:00"
     weeklyOff: str = "None"
@@ -161,6 +164,9 @@ class BusinessSettingsUpdate(BaseModel):
     autoAcceptOrders: Optional[bool] = None
     expressDelivery: Optional[bool] = None
     pickupRadiusKm: Optional[int] = None
+    deliveryRadiusKm: Optional[int] = None
+    servicePincodes: Optional[List[str]] = None
+    sectors: Optional[List[str]] = None
     openingTime: Optional[str] = None
     closingTime: Optional[str] = None
     weeklyOff: Optional[str] = None

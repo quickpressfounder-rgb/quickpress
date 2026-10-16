@@ -105,6 +105,8 @@ export type ServiceArea = {
   area: string;
   pickupRadiusKm: number;
   deliveryRadiusKm: number;
+  servicePincodes?: string[];
+  sectors?: string[];
 };
 
 export type ShopStatistics = {

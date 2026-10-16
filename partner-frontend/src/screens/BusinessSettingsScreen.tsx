@@ -8,6 +8,8 @@ import {
   FileText,
   Gauge,
   Mail,
+  MapPin,
+  Pencil,
   Power,
   ShieldAlert,
   ShieldCheck,
@@ -29,6 +31,9 @@ import { partnerRoutes } from "../navigation/partner-routes";
 import { fetchBusinessSettings, updateBusinessSettings } from "@/api/partner/partner-profile-api";
 import type { BusinessSettings } from "@/shared/types/partner";
 import { usePartnerContext } from "../context/PartnerContext";
+import { ShopHoursModal } from "../components/shop/ShopHoursModal";
+import { ShopCoverageModal } from "../components/shop/ShopCoverageModal";
+import { ShopCapacityModal } from "../components/shop/ShopCapacityModal";
 
 /**
  * High-contrast iOS toggle switch component
@@ -85,6 +90,9 @@ export function BusinessSettingsScreen() {
   const { data: settings, setData } = usePartnerResource(fetchBusinessSettings);
   const [closeAccountOpen, setCloseAccountOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [hoursModalOpen, setHoursModalOpen] = useState(false);
+  const [coverageModalOpen, setCoverageModalOpen] = useState(false);
+  const [capacityModalOpen, setCapacityModalOpen] = useState(false);
 
   // Synchronize effective store open state with global isOnline
   const isStoreEffectivelyOpen = settings !== null && typeof settings?.isStoreOpen === "boolean"
@@ -376,71 +384,126 @@ export function BusinessSettingsScreen() {
 
               {/* Card 3: Operational Limits & Hours */}
               <div className="space-y-2">
-                <p className="text-xs font-black uppercase tracking-wider text-zinc-400 px-1">
-                  Store Limits & Timings
-                </p>
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-xs font-black uppercase tracking-wider text-zinc-400">
+                    Store Limits & Timings
+                  </p>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    Tap to edit
+                  </span>
+                </div>
 
                 <div className="rounded-2xl border border-zinc-200/90 bg-white overflow-hidden shadow-xs divide-y divide-zinc-100">
                   {/* Working Hours */}
-                  <div className="flex items-center justify-between p-4 gap-3">
+                  <div
+                    onClick={() => setHoursModalOpen(true)}
+                    className="flex items-center justify-between p-4 gap-3 cursor-pointer hover:bg-zinc-50/70 transition-colors"
+                  >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                         <Clock3 className="size-5" strokeWidth={2.2} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Working Hours</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-black text-zinc-900">Working Hours</p>
+                          <Pencil className="size-3 text-blue-500" />
+                        </div>
                         <p className="text-xs font-medium text-zinc-500 truncate">Store daily operating hours</p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-black text-zinc-900">
+                    <span className="shrink-0 rounded-xl border border-blue-200 bg-blue-50/50 px-3 py-1.5 text-xs font-black text-blue-900">
                       {settings.openingTime} – {settings.closingTime}
                     </span>
                   </div>
 
-                  {/* Pickup Radius */}
-                  <div className="flex items-center justify-between p-4 gap-3">
+                  {/* Pickup & Delivery Radius */}
+                  <div
+                    onClick={() => setCoverageModalOpen(true)}
+                    className="flex items-center justify-between p-4 gap-3 cursor-pointer hover:bg-zinc-50/70 transition-colors"
+                  >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                         <Gauge className="size-5" strokeWidth={2.2} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Pickup Radius</p>
-                        <p className="text-xs font-medium text-zinc-500 truncate">Max delivery boundary</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-black text-zinc-900">Coverage Radius</p>
+                          <Pencil className="size-3 text-emerald-500" />
+                        </div>
+                        <p className="text-xs font-medium text-zinc-500 truncate">Pickup & delivery SLA boundaries</p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-black text-zinc-900">
-                      {settings.pickupRadiusKm} km
+                    <span className="shrink-0 rounded-xl border border-emerald-200 bg-emerald-50/50 px-3 py-1.5 text-xs font-black text-emerald-900">
+                      {settings.pickupRadiusKm} km / {settings.deliveryRadiusKm || 10} km
+                    </span>
+                  </div>
+
+                  {/* Service Pincodes & Sectors */}
+                  <div
+                    onClick={() => setCoverageModalOpen(true)}
+                    className="flex items-center justify-between p-4 gap-3 cursor-pointer hover:bg-zinc-50/70 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                        <MapPin className="size-5" strokeWidth={2.2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-black text-zinc-900">Service PIN Codes & Areas</p>
+                          <Pencil className="size-3 text-teal-500" />
+                        </div>
+                        <p className="text-xs font-medium text-zinc-500 truncate">
+                          {settings.servicePincodes && settings.servicePincodes.length > 0
+                            ? `${settings.servicePincodes.join(", ")}`
+                            : "Auto-dispatch active within radius"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-xl border border-teal-200 bg-teal-50/50 px-3 py-1.5 text-xs font-black text-teal-900">
+                      {settings.servicePincodes?.length || 0} PINs
                     </span>
                   </div>
 
                   {/* Daily Order Cap */}
-                  <div className="flex items-center justify-between p-4 gap-3">
+                  <div
+                    onClick={() => setCapacityModalOpen(true)}
+                    className="flex items-center justify-between p-4 gap-3 cursor-pointer hover:bg-zinc-50/70 transition-colors"
+                  >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
                         <Sliders className="size-5" strokeWidth={2.2} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Daily Order Cap</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-black text-zinc-900">Daily Order Cap</p>
+                          <Pencil className="size-3 text-purple-500" />
+                        </div>
                         <p className="text-xs font-medium text-zinc-500 truncate">Maximum daily capacity</p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-black text-zinc-900">
+                    <span className="shrink-0 rounded-xl border border-purple-200 bg-purple-50/50 px-3 py-1.5 text-xs font-black text-purple-900">
                       {settings.dailyOrderCap} orders
                     </span>
                   </div>
 
                   {/* Weekly Off Day */}
-                  <div className="flex items-center justify-between p-4 gap-3">
+                  <div
+                    onClick={() => setHoursModalOpen(true)}
+                    className="flex items-center justify-between p-4 gap-3 cursor-pointer hover:bg-zinc-50/70 transition-colors"
+                  >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
                         <Clock3 className="size-5" strokeWidth={2.2} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Weekly Off Day</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-black text-zinc-900">Weekly Off Day</p>
+                          <Pencil className="size-3 text-amber-500" />
+                        </div>
                         <p className="text-xs font-medium text-zinc-500 truncate">Scheduled maintenance day</p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-black text-zinc-900">
+                    <span className="shrink-0 rounded-xl border border-amber-200 bg-amber-50/50 px-3 py-1.5 text-xs font-black text-amber-900">
                       {settings.weeklyOff || "None (7 Days Open)"}
                     </span>
                   </div>
@@ -691,18 +754,23 @@ export function BusinessSettingsScreen() {
 
               {/* Operational Limits */}
               <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex size-8 items-center justify-center rounded-xl bg-blue-500/15 text-blue-600">
-                    <Clock3 className="size-4" strokeWidth={2.3} />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-black text-zinc-900">
-                      Operational Limits & Hours
-                    </h2>
-                    <p className="text-[11px] font-medium text-zinc-500">
-                      Configured operating hours and service bounds
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-8 items-center justify-center rounded-xl bg-blue-500/15 text-blue-600">
+                      <Clock3 className="size-4" strokeWidth={2.3} />
+                    </span>
+                    <div>
+                      <h2 className="text-sm font-black text-zinc-900">
+                        Operational Limits & Service Coverage
+                      </h2>
+                      <p className="text-[11px] font-medium text-zinc-500">
+                        Configured store schedule, dispatch boundaries & serviceable PIN codes
+                      </p>
+                    </div>
                   </div>
+                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    Click to edit
+                  </span>
                 </div>
 
                 <div className="space-y-3">
@@ -710,23 +778,40 @@ export function BusinessSettingsScreen() {
                     {
                       icon: Clock3,
                       label: "Working Hours",
-                      subtitle: "Store daily timing",
+                      subtitle: "Store daily timing schedule",
                       value: `${settings.openingTime} – ${settings.closingTime}`,
                       color: "text-blue-600 bg-blue-50",
+                      badgeColor: "border-blue-200 text-blue-900",
+                      action: () => setHoursModalOpen(true),
                     },
                     {
                       icon: Gauge,
-                      label: "Pickup Radius",
-                      subtitle: "Maximum captain dispatch radius",
-                      value: `${settings.pickupRadiusKm} km`,
+                      label: "Pickup & Delivery SLA Radius",
+                      subtitle: `Pickup: ${settings.pickupRadiusKm} km · Dropoff SLA: ${settings.deliveryRadiusKm || 10} km`,
+                      value: `${settings.pickupRadiusKm} km / ${settings.deliveryRadiusKm || 10} km`,
                       color: "text-emerald-600 bg-emerald-50",
+                      badgeColor: "border-emerald-200 text-emerald-900",
+                      action: () => setCoverageModalOpen(true),
+                    },
+                    {
+                      icon: MapPin,
+                      label: "Serviceable PIN Codes & Sectors",
+                      subtitle: settings.servicePincodes && settings.servicePincodes.length > 0
+                        ? `${settings.servicePincodes.join(", ")}`
+                        : "Auto-dispatch active within coverage radius",
+                      value: `${settings.servicePincodes?.length || 0} PINs`,
+                      color: "text-teal-600 bg-teal-50",
+                      badgeColor: "border-teal-200 text-teal-900",
+                      action: () => setCoverageModalOpen(true),
                     },
                     {
                       icon: Sliders,
                       label: "Daily Order Cap",
-                      subtitle: "Max capacity limit",
+                      subtitle: "Maximum daily bookings capacity limit",
                       value: `${settings.dailyOrderCap} orders`,
                       color: "text-purple-600 bg-purple-50",
+                      badgeColor: "border-purple-200 text-purple-900",
+                      action: () => setCapacityModalOpen(true),
                     },
                     {
                       icon: Clock3,
@@ -734,22 +819,30 @@ export function BusinessSettingsScreen() {
                       subtitle: "Store maintenance off day",
                       value: settings.weeklyOff || "None (Open 7 Days)",
                       color: "text-amber-600 bg-amber-50",
+                      badgeColor: "border-amber-200 text-amber-900",
+                      action: () => setHoursModalOpen(true),
                     },
                   ].map((row) => (
                     <div
                       key={row.label}
-                      className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 bg-zinc-50/50"
+                      onClick={row.action}
+                      className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 bg-zinc-50/50 hover:bg-white hover:border-emerald-300 hover:shadow-2xs transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-3">
                         <span className={`flex size-9 items-center justify-center rounded-xl ${row.color}`}>
                           <row.icon className="size-4.5" strokeWidth={2.2} />
                         </span>
                         <div>
-                          <p className="text-xs font-bold text-zinc-900">{row.label}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-zinc-900 group-hover:text-emerald-700 transition-colors">
+                              {row.label}
+                            </p>
+                            <Pencil className="size-3 text-zinc-400 group-hover:text-emerald-600 transition-colors" />
+                          </div>
                           <p className="text-[10px] text-zinc-500">{row.subtitle}</p>
                         </div>
                       </div>
-                      <span className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-black text-zinc-900 shadow-2xs">
+                      <span className={`rounded-xl border bg-white px-3 py-1.5 text-xs font-black shadow-2xs ${row.badgeColor}`}>
                         {row.value}
                       </span>
                     </div>
@@ -869,6 +962,47 @@ export function BusinessSettingsScreen() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {/* 1. Operating Hours & Weekly Off Modal */}
+      {settings && hoursModalOpen ? (
+        <ShopHoursModal
+          open={hoursModalOpen}
+          onClose={() => setHoursModalOpen(false)}
+          openingTime={settings.openingTime}
+          closingTime={settings.closingTime}
+          weeklyOff={settings.weeklyOff}
+          onSave={async (patchData) => {
+            await patch(patchData, "Store operating hours updated");
+          }}
+        />
+      ) : null}
+
+      {/* 2. Coverage Radius, Pincodes & Sectors Modal */}
+      {settings && coverageModalOpen ? (
+        <ShopCoverageModal
+          open={coverageModalOpen}
+          onClose={() => setCoverageModalOpen(false)}
+          pickupRadiusKm={settings.pickupRadiusKm}
+          deliveryRadiusKm={settings.deliveryRadiusKm || 10}
+          servicePincodes={settings.servicePincodes || []}
+          sectors={settings.sectors || []}
+          onSave={async (patchData) => {
+            await patch(patchData, "Coverage radius and pincodes updated");
+          }}
+        />
+      ) : null}
+
+      {/* 3. Daily Capacity Limit Modal */}
+      {settings && capacityModalOpen ? (
+        <ShopCapacityModal
+          open={capacityModalOpen}
+          onClose={() => setCapacityModalOpen(false)}
+          dailyOrderCap={settings.dailyOrderCap}
+          onSave={async (patchData) => {
+            await patch(patchData, "Daily order capacity updated");
+          }}
+        />
       ) : null}
 
       <Toaster />

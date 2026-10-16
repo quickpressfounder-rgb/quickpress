@@ -51,6 +51,7 @@ type PartnerShopValue = {
   uploadGalleryPhoto: (base64Image: string) => Promise<string>;
   setStatus: (next: ShopStatusId) => Promise<void>;
   updateHours: (patch: Partial<BusinessHours>) => Promise<void>;
+  updateArea: (patch: Partial<ServiceArea>) => Promise<void>;
   addImage: (base64Image?: string) => Promise<boolean>;
   removeImage: (urlOrId: string) => Promise<void>;
   moveImage: (id: string, direction: -1 | 1) => void;
@@ -197,12 +198,17 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
       const effectiveCity = profileDoc?.city || "Kasganj";
       const effectiveArea = profileDoc?.area || profileDoc?.address || "Main Market";
       const effectiveRadius = settingsDoc?.pickupRadiusKm || 8;
+      const effectiveDeliveryRadius = settingsDoc?.deliveryRadiusKm || effectiveRadius;
+      const effectivePincodes = settingsDoc?.servicePincodes || (profileDoc?.pincode ? [profileDoc.pincode] : []);
+      const effectiveSectors = settingsDoc?.sectors || [];
 
       setArea({
         city: effectiveCity,
         area: effectiveArea,
         pickupRadiusKm: effectiveRadius,
-        deliveryRadiusKm: effectiveRadius,
+        deliveryRadiusKm: effectiveDeliveryRadius,
+        servicePincodes: effectivePincodes,
+        sectors: effectiveSectors,
       });
 
       // Real statistics reconciliation
@@ -330,6 +336,19 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
     setHours((current) => ({ ...current, ...patch }));
   }, []);
 
+  const updateArea = useCallback(async (patch: Partial<ServiceArea>) => {
+    const body: Partial<BusinessSettings> = {};
+    if (patch.pickupRadiusKm !== undefined) body.pickupRadiusKm = patch.pickupRadiusKm;
+    if (patch.deliveryRadiusKm !== undefined) body.deliveryRadiusKm = patch.deliveryRadiusKm;
+    if (patch.servicePincodes !== undefined) body.servicePincodes = patch.servicePincodes;
+    if (patch.sectors !== undefined) body.sectors = patch.sectors;
+    if (Object.keys(body).length > 0) {
+      await updateBusinessSettings(body);
+    }
+    setArea((current) => ({ ...current, ...patch }));
+    setSettings((current) => (current ? { ...current, ...body } : current));
+  }, []);
+
   const addImage = useCallback(async (base64Image?: string) => {
     if (!base64Image) return false;
     try {
@@ -377,6 +396,7 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
       updateProfile,
       setStatus,
       updateHours,
+      updateArea,
       addImage,
       removeImage,
       moveImage,
@@ -398,6 +418,7 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
       updateProfile,
       setStatus,
       updateHours,
+      updateArea,
       addImage,
       removeImage,
       moveImage,
@@ -427,6 +448,7 @@ export function usePartnerShop(): PartnerShopValue {
       updateProfile: async () => {},
       setStatus: async () => {},
       updateHours: async () => {},
+      updateArea: async () => {},
       addImage: async () => false,
       removeImage: async () => {},
       moveImage: () => {},

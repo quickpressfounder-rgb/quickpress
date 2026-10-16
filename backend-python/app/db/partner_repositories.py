@@ -245,26 +245,68 @@ class PartnerRepository:
 
     async def settings(self, partner_id: str) -> Dict[str, Any]:
         doc = await database.find_one(SETTINGS, {"_id": partner_id})
+        prof = await database.find_one(PROFILES, {"_id": partner_id}) or {}
         if doc is None:
             doc = {
                 "_id": partner_id,
                 "partnerId": partner_id,
-                "isStoreOpen": True,
-                "acceptingNewOrders": True,
+                "isStoreOpen": prof.get("isOnline", prof.get("isStoreOpen", True)),
+                "acceptingNewOrders": prof.get("isOnline", prof.get("acceptingNewOrders", True)),
                 "autoAcceptOrders": True,
                 "expressDelivery": True,
-                "pickupRadiusKm": 8,
-                "openingTime": "08:00",
-                "closingTime": "21:00",
-                "weeklyOff": "None",
-                "dailyOrderCap": 50,
+                "pickupRadiusKm": prof.get("pickupRadiusKm", prof.get("radiusKm", 8)),
+                "deliveryRadiusKm": prof.get("deliveryRadiusKm", prof.get("pickupRadiusKm", 10)),
+                "servicePincodes": prof.get("servicePincodes", [prof.get("pincode")] if prof.get("pincode") else []),
+                "sectors": prof.get("sectors", []),
+                "openingTime": prof.get("openingTime", "08:00"),
+                "closingTime": prof.get("closingTime", "21:00"),
+                "weeklyOff": prof.get("weeklyOff", "None"),
+                "dailyOrderCap": prof.get("dailyOrderCap", 50),
             }
             await database.insert(SETTINGS, doc)
+        else:
+            # Backfill any missing fields from partner_profiles if not set
+            modified = False
+            if "deliveryRadiusKm" not in doc:
+                doc["deliveryRadiusKm"] = prof.get("deliveryRadiusKm", doc.get("pickupRadiusKm", 10))
+                modified = True
+            if "servicePincodes" not in doc or not doc.get("servicePincodes"):
+                pincs = prof.get("servicePincodes") or ([prof.get("pincode")] if prof.get("pincode") else [])
+                if pincs:
+                    doc["servicePincodes"] = pincs
+                    modified = True
+            if "sectors" not in doc:
+                doc["sectors"] = prof.get("sectors", [])
+                modified = True
+            if modified:
+                await database.update(SETTINGS, {"_id": partner_id}, doc)
         return doc
 
     async def update_settings(self, partner_id: str, changes: Dict[str, Any]) -> Dict[str, Any]:
         changes = {k: v for k, v in changes.items() if v is not None}
         doc = await database.update(SETTINGS, {"_id": partner_id}, changes, upsert=True)
+        # Dual-sync relevant operational fields to partner_profiles, catalog_partners, and admin_partners
+        sync_keys = {
+            "pickupRadiusKm", "deliveryRadiusKm", "servicePincodes", "sectors",
+            "openingTime", "closingTime", "weeklyOff", "dailyOrderCap", "isStoreOpen", "acceptingNewOrders"
+        }
+        profile_sync = {k: v for k, v in changes.items() if k in sync_keys}
+        if "pickupRadiusKm" in profile_sync:
+            profile_sync["radiusKm"] = profile_sync["pickupRadiusKm"]
+        if profile_sync:
+            try:
+                await database.update(PROFILES, {"_id": partner_id}, profile_sync)
+                await database.update("catalog_partners", {"$or": [{"_id": partner_id}, {"id": partner_id}]}, profile_sync)
+                await database.update("admin_partners", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]}, profile_sync)
+            except Exception:
+                pass
+            # Invalidate Redis / in-memory catalog cache so customer panel updates immediately
+            try:
+                from app.core.redis_cache import hybrid_cache
+                await hybrid_cache.delete_pattern("catalog:*")
+                await hybrid_cache.delete_pattern(f"partner:{partner_id}*")
+            except Exception:
+                pass
         return doc
 
     async def toggle_status(self, partner_id: str, is_online: bool) -> Dict[str, Any]:

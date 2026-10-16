@@ -872,10 +872,18 @@ async def update_settings(
     from app.services.partner_activity_logger import log_partner_activity
     import asyncio
     status_desc = []
-    if "isOpen" in data:
-        status_desc.append("Store " + ("Opened" if data["isOpen"] else "Closed"))
-    if "isLive" in data:
-        status_desc.append("Accepting Orders: " + ("ON" if data["isLive"] else "OFF"))
+    if "isStoreOpen" in data or "isOpen" in data:
+        is_open = data.get("isStoreOpen", data.get("isOpen"))
+        status_desc.append("Store " + ("Opened" if is_open else "Closed"))
+    if "acceptingNewOrders" in data or "isLive" in data:
+        is_live = data.get("acceptingNewOrders", data.get("isLive"))
+        status_desc.append("Accepting Orders: " + ("ON" if is_live else "OFF"))
+    if "pickupRadiusKm" in data or "deliveryRadiusKm" in data:
+        status_desc.append(f"Radius: {data.get('pickupRadiusKm', '-')}km pickup / {data.get('deliveryRadiusKm', '-')}km delivery")
+    if "servicePincodes" in data:
+        status_desc.append(f"Pincodes: {len(data['servicePincodes'])} active")
+    if "openingTime" in data or "closingTime" in data:
+        status_desc.append(f"Hours: {data.get('openingTime', '')} - {data.get('closingTime', '')}")
     if not status_desc:
         status_desc.append("Business settings adjusted")
     asyncio.create_task(log_partner_activity(
