@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
-import { fetchRiderOffers } from "../api/rider/rider-orders-api";
+import { fetchRiderOffers, fetchRiderOrder } from "../api/rider/rider-orders-api";
 import {
   fetchRiderDashboard,
   pushRiderLocation,
@@ -68,11 +68,35 @@ export function RiderDashboardScreen() {
 
   const geoWatchIdRef = useRef<number | null>(null);
 
-  // Restore saved active order safely
+  // Restore saved active order safely and verify live server status
   useEffect(() => {
     try {
       const saved = localStorage.getItem("qp_active_rider_order");
-      if (saved) setSavedActiveOrder(JSON.parse(saved));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setSavedActiveOrder(parsed);
+
+        const targetId = parsed.orderId || parsed.id;
+        if (targetId && !String(targetId).startsWith("TEST-")) {
+          fetchRiderOrder(targetId)
+            .then((serverOrder: any) => {
+              const s = String(serverOrder?.status || serverOrder?.canonicalStatus || "").toLowerCase();
+              if (["delivered", "completed", "cancelled", "failed"].includes(s)) {
+                localStorage.removeItem("qp_active_rider_order");
+                localStorage.removeItem("qp_active_delivery_order");
+                setSavedActiveOrder(null);
+              }
+            })
+            .catch((err: any) => {
+              const st = err?.status || err?.statusCode;
+              if (st === 404 || st === 410) {
+                localStorage.removeItem("qp_active_rider_order");
+                localStorage.removeItem("qp_active_delivery_order");
+                setSavedActiveOrder(null);
+              }
+            });
+        }
+      }
     } catch {}
   }, []);
 
@@ -358,9 +382,27 @@ export function RiderDashboardScreen() {
                 <p className="text-[10px] text-zinc-500 truncate max-w-[180px] sm:max-w-[220px]">{savedActiveOrder.pickupTitle || savedActiveOrder.pickupAddress}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-              <span>Resume HUD</span>
-              <span>➔</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  try {
+                    localStorage.removeItem("qp_active_rider_order");
+                    localStorage.removeItem("qp_active_delivery_order");
+                  } catch {}
+                  setSavedActiveOrder(null);
+                  toast.info("Trip dismissed from dashboard.");
+                }}
+                className="flex items-center justify-center size-7 rounded-lg bg-zinc-100 hover:bg-rose-100 text-zinc-500 hover:text-rose-700 active:scale-95 transition-all text-xs font-bold"
+                title="Dismiss Stale Trip"
+              >
+                ✕
+              </button>
+              <div className="flex items-center gap-1 text-xs font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                <span>Resume HUD</span>
+                <span>➔</span>
+              </div>
             </div>
           </button>
         </div>

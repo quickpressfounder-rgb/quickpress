@@ -74,6 +74,7 @@ import { RiderOrderTimelineModal } from "../trips/RiderOrderTimelineModal";
 import {
   verifyHandoverOtp,
   fetchDispatchOtp,
+  fetchRiderOrder,
   confirmArrivalAtPickup,
   confirmPickup,
   confirmDelivery,
@@ -352,6 +353,55 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         .catch(() => {});
     }
   }, [order.orderId, stage]);
+
+  // Verify order status on mount and auto-exit if order is already completed / delivered / cancelled
+  useEffect(() => {
+    const targetId = order.orderId || order.id;
+    if (!targetId || targetId.startsWith("TEST-")) return;
+
+    let isMounted = true;
+    const checkLiveStatus = async () => {
+      try {
+        const liveOrder = await fetchRiderOrder(targetId);
+        if (!isMounted) return;
+        const s = String(liveOrder?.status || (liveOrder as any)?.canonicalStatus || "").toLowerCase();
+        if (["delivered", "completed", "cancelled", "failed"].includes(s)) {
+          try {
+            localStorage.removeItem("qp_active_rider_order");
+            localStorage.removeItem("qp_active_delivery_order");
+          } catch {}
+          toast.info(`Trip #${order.orderCode || targetId.slice(-6).toUpperCase()} is already completed/closed.`);
+          if (onTripCompleted) {
+            onTripCompleted();
+          } else if (onCancelTrip) {
+            onCancelTrip();
+          } else {
+            navigate({ to: "/orders" });
+          }
+        }
+      } catch (err: any) {
+        if (!isMounted) return;
+        const st = err?.status || err?.statusCode;
+        if (st === 404 || st === 410) {
+          try {
+            localStorage.removeItem("qp_active_rider_order");
+            localStorage.removeItem("qp_active_delivery_order");
+          } catch {}
+          toast.info(`Trip #${order.orderCode || targetId.slice(-6).toUpperCase()} is no longer active.`);
+          if (onTripCompleted) {
+            onTripCompleted();
+          } else {
+            navigate({ to: "/orders" });
+          }
+        }
+      }
+    };
+
+    void checkLiveStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [order.orderId, order.id, order.orderCode, onTripCompleted, onCancelTrip, navigate]);
 
   // Fallback heartbeat poll while at partner store for partner verification
   useEffect(() => {
@@ -1459,28 +1509,30 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </button>
 
           <div className="flex items-center gap-1.5">
-            {Boolean(
-              order.orderId?.startsWith("TEST-") ||
-              order.id?.startsWith("TEST-") ||
-              order.orderCode?.startsWith("TEST-") ||
-              order.customerName?.toLowerCase().includes("sector 67")
-            ) && (
-              <button
-                type="button"
-                onClick={() => {
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Dismiss trip #${order.orderCode || "Active"} and return to orders queue?`)) {
                   try {
                     localStorage.removeItem("qp_active_rider_order");
+                    localStorage.removeItem("qp_active_delivery_order");
                     localStorage.removeItem("qp_test_rider_offer");
                   } catch {}
-                  onCancelOrder();
-                }}
-                className="flex items-center gap-1 text-[10px] font-black text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 px-2 py-0.5 rounded-md active:scale-95 transition-all cursor-pointer shadow-2xs"
-                title="Discard Test Order"
-              >
-                <span>✕</span>
-                <span>Remove Test Order</span>
-              </button>
-            )}
+                  if (onTripCompleted) {
+                    onTripCompleted();
+                  } else if (onCancelTrip) {
+                    onCancelTrip();
+                  } else {
+                    navigate({ to: "/orders" });
+                  }
+                }
+              }}
+              className="flex items-center gap-1 text-[10px] font-bold text-zinc-600 hover:text-rose-700 bg-zinc-100 hover:bg-rose-50 border border-zinc-200 hover:border-rose-300 px-2 py-0.5 rounded-md active:scale-95 transition-all cursor-pointer shadow-2xs"
+              title="Dismiss Trip"
+            >
+              <span>✕</span>
+              <span>Dismiss</span>
+            </button>
             <span className="text-[10px] font-black text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md border border-neutral-200 font-mono">
               #{order.orderCode || (order.orderId ? order.orderId.slice(-6).toUpperCase() : "LIVE")}
             </span>

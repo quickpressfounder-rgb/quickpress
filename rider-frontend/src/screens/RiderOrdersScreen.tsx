@@ -21,6 +21,7 @@ import { RiderTripDetailModal } from "../components/trips/RiderTripDetailModal";
 import {
   acceptRiderOrder,
   fetchRiderOffers,
+  fetchRiderOrder,
   rejectRiderOrder,
 } from "../api/rider/rider-orders-api";
 import { useRiderContext } from "../context/RiderContext";
@@ -96,7 +97,7 @@ export function RiderOrdersScreen() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedOfferForDetail, setSelectedOfferForDetail] = useState<OrderOfferItem | null>(null);
 
-  // Restore saved active order on client mount safely without hydration mismatch
+  // Restore saved active order on client mount safely and verify server status
   useEffect(() => {
     try {
       const saved = localStorage.getItem(ACTIVE_ORDER_STORAGE_KEY);
@@ -113,9 +114,34 @@ export function RiderOrdersScreen() {
 
         if (isTest) {
           localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+          localStorage.removeItem("qp_active_delivery_order");
           setActiveOrder(null);
         } else {
           setActiveOrder(parsed);
+
+          // Verify with server if order is actually still active
+          const targetId = parsed.orderId || parsed.id;
+          if (targetId) {
+            fetchRiderOrder(targetId)
+              .then((serverOrder: any) => {
+                const s = String(serverOrder?.status || serverOrder?.canonicalStatus || "").toLowerCase();
+                const isFinished = ["delivered", "completed", "cancelled", "failed"].includes(s);
+                if (isFinished) {
+                  localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+                  localStorage.removeItem("qp_active_delivery_order");
+                  setActiveOrder(null);
+                  toast.info(`Order #${parsed.orderCode || targetId.slice(-6).toUpperCase()} was completed.`);
+                }
+              })
+              .catch((err: any) => {
+                const st = err?.status || err?.statusCode;
+                if (st === 404 || st === 410) {
+                  localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+                  localStorage.removeItem("qp_active_delivery_order");
+                  setActiveOrder(null);
+                }
+              });
+          }
         }
       }
       localStorage.removeItem("qp_test_rider_offer");
@@ -253,9 +279,24 @@ export function RiderOrdersScreen() {
       console.log("[RiderOrdersScreen] ⚡ Realtime order update:", eventData);
       const ev = eventData?.event || eventData?.type;
       const targetOrderId = eventData?.orderId || eventData?.order?._id;
-      if (ev === "order.cancelled" || ev === "rider.ride_cancelled") {
+      if (
+        ev === "order.cancelled" ||
+        ev === "rider.ride_cancelled" ||
+        ev === "order.delivered" ||
+        ev === "order.completed"
+      ) {
         if (targetOrderId) {
           setOffers((prev) => prev.filter((o) => o.orderId !== targetOrderId && o.id !== targetOrderId));
+          setActiveOrder((prev) => {
+            if (prev && (prev.orderId === targetOrderId || prev.id === targetOrderId)) {
+              try {
+                localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+                localStorage.removeItem("qp_active_delivery_order");
+              } catch {}
+              return null;
+            }
+            return prev;
+          });
         }
       }
 
@@ -701,17 +742,31 @@ export function RiderOrdersScreen() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsHudMinimized(false);
-              }}
-              className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1 shrink-0 ml-2"
-            >
-              <span>Resume</span>
-              <span>➔</span>
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTripEnd();
+                  toast.info(`Trip #${activeOrder.orderCode || ""} dismissed.`);
+                }}
+                className="px-2.5 py-1.5 bg-white/20 hover:bg-rose-500/80 text-white font-bold text-xs rounded-xl active:scale-95 transition-all"
+                title="Dismiss or Clear Order"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsHudMinimized(false);
+                }}
+                className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1"
+              >
+                <span>Resume</span>
+                <span>➔</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
