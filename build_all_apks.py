@@ -2,11 +2,13 @@
 import os
 import shutil
 import subprocess
+import sys
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/d9a17d27-557a-4305-95cf-5af07e62d93b"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/4d042ff9-b5fb-466e-9fd8-619baf1d44e8"
 OLD_ARTIFACT_DIRS = [
+    "/Users/himanshupal/.gemini/antigravity-ide/brain/d9a17d27-557a-4305-95cf-5af07e62d93b",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/5704e1e6-724e-4d52-b79d-6a75a3604744",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/9ae7c0d2-c173-49e5-8148-83bbec7e4565",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/3ab9df93-0c34-4b9b-8fdb-99d5f33cf43f",
@@ -31,16 +33,25 @@ def sync_assets(src_dir, dst_dir):
         shutil.rmtree(dst_dir)
     shutil.copytree(src_dir, dst_dir)
 
-def main():
-    print("============================================================")
-    print("  QUICKPRESS 3-APP UPDATED APK BUILD AUTOMATION PROCESS")
-    print("============================================================")
+def copy_to_artifacts(src_apk, apk_name, apks_dir):
+    target = os.path.join(apks_dir, apk_name)
+    shutil.copy2(src_apk, target)
+    print(f"✓ Saved to {target} ({os.path.getsize(src_apk)} bytes)")
 
-    apks_dir = os.path.join(ROOT_DIR, "apks")
-    os.makedirs(apks_dir, exist_ok=True)
+    if os.path.exists(ARTIFACT_DIR):
+        artifact_target = os.path.join(ARTIFACT_DIR, apk_name)
+        shutil.copy2(src_apk, artifact_target)
+        print(f"✓ Copied to artifact dir: {artifact_target}")
 
-    # 1. CUSTOMER APP
-    print("\n--- [1/3] Building Customer App ---")
+    for old_dir in OLD_ARTIFACT_DIRS:
+        if os.path.exists(old_dir):
+            try:
+                shutil.copy2(src_apk, os.path.join(old_dir, apk_name))
+            except Exception:
+                pass
+
+def build_customer(apks_dir):
+    print("\n--- [Customer App] Building Customer App ---")
     run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:customer", ROOT_DIR)
     cust_web_dist = os.path.join(ROOT_DIR, "customer-frontend", ".output", "public")
     cust_android_assets = os.path.join(ROOT_DIR, "customer-frontend", "android", "app", "src", "main", "assets", "public")
@@ -51,15 +62,12 @@ def main():
 
     cust_apk_src = os.path.join(cust_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(cust_apk_src):
-        shutil.copy2(cust_apk_src, os.path.join(apks_dir, "QuickPress-Customer.apk"))
-        if os.path.exists(ARTIFACT_DIR):
-            shutil.copy2(cust_apk_src, os.path.join(ARTIFACT_DIR, "QuickPress-Customer.apk"))
-        print(f"✓ Customer APK updated: {os.path.getsize(cust_apk_src)} bytes in apks/QuickPress-Customer.apk")
+        copy_to_artifacts(cust_apk_src, "QuickPress-Customer.apk", apks_dir)
     else:
         raise RuntimeError("Customer APK build artifact not found!")
 
-    # 2. PARTNER APP
-    print("\n--- [2/3] Building Partner App ---")
+def build_partner(apks_dir):
+    print("\n--- [Partner App] Building Partner App ---")
     run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:partner", ROOT_DIR)
     part_web_dist = os.path.join(ROOT_DIR, "partner-frontend", ".output", "public")
     part_android_assets = os.path.join(ROOT_DIR, "partner-frontend", "android", "app", "src", "main", "assets", "public")
@@ -70,15 +78,12 @@ def main():
 
     part_apk_src = os.path.join(part_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(part_apk_src):
-        shutil.copy2(part_apk_src, os.path.join(apks_dir, "QuickPress-Partner.apk"))
-        if os.path.exists(ARTIFACT_DIR):
-            shutil.copy2(part_apk_src, os.path.join(ARTIFACT_DIR, "QuickPress-Partner.apk"))
-        print(f"✓ Partner APK updated: {os.path.getsize(part_apk_src)} bytes in apks/QuickPress-Partner.apk")
+        copy_to_artifacts(part_apk_src, "QuickPress-Partner.apk", apks_dir)
     else:
         raise RuntimeError("Partner APK build artifact not found!")
 
-    # 3. RIDER APP
-    print("\n--- [3/3] Building Rider App ---")
+def build_rider(apks_dir):
+    print("\n--- [Rider App] Building Rider / Captain App ---")
     run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:rider", ROOT_DIR)
     rdr_web_dist = os.path.join(ROOT_DIR, "rider-frontend", ".output", "public")
     rdr_android_assets = os.path.join(ROOT_DIR, "rider-frontend", "android", "app", "src", "main", "assets", "public")
@@ -89,16 +94,37 @@ def main():
 
     rdr_apk_src = os.path.join(rdr_android_dir, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
     if os.path.exists(rdr_apk_src):
-        shutil.copy2(rdr_apk_src, os.path.join(apks_dir, "QuickPress-Captain.apk"))
-        if os.path.exists(ARTIFACT_DIR):
-            shutil.copy2(rdr_apk_src, os.path.join(ARTIFACT_DIR, "QuickPress-Captain.apk"))
-        print(f"✓ Rider APK updated: {os.path.getsize(rdr_apk_src)} bytes in apks/QuickPress-Captain.apk")
+        copy_to_artifacts(rdr_apk_src, "QuickPress-Captain.apk", apks_dir)
     else:
         raise RuntimeError("Rider APK build artifact not found!")
 
+def main():
+    target = sys.argv[1].lower() if len(sys.argv) > 1 else "all"
+
+    print("============================================================")
+    print(f"  QUICKPRESS APK BUILD AUTOMATION PROCESS (Target: {target.upper()})")
+    print("============================================================")
+
+    apks_dir = os.path.join(ROOT_DIR, "apks")
+    os.makedirs(apks_dir, exist_ok=True)
+    if os.path.exists(ARTIFACT_DIR):
+        os.makedirs(ARTIFACT_DIR, exist_ok=True)
+
+    if target in ("rider", "captain"):
+        build_rider(apks_dir)
+    elif target == "customer":
+        build_customer(apks_dir)
+    elif target == "partner":
+        build_partner(apks_dir)
+    else:
+        build_customer(apks_dir)
+        build_partner(apks_dir)
+        build_rider(apks_dir)
+
     print("\n============================================================")
-    print("  ALL 3 UPDATED APKS BUILT AND DEPLOYED SUCCESSFULLY!")
+    print(f"  BUILD FINISHED SUCCESSFULLY FOR: {target.upper()}")
     print("============================================================")
 
 if __name__ == "__main__":
     main()
+
