@@ -106,7 +106,12 @@ async def lifespan(app: FastAPI):
     from app.services.order_timeline_engine import order_timeline_engine
     order_timeline_engine.start(interval_seconds=5)
 
+    # Start Background Partner Auto Online/Offline Schedule Engine
+    from app.services.partner_auto_schedule_engine import partner_auto_schedule_engine
+    partner_auto_schedule_engine.start(interval_seconds=15)
+
     yield
+    partner_auto_schedule_engine.stop()
     order_timeline_engine.stop()
     await async_task_queue.stop()
     await database.disconnect()

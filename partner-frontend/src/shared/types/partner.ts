@@ -219,6 +219,13 @@ export type BusinessSettings = {
   closingTime: string;
   weeklyOff: string;
   dailyOrderCap: number;
+  autoScheduleEnabled?: boolean;
+  manualOverride?: boolean;
+  manualOverrideAction?: string | null;
+  manualOverrideDate?: string | null;
+  manualOverrideAt?: string | null;
+  scheduleStatusText?: string | null;
+  nextScheduledTransition?: string | null;
 };
 
 export type PartnerNotification = {

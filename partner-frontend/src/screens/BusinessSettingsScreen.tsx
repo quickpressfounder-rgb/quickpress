@@ -102,6 +102,17 @@ export function BusinessSettingsScreen() {
   const patch = async (next: Partial<BusinessSettings>, message: string) => {
     if (!settings) return;
     const nextSettings = { ...settings, ...next };
+    if (typeof next.isStoreOpen === "boolean") {
+      nextSettings.manualOverride = true;
+      nextSettings.manualOverrideAction = next.isStoreOpen ? "online" : "offline";
+      if (!next.isStoreOpen) {
+        nextSettings.scheduleStatusText = "Manually Paused (Offline)";
+      }
+    }
+    if (next.manualOverride === false) {
+      nextSettings.manualOverride = false;
+      nextSettings.manualOverrideAction = null;
+    }
     setData(nextSettings);
 
     // If isStoreOpen is being changed, sync with global PartnerContext immediately
@@ -112,7 +123,13 @@ export function BusinessSettingsScreen() {
     }
 
     try {
-      await updateBusinessSettings(next);
+      const res = await updateBusinessSettings(next);
+      if (res.settings) {
+        setData(res.settings);
+        if (typeof res.settings.isStoreOpen === "boolean") {
+          await setOnline(res.settings.isStoreOpen);
+        }
+      }
       toast.success(message);
     } catch {
       toast.error("Failed to save setting");
@@ -229,6 +246,28 @@ export function BusinessSettingsScreen() {
                 />
               </div>
 
+              {/* Manual Override Indicator Banner */}
+              {settings.manualOverride && settings.manualOverrideAction === "offline" && (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3.5 flex items-center justify-between gap-3 shadow-2xs">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">⏸️</span>
+                      <p className="text-xs font-black text-amber-900">Manually Paused (Offline)</p>
+                    </div>
+                    <p className="text-[11px] text-amber-800 mt-0.5 leading-snug">
+                      Store was manually switched offline. Auto-engine will not force you online until tomorrow at {settings.openingTime}.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void patch({ manualOverride: false }, "Auto schedule resumed")}
+                    className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-black hover:bg-amber-700 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                  >
+                    Resume Auto
+                  </button>
+                </div>
+              )}
+
               {/* Card 2: Order Controls & Feature Toggles */}
               <div className="space-y-2">
                 <p className="text-xs font-black uppercase tracking-wider text-zinc-400 px-1">
@@ -236,6 +275,58 @@ export function BusinessSettingsScreen() {
                 </p>
 
                 <div className="rounded-2xl border border-zinc-200/90 bg-white overflow-hidden shadow-xs divide-y divide-zinc-100">
+                  {/* Auto Store Timing Engine Toggle */}
+                  <div
+                    onClick={() =>
+                      void patch(
+                        { autoScheduleEnabled: !(settings.autoScheduleEnabled ?? true) },
+                        !(settings.autoScheduleEnabled ?? true)
+                          ? "Auto store schedule enabled"
+                          : "Auto store schedule disabled"
+                      )
+                    }
+                    className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                        <Clock3 className="size-5" strokeWidth={2.2} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-black text-zinc-900">Auto Online & Offline</p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                              (settings.autoScheduleEnabled ?? true)
+                                ? "bg-indigo-50 border border-indigo-200 text-indigo-700"
+                                : "bg-zinc-100 border border-zinc-200 text-zinc-600"
+                            }`}
+                          >
+                            {(settings.autoScheduleEnabled ?? true) ? "Auto Active" : "Manual Only"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium text-zinc-500 truncate">
+                          {(settings.autoScheduleEnabled ?? true)
+                            ? `Auto-opens at ${settings.openingTime} & closes at ${settings.closingTime}`
+                            : "Manual mode: Store status is controlled manually"}
+                        </p>
+                        {settings.scheduleStatusText && (settings.autoScheduleEnabled ?? true) && (
+                          <p className="text-[10px] font-bold text-emerald-600 mt-0.5">
+                            ● {settings.scheduleStatusText} {settings.nextScheduledTransition ? `· ${settings.nextScheduledTransition}` : ""}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <SwitchToggle
+                      label="Auto Online & Offline"
+                      checked={settings.autoScheduleEnabled ?? true}
+                      onChange={(next) =>
+                        void patch(
+                          { autoScheduleEnabled: next },
+                          next ? "Auto store schedule enabled" : "Auto store schedule disabled"
+                        )
+                      }
+                    />
+                  </div>
                   {/* Accepting New Orders */}
                   <div
                     onClick={() =>
@@ -662,6 +753,81 @@ export function BusinessSettingsScreen() {
                       checked={isStoreEffectivelyOpen}
                       onChange={(next) =>
                         void patch({ isStoreOpen: next }, next ? "Store opened" : "Store closed")
+                      }
+                    />
+                  </div>
+
+                  {/* Desktop Manual Override Banner */}
+                  {settings.manualOverride && settings.manualOverrideAction === "offline" && (
+                    <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3.5 flex items-center justify-between gap-3 shadow-2xs">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm">⏸️</span>
+                          <p className="text-xs font-black text-amber-900">Manually Paused (Offline)</p>
+                        </div>
+                        <p className="text-[11px] text-amber-800 mt-0.5 leading-snug">
+                          Store was manually paused. The auto-engine will respect this and will not force you online until tomorrow at {settings.openingTime}.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void patch({ manualOverride: false }, "Auto schedule resumed")}
+                        className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-black hover:bg-amber-700 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                      >
+                        Resume Auto
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Auto Store Timing Engine Toggle */}
+                  <div
+                    onClick={() =>
+                      void patch(
+                        { autoScheduleEnabled: !(settings.autoScheduleEnabled ?? true) },
+                        !(settings.autoScheduleEnabled ?? true)
+                          ? "Auto store schedule enabled"
+                          : "Auto store schedule disabled"
+                      )
+                    }
+                    className="flex items-center justify-between p-4 rounded-2xl border border-zinc-200/80 hover:border-zinc-300 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                        <Clock3 className="size-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-black text-zinc-900">Auto Online & Offline</p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                              (settings.autoScheduleEnabled ?? true)
+                                ? "bg-indigo-50 border border-indigo-200 text-indigo-700"
+                                : "bg-zinc-100 border border-zinc-200 text-zinc-600"
+                            }`}
+                          >
+                            {(settings.autoScheduleEnabled ?? true) ? "Auto Active" : "Manual Only"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                          {(settings.autoScheduleEnabled ?? true)
+                            ? `Auto-opens at ${settings.openingTime} & closes at ${settings.closingTime}`
+                            : "Manual mode: Store status must be changed manually"}
+                        </p>
+                        {settings.scheduleStatusText && (settings.autoScheduleEnabled ?? true) && (
+                          <p className="text-[10px] font-bold text-emerald-600 mt-0.5">
+                            ● {settings.scheduleStatusText} {settings.nextScheduledTransition ? `· ${settings.nextScheduledTransition}` : ""}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <SwitchToggle
+                      label="Auto Online & Offline"
+                      checked={settings.autoScheduleEnabled ?? true}
+                      onChange={(next) =>
+                        void patch(
+                          { autoScheduleEnabled: next },
+                          next ? "Auto store schedule enabled" : "Auto store schedule disabled"
+                        )
                       }
                     />
                   </div>

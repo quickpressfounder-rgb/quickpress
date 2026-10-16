@@ -853,6 +853,9 @@ async def submit_partner_appeal(
 async def get_settings(partner_id: str = Depends(_partner_id)) -> BusinessSettingsResponse:
     try:
         doc = await partner_repository.settings(partner_id)
+        from app.services.partner_auto_schedule_engine import partner_auto_schedule_engine
+        await partner_auto_schedule_engine.evaluate_partner_status(partner_id, doc)
+        doc = await partner_repository.settings(partner_id)
     except PartnerAccessError as error:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
     except PartnerNotFoundError as error:
@@ -865,16 +868,46 @@ async def update_settings(
     payload: BusinessSettingsUpdate, partner_id: str = Depends(_partner_id)
 ) -> BusinessSettingsResponse:
     data = payload.model_dump(exclude_unset=True)
+    from datetime import datetime, timezone
+    from app.services.partner_auto_schedule_engine import get_current_ist, partner_auto_schedule_engine
+
+    now_ist = get_current_ist()
+    today_str = now_ist.strftime("%Y-%m-%d")
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # If partner manually toggles store status:
     if "isStoreOpen" in data or "isOpen" in data or "acceptingNewOrders" in data:
         is_online_flag = bool(data.get("isStoreOpen", data.get("isOpen", data.get("acceptingNewOrders", True))))
+        # Explicit manual intervention by partner:
+        data["manualOverride"] = True
+        data["manualOverrideAction"] = "online" if is_online_flag else "offline"
+        data["manualOverrideDate"] = today_str
+        data["manualOverrideAt"] = now_iso
+        data["scheduleStatusText"] = "Manually Online" if is_online_flag else "Manually Paused (Offline)"
         await partner_repository.toggle_status(partner_id, is_online_flag)
+    elif data.get("manualOverride") is False:
+        # Partner clicked "Resume Auto Schedule": Clear override and re-evaluate immediately
+        data["manualOverride"] = False
+        data["manualOverrideAction"] = None
+        data["manualOverrideDate"] = None
+        data["manualOverrideAt"] = None
+
     doc = await partner_repository.update_settings(partner_id, data)
+
+    # Re-evaluate with engine
+    await partner_auto_schedule_engine.evaluate_partner_status(partner_id, doc)
+    doc = await partner_repository.settings(partner_id)
+
     from app.services.partner_activity_logger import log_partner_activity
     import asyncio
     status_desc = []
     if "isStoreOpen" in data or "isOpen" in data:
         is_open = data.get("isStoreOpen", data.get("isOpen"))
         status_desc.append("Store " + ("Opened" if is_open else "Closed"))
+    if "autoScheduleEnabled" in data:
+        status_desc.append("Auto Schedule: " + ("ENABLED" if data["autoScheduleEnabled"] else "DISABLED"))
+    if "manualOverride" in data:
+        status_desc.append("Manual Override: " + ("ACTIVE" if data["manualOverride"] else "RESET"))
     if "acceptingNewOrders" in data or "isLive" in data:
         is_live = data.get("acceptingNewOrders", data.get("isLive"))
         status_desc.append("Accepting Orders: " + ("ON" if is_live else "OFF"))

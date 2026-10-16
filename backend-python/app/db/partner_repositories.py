@@ -262,6 +262,12 @@ class PartnerRepository:
                 "closingTime": prof.get("closingTime", "21:00"),
                 "weeklyOff": prof.get("weeklyOff", "None"),
                 "dailyOrderCap": prof.get("dailyOrderCap", 50),
+                "autoScheduleEnabled": prof.get("autoScheduleEnabled", True),
+                "manualOverride": False,
+                "manualOverrideAction": None,
+                "manualOverrideDate": None,
+                "scheduleStatusText": None,
+                "nextScheduledTransition": None,
             }
             await database.insert(SETTINGS, doc)
         else:
@@ -278,6 +284,12 @@ class PartnerRepository:
             if "sectors" not in doc:
                 doc["sectors"] = prof.get("sectors", [])
                 modified = True
+            if "autoScheduleEnabled" not in doc:
+                doc["autoScheduleEnabled"] = True
+                modified = True
+            if "manualOverride" not in doc:
+                doc["manualOverride"] = False
+                modified = True
             if modified:
                 await database.update(SETTINGS, {"_id": partner_id}, doc)
         return doc
@@ -288,7 +300,9 @@ class PartnerRepository:
         # Dual-sync relevant operational fields to partner_profiles, catalog_partners, and admin_partners
         sync_keys = {
             "pickupRadiusKm", "deliveryRadiusKm", "servicePincodes", "sectors",
-            "openingTime", "closingTime", "weeklyOff", "dailyOrderCap", "isStoreOpen", "acceptingNewOrders"
+            "openingTime", "closingTime", "weeklyOff", "dailyOrderCap", "isStoreOpen", "acceptingNewOrders",
+            "autoScheduleEnabled", "manualOverride", "manualOverrideAction", "manualOverrideDate",
+            "scheduleStatusText", "nextScheduledTransition"
         }
         profile_sync = {k: v for k, v in changes.items() if k in sync_keys}
         if "pickupRadiusKm" in profile_sync:

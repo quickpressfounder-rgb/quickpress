@@ -156,6 +156,13 @@ class BusinessSettingsResponse(BaseModel):
     closingTime: str = "21:00"
     weeklyOff: str = "None"
     dailyOrderCap: int = 50
+    autoScheduleEnabled: bool = True
+    manualOverride: bool = False
+    manualOverrideAction: Optional[str] = None
+    manualOverrideDate: Optional[str] = None
+    manualOverrideAt: Optional[str] = None
+    scheduleStatusText: Optional[str] = None
+    nextScheduledTransition: Optional[str] = None
 
 
 class BusinessSettingsUpdate(BaseModel):
@@ -171,6 +178,10 @@ class BusinessSettingsUpdate(BaseModel):
     closingTime: Optional[str] = None
     weeklyOff: Optional[str] = None
     dailyOrderCap: Optional[int] = None
+    autoScheduleEnabled: Optional[bool] = None
+    manualOverride: Optional[bool] = None
+    manualOverrideAction: Optional[str] = None
+    manualOverrideDate: Optional[str] = None
 
 
 class PartnerServiceResponse(BaseModel):

@@ -77,8 +77,8 @@ export async function fetchBusinessSettings(): Promise<BusinessSettings> {
 }
 
 export async function updateBusinessSettings(patch: Partial<BusinessSettings>) {
-  await apiRequest<BusinessSettings>("PUT", "/api/partner/settings", { body: patch });
-  return { ok: true as const, patch };
+  const settings = await apiRequest<BusinessSettings>("PUT", "/api/partner/settings", { body: patch });
+  return { ok: true as const, patch, settings };
 }
 
 export async function fetchPartnerNotifications(): Promise<PartnerNotification[]> {
