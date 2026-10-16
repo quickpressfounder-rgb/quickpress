@@ -76,11 +76,11 @@ export const CaptainKycDocModal: React.FC<CaptainKycDocModalProps> = ({
       ? aadhaarNumber.includes("•") || aadhaarNumber.includes("X")
         ? aadhaarNumber
         : `•••• •••• ${aadhaarNumber.slice(-4)}`
-      : "•••• •••• 3144");
+      : "Not Registered (अपूर्ण)");
 
-  const cleanPan = profile?.pan || panNumber || "ABCDE1234F";
-  const cleanDl = dlNumber || profile?.dlNumber || "UP87 20240012345";
-  const cleanRc = vehicleNumber || profile?.rcNumber || profile?.vehicleNumber || "UP 87 AB 4021";
+  const cleanPan = profile?.pan || panNumber || "Not Registered (अपूर्ण)";
+  const cleanDl = dlNumber || profile?.dlNumber || "Not Registered (अपूर्ण)";
+  const cleanRc = vehicleNumber || profile?.rcNumber || profile?.vehicleNumber || "Not Registered (अपूर्ण)";
 
   // Check if real uploaded images exist
   const aadhaarFrontImg = profile?.aadhaarFront || "";

@@ -1694,22 +1694,51 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
             ]
         })
 
-    is_user_verified = bool(getattr(user, "is_verified", False))
-    is_user_onboarded = bool(getattr(user, "is_onboarded", False))
+    # Also lookup admin_riders and riders collections for real registration documents
+    admin_rider = {}
+    if rider_id:
+        admin_rider = await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}) or {}
+    if not admin_rider and user.phone:
+        clean_phone = user.phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+        admin_rider = await database.find_one("admin_riders", {"$or": [{"phone": user.phone}, {"phone": clean_phone}, {"phone": f"+91{clean_phone}"}]}) or {}
+
+    rider_row = {}
+    if rider_id:
+        rider_row = await database.find_one("riders", {"$or": [{"rider_id": rider_id}, {"user_id": user.id}]}) or {}
+    if not rider_row and user.phone:
+        clean_phone = user.phone.replace("+91", "").replace(" ", "").replace("-", "").strip()
+        rider_row = await database.find_one("riders", {"$or": [{"phone": user.phone}, {"phone": clean_phone}]}) or {}
+
+    bank_doc = {}
+    if rider_id:
+        bank_doc = await database.find_one("rider_bank_accounts", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}) or {}
+
+    is_user_verified = bool(
+        getattr(user, "is_verified", False)
+        or (profile and profile.get("isVerified"))
+        or admin_rider.get("isVerified")
+        or rider_row.get("is_verified")
+    )
+    is_user_onboarded = bool(
+        getattr(user, "is_onboarded", False)
+        or (profile and profile.get("isOnboarded"))
+        or admin_rider.get("isOnboarded")
+        or rider_row.get("is_onboarded")
+    )
 
     if profile is None:
         profile = {
             "_id": rider_id or user.id,
             "riderId": rider_id or user.id,
-            "fullName": getattr(user, "name", "") or getattr(user, "display_name", "") or "",
-            "phone": getattr(user, "phone", ""),
-            "email": getattr(user, "email", ""),
-            "city": getattr(user, "city", "") or "Kasganj",
+            "fullName": getattr(user, "name", "") or getattr(user, "display_name", "") or admin_rider.get("fullName") or rider_row.get("name") or "",
+            "phone": getattr(user, "phone", "") or admin_rider.get("phone") or rider_row.get("phone") or "",
+            "email": getattr(user, "email", "") or admin_rider.get("email") or "",
+            "city": getattr(user, "city", "") or admin_rider.get("city") or "Kasganj",
             "rating": 5.0,
             "totalTrips": 0,
             "joinedOn": datetime.now(timezone.utc).strftime("%B %Y"),
-            "vehicleType": "Bike",
-            "vehicleNumber": "—",
+            "vehicleType": admin_rider.get("vehicleType") or rider_row.get("vehicle_type") or "Bike",
+            "vehicleNumber": admin_rider.get("vehicleNumber") or rider_row.get("vehicle_number") or "",
             "status": "active" if is_user_verified else ("pending" if is_user_onboarded else "unregistered"),
             "kycStatus": "verified" if is_user_verified else ("pending" if is_user_onboarded else "unregistered"),
             "isVerified": is_user_verified,
@@ -1718,6 +1747,12 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
             "onlineMinutes": 0,
             "documents": [],
         }
+
+    # Merge auxiliary registration fields into profile
+    for src in (admin_rider, rider_row, bank_doc):
+        for k, v in src.items():
+            if v and not profile.get(k):
+                profile[k] = v
 
     # Calculate real total trips from completed orders
     real_total_trips = 0
@@ -1735,7 +1770,15 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
 
     # Real Photo / Avatar from registration selfie
     user_photo = getattr(user, "photo_url", "") or ""
-    reg_photo = profile.get("selfieUrl") or profile.get("photoUrl") or profile.get("avatar") or user_photo or ""
+    reg_photo = (
+        profile.get("selfieUrl")
+        or profile.get("photoUrl")
+        or admin_rider.get("selfieUrl")
+        or admin_rider.get("photoUrl")
+        or profile.get("avatar")
+        or user_photo
+        or ""
+    )
 
     pub = _public(profile)
     raw_rid = str(profile.get("riderId") or profile.get("_id") or profile.get("id") or rider_id or user.id or "")
@@ -1759,13 +1802,21 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
     raw_user_name = getattr(user, "name", "") or getattr(user, "display_name", "") or ""
     if raw_user_name in ("Delivery Partner", "Delivery Captain"):
         raw_user_name = ""
-    candidate_name = profile.get("fullName") or profile.get("name") or profile.get("accountHolder") or raw_user_name or ""
+    candidate_name = (
+        profile.get("fullName")
+        or profile.get("name")
+        or admin_rider.get("fullName")
+        or rider_row.get("name")
+        or profile.get("accountHolder")
+        or raw_user_name
+        or ""
+    )
     if candidate_name in ("Delivery Partner", "Delivery Captain"):
         candidate_name = ""
     pub["fullName"] = candidate_name
     pub["name"] = candidate_name
-    pub.setdefault("phone", getattr(user, "phone", ""))
-    pub.setdefault("email", getattr(user, "email", ""))
+    pub.setdefault("phone", getattr(user, "phone", "") or profile.get("phone") or rider_row.get("phone") or "")
+    pub.setdefault("email", getattr(user, "email", "") or profile.get("email") or "")
     pub.setdefault("city", pub.get("city") or getattr(user, "city", "") or "Kasganj")
     pub.setdefault("rating", float(profile.get("rating") or 5.0))
     pub["totalTrips"] = real_total_trips
@@ -1773,30 +1824,49 @@ async def get_profile(user: User = Depends(current_user)) -> dict:
     pub["selfieUrl"] = reg_photo
     pub["avatar"] = reg_photo
     pub.setdefault("joinedOn", pub.get("joinedOn") or "August 2026")
-    pub.setdefault("vehicleType", pub.get("vehicleType") or "Bike")
-    pub.setdefault("vehicleNumber", pub.get("vehicleNumber") or "—")
-    
+    pub.setdefault("vehicleType", profile.get("vehicleType") or admin_rider.get("vehicleType") or rider_row.get("vehicle_type") or "Bike")
+
+    # Real Vehicle Number (No dummy "—" or mock defaults)
+    raw_vehicle = (
+        profile.get("vehicleNumber")
+        or profile.get("rcNumber")
+        or admin_rider.get("vehicleNumber")
+        or rider_row.get("vehicle_number")
+        or rider_row.get("plate")
+        or ""
+    )
+    if raw_vehicle in ("—", "-", "None"):
+        raw_vehicle = ""
+    pub["vehicleNumber"] = raw_vehicle
+    pub["rcNumber"] = profile.get("rcNumber") or admin_rider.get("rcNumber") or raw_vehicle
+
     # Real Bank Details without fake mock defaults
-    pub["bankName"] = profile.get("bankName") or ""
-    pub["accountNumber"] = profile.get("accountNumber") or ""
-    pub["accountLast4"] = str(profile.get("accountNumber") or "")[-4:] if profile.get("accountNumber") else ""
-    pub["ifsc"] = profile.get("ifsc") or ""
-    pub["accountHolder"] = profile.get("accountHolder") or candidate_name
-    pub["upiId"] = profile.get("upiId") or ""
-    pub["dlNumber"] = profile.get("dlNumber") or profile.get("license") or ""
-    pub["rcNumber"] = profile.get("rcNumber") or profile.get("vehicleNumber") or ""
-    pub["aadhaar"] = profile.get("aadhaar") or ""
-    pub["pan"] = profile.get("pan") or ""
-    pub["aadhaarFront"] = profile.get("aadhaarFront") or ""
-    pub["aadhaarBack"] = profile.get("aadhaarBack") or ""
-    pub["panCard"] = profile.get("panCard") or profile.get("panUrl") or ""
-    pub["dlFront"] = profile.get("dlFront") or ""
-    pub["dlBack"] = profile.get("dlBack") or ""
-    pub["rcFront"] = profile.get("rcFront") or ""
-    pub["rcBack"] = profile.get("rcBack") or ""
-    pub["signatureUrl"] = profile.get("signatureUrl") or ""
-    pub["dob"] = profile.get("dob") or ""
-    pub["gender"] = profile.get("gender") or ""
+    real_bank_name = bank_doc.get("bankName") or profile.get("bankName") or admin_rider.get("bankName") or rider_row.get("bank_name") or ""
+    real_account_num = bank_doc.get("accountNumber") or profile.get("accountNumber") or admin_rider.get("accountNumber") or rider_row.get("account_number") or ""
+    real_ifsc = bank_doc.get("ifsc") or profile.get("ifsc") or admin_rider.get("ifsc") or rider_row.get("ifsc") or ""
+    real_holder = bank_doc.get("accountHolder") or profile.get("accountHolder") or admin_rider.get("accountHolder") or candidate_name
+    real_upi = bank_doc.get("upiId") or profile.get("upiId") or admin_rider.get("upiId") or rider_row.get("upi_id") or ""
+
+    pub["bankName"] = real_bank_name
+    pub["accountNumber"] = real_account_num
+    pub["accountLast4"] = str(real_account_num)[-4:] if real_account_num else ""
+    pub["ifsc"] = real_ifsc
+    pub["accountHolder"] = real_holder
+    pub["upiId"] = real_upi
+
+    pub["dlNumber"] = profile.get("dlNumber") or profile.get("license") or admin_rider.get("dlNumber") or rider_row.get("dl_number") or ""
+    pub["aadhaar"] = profile.get("aadhaar") or admin_rider.get("aadhaar") or ""
+    pub["pan"] = profile.get("pan") or admin_rider.get("pan") or ""
+    pub["aadhaarFront"] = profile.get("aadhaarFront") or admin_rider.get("aadhaarFront") or ""
+    pub["aadhaarBack"] = profile.get("aadhaarBack") or admin_rider.get("aadhaarBack") or ""
+    pub["panCard"] = profile.get("panCard") or profile.get("panUrl") or admin_rider.get("panCard") or ""
+    pub["dlFront"] = profile.get("dlFront") or admin_rider.get("dlFront") or ""
+    pub["dlBack"] = profile.get("dlBack") or admin_rider.get("dlBack") or ""
+    pub["rcFront"] = profile.get("rcFront") or profile.get("rcUrl") or admin_rider.get("rcFront") or ""
+    pub["rcBack"] = profile.get("rcBack") or admin_rider.get("rcBack") or ""
+    pub["signatureUrl"] = profile.get("signatureUrl") or admin_rider.get("signatureUrl") or ""
+    pub["dob"] = profile.get("dob") or admin_rider.get("dob") or ""
+    pub["gender"] = profile.get("gender") or admin_rider.get("gender") or ""
     pub.setdefault("isOnline", False)
     pub.setdefault("onlineMinutes", 0)
     pub.setdefault("suspensionReason", getattr(user, "suspensionReason", None))
@@ -4433,22 +4503,27 @@ async def analytics_summary(
 @router.get("/bank")
 async def get_rider_bank(user: User = Depends(current_user)) -> dict:
     rider_id = await _rider_id(user)
-    doc = await database.find_one("rider_bank_accounts", {"_id": rider_id})
-    profile = await database.find_one("rider_profiles", {"_id": rider_id}) or {}
-    if not doc:
-        doc = {
-            "_id": rider_id,
-            "riderId": rider_id,
-            "bankName": profile.get("bankName", ""),
-            "accountNumber": profile.get("accountNumber", ""),
-            "ifsc": profile.get("ifsc", ""),
-            "accountHolder": profile.get("accountHolder", profile.get("fullName", "")),
-            "upiId": profile.get("upiId", ""),
-            "isVerified": bool(profile.get("bankName") and profile.get("accountNumber")),
-        }
-        if doc["bankName"] or doc["accountNumber"] or doc["upiId"]:
-            await database.insert("rider_bank_accounts", doc)
-    return _public(doc)
+    doc = await database.find_one("rider_bank_accounts", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]})
+    profile = await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"userId": user.id}]}) or {}
+    admin_rider = await database.find_one("admin_riders", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}) or {}
+    rider_row = await database.find_one("riders", {"$or": [{"user_id": user.id}, {"rider_id": rider_id}]}) or {}
+
+    bank_name = (doc and doc.get("bankName")) or profile.get("bankName") or admin_rider.get("bankName") or rider_row.get("bank_name") or rider_row.get("bankName") or ""
+    account_number = (doc and doc.get("accountNumber")) or profile.get("accountNumber") or admin_rider.get("accountNumber") or rider_row.get("account_number") or rider_row.get("accountNumber") or ""
+    ifsc = (doc and doc.get("ifsc")) or profile.get("ifsc") or admin_rider.get("ifsc") or rider_row.get("ifsc") or ""
+    account_holder = (doc and doc.get("accountHolder")) or profile.get("accountHolder") or admin_rider.get("accountHolder") or profile.get("fullName") or rider_row.get("name") or user.display_name or ""
+    upi_id = (doc and doc.get("upiId")) or profile.get("upiId") or admin_rider.get("upiId") or rider_row.get("upi_id") or ""
+
+    res = {
+        "riderId": rider_id,
+        "bankName": bank_name,
+        "accountNumber": account_number,
+        "ifsc": ifsc,
+        "accountHolder": account_holder,
+        "upiId": upi_id,
+        "isVerified": bool(bank_name and account_number),
+    }
+    return res
 
 
 @router.patch("/bank")

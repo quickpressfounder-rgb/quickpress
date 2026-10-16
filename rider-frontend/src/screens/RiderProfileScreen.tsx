@@ -74,6 +74,16 @@ function normalizeDisplayPhone(p?: string): string {
   return p;
 }
 
+function getInitialRiderCache(): Partial<RiderProfileDetail> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("qp_rider_profile_cache");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function RiderProfileScreen() {
   const navigate = useNavigate();
   const { session, signOut } = useRiderContext();
@@ -82,97 +92,54 @@ export function RiderProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Profile State (SSR-safe initial state, hydrated instantly on client mount)
-  const initialName =
-    session?.fullName && session.fullName !== "Delivery Captain" && session.fullName !== "Delivery Partner"
-      ? session.fullName
-      : "";
-  const initialRiderId =
-    session?.riderId && session.riderId !== "CAP-100101" && session.riderId !== "CP-9821"
-      ? session.riderId
-      : "";
+  // Instant Client Cache Hydration (0ms load speed)
+  const initialCache = useMemo(() => getInitialRiderCache(), []);
 
-  const [profile, setProfile] = useState<RiderProfileDetail | null>(null);
-  const [fullName, setFullName] = useState(initialName);
+  const initialGovtName = typeof window !== "undefined" ? localStorage.getItem("qp_rider_government_name") || "" : "";
+  const initialSavedId = typeof window !== "undefined" ? localStorage.getItem("qp_rider_id") || "" : "";
+  const initialSavedPhone = typeof window !== "undefined" ? localStorage.getItem("qp_rider_phone") || localStorage.getItem("qp.rider.pendingPhone") || "" : "";
+  const initialSavedPhoto = typeof window !== "undefined" ? localStorage.getItem("qp_rider_profile_photo") || "" : "";
+
+  const initialName =
+    initialCache?.fullName ||
+    initialGovtName ||
+    (session?.fullName && session.fullName !== "Delivery Captain" && session.fullName !== "Delivery Partner"
+      ? session.fullName
+      : "");
+  const initialRiderId =
+    initialCache?.riderId ||
+    initialSavedId ||
+    (session?.riderId && session.riderId !== "CAP-100101" && session.riderId !== "CP-9821"
+      ? session.riderId
+      : "");
+
+  const [profile, setProfile] = useState<RiderProfileDetail | null>(() => (initialCache as RiderProfileDetail) || null);
+  const [fullName, setFullName] = useState(() => initialName);
   const [riderId, setRiderId] = useState(() => (initialRiderId ? formatCaptainId(initialRiderId) : ""));
-  const [phone, setPhone] = useState(session?.phone || "");
-  const [email, setEmail] = useState("");
-  const [city, setCity] = useState("Kasganj");
-  const [rating, setRating] = useState(5.0);
-  const [totalTrips, setTotalTrips] = useState(0);
-  const [profilePhoto, setProfilePhoto] = useState<string>("");
+  const [phone, setPhone] = useState(() => initialCache?.phone || initialSavedPhone || session?.phone || "");
+  const [email, setEmail] = useState(() => initialCache?.email || "");
+  const [city, setCity] = useState(() => initialCache?.city || "Kasganj");
+  const [rating, setRating] = useState(() => (typeof initialCache?.rating === "number" ? initialCache.rating : 5.0));
+  const [totalTrips, setTotalTrips] = useState(() => (typeof initialCache?.totalTrips === "number" ? initialCache.totalTrips : 0));
+  const [profilePhoto, setProfilePhoto] = useState<string>(() => initialCache?.photoUrl || initialCache?.selfieUrl || initialSavedPhoto || "");
 
   // Vehicle Details
-  const [vehicleType, setVehicleType] = useState("Motorcycle / Two-Wheeler");
-  const [vehicleNumber, setVehicleNumber] = useState("");
-  const [dlNumber, setDlNumber] = useState("");
-  const [rcNumber, setRcNumber] = useState("");
+  const [vehicleType, setVehicleType] = useState(() => initialCache?.vehicleType || "Motorcycle / Two-Wheeler");
+  const [vehicleNumber, setVehicleNumber] = useState(() => initialCache?.vehicleNumber || "");
+  const [dlNumber, setDlNumber] = useState(() => initialCache?.dlNumber || "");
+  const [rcNumber, setRcNumber] = useState(() => initialCache?.rcNumber || "");
 
   // Bank & Settlement Details
-  const [bankName, setBankName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [ifsc, setIfsc] = useState("");
-  const [accountHolder, setAccountHolder] = useState(initialName);
-  const [upiId, setUpiId] = useState("");
+  const [bankName, setBankName] = useState(() => initialCache?.bankName || "");
+  const [accountNumber, setAccountNumber] = useState(() => initialCache?.accountNumber || "");
+  const [ifsc, setIfsc] = useState(() => initialCache?.ifsc || "");
+  const [accountHolder, setAccountHolder] = useState(() => initialCache?.accountHolder || initialName);
+  const [upiId, setUpiId] = useState(() => initialCache?.upiId || "");
 
-  // Instant Client Cache Hydration on Mount (0ms)
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("qp_rider_profile_cache");
-      const c = raw ? JSON.parse(raw) : null;
-      const govtName = localStorage.getItem("qp_rider_government_name") || "";
-      const savedId = localStorage.getItem("qp_rider_id") || "";
-      const savedPhone = localStorage.getItem("qp_rider_phone") || localStorage.getItem("qp.rider.pendingPhone") || "";
-      const savedPhoto = localStorage.getItem("qp_rider_profile_photo") || "";
-
-      if (c) {
-        if (c.fullName) setFullName(c.fullName);
-        else if (govtName) setFullName(govtName);
-        if (c.riderId) setRiderId(formatCaptainId(c.riderId));
-        else if (savedId) setRiderId(formatCaptainId(savedId));
-        if (c.phone) setPhone(c.phone);
-        else if (savedPhone) setPhone(savedPhone);
-        if (c.email) setEmail(c.email);
-        if (c.city) setCity(c.city);
-        if (typeof c.rating === "number") setRating(c.rating);
-        if (typeof c.totalTrips === "number") setTotalTrips(c.totalTrips);
-        if (c.photoUrl || c.selfieUrl) setProfilePhoto(c.photoUrl || c.selfieUrl);
-        else if (savedPhoto) setProfilePhoto(savedPhoto);
-        if (c.vehicleType) setVehicleType(c.vehicleType);
-        if (c.vehicleNumber) setVehicleNumber(c.vehicleNumber);
-        if (c.dlNumber) setDlNumber(c.dlNumber);
-        if (c.aadhaar || (c as any).aadhaarNumber) setAadhaarNumber(c.aadhaar || (c as any).aadhaarNumber);
-        if (c.pan || (c as any).panNumber) setPanNumber(c.pan || (c as any).panNumber);
-        if (c.dob) setDob(c.dob);
-        if (c.bankName) setBankName(c.bankName);
-        if (c.accountNumber) setAccountNumber(c.accountNumber);
-        if (c.ifsc) setIfsc(c.ifsc);
-        if (c.accountHolder) setAccountHolder(c.accountHolder);
-        if (c.upiId) setUpiId(c.upiId);
-      } else {
-        if (govtName) setFullName(govtName);
-        if (savedId) setRiderId(formatCaptainId(savedId));
-        if (savedPhone) setPhone(savedPhone);
-        if (savedPhoto) setProfilePhoto(savedPhoto);
-      }
-    } catch {}
-  }, []);
-
-  // Full-page Screen Views ("profile" | "guidelines" | "support")
-  const [selectedView, setSelectedView] = useState<"profile" | "guidelines" | "support">("profile");
-
-  // Modals
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showIdCardModal, setShowIdCardModal] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
-  const [showSupportModal, setShowSupportModal] = useState(false);
-  const [selectedKycDoc, setSelectedKycDoc] = useState<KycDocType | null>(null);
-  const [isKycExpanded, setIsKycExpanded] = useState(false);
-  const [isBankExpanded, setIsBankExpanded] = useState(false);
-  const [aadhaarNumber, setAadhaarNumber] = useState("");
-  const [panNumber, setPanNumber] = useState("");
-  const [dob, setDob] = useState("");
+  // Identity & KYC Details
+  const [aadhaarNumber, setAadhaarNumber] = useState(() => initialCache?.aadhaar || (initialCache as any)?.aadhaarNumber || "");
+  const [panNumber, setPanNumber] = useState(() => initialCache?.pan || (initialCache as any)?.panNumber || "");
+  const [dob, setDob] = useState(() => initialCache?.dob || "");
 
   // Delete Account States
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -287,6 +254,7 @@ export function RiderProfileScreen() {
         if (bank.accountNumber) setAccountNumber(bank.accountNumber);
         if (bank.ifsc) setIfsc(bank.ifsc);
         if (bank.accountHolder) setAccountHolder(bank.accountHolder);
+        if (bank.upiId) setUpiId(bank.upiId);
         merged = { ...merged, ...bank };
       }
 
@@ -746,7 +714,7 @@ export function RiderProfileScreen() {
             <div className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl border border-zinc-100">
               <span className="text-zinc-500 font-semibold">Number Plate</span>
               <span className="font-mono font-black text-zinc-900">
-                {vehicleNumber || "UP 87 AB 4021"}
+                {vehicleNumber || <span className="text-zinc-400 font-sans font-medium text-[11px]">Not Registered (अपूर्ण)</span>}
               </span>
             </div>
 
@@ -761,7 +729,7 @@ export function RiderProfileScreen() {
               <span className="text-zinc-500 font-semibold">Driving License (DL)</span>
               <div className="flex items-center gap-1.5">
                 <span className="font-mono font-bold text-zinc-900">
-                  {dlNumber ? `${dlNumber.slice(0, 6)}••••` : "Verified on File ✓"}
+                  {dlNumber ? `${dlNumber.slice(0, 6)}••••` : <span className="text-zinc-400 font-sans font-medium text-[11px]">Not Registered</span>}
                 </span>
                 <Eye className="size-3.5 text-zinc-400" />
               </div>
@@ -778,7 +746,7 @@ export function RiderProfileScreen() {
               <span className="text-zinc-500 font-semibold">RC Certificate</span>
               <div className="flex items-center gap-1.5">
                 <span className="font-mono font-bold text-zinc-900">
-                  {rcNumber ? `${rcNumber.slice(0, 6)}••••` : "Verified Active ✓"}
+                  {rcNumber ? `${rcNumber.slice(0, 6)}••••` : (vehicleNumber ? `${vehicleNumber.slice(0, 6)}••••` : <span className="text-zinc-400 font-sans font-medium text-[11px]">Not Registered</span>)}
                 </span>
                 <Eye className="size-3.5 text-zinc-400" />
               </div>
@@ -791,15 +759,21 @@ export function RiderProfileScreen() {
                   triggerHaptic();
                   setSelectedKycDoc("aadhaar");
                 }}
-                className="p-2.5 bg-emerald-50/80 hover:bg-emerald-100/90 border border-emerald-300 rounded-xl text-center active:scale-95 transition-all cursor-pointer shadow-2xs group"
+                className={`p-2.5 border rounded-xl text-center active:scale-95 transition-all cursor-pointer shadow-2xs group ${
+                  aadhaarNumber
+                    ? "bg-emerald-50/80 hover:bg-emerald-100/90 border-emerald-300"
+                    : "bg-zinc-50 hover:bg-zinc-100 border-zinc-200"
+                }`}
                 title="Tap to View Aadhaar Card"
               >
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-[10px] font-bold text-emerald-700">Aadhaar Card</p>
-                  <Eye className="size-3 text-emerald-600 group-hover:scale-115 transition-transform" />
+                  <p className={`text-[10px] font-bold ${aadhaarNumber ? "text-emerald-700" : "text-zinc-600"}`}>Aadhaar Card</p>
+                  <Eye className={`size-3 ${aadhaarNumber ? "text-emerald-600" : "text-zinc-400"} group-hover:scale-115 transition-transform`} />
                 </div>
-                <p className="text-xs font-black text-emerald-800">Linked ✓</p>
-                <span className="text-[9px] font-semibold text-emerald-600/90 block mt-0.5">
+                <p className={`text-xs font-black ${aadhaarNumber ? "text-emerald-800" : "text-zinc-700"}`}>
+                  {aadhaarNumber ? "Linked ✓" : "Not Linked"}
+                </p>
+                <span className={`text-[9px] font-semibold block mt-0.5 ${aadhaarNumber ? "text-emerald-600/90" : "text-zinc-400"}`}>
                   Tap to View 🪪
                 </span>
               </button>
@@ -810,15 +784,21 @@ export function RiderProfileScreen() {
                   triggerHaptic();
                   setSelectedKycDoc("pan");
                 }}
-                className="p-2.5 bg-emerald-50/80 hover:bg-emerald-100/90 border border-emerald-300 rounded-xl text-center active:scale-95 transition-all cursor-pointer shadow-2xs group"
+                className={`p-2.5 border rounded-xl text-center active:scale-95 transition-all cursor-pointer shadow-2xs group ${
+                  panNumber
+                    ? "bg-emerald-50/80 hover:bg-emerald-100/90 border-emerald-300"
+                    : "bg-zinc-50 hover:bg-zinc-100 border-zinc-200"
+                }`}
                 title="Tap to View PAN Card"
               >
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-[10px] font-bold text-emerald-700">PAN Card</p>
-                  <Eye className="size-3 text-emerald-600 group-hover:scale-115 transition-transform" />
+                  <p className={`text-[10px] font-bold ${panNumber ? "text-emerald-700" : "text-zinc-600"}`}>PAN Card</p>
+                  <Eye className={`size-3 ${panNumber ? "text-emerald-600" : "text-zinc-400"} group-hover:scale-115 transition-transform`} />
                 </div>
-                <p className="text-xs font-black text-emerald-800">Verified ✓</p>
-                <span className="text-[9px] font-semibold text-emerald-600/90 block mt-0.5">
+                <p className={`text-xs font-black ${panNumber ? "text-emerald-800" : "text-zinc-700"}`}>
+                  {panNumber ? "Verified ✓" : "Not Linked"}
+                </p>
+                <span className={`text-[9px] font-semibold block mt-0.5 ${panNumber ? "text-emerald-600/90" : "text-zinc-400"}`}>
                   Tap to View 🪪
                 </span>
               </button>
@@ -892,13 +872,15 @@ export function RiderProfileScreen() {
 
               <div className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl border border-zinc-100">
                 <span className="text-zinc-500 font-semibold">Bank Name</span>
-                <span className="font-black text-zinc-900">{bankName || "Linked Bank Account"}</span>
+                <span className="font-black text-zinc-900">
+                  {bankName || <span className="text-zinc-400 font-normal">Not Linked (जोड़ें)</span>}
+                </span>
               </div>
 
               <div className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl border border-zinc-100">
                 <span className="text-zinc-500 font-semibold">Account Number</span>
                 <span className="font-mono font-black text-zinc-900">
-                  {accountNumber ? `•••• •••• ${accountNumber.slice(-4)}` : "Direct Bank Linked"}
+                  {accountNumber ? `•••• •••• ${accountNumber.slice(-4)}` : <span className="text-zinc-400 font-sans font-normal">Not Added</span>}
                 </span>
               </div>
 
@@ -1296,7 +1278,7 @@ export function RiderProfileScreen() {
                 <div className="flex justify-between">
                   <span className="text-zinc-500">Vehicle:</span>
                   <span className="font-mono font-black text-zinc-900">
-                    {vehicleNumber || "UP 87 AB 4021"}
+                    {vehicleNumber || "Not Registered"}
                   </span>
                 </div>
                 <div className="flex justify-between">
