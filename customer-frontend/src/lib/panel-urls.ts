@@ -47,19 +47,19 @@ export function getPanelUrls(currentPanel: "customer" | "partner" | "rider" | "a
 
   const customerUrl = getUrl(
     import.meta.env["VITE_CUSTOMER_URL"] as string | undefined,
-    "https://appk-mu.vercel.app"
+    "https://quickpress-customer.vercel.app"
   );
   const partnerUrl = getUrl(
     import.meta.env["VITE_PARTNER_URL"] as string | undefined,
-    "https://quickpress-partner.vercel.app"
+    "https://quickpress-partner-mu.vercel.app"
   );
   const riderUrl = getUrl(
     import.meta.env["VITE_RIDER_URL"] as string | undefined,
-    "https://quickpress-rider.vercel.app"
+    "https://quickpress-caption.vercel.app"
   );
   const adminUrl = getUrl(
     import.meta.env["VITE_ADMIN_URL"] as string | undefined,
-    "https://quickpress-admin.vercel.app"
+    "https://quickpress-admin-kappa.vercel.app"
   );
 
   return [
