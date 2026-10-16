@@ -14,6 +14,7 @@ export const GlobalOrderDispatchListener: React.FC = () => {
   const acceptedOrderIdsRef = useRef<Set<string>>(new Set());
   const declinedOrderIdsRef = useRef<Set<string>>(new Set());
   const [activeFlashOffer, setActiveFlashOffer] = useState<FlashOfferData | null>(null);
+  const activeFlashOfferRef = useRef<FlashOfferData | null>(null);
 
   useEffect(() => {
     // Only listen for incoming orders if rider is authenticated and online
@@ -49,6 +50,11 @@ export const GlobalOrderDispatchListener: React.FC = () => {
         }
       } catch {}
 
+      // If an offer modal is already actively showing on screen, or this order is already dispatched, don't interrupt
+      if (activeFlashOfferRef.current !== null || lastDispatchedOrderIdRef.current === targetId) {
+        return;
+      }
+
       // If event was a lifecycle ping without fare, fetch latest offers
       if (!offer.fare && !offer.estimatedEarning && targetId) {
         fetchRiderOffers()
@@ -72,10 +78,6 @@ export const GlobalOrderDispatchListener: React.FC = () => {
         return;
       }
 
-      // Prevent duplicate modal triggers for the same order
-      if (lastDispatchedOrderIdRef.current === targetId && activeFlashOffer) {
-        return;
-      }
       lastDispatchedOrderIdRef.current = targetId;
 
       const isExpress = Boolean(offer.isExpress || offer.express || (offer.rideDoc && offer.rideDoc.isExpress));
@@ -119,6 +121,7 @@ export const GlobalOrderDispatchListener: React.FC = () => {
       };
 
       // Trigger Flash Offer Modal (FlashTripOfferModal handles the siren, language speech, and countdown)
+      activeFlashOfferRef.current = flashData;
       setActiveFlashOffer(flashData);
 
       if (isExpress) {
@@ -227,12 +230,14 @@ export const GlobalOrderDispatchListener: React.FC = () => {
           window.dispatchEvent(new CustomEvent("qp:active_order_updated", { detail: activeOrderData }));
         } catch {}
 
+        activeFlashOfferRef.current = null;
         setActiveFlashOffer(null);
         navigate({ to: "/orders" });
       }}
       onDeclined={(declinedId) => {
         stopOrderAlertSound();
         if (declinedId) declinedOrderIdsRef.current.add(String(declinedId));
+        activeFlashOfferRef.current = null;
         setActiveFlashOffer(null);
       }}
     />

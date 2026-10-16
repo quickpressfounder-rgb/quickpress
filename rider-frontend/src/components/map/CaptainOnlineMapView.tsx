@@ -42,6 +42,8 @@ interface CaptainOnlineMapViewProps {
   onOpenOrders?: () => void;
 }
 
+const EMPTY_SURGE_HOTSPOTS: SurgeHotspot[] = [];
+
 export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   currentCoords,
   todayEarnings = 0,
@@ -110,7 +112,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           heightClassName="h-full w-full"
           showControls={false}
           showSurgePins={false}
-          surgeHotspots={[]}
+          surgeHotspots={EMPTY_SURGE_HOTSPOTS}
           isRapidoTheme={true}
           activeLayerOverride={mapLayer}
           onLayerChange={setMapLayer}

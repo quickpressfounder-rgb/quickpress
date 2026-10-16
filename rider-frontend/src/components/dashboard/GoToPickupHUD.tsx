@@ -244,11 +244,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [startTime, setStartTime] = useState<string | null>(null);
   const [completedTime, setCompletedTime] = useState<string | null>(null);
   const [showVoiceNavModal, setShowVoiceNavModal] = useState(false);
-  const [captainBearing, setCaptainBearing] = useState<number>(0);
+  const captainBearingRef = useRef<number>(0);
   const [nextTurnManeuver, setNextTurnManeuver] = useState<ManeuverType>("straight");
   const [nextTurnDistanceM, setNextTurnDistanceM] = useState<number>(order.distanceMeters || 250);
   const [nextTurnInstruction, setNextTurnInstruction] = useState<string>("");
   const prevCaptainPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  const leafletCaptainMarkerRef = useRef<any>(null);
+  const leafletDestMarkerRef = useRef<any>(null);
+  const leafletRoutePolylineRef = useRef<any>(null);
+  const leafletRouteCasingRef = useRef<any>(null);
+  const lastRouteDestKeyRef = useRef<string>("");
+  const googleCaptainMarkerRef = useRef<any>(null);
 
   const [chatMessages, setChatMessages] = useState<Array<{ sender: "rider" | "customer"; text: string; time: string }>>([
     { sender: "customer", text: "Please come to the main gate near medical shop.", time: "Just now" },
@@ -585,7 +591,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     );
   });
 
-  // Track Captain's real-time device GPS coordinates via Singleton Engine & native Geolocation
+  // Track Captain's real-time device GPS coordinates via Singleton Engine
   useEffect(() => {
     riderLocationEngine.setActiveOrder(order.orderId, order.orderCode);
     riderLocationEngine.setOnline(true);
@@ -599,83 +605,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       }
     });
 
-    let watchId: number | null = null;
-    if (typeof window !== "undefined" && "geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          if (lat && lng) {
-            setCaptainCoords({ lat, lng });
-            try {
-              localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat, lng }));
-            } catch {}
-            emitRiderLocation({
-              lat,
-              lng,
-              orderId: order.orderId,
-              orderCode: order.orderCode,
-              heading: pos.coords.heading ?? undefined,
-              speed: pos.coords.speed ?? undefined,
-            });
-            void pushRiderLocation(lat, lng, {
-              heading: pos.coords.heading ?? undefined,
-              speed: pos.coords.speed ?? undefined,
-            }).catch(() => undefined);
-          }
-        },
-        (err) => console.warn("GPS initial error:", err),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
-      );
-
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          if (lat && lng) {
-            setCaptainCoords({ lat, lng });
-            try {
-              localStorage.setItem("qp_rider_last_gps", JSON.stringify({ lat, lng }));
-            } catch {}
-            emitRiderLocation({
-              lat,
-              lng,
-              orderId: order.orderId,
-              orderCode: order.orderCode,
-              heading: pos.coords.heading ?? undefined,
-              speed: pos.coords.speed ?? undefined,
-            });
-          }
-        },
-        (err) => console.warn("GPS watch error:", err),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
-      );
-    }
-
-    // Heartbeat: Ensure rider GPS location is sent to backend / customer every 4 seconds during active delivery
-    const locationHeartbeat = setInterval(() => {
-      try {
-        const cached = localStorage.getItem("qp_rider_last_gps");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed?.lat && parsed?.lng) {
-            emitRiderLocation({
-              lat: parsed.lat,
-              lng: parsed.lng,
-              orderId: order.orderId,
-              orderCode: order.orderCode,
-            });
-          }
-        }
-      } catch {}
-    }, 4000);
-
     return () => {
       unsubscribe();
-      clearInterval(locationHeartbeat);
-      if (watchId !== null && typeof window !== "undefined" && "geolocation" in navigator) {
-        navigator.geolocation.clearWatch(watchId);
-      }
       riderLocationEngine.setActiveOrder(null);
     };
   }, [order.orderId, order.orderCode]);
@@ -948,7 +879,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }
   };
 
-  // Track bearing whenever captain GPS updates
+  // Track bearing whenever captain GPS updates (using ref to avoid full HUD re-render)
   useEffect(() => {
     if (prevCaptainPosRef.current && captainCoords) {
       const b = calculateBearing(
@@ -957,7 +888,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         captainCoords.lat,
         captainCoords.lng
       );
-      if (b !== 0) setCaptainBearing(b);
+      if (b !== 0) {
+        captainBearingRef.current = b;
+        const iconEl = document.querySelector(".custom-rapido-captain-marker .captain-heading-pip") as HTMLElement | null;
+        if (iconEl) {
+          iconEl.style.transform = `rotate(${b}deg)`;
+        }
+      }
     }
     prevCaptainPosRef.current = captainCoords;
   }, [captainCoords.lat, captainCoords.lng]);
@@ -994,7 +931,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         html: `
           <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">
             <div style="position: absolute; width: 48px; height: 48px; border-radius: 9999px; background-color: rgba(0, 200, 83, 0.25); animation: ping 2s infinite;"></div>
-            <div style="position: relative; display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #0F172A; color: white; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); border: 2.5px solid white; transform: rotate(${captainBearing}deg); transition: transform 0.3s ease;">
+            <div class="captain-heading-pip" style="position: relative; display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #0F172A; color: white; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); border: 2.5px solid white; transform: rotate(${captainBearingRef.current}deg); transition: transform 0.3s ease;">
               <div style="position: absolute; top: -3px; width: 8px; height: 8px; background-color: #00C853; transform: rotate(45deg); border: 1px solid white;"></div>
               <span style="font-size: 15px;">🛵</span>
             </div>
@@ -1004,7 +941,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         iconAnchor: [24, 24],
       });
 
-      L.marker([captainCoords.lat, captainCoords.lng], { icon: captainIcon }).addTo(map);
+      leafletCaptainMarkerRef.current = L.marker([captainCoords.lat, captainCoords.lng], { icon: captainIcon }).addTo(map);
 
       // 2. Destination Target Pin (High Contrast Pin)
       const pickupIcon = L.divIcon({
@@ -1023,7 +960,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         iconAnchor: [60, 50],
       });
 
-      L.marker([dest.lat, dest.lng], { icon: pickupIcon }).addTo(map);
+      leafletDestMarkerRef.current = L.marker([dest.lat, dest.lng], { icon: pickupIcon }).addTo(map);
 
       // 3. Real Street-Following Route Polyline (Dual-Layer: Dark Casing + Solid Route)
       const routeData = await fetchStreetRoute(captainCoords, dest, activeDestTitle);
@@ -1041,7 +978,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       }
 
       // 3a. Route Casing (Dark Slate Navy for sharp road boundary)
-      L.polyline(points, {
+      leafletRouteCasingRef.current = L.polyline(points, {
         color: "#0F172A",
         weight: 9,
         opacity: 0.85,
@@ -1050,7 +987,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
       }).addTo(map);
 
       // 3b. Route Path (Vibrant Rapido Green / Electric Delivery Blue)
-      L.polyline(points, {
+      leafletRoutePolylineRef.current = L.polyline(points, {
         color: isStoreDrop ? "#2563EB" : "#00C853",
         weight: 5.5,
         opacity: 1,
@@ -1067,7 +1004,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     }
   };
 
-  // Trigger layer update on stage, currentLeg, or GPS coordinate change
+  // Lightweight GPS Marker Glide on Map (120 FPS hardware accelerated, 0 lag)
+  useEffect(() => {
+    if (mapEngineRef.current === "google" && googleCaptainMarkerRef.current && captainCoords) {
+      googleCaptainMarkerRef.current.setPosition({ lat: captainCoords.lat, lng: captainCoords.lng });
+    } else if (leafletCaptainMarkerRef.current && captainCoords) {
+      leafletCaptainMarkerRef.current.setLatLng([captainCoords.lat, captainCoords.lng]);
+    }
+  }, [captainCoords.lat, captainCoords.lng]);
+
+  // Trigger layer & route update ONLY on stage or currentLeg change
   useEffect(() => {
     if (mapEngineRef.current === "google" && googleMapInstanceRef.current) {
       const google = (window as any).google;
@@ -1083,7 +1029,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         await updateMapLayers(L, mapInstanceRef.current, stage, currentLeg);
       })();
     }
-  }, [stage, currentLeg, captainCoords.lat, captainCoords.lng]);
+  }, [stage, currentLeg]);
 
   // Recenter GPS on Captain Location
   const handleRecenter = () => {

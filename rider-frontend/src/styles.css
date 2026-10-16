@@ -436,4 +436,26 @@ button, a, [role="button"] {
   overscroll-behavior-y: contain;
 }
 
+/* Leaflet GPU hardware acceleration & anti-jank */
+.leaflet-pane,
+.leaflet-tile-pane,
+.leaflet-marker-pane,
+.leaflet-shadow-pane,
+.leaflet-overlay-pane {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.leaflet-container {
+  touch-action: pan-x pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Eliminate 300ms tap delay and touch lag across all interactive elements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+
 

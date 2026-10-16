@@ -124,10 +124,6 @@ export function RiderDashboardScreen() {
 
       if (Array.isArray(offersRes)) {
         setPendingOrdersCount(offersRes.length);
-        if (offersRes.length > 0) {
-          navigate({ to: "/orders" });
-          return;
-        }
       }
 
       if (typeof unreadRes === "number") {
@@ -156,7 +152,6 @@ export function RiderDashboardScreen() {
     });
     const unsubOffers = subscribeRiderOffers(() => {
       loadRealData();
-      navigate({ to: "/orders" });
     });
     const unsubWallet = subscribeRiderWallet(() => {
       loadRealData();
@@ -167,7 +162,7 @@ export function RiderDashboardScreen() {
       unsubOffers();
       unsubWallet();
     };
-  }, [loadRealData, navigate]);
+  }, [loadRealData]);
 
   // Periodic polling for real-time notification badge updates
   useEffect(() => {
@@ -187,46 +182,6 @@ export function RiderDashboardScreen() {
     });
     return unsubscribe;
   }, [isOnline]);
-
-  // Live Offers Stream: When an offer arrives, switch immediately to the Orders tab!
-  useEffect(() => {
-    if (!isOnline) return;
-
-    const unsubscribe = subscribeRiderOffers((rawOffer: any) => {
-      unlockAudioContext();
-      triggerHaptic([350, 150, 350, 150, 600, 300]);
-      playOrderAlertSound();
-
-      // Bring app to foreground if backgrounded or screen locked
-      bringAppToFront("/orders");
-
-      const fare = Number(rawOffer?.fare || rawOffer?.estimatedEarning || 45);
-      const isAutoAssigned = Boolean(rawOffer?.autoAssigned || rawOffer?.isAssigned || rawOffer?.status === "assigned");
-      const pickupTitle = rawOffer?.pickupTitle || rawOffer?.partnerName || "पिकअप हब";
-      const dropTitle = rawOffer?.dropTitle || rawOffer?.customerName || "कस्टमर लोकेशन";
-      speakOrderAlert(fare, pickupTitle, dropTitle);
-      setPendingOrdersCount((prev) => prev + 1);
-      toast.success(
-        isAutoAssigned
-          ? `🔔 Trip Assigned (₹${fare})! Switching to Trips...`
-          : `🚨 New Order (₹${fare})! Switching to Orders...`
-      );
-      // Auto-switch to the Orders tab as requested by user
-      navigate({ to: "/orders" });
-    });
-
-    fetchRiderOffers()
-      .then((offers) => {
-        if (Array.isArray(offers) && offers.length > 0) {
-          setPendingOrdersCount(offers.length);
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      unsubscribe();
-    };
-  }, [isOnline, navigate]);
 
   // Hook up global navigation for Floating Bubble taps
   useEffect(() => {

@@ -239,15 +239,23 @@ export function RiderOrdersScreen() {
             expressRiderSharePercent: Number(r.expressRiderSharePercent || 80),
           };
         });
-        setOffers(formatted);
+        setOffers((prev) => {
+          if (
+            prev.length === formatted.length &&
+            prev.every((p, idx) => p.id === formatted[idx].id && p.placedAt === formatted[idx].placedAt && p.fare === formatted[idx].fare)
+          ) {
+            return prev;
+          }
+          return formatted;
+        });
       } else {
         // In background polling, do not wipe existing active offers unless explicitly refreshed
         if (!isBackground) {
-          setOffers([]);
+          setOffers((prev) => (prev.length === 0 ? prev : []));
         }
       }
     } catch {
-      if (!isBackground) setOffers([]);
+      if (!isBackground) setOffers((prev) => (prev.length === 0 ? prev : []));
     } finally {
       if (!isBackground) setIsLoading(false);
     }
