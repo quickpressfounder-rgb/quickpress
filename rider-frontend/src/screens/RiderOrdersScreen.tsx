@@ -669,7 +669,7 @@ export function RiderOrdersScreen() {
       {/* 1. Sticky Header with Live Orders Title */}
       <div
         className="sticky top-0 z-30 px-4 pb-3 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-2xs"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 12px, 16px)" }}
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
         <div className="flex items-center justify-between">
           <div>

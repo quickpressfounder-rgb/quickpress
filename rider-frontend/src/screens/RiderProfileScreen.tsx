@@ -466,8 +466,8 @@ export function RiderProfileScreen() {
       <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-800 select-none font-sans">
         {/* Sticky Header with Back Button */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
-          style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+          className="sticky top-0 z-30 flex items-center justify-between px-4 pb-2.5 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
+          style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
         >
           <div className="flex items-center gap-2">
             <button
@@ -515,8 +515,8 @@ export function RiderProfileScreen() {
     >
       {/* 1. Sticky Top Header (Partner Design Pattern) */}
       <header
-        className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 border-b border-zinc-200/70 shadow-2xs"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 0px)" }}
+        className="sticky top-0 z-30 flex items-center justify-between bg-white px-4 pb-3 border-b border-zinc-200/70 shadow-2xs shrink-0"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
         <div className="flex items-center gap-3">
           <button

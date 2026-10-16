@@ -81,8 +81,8 @@ export const CaptainGuidelinesScreen: React.FC<CaptainGuidelinesScreenProps> = (
     >
       {/* 1. Sticky Header with Back Button */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 flex items-center justify-between px-4 pb-3 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
         <div className="flex items-center gap-2.5">
           <button
