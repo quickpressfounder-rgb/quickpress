@@ -863,7 +863,16 @@ class RiderWalletRepository:
         pub["lifetimeEarnings"] = max(total_lifetime, float(document.get("balance") or 0.0))
         return pub
 
-    async def withdraw(self, rider_id: str, amount: float, upi_id: str = "") -> Dict[str, Any]:
+    async def withdraw(
+        self,
+        rider_id: str,
+        amount: float,
+        account_number: str = "",
+        ifsc: str = "",
+        bank_name: str = "",
+        account_holder: str = "",
+        upi_id: str = "",
+    ) -> Dict[str, Any]:
         wallet = await database.find_one(WALLETS, {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"rider_id": rider_id}]})
         if wallet is None:
             wallet = await self.get(rider_id)
@@ -875,9 +884,14 @@ class RiderWalletRepository:
         if curr_balance < amount:
             raise ValueError(f"Insufficient wallet balance. Available: ₹{curr_balance:.2f}")
 
-        target_upi = upi_id or wallet.get("upiId") or ""
-        if not target_upi:
-            raise ValueError("No valid UPI ID provided or registered to this account.")
+        # Fetch registered bank account details from rider_profiles (provided at registration)
+        prof = await database.find_one("rider_profiles", {"$or": [{"_id": rider_id}, {"riderId": rider_id}]}) or {}
+        bank_details = prof.get("bankDetails") or {}
+        target_bank = bank_name or bank_details.get("bankName") or prof.get("bankName") or "Bank Account"
+        target_acc = account_number or bank_details.get("accountNumber") or prof.get("accountNumber") or wallet.get("accountNumber") or ""
+        target_ifsc = ifsc or bank_details.get("ifsc") or prof.get("ifsc") or wallet.get("ifsc") or ""
+        target_holder = account_holder or bank_details.get("accountHolderName") or prof.get("accountHolder") or prof.get("fullName") or "Captain"
+        target_last4 = target_acc[-4:] if len(target_acc) >= 4 else (target_acc or "Primary")
         
         new_balance = round(curr_balance - amount, 2)
         curr_withdrawn = float(wallet.get("totalWithdrawn", 0.0))
@@ -893,21 +907,24 @@ class RiderWalletRepository:
         
         now_ts = int(datetime.now(timezone.utc).timestamp())
         random_suffix = random.randint(1000, 9999)
-        utr_number = f"REQ{now_ts}{random_suffix}"
+        utr_number = f"BNK{now_ts}{random_suffix}"
         
         txn_doc = {
             "_id": f"rwtx-{rider_id}-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
             "rider_id": rider_id,
             "riderId": rider_id,
-            "title": f"Payout Request (72 hrs) · {target_upi}",
+            "title": f"Bank Withdrawal · {target_bank} (•••• {target_last4})",
             "date": now_iso,
             "amount": amount,
             "direction": "debit",
             "status": "pending",
             "kind": "withdrawal",
             "utr": utr_number,
-            "upiId": target_upi,
-            "method": "72-Hour Payout Cycle",
+            "bankName": target_bank,
+            "accountNumberMasked": f"•••• •••• {target_last4}",
+            "ifsc": target_ifsc,
+            "accountHolder": target_holder,
+            "method": "Direct Bank Account Transfer (IMPS/NEFT)",
         }
         await database.insert(WALLET_TXNS, txn_doc)
         
@@ -917,8 +934,10 @@ class RiderWalletRepository:
             "balance": new_balance,
             "totalWithdrawn": new_withdrawn,
             "utr": utr_number,
-            "upiId": target_upi,
-            "message": f"Withdrawal request for ₹{amount:.2f} to {target_upi} received. Settled within 72 hours.",
+            "bankName": target_bank,
+            "accountNumberMasked": f"•••• •••• {target_last4}",
+            "ifsc": target_ifsc,
+            "message": f"Withdrawal request of ₹{amount:.2f} to {target_bank} (•••• {target_last4}) submitted successfully!",
         }
 
     async def credit(self, rider_id: str, amount: float, title: str = "Bonus Incentive Credit", kind: str = "incentive", order_code: str = "", order_id: str = "", **kwargs) -> Dict[str, Any]:

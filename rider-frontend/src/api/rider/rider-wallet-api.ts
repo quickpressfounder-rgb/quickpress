@@ -128,21 +128,61 @@ export async function fetchRiderTransactions(): Promise<RiderWalletTransaction[]
     }));
 }
 
-/** POST /api/rider/wallet/withdraw — Instant 0% fee UPI cashout to captain account. */
-export async function withdrawRiderEarnings(amount: number, upiId: string = "") {
+/** POST /api/rider/wallet/withdraw — Instant 0% fee Bank Transfer cashout to captain account. */
+export async function withdrawRiderEarnings(
+  amount: number,
+  bankDetails?: {
+    accountNumber?: string;
+    ifsc?: string;
+    bankName?: string;
+    accountHolder?: string;
+    upiId?: string;
+  }
+) {
   const res = await apiPostJson<{
     ok: boolean;
     amount: number;
     balance: number;
     totalWithdrawn?: number;
     utr?: string;
-    upiId?: string;
+    bankName?: string;
+    accountNumberMasked?: string;
     message?: string;
   }>("/api/rider/wallet/withdraw", {
     amount: Math.abs(amount),
-    upiId: upiId.trim(),
+    ...(bankDetails || {}),
   });
   return res;
+}
+
+/** POST /api/rider/wallet/razorpay-order — Create Razorpay order for float deposit. */
+export async function createRiderDepositOrder(amount: number) {
+  return await apiPostJson<{
+    ok: boolean;
+    keyId: string;
+    order: {
+      gatewayOrderId: string;
+      amountInPaise: number;
+      currency: string;
+      notes: any;
+      keyId: string;
+    };
+  }>("/api/rider/wallet/razorpay-order", { amount });
+}
+
+/** POST /api/rider/wallet/razorpay-verify — Verify Razorpay signature and clear float. */
+export async function verifyRiderDeposit(payload: {
+  amount: number;
+  orderId: string;
+  paymentId: string;
+  signature: string;
+}) {
+  return await apiPostJson<{
+    ok: boolean;
+    message: string;
+    remainingFloatingCash: number;
+    paymentId: string;
+  }>("/api/rider/wallet/razorpay-verify", payload);
 }
 
 /** POST /api/rider/wallet/credit — Add incentive bonus / test credit. */

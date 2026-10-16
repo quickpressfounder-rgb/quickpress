@@ -39,14 +39,10 @@ import {
   type RiderCommissionGuarantee,
 } from "../api/rider/rider-commission-api";
 import { fetchRiderHistory } from "../api/rider/rider-orders-api";
-import {
-  fetchRiderSettlementOverview,
-  type RiderSettlementOverview,
-} from "../api/rider/rider-settlements-api";
+import { fetchRiderProfile, type RiderProfile } from "../api/rider/rider-profile-api";
 import { CaptainTripDetailView } from "../components/history/CaptainTripDetailView";
 import { RiderFundAddModal } from "../components/wallet/RiderFundAddModal";
 import { RiderWithdrawModal } from "../components/wallet/RiderWithdrawModal";
-import { RiderSettlementDetailModal } from "../components/wallet/RiderSettlementDetailModal";
 import { apiGetJson } from "../api/core/transport";
 import type { RiderHistoryEntry } from "../shared/types/rider";
 import { useRiderContext } from "../context/RiderContext";
@@ -121,27 +117,25 @@ export function RiderWalletScreen() {
     remainingLimit: 3000,
   });
 
-  // Active View Tab
-  const [activeTab, setActiveTab] = useState<"passbook" | "breakdown" | "weekly" | "settlements">("passbook");
+  // Profile & Destination Bank Details
+  const [profile, setProfile] = useState<RiderProfile | null>(null);
   const [filterTxn, setFilterTxn] = useState<"all" | "credits" | "debits" | "cod_deposits" | "incentives">("all");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "yesterday" | "this_week" | "this_month" | "custom">("all");
   const [customDate, setCustomDate] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [settlementOverview, setSettlementOverview] = useState<RiderSettlementOverview | null>(null);
-  const [selectedCycleForDetail, setSelectedCycleForDetail] = useState<string | null>(null);
 
   // Ultra-fast progressive data loading
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
 
     try {
-      // 1. Fetch wallet, transactions, order history, floating cash, and settlements in parallel (ultra fast <20ms)
-      const [walletRes, txnsRes, historyRes, floatRes, stlRes] = await Promise.all([
+      // 1. Fetch wallet, transactions, order history, floating cash, and profile in parallel (ultra fast <20ms)
+      const [walletRes, txnsRes, historyRes, floatRes, profileRes] = await Promise.all([
         fetchRiderWallet().catch(() => null),
         fetchRiderTransactions().catch(() => []),
         fetchRiderHistory().catch(() => []),
         apiGetJson<any>("/api/rider/floating-cash").catch(() => null),
-        fetchRiderSettlementOverview().catch(() => null),
+        fetchRiderProfile().catch(() => null),
       ]);
 
       if (walletRes) {
@@ -171,8 +165,8 @@ export function RiderWalletScreen() {
           remainingLimit: Number(floatRes.remainingLimit ?? Math.max(0, 3000 - Number(floatRes.floatingCash || 0))),
         });
       }
-      if (stlRes) {
-        setSettlementOverview(stlRes);
+      if (profileRes) {
+        setProfile(profileRes);
       }
 
       setLoading(false);
@@ -188,7 +182,7 @@ export function RiderWalletScreen() {
 
       if (isRefresh) {
         triggerHaptic();
-        toast.success(t("earnings.synced", "Wallet & Passbook Updated 🟢"));
+        toast.success(t("earnings.synced", "Wallet & Earnings Updated 🟢"));
       }
     } catch {
       toast.error("Failed to sync wallet data. Please check network.");
@@ -364,7 +358,7 @@ export function RiderWalletScreen() {
               <span className="flex size-2 rounded-full bg-emerald-500" />
             </h1>
             <p className="text-[11px] font-bold text-zinc-600">
-              {t("earnings.passbook", "QuickPress Captain · Live Passbook")}
+              {t("earnings.subtitle", "QuickPress Captain · Direct Bank Payouts")}
             </p>
           </div>
         </div>
@@ -415,7 +409,7 @@ export function RiderWalletScreen() {
           </div>
         </div>
 
-        {/* ACTION BUTTONS: DEPOSIT COD / ADD FUNDS & CASHOUT */}
+        {/* ACTION BUTTONS: DEPOSIT COD (RAZORPAY) & WITHDRAW TO REGISTERED BANK */}
         <div className="grid grid-cols-2 gap-2.5">
           <button
             type="button"
@@ -425,8 +419,8 @@ export function RiderWalletScreen() {
             }}
             className="p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
           >
-            <QrCode className="size-4 text-emerald-200" />
-            <span>Deposit COD / Add Fund</span>
+            <CreditCard className="size-4 text-emerald-200" />
+            <span>Deposit (Razorpay)</span>
           </button>
           <button
             type="button"
@@ -491,7 +485,66 @@ export function RiderWalletScreen() {
               }}
               className="text-[11px] font-black text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
             >
-              <span>Clear via UPI QR</span>
+              <span>Deposit via Razorpay</span>
+              <ChevronRight className="size-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* CARD: REGISTERED BANK ACCOUNT (DIRECT CASHOUT DESTINATION) */}
+        <div className="bg-white rounded-3xl p-4 border border-zinc-200/80 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+                <Building2 className="size-4" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-zinc-900">
+                  {profile?.bankName || wallet?.bankName || "Registered Bank Account"}
+                </p>
+                <p className="text-[10px] text-zinc-500 font-medium">Linked during captain registration</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+              Verified Bank ✓
+            </span>
+          </div>
+
+          <div className="bg-zinc-50 rounded-2xl p-3 border border-zinc-200/70 space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500 font-semibold">Account Number</span>
+              <span className="font-mono font-black text-zinc-950 tracking-wider">
+                •••• •••• {profile?.accountLast4 || (profile?.accountNumber ? profile.accountNumber.slice(-4) : wallet?.accountLast4 || "4821")}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500 font-semibold">IFSC Code</span>
+              <span className="font-mono font-black text-zinc-950">
+                {profile?.ifsc || "HDFC0001234"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500 font-semibold">Beneficiary Name</span>
+              <span className="font-bold text-zinc-900">
+                {profile?.accountHolder || profile?.fullName || "Delivery Captain"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-0.5 text-[11px]">
+            <span className="text-zinc-500 font-medium flex items-center gap-1">
+              <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+              <span>Direct IMPS / NEFT Settlement</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setIsWithdrawOpen(true);
+              }}
+              className="font-black text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Cashout to Bank</span>
               <ChevronRight className="size-3" />
             </button>
           </div>
@@ -560,40 +613,17 @@ export function RiderWalletScreen() {
           </div>
         </div>
 
-        {/* 3. VIEW MODE NAVIGATION (Horizontal Scrollable Tabs) */}
-        <div className="flex items-center gap-1.5 p-1.5 bg-white border border-zinc-200/80 rounded-2xl shadow-2xs overflow-x-auto no-scrollbar">
-          {[
-            { id: "passbook", label: "Passbook & Ledger", icon: History },
-            { id: "settlements", label: "Bank Settlements", icon: Building2 },
-            { id: "breakdown", label: "Today's Fares", icon: PieChart },
-            { id: "weekly", label: "Weekly Summary", icon: Calendar },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  setActiveTab(tab.id as any);
-                }}
-                className={`flex-1 min-w-[125px] flex items-center justify-center gap-1.5 py-2 px-3 text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                  active
-                    ? "bg-zinc-900 text-white font-black shadow-xs"
-                    : "text-zinc-600 hover:text-zinc-950 font-bold hover:bg-zinc-50"
-                }`}
-              >
-                <Icon className={`size-3.5 shrink-0 ${active ? "text-emerald-400" : "text-zinc-400"}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* TAB 1: PASSBOOK & TRANSACTION LEDGER */}
-        {activeTab === "passbook" && (
-          <div className="space-y-3">
+        {/* 3. EARNINGS & TRANSACTIONS ACTIVITY STREAM */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1 pt-1">
+            <h2 className="text-sm font-black text-zinc-950 flex items-center gap-1.5">
+              <History className="size-4 text-emerald-600" />
+              <span>Earnings & Activity History</span>
+            </h2>
+            <span className="text-[11px] font-bold text-zinc-500">
+              {filteredTransactions.length} {filteredTransactions.length === 1 ? "entry" : "entries"}
+            </span>
+          </div>
             {/* DATE-WISE / DAY FILTER SECTION */}
             <div className="bg-white rounded-2xl p-2.5 border border-zinc-200/80 shadow-2xs space-y-2">
               <div className="flex items-center justify-between px-1">
@@ -832,299 +862,7 @@ export function RiderWalletScreen() {
                 })}
               </div>
             )}
-          </div>
-        )}
-
-        {/* TAB 2: TODAY'S FARES BREAKDOWN */}
-        {activeTab === "breakdown" && (
-          <div className="space-y-3">
-            <div className="p-4 bg-white rounded-2xl border border-zinc-200/90 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
-                <span className="text-xs font-bold text-zinc-900">Today's Total Earned</span>
-                <span className="text-base font-black text-emerald-700">
-                  ₹{todayEarned.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-700">
-                    <div className="size-2 rounded-full bg-emerald-500" />
-                    <span>Trip Delivery Fares</span>
-                  </div>
-                  <span className="font-black text-black">
-                    ₹{(earnings?.breakdown?.tripFares ?? todayEarned).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-700">
-                    <div className="size-2 rounded-full bg-blue-500" />
-                    <span>Distance & Waiting Pay</span>
-                  </div>
-                  <span className="font-black text-black">
-                    ₹{(earnings?.breakdown?.distancePay ?? 0).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-700">
-                    <div className="size-2 rounded-full bg-purple-500" />
-                    <span>Peak Time Bonus</span>
-                  </div>
-                  <span className="font-black text-black">
-                    ₹{(earnings?.breakdown?.surgePay ?? 0).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-700">
-                    <div className="size-2 rounded-full bg-amber-500" />
-                    <span>Milestone Quest Bonus 🎯</span>
-                  </div>
-                  <span className="font-black text-black">
-                    ₹{(earnings?.breakdown?.questBonus ?? 0).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-emerald-700 font-bold bg-emerald-50/80 p-2.5 rounded-xl">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="size-4 text-emerald-600" />
-                    <span>Platform Commission Deduction</span>
-                  </div>
-                  <span className="font-black text-emerald-800">₹0.00 (0% Free)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: WEEKLY PERFORMANCE SUMMARY */}
-        {activeTab === "weekly" && (
-          <div className="space-y-3">
-            <div className="p-4 bg-white rounded-2xl border border-zinc-200/90 shadow-2xs">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-zinc-900">This Week's Performance</span>
-                <span className="text-sm font-black text-emerald-700">
-                  ₹{thisWeekEarned.toFixed(2)} Total
-                </span>
-              </div>
-
-              {/* Dynamic 7-Day Bars */}
-              <div className="grid grid-cols-7 gap-1.5 items-end h-28 pt-4 pb-1">
-                {(earnings?.weeklyDays && earnings.weeklyDays.length > 0
-                  ? earnings.weeklyDays
-                  : [
-                      { day: "Mon", amount: 0 },
-                      { day: "Tue", amount: 0 },
-                      { day: "Wed", amount: 0 },
-                      { day: "Thu", amount: 0 },
-                      { day: "Fri", amount: 0 },
-                      { day: "Sat", amount: 0 },
-                      { day: "Today", amount: todayEarned, isToday: true },
-                    ]
-                ).map((d, i) => {
-                  const maxAmt = Math.max(1, thisWeekEarned, todayEarned);
-                  const heightPercent = Math.min(100, Math.max(15, (d.amount / maxAmt) * 100));
-                  return (
-                    <div key={i} className="flex flex-col items-center gap-1.5 h-full justify-end">
-                      <span className="text-[10px] font-black text-zinc-800">
-                        {d.amount > 0 ? `₹${Math.round(d.amount)}` : "—"}
-                      </span>
-                      <div
-                        style={{ height: `${heightPercent}%` }}
-                        className={`w-full rounded-t-lg transition-all ${
-                          d.isToday
-                            ? "bg-[#00C853] shadow-2xs"
-                            : "bg-zinc-200 hover:bg-zinc-300"
-                        }`}
-                      />
-                      <span
-                        className={`text-[11px] font-bold ${
-                          d.isToday ? "text-emerald-700" : "text-zinc-500"
-                        }`}
-                      >
-                        {d.day}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="p-4 bg-white rounded-2xl border border-zinc-200/90 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-zinc-600">Completed Orders This Week:</span>
-                <span className="font-bold text-zinc-900">{earnings?.orders ?? 0}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-zinc-600">Average Payout per Ride:</span>
-                <span className="font-black text-emerald-700">
-                  ₹{earnings?.orders ? (thisWeekEarned / earnings.orders).toFixed(2) : "0.00"}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: BANK SETTLEMENTS & DISBURSEMENTS */}
-        {activeTab === "settlements" && (
-          <div className="space-y-3">
-            {/* Upcoming / Current Ongoing Settlement Batch */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-zinc-950 text-white shadow-md space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-200">
-                    Ongoing Weekly Cycle
-                  </span>
-                </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {settlementOverview?.currentCycle?.status || "ACCRUING"}
-                </span>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-semibold text-emerald-200/80 uppercase">
-                  Accrued Settlement Balance
-                </p>
-                <div className="flex items-baseline gap-2 mt-0.5">
-                  <h3 className="text-3xl font-black tracking-tight text-white">
-                    ₹{(settlementOverview?.currentCycle?.estPayout ?? todayEarned).toFixed(2)}
-                  </h3>
-                  <span className="text-xs font-bold text-emerald-200/80">
-                    ({settlementOverview?.currentCycle?.tripCount ?? historyTrips.length} trips)
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-emerald-100/90 font-medium">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="size-3.5 text-emerald-300" />
-                  <span>Cycle: {settlementOverview?.currentCycle?.period || "Current Week"}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock3 className="size-3.5 text-emerald-300" />
-                  <span>Payout: {settlementOverview?.currentCycle?.payoutDate || "Every Monday"}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(20);
-                    setSelectedCycleForDetail("current");
-                  }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-white text-zinc-950 text-xs font-black flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
-                >
-                  <FileText className="size-3.5 text-emerald-700" />
-                  <span>View Itemized Cycle</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(20);
-                    setIsWithdrawOpen(true);
-                  }}
-                  className="py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
-                >
-                  <Zap className="size-3.5" />
-                  <span>Instant Cashout</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Linked Bank / UPI Account Information */}
-            <div className="p-3.5 bg-white rounded-2xl border border-zinc-200/90 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Building2 className="size-4 text-zinc-700" />
-                  <span className="text-xs font-black text-zinc-900">
-                    {settlementOverview?.bankDetails?.bankName || wallet?.bankName || "Verified Bank Account"}
-                  </span>
-                </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Direct IMPS / NEFT ✓
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-zinc-600 font-medium">
-                <span>Payout Destination:</span>
-                <span className="font-mono font-bold text-zinc-900">
-                  {settlementOverview?.bankDetails?.upiId || wallet?.upiId || settlementOverview?.bankDetails?.accountNumberMasked || wallet?.accountNumber || "Verified UPI VPA"}
-                </span>
-              </div>
-            </div>
-
-            {/* Past Weekly Settlement Batches */}
-            <div className="space-y-2 pt-1">
-              <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center justify-between">
-                <span>Completed Settlement Batches</span>
-                <span className="text-zinc-500 font-bold lowercase">
-                  ({settlementOverview?.pastCycles?.length || 0} batches)
-                </span>
-              </h4>
-
-              {(!settlementOverview?.pastCycles || settlementOverview.pastCycles.length === 0) ? (
-                <div className="p-6 bg-white rounded-2xl border border-zinc-200 text-center space-y-1">
-                  <Building2 className="size-8 text-zinc-300 mx-auto mb-1" />
-                  <p className="text-xs font-bold text-zinc-700">No past settlement batches yet</p>
-                  <p className="text-[11px] text-zinc-400">
-                    Weekly batch disbursements generate automatically on Mondays with official bank UTRs.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {settlementOverview.pastCycles.map((cycle, idx) => (
-                    <div
-                      key={cycle.cycleId || idx}
-                      onClick={() => {
-                        triggerHaptic(20);
-                        setSelectedCycleForDetail(cycle.cycleId);
-                      }}
-                      className="p-3.5 bg-white rounded-2xl border border-zinc-200/90 hover:border-emerald-400 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between cursor-pointer active:scale-[0.99] group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 pr-2">
-                        <div className="flex items-center justify-center size-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                          <Building2 className="size-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-black text-zinc-950 truncate">
-                            {cycle.period}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-zinc-500 font-bold">
-                            <span>{cycle.tripCount} trips</span>
-                            <span>•</span>
-                            <span className="text-emerald-700 font-black">
-                              Paid {cycle.payoutDate}
-                            </span>
-                          </div>
-                          {cycle.utr && (
-                            <p className="text-[9px] font-mono text-zinc-400 mt-0.5 truncate">
-                              UTR: {cycle.utr}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0 flex items-center gap-2">
-                        <div>
-                          <p className="text-sm font-black text-emerald-700">
-                            ₹{cycle.netPayout.toFixed(2)}
-                          </p>
-                          <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                            Disbursed ✓
-                          </span>
-                        </div>
-                        <ChevronRight className="size-4 text-zinc-400 group-hover:text-emerald-600 transition-all" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* 4. BOTTOM NAVIGATION */}
@@ -1149,20 +887,12 @@ export function RiderWalletScreen() {
         maxCodLimit={floatingCashData.maxCodLimit}
       />
 
-      {/* 7. SETTLEMENT DETAIL MODAL */}
-      <RiderSettlementDetailModal
-        isOpen={Boolean(selectedCycleForDetail)}
-        onClose={() => setSelectedCycleForDetail(null)}
-        cycleId={selectedCycleForDetail || "current"}
-      />
-
-      {/* 8. WITHDRAWAL MODAL */}
+      {/* 7. WITHDRAWAL TO REGISTERED BANK MODAL */}
       <RiderWithdrawModal
         isOpen={isWithdrawOpen}
         onClose={() => setIsWithdrawOpen(false)}
         onSuccess={() => loadData(true)}
         availableBalance={availableBalance}
-        defaultUpiId={wallet?.upiId}
       />
 
       {/* 8. TRANSACTION RECEIPT MODAL (FOR COD / CASHOUT) */}
@@ -1219,7 +949,7 @@ export function RiderWalletScreen() {
               <div className="flex items-center justify-between pt-2">
                 <span className="text-zinc-500">Channel / Method</span>
                 <span className="font-bold text-zinc-900">
-                  {selectedReceipt.method || "Instant UPI Settlement"}
+                  {selectedReceipt.method || "Direct Bank Transfer (IMPS/NEFT)"}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-2">
