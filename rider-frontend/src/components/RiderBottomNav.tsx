@@ -16,12 +16,10 @@ type TabItem = {
   to: string;
 };
 
-// 4 Primary Captain App Navigation Tabs
+// 2 Primary Rapido Captain Navigation Tabs (Screenshots 1 & 3)
 const RIDER_TABS: TabItem[] = [
   { id: "dashboard", labelKey: "nav.dashboard", fallback: "Home", icon: Home, to: "/dashboard" },
-  { id: "orders", labelKey: "nav.orders", fallback: "Trips", icon: ClipboardList, to: "/orders" },
-  { id: "wallet", labelKey: "nav.wallet", fallback: "Earnings", icon: Wallet, to: "/wallet" },
-  { id: "profile", labelKey: "nav.profile", fallback: "Profile", icon: User, to: "/profile" },
+  { id: "orders", labelKey: "nav.orders", fallback: "Orders", icon: ClipboardList, to: "/orders" },
 ];
 
 interface RiderBottomNavProps {
@@ -124,15 +122,15 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount }: Rider
       }`}
       style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 8px, 14px)" }}
     >
-      {/* Floating Glass Dock */}
-      <div className="mx-auto w-full max-w-md px-4 pointer-events-auto">
-        <div className="relative grid grid-cols-4 rounded-full border border-zinc-200/80 bg-white/95 p-1.5 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
+      {/* Floating Glass Dock (2-Tab Rapido Dock) */}
+      <div className="mx-auto w-full max-w-xs px-4 pointer-events-auto">
+        <div className="relative grid grid-cols-2 rounded-full border border-zinc-200/80 bg-white/95 p-1.5 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
           {/* Spring-Gliding Active Pill Indicator */}
           <div
             className="absolute top-1.5 bottom-1.5 rounded-full bg-zinc-950 shadow-md transition-all duration-300 ease-[cubic-bezier(0.34,1.35,0.64,1)] pointer-events-none"
             style={{
-              left: `calc(6px + ${validIndex} * ((100% - 12px) / 4))`,
-              width: `calc((100% - 12px) / 4)`,
+              left: `calc(6px + ${validIndex} * ((100% - 12px) / 2))`,
+              width: `calc((100% - 12px) / 2)`,
             }}
           />
 

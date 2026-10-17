@@ -172,203 +172,226 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
       </div>
 
-      {/* 3. FLOATING MAP CONTROLS (Right Edge - White & Emerald Green) */}
-      <div className="absolute top-20 right-3 z-20 flex flex-col gap-2 pointer-events-auto">
-        {/* Recenter on Captain */}
+      {/* 2. FLOATING MAP CONTROLS (Screenshot 3 Match) */}
+      {/* Left Edge: Surge, Go to, ... Pills */}
+      <div className="absolute bottom-[240px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none">
+        {/* Surge Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            toast.info("Surge Pricing Active: +₹20 extra bonus on orders in high-demand zones!");
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 bg-white/98 rounded-full border border-zinc-200 shadow-md text-xs font-bold text-zinc-900 active:scale-95 transition-transform cursor-pointer"
+        >
+          <div className="flex items-center justify-center size-4 rounded-full bg-red-100 text-red-600">
+            <span className="text-[11px] font-black leading-none">↑</span>
+          </div>
+          <span>Surge</span>
+        </button>
+
+        {/* Go to Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            toast.info("Set Preferred Destination: Choose area to receive orders on the way home.");
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 bg-white/98 rounded-full border border-zinc-200 shadow-md text-xs font-bold text-zinc-900 active:scale-95 transition-transform cursor-pointer"
+        >
+          <MapPin className="size-3.5 text-red-500 fill-red-500" />
+          <span>Go to</span>
+        </button>
+
+        {/* More Actions (...) Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            setIsSupportModalOpen(true);
+          }}
+          className="flex items-center justify-center size-8.5 bg-white/98 rounded-full border border-zinc-200 shadow-md text-zinc-800 font-black text-sm active:scale-95 transition-transform cursor-pointer"
+        >
+          <span>•••</span>
+        </button>
+      </div>
+
+      {/* Right Edge: Recenter & SOS Siren Buttons */}
+      <div className="absolute bottom-[240px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none">
+        {/* Blue Crosshair / Recenter Button */}
         <button
           type="button"
           onClick={() => {
             triggerHaptic(40);
             if (onRecenter) onRecenter();
-            toast.info("Map centered at Captain GPS 📍");
+            toast.info("Map centered at live location 📍");
           }}
-          className="flex size-11 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md text-[#00C853] shadow-lg border border-emerald-200 hover:bg-emerald-50 active:scale-90 transition-transform cursor-pointer"
+          className="flex size-11 items-center justify-center rounded-full bg-white shadow-lg border border-zinc-200 text-blue-600 active:scale-90 transition-transform cursor-pointer"
           title="Recenter on Captain"
         >
-          <Crosshair className="size-5.5" />
+          <Crosshair className="size-5 text-blue-600 stroke-[2.4]" />
         </button>
 
-
-
-        {/* Day / Night / Satellite Mode Switcher */}
-        <button
-          type="button"
-          onClick={handleToggleLayer}
-          className="flex size-11 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md text-zinc-700 shadow-lg border border-zinc-200 hover:bg-zinc-50 active:scale-90 transition-transform cursor-pointer"
-          title={`Map View: ${mapLayer}`}
-        >
-          {mapLayer === "night" ? (
-            <Moon className="size-5 text-indigo-500" />
-          ) : mapLayer === "satellite" ? (
-            <Layers className="size-5 text-[#00C853]" />
-          ) : (
-            <Sun className="size-5 text-amber-500" />
-          )}
-        </button>
-
-        {/* 24/7 SOS / Support Action */}
+        {/* Red SOS / Emergency Siren Button */}
         <button
           type="button"
           onClick={() => {
             triggerHaptic(40);
             setIsSupportModalOpen(true);
           }}
-          className="flex size-11 items-center justify-center rounded-2xl bg-white/95 backdrop-blur-md text-red-600 shadow-lg border border-red-200 hover:bg-red-50 active:scale-90 transition-transform cursor-pointer"
+          className="flex size-11 items-center justify-center rounded-full bg-white shadow-lg border border-red-200 text-red-600 active:scale-90 transition-transform cursor-pointer"
           title="24/7 SOS Helpline"
         >
-          <ShieldAlert className="size-5 text-red-600" />
+          <div className="flex items-center justify-center size-7 rounded-full bg-red-50 text-red-600">
+            <ShieldAlert className="size-4.5 stroke-[2.4]" />
+          </div>
         </button>
       </div>
 
-      {/* 4. SLIDING BOTTOM SHEET DRAWER (White & Emerald Green) */}
+      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Screenshot 3 Match) */}
       <div
-        className="absolute left-0 right-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out"
-        style={{
-          bottom: "max(env(safe-area-inset-bottom, 0px) + 70px, 80px)",
-        }}
+        className="absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/80 shadow-2xl pb-20 pt-2"
       >
-        <div className="mx-3 rounded-3xl bg-white/98 backdrop-blur-xl border border-emerald-100 shadow-2xl text-zinc-900 overflow-hidden">
-          {/* Drawer Pull-Handle & Header Strip */}
+        {/* Drag Handle Chevron */}
+        <div className="flex justify-center pb-2">
+          <ChevronUp className="size-5 text-zinc-400 stroke-[2.5]" />
+        </div>
+
+        {/* Circular Story / Highlight Bubbles Row (Horizontal Scroll) */}
+        <div className="flex items-start gap-4 px-4 overflow-x-auto no-scrollbar pb-3">
+          {/* Bubble 1: Follow */}
           <button
             type="button"
             onClick={() => {
-              triggerHaptic(30);
-              setIsDrawerExpanded(!isDrawerExpanded);
+              triggerHaptic(20);
+              window.open("https://instagram.com", "_blank");
             }}
-            className="w-full flex flex-col items-center pt-2 pb-1.5 px-4 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
+            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
           >
-            <div className="w-10 h-1 rounded-full bg-zinc-300 mb-2" />
-            <div className="w-full flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-zinc-950 text-base tracking-tight">
-                  ₹{todayEarnings.toFixed(0)}
-                </span>
-                <span className="text-[11px] text-zinc-700 font-medium">
-                  · {todayDeliveries} {todayDeliveries === 1 ? "Trip" : "Trips"} Today
-                </span>
-                <span className="text-[10px] font-semibold text-[#00C853] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                  0% Commission
-                </span>
+            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-xs">
+              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl font-black text-amber-600">
+                  🛵
+                </div>
               </div>
-
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-zinc-700">
-                <span>{isDrawerExpanded ? "Collapse" : "Live Details"}</span>
-                {isDrawerExpanded ? (
-                  <ChevronDown className="size-3.5 text-zinc-600" />
-                ) : (
-                  <ChevronUp className="size-3.5 text-zinc-600" />
-                )}
-              </div>
+              <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center uppercase tracking-tighter">
+                Follow
+              </span>
             </div>
+            <span className="text-[11px] font-bold text-zinc-700">Follow</span>
           </button>
 
-          {/* Expanded Drawer Details (Metrics + Hotspot Advisory) */}
-          {isDrawerExpanded && (
-            <div className="px-4 pb-4 space-y-3 text-xs border-t border-zinc-100 pt-3 animate-in fade-in duration-200 text-zinc-900">
-              {/* Daily Target Progress Bar */}
-              <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-medium text-zinc-900">
-                  <span className="flex items-center gap-1.5 text-zinc-800">
-                    <Target className="size-3.5 text-[#00C853]" />
-                    <span>Daily Target: 5 rides for ₹100 bonus</span>
-                  </span>
-                  <span className="text-zinc-900 font-bold text-xs">
-                    {Math.min(5, todayDeliveries)}/5 Done
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-emerald-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#00C853] rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, (todayDeliveries / 5) * 100)}%` }}
-                  />
+          {/* Bubble 2: Transfer Money */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              navigate({ to: "/wallet" });
+            }}
+            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
+          >
+            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-xs">
+              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                <div className="size-full rounded-full bg-emerald-50 flex items-center justify-center text-xl font-black text-emerald-700">
+                  🏦
                 </div>
               </div>
+              <span className="absolute -bottom-1 inset-x-0.5 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center truncate px-1">
+                Money Transf...
+              </span>
+            </div>
+            <span className="text-[11px] font-bold text-zinc-700">Transfer Money</span>
+          </button>
 
-              {/* Last Trip & Trip Payment Card (Real Orders Only or Clean Empty State) */}
-              {lastTrip ? (
-                <div
-                  onClick={() => {
-                    triggerHaptic(35);
-                    setSelectedTripForDetail(lastTrip);
-                  }}
-                  className="p-3.5 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/60 rounded-2xl border border-emerald-300 hover:border-emerald-500 shadow-xs cursor-pointer transition-all active:scale-[0.98] group"
-                >
-                  <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-600 text-white font-semibold text-xs shadow-2xs shrink-0">
-                        <CheckCircle2 className="size-3.5" />
-                      </span>
-                      <span className="text-[11px] font-bold text-zinc-900 truncate">
-                        Last Completed Trip
-                      </span>
-                      <span className="text-[11px] font-medium text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">
-                        #{lastTrip.code || lastTrip.id?.slice(-6) || "TRIP"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <span className="text-[11px] text-zinc-500 font-normal">Trip Payment:</span>
-                      <span className="text-sm font-bold text-emerald-700">
-                        +₹{Number(lastTrip.amount || 0).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold text-zinc-900 truncate">
-                        {lastTrip.partnerName || "Store"} → {lastTrip.customerName || "Customer"}
-                      </p>
-                      <p className="text-[10px] text-zinc-600 truncate mt-0.5">
-                        {lastTrip.dropAddress || lastTrip.customerAddress || "Completed Delivery"} {lastTrip.distanceKm ? `· ${lastTrip.distanceKm} km` : ""}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-white border border-emerald-300 px-2 py-1 rounded-xl shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-2xs">
-                      <span>View Details</span>
-                      <ChevronRight className="size-3" />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200 flex items-center gap-3">
-                  <div className="size-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
-                    <Bike className="size-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-zinc-800">No completed trips yet</p>
-                    <p className="text-[10px] text-zinc-500">Your completed rides and earnings will show here.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Links */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(25);
-                    navigate({ to: "/wallet" });
-                  }}
-                  className="flex items-center justify-center gap-1.5 p-2.5 bg-white hover:bg-emerald-50 rounded-xl font-medium text-xs text-zinc-800 border border-emerald-200 shadow-xs active:scale-95 transition-all cursor-pointer"
-                >
-                  <Wallet className="size-4 text-emerald-600" />
-                  <span>View Passbook</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(25);
-                    navigate({ to: "/incentives" });
-                  }}
-                  className="flex items-center justify-center gap-1.5 p-2.5 bg-white hover:bg-emerald-50 rounded-xl font-medium text-xs text-zinc-800 border border-emerald-200 shadow-xs active:scale-95 transition-all cursor-pointer"
-                >
-                  <TrendingUp className="size-4 text-emerald-600" />
-                  <span>View All Slabs</span>
-                </button>
+          {/* Bubble 3: Earn 2000 */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              toast.success("Refer a Captain Friend and earn ₹2,000 bonus after their 25th trip!");
+            }}
+            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
+          >
+            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 shadow-xs">
+              <div className="size-full rounded-full bg-blue-950 p-1 flex flex-col items-center justify-center text-center overflow-hidden text-white">
+                <span className="text-[7px] font-black text-amber-300 uppercase leading-none">REFER & EARN</span>
+                <span className="text-[11px] font-black text-white leading-tight">₹2000</span>
               </div>
             </div>
-          )}
+            <span className="text-[11px] font-bold text-zinc-700">Earn 2000</span>
+          </button>
+
+          {/* Bubble 4: Auto Boost */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              navigate({ to: "/incentives" });
+            }}
+            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
+          >
+            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-xs">
+              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl">
+                  ⚡
+                </div>
+              </div>
+              <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
+                Auto Boost
+              </span>
+            </div>
+            <span className="text-[11px] font-bold text-zinc-700">Auto Boost</span>
+          </button>
+
+          {/* Bubble 5: Performance */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              navigate({ to: "/profile" });
+            }}
+            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
+          >
+            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-purple-400 to-pink-500 shadow-xs">
+              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                <div className="size-full rounded-full bg-purple-50 flex items-center justify-center text-xl">
+                  🏅
+                </div>
+              </div>
+              <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
+                Perfo...
+              </span>
+            </div>
+            <span className="text-[11px] font-bold text-zinc-700">Performance</span>
+          </button>
+        </div>
+
+        {/* "Only for you" Ornamental Header & Promo Banner */}
+        <div className="px-4 pt-1 space-y-2">
+          <div className="flex items-center justify-center gap-2 text-zinc-500">
+            <span className="text-zinc-300">~</span>
+            <span className="text-xs font-bold text-zinc-700 tracking-wide font-serif italic">Only for you</span>
+            <span className="text-zinc-300">~</span>
+          </div>
+
+          <div
+            onClick={() => {
+              triggerHaptic(20);
+              navigate({ to: "/incentives" });
+            }}
+            className="w-full p-3.5 bg-gradient-to-r from-zinc-900 via-zinc-950 to-neutral-900 text-white rounded-2xl shadow-md flex items-center justify-between cursor-pointer active:scale-99 transition-all"
+          >
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FFC107] text-black">
+                TODAY'S SPECIAL
+              </span>
+              <p className="text-xs font-bold text-zinc-200 mt-1">Complete 5 orders today for ₹150 extra cash!</p>
+            </div>
+            <span className="text-xs font-black text-[#FFC107] flex items-center gap-1">
+              <span>View</span>
+              <span>➔</span>
+            </span>
+          </div>
         </div>
       </div>
 

@@ -13,6 +13,7 @@ import { fetchRiderProfile } from "../api/rider/rider-profile-api";
 
 import { CaptainTopBar } from "../components/layout/CaptainTopBar";
 import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer";
+import { CaptainFloatingBubble } from "../components/layout/CaptainFloatingBubble";
 import { fetchUnreadCount } from "../api/rider/rider-notifications-api";
 import { CaptainHomeOfflineScreen } from "../components/home/CaptainHomeOfflineScreen";
 import { CaptainOnlineMapView } from "../components/map/CaptainOnlineMapView";
@@ -261,12 +262,14 @@ export function RiderDashboardScreen() {
         }}
       />
 
-      {/* 2. Top Header Bar (Hamburger, Duty Switch, MapPin, Bell Badge) */}
+      {/* 2. Top Header Bar (Hamburger, Duty Switch, MapPin, Bell Badge, Sky-Blue Earnings Strip) */}
       <CaptainTopBar
         isOnline={isOnline}
         onToggleDuty={handleToggleDuty}
         onOpenDrawer={() => setIsDrawerOpen(true)}
         onOpenNotifications={() => navigate({ to: "/notifications" })}
+        onOpenEarnings={() => navigate({ to: "/wallet" })}
+        todayEarnings={todayEarnings}
         notificationCount={unreadNotifCount}
         loading={dutyLoading}
       />
@@ -363,8 +366,15 @@ export function RiderDashboardScreen() {
         </div>
       )}
 
-      {/* 4. 4-Tab Captain Bottom Navigation with live badge count on Orders */}
+      {/* 4. 2-Tab Rapido Captain Bottom Navigation with live badge count on Orders */}
       <RiderBottomNav active="dashboard" ordersBadgeCount={pendingOrdersCount} />
+
+      {/* 5. Rapido Captain Floating Logo Bubble (Screenshot 5: appears online, taps to /orders) */}
+      <CaptainFloatingBubble
+        isOnline={isOnline}
+        ordersCount={pendingOrdersCount}
+        onBubbleTap={() => navigate({ to: "/orders" })}
+      />
     </div>
   );
 }

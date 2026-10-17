@@ -457,5 +457,35 @@ button, a, [role="button"] {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ---------------------------------------------------------------------------
+ * Rapido Captain Official Design Tokens & Map Theme
+ * ------------------------------------------------------------------------- */
+:root {
+  --rapido-yellow: #FFC107;
+  --rapido-yellow-dark: #F9A825;
+  --rapido-yellow-light: #FFF8E1;
+  --rapido-blue-strip: #E8F0FE;
+  --rapido-blue-border: #D2E3FC;
+  --rapido-green-pill: #004D40;
+  --rapido-green-accent: #00C853;
+  --rapido-badge-amber: #FEF3C7;
+  --rapido-text-dark: #212121;
+}
+
+/* Pastel Vector Map Tile Filter for Rapido Map Look */
+.rapido-map-tiles .leaflet-tile {
+  filter: contrast(1.04) saturate(1.15) brightness(1.02);
+}
+
+@keyframes pulse-radar-ring {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 0.2; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.radar-ring {
+  animation: pulse-radar-ring 2.4s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+}
+
 
 

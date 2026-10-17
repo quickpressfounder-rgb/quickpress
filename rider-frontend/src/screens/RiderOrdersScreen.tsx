@@ -879,37 +879,61 @@ export function RiderOrdersScreen() {
           })}
         </div>
       ) : (
-        /* Empty State: Queue is clear */
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center my-auto space-y-4">
-          <div className="relative flex size-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-xs">
-            <span className="absolute size-20 rounded-full bg-emerald-500/15 animate-ping" />
-            <Bike className="size-9 text-emerald-700" />
+        /* Empty State: Queue is clear (Matches Rapido Screenshot 1) */
+        <div className="flex-1 flex flex-col items-center justify-between p-6 text-center my-auto min-h-[60vh]">
+          {/* Top Floating Go To Pill (Screenshot 1) */}
+          <div className="w-full flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                toast.info("Kasganj Work Zone active with ₹20 bonus per trip!");
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FFC700] hover:bg-[#FBBF24] text-zinc-950 font-black text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <MapPin className="size-3.5 fill-zinc-950 text-zinc-950" />
+              <span>Go To</span>
+            </button>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="text-base font-black text-zinc-900">
-              {t("orders.noOrders", "No Pending Orders in Queue")}
-            </h3>
-            <p className="text-xs text-zinc-500 font-medium max-w-xs leading-relaxed">
-              {t("orders.waitingNotice", "Your dispatch radar is active. Orders in your service zone will automatically ring here.")}
-            </p>
+          {/* Central Radar Pulse Graphic */}
+          <div className="flex flex-col items-center justify-center space-y-6 my-auto">
+            <div className="relative flex items-center justify-center size-36">
+              {/* Concentric radar rings */}
+              <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping duration-1000" />
+              <div className="absolute inset-3 rounded-full border border-emerald-400/30 animate-pulse" />
+              <div className="absolute inset-6 rounded-full bg-emerald-500/15" />
+              <div className="relative flex size-20 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-600/30">
+                <Bike className="size-9" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 max-w-xs">
+              <h3 className="text-lg font-black text-zinc-950 tracking-tight">
+                Searching for orders...
+              </h3>
+              <p className="text-xs text-zinc-500 font-medium leading-relaxed">
+                Orders will appear here as soon as you receive one
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          {/* Bottom Action Controls */}
+          <div className="flex items-center justify-center gap-2.5 w-full pt-4">
             <button
               type="button"
               onClick={() => loadOffers()}
               disabled={isLoading}
-              className="px-4 py-2.5 bg-white hover:bg-zinc-50 text-zinc-800 font-bold text-xs rounded-xl border border-zinc-200 shadow-xs active:scale-95 transition-all cursor-pointer"
+              className="flex-1 max-w-[140px] py-2.5 bg-white hover:bg-zinc-50 text-zinc-800 font-bold text-xs rounded-xl border border-zinc-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
             >
               {isLoading ? t("common.loading", "Checking...") : "🔄 " + t("common.refresh", "Refresh")}
             </button>
             <button
               type="button"
               onClick={() => navigate({ to: "/dashboard" })}
-              className="px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer"
+              className="flex-1 max-w-[140px] py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-xs active:scale-95 transition-all cursor-pointer"
             >
-              Map
+              Live Map 🗺️
             </button>
           </div>
         </div>

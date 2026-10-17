@@ -1,20 +1,14 @@
 import { useNavigate } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ArrowLeft,
-  BarChart3,
   Bike,
   CheckCircle2,
   ChevronRight,
   Clock,
-  Copy,
-  History,
-  MapPin,
-  Phone,
+  Headphones,
+  PhoneCall,
   RotateCw,
-  ShieldCheck,
-  Star,
-  Wallet,
   X,
   XCircle,
 } from "lucide-react";
@@ -29,11 +23,19 @@ import { useLanguage } from "../lib/i18n";
 export function RiderHistoryScreen() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+
   const [orders, setOrders] = useState<RiderHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<"all" | "completed" | "cancelled">("all");
   const [selectedTrip, setSelectedTrip] = useState<RiderHistoryEntry | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  // Rapido Screenshot 4 Controls
+  const [period, setPeriod] = useState<"day" | "week" | "month">("day");
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    return new Date().toISOString().split("T")[0];
+  });
+  const [statusFilter, setStatusFilter] = useState<"completed" | "cancelled" | "missed">("completed");
 
   const loadHistory = async (isRefresh = false) => {
     try {
@@ -58,17 +60,74 @@ export function RiderHistoryScreen() {
     loadHistory();
   }, []);
 
-  const filteredOrders = orders.filter((o) => {
-    if (filter === "completed") return o.outcome === "completed";
-    if (filter === "cancelled") return o.outcome === "cancelled";
-    return true;
-  });
+  // Generate 7 days for the Date Carousel (matching Screenshot 4)
+  const carouselDates = useMemo(() => {
+    const list: { dayName: string; dayNum: number; iso: string }[] = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const dayName = d.toLocaleDateString("en-IN", { weekday: "short" });
+      const dayNum = d.getDate();
+      const iso = d.toISOString().split("T")[0];
+      list.push({ dayName, dayNum, iso });
+    }
+    return list;
+  }, []);
 
-  const completedCount = orders.filter((o) => o.outcome === "completed").length;
-  const cancelledCount = orders.filter((o) => o.outcome === "cancelled").length;
-  const totalEarnings = orders
-    .filter((o) => o.outcome === "completed")
-    .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+  // Filter orders according to selected period, date, and status
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      // 1. Status matching
+      if (statusFilter === "completed" && o.outcome !== "completed") return false;
+      if (statusFilter === "cancelled" && o.outcome !== "cancelled") return false;
+      if (statusFilter === "missed" && o.outcome !== "missed" && o.outcome !== "rejected") return false;
+
+      // 2. Date / Period matching
+      if (period === "day") {
+        if (!o.date) return true;
+        const oIso = o.date.split("T")[0];
+        return oIso === selectedDate;
+      }
+      if (period === "week") {
+        if (!o.date) return true;
+        const oTime = new Date(o.date).getTime();
+        const diffDays = (Date.now() - oTime) / (1000 * 60 * 60 * 24);
+        return diffDays <= 7;
+      }
+      if (period === "month") {
+        if (!o.date) return true;
+        const oTime = new Date(o.date).getTime();
+        const diffDays = (Date.now() - oTime) / (1000 * 60 * 60 * 24);
+        return diffDays <= 30;
+      }
+
+      return true;
+    });
+  }, [orders, period, selectedDate, statusFilter]);
+
+  // Aggregate metrics for 2-column card (Screenshot 4)
+  const completedOrdersCount = useMemo(() => {
+    return orders.filter((o) => {
+      if (o.outcome !== "completed") return false;
+      if (period === "day") {
+        return !o.date || o.date.split("T")[0] === selectedDate;
+      }
+      return true;
+    }).length;
+  }, [orders, period, selectedDate]);
+
+  const orderEarnings = useMemo(() => {
+    return orders
+      .filter((o) => {
+        if (o.outcome !== "completed") return false;
+        if (period === "day") {
+          return !o.date || o.date.split("T")[0] === selectedDate;
+        }
+        return true;
+      })
+      .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+  }, [orders, period, selectedDate]);
 
   const formatDate = (isoStr?: string) => {
     if (!isoStr) return "Recent Trip";
@@ -86,64 +145,92 @@ export function RiderHistoryScreen() {
     }
   };
 
-  const handleCopy = (text: string, label: string) => {
-    try {
-      navigator.clipboard.writeText(text);
-      triggerHaptic(30);
-      toast.success(`${label} copied to clipboard! 📋`);
-    } catch {}
-  };
-
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-800 select-none font-sans">
+    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F8F9FA] shadow-xl overflow-hidden text-zinc-900 select-none font-sans">
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER (Sticky)                                                    */}
+      {/* 1. TOP HEADER (Matches Rapido Screenshot 4: [ ← All Orders ]  [ 🎧 Help ] )  */}
       {/* ========================================================================= */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedTrip) {
-                triggerHaptic(20);
-                setSelectedTrip(null);
-              } else {
-                navigate({ to: "/dashboard" });
-              }
-            }}
-            className="p-2 -ml-1 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
-            aria-label="Back"
-          >
-            <ArrowLeft className="size-5" />
-          </button>
-          <div>
-            <h1 className="text-base font-black text-zinc-900 tracking-tight leading-tight flex items-center gap-1.5">
-              <span>{selectedTrip ? "Trip Details & Receipt" : t("history.title", "Order & Trip History")}</span>
-              <span className="flex size-2 rounded-full bg-emerald-500" />
+        <div className="flex items-center justify-between px-4 pb-2.5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedTrip) {
+                  triggerHaptic(20);
+                  setSelectedTrip(null);
+                } else {
+                  navigate({ to: "/wallet" });
+                }
+              }}
+              className="p-1.5 -ml-1 text-zinc-900 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-6 text-zinc-950 stroke-[2.2]" />
+            </button>
+            <h1 className="text-xl font-black tracking-tight text-zinc-950">
+              {selectedTrip ? "Trip Receipt" : "All Orders"}
             </h1>
-            <p className="text-[11px] font-semibold text-zinc-500">
-              {selectedTrip
-                ? `Order #${selectedTrip.code || selectedTrip.id.slice(-6).toUpperCase()}`
-                : `${orders.length} ${t("history.completed", "Delivered")} · ${t("dash.zeroCommission", "Zero Commission")}`}
-            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setIsHelpOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
+            >
+              <Headphones className="size-3.5 text-zinc-700" />
+              <span>Help</span>
+            </button>
+
+            {!selectedTrip && (
+              <button
+                type="button"
+                onClick={() => loadHistory(true)}
+                disabled={refreshing || loading}
+                className="p-2 text-zinc-800 hover:bg-zinc-100 rounded-xl active:scale-90 transition-all cursor-pointer"
+                title="Refresh"
+              >
+                <RotateCw
+                  className={`size-4 ${refreshing || loading ? "animate-spin text-emerald-600" : ""}`}
+                />
+              </button>
+            )}
           </div>
         </div>
 
+        {/* Granularity Sub-Tabs: Day, Week, Month (Screenshot 4) */}
         {!selectedTrip && (
-          <button
-            type="button"
-            onClick={() => loadHistory(true)}
-            disabled={refreshing || loading}
-            className="size-8.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-700 active:scale-90 transition-all cursor-pointer"
-            title={t("common.refresh", "Refresh History")}
-          >
-            <RotateCw
-              className={`size-4 ${refreshing || loading ? "animate-spin text-emerald-600" : ""}`}
-            />
-          </button>
+          <div className="grid grid-cols-3 text-center text-sm font-bold border-t border-zinc-100">
+            {(["day", "week", "month"] as const).map((p) => {
+              const active = period === p;
+              const label = p === "day" ? "Day" : p === "week" ? "Week" : "Month";
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(15);
+                    setPeriod(p);
+                  }}
+                  className={`py-3 relative cursor-pointer transition-colors capitalize ${
+                    active ? "text-zinc-950 font-black" : "text-zinc-500 hover:text-zinc-800"
+                  }`}
+                >
+                  <span>{label}</span>
+                  {active && (
+                    <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFC700] rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         )}
       </header>
 
@@ -159,123 +246,94 @@ export function RiderHistoryScreen() {
           }}
         />
       ) : (
-
-        /* ======================================================================= */
-        /* VIEW B: ORDER & TRIP HISTORY LIST PAGE                                  */
-        /* ======================================================================= */
         <div
-          className="flex-1 overflow-y-auto space-y-3.5 p-3.5 bg-[#F4F5F7]"
+          className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
           style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
         >
-          {/* Payout Hero Summary Banner */}
-          <div className="p-4 bg-white border border-zinc-200/90 rounded-3xl shadow-xs space-y-2 text-zinc-900">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wide flex items-center gap-1.5">
-                <History className="size-3.5 text-zinc-700" />
-                <span>{t("history.summary", "Completed Delivery Summary")}</span>
-              </span>
-              <span className="text-[10px] font-bold bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200">
-                {orders.length} {t("history.totalTrips", "Total Trips")}
-              </span>
+          {/* 2.1 Date Carousel Strip (Screenshot 4) */}
+          {period === "day" && (
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              {carouselDates.map((item) => {
+                const isSelected = item.iso === selectedDate;
+                return (
+                  <button
+                    key={item.iso}
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(20);
+                      setSelectedDate(item.iso);
+                    }}
+                    className={`flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-[#104423] text-white px-3.5 py-1.5 rounded-full font-black text-xs shadow-xs"
+                        : "text-zinc-600 hover:text-zinc-950 font-bold text-xs px-2.5 py-1.5"
+                    }`}
+                  >
+                    <span>{item.dayName} {item.dayNum}</span>
+                  </button>
+                );
+              })}
             </div>
+          )}
 
-            <div className="flex items-baseline justify-between pt-1">
-              <div>
-                <p className="text-[11px] text-zinc-500 font-medium">{t("history.lifetimePayout", "Total Lifetime Payout")}</p>
-                <h2 className="text-3xl font-black text-zinc-950 tracking-tight">
-                  ₹{totalEarnings.toFixed(0)}
-                </h2>
-              </div>
-              <div className="text-right">
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-                  {completedCount} {t("history.delivered", "Delivered")}
-                </span>
-              </div>
+          {/* 2.2 2-Column Summary Card (Screenshot 4: Completed Orders | Order Earnings) */}
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs p-4 grid grid-cols-2 divide-x divide-zinc-100 text-center">
+            <div className="px-2 space-y-1">
+              <h3 className="text-3xl font-black text-zinc-950 tracking-tight">
+                {completedOrdersCount}
+              </h3>
+              <p className="text-xs font-semibold text-zinc-500">Completed Orders</p>
             </div>
-
-            <div className="pt-2.5 mt-2 border-t border-zinc-100 flex items-center justify-between">
-              <span className="text-[11px] text-zinc-500 font-semibold">Performance metrics & trends</span>
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic(20);
-                  navigate({ to: "/analytics" });
-                }}
-                className="inline-flex items-center gap-1.5 text-[11px] font-black text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 px-2.5 py-1 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs"
-              >
-                <BarChart3 className="size-3.5 text-amber-600" />
-                <span>Analytics Dashboard →</span>
-              </button>
+            <div className="px-2 space-y-1">
+              <h3 className="text-3xl font-black text-zinc-950 tracking-tight">
+                ₹{orderEarnings.toFixed(0)}
+              </h3>
+              <p className="text-xs font-semibold text-zinc-500">Order Earnings</p>
             </div>
           </div>
 
-          {/* Quick Filter Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-white border border-zinc-200/80 rounded-2xl shadow-2xs text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                setFilter("all");
-              }}
-              className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                filter === "all"
-                  ? "bg-zinc-950 text-white font-black shadow-xs"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              {t("history.allTrips", "All")} ({orders.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                setFilter("completed");
-              }}
-              className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                filter === "completed"
-                  ? "bg-emerald-600 text-white font-black shadow-xs"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              {t("history.delivered", "Delivered")} ({completedCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                setFilter("cancelled");
-              }}
-              className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                filter === "cancelled"
-                  ? "bg-rose-600 text-white font-black shadow-xs"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              {t("history.cancelled", "Cancelled")} ({cancelledCount})
-            </button>
+          {/* 2.3 Status Filter Chips (Screenshot 4: Completed, Cancelled, Missed) */}
+          <div className="flex items-center gap-2">
+            {[
+              { id: "completed", label: "Completed" },
+              { id: "cancelled", label: "Cancelled" },
+              { id: "missed", label: "Missed" },
+            ].map((chip) => {
+              const active = statusFilter === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(20);
+                    setStatusFilter(chip.id as any);
+                  }}
+                  className={`px-4 py-1.5 rounded-full text-xs transition-all cursor-pointer font-bold ${
+                    active
+                      ? "bg-zinc-950 text-white font-black shadow-xs"
+                      : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-50"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* List of Orders */}
+          {/* 2.4 List of Orders or Empty State */}
           {filteredOrders.length === 0 ? (
-            <div className="p-8 bg-white rounded-3xl border border-zinc-200 text-center space-y-3 shadow-2xs">
-              <div className="size-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto text-zinc-500">
-                <Bike className="size-7 text-zinc-700" />
+            <div className="p-8 bg-white rounded-2xl border border-zinc-200/90 text-center space-y-3 shadow-2xs my-4">
+              <div className="size-16 rounded-full bg-zinc-100 flex items-center justify-center mx-auto text-zinc-500">
+                <Bike className="size-8 text-zinc-700" />
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-black text-zinc-900">
-                  {filter === "all" ? t("history.noHistory", "No Delivery Records Found") : `No ${filter} trips found`}
+                  No {statusFilter} orders on this day
                 </p>
                 <p className="text-xs text-zinc-500 font-medium max-w-xs mx-auto leading-relaxed">
-                  {t("history.noHistorySub", "Your accepted trips from the dispatch queue will automatically be recorded here with complete OTP logs and payout receipts.")}
+                  Orders completed in your Kasganj service zone will appear here with fare receipts.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate({ to: "/orders" })}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs active:scale-95 transition-all cursor-pointer"
-              >
-                <span>{t("nav.orders", "Trips")} ➔</span>
-              </button>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -307,12 +365,12 @@ export function RiderHistoryScreen() {
                           {isCompleted ? (
                             <>
                               <CheckCircle2 className="size-3 text-emerald-600" />
-                              <span>{t("history.delivered", "Delivered")}</span>
+                              <span>Completed</span>
                             </>
                           ) : (
                             <>
                               <XCircle className="size-3 text-rose-600" />
-                              <span>{t("history.cancelled", "Cancelled")}</span>
+                              <span>Cancelled</span>
                             </>
                           )}
                         </span>
@@ -373,7 +431,7 @@ export function RiderHistoryScreen() {
                       </div>
 
                       <div className="flex items-center gap-1 text-[11px] font-black text-emerald-700">
-                        <span>Tap for Full Details</span>
+                        <span>Receipt</span>
                         <ChevronRight className="size-3.5 text-emerald-700" />
                       </div>
                     </div>
@@ -386,10 +444,77 @@ export function RiderHistoryScreen() {
       )}
 
       {/* ========================================================================= */}
-      {/* 3. 2-TAB BOTTOM NAVIGATION                                                */}
+      {/* 3. BOTTOM NAVIGATION                                                      */}
       {/* ========================================================================= */}
-      <RiderBottomNav active="dashboard" />
-    </div>
+      <RiderBottomNav active="orders" />
 
+      {/* ========================================================================= */}
+      {/* 4. HELP & SUPPORT MODAL (Screenshot 4)                                     */}
+      {/* ========================================================================= */}
+      {isHelpOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl border border-zinc-200 space-y-4 animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <div className="size-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200 font-bold">
+                  <Headphones className="size-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-zinc-950">Captain Support Desk</h3>
+                  <p className="text-[11px] text-zinc-500 font-medium">Order History & Fare Discrepancy Assistance</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHelpOpen(false)}
+                className="p-1.5 text-zinc-500 hover:text-zinc-900 rounded-full hover:bg-zinc-100 cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              <a
+                href="tel:1800-QUICKPRESS"
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 border border-zinc-200/80 transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <PhoneCall className="size-5 text-emerald-600" />
+                  <div>
+                    <p className="text-xs font-black text-zinc-900">Call Toll-Free Helpline</p>
+                    <p className="text-[10px] text-zinc-500 font-medium">Direct line to Fleet Support Executive</p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-zinc-400" />
+              </a>
+
+              <a
+                href="https://wa.me/917906998218?text=Hello%20QuickPress%20Support,%20I%20have%20a%20query%20about%20my%20order%20history"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 hover:bg-zinc-100 border border-zinc-200/80 transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">💬</span>
+                  <div>
+                    <p className="text-xs font-black text-zinc-900">WhatsApp Captain Desk</p>
+                    <p className="text-[10px] text-zinc-500 font-medium">Chat instantly with dispatch team</p>
+                  </div>
+                </div>
+                <ChevronRight className="size-4 text-zinc-400" />
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsHelpOpen(false)}
+              className="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs active:scale-95 transition-all cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
