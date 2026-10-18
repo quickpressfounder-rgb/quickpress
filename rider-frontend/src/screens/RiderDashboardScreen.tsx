@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
+import { MapPin } from "lucide-react";
 import { fetchRiderOffers, fetchRiderOrder } from "../api/rider/rider-orders-api";
 import {
   fetchRiderDashboard,
@@ -10,6 +11,7 @@ import {
   updateRiderStatus,
 } from "../api/rider/rider-dashboard-api";
 import { fetchRiderProfile } from "../api/rider/rider-profile-api";
+import { fetchRiderWallet } from "../api/rider/rider-wallet-api";
 
 import { CaptainTopBar } from "../components/layout/CaptainTopBar";
 import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer";
@@ -53,6 +55,10 @@ export function RiderDashboardScreen() {
   const [dutyLoading, setDutyLoading] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [todayDeliveries, setTodayDeliveries] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [lastOrderEarnings, setLastOrderEarnings] = useState(0);
+  const [isGoingOffDutyModal, setIsGoingOffDutyModal] = useState(false);
+  const [isLocationUpdatingModal, setIsLocationUpdatingModal] = useState(false);
   const [captainName, setCaptainName] = useState(() => {
     const name = session?.fullName;
     return name && name !== "Delivery Captain" && name !== "Delivery Partner" ? name : "Captain";
@@ -101,13 +107,15 @@ export function RiderDashboardScreen() {
   }, []);
 
   // Load real metrics from MongoDB Atlas Backend
+  // Load real metrics from MongoDB Atlas Backend
   const loadRealData = useCallback(async () => {
     try {
-      const [dashRes, profileRes, offersRes, unreadRes] = await Promise.all([
+      const [dashRes, profileRes, offersRes, unreadRes, walletRes] = await Promise.all([
         fetchRiderDashboard().catch(() => null),
         fetchRiderProfile().catch(() => null),
         fetchRiderOffers().catch(() => []),
         fetchUnreadCount().catch(() => 0),
+        fetchRiderWallet().catch(() => null),
       ]);
 
       if (profileRes) {
@@ -127,6 +135,10 @@ export function RiderDashboardScreen() {
         }
       }
 
+      if (walletRes) {
+        setWalletBalance(Number(walletRes.availableBalance ?? (walletRes as any).balance ?? 0));
+      }
+
       if (Array.isArray(offersRes)) {
         setPendingOrdersCount(offersRes.length);
       }
@@ -144,7 +156,7 @@ export function RiderDashboardScreen() {
     } catch {
       // quiet fallback
     }
-  }, [setOnline]);
+  }, [setOnline, session?.riderId]);
 
   useEffect(() => {
     loadRealData();
@@ -228,25 +240,43 @@ export function RiderDashboardScreen() {
     }
   }, [navigate]);
 
-  // Handle Duty Toggle with Instant Voice Announcement & Instant Offline/Online Screen Switch
+  // Handle Duty Toggle with Video 00:45 Off-Duty Transition Spinner & 00:47 Location Updating Popup
   const handleToggleDuty = async (overrideState?: boolean | any) => {
     unlockAudioContext();
     const nextState = typeof overrideState === "boolean" ? overrideState : !isOnline;
-
-    // 1. Instant Synchronous Voice & Audio Feedback in Gesture Handler
     triggerHaptic(45);
-    playDutyToggleSound(nextState);
-    speakDutyStatus(nextState);
 
-    // 2. Instant Optimistic State Update so Offline / Online Screen opens immediately
-    setOnline(nextState);
-    toast.success(nextState ? "Captain is ON DUTY 🟢" : "Captain is OFF DUTY 🔴");
+    if (!nextState) {
+      // 1. Going Off-Duty: Show Video 00:45 yellow spinner modal
+      setIsGoingOffDutyModal(true);
+      playDutyToggleSound(false);
+      speakDutyStatus(false);
 
-    // 3. Background Persistence
-    try {
-      await updateRiderStatus(nextState);
-    } catch {
-      // quiet fallback
+      try {
+        await updateRiderStatus(false);
+      } catch {}
+
+      // Short aesthetic delay for native app transition (Video 00:45 match)
+      await new Promise((r) => setTimeout(r, 750));
+      setIsGoingOffDutyModal(false);
+      setOnline(false);
+      toast.success("Captain is OFF DUTY 🔴");
+
+      // 2. Location Updating Dialog (Video 00:47 - 00:58 Match)
+      setIsLocationUpdatingModal(true);
+      setTimeout(() => {
+        setIsLocationUpdatingModal(false);
+      }, 2200);
+    } else {
+      // Going On-Duty: Instant feedback
+      playDutyToggleSound(true);
+      speakDutyStatus(true);
+      setOnline(true);
+      toast.success("Captain is ON DUTY 🟢");
+
+      try {
+        await updateRiderStatus(true);
+      } catch {}
     }
   };
 
@@ -282,6 +312,8 @@ export function RiderDashboardScreen() {
         onOpenNotifications={() => navigate({ to: "/notifications" })}
         onOpenEarnings={() => navigate({ to: "/wallet" })}
         todayEarnings={todayEarnings}
+        walletBalance={walletBalance}
+        lastOrderEarnings={lastOrderEarnings}
         notificationCount={unreadNotifCount}
         loading={dutyLoading}
       />
@@ -359,6 +391,35 @@ export function RiderDashboardScreen() {
               </div>
             </div>
           </button>
+        </div>
+      )}
+
+      {/* Going Off-Duty Modal (Video 00:45 Match) */}
+      {isGoingOffDutyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-2xs p-4 animate-in fade-in duration-150">
+          <div className="flex flex-col items-center justify-center px-6 py-5 bg-[#1F2937] text-white rounded-2xl shadow-2xl space-y-3 min-w-[220px]">
+            <div className="size-10 rounded-full border-3 border-amber-400 border-t-transparent animate-spin" />
+            <p className="text-xs font-bold text-zinc-100">Going Off-Duty. Please wait...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Location Sync Dialog (Video 00:47 - 00:58 Match) */}
+      {isLocationUpdatingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-2xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-xs bg-white rounded-2xl shadow-2xl border border-zinc-200 p-5 flex flex-col items-center text-center space-y-3 animate-in zoom-in-95 duration-200">
+            <div className="flex size-11 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+              <MapPin className="size-6 stroke-[2.2]" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-xs font-black text-zinc-900">Your location is not updated.</h4>
+              <p className="text-[11px] text-zinc-500 font-medium">Fetching latest location...</p>
+            </div>
+            {/* Blue Linear Progress Bar */}
+            <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-600 rounded-full animate-pulse w-3/4" />
+            </div>
+          </div>
         </div>
       )}
 

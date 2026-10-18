@@ -250,39 +250,26 @@ export function LiveDeliveryMap({
         if (!map) return;
         const bounds: [number, number][] = [];
 
-        // 1. Rider Marker (Stylized Delivery Captain Character on Bike with Radar Ripple Waves)
+          // 1. Rider Marker: Clean Native Blue GPS Navigation Dot (Matching Rapido / Google Maps reference video)
         if (riderLocation && riderLocation.lat && riderLocation.lng) {
           bounds.push([riderLocation.lat, riderLocation.lng]);
 
           const riderHtml = `
-            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 68px; height: 68px;">
-              <!-- Radar Ripple Wave 1 (Emerald Green) -->
-              <span style="position: absolute; width: 66px; height: 66px; border-radius: 9999px; background-color: rgba(16, 185, 129, 0.22); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
-              <!-- Radar Ripple Wave 2 (Emerald Green) -->
-              <span style="position: absolute; width: 48px; height: 48px; border-radius: 9999px; background-color: rgba(16, 185, 129, 0.38); animation: pulse 1.6s ease-in-out infinite;"></span>
-              <!-- Signature Stylized 3D Delivery Captain Avatar -->
-              <div style="position: relative; display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 9999px; background: linear-gradient(135deg, #0f172a, #1e293b); box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 2.5px #10B981; overflow: visible;">
-                <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="9" cy="27" r="4.5" fill="#334155" stroke="#F8FAFC" stroke-width="1.5"/>
-                  <circle cx="27" cy="27" r="4.5" fill="#334155" stroke="#F8FAFC" stroke-width="1.5"/>
-                  <path d="M9 27L15 20H21L27 27" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M15 20L19 13H24" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round"/>
-                  <rect x="11" y="11" width="5.5" height="7.5" rx="2" fill="#047857"/>
-                  <circle cx="18" cy="8" r="5" fill="#FBBF24"/>
-                  <path d="M16 7.5H21C21.8 7.5 22.2 8.2 21.8 9L20.5 10H16V7.5Z" fill="#0F172A"/>
-                  <circle cx="18" cy="8" r="5" stroke="#D97706" stroke-width="1"/>
-                </svg>
-              </div>
-              <!-- Live Online Duty Dot -->
-              <span style="position: absolute; bottom: 6px; right: 8px; width: 13px; height: 13px; border-radius: 9999px; background: #10B981; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></span>
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; pointer-events: none;">
+              <!-- Outer Soft Translucent Blue Accuracy Radius Ring -->
+              <span style="position: absolute; width: 50px; height: 50px; border-radius: 9999px; background-color: rgba(37, 99, 235, 0.18); border: 1px solid rgba(37, 99, 235, 0.35);"></span>
+              <!-- Subtle Accuracy Pulse Ring -->
+              <span style="position: absolute; width: 34px; height: 34px; border-radius: 9999px; background-color: rgba(37, 99, 235, 0.24); animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></span>
+              <!-- Crisp Solid Blue GPS Center Dot with White Halo Border -->
+              <div style="position: relative; width: 18px; height: 18px; border-radius: 9999px; background: #2563EB; border: 3px solid #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.32);"></div>
             </div>
           `;
 
           const riderIcon = L.divIcon({
-            className: "rapido-rider-marker",
+            className: "captain-gps-marker",
             html: riderHtml,
-            iconSize: [68, 68],
-            iconAnchor: [34, 34],
+            iconSize: [52, 52],
+            iconAnchor: [26, 26],
           });
 
           if (markersRef.current["rider"]) {

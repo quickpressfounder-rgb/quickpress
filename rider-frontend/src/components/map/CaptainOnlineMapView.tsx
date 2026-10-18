@@ -31,6 +31,8 @@ import { triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
 import { CaptainSupportModal } from "../support/CaptainSupportModal";
 import { CaptainStoryModal } from "../home/CaptainStoryModal";
+import { CaptainSurgeAreaModal } from "./CaptainSurgeAreaModal";
+import { CaptainGoToAreaModal } from "./CaptainGoToAreaModal";
 import {
   fetchRiderStories,
   fetchRiderBanners,
@@ -72,6 +74,19 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   const [storyModalIndex, setStoryModalIndex] = useState(0);
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [rewardScratched, setRewardScratched] = useState(false);
+
+  // Reference Video Features: Surge & Go to Modals
+  const [isSurgeModalOpen, setIsSurgeModalOpen] = useState(false);
+  const [isGoToModalOpen, setIsGoToModalOpen] = useState(false);
+  const [isGoToActive, setIsGoToActive] = useState(false);
+  const [onlineMinutesElapsed, setOnlineMinutesElapsed] = useState(1);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setOnlineMinutesElapsed((m) => m + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [stories, setStories] = useState<RiderStoryItem[]>(FALLBACK_RIDER_STORIES);
   const [banners, setBanners] = useState<RiderBannerItem[]>([FALLBACK_RIDER_BANNER]);
@@ -159,34 +174,31 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
       {/* 2. FLOATING TOP HUD BAR */}
       <div className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
-        {/* Main Signature Clean Card */}
+        {/* Main Signature Clean Card (Video 00:07, 00:23 Match) */}
         <div className="pointer-events-auto flex items-center justify-between p-2.5 bg-white/95 backdrop-blur-md rounded-2xl border border-zinc-200/90 shadow-md text-xs">
-          {/* Duty Status & Radar Wave */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative flex items-center justify-center size-8 rounded-xl bg-emerald-50 text-emerald-600 shrink-0 border border-emerald-200">
-              <span className="absolute size-3 rounded-full bg-emerald-500 animate-ping opacity-75" />
-              <span className="relative size-2 rounded-full bg-emerald-600" />
+            <div className="flex items-center justify-center size-8 rounded-xl bg-amber-400 text-zinc-950 font-black text-[10px] shadow-2xs border border-amber-500/20 shrink-0">
+              <span>QP</span>
             </div>
-
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-zinc-950 tracking-wide text-xs uppercase">
-                  ON DUTY
-                </span>
-                <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
-                  Radar Active
+                <span className="font-black text-zinc-950 tracking-wide text-xs">
+                  QuickPress Service
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-500 font-medium truncate max-w-[220px] sm:max-w-[280px]">
-                {t("dash.searching", "Searching nearby rides in Kasganj...")}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[11px] text-zinc-500 font-medium truncate max-w-[200px] sm:max-w-[260px]">
+                  Waiting for orders...
+                </p>
+              </div>
             </div>
           </div>
+          <div className="flex items-center gap-1 text-[11px] font-bold text-zinc-400 pl-2 shrink-0">
+            <span>{onlineMinutesElapsed} min ago</span>
+            <ChevronDown className="size-3.5 stroke-[2.5]" />
+          </div>
         </div>
-
-
-
-
 
         {/* Floating Pending Orders Alert Banner (if pending orders exist) */}
         {pendingOrdersCount > 0 && (
@@ -206,14 +218,12 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             </span>
           </div>
         )}
-
-
       </div>
 
-      {/* 2. FLOATING MAP CONTROLS (Screenshot 3 Match) */}
+      {/* 2. FLOATING MAP CONTROLS (Video 00:07, 00:23, 00:34 Match) */}
       {/* Left Edge: Surge, Go to, ... Pills */}
       <div
-        className={`absolute bottom-[170px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none transition-all duration-300 ${
+        className={`absolute bottom-[225px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none transition-all duration-300 ${
           isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
         }`}
       >
@@ -222,7 +232,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           type="button"
           onClick={() => {
             triggerHaptic(20);
-            toast.info("Surge Pricing Active: +₹20 extra bonus on orders in high-demand zones!");
+            setIsSurgeModalOpen(true);
           }}
           className="flex items-center gap-1.5 px-3 py-2 bg-white/98 rounded-full border border-zinc-200 shadow-md text-xs font-bold text-zinc-900 active:scale-95 transition-transform cursor-pointer"
         >
@@ -232,16 +242,20 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           <span>Surge</span>
         </button>
 
-        {/* Go to Pill */}
+        {/* Go to Pill (Turns Solid Blue when destination active - Video 00:34 Match) */}
         <button
           type="button"
           onClick={() => {
             triggerHaptic(20);
-            toast.info("Set Preferred Destination: Choose area to receive orders on the way home.");
+            setIsGoToModalOpen(true);
           }}
-          className="flex items-center gap-1.5 px-3 py-2 bg-white/98 rounded-full border border-zinc-200 shadow-md text-xs font-bold text-zinc-900 active:scale-95 transition-transform cursor-pointer"
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-full border shadow-md text-xs font-bold active:scale-95 transition-all cursor-pointer ${
+            isGoToActive
+              ? "bg-[#1E40AF] text-white border-blue-700 shadow-blue-500/30 ring-2 ring-blue-400/40"
+              : "bg-white/98 text-zinc-900 border-zinc-200"
+          }`}
         >
-          <MapPin className="size-3.5 text-red-500 fill-red-500" />
+          <MapPin className={`size-3.5 ${isGoToActive ? "text-white fill-white" : "text-red-500 fill-red-500"}`} />
           <span>Go to</span>
         </button>
 
@@ -260,7 +274,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
       {/* Right Edge: Recenter & SOS Siren Buttons */}
       <div
-        className={`absolute bottom-[170px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none transition-all duration-300 ${
+        className={`absolute bottom-[225px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none transition-all duration-300 ${
           isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
         }`}
       >
@@ -294,10 +308,10 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         </button>
       </div>
 
-      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Matching Uploaded Screenshot) */}
+      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Video 00:07, 00:23 Match) */}
       <div
         className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
-          isDrawerExpanded ? "h-[82vh] overflow-y-auto" : "h-[155px] overflow-hidden"
+          isDrawerExpanded ? "h-[82vh] overflow-y-auto" : "h-[215px] overflow-hidden"
         } pb-20 pt-1.5`}
       >
         {/* Drag Handle Chevron */}
@@ -609,7 +623,22 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         onClose={() => setIsSupportModalOpen(false)}
       />
 
-      {/* 7. FULL ORDER / TRIP DETAIL VIEW MODAL */}
+      {/* 7. SURGE FARE AREA MODAL (Video 00:26 Match) */}
+      <CaptainSurgeAreaModal
+        isOpen={isSurgeModalOpen}
+        onClose={() => setIsSurgeModalOpen(false)}
+        currentCoords={currentCoords}
+      />
+
+      {/* 8. GO TO AREA MODAL (Video 00:31 Match) */}
+      <CaptainGoToAreaModal
+        isOpen={isGoToModalOpen}
+        onClose={() => setIsGoToModalOpen(false)}
+        isActive={isGoToActive}
+        onToggleActive={setIsGoToActive}
+      />
+
+      {/* 9. FULL ORDER / TRIP DETAIL VIEW MODAL */}
       {selectedTripForDetail && (
         <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
           <CaptainTripDetailView

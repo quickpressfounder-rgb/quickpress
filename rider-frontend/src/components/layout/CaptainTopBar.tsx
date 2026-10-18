@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Bell, ChevronDown, MapPin, Menu, Volume2, VolumeX } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, MapPin, Menu, Wallet, History, ArrowUpRight } from "lucide-react";
 import { useLanguage } from "../../lib/i18n";
 import { isAudioMuted, toggleAudioMuted, triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
+import { CaptainRateCardModal } from "../home/CaptainRateCardModal";
 
 interface CaptainTopBarProps {
   isOnline: boolean;
@@ -12,6 +13,8 @@ interface CaptainTopBarProps {
   onOpenEarnings?: () => void;
   onOpenLocation?: () => void;
   todayEarnings?: number;
+  walletBalance?: number;
+  lastOrderEarnings?: number;
   notificationCount?: number;
   loading?: boolean;
 }
@@ -24,10 +27,14 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
   onOpenEarnings,
   onOpenLocation,
   todayEarnings = 0,
+  walletBalance = 0,
+  lastOrderEarnings = 0,
   notificationCount = 0,
   loading = false,
 }) => {
   const { t } = useLanguage();
+  const [isEarningsExpanded, setIsEarningsExpanded] = useState(false);
+  const [isRateCardOpen, setIsRateCardOpen] = useState(false);
   const [muted, setMuted] = useState(() => isAudioMuted());
 
   const handleToggleSound = () => {
@@ -130,25 +137,110 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
         </div>
       </header>
 
-      {/* 2. Attached Rapido Sky-Blue Strip: Today's Earnings ₹0 ⌄ (Screenshot 3 Match) */}
-      <button
-        type="button"
-        onClick={() => {
-          triggerHaptic(20);
-          if (onOpenEarnings) onOpenEarnings();
-        }}
-        className="w-full flex items-center justify-between px-4 py-2 bg-[#E8F0FE] border-b border-[#D2E3FC] text-[#1E3A8A] active:bg-[#DBEAFE] transition-colors cursor-pointer"
-      >
-        <span className="text-xs font-bold tracking-tight text-zinc-800">
-          {t("earnings.todayEarnings", "Today's Earnings")}
-        </span>
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-black text-black">
-            ₹{todayEarnings.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+      {/* 2. Attached Rapido Sky-Blue Strip: Today's Earnings ₹0 ⌄ (Video 00:00, 00:14 Match) */}
+      <div className="w-full bg-[#E8F0FE] border-b border-[#D2E3FC]">
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            setIsEarningsExpanded((prev) => !prev);
+          }}
+          className="w-full flex items-center justify-between px-4 py-2.5 text-[#1E3A8A] active:bg-[#DBEAFE] transition-colors cursor-pointer"
+        >
+          <span className="text-xs font-bold tracking-tight text-zinc-800">
+            {t("earnings.todayEarnings", "Today's Earnings")}
           </span>
-          <ChevronDown className="size-4 text-zinc-700 stroke-[2.5]" />
-        </div>
-      </button>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-black text-black">
+              ₹{todayEarnings.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </span>
+            {isEarningsExpanded ? (
+              <ChevronUp className="size-4 text-zinc-700 stroke-[2.5]" />
+            ) : (
+              <ChevronDown className="size-4 text-zinc-700 stroke-[2.5]" />
+            )}
+          </div>
+        </button>
+
+        {/* Expandable 3-Card Dropdown (Video 00:00 & 00:14) */}
+        {isEarningsExpanded && (
+          <div className="px-3 pb-3 pt-1 animate-in slide-in-from-top-2 duration-200 space-y-2.5">
+            <div className="grid grid-cols-3 gap-2">
+              {/* Card 1: Balance */}
+              <div
+                onClick={() => {
+                  triggerHaptic(20);
+                  if (onOpenEarnings) onOpenEarnings();
+                }}
+                className="bg-white p-2.5 rounded-2xl border border-zinc-200/90 shadow-2xs flex flex-col justify-between cursor-pointer active:scale-95 transition-transform"
+              >
+                <div className="flex items-center justify-between text-zinc-400 mb-1">
+                  <span className="text-[10px] font-bold text-zinc-600 truncate">Balance</span>
+                  <Wallet className="size-3 text-emerald-600" />
+                </div>
+                <span className="text-sm font-black text-zinc-950 truncate">
+                  ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+
+              {/* Card 2: Today's Earnings */}
+              <div
+                onClick={() => {
+                  triggerHaptic(20);
+                  if (onOpenEarnings) onOpenEarnings();
+                }}
+                className="bg-white p-2.5 rounded-2xl border border-zinc-200/90 shadow-2xs flex flex-col justify-between cursor-pointer active:scale-95 transition-transform"
+              >
+                <div className="flex items-center justify-between text-zinc-400 mb-1">
+                  <span className="text-[10px] font-bold text-zinc-600 truncate">Today's</span>
+                  <span className="text-[10px] font-black text-blue-600">₹</span>
+                </div>
+                <span className="text-sm font-black text-zinc-950 truncate">
+                  ₹{todayEarnings.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+
+              {/* Card 3: Last Order Earnings */}
+              <div
+                onClick={() => {
+                  triggerHaptic(20);
+                  if (onOpenEarnings) onOpenEarnings();
+                }}
+                className="bg-white p-2.5 rounded-2xl border border-zinc-200/90 shadow-2xs flex flex-col justify-between cursor-pointer active:scale-95 transition-transform"
+              >
+                <div className="flex items-center justify-between text-zinc-400 mb-1">
+                  <span className="text-[10px] font-bold text-zinc-600 truncate">Last Order</span>
+                  <History className="size-3 text-amber-500" />
+                </div>
+                <span className="text-sm font-black text-zinc-950 truncate">
+                  ₹{lastOrderEarnings.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+
+            {/* View Rate Card Link */}
+            <div className="flex items-center justify-center pt-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(20);
+                  setIsRateCardOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 active:scale-95 transition-all cursor-pointer py-1 px-3 rounded-lg hover:bg-blue-100/50"
+              >
+                <ArrowUpRight className="size-3.5 stroke-[2.5]" />
+                <span>View Rate Card</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Rate Card Modal */}
+      <CaptainRateCardModal
+        isOpen={isRateCardOpen}
+        onClose={() => setIsRateCardOpen(false)}
+      />
     </div>
   );
 };

@@ -1,25 +1,12 @@
-import React from "react";
-import {
-  ArrowRight,
-  Bike,
-  ChevronRight,
-  Flame,
-  HelpCircle,
-  MapPin,
-  Navigation,
-  Radio,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Target,
-  Trophy,
-  Wallet,
-  Zap,
-} from "lucide-react";
+import React, { useState } from "react";
+import { ChevronUp, ChevronDown, Languages, Sparkles } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
-import { useLanguage } from "../../lib/i18n";
 import { triggerHaptic } from "../../lib/captain-audio";
+import { CaptainStoryModal } from "./CaptainStoryModal";
+import {
+  FALLBACK_RIDER_STORIES,
+  type RiderStoryItem,
+} from "../../api/rider/promotions-api";
 
 interface CaptainHomeOfflineScreenProps {
   todayEarnings: number;
@@ -30,279 +17,183 @@ interface CaptainHomeOfflineScreenProps {
 }
 
 export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> = ({
-  todayEarnings = 0,
-  todayDeliveries = 0,
   captainName = "Captain",
   onGoOnline,
-  onOpenWorkZoneInfo,
 }) => {
-  const { t } = useLanguage();
   const navigate = useNavigate();
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [storyModalIndex, setStoryModalIndex] = useState(0);
 
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
 
   const firstName = captainName.split(" ")[0] || "Captain";
-  const initial = firstName.charAt(0).toUpperCase();
 
-  const handleStartDuty = () => {
-    try {
-      triggerHaptic();
-    } catch {}
-    onGoOnline();
-  };
+  const stories: RiderStoryItem[] = FALLBACK_RIDER_STORIES;
 
   return (
-    <div
-      className="flex flex-col flex-1 w-full h-full bg-slate-50/70 text-zinc-900 select-none overflow-y-auto"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
-    >
-      <div className="p-4 space-y-4">
-        {/* 1. Captain Profile & Status Card */}
-        <div className="relative overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-4.5 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="relative flex size-13 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 font-black text-white text-lg shadow-md ring-2 ring-zinc-200">
-                <span>{initial}</span>
-                <span className="absolute -bottom-1 -right-1 size-3.5 rounded-full border-2 border-white bg-zinc-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
-                    Verified Captain
-                  </span>
-                </div>
-                <h1 className="mt-1 text-base font-black tracking-tight text-zinc-900">
-                  {captainName}
-                </h1>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-800 border border-emerald-200/60">
-                    <Star className="size-3 fill-emerald-500 text-emerald-500" />
-                    {todayDeliveries > 0 ? `${todayDeliveries} Deliveries Today` : "Ready for Orders"}
-                  </span>
-                  <span className="text-zinc-300">·</span>
-                  <span className="text-xs font-bold text-zinc-600">
-                    Kasganj Fleet 🛵
-                  </span>
-                </div>
-              </div>
-            </div>
+    <div className="relative flex flex-col flex-1 w-full h-full bg-white text-zinc-900 select-none overflow-hidden font-sans">
+      {/* 1. Center Greeting Area (Video 00:01 - 00:05 Match) */}
+      <div className="flex-1 flex flex-col items-center justify-center -mt-16 px-6 text-center">
+        {/* Hand Holding Smartphone Graphic with Sparkles */}
+        <div className="relative mb-5 flex items-center justify-center">
+          {/* Ambient Sparkles */}
+          <div className="absolute -top-3 left-3 size-2.5 rounded-full bg-amber-400 animate-ping opacity-75" />
+          <div className="absolute -top-1 -right-2 size-2 rounded-full bg-amber-400 animate-pulse" />
+          <Sparkles className="absolute -top-5 right-1 size-5 text-amber-500 fill-amber-400 animate-bounce duration-1000" />
+          <Sparkles className="absolute -top-3 -left-4 size-4 text-amber-400 fill-amber-300" />
 
-            <span className="rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-zinc-600">
-              Offline
-            </span>
-          </div>
+          {/* Hand + Phone Vector Illustration */}
+          <svg width="100" height="110" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Phone Body */}
+            <rect x="25" y="10" width="50" height="85" rx="10" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="3" />
+            <rect x="28" y="13" width="44" height="79" rx="8" fill="#F8FAFC" />
+            {/* Phone Screen Notch / Speaker */}
+            <rect x="42" y="17" width="16" height="3" rx="1.5" fill="#94A3B8" />
+            {/* Screen Content Waves / Emojis */}
+            <circle cx="50" cy="46" r="14" fill="#FEF3C7" />
+            <circle cx="50" cy="46" r="6" fill="#F59E0B" />
+            <path d="M38 70 H62" stroke="#E2E8F0" strokeWidth="3" strokeLinecap="round" />
+            <path d="M42 76 H58" stroke="#E2E8F0" strokeWidth="2.5" strokeLinecap="round" />
+
+            {/* Hand Fingers Holding Phone from Left & Right */}
+            {/* Left Thumb */}
+            <path d="M22 56 C20 54, 20 48, 26 48 L28 48 L28 62 L24 62 C22 62, 22 58, 22 56 Z" fill="#FDBA74" stroke="#F97316" strokeWidth="1.5" />
+            {/* Right Fingers */}
+            <path d="M72 42 L77 42 C81 42, 81 47, 77 47 L72 47 Z" fill="#FDBA74" stroke="#F97316" strokeWidth="1.5" />
+            <path d="M72 50 L77 50 C81 50, 81 55, 77 55 L72 55 Z" fill="#FDBA74" stroke="#F97316" strokeWidth="1.5" />
+            <path d="M72 58 L76 58 C80 58, 80 63, 76 63 L72 63 Z" fill="#FDBA74" stroke="#F97316" strokeWidth="1.5" />
+
+            {/* Lower Palm / Wrist */}
+            <path d="M34 92 C32 98, 38 108, 50 108 C62 108, 68 98, 66 92 Z" fill="#FDBA74" stroke="#F97316" strokeWidth="1.5" />
+          </svg>
         </div>
 
-        {/* 2. Duty Hero Card (Central Glowing Action Card) */}
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-950/20 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950/40 p-5 text-white shadow-xl shadow-emerald-950/15">
-          {/* Subtle Background Glow Rings */}
-          <div className="absolute -top-12 -right-12 size-36 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-8 -left-8 size-28 rounded-full bg-teal-500/10 blur-xl pointer-events-none" />
+        {/* Text Heading */}
+        <h2 className="text-sm font-bold text-zinc-600 tracking-tight">
+          Hi {firstName}
+        </h2>
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight mt-0.5">
+          {greeting}
+        </h1>
+      </div>
 
-          <div className="relative flex items-start justify-between">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black tracking-wider uppercase text-zinc-200 border border-white/10">
-                <Radio className="size-3 text-emerald-400 animate-pulse" />
-                <span>Ready for Dispatches</span>
-              </div>
-              <h2 className="text-xl font-black tracking-tight text-white">
-                Go On Duty to Earn
-              </h2>
-              <p className="text-xs text-zinc-300 max-w-xs leading-relaxed font-medium">
-                Turn on duty to receive instant doorstep laundry pickup & delivery tasks nearby.
-              </p>
-            </div>
-            <div className="relative flex size-12 items-center justify-center rounded-2xl bg-white/10 text-emerald-400 border border-white/15 shrink-0 shadow-inner">
-              <Bike className="size-6" />
-              <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-emerald-400 animate-ping" />
-            </div>
-          </div>
-
-          <div className="relative mt-5 pt-4 border-t border-white/10">
-            <button
-              type="button"
-              onClick={handleStartDuty}
-              className="relative w-full overflow-hidden flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 hover:from-emerald-300 hover:to-teal-300 py-3.5 px-4 font-black text-sm text-zinc-950 shadow-lg shadow-emerald-500/30 active:scale-98 transition-all cursor-pointer"
-            >
-              <span>Go On Duty Now</span>
-              <ArrowRight className="size-4 stroke-[2.5]" />
-            </button>
-          </div>
-        </div>
-
-        {/* 3. Today's Performance 3-Stat Modern Cards Grid */}
-        <div className="grid grid-cols-3 gap-2.5">
-          {/* Stat 1: Earnings */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs hover:shadow-xs transition-all">
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Earnings</span>
-              <div className="size-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                <Wallet className="size-3.5" />
-              </div>
-            </div>
-            <p className="mt-2 text-lg font-black tracking-tight text-zinc-950">
-              ₹{todayEarnings.toFixed(0)}
-            </p>
-            <p className="mt-0.5 text-[10px] font-bold text-emerald-700 truncate">
-              0% Commission
-            </p>
-          </div>
-
-          {/* Stat 2: Deliveries */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs hover:shadow-xs transition-all">
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Trips</span>
-              <div className="size-6 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
-                <Navigation className="size-3.5" />
-              </div>
-            </div>
-            <p className="mt-2 text-lg font-black tracking-tight text-zinc-950">
-              {todayDeliveries}
-            </p>
-            <p className="mt-0.5 text-[10px] font-bold text-zinc-500 truncate">
-              Completed
-            </p>
-          </div>
-
-          {/* Stat 3: Surge Bonus */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs hover:shadow-xs transition-all">
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Bonus</span>
-              <div className="size-6 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
-                <Flame className="size-3.5" />
-              </div>
-            </div>
-            <p className="mt-2 text-lg font-black tracking-tight text-amber-700">
-              +₹20
-            </p>
-            <p className="mt-0.5 text-[10px] font-bold text-amber-800 truncate">
-              Per trip surge
-            </p>
-          </div>
-        </div>
-
-        {/* 4. Active Work Zone & High Demand Card */}
-        <div
-          onClick={onOpenWorkZoneInfo}
-          className="rounded-3xl border border-emerald-300/80 bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50/70 p-4 shadow-2xs cursor-pointer hover:border-emerald-400 active:scale-98 transition-all"
+      {/* 2. Bottom Drawer with Stories, Language & Skyline (Video 00:00 - 00:05 Match) */}
+      <div
+        className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
+          isDrawerExpanded ? "h-[75vh] overflow-y-auto" : "h-[215px] overflow-hidden"
+        } pb-20 pt-1.5`}
+      >
+        {/* Drag Handle Chevron */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            setIsDrawerExpanded((prev) => !prev);
+          }}
+          className="w-full flex items-center justify-center py-1 text-zinc-400 hover:text-zinc-700 active:scale-95 transition-all cursor-pointer"
+          aria-label="Toggle Drawer"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10.5 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
-                <MapPin className="size-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-emerald-950">
-                    Kasganj Central Work Zone
-                  </span>
-                  <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+          {isDrawerExpanded ? (
+            <ChevronDown className="size-5 stroke-[2.5]" />
+          ) : (
+            <ChevronUp className="size-5 stroke-[2.5]" />
+          )}
+        </button>
+
+        {/* Dynamic Story / Offer Bubbles Row (Horizontal Scroll) */}
+        <div className="flex items-start gap-4 overflow-x-auto no-scrollbar px-4 pt-1 pb-3">
+          {stories.map((story, sIdx) => (
+            <button
+              key={story.id || sIdx}
+              type="button"
+              onClick={() => {
+                triggerHaptic(25);
+                setStoryModalIndex(sIdx);
+                setIsStoryModalOpen(true);
+              }}
+              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-xs">
+                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                  {story.imageUrl ? (
+                    <img src={story.imageUrl} alt={story.title} className="size-full object-cover" />
+                  ) : (
+                    <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl font-black text-amber-600">
+                      🎁
+                    </div>
+                  )}
                 </div>
-                <p className="mt-0.5 text-[11px] text-emerald-800 font-medium">
-                  High demand active · Extra ₹20 bonus on all store pickups
-                </p>
               </div>
+              <span className="text-[11px] font-bold text-zinc-800 text-center max-w-[64px] truncate leading-tight">
+                {story.title}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Quick Actions & Proudly Made in India Artwork */}
+        <div className="px-4 pt-2 space-y-4">
+          <p className="text-xs font-bold text-zinc-500">Quick actions</p>
+
+          {/* Change Language Card (Video 00:11 Match) */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(20);
+              navigate({ to: "/language" });
+            }}
+            className="flex flex-col items-center justify-center p-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer w-24 text-center shadow-2xs"
+          >
+            <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-700 font-black text-base mb-1">
+              <span>अA</span>
             </div>
-            <ChevronRight className="size-4 text-emerald-700" />
+            <span className="text-xs font-bold text-zinc-900 leading-tight">Change Language</span>
+          </button>
+
+          {/* Proudly Made in India Skyline Artwork (Video 00:11, 00:36 Match) */}
+          <div className="pt-4 pb-6 text-center select-none flex flex-col items-center">
+            <div className="flex items-center justify-center gap-1 text-xs font-black text-zinc-800 mb-2">
+              <span>Proudly made</span>
+              <span className="text-amber-500">✨</span>
+              <span className="font-extrabold text-sm text-zinc-950">in India</span>
+            </div>
+
+            {/* Indian Monuments Outline Skyline Graphic */}
+            <svg
+              className="w-full max-w-xs h-16 text-zinc-300 stroke-current opacity-80"
+              viewBox="0 0 320 60"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* India Gate */}
+              <path d="M120 58 V35 H132 V58 M124 35 V24 H128 V35 M118 24 H134 V20 H118 Z" strokeWidth="1.5" />
+              {/* Taj Mahal Dome & Minarets */}
+              <path d="M145 58 V18 M175 58 V18" strokeWidth="1.2" />
+              <path d="M152 58 V38 Q160 22 168 38 V58" strokeWidth="1.5" />
+              <path d="M160 22 V15" strokeWidth="1.5" />
+              {/* Qutub Minar */}
+              <path d="M80 58 L85 15 H89 L94 58" strokeWidth="1.5" />
+              <path d="M82 45 H92 M84 32 H90 M85 20 H89" strokeWidth="1" />
+              {/* Red Fort / Palace Walls */}
+              <path d="M10 58 V42 H30 V46 H45 V42 H65 V58" strokeWidth="1.5" />
+              <path d="M220 58 V42 H240 V46 H255 V42 H275 V58" strokeWidth="1.5" />
+              {/* Ground Line */}
+              <line x1="0" y1="58" x2="320" y2="58" strokeWidth="1.5" />
+            </svg>
           </div>
-        </div>
-
-        {/* 5. Quick Shortcuts Grid (Wallet, Targets, Leaderboard, Support) */}
-        <div>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
-              Quick Actions
-            </h3>
-            <span className="text-[10px] font-bold text-zinc-400">Fast Navigation</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            {/* Wallet Tile */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic();
-                navigate({ to: "/wallet" });
-              }}
-              className="flex items-center gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 text-left shadow-2xs hover:border-zinc-300 hover:shadow-xs active:scale-95 transition-all cursor-pointer"
-            >
-              <div className="flex size-9.5 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                <Wallet className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-zinc-900">Wallet & Payouts</p>
-                <p className="text-[10px] text-emerald-700 font-medium truncate">Direct Bank Payout</p>
-              </div>
-            </button>
-
-            {/* Daily Targets Tile */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic();
-                navigate({ to: "/incentives" });
-              }}
-              className="flex items-center gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 text-left shadow-2xs hover:border-zinc-300 hover:shadow-xs active:scale-95 transition-all cursor-pointer"
-            >
-              <div className="flex size-9.5 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-                <Target className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-zinc-900">Daily Targets</p>
-                <p className="text-[10px] text-amber-700 font-medium truncate">Earn up to ₹350</p>
-              </div>
-            </button>
-
-            {/* Leaderboard Tile */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic();
-                navigate({ to: "/leaderboard" });
-              }}
-              className="flex items-center gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 text-left shadow-2xs hover:border-zinc-300 hover:shadow-xs active:scale-95 transition-all cursor-pointer"
-            >
-              <div className="flex size-9.5 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                <Trophy className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-zinc-900">Leaderboard</p>
-                <p className="text-[10px] text-blue-700 font-medium truncate">Top Kasganj Captains</p>
-              </div>
-            </button>
-
-            {/* 24/7 SOS & Support Tile */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic();
-                toast.info("Captain Support Helpline: +91 92587 30561 (24x7 Active)");
-              }}
-              className="flex items-center gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 text-left shadow-2xs hover:border-zinc-300 hover:shadow-xs active:scale-95 transition-all cursor-pointer"
-            >
-              <div className="flex size-9.5 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
-                <ShieldCheck className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-zinc-900">Safety & SOS</p>
-                <p className="text-[10px] text-rose-700 font-medium truncate">24x7 Help Desk</p>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* 6. Brand Watermark */}
-        <div className="pt-4 pb-2 text-center select-none">
-          <p className="text-xs font-black tracking-tight text-zinc-400">
-            QuickPress Captain
-          </p>
-          <p className="mt-0.5 text-[10px] font-semibold text-zinc-400">
-            Smart 2-Ride Partner Logistics Network
-          </p>
         </div>
       </div>
+
+      {/* Story View Modal */}
+      <CaptainStoryModal
+        isOpen={isStoryModalOpen}
+        onClose={() => setIsStoryModalOpen(false)}
+        stories={stories}
+        initialIndex={storyModalIndex}
+      />
     </div>
   );
 };
