@@ -195,10 +195,15 @@ export function RiderDashboardScreen() {
     });
   }, [navigate]);
 
-  // Ensure Floating Bubble matches duty state on launch
+  // Ensure Floating Bubble matches duty state on launch safely
   useEffect(() => {
     if (isOnline) {
-      startFloatingBubble();
+      if (canDrawOverlays()) {
+        const timer = setTimeout(() => {
+          startFloatingBubble();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
     } else {
       stopFloatingBubble();
     }

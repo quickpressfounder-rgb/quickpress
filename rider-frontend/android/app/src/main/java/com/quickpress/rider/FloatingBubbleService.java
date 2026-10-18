@@ -72,15 +72,44 @@ public class FloatingBubbleService extends Service {
             return START_NOT_STICKY;
         }
 
-        startForeground(NOTIFICATION_ID, createNotification());
-        showBubble();
-        isRunning = true;
+        try {
+            if (Build.VERSION.SDK_INT >= 34) { // Android 14+ (API 34)
+                startForeground(
+                    NOTIFICATION_ID,
+                    createNotification(),
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                );
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    createNotification(),
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                );
+            } else {
+                startForeground(NOTIFICATION_ID, createNotification());
+            }
+        } catch (Throwable t) {
+            android.util.Log.e("FloatingBubbleService", "Safe startForeground catch: " + t.getMessage(), t);
+        }
+
+        try {
+            showBubble();
+            isRunning = true;
+        } catch (Throwable t) {
+            android.util.Log.e("FloatingBubbleService", "Safe showBubble catch: " + t.getMessage(), t);
+        }
+
         return START_STICKY;
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private void showBubble() {
         if (bubbleView != null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!android.provider.Settings.canDrawOverlays(this)) {
+                return;
+            }
+        }
 
         // Overlay Window Layout Parameters
         int layoutType;
@@ -144,8 +173,9 @@ public class FloatingBubbleService extends Service {
 
         try {
             windowManager.addView(bubbleView, params);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            android.util.Log.e("FloatingBubbleService", "Safe addView catch: " + e.getMessage(), e);
+            bubbleView = null;
         }
     }
 

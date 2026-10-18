@@ -315,16 +315,20 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void startFloatingBubble() {
             runOnUiThread(() -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (Settings.canDrawOverlays(MainActivity.this)) {
-                        Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
-                        intent.setAction(FloatingBubbleService.ACTION_START);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(intent);
-                        } else {
-                            startService(intent);
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        if (Settings.canDrawOverlays(MainActivity.this)) {
+                            Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
+                            intent.setAction(FloatingBubbleService.ACTION_START);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                startForegroundService(intent);
+                            } else {
+                                startService(intent);
+                            }
                         }
                     }
+                } catch (Throwable t) {
+                    android.util.Log.e("MainActivity", "Safe startFloatingBubble catch: " + t.getMessage(), t);
                 }
             });
         }
@@ -332,9 +336,13 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void stopFloatingBubble() {
             runOnUiThread(() -> {
-                Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
-                intent.setAction(FloatingBubbleService.ACTION_STOP);
-                stopService(intent);
+                try {
+                    Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
+                    intent.setAction(FloatingBubbleService.ACTION_STOP);
+                    stopService(intent);
+                } catch (Throwable t) {
+                    android.util.Log.e("MainActivity", "Safe stopFloatingBubble catch: " + t.getMessage(), t);
+                }
             });
         }
 
