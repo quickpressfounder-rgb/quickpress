@@ -4106,10 +4106,16 @@ class AdminSettingsRepository:
                     financial_engine.config["laundryGstRate"] = clean_gst / 100.0
                 if "defaultCommission" in merged["finance"]:
                     clean_comm = float(str(merged["finance"]["defaultCommission"]).replace("%", "").strip())
-                    financial_engine.config["standardCommissionRate"] = clean_comm / 100.0
             if "surge" in merged and isinstance(merged["surge"], dict):
                 rain_surge = float(merged["surge"].get("rainSurgeFee", 25))
-                financial_engine.config["riderRainSurge"] = rain_surge
+                is_surge_on = bool(merged["surge"].get("enabled", False))
+                financial_engine.config["riderRainSurge"] = rain_surge if is_surge_on else 0.0
+                try:
+                    from app.services.unified_finance_service import unified_finance_service
+                    if unified_finance_service._rules_cache:
+                        unified_finance_service._rules_cache["surge"] = merged["surge"]
+                except Exception:
+                    pass
             if "slots" in merged and isinstance(merged["slots"], dict):
                 exp_mult = float(merged["slots"].get("express24hMultiplier", 1.5))
                 financial_engine.config["expressTurnaroundMultiplier"] = exp_mult

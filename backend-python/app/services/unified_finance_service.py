@@ -167,6 +167,15 @@ DEFAULT_UNIFIED_RULES: Dict[str, Any] = {
         "riderSharePercent": 80.0,   # 80% to Delivery Captain (+₹32.00)
     },
 
+    # 2d. DYNAMIC SURGE ENGINE (MONSOON & DEMAND SURGE)
+    "surge": {
+        "enabled": False,
+        "rainSurgeFee": 20.0,
+        "peakSurgeFee": 15.0,
+        "etaDelayMinutes": 15,
+        "surgeReason": "High Demand / Weather Surge",
+    },
+
     # 3. GST TAXATION ENGINE
     "gst": {
         "enabled": True,
@@ -403,22 +412,41 @@ class UnifiedFinanceService:
 
         try:
             doc = await database.find_one("financial_rules", {"_id": "active_rules"})
+            merged = {**DEFAULT_UNIFIED_RULES}
             if doc and "rules" in doc:
-                merged = {**DEFAULT_UNIFIED_RULES}
                 for section, values in doc["rules"].items():
                     if isinstance(values, dict) and section in merged:
                         merged[section] = {**merged[section], **values}
                     else:
                         merged[section] = values
-                self._rules_cache = merged
-                self._cache_time = now
-                return merged
+
+            # Always sync live surge configuration from Admin Settings
+            try:
+                from app.db.admin_repositories import admin_settings_repository
+                admin_set = await admin_settings_repository.get(scope="global")
+                if admin_set and "surge" in admin_set and isinstance(admin_set["surge"], dict):
+                    merged["surge"] = admin_set["surge"]
+            except Exception as e:
+                logger.debug("Surge sync from admin_settings skipped: %s", e)
+
+            self._rules_cache = merged
+            self._cache_time = now
+            return merged
         except Exception as e:
             logger.warning("Error fetching financial_rules, using defaults: %s", e)
 
-        self._rules_cache = DEFAULT_UNIFIED_RULES
+        merged = {**DEFAULT_UNIFIED_RULES}
+        try:
+            from app.db.admin_repositories import admin_settings_repository
+            admin_set = await admin_settings_repository.get(scope="global")
+            if admin_set and "surge" in admin_set and isinstance(admin_set["surge"], dict):
+                merged["surge"] = admin_set["surge"]
+        except Exception:
+            pass
+
+        self._rules_cache = merged
         self._cache_time = now
-        return DEFAULT_UNIFIED_RULES
+        return merged
 
     async def update_rules(
         self,
@@ -657,10 +685,17 @@ class UnifiedFinanceService:
         convenience_fee = _calc_fee("convenienceFee", 0.0)
         packaging_fee = _calc_fee("packagingFee", 0.0)
         service_charge = _calc_fee("serviceCharge", 0.0)
-
-        # Surge is permanently disabled
-        surge_multiplier = 1.0
+        # C1. Dynamic Surge Fee (Admin Configured + VIP Waiver)
+        surge_cfg = rules.get("surge", {})
+        surge_enabled = bool(surge_cfg.get("enabled", False))
+        surge_multiplier = float(rules.get("pricing", {}).get("surgeMultiplier", 1.0) or 1.0)
         surge_fee = 0.0
+        if surge_enabled:
+            base_surge_val = float(surge_cfg.get("rainSurgeFee", 20.0) or 20.0)
+            if is_member:
+                surge_fee = 0.0  # Zero Surge Guarantee for VIP Club Members
+            else:
+                surge_fee = round(base_surge_val, 2)
 
         # C2. Express Pickup Priority Fee & Bonus Split
         express_cfg = rules.get("expressPickup", {})
@@ -780,7 +815,10 @@ class UnifiedFinanceService:
             "packagingFee": packaging_fee,
             "serviceCharge": service_charge,
             "surgeFee": surge_fee,
-            "couponCode": coupon_code,
+            "surgeEnabled": surge_enabled,
+            "surgeReason": str(surge_cfg.get("surgeReason") or "High Demand / Weather Surge"),
+            "surgeWaived": bool(is_member and surge_enabled),
+            "waivedSurgeAmount": round(base_surge_val, 2) if (is_member and surge_enabled) else 0.0,
             "couponDiscount": effective_coupon_discount,
             "discount": total_discount,
             "totalDiscount": total_discount,

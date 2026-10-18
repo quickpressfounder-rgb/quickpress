@@ -373,6 +373,8 @@ export type PostOrderPayload = {
   pickup?: { day: string; slot: string; express: boolean } | undefined;
   isExpress?: boolean | undefined;
   expressFee?: number | undefined;
+  surgeFee?: number | undefined;
+  isSurgeWaived?: boolean | undefined;
   paymentId?: string | undefined;
   paymentMethod?: string | undefined;
   cardId?: string | null | undefined;
@@ -430,6 +432,8 @@ export async function postOrder(payload: PostOrderPayload): Promise<{ ok: true; 
       },
       isExpress: isExpressSelected,
       expressFee: isExpressSelected ? (payload.expressFee ?? 40) : 0,
+      surgeFee: payload.surgeFee || 0,
+      isSurgeWaived: Boolean(payload.isSurgeWaived),
       instructions: payload.instructions || getCartState().instructions || "",
       couponCode: payload.couponCode ?? getCartState().couponCode ?? undefined,
       payment: {

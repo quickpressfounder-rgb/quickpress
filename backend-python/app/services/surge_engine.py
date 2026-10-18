@@ -124,29 +124,54 @@ class DynamicSurgeEngine:
         rider_lng: Optional[float] = None,
         radius_km: float = 15.0,
     ) -> Dict[str, Any]:
-        """Surge pricing is permanently disabled. Returns zero surge and empty zones."""
-        return {
-            "status": "success",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "timeShift": "Standard",
-            "riderLocation": {"lat": rider_lat, "lng": rider_lng} if rider_lat and rider_lng else None,
-            "isRiderInSurgeZone": False,
-            "activeSurgeBonus": 0.0,
-            "activeMultiplier": "1.0x",
-            "currentZone": None,
-            "nearestZone": None,
-            "totalZones": 0,
-            "zones": [],
-        }
-
-    async def _disabled_get_dynamic_surge_zones(
-        self,
-        rider_lat: Optional[float] = None,
-        rider_lng: Optional[float] = None,
-        radius_km: float = 15.0,
-    ) -> Dict[str, Any]:
+        """Computes live dynamic surge hotspots based on real demand, online fleet, and Admin Master Controls."""
         now = datetime.now()
         time_bonus_boost, time_mult_boost, time_label = self._get_time_factor(now)
+
+        # 0. Check Admin Master Settings (Centralized Control)
+        admin_surge_enabled = False
+        admin_rain_surge_fee = 25.0
+        admin_peak_surge_fee = 15.0
+        admin_eta_delay = 15
+        admin_surge_reason = "Monsoon Rain & High Demand"
+
+        try:
+            from app.db.admin_repositories import admin_settings_repository
+            settings_doc = await admin_settings_repository.get(scope="global")
+            if settings_doc and "surge" in settings_doc and isinstance(settings_doc["surge"], dict):
+                s_cfg = settings_doc["surge"]
+                admin_surge_enabled = bool(s_cfg.get("enabled", False))
+                admin_rain_surge_fee = float(s_cfg.get("rainSurgeFee", 25.0) or 25.0)
+                admin_peak_surge_fee = float(s_cfg.get("peakSurgeFee", 15.0) or 15.0)
+                admin_eta_delay = int(s_cfg.get("etaDelayMinutes", 15) or 15)
+                admin_surge_reason = str(s_cfg.get("surgeReason") or "Monsoon Rain & High Demand")
+        except Exception as e:
+            logger.warning("Could not read admin settings for surge engine: %s", e)
+
+        if not admin_surge_enabled:
+            return {
+                "status": "success",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timeShift": "Standard",
+                "isSurgeEnabled": False,
+                "surgeReason": "Standard Operations (Surge Inactive)",
+                "etaDelayMinutes": 0,
+                "riderLocation": {"lat": rider_lat, "lng": rider_lng} if rider_lat and rider_lng else None,
+                "isRiderInSurgeZone": False,
+                "activeSurgeBonus": 0.0,
+                "activeMultiplier": "1.0x",
+                "currentZone": None,
+                "nearestZone": None,
+                "totalZones": 0,
+                "zones": [],
+                "adminConfig": {
+                    "enabled": False,
+                    "rainSurgeFee": admin_rain_surge_fee,
+                    "peakSurgeFee": admin_peak_surge_fee,
+                    "etaDelayMinutes": admin_eta_delay,
+                    "surgeReason": admin_surge_reason,
+                },
+            }
 
         # 1. Fetch live pending / active orders
         active_orders: List[Dict[str, Any]] = []
@@ -182,7 +207,6 @@ class DynamicSurgeEngine:
 
         if is_outside_kasganj and rider_lat is not None and rider_lng is not None:
             # Generate realistic dynamic local clusters around the rider's actual real GPS location
-            # (e.g. +350m, +750m, +1100m in different cardinal directions)
             hotspots_to_eval = [
                 {
                     "id": "local-prime-hub",
@@ -190,7 +214,7 @@ class DynamicSurgeEngine:
                     "lat": round(rider_lat + 0.0035, 6),
                     "lng": round(rider_lng + 0.0028, 6),
                     "radiusMeters": 800,
-                    "baseBonus": 25.0,
+                    "baseBonus": max(20.0, admin_rain_surge_fee),
                     "baseMultiplier": 1.6,
                     "baseDemand": "CRITICAL 🔥",
                     "tag": "High Traffic",
@@ -202,7 +226,7 @@ class DynamicSurgeEngine:
                     "lat": round(rider_lat - 0.0042, 6),
                     "lng": round(rider_lng + 0.0031, 6),
                     "radiusMeters": 750,
-                    "baseBonus": 20.0,
+                    "baseBonus": max(15.0, admin_peak_surge_fee),
                     "baseMultiplier": 1.4,
                     "baseDemand": "HIGH ⚡",
                     "tag": "Fast Dispatch",
@@ -254,8 +278,13 @@ class DynamicSurgeEngine:
             dynamic_demand_ratio = (orders_in_zone + 3) / float(max(1, total_online_riders))
             extra_demand_bonus = 5.0 if dynamic_demand_ratio > 1.5 else (0.0 if dynamic_demand_ratio < 0.8 else 2.0)
 
-            final_bonus = round(spot["baseBonus"] + time_bonus_boost + extra_demand_bonus)
-            final_mult = round(spot["baseMultiplier"] + time_mult_boost + (0.1 if dynamic_demand_ratio > 1.5 else 0.0), 1)
+            raw_bonus = round(spot["baseBonus"] + time_bonus_boost + extra_demand_bonus)
+            raw_mult = round(spot["baseMultiplier"] + time_mult_boost + (0.1 if dynamic_demand_ratio > 1.5 else 0.0), 1)
+
+            # Circuit breaker cap
+            capped_eval = self.evaluate_capped_surge(raw_mult, raw_bonus)
+            final_bonus = capped_eval["effectiveBonus"]
+            final_mult = capped_eval["effectiveMultiplier"]
 
             # Color scheme based on bonus amount
             color = "#EF4444" if final_bonus >= 25 else ("#F59E0B" if final_bonus >= 20 else "#10B981")
@@ -270,7 +299,6 @@ class DynamicSurgeEngine:
             if rider_lat is not None and rider_lng is not None:
                 dist_meters = haversine_distance_meters(rider_lat, rider_lng, spot_lat, spot_lng)
                 dist_km = round(dist_meters / 1000.0, 2)
-                # Average city bike speed ~ 25 km/h -> ~416 m/min
                 eta_mins = max(1, math.ceil(dist_meters / 416.0))
                 is_rider_inside = dist_meters <= radius_m
 
@@ -292,7 +320,7 @@ class DynamicSurgeEngine:
                 "demandLevel": demand_level,
                 "tag": spot.get("tag", "Hotspot"),
                 "description": spot.get("desc", ""),
-                "ordersWaiting": orders_in_zone + (3 + idx * 2),  # active pending + baseline simulated demand
+                "ordersWaiting": orders_in_zone + (3 + idx * 2),
                 "ridersOnline": total_online_riders,
                 "distanceKm": dist_km,
                 "distanceMeters": round(dist_meters),
@@ -317,24 +345,79 @@ class DynamicSurgeEngine:
             "status": "success",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "timeShift": time_label,
+            "isSurgeEnabled": True,
+            "surgeReason": admin_surge_reason,
+            "etaDelayMinutes": admin_eta_delay,
             "riderLocation": {"lat": rider_lat, "lng": rider_lng} if rider_lat and rider_lng else None,
             "isRiderInSurgeZone": is_rider_inside_any_surge,
-            "activeSurgeBonus": current_zone_info["bonus"] if current_zone_info else 0.0,
-            "activeMultiplier": current_zone_info["multiplier"] if current_zone_info else "1.0x",
+            "activeSurgeBonus": current_zone_info["bonus"] if current_zone_info else admin_rain_surge_fee,
+            "activeMultiplier": current_zone_info["multiplier"] if current_zone_info else "1.3x",
             "currentZone": current_zone_info,
             "nearestZone": nearest_zone,
             "totalZones": len(computed_zones),
             "zones": computed_zones,
+            "adminConfig": {
+                "enabled": True,
+                "rainSurgeFee": admin_rain_surge_fee,
+                "peakSurgeFee": admin_peak_surge_fee,
+                "etaDelayMinutes": admin_eta_delay,
+                "surgeReason": admin_surge_reason,
+            },
         }
 
     async def check_location_surge(self, lat: float, lng: float) -> Dict[str, Any]:
         """Fast check for whether a specific pickup/drop point has active surge pricing."""
+        admin_surge_enabled = False
+        admin_fee = 20.0
+        admin_reason = "Standard Operations"
+        admin_eta_delay = 0
+
+        try:
+            from app.db.admin_repositories import admin_settings_repository
+            settings_doc = await admin_settings_repository.get(scope="global")
+            if settings_doc and "surge" in settings_doc and isinstance(settings_doc["surge"], dict):
+                s_cfg = settings_doc["surge"]
+                admin_surge_enabled = bool(s_cfg.get("enabled", False))
+                admin_fee = float(s_cfg.get("rainSurgeFee", 20.0) or 20.0)
+                admin_reason = str(s_cfg.get("surgeReason") or "Monsoon & High Demand")
+                admin_eta_delay = int(s_cfg.get("etaDelayMinutes", 15) or 15)
+        except Exception:
+            pass
+
+        if not admin_surge_enabled:
+            return {
+                "hasSurge": False,
+                "bonus": 0.0,
+                "multiplier": "1.0x",
+                "zoneName": None,
+                "reason": "Standard Operations (Surge Inactive)",
+                "etaDelayMinutes": 0,
+                "circuitBreakerMaxMultiplier": MAX_SURGE_MULTIPLIER,
+            }
+
+        matched_zone = None
+        for spot in KASGANJ_HOTSPOTS_DEF:
+            dist = haversine_distance_meters(lat, lng, spot["lat"], spot["lng"])
+            if dist <= spot["radiusMeters"] + 500:
+                matched_zone = spot
+                break
+
+        bonus = admin_fee
+        mult = 1.3
+        zone_name = "Kasganj Demand Surcharge Zone"
+        if matched_zone:
+            bonus = max(admin_fee, float(matched_zone.get("baseBonus", 20.0)))
+            mult = float(matched_zone.get("baseMultiplier", 1.4))
+            zone_name = matched_zone["name"]
+
+        capped_eval = self.evaluate_capped_surge(mult, bonus)
         return {
-            "hasSurge": False,
-            "bonus": 0.0,
-            "multiplier": "1.0x",
-            "zoneName": None,
-            "reason": "Normal Traffic (Surge Disabled)",
+            "hasSurge": True,
+            "bonus": capped_eval["effectiveBonus"],
+            "multiplier": capped_eval["multiplierLabel"],
+            "zoneName": zone_name,
+            "reason": admin_reason,
+            "etaDelayMinutes": admin_eta_delay,
             "circuitBreakerMaxMultiplier": MAX_SURGE_MULTIPLIER,
         }
 

@@ -423,9 +423,34 @@ class AutomationService:
         num_riders = max(1, len(online_riders))
         ratio = round(num_orders / num_riders, 2)
 
-        # Surge pricing permanently disabled
+        # Check Admin master surge control
+        admin_surge_enabled = False
+        rain_surge_val = 25.0
+        peak_surge_val = 15.0
+        try:
+            from app.db.admin_repositories import admin_settings_repository
+            s_doc = await admin_settings_repository.get(scope="global")
+            s_cfg = s_doc.get("surge", {}) if s_doc else {}
+            admin_surge_enabled = bool(s_cfg.get("enabled", False))
+            rain_surge_val = float(s_cfg.get("rainSurgeFee", 25.0) or 25.0)
+            peak_surge_val = float(s_cfg.get("peakSurgeFee", 15.0) or 15.0)
+        except Exception:
+            pass
+
+        zone_label = city or "Kasganj"
         multiplier = 1.0
         bonus = 0.0
+
+        if admin_surge_enabled:
+            if ratio >= 2.0:
+                multiplier = 1.5
+                bonus = rain_surge_val
+            elif ratio >= 1.2:
+                multiplier = 1.3
+                bonus = peak_surge_val
+            else:
+                multiplier = 1.1
+                bonus = 10.0
 
         if multiplier > 1.0:
             await automation_repository.log_event(

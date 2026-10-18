@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  CloudRain,
   CreditCard,
   Crown,
   Home,
@@ -279,15 +280,33 @@ export function CheckoutPage() {
   const isExpressActive = isExpress && isExpressEnabled;
   const currentExpressFee = isExpressActive ? expressFee : 0;
 
+  // Surge Fee calculation (Admin Governed + VIP Zero Surge Waiver)
+  const isSurgeActive = Boolean(
+    financeRules?.surge?.enabled ||
+    (financeRules?.delivery?.rainSurge && financeRules.delivery.rainSurge > 0)
+  );
+  const surgeBaseAmount = Number(
+    financeRules?.surge?.rainSurgeFee ?? financeRules?.delivery?.rainSurge ?? 20
+  );
+  const surgeReason = financeRules?.surge?.surgeReason || "Weather & High Demand Surge";
+  // Zero Surge Guarantee for VIP Club Members
+  const isSurgeWaived = Boolean(isEffectiveMember && isSurgeActive);
+  const surgeFee = itemsSubtotal > 0 && isSurgeActive ? (isSurgeWaived ? 0 : surgeBaseAmount) : 0;
+
   // 5% fabric laundry GST + 18% services GST
   const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount - memberDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
-  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + currentExpressFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
+  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + currentExpressFee + surgeFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
   const gst = laundryGst + serviceGst;
 
   const grandTotal = Math.round(
-    Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + gst + clubPlanPrice - couponDiscount - memberDiscount)
+    Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + currentExpressFee + surgeFee + gst + clubPlanPrice - couponDiscount - memberDiscount)
   );
-  const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + memberDiscount + ((isFreeDelivery || isEffectiveMember) && itemsSubtotal > 0 ? baseDeliveryFee : 0);
+  const savings =
+    Math.max(0, totalMRP - itemsSubtotal) +
+    couponDiscount +
+    memberDiscount +
+    ((isFreeDelivery || isEffectiveMember) && itemsSubtotal > 0 ? baseDeliveryFee : 0) +
+    (isSurgeWaived && itemsSubtotal > 0 ? surgeBaseAmount : 0);
 
   const selectedPickup = addresses.find((a) => a.id === pickupAddressId) || addresses[0];
   const selectedDelivery = sameAsPickup
@@ -360,6 +379,8 @@ export function CheckoutPage() {
         },
         isExpress: isExpressActive,
         expressFee: currentExpressFee,
+        surgeFee,
+        isSurgeWaived,
         paymentId,
         paymentMethod: method,
         instructions: instructions.trim() || undefined,
@@ -421,6 +442,8 @@ export function CheckoutPage() {
         },
         isExpress: isExpressActive,
         expressFee: currentExpressFee,
+        surgeFee,
+        isSurgeWaived,
         paymentId: "cod",
         paymentMethod: "cod",
         instructions: instructions.trim() || undefined,
@@ -966,6 +989,27 @@ export function CheckoutPage() {
           )}
         </div>
 
+        {/* Surge Alert Banner if Active */}
+        {isSurgeActive ? (
+          <div className={`p-3 rounded-2xl border text-xs flex items-start gap-2.5 shadow-2xs ${
+            isSurgeWaived
+              ? "bg-emerald-50/80 border-emerald-200 text-emerald-950"
+              : "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-amber-950"
+          }`}>
+            <CloudRain className={`size-4 shrink-0 mt-0.5 ${isSurgeWaived ? "text-emerald-600" : "text-amber-600 animate-pulse"}`} />
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-[11px] leading-tight flex items-center gap-1.5">
+                {isSurgeWaived ? "👑 VIP Zero-Surge Guarantee Active" : `⚡ ${surgeReason} Active`}
+              </p>
+              <p className="text-[10.5px] mt-0.5 text-zinc-600 leading-snug">
+                {isSurgeWaived
+                  ? `₹${surgeBaseAmount} surge fee is waived for your order with your QuickPress Club VIP status.`
+                  : `Extra ₹${surgeFee} goes 100% to delivery captains ensuring speedy pickup & drop during weather / peak rush.`}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {/* SECTION 7: BILL DETAILS */}
         <div>
           <h2 className="px-1 mb-1.5 text-[11px] font-black uppercase tracking-wider text-zinc-500">
@@ -1001,6 +1045,34 @@ export function CheckoutPage() {
                 <span>Platform Convenience Fee</span>
                 <span className="font-bold text-zinc-900">₹{platformFee}</span>
               </div>
+
+              {isSurgeActive ? (
+                <div className={`flex justify-between items-center px-2 py-1.5 rounded-lg border text-xs ${
+                  isSurgeWaived
+                    ? "bg-emerald-50/90 text-emerald-900 border-emerald-200"
+                    : "bg-amber-50 text-amber-900 border-amber-200"
+                }`}>
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <CloudRain className={`size-3.5 ${isSurgeWaived ? "text-emerald-600" : "text-amber-600"}`} />
+                    <span>{surgeReason}</span>
+                    {isSurgeWaived && (
+                      <span className="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide">
+                        VIP WAIVED
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-1.5 font-bold">
+                    {isSurgeWaived ? (
+                      <>
+                        <span className="text-[10px] line-through text-zinc-400">₹{surgeBaseAmount}</span>
+                        <span className="font-black text-[#0c831f] text-[10px] uppercase">FREE</span>
+                      </>
+                    ) : (
+                      <span className="font-black text-amber-700">+₹{surgeFee}</span>
+                    )}
+                  </div>
+                </div>
+              ) : null}
 
               {isExpressActive ? (
                 <div className="flex justify-between items-center text-emerald-900 font-bold bg-emerald-50/80 px-2 py-1.5 rounded-lg border border-emerald-200">

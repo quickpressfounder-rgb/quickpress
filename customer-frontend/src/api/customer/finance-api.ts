@@ -56,6 +56,13 @@ export interface FinancialRules {
     partnerSharePercent: number;
     riderSharePercent: number;
   };
+  surge?: {
+    enabled: boolean;
+    rainSurgeFee: number;
+    peakSurgeFee: number;
+    etaDelayMinutes: number;
+    surgeReason: string;
+  };
 }
 
 export interface PricingCalculationResult {
@@ -74,6 +81,11 @@ export interface PricingCalculationResult {
   deliverySubsidySource: string | null;
   platformFee: number;
   handlingFee: number;
+  surgeFee?: number;
+  surgeEnabled?: boolean;
+  surgeReason?: string;
+  surgeWaived?: boolean;
+  waivedSurgeAmount?: number;
   laundryGst: number;
   serviceGst: number;
   totalGst: number;
@@ -134,6 +146,13 @@ export const DEFAULT_FINANCIAL_RULES: FinancialRules = {
     fee: 40.0,
     partnerSharePercent: 20.0,
     riderSharePercent: 80.0,
+  },
+  surge: {
+    enabled: false,
+    rainSurgeFee: 20.0,
+    peakSurgeFee: 15.0,
+    etaDelayMinutes: 15,
+    surgeReason: "High Demand / Weather Surge",
   },
 };
 

@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ChevronRight,
+  CloudRain,
   Minus,
   Percent,
   Plus,
@@ -168,12 +169,23 @@ function CartPage() {
   const handlingFee = itemsSubtotal > 0 ? (financeRules?.pricing?.handlingFee ?? 15) : 0;
   const platformFee = itemsSubtotal > 0 ? (financeRules?.pricing?.platformFee ?? 10) : 0;
 
-  // 5% fabric laundry GST + 18% services GST (handling + platform + customer delivery fee)
+  // Surge fee calculation
+  const isSurgeActive = Boolean(
+    financeRules?.surge?.enabled ||
+    (financeRules?.delivery?.rainSurge && financeRules.delivery.rainSurge > 0)
+  );
+  const surgeBaseAmount = Number(
+    financeRules?.surge?.rainSurgeFee ?? financeRules?.delivery?.rainSurge ?? 20
+  );
+  const surgeReason = financeRules?.surge?.surgeReason || "Weather & High Demand Surge";
+  const surgeFee = itemsSubtotal > 0 && isSurgeActive ? surgeBaseAmount : 0;
+
+  // 5% fabric laundry GST + 18% services GST (handling + platform + customer delivery fee + surge fee)
   const laundryGst = Math.round(Math.max(0, itemsSubtotal - couponDiscount) * (financeRules?.gst?.laundryGstRate ?? 0.05));
-  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
+  const serviceGst = Math.round((deliveryFee + handlingFee + platformFee + surgeFee) * (financeRules?.gst?.platformGstRate ?? 0.18));
   const gst = laundryGst + serviceGst;
 
-  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + gst - couponDiscount);
+  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee + handlingFee + platformFee + surgeFee + gst - couponDiscount);
   const savings = Math.max(0, totalMRP - itemsSubtotal) + couponDiscount + (isFreeDelivery && itemsSubtotal > 0 ? baseDeliveryFee : 0);
 
   const displayedAddons = (dynamicAddons.length > 0 ? dynamicAddons : SUGGESTED_ADDONS)
@@ -417,6 +429,16 @@ function CartPage() {
               <span>Platform Convenience Fee</span>
               <span className="font-bold text-zinc-900">₹{platformFee}</span>
             </div>
+
+            {isSurgeActive ? (
+              <div className="flex justify-between items-center px-2 py-1.5 rounded-lg border text-xs bg-amber-50 text-amber-900 border-amber-200">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <CloudRain className="size-3.5 text-amber-600" />
+                  <span>{surgeReason}</span>
+                </span>
+                <span className="font-black text-amber-700">+₹{surgeFee}</span>
+              </div>
+            ) : null}
 
             <div className="flex justify-between">
               <span>GST & Taxes (5% Laundry + 18% Fees)</span>

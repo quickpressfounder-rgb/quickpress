@@ -45,18 +45,32 @@ export interface LocationSurgeStatus {
 }
 
 /**
- * 📍 Surge is permanently disabled. Returns zero surge and empty zones.
+ * 📍 Fetches live location-based surge hotspots from the backend engine.
  */
 export async function fetchSurgeZones(
   lat?: number | null,
   lng?: number | null,
   radiusKm: number = 15.0
 ): Promise<SurgeZonesResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (lat !== undefined && lat !== null) params.append("lat", String(lat));
+    if (lng !== undefined && lng !== null) params.append("lng", String(lng));
+    params.append("radius_km", String(radiusKm));
+
+    const res = await apiGetJson<SurgeZonesResponse>(`/api/rider/surge/zones?${params.toString()}`);
+    if (res && Array.isArray(res.zones)) {
+      return res;
+    }
+  } catch (error) {
+    console.warn("Failed to fetch live surge zones:", error);
+  }
+
   return {
-    status: "ok",
+    status: "fallback",
     timestamp: new Date().toISOString(),
-    timeShift: "normal",
-    riderLocation: null,
+    timeShift: "Standard",
+    riderLocation: lat && lng ? { lat, lng } : null,
     isRiderInSurgeZone: false,
     activeSurgeBonus: 0,
     activeMultiplier: "1.0x",
@@ -68,12 +82,19 @@ export async function fetchSurgeZones(
 }
 
 /**
- * 🔍 Surge is permanently disabled. Returns hasSurge: false.
+ * 🔍 Checks whether a specific coordinate has active surge pricing.
  */
 export async function checkLocationSurge(
   lat: number,
   lng: number
 ): Promise<LocationSurgeStatus> {
+  try {
+    const res = await apiGetJson<LocationSurgeStatus>(`/api/rider/surge/check-location?lat=${lat}&lng=${lng}`);
+    if (res) return res;
+  } catch (error) {
+    console.warn("Failed to check location surge:", error);
+  }
+
   return {
     hasSurge: false,
     bonus: 0,
