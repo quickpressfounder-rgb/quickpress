@@ -24,6 +24,7 @@ import { Route as MembershipsRouteImport } from './routes/memberships'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PartnersRouteImport } from './routes/partners'
+import { Route as PromotionsRouteImport } from './routes/promotions'
 import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as RidersRouteImport } from './routes/riders'
 import { Route as ServicesRouteImport } from './routes/services'
@@ -107,6 +108,11 @@ const PartnersRoute = PartnersRouteImport.update({
   path: '/partners',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PromotionsRoute = PromotionsRouteImport.update({
+  id: '/promotions',
+  path: '/promotions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReferralsRoute = ReferralsRouteImport.update({
   id: '/referrals',
   path: '/referrals',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
+  '/promotions': typeof PromotionsRoute
   '/referrals': typeof ReferralsRoute
   '/riders': typeof RidersRoute
   '/services': typeof ServicesRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
+  '/promotions': typeof PromotionsRoute
   '/referrals': typeof ReferralsRoute
   '/riders': typeof RidersRoute
   '/services': typeof ServicesRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRoute
   '/partners': typeof PartnersRoute
+  '/promotions': typeof PromotionsRoute
   '/referrals': typeof ReferralsRoute
   '/riders': typeof RidersRoute
   '/services': typeof ServicesRoute
@@ -234,6 +243,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/orders'
     | '/partners'
+    | '/promotions'
     | '/referrals'
     | '/riders'
     | '/services'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/orders'
     | '/partners'
+    | '/promotions'
     | '/referrals'
     | '/riders'
     | '/services'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/orders'
     | '/partners'
+    | '/promotions'
     | '/referrals'
     | '/riders'
     | '/services'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   OrdersRoute: typeof OrdersRoute
   PartnersRoute: typeof PartnersRoute
+  PromotionsRoute: typeof PromotionsRoute
   ReferralsRoute: typeof ReferralsRoute
   RidersRoute: typeof RidersRoute
   ServicesRoute: typeof ServicesRoute
@@ -423,6 +436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/promotions': {
+      id: '/promotions'
+      path: '/promotions'
+      fullPath: '/promotions'
+      preLoaderRoute: typeof PromotionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/referrals': {
       id: '/referrals'
       path: '/referrals'
@@ -491,6 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   OrdersRoute: OrdersRoute,
   PartnersRoute: PartnersRoute,
+  PromotionsRoute: PromotionsRoute,
   ReferralsRoute: ReferralsRoute,
   RidersRoute: RidersRoute,
   ServicesRoute: ServicesRoute,

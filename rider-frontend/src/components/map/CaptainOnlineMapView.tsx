@@ -31,6 +31,14 @@ import { triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
 import { CaptainSupportModal } from "../support/CaptainSupportModal";
 import { CaptainStoryModal } from "../home/CaptainStoryModal";
+import {
+  fetchRiderStories,
+  fetchRiderBanners,
+  FALLBACK_RIDER_STORIES,
+  FALLBACK_RIDER_BANNER,
+  type RiderStoryItem,
+  type RiderBannerItem,
+} from "../../api/rider/promotions-api";
 
 interface CaptainOnlineMapViewProps {
   currentCoords: { lat: number; lng: number } | null;
@@ -65,6 +73,9 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [rewardScratched, setRewardScratched] = useState(false);
 
+  const [stories, setStories] = useState<RiderStoryItem[]>(FALLBACK_RIDER_STORIES);
+  const [banners, setBanners] = useState<RiderBannerItem[]>([FALLBACK_RIDER_BANNER]);
+
   // Last completed trip & detail modal state (Real orders only)
   const [lastTrip, setLastTrip] = useState<RiderHistoryEntry | null>(null);
   const [selectedTripForDetail, setSelectedTripForDetail] = useState<RiderHistoryEntry | null>(null);
@@ -85,6 +96,28 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
       .catch(() => {
         if (active) setLastTrip(null);
       });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Fetch dynamic stories & offer banners from Promotions Hub
+  useEffect(() => {
+    let active = true;
+    fetchRiderStories()
+      .then((res) => {
+        if (!active) return;
+        if (Array.isArray(res) && res.length > 0) setStories(res);
+      })
+      .catch(() => {});
+
+    fetchRiderBanners()
+      .then((res) => {
+        if (!active) return;
+        if (Array.isArray(res) && res.length > 0) setBanners(res);
+      })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
@@ -278,170 +311,101 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
         {/* Scrollable Drawer Content */}
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 px-4 pb-6">
-          {/* Circular Story / Highlight Bubbles Row (Horizontal Scroll) */}
+          {/* Dynamic Story / Highlight Bubbles Row (Horizontal Scroll) */}
           <div className="flex items-start gap-4 overflow-x-auto no-scrollbar pt-1 pb-1">
-            {/* Bubble 1: Follow */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(25);
-                setStoryModalIndex(0);
-                setIsStoryModalOpen(true);
-              }}
-              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
-            >
-              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-xs">
-                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                  <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl font-black text-amber-600">
-                    🛵
-                  </div>
-                </div>
-                <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center uppercase tracking-tighter">
-                  Follow
-                </span>
-              </div>
-              <span className="text-[11px] font-bold text-zinc-700">Follow</span>
-            </button>
-
-            {/* Bubble 2: Transfer Money */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(25);
-                setStoryModalIndex(1);
-                setIsStoryModalOpen(true);
-              }}
-              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
-            >
-              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-xs">
-                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                  <div className="size-full rounded-full bg-emerald-50 flex items-center justify-center text-xl font-black text-emerald-700">
-                    🏦
-                  </div>
-                </div>
-                <span className="absolute -bottom-1 inset-x-0.5 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center truncate px-1">
-                  Money Transf...
-                </span>
-              </div>
-              <span className="text-[11px] font-bold text-zinc-700">Transfer Money</span>
-            </button>
-
-            {/* Bubble 3: Earn 2000 */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(25);
-                setStoryModalIndex(2);
-                setIsStoryModalOpen(true);
-              }}
-              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
-            >
-              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 shadow-xs">
-                <div className="size-full rounded-full bg-blue-950 p-1 flex flex-col items-center justify-center text-center overflow-hidden text-white">
-                  <span className="text-[7px] font-black text-amber-300 uppercase leading-none">REFER & EARN</span>
-                  <span className="text-[11px] font-black text-white leading-tight">₹2000</span>
-                </div>
-              </div>
-              <span className="text-[11px] font-bold text-zinc-700">Earn 2000</span>
-            </button>
-
-            {/* Bubble 4: Auto Boost */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(25);
-                setStoryModalIndex(3);
-                setIsStoryModalOpen(true);
-              }}
-              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
-            >
-              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-xs">
-                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                  <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl">
-                    ⚡
-                  </div>
-                </div>
-                <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
-                  Auto Boost
-                </span>
-              </div>
-              <span className="text-[11px] font-bold text-zinc-700">Auto Boost</span>
-            </button>
-
-            {/* Bubble 5: Performance */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(25);
-                setStoryModalIndex(4);
-                setIsStoryModalOpen(true);
-              }}
-              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
-            >
-              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-purple-400 to-pink-500 shadow-xs">
-                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                  <div className="size-full rounded-full bg-purple-50 flex items-center justify-center text-xl">
-                    🏅
-                  </div>
-                </div>
-                <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
-                  Perfo...
-                </span>
-              </div>
-              <span className="text-[11px] font-bold text-zinc-700">Performance</span>
-            </button>
-          </div>
-
-          {/* BLUE OFFER BANNER (Matching Uploaded Screenshot: Falling Confetti, 3 Purple Cards, Gold Coins & "Tap to earn") */}
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0B2579] via-[#0E359E] to-[#08184C] p-5 text-white shadow-xl border border-blue-400/20">
-            {/* Ambient Background Glow & Confetti */}
-            <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-300 via-transparent to-transparent" />
-            <div className="absolute top-2 left-6 text-amber-300 text-sm animate-pulse">✨</div>
-            <div className="absolute top-4 right-8 text-amber-300 text-sm animate-bounce">🎊</div>
-            <div className="absolute bottom-16 right-5 text-amber-400 text-xs">🎉</div>
-
-            <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-              {/* Graphic: 3 Purple Cards with ₹ and ₹10 + Stacked Gold Coins */}
-              <div className="relative flex items-center justify-center w-full pt-1 pb-2">
-                {/* Left Card */}
-                <div className="relative -mr-3 transform -rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
-                  <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
-                </div>
-
-                {/* Center Main Card (₹10) */}
-                <div className="relative z-10 size-20 sm:size-22 rounded-2xl bg-gradient-to-b from-violet-600 to-indigo-900 border-2 border-amber-300/60 p-2 shadow-2xl flex flex-col items-center justify-center">
-                  <div className="flex items-center justify-center size-7 rounded-full bg-white/10 mb-1 border border-white/20">
-                    <span className="text-amber-300 font-serif font-black text-sm">👑</span>
-                  </div>
-                  <span className="text-white font-serif font-black text-2xl leading-none">₹10</span>
-                </div>
-
-                {/* Right Card */}
-                <div className="relative -ml-3 transform rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
-                  <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
-                </div>
-
-                {/* Gold Coins Stack (Foreground overlapping left) */}
-                <div className="absolute -bottom-1 left-12 flex flex-col items-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
-                  <div className="size-11 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-2 border-amber-100 flex items-center justify-center text-amber-950 font-black text-base shadow-md">
-                    ₹
-                  </div>
-                </div>
-              </div>
-
-              {/* Yellow Pill Button "Tap to earn" (Exact match to screenshot) */}
+            {stories.map((story, sIdx) => (
               <button
+                key={story.id || sIdx}
                 type="button"
                 onClick={() => {
-                  triggerHaptic(40);
-                  setShowRewardModal(true);
+                  triggerHaptic(25);
+                  setStoryModalIndex(sIdx);
+                  setIsStoryModalOpen(true);
                 }}
-                className="w-full max-w-xs py-3 px-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 active:scale-95 text-zinc-950 font-black text-base shadow-lg transition-all cursor-pointer tracking-wide"
+                className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
               >
-                Tap to earn
+                <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-xs">
+                  <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                    {story.imageUrl ? (
+                      <img src={story.imageUrl} alt={story.title} className="size-full object-cover" />
+                    ) : (
+                      <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl font-black text-amber-600">
+                        {story.icon || "🛵"}
+                      </div>
+                    )}
+                  </div>
+                  <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center uppercase tracking-tighter truncate px-0.5">
+                    {story.badge || "Story"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-zinc-700 max-w-[68px] truncate text-center">
+                  {story.title.split(" ")[0]}
+                </span>
               </button>
-            </div>
+            ))}
           </div>
+
+          {/* DYNAMIC BLUE OFFER BANNER (Managed via Admin Console) */}
+          {banners.length > 0 && (
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0B2579] via-[#0E359E] to-[#08184C] p-5 text-white shadow-xl border border-blue-400/20">
+              {/* Ambient Background Glow & Confetti */}
+              <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-300 via-transparent to-transparent" />
+              <div className="absolute top-2 left-6 text-amber-300 text-sm animate-pulse">✨</div>
+              <div className="absolute top-4 right-8 text-amber-300 text-sm animate-bounce">🎊</div>
+              <div className="absolute bottom-16 right-5 text-amber-400 text-xs">🎉</div>
+
+              <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                {/* Graphic: 3 Purple Cards with ₹ and ₹10 + Stacked Gold Coins */}
+                <div className="relative flex items-center justify-center w-full pt-1 pb-2">
+                  {/* Left Card */}
+                  <div className="relative -mr-3 transform -rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
+                    <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
+                  </div>
+
+                  {/* Center Main Card */}
+                  <div className="relative z-10 size-20 sm:size-22 rounded-2xl bg-gradient-to-b from-violet-600 to-indigo-900 border-2 border-amber-300/60 p-2 shadow-2xl flex flex-col items-center justify-center">
+                    <div className="flex items-center justify-center size-7 rounded-full bg-white/10 mb-1 border border-white/20">
+                      <span className="text-amber-300 font-serif font-black text-sm">👑</span>
+                    </div>
+                    <span className="text-white font-serif font-black text-2xl leading-none">
+                      ₹{banners[0].rewardAmount || 10}
+                    </span>
+                  </div>
+
+                  {/* Right Card */}
+                  <div className="relative -ml-3 transform rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
+                    <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
+                  </div>
+
+                  {/* Gold Coins Stack (Foreground overlapping left) */}
+                  <div className="absolute -bottom-1 left-12 flex flex-col items-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+                    <div className="size-11 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-2 border-amber-100 flex items-center justify-center text-amber-950 font-black text-base shadow-md">
+                      ₹
+                    </div>
+                  </div>
+                </div>
+
+                {/* Yellow Pill Button (Supports Scratch or Google Form Redirect) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(40);
+                    const b = banners[0];
+                    if (b.actionType === "google_form" || b.ctaLink?.startsWith("http")) {
+                      window.open(b.ctaLink, "_blank");
+                    } else if (b.actionType === "internal_route" && b.ctaLink) {
+                      navigate({ to: b.ctaLink as any });
+                    } else {
+                      setShowRewardModal(true);
+                    }
+                  }}
+                  className="w-full max-w-xs py-3 px-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 active:scale-95 text-zinc-950 font-black text-base shadow-lg transition-all cursor-pointer tracking-wide"
+                >
+                  {banners[0].ctaText || "Tap to earn"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* QUICK ACTIONS SECTION (Matching Uploaded Screenshot: "Change Language" card) */}
           <div className="space-y-2.5 pt-1">
@@ -558,6 +522,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
       <CaptainStoryModal
         isOpen={isStoryModalOpen}
         initialIndex={storyModalIndex}
+        stories={stories}
         onClose={() => setIsStoryModalOpen(false)}
       />
 

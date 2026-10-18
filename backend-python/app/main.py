@@ -61,6 +61,7 @@ from app.api.wallet import router as wallet_router
 from app.api.wallet_ledger import router as wallet_ledger_router
 from app.api.webhooks import router as webhooks_router
 from app.api.whatsapp_api import router as whatsapp_api_router
+from app.api.promotions import router as promotions_router
 from app.config import get_settings
 from app.db.availability_seed import AVAILABILITY_SEED
 from app.db.client import database
@@ -249,6 +250,8 @@ def create_app() -> FastAPI:
     app.include_router(admin_emails_router, prefix=settings.api_prefix)
     # QuickPress WhatsApp Cloud API & Multi-Channel SMS Gateway
     app.include_router(whatsapp_api_router)
+    # QuickPress Dynamic Promotions, Stories & Banners CMS
+    app.include_router(promotions_router, prefix=settings.api_prefix)
     # Sprint 5.6 (P0 #2): production payment rails. Registered AFTER the legacy
     # Sprint 2.10 routers so existing paths (/payments, /refunds, /wallet,
     # /partner/earnings, /rider/earnings) keep their current handlers; only the

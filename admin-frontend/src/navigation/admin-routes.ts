@@ -43,11 +43,13 @@ export const adminRoutes = {
   support: "/support",
   staff: "/staff",
   settings: "/settings",
+  promotions: "/promotions",
 } as const;
 
 export const adminNavItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: adminRoutes.dashboard },
   { id: "crm", label: "Enterprise CRM & Geo", icon: Compass, to: adminRoutes.crm },
+  { id: "promotions", label: "Promotions & Stories", icon: Sparkles, to: adminRoutes.promotions },
   { id: "orders", label: "Orders", icon: ClipboardList, to: adminRoutes.orders },
   { id: "customers", label: "Customers", icon: Users, to: adminRoutes.customers },
   { id: "partners", label: "Partners", icon: Building2, to: adminRoutes.partners },
