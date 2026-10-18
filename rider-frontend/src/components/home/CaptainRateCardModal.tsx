@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
+import { App } from "@capacitor/app";
 import { X, CheckCircle2, ShieldCheck, Zap, Info, IndianRupee } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
 
@@ -11,16 +13,44 @@ export const CaptainRateCardModal: React.FC<CaptainRateCardModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  // Handle Mobile Hardware / Gesture Back Button
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePopState = () => {
+      onClose();
+    };
+    window.addEventListener("popstate", handlePopState);
+    window.history.pushState({ modal: "rate-card" }, "");
+
+    let backHandler: any = null;
+    void App.addListener("backButton", () => {
+      triggerHaptic(20);
+      onClose();
+    })
+      .then((handle) => {
+        backHandler = handle;
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (backHandler && typeof backHandler.remove === "function") {
+        backHandler.remove();
+      }
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
       <div
-        className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[90vh] flex flex-col"
+        className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-zinc-200 overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-150 bg-slate-50/80">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-150 bg-slate-50/80 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center size-8 rounded-xl bg-blue-100 text-blue-700 font-black">
               <IndianRupee className="size-4.5 stroke-[2.5]" />
@@ -108,15 +138,18 @@ export const CaptainRateCardModal: React.FC<CaptainRateCardModalProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-zinc-200 bg-white">
+        {/* Footer (Elevated Above Mobile Navigation Bar) */}
+        <div
+          className="p-4 border-t border-zinc-200 bg-white shrink-0"
+          style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 32px)" }}
+        >
           <button
             type="button"
             onClick={() => {
               triggerHaptic(20);
               onClose();
             }}
-            className="w-full py-3 bg-zinc-950 hover:bg-zinc-900 text-white rounded-xl font-black text-xs active:scale-98 transition-all cursor-pointer shadow-md"
+            className="w-full py-3.5 bg-zinc-950 hover:bg-zinc-900 text-white rounded-xl font-black text-sm active:scale-98 transition-all cursor-pointer shadow-md"
           >
             Got it, Captain
           </button>
@@ -124,4 +157,6 @@ export const CaptainRateCardModal: React.FC<CaptainRateCardModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 };

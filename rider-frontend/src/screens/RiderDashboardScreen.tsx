@@ -260,7 +260,6 @@ export function RiderDashboardScreen() {
       await new Promise((r) => setTimeout(r, 750));
       setIsGoingOffDutyModal(false);
       setOnline(false);
-      toast.success("Captain is OFF DUTY 🔴");
 
       // 2. Location Updating Dialog (Video 00:47 - 00:58 Match)
       setIsLocationUpdatingModal(true);
@@ -272,7 +271,6 @@ export function RiderDashboardScreen() {
       playDutyToggleSound(true);
       speakDutyStatus(true);
       setOnline(true);
-      toast.success("Captain is ON DUTY 🟢");
 
       try {
         await updateRiderStatus(true);
@@ -291,7 +289,6 @@ export function RiderDashboardScreen() {
         onLogout={() => {
           setIsDrawerOpen(false);
           signOut();
-          toast.success("Logged out successfully. See you soon, Captain! 🛵");
           navigate({ to: "/auth" });
         }}
         onOpenLanguage={() => {
@@ -326,9 +323,6 @@ export function RiderDashboardScreen() {
           todayDeliveries={todayDeliveries}
           captainName={captainName}
           onGoOnline={() => handleToggleDuty(true)}
-          onOpenWorkZoneInfo={() =>
-            toast.info("Kasganj Work Zone active with ₹20 bonus per trip!")
-          }
         />
       ) : (
         // Online Rapido Captain Full-Bleed Map View
@@ -341,13 +335,7 @@ export function RiderDashboardScreen() {
           onOpenOrders={() => navigate({ to: "/orders" })}
           onRecenter={() => {
             window.dispatchEvent(new CustomEvent("qp:recenter_rider_map"));
-            if (currentCoords) {
-              toast.info("Map centered at live location 📍");
-            }
           }}
-          onOpenWorkZoneInfo={() =>
-            toast.info("Kasganj Work Zone active with ₹20 bonus per trip!")
-          }
         />
       )}
 

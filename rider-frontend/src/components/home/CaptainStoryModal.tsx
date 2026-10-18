@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
+import { App } from "@capacitor/app";
 import {
   X,
   ChevronLeft,
@@ -15,7 +17,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
-import { toast } from "sonner";
 import {
   type RiderStoryItem,
   FALLBACK_RIDER_STORIES,
@@ -65,6 +66,36 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
     }
   }, [isOpen, initialIndex, stories.length]);
 
+  // Handle Mobile Hardware / Gesture Back Button
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Popstate fallback for browser/PWA gesture
+    const handlePopState = () => {
+      onClose();
+    };
+    window.addEventListener("popstate", handlePopState);
+    window.history.pushState({ modal: "captain-story" }, "");
+
+    // Native Capacitor Android Back Button Interception
+    let backHandler: any = null;
+    void App.addListener("backButton", () => {
+      triggerHaptic(20);
+      onClose();
+    })
+      .then((handle) => {
+        backHandler = handle;
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (backHandler && typeof backHandler.remove === "function") {
+        backHandler.remove();
+      }
+    };
+  }, [isOpen, onClose]);
+
   const currentStory = stories[currentIndex] || stories[0] || FALLBACK_RIDER_STORIES[0];
 
   // Auto-advance progress
@@ -111,7 +142,7 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
   };
 
   const handleActionClick = () => {
-    triggerHaptic(40);
+    triggerHaptic(35);
     const action = currentStory.ctaAction || "";
     const type = currentStory.actionType;
 
@@ -121,7 +152,6 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
         navigator.share({ title: currentStory.title, text });
       } else {
         navigator.clipboard?.writeText(text);
-        toast.success("Link copied to clipboard! 📋");
       }
       return;
     }
@@ -133,7 +163,6 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
       type === "external_link"
     ) {
       window.open(action, "_blank");
-      toast.info("Opening link in browser 🌐");
       return;
     }
 
@@ -148,17 +177,17 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 select-none animate-in fade-in duration-200">
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 select-none animate-in fade-in duration-200">
       {/* Story Player Container (Mobile Aspect Ratio) */}
       <div
-        className="relative w-full max-w-md h-full sm:h-[90vh] sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between"
+        className="relative w-full max-w-md h-full sm:h-[92vh] sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between"
         onMouseDown={() => setIsPaused(true)}
         onMouseUp={() => setIsPaused(false)}
         onTouchStart={() => setIsPaused(true)}
         onTouchEnd={() => setIsPaused(false)}
       >
-        {/* Animated Background */}
+        {/* Animated Gradient Background */}
         <div
           className={`absolute inset-0 bg-gradient-to-b ${
             currentStory.gradient || "from-blue-700 via-indigo-900 to-black"
@@ -168,9 +197,12 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
         {/* Ambient Overlay & Particles */}
         <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
 
-        {/* TOP CONTROLS: PROGRESS BARS & HEADER */}
-        <div className="relative z-20 pt-4 px-4 pb-2 space-y-3">
-          {/* Segmented Progress Bars (Instagram Style) */}
+        {/* TOP CONTROLS: PROGRESS BARS & HEADER (Safe Area Fixed for Notches & Camera Cutouts) */}
+        <div
+          className="relative z-20 px-4 pb-2 space-y-3"
+          style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 18px), 52px)" }}
+        >
+          {/* Segmented Progress Bars (Instagram Style - Silky 60fps) */}
           <div className="flex items-center gap-1.5 w-full">
             {stories.map((s, idx) => (
               <div
@@ -178,7 +210,7 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
                 className="flex-1 h-1.5 rounded-full bg-white/30 overflow-hidden"
               >
                 <div
-                  className="h-full bg-white transition-all duration-75"
+                  className="h-full bg-white transition-[width] duration-75 ease-linear"
                   style={{
                     width:
                       idx < currentIndex
@@ -194,7 +226,7 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
 
           {/* Top Bar: Brand, Badge, and Close Button */}
           <div className="flex items-center justify-between text-white pt-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <span className="size-8 rounded-full bg-white/20 flex items-center justify-center text-base backdrop-blur-md overflow-hidden">
                 {currentStory.imageUrl ? (
                   <img
@@ -226,7 +258,7 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
                 triggerHaptic(20);
                 onClose();
               }}
-              className="size-9 rounded-full bg-black/40 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md border border-white/20"
+              className="size-9 rounded-full bg-black/40 hover:bg-black/60 active:scale-90 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md border border-white/20"
               aria-label="Close Story"
             >
               <X className="size-5 stroke-[2.5]" />
@@ -249,8 +281,8 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
           />
         </div>
 
-        {/* CENTER CONTENT: VIDEO / ANIMATED CARD */}
-        <div className="relative z-20 px-6 py-4 flex flex-col items-center text-center space-y-4 my-auto pointer-events-none">
+        {/* CENTER CONTENT: ANIMATED CARD WITH SMOOTH TRANSITION */}
+        <div className="relative z-20 px-6 py-4 flex flex-col items-center text-center space-y-4 my-auto pointer-events-none animate-in fade-in zoom-in-95 duration-200">
           {/* 3D Animated Hero Icon / Image Box */}
           <div className="relative size-24 rounded-3xl bg-white/15 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-2xl animate-bounce duration-1000 overflow-hidden">
             {currentStory.imageUrl ? (
@@ -288,12 +320,15 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
           )}
         </div>
 
-        {/* BOTTOM ACTION CTA BUTTON */}
-        <div className="relative z-20 p-5 space-y-2 pb-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+        {/* BOTTOM ACTION CTA BUTTON (Elevated above navigation bar) */}
+        <div
+          className="relative z-20 px-5 pt-3 space-y-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent"
+          style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 36px)" }}
+        >
           <button
             type="button"
             onClick={handleActionClick}
-            className="w-full py-3.5 px-6 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-98 text-zinc-950 font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+            className="w-full py-3.5 px-6 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-zinc-950 font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
             <span>{currentStory.ctaText || "Learn More ➔"}</span>
           </button>
@@ -304,4 +339,6 @@ export const CaptainStoryModal: React.FC<CaptainStoryModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 };

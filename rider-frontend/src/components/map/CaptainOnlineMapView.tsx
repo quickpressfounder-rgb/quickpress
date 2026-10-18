@@ -81,6 +81,41 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   const [isGoToActive, setIsGoToActive] = useState(false);
   const [onlineMinutesElapsed, setOnlineMinutesElapsed] = useState(1);
 
+  // Swipe / Scroll gesture support for bottom sheet drawer (open / close on swipe)
+  const drawerTouchStartYRef = useRef<number | null>(null);
+  const drawerTouchEndYRef = useRef<number | null>(null);
+
+  const handleDrawerTouchStart = (e: React.TouchEvent) => {
+    drawerTouchStartYRef.current = e.touches[0].clientY;
+    drawerTouchEndYRef.current = e.touches[0].clientY;
+  };
+
+  const handleDrawerTouchMove = (e: React.TouchEvent) => {
+    drawerTouchEndYRef.current = e.touches[0].clientY;
+  };
+
+  const handleDrawerTouchEnd = () => {
+    if (drawerTouchStartYRef.current === null || drawerTouchEndYRef.current === null) return;
+    const deltaY = drawerTouchEndYRef.current - drawerTouchStartYRef.current;
+    if (deltaY < -35 && !isDrawerExpanded) {
+      triggerHaptic(20);
+      setIsDrawerExpanded(true);
+    } else if (deltaY > 35 && isDrawerExpanded) {
+      triggerHaptic(20);
+      setIsDrawerExpanded(false);
+    }
+    drawerTouchStartYRef.current = null;
+    drawerTouchEndYRef.current = null;
+  };
+
+  const handleDrawerWheel = (e: React.WheelEvent) => {
+    if (e.deltaY < -15 && !isDrawerExpanded) {
+      setIsDrawerExpanded(true);
+    } else if (e.deltaY > 15 && isDrawerExpanded) {
+      setIsDrawerExpanded(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => {
       setOnlineMinutesElapsed((m) => m + 1);
@@ -284,7 +319,6 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           onClick={() => {
             triggerHaptic(40);
             if (onRecenter) onRecenter();
-            toast.info("Map centered at live location 📍");
           }}
           className="flex size-11 items-center justify-center rounded-full bg-white shadow-lg border border-zinc-200 text-blue-600 active:scale-90 transition-transform cursor-pointer"
           title="Recenter on Captain"
@@ -308,26 +342,31 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         </button>
       </div>
 
-      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Video 00:07, 00:23 Match) */}
+      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Video 00:07, 00:23 Match - Supports Swipe/Scroll Gestures) */}
       <div
+        onTouchStart={handleDrawerTouchStart}
+        onTouchMove={handleDrawerTouchMove}
+        onTouchEnd={handleDrawerTouchEnd}
+        onWheel={handleDrawerWheel}
         className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
           isDrawerExpanded ? "h-[82vh] overflow-y-auto" : "h-[215px] overflow-hidden"
         } pb-20 pt-1.5`}
       >
-        {/* Drag Handle Chevron */}
+        {/* Drag Handle Capsule & Chevron */}
         <button
           type="button"
           onClick={() => {
             triggerHaptic(20);
             setIsDrawerExpanded((prev) => !prev);
           }}
-          className="w-full flex items-center justify-center py-1 text-zinc-400 hover:text-zinc-700 active:scale-95 transition-all cursor-pointer"
+          className="w-full flex flex-col items-center justify-center py-1.5 text-zinc-400 hover:text-zinc-700 active:scale-95 transition-all cursor-pointer"
           aria-label="Toggle Drawer"
         >
+          <div className="w-10 h-1 rounded-full bg-zinc-300 mb-0.5" />
           {isDrawerExpanded ? (
-            <ChevronDown className="size-5 stroke-[2.5]" />
+            <ChevronDown className="size-4.5 stroke-[2.5]" />
           ) : (
-            <ChevronUp className="size-5 stroke-[2.5]" />
+            <ChevronUp className="size-4.5 stroke-[2.5]" />
           )}
         </button>
 

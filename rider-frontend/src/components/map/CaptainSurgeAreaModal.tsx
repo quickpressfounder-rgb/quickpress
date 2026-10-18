@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { App } from "@capacitor/app";
 import { ArrowLeft, AlertCircle, Flame, Sparkles } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
-import { toast } from "sonner";
 
 interface CaptainSurgeAreaModalProps {
   isOpen: boolean;
@@ -15,10 +16,38 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
 }) => {
   const [isSurgeEnabled, setIsSurgeEnabled] = useState(false);
 
+  // Handle Mobile Hardware / Gesture Back Button
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePopState = () => {
+      onClose();
+    };
+    window.addEventListener("popstate", handlePopState);
+    window.history.pushState({ modal: "surge-area" }, "");
+
+    let backHandler: any = null;
+    void App.addListener("backButton", () => {
+      triggerHaptic(20);
+      onClose();
+    })
+      .then((handle) => {
+        backHandler = handle;
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (backHandler && typeof backHandler.remove === "function") {
+        backHandler.remove();
+      }
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-zinc-900 select-none animate-in fade-in duration-200">
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-slate-100 text-zinc-900 select-none animate-in fade-in duration-200">
       {/* Top Floating Back Button (Video 00:26 Match) */}
       <div
         className="absolute top-4 left-4 z-20 pointer-events-auto"
@@ -54,7 +83,6 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
           <path d="M-50 120 Q 150 180 320 160 T 500 240" stroke="#FFFFFF" strokeWidth="8" fill="none" opacity="0.9" />
           <path d="M120 -50 Q 160 200 220 400 T 260 700" stroke="#FFFFFF" strokeWidth="10" fill="none" opacity="0.9" />
           <path d="M220 400 L 450 360" stroke="#FFFFFF" strokeWidth="6" fill="none" opacity="0.9" />
-          {/* Subtle river line */}
           <path d="M-20 300 Q 180 280 400 480" stroke="#BFDBFE" strokeWidth="14" fill="none" opacity="0.7" />
         </svg>
 
@@ -72,7 +100,7 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
       {/* Bottom Sheet Card (Exact Match to Reference Video 00:26 - 00:28) */}
       <div
         className="relative z-20 w-full bg-white rounded-t-3xl border-t border-zinc-200 shadow-2xl p-5 space-y-4"
-        style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 20px), 28px)" }}
+        style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 32px)" }}
       >
         {/* Surge Fare Area Row with Toggle Switch */}
         <div className="flex items-center justify-between">
@@ -91,13 +119,7 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
             type="button"
             onClick={() => {
               triggerHaptic(30);
-              const next = !isSurgeEnabled;
-              setIsSurgeEnabled(next);
-              if (next) {
-                toast.success("Surge zones alert enabled!");
-              } else {
-                toast.info("Surge alerts paused.");
-              }
+              setIsSurgeEnabled((prev) => !prev);
             }}
             className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
               isSurgeEnabled ? "bg-emerald-500" : "bg-zinc-300"
@@ -119,4 +141,6 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 };

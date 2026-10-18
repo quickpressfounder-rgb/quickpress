@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { App } from "@capacitor/app";
 import { ArrowLeft, Heart, Info, Trash2, Plus, MapPin, X } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
-import { toast } from "sonner";
 
 interface CaptainGoToAreaModalProps {
   isOpen: boolean;
@@ -22,6 +23,42 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
     "Kasganj Junction, Railway Colony",
   ]);
 
+  // Handle Mobile Hardware / Gesture Back Button
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePopState = () => {
+      if (showConfirmPopup) {
+        setShowConfirmPopup(false);
+      } else {
+        onClose();
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    window.history.pushState({ modal: "goto-area" }, "");
+
+    let backHandler: any = null;
+    void App.addListener("backButton", () => {
+      triggerHaptic(20);
+      if (showConfirmPopup) {
+        setShowConfirmPopup(false);
+      } else {
+        onClose();
+      }
+    })
+      .then((handle) => {
+        backHandler = handle;
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (backHandler && typeof backHandler.remove === "function") {
+        backHandler.remove();
+      }
+    };
+  }, [isOpen, showConfirmPopup, onClose]);
+
   if (!isOpen) return null;
 
   const handleToggle = () => {
@@ -30,7 +67,6 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
       setShowConfirmPopup(true);
     } else {
       onToggleActive(false);
-      toast.info("Go To Area route filter disabled.");
     }
   };
 
@@ -38,12 +74,11 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
     triggerHaptic(40);
     setShowConfirmPopup(false);
     onToggleActive(true);
-    toast.success("Go To Area activated for 45 minutes!");
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white text-zinc-900 select-none animate-in fade-in duration-200">
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-white text-zinc-900 select-none animate-in fade-in duration-200">
       {/* Top Header Bar (Video 00:31 Match) */}
       <header
         className="flex items-center gap-3 px-4 pb-3 border-b border-zinc-200 bg-white"
@@ -71,14 +106,10 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
               <h2 className="text-sm font-black text-zinc-900 leading-snug">
                 Get orders to your home or anywhere you want to go
               </h2>
-              <button
-                type="button"
-                onClick={() => toast.info("Filter dispatches specifically towards your return journey home.")}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-800"
-              >
+              <div className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600">
                 <Info className="size-3" />
                 <span>Know more</span>
-              </button>
+              </div>
             </div>
             <div className="flex size-11 items-center justify-center rounded-full bg-rose-100 text-rose-500 shrink-0 shadow-xs">
               <Heart className="size-6 fill-rose-500 text-rose-500" />
@@ -107,7 +138,6 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
                   onClick={() => {
                     triggerHaptic(20);
                     setSavedAreas((prev) => prev.filter((_, i) => i !== idx));
-                    toast.info("Area removed from saved list.");
                   }}
                   className="flex items-center gap-1 text-[11px] font-bold text-zinc-500 hover:text-rose-600 cursor-pointer"
                 >
@@ -138,15 +168,14 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
       {/* Bottom Button */}
       <div
         className="p-4 border-t border-zinc-200 bg-white"
-        style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 16px), 20px)" }}
+        style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 32px)" }}
       >
         <button
           type="button"
           onClick={() => {
             triggerHaptic(25);
-            toast.info("Tap on map to add custom Kasganj destination.");
           }}
-          className="w-full py-3 rounded-xl border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-900 font-black text-xs active:scale-98 transition-all cursor-pointer shadow-2xs"
+          className="w-full py-3.5 rounded-xl border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-900 font-black text-xs active:scale-98 transition-all cursor-pointer shadow-2xs"
         >
           Add new area
         </button>
@@ -154,10 +183,11 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
 
       {/* 45-Minute Confirmation Modal (Exact Match to Reference Video 00:32 - 00:33) */}
       {showConfirmPopup && (
-        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
           <div
             className="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 text-center space-y-4 animate-in slide-in-from-bottom duration-300"
             onClick={(e) => e.stopPropagation()}
+            style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 32px)" }}
           >
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-rose-100 text-rose-500 shadow-sm">
               <Heart className="size-8 fill-rose-500 text-rose-500" />
@@ -174,7 +204,7 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
             <button
               type="button"
               onClick={handleConfirmOn}
-              className="w-full py-3 bg-[#FFC107] hover:bg-[#FFB300] text-zinc-950 font-black text-sm rounded-xl active:scale-98 transition-all cursor-pointer shadow-md"
+              className="w-full py-3.5 bg-[#FFC107] hover:bg-[#FFB300] text-zinc-950 font-black text-sm rounded-xl active:scale-98 transition-all cursor-pointer shadow-md"
             >
               OK
             </button>
@@ -191,4 +221,6 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
       )}
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 };

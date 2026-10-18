@@ -41,7 +41,6 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
     triggerHaptic(30);
     const next = toggleAudioMuted();
     setMuted(next);
-    toast.info(next ? "Audio Alerts Muted 🔇" : "Audio Alerts Active 🔊");
   };
 
   const handleDutyClick = () => {
