@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bike, Sparkles } from "lucide-react";
 import { readSession } from "../api/core/session-store";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 
@@ -29,7 +28,7 @@ function RiderSplashScreen() {
   useEffect(() => {
     let cancelled = false;
 
-    // Check rider session after smooth 650ms visual splash
+    // Check rider session after smooth 850ms visual splash
     const timer = setTimeout(() => {
       if (cancelled) return;
       if (typeof window === "undefined") return;
@@ -55,7 +54,7 @@ function RiderSplashScreen() {
       } else {
         navigate({ to: "/auth", replace: true });
       }
-    }, 650);
+    }, 850);
 
     return () => {
       cancelled = true;
@@ -64,49 +63,56 @@ function RiderSplashScreen() {
   }, [navigate]);
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-white px-6 select-none font-sans text-slate-950">
-      {/* Background Subtle Ambient Glow */}
-      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl pointer-events-none" />
+    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-white px-6 select-none font-sans text-zinc-950">
+      {/* Background Subtle Ambient Aura */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-200/25 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-100/30 rounded-full blur-3xl pointer-events-none" />
 
+      {/* Main Brand & Tagline Stage */}
       <div
-        className="relative flex flex-col items-center text-center transition-all duration-500 ease-out"
+        className="relative flex flex-col items-center text-center transition-all duration-700 ease-out"
         style={{
           opacity: visible ? 1 : 0,
-          transform: visible ? "scale(1)" : "scale(0.94)",
+          transform: visible ? "scale(1)" : "scale(0.96)",
         }}
       >
-        {/* Yellow Visual Brand Icon Container */}
-        <div className="relative mb-5 flex size-20 sm:size-24 items-center justify-center rounded-3xl bg-amber-400 text-slate-950 shadow-xl shadow-amber-400/30">
-          <Bike className="size-11 sm:size-13 stroke-[2.4]" />
-          <span className="absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-full bg-slate-950 text-amber-400 border-2 border-white shadow-xs">
-            <Sparkles className="size-3.5 fill-current" />
+        {/* Brand Name Only (Logo Removed per User Request) */}
+        <h1 className="splash-reveal relative text-5xl sm:text-6xl font-black tracking-[-0.04em] leading-none select-none text-zinc-950 flex items-center justify-center">
+          <span>Quick</span>
+          <span className="text-amber-500 ml-0.5">Press</span>
+        </h1>
+
+        {/* Small Font "Captain" Sub-Brand Badge (User Request) */}
+        <div className="splash-badge-reveal mt-3.5 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-zinc-950 text-amber-400 border border-zinc-800 shadow-md">
+          <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className="text-xs sm:text-[13px] font-black tracking-[0.22em] uppercase">
+            Captain
           </span>
         </div>
 
-        {/* Brand Name */}
-        <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-950 flex items-center justify-center">
-          <span>Quick</span>
-          <span className="text-amber-500">Press</span>
-        </h1>
-
-        {/* Subtitle Badge */}
-        <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-extrabold text-[11px] tracking-wider uppercase border border-slate-200/90 shadow-2xs">
-          <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse" />
-          <span>Captain · Delivery Partner</span>
+        {/* Catchy Inspiring Tagline (User Request) */}
+        <div className="splash-tagline-reveal mt-5 flex flex-col items-center space-y-2 max-w-xs">
+          <p className="text-sm sm:text-base font-bold text-zinc-800 tracking-tight">
+            Ride With Pride · Deliver With Speed
+          </p>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-bold text-emerald-800">
+            <span className="size-1 rounded-full bg-emerald-600" />
+            <span>0% Commission · Instant Daily Settlements</span>
+          </div>
         </div>
 
-        {/* Minimal Animated Loading Bar */}
-        <div className="mt-8 w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/80">
-          <div className="h-full w-1/2 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
+        {/* Minimal Smooth Glowing Loading Bar */}
+        <div className="splash-tagline-reveal mt-8 h-1.5 w-32 overflow-hidden rounded-full bg-zinc-100 border border-zinc-200/80 shadow-2xs">
+          <div className="splash-bar-sweep h-full w-1/2 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 rounded-full" />
         </div>
       </div>
 
-      {/* Bottom Tagline */}
+      {/* Bottom Sub-Tagline */}
       <p
-        className="absolute bottom-10 text-[10.5px] font-bold uppercase tracking-[0.25em] text-slate-400 transition-opacity delay-200 duration-700"
+        className="absolute bottom-10 text-[11px] font-bold uppercase tracking-[0.24em] text-zinc-400 transition-opacity duration-700"
         style={{ opacity: visible ? 1 : 0 }}
       >
-        Fastest Hyperlocal Garment Care
+        India's #1 On-Demand Garment Care Fleet 🇮🇳
       </p>
     </main>
   );
