@@ -212,7 +212,11 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
       {/* 2. FLOATING MAP CONTROLS (Screenshot 3 Match) */}
       {/* Left Edge: Surge, Go to, ... Pills */}
-      <div className="absolute bottom-[240px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none">
+      <div
+        className={`absolute bottom-[170px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none transition-all duration-300 ${
+          isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
+        }`}
+      >
         {/* Surge Pill */}
         <button
           type="button"
@@ -255,7 +259,11 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
       </div>
 
       {/* Right Edge: Recenter & SOS Siren Buttons */}
-      <div className="absolute bottom-[240px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none">
+      <div
+        className={`absolute bottom-[170px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none transition-all duration-300 ${
+          isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
+        }`}
+      >
         {/* Blue Crosshair / Recenter Button */}
         <button
           type="button"
@@ -289,8 +297,8 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
       {/* 3. RAPIDO BOTTOM SHEET DRAWER (Matching Uploaded Screenshot) */}
       <div
         className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
-          isDrawerExpanded ? "max-h-[82vh]" : "max-h-[50vh]"
-        } pb-20 pt-2`}
+          isDrawerExpanded ? "h-[82vh] overflow-y-auto" : "h-[155px] overflow-hidden"
+        } pb-20 pt-1.5`}
       >
         {/* Drag Handle Chevron */}
         <button
@@ -310,7 +318,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         </button>
 
         {/* Scrollable Drawer Content */}
-        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 px-4 pb-6">
+        <div className={`flex-1 ${isDrawerExpanded ? "overflow-y-auto" : "overflow-hidden"} no-scrollbar space-y-4 px-4 pb-6`}>
           {/* Dynamic Story / Highlight Bubbles Row (Horizontal Scroll) */}
           <div className="flex items-start gap-4 overflow-x-auto no-scrollbar pt-1 pb-1">
             {stories.map((story, sIdx) => (

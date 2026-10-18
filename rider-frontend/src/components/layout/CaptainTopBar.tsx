@@ -47,7 +47,7 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
       {/* 1. Main White Header Bar */}
       <header
         className="flex items-center justify-between px-3.5 pb-2.5 bg-white border-b border-zinc-200/70"
-        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 10px), 44px)" }}
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 14px), 52px)" }}
       >
         {/* Left: Hamburger Menu */}
         <button

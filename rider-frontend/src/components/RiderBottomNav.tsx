@@ -32,35 +32,7 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount }: Rider
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [liveOrdersCount, setLiveOrdersCount] = useState<number>(ordersBadgeCount ?? 0);
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
-
-  // Auto-hide bottom nav on scroll down, show on scroll up
-  useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
-          const diff = currentScrollY - lastScrollY.current;
-
-          // If scrolled down by more than 6px and past 30px from top -> hide
-          if (diff > 6 && currentScrollY > 30) {
-            setIsVisible(false);
-          } else if (diff < -6 || currentScrollY <= 20) {
-            // Scrolled up or at top -> show
-            setIsVisible(true);
-          }
-          lastScrollY.current = Math.max(0, currentScrollY);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const [isVisible] = useState(true);
 
   // Sync or fetch live pending orders count with Socket.IO subscription
   useEffect(() => {

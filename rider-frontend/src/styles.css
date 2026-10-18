@@ -395,7 +395,7 @@ button, a, [role="button"] {
 }
 
 .pt-safe {
-  padding-top: max(calc(env(safe-area-inset-top, 0px) + 0.75rem), 2.75rem);
+  padding-top: max(calc(env(safe-area-inset-top, 0px) + 0.875rem), 3.25rem);
 }
 
 .pb-safe {

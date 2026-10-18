@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import {
+  AlertCircle,
   Bike,
   CheckCircle2,
   ChevronRight,
@@ -79,6 +80,8 @@ export interface OrderOfferItem {
   expressFee?: number;
   riderExpressBonus?: number;
   expressRiderSharePercent?: number;
+  isMissed?: boolean;
+  missedReason?: string;
 }
 
 const ACTIVE_ORDER_STORAGE_KEY = "qp_active_rider_order";
@@ -284,15 +287,21 @@ export function RiderOrdersScreen() {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          loadOffers(true);
-          return 900;
+          setOffers((current) =>
+            current.map((o, idx) =>
+              idx === 0 && !o.isMissed
+                ? { ...o, isMissed: true, missedReason: "Sorry, this order was accepted by another captain." }
+                : o
+            )
+          );
+          return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [offers[0]?.id, Boolean(activeOrder)]);
+  }, [offers[0]?.id, offers[0]?.isMissed, Boolean(activeOrder)]);
 
   // Real-time Socket.IO subscription for order lifecycle updates
   useEffect(() => {
@@ -301,27 +310,34 @@ export function RiderOrdersScreen() {
       const ev = eventData?.event || eventData?.type;
       const targetOrderId = eventData?.orderId || eventData?.order?._id;
 
-      if (
+      if (ev === "ride.claimed") {
+        if (targetOrderId) {
+          setOffers((prev) =>
+            prev.map((o) =>
+              o.orderId === targetOrderId || o.id === targetOrderId
+                ? { ...o, isMissed: true, missedReason: "Sorry, this order was accepted by another captain." }
+                : o
+            )
+          );
+        }
+      } else if (
         ev === "order.cancelled" ||
         ev === "rider.ride_cancelled" ||
         ev === "order.delivered" ||
-        ev === "order.completed" ||
-        ev === "ride.claimed"
+        ev === "order.completed"
       ) {
         if (targetOrderId) {
           setOffers((prev) => prev.filter((o) => o.orderId !== targetOrderId && o.id !== targetOrderId));
-          if (ev !== "ride.claimed") {
-            setActiveOrder((prev) => {
-              if (prev && (prev.orderId === targetOrderId || prev.id === targetOrderId)) {
-                try {
-                  localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
-                  localStorage.removeItem("qp_active_delivery_order");
-                } catch {}
-                return null;
-              }
-              return prev;
-            });
-          }
+          setActiveOrder((prev) => {
+            if (prev && (prev.orderId === targetOrderId || prev.id === targetOrderId)) {
+              try {
+                localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+                localStorage.removeItem("qp_active_delivery_order");
+              } catch {}
+              return null;
+            }
+            return prev;
+          });
         }
       }
 
@@ -577,6 +593,12 @@ export function RiderOrdersScreen() {
     }
   };
 
+  // Handle Dismiss Missed Order
+  const handleDismissMissed = (offer: OrderOfferItem) => {
+    triggerHaptic(20);
+    setOffers((prev) => prev.filter((o) => o.id !== offer.id));
+  };
+
   // Open Google Maps Road Turn-by-Turn Navigation for Offer
   const handleOpenGoogleMaps = (offer: OrderOfferItem) => {
     triggerHaptic(40);
@@ -627,84 +649,59 @@ export function RiderOrdersScreen() {
   const totalOrders = offers.length;
 
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-zinc-50/50 shadow-2xl overflow-y-auto text-zinc-900 select-none pb-24">
-      {/* 1. Sticky Header with Live Orders Title */}
+    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F9FAFB] shadow-2xl overflow-y-auto text-zinc-900 select-none pb-24">
+      {/* 1. Clean Top Header (Screenshot 3 & 4 Match) */}
       <div
-        className="sticky top-0 z-30 px-4 pb-3 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-2xs"
-        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
+        className="sticky top-0 z-30 px-5 pb-3 bg-white border-b border-zinc-200/80 shadow-2xs"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 14px), 52px)" }}
       >
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-black text-zinc-900 tracking-tight flex items-center gap-2">
-              <span>{t("orders.liveQueue", "Live Order Queue")}</span>
-              {totalOrders > 0 ? (
-                <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
-              ) : (
-                <span className="flex size-2 rounded-full bg-zinc-300" />
-              )}
-            </h1>
-            <p className="text-[11px] font-medium text-zinc-500">
-              {totalOrders > 0
-                ? `${totalOrders} active order${totalOrders > 1 ? "s" : ""} available for dispatch`
-                : t("orders.waitingNotice", "Stay in your Work Zone to receive instant dispatches")}
-            </p>
-          </div>
+          <h1 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">
+            {totalOrders} Order{totalOrders !== 1 ? "s" : ""}
+          </h1>
 
-          <div className="flex items-center gap-2">
-
-            {totalOrders > 0 && (
-              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-black text-emerald-800">
-                {totalOrders}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => loadOffers()}
-              disabled={isLoading}
-              className="flex size-8.5 items-center justify-center text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
-              title="Refresh Queue"
-            >
-              <RotateCw
-                className={`size-4 ${isLoading ? "animate-spin text-emerald-600" : ""}`}
-              />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => loadOffers()}
+            disabled={isLoading}
+            className="flex size-8 items-center justify-center text-zinc-500 hover:text-zinc-950 rounded-lg active:scale-95 transition-all cursor-pointer"
+            title="Refresh Orders"
+          >
+            <RotateCw className={`size-4 ${isLoading ? "animate-spin text-zinc-900" : ""}`} />
+          </button>
         </div>
       </div>
 
+      {/* 2. Top "Go To" Pill Button (Screenshot 3 & 4 Match) */}
+      <div className="px-5 pt-3 pb-1">
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            toast.info("Set Preferred Destination: Receive rides on your route home 🛵");
+          }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs text-xs font-bold text-zinc-800 active:scale-95 transition-all cursor-pointer"
+        >
+          <MapPin className="size-3.5 fill-zinc-900 text-zinc-900" />
+          <span>Go To</span>
+        </button>
+      </div>
 
-
-      {/* 2. Active Trip In-Progress Card (Shown when HUD is minimized) */}
+      {/* 3. Active Trip In-Progress Card (Shown when HUD is minimized) */}
       {activeOrder && (
-        <div className="px-3.5 pt-3">
+        <div className="px-4 pt-2">
           <div
             onClick={() => setIsHudMinimized(false)}
-            className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 text-white shadow-lg shadow-emerald-700/20 border-2 border-emerald-400/40 flex items-center justify-between cursor-pointer active:scale-98 transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+            className="p-3.5 rounded-2xl bg-zinc-900 text-white border border-zinc-700 shadow-md flex items-center justify-between cursor-pointer active:scale-98 transition-all"
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/20 text-xl shadow-inner">
-                <span>🛵</span>
-                <span className="absolute -top-1 -right-1 size-3 rounded-full bg-amber-400 ring-2 ring-emerald-600 animate-ping" />
-              </div>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-lg">🛵</span>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black tracking-wide uppercase bg-white/20 px-2 py-0.5 rounded-full">
-                    {activeOrder.rideType === "delivery" ? "Delivery In Progress" : "Trip Active"}
-                  </span>
-                  <span className="text-xs font-black text-amber-200">
-                    #{activeOrder.orderCode}
-                  </span>
-                </div>
-                <h4 className="text-sm font-black mt-0.5 leading-snug truncate">
-                  {activeOrder.customerName || "Customer"} · ₹{activeOrder.fare.toFixed(2)}
-                </h4>
-                <p className="text-[11px] font-medium text-emerald-100 truncate">
-                  {activeOrder.dropTitle || activeOrder.pickupTitle || activeOrder.dropAddress || "Trip in progress"}
-                </p>
+                <p className="text-xs font-black truncate">Active Trip #{activeOrder.orderCode}</p>
+                <p className="text-[11px] text-zinc-400 truncate">{activeOrder.dropTitle || activeOrder.dropAddress}</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={(e) => {
@@ -712,8 +709,7 @@ export function RiderOrdersScreen() {
                   handleTripEnd();
                   toast.info(`Trip #${activeOrder.orderCode || ""} dismissed.`);
                 }}
-                className="px-2.5 py-1.5 bg-white/20 hover:bg-rose-500/80 text-white font-bold text-xs rounded-xl active:scale-95 transition-all"
-                title="Dismiss or Clear Order"
+                className="px-2 py-1 bg-zinc-800 hover:bg-rose-900/60 text-zinc-300 text-xs font-bold rounded-lg"
               >
                 Clear
               </button>
@@ -723,223 +719,153 @@ export function RiderOrdersScreen() {
                   e.stopPropagation();
                   setIsHudMinimized(false);
                 }}
-                className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-950 font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center gap-1"
+                className="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-xs rounded-lg flex items-center gap-1"
               >
-                <span>Resume</span>
-                <span>➔</span>
+                Resume ➔
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* 4. Orders List or Clean Empty State */}
       {totalOrders > 0 ? (
-        <div className="flex-1 px-3.5 py-3 space-y-3.5">
-          {offers.map((offer, idx) => {
-            const isTop = idx === 0;
-            const isDelivery =
-              offer.rideType === "delivery" ||
-              offer.type === "delivery" ||
-              offer.isTransfer ||
-              offer.type === "handover_delivery" ||
-              offer.dropTitle?.toLowerCase().includes("customer") ||
-              offer.pickupTitle?.toLowerCase().includes("store") ||
-              offer.pickupTitle?.toLowerCase().includes("partner") ||
-              offer.pickupTitle?.toLowerCase().includes("hub");
-
+        <div className="flex-1 px-4 py-3 space-y-4">
+          {offers.map((offer) => {
             return (
-              <div
-                key={offer.id}
-                className={`rounded-3xl bg-white p-5 transition-all space-y-4 border ${
-                  isTop
-                    ? "border-emerald-400 shadow-xl shadow-emerald-600/10 ring-4 ring-emerald-500/10 animate-in fade-in slide-in-from-bottom-2 duration-300"
-                    : "border-zinc-200/90 shadow-md"
-                }`}
-              >
-                {/* Top Header: Badge + SLA Countdown */}
-                <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 text-zinc-800 text-xs font-semibold">
-                    <span className="size-4 rounded-full bg-zinc-800 flex items-center justify-center text-white shrink-0">
-                      <Bike className="size-2.5" />
-                    </span>
-                    <span>{isDelivery ? "Delivery Boost" : "Bike Boost"}</span>
+              <div key={offer.id} className="flex items-start gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {/* Left status indicator if Missed (Screenshot 3 Match) */}
+                {offer.isMissed && (
+                  <div className="flex flex-col items-center gap-1 shrink-0 pt-2">
+                    <div className="size-6.5 rounded-full bg-red-50 border border-red-300 text-red-600 flex items-center justify-center font-black text-xs shadow-2xs">
+                      !
+                    </div>
+                    <span className="text-[10px] font-bold text-red-600 tracking-tight">Missed</span>
                   </div>
+                )}
 
-                  {isTop && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                      <Clock className="size-3 text-amber-600 animate-pulse" />
-                      <span>{countdown > 60 ? `${Math.floor(countdown / 60)}m ${countdown % 60}s` : `${countdown}s`}</span>
-                    </span>
+                {/* Main Dark Order Card (Screenshot 3 Match) */}
+                <div className="flex-1 rounded-3xl bg-[#373A42] p-4.5 sm:p-5 text-white shadow-xl border border-zinc-700/50 space-y-3.5">
+                  {/* Missed Warning Alert Pill (Screenshot 3 Match) */}
+                  {offer.isMissed && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] text-left">
+                      <AlertCircle className="size-4.5 text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-xs font-bold text-red-950">You missed the order</h4>
+                        <p className="text-[11px] text-red-800 mt-0.5 leading-snug">
+                          {offer.missedReason || "Sorry, this order was accepted by another captain."}
+                        </p>
+                      </div>
+                    </div>
                   )}
-                </div>
 
-                {/* Big Bold Fare */}
-                <div className="flex items-baseline justify-between">
-                  <h2 className="text-3xl sm:text-4xl font-extrabold text-zinc-950 tracking-tight">
-                    ₹{offer.fare?.toFixed(0) || "27"}
-                  </h2>
-                  {offer.orderCode && (
-                    <span className="text-xs font-semibold text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-lg">
-                      #{offer.orderCode}
-                    </span>
+                  {/* Fare & SLA Row (for active offers) */}
+                  {!offer.isMissed && (
+                    <div className="flex items-center justify-between pb-1 border-b border-zinc-700/60">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-black text-white">₹{offer.fare?.toFixed(0) || "45"}</span>
+                        {offer.orderCode && (
+                          <span className="text-[11px] text-zinc-400 font-semibold bg-zinc-800/80 px-2 py-0.5 rounded-md border border-zinc-700/60">
+                            #{offer.orderCode}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {countdown > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/70 border border-amber-600/40 px-2.5 py-0.5 rounded-full">
+                            <Clock className="size-3 text-amber-400 animate-pulse" />
+                            <span>{countdown > 60 ? `${Math.floor(countdown / 60)}m ${countdown % 60}s` : `${countdown}s`}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </div>
 
-                {/* Route Stepper (Vertical Timeline matching reference) */}
-                <div className="space-y-1">
-                  {/* Point 1: Pickup */}
-                  <div className="flex items-start gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="size-2 rounded-full bg-zinc-900 shrink-0 mt-1" />
-                      <div className="w-[1.5px] h-7 bg-zinc-300 my-1" />
-                    </div>
-                    <div className="flex-1 min-w-0 -mt-0.5">
-                      <span className="font-bold text-sm text-zinc-900 block leading-tight">
-                        {offer.pickupDistanceKm || 0.8} km
-                      </span>
-                      <p className="text-xs text-zinc-600 leading-snug mt-0.5">
-                        <strong className="font-bold text-zinc-900">{offer.pickupTitle || "Sector 67 Noida"}</strong>
-                        {" - "}
-                        <span className="text-zinc-500">{offer.pickupAddress || "26, Block A, Sector 68, Noida"}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Point 2: Drop */}
-                  <div className="flex items-start gap-3">
-                    <div className="flex flex-col items-center">
-                      <span className="text-[10px] text-zinc-900 shrink-0 leading-none mt-0.5">▼</span>
-                    </div>
-                    <div className="flex-1 min-w-0 -mt-0.5">
-                      <span className="font-bold text-sm text-zinc-900 block leading-tight">
-                        {offer.dropDistanceKm || 2.2} km
-                      </span>
-                      <p className="text-xs text-zinc-600 leading-snug mt-0.5">
-                        <span className="bg-emerald-100/90 text-emerald-950 font-bold px-1.5 py-0.5 rounded inline-block">
-                          {offer.dropTitle || "Sarfabad Village Sector 73 Noida"}
+                  {/* Route Stepper (Pickup -> Drop with precise km, Screenshot 3 Match) */}
+                  <div className="space-y-1 py-0.5">
+                    {/* Pickup Point */}
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-col items-center pt-0.5">
+                        <div className="size-2 rounded-full bg-white shrink-0 mt-1" />
+                        <div className="w-[1.5px] h-8 bg-zinc-500/80 my-0.5" />
+                      </div>
+                      <div className="flex-1 min-w-0 -mt-0.5">
+                        <span className="font-extrabold text-sm text-white block leading-tight">
+                          {offer.pickupDistanceKm || 1.7} km
                         </span>
-                        {" - "}
-                        <span className="text-zinc-500">{offer.dropAddress || "Yadu Public School, Sector 73"}</span>
-                      </p>
+                        <p className="text-xs text-zinc-300 leading-snug mt-1">
+                          <strong className="font-bold text-white">{offer.pickupTitle || "Tarora - 1"}</strong>
+                          {" - "}
+                          <span className="text-zinc-300">{offer.pickupAddress || "near Gayatri Temple, Kasganj"}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Drop Point */}
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-col items-center pt-0.5">
+                        <span className="text-[10px] text-white shrink-0 leading-none">▼</span>
+                      </div>
+                      <div className="flex-1 min-w-0 -mt-0.5">
+                        <span className="font-extrabold text-sm text-white block leading-tight">
+                          {offer.dropDistanceKm || 2.5} km
+                        </span>
+                        <p className="text-xs text-zinc-300 leading-snug mt-1">
+                          <strong className="font-bold text-white">{offer.dropTitle || "Kasganj Junction"}</strong>
+                          {" - "}
+                          <span className="text-zinc-300">{offer.dropAddress || "Kasganj Railway Station, Kasganj"}</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* View Trip Breakdown Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(20);
-                    setSelectedOfferForDetail(offer);
-                  }}
-                  className="w-full py-2 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-bold flex items-center justify-between transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="size-3 text-emerald-600" />
-                    <span>View Full Route & Fare Breakdown</span>
+                  {/* Action Buttons: [ Circular (-) ] [ Yellow Accept CTA ] (Screenshot 3 Match) */}
+                  <div className="flex items-center gap-3 pt-1">
+                    {/* Reject or Dismiss Circular Button */}
+                    <button
+                      type="button"
+                      onClick={() => (offer.isMissed ? handleDismissMissed(offer) : handleReject(offer))}
+                      className="size-12 rounded-full border border-zinc-600 bg-zinc-700/80 hover:bg-zinc-700 text-zinc-300 active:scale-90 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                      title={offer.isMissed ? "Dismiss" : "Decline trip"}
+                      aria-label="Decline or Dismiss"
+                    >
+                      <Minus className="size-5 stroke-[2.4]" />
+                    </button>
+
+                    {/* Large Yellow Accept Button */}
+                    <button
+                      type="button"
+                      disabled={offer.isMissed}
+                      onClick={() => handleAccept(offer)}
+                      className={`flex-1 h-12 rounded-full font-black text-base transition-all flex items-center justify-center shadow-md ${
+                        offer.isMissed
+                          ? "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+                          : "bg-[#FFC700] hover:bg-[#FBBF24] active:scale-[0.98] text-zinc-950 cursor-pointer"
+                      }`}
+                    >
+                      <span>{t("orders.accept", "Accept")}</span>
+                    </button>
                   </div>
-                  <ChevronRight className="size-3.5 text-zinc-400" />
-                </button>
-
-                {/* Action Buttons: [ Circular Decline (-) ] [ Maps Navigation ] [ Large Yellow Accept ] */}
-                <div className="flex items-center gap-3 pt-2">
-                  {/* Reject / Pass Button (Circular with -) */}
-                  <button
-                    type="button"
-                    onClick={() => handleReject(offer)}
-                    className="size-13 sm:size-14 rounded-full border-2 border-zinc-300 bg-white hover:bg-zinc-100 active:scale-90 transition-all flex items-center justify-center text-zinc-700 shadow-xs cursor-pointer shrink-0"
-                    title="Decline trip"
-                    aria-label="Decline trip"
-                  >
-                    <Minus className="size-6 stroke-[2.5]" />
-                  </button>
-
-                  {/* Google Maps Route Preview Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenGoogleMaps(offer)}
-                    className="size-13 sm:size-14 rounded-full border-2 border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-700 active:scale-90 transition-all flex items-center justify-center shrink-0 cursor-pointer"
-                    title="Preview Turn-by-Turn Route in Google Maps"
-                    aria-label="Preview Route"
-                  >
-                    <Navigation className="size-5 text-blue-600 stroke-[2.2]" />
-                  </button>
-
-                  {/* Accept Button (Large bright yellow pill CTA) */}
-                  <button
-                    type="button"
-                    onClick={() => handleAccept(offer)}
-                    className="flex-1 h-13 sm:h-14 rounded-full bg-[#FFC700] hover:bg-[#FBBF24] active:scale-[0.98] transition-all flex items-center justify-center text-zinc-950 font-bold text-base sm:text-lg shadow-md cursor-pointer"
-                  >
-                    <span>{t("orders.accept", "Accept")}</span>
-                  </button>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        /* Empty State: Queue is clear (Matches Rapido Screenshot 1) */
-        <div className="flex-1 flex flex-col items-center justify-between p-6 text-center my-auto min-h-[60vh]">
-          {/* Top Floating Go To Pill (Screenshot 1) */}
-          <div className="w-full flex justify-center pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                toast.info("Kasganj Work Zone active with ₹20 bonus per trip!");
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FFC700] hover:bg-[#FBBF24] text-zinc-950 font-black text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
-            >
-              <MapPin className="size-3.5 fill-zinc-950 text-zinc-950" />
-              <span>Go To</span>
-            </button>
+        /* Empty State: Searching for orders... (Screenshot 4 Match) */
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center my-auto min-h-[50vh]">
+          <div className="relative flex items-center justify-center size-14 mb-3">
+            <span className="absolute size-10 rounded-full bg-zinc-300/40 animate-ping opacity-60" />
+            <span className="relative size-3 rounded-full bg-zinc-400" />
           </div>
-
-          {/* Central Radar Pulse Graphic */}
-          <div className="flex flex-col items-center justify-center space-y-6 my-auto">
-            <div className="relative flex items-center justify-center size-36">
-              {/* Concentric radar rings */}
-              <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping duration-1000" />
-              <div className="absolute inset-3 rounded-full border border-emerald-400/30 animate-pulse" />
-              <div className="absolute inset-6 rounded-full bg-emerald-500/15" />
-              <div className="relative flex size-20 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-600/30">
-                <Bike className="size-9" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5 max-w-xs">
-              <h3 className="text-lg font-black text-zinc-950 tracking-tight">
-                Searching for orders...
-              </h3>
-              <p className="text-xs text-zinc-500 font-medium leading-relaxed">
-                Orders will appear here as soon as you receive one
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Action Controls */}
-          <div className="flex items-center justify-center gap-2.5 w-full pt-4">
-            <button
-              type="button"
-              onClick={() => loadOffers()}
-              disabled={isLoading}
-              className="flex-1 max-w-[140px] py-2.5 bg-white hover:bg-zinc-50 text-zinc-800 font-bold text-xs rounded-xl border border-zinc-200 shadow-2xs active:scale-95 transition-all cursor-pointer"
-            >
-              {isLoading ? t("common.loading", "Checking...") : "🔄 " + t("common.refresh", "Refresh")}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/dashboard" })}
-              className="flex-1 max-w-[140px] py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs rounded-xl shadow-xs active:scale-95 transition-all cursor-pointer"
-            >
-              Live Map 🗺️
-            </button>
-          </div>
+          <p className="text-sm sm:text-base font-medium text-zinc-700 tracking-tight">
+            Searching for orders...
+          </p>
         </div>
       )}
 
-      {/* 3. 4-Tab Captain Bottom Navigation */}
+      {/* 5. 2-Tab Captain Bottom Navigation */}
       <RiderBottomNav active="orders" ordersBadgeCount={totalOrders} />
 
       {/* 4. Full Trip Details & Fare Slip Modal */}
