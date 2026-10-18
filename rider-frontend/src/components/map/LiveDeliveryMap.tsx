@@ -223,6 +223,22 @@ export function LiveDeliveryMap({
     })();
   }, [activeLayer]);
 
+  // Handle Recenter Event from Captain Crosshair Button
+  useEffect(() => {
+    const handleRecenter = () => {
+      if (mapInstanceRef.current && riderLocation?.lat && riderLocation?.lng) {
+        mapInstanceRef.current.flyTo([riderLocation.lat, riderLocation.lng], 17, {
+          animate: true,
+          duration: 1.2,
+        });
+      }
+    };
+    window.addEventListener("qp:recenter_rider_map", handleRecenter);
+    return () => {
+      window.removeEventListener("qp:recenter_rider_map", handleRecenter);
+    };
+  }, [riderLocation?.lat, riderLocation?.lng]);
+
   // Update Markers, Polyline, and Rapido Surge Pins
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
@@ -234,47 +250,51 @@ export function LiveDeliveryMap({
         if (!map) return;
         const bounds: [number, number][] = [];
 
-        // 1. Rider Marker (Rapido Captain Scooter with Radar Ripple Waves)
+        // 1. Rider Marker (Stylized Delivery Captain Character on Bike with Radar Ripple Waves)
         if (riderLocation && riderLocation.lat && riderLocation.lng) {
           bounds.push([riderLocation.lat, riderLocation.lng]);
 
           const riderHtml = `
-            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 64px; height: 64px;">
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 68px; height: 68px;">
               <!-- Radar Ripple Wave 1 (Emerald Green) -->
-              <span style="position: absolute; width: 60px; height: 60px; border-radius: 9999px; background-color: rgba(0, 200, 83, 0.22); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+              <span style="position: absolute; width: 66px; height: 66px; border-radius: 9999px; background-color: rgba(16, 185, 129, 0.22); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
               <!-- Radar Ripple Wave 2 (Emerald Green) -->
-              <span style="position: absolute; width: 44px; height: 44px; border-radius: 9999px; background-color: rgba(0, 200, 83, 0.4); animation: pulse 1.6s ease-in-out infinite;"></span>
-              <!-- Signature White & Emerald Green 3D Scooter Avatar -->
-              <div style="position: relative; display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 9999px; background: #FFFFFF; color: #00C853; box-shadow: 0 4px 14px rgba(0, 200, 83, 0.45), 0 2px 4px rgba(0,0,0,0.1); border: 2.5px solid #00C853; font-size: 19px; line-height: 1;">
-                🛵
+              <span style="position: absolute; width: 48px; height: 48px; border-radius: 9999px; background-color: rgba(16, 185, 129, 0.38); animation: pulse 1.6s ease-in-out infinite;"></span>
+              <!-- Signature Stylized 3D Delivery Captain Avatar -->
+              <div style="position: relative; display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 9999px; background: linear-gradient(135deg, #0f172a, #1e293b); box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 2.5px #10B981; overflow: visible;">
+                <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="9" cy="27" r="4.5" fill="#334155" stroke="#F8FAFC" stroke-width="1.5"/>
+                  <circle cx="27" cy="27" r="4.5" fill="#334155" stroke="#F8FAFC" stroke-width="1.5"/>
+                  <path d="M9 27L15 20H21L27 27" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M15 20L19 13H24" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round"/>
+                  <rect x="11" y="11" width="5.5" height="7.5" rx="2" fill="#047857"/>
+                  <circle cx="18" cy="8" r="5" fill="#FBBF24"/>
+                  <path d="M16 7.5H21C21.8 7.5 22.2 8.2 21.8 9L20.5 10H16V7.5Z" fill="#0F172A"/>
+                  <circle cx="18" cy="8" r="5" stroke="#D97706" stroke-width="1"/>
+                </svg>
               </div>
               <!-- Live Online Duty Dot -->
-              <span style="position: absolute; bottom: 8px; right: 10px; width: 12px; height: 12px; border-radius: 9999px; background: #00C853; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"></span>
+              <span style="position: absolute; bottom: 6px; right: 8px; width: 13px; height: 13px; border-radius: 9999px; background: #10B981; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></span>
             </div>
           `;
 
           const riderIcon = L.divIcon({
             className: "rapido-rider-marker",
             html: riderHtml,
-            iconSize: [64, 64],
-            iconAnchor: [32, 32],
+            iconSize: [68, 68],
+            iconAnchor: [34, 34],
           });
 
           if (markersRef.current["rider"]) {
             markersRef.current["rider"].setLatLng([riderLocation.lat, riderLocation.lng]);
+            markersRef.current["rider"].setIcon(riderIcon);
           } else {
-            const riderIcon = L.divIcon({
-              className: "rapido-rider-marker",
-              html: riderHtml,
-              iconSize: [64, 64],
-              iconAnchor: [32, 32],
-            });
             markersRef.current["rider"] = L.marker([riderLocation.lat, riderLocation.lng], {
               icon: riderIcon,
               zIndexOffset: 1000,
             }).addTo(map);
             markersRef.current["rider"].bindPopup(
-              `<b>${riderLocation.label || "QuickPress Captain"}</b><br/>Rapido Telemetry Active 🟢`
+              `<b>${riderLocation.label || "QuickPress Captain"}</b><br/>Live GPS Telemetry Active 🟢`
             );
           }
         }

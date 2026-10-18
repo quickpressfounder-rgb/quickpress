@@ -96,9 +96,9 @@ export function RiderProvider({ children }: { children: ReactNode }) {
   });
 
   const [isOnline, setOnlineState] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof window === "undefined") return false;
     const stored = window.localStorage.getItem(ONLINE_STORAGE_KEY);
-    return stored !== null ? stored === "1" : true;
+    return stored === "1";
   });
 
   const [hydrating, setHydrating] = useState(false);

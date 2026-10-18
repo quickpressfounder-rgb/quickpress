@@ -13,7 +13,6 @@ import { fetchRiderProfile } from "../api/rider/rider-profile-api";
 
 import { CaptainTopBar } from "../components/layout/CaptainTopBar";
 import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer";
-import { CaptainFloatingBubble } from "../components/layout/CaptainFloatingBubble";
 import { fetchUnreadCount } from "../api/rider/rider-notifications-api";
 import { CaptainHomeOfflineScreen } from "../components/home/CaptainHomeOfflineScreen";
 import { CaptainOnlineMapView } from "../components/map/CaptainOnlineMapView";
@@ -120,7 +119,12 @@ export function RiderDashboardScreen() {
         if (pId && pId !== "CAP-100101" && pId !== "CP-9821") {
           setCaptainId(formatCaptainId(pId));
         }
-        setOnline(Boolean(profileRes.isOnline));
+        const localDuty = typeof window !== "undefined" ? localStorage.getItem("qp.rider.isOnline") : null;
+        if (localDuty !== null) {
+          setOnline(localDuty === "1");
+        } else if (profileRes.isOnline !== undefined) {
+          setOnline(Boolean(profileRes.isOnline));
+        }
       }
 
       if (Array.isArray(offersRes)) {
@@ -200,41 +204,44 @@ export function RiderDashboardScreen() {
     }
   }, [isOnline]);
 
-  // Check duty permissions warning
-  const [showDutyNotice, setShowDutyNotice] = useState(false);
+  // Permissions Gate: After registration, captain cannot enter home page until all permissions enabled
   useEffect(() => {
     if (isNativeAndroidApp()) {
       const bgOk = isBackgroundLocationGranted();
       const batteryOk = isBatteryOptimizationIgnored();
       const overlayOk = canDrawOverlays();
-      setShowDutyNotice(!bgOk || !batteryOk || !overlayOk);
+      if (!bgOk || !batteryOk || !overlayOk) {
+        navigate({ to: "/permissions" });
+      }
+    } else {
+      const allowed =
+        typeof window !== "undefined" &&
+        localStorage.getItem("qp_captain_permissions_allowed") === "1";
+      if (!allowed) {
+        navigate({ to: "/permissions" });
+      }
     }
-  }, []);
+  }, [navigate]);
 
-  // Handle Duty Toggle
-  const handleToggleDuty = async () => {
+  // Handle Duty Toggle with Instant Voice Announcement & Instant Offline/Online Screen Switch
+  const handleToggleDuty = async (overrideState?: boolean | any) => {
     unlockAudioContext();
-    setDutyLoading(true);
-    const nextState = !isOnline;
+    const nextState = typeof overrideState === "boolean" ? overrideState : !isOnline;
+
+    // 1. Instant Synchronous Voice & Audio Feedback in Gesture Handler
+    triggerHaptic(45);
+    playDutyToggleSound(nextState);
+    speakDutyStatus(nextState);
+
+    // 2. Instant Optimistic State Update so Offline / Online Screen opens immediately
+    setOnline(nextState);
+    toast.success(nextState ? "Captain is ON DUTY 🟢" : "Captain is OFF DUTY 🔴");
+
+    // 3. Background Persistence
     try {
       await updateRiderStatus(nextState);
-      setOnline(nextState);
-      playDutyToggleSound(nextState);
-      speakDutyStatus(nextState);
-      triggerHaptic();
-
-      // Manage Rapido-style Floating Bubble
-      if (nextState) {
-        startFloatingBubble();
-      } else {
-        stopFloatingBubble();
-      }
-
-      toast.success(nextState ? "Captain is ON DUTY 🟢" : "Captain is OFF DUTY 🔴");
     } catch {
-      toast.error("Failed to update duty status. Please check your network.");
-    } finally {
-      setDutyLoading(false);
+      // quiet fallback
     }
   };
 
@@ -265,7 +272,7 @@ export function RiderDashboardScreen() {
       {/* 2. Top Header Bar (Hamburger, Duty Switch, MapPin, Bell Badge, Sky-Blue Earnings Strip) */}
       <CaptainTopBar
         isOnline={isOnline}
-        onToggleDuty={handleToggleDuty}
+        onToggleDuty={() => handleToggleDuty(!isOnline)}
         onOpenDrawer={() => setIsDrawerOpen(true)}
         onOpenNotifications={() => navigate({ to: "/notifications" })}
         onOpenEarnings={() => navigate({ to: "/wallet" })}
@@ -274,31 +281,14 @@ export function RiderDashboardScreen() {
         loading={dutyLoading}
       />
 
-      {/* 2.5 Duty Permissions & Floating Bubble Notice */}
-      {showDutyNotice && (
-        <div className="bg-amber-400 text-black px-4 py-2 flex items-center justify-between text-xs font-bold shadow-sm shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm">⚡</span>
-            <span className="truncate text-[11px] font-black">Enable Floating Bubble & GPS for Trips</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/permissions" })}
-            className="shrink-0 bg-black text-amber-300 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider active:scale-95 transition cursor-pointer"
-          >
-            Setup →
-          </button>
-        </div>
-      )}
-
-      {/* 3. Screen Switcher: Offline Home vs Online Map (Order Queue is exclusively on /orders) */}
+      {/* 3. Screen Switcher: Offline Home vs Online Map */}
       {!isOnline ? (
         // Offline Home View (Exact match to uploaded screenshot)
         <CaptainHomeOfflineScreen
           todayEarnings={todayEarnings}
           todayDeliveries={todayDeliveries}
           captainName={captainName}
-          onGoOnline={handleToggleDuty}
+          onGoOnline={() => handleToggleDuty(true)}
           onOpenWorkZoneInfo={() =>
             toast.info("Kasganj Work Zone active with ₹20 bonus per trip!")
           }
@@ -313,6 +303,7 @@ export function RiderDashboardScreen() {
           pendingOrdersCount={pendingOrdersCount}
           onOpenOrders={() => navigate({ to: "/orders" })}
           onRecenter={() => {
+            window.dispatchEvent(new CustomEvent("qp:recenter_rider_map"));
             if (currentCoords) {
               toast.info("Map centered at live location 📍");
             }
@@ -368,13 +359,6 @@ export function RiderDashboardScreen() {
 
       {/* 4. 2-Tab Rapido Captain Bottom Navigation with live badge count on Orders */}
       <RiderBottomNav active="dashboard" ordersBadgeCount={pendingOrdersCount} />
-
-      {/* 5. Rapido Captain Floating Logo Bubble (Screenshot 5: appears online, taps to /orders) */}
-      <CaptainFloatingBubble
-        isOnline={isOnline}
-        ordersCount={pendingOrdersCount}
-        onBubbleTap={() => navigate({ to: "/orders" })}
-      />
     </div>
   );
 }

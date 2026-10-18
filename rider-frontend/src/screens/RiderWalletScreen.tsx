@@ -529,176 +529,166 @@ export function RiderWalletScreen() {
           </div>
         </div>
       ) : (
-        /* 2. SUB-TAB 2: WALLET (CLEAN RAZORPAY DEPOSIT & REGISTERED BANK CASHOUT) */
+        /* 2. SUB-TAB 2: WALLET (MATCHING EXACT ALL EARNINGS CARD LAYOUT & OPTIONS) */
         <div
-          className="flex-1 overflow-y-auto space-y-3.5 p-3.5 bg-[#F6F7F9]"
+          className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
           style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
         >
-          {/* CARD 1: MAIN AVAILABLE BALANCE CARD */}
-          <div className="bg-white rounded-3xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-xs font-black text-zinc-700 uppercase tracking-wider">
-                  {t("earnings.availableBalance", "Available Balance")}
-                </p>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
-                Active Account ✓
-              </span>
-            </div>
-
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-emerald-600">₹</span>
-                <span className="text-4xl sm:text-5xl font-black text-black tracking-tight">
-                  {availableBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {/* Main Wallet Balance Card (Exact match to All Earnings Card) */}
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+            <div className="p-4 space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-zinc-500">Available Wallet Balance</p>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  Active ✓
                 </span>
               </div>
-              <p className="text-xs text-zinc-600 font-bold mt-1.5 flex items-center gap-1.5">
-                <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
-                <span>100% Zero-Commission Direct Bank Settlement</span>
-              </p>
-            </div>
-          </div>
-
-          {/* ACTION BUTTONS: DEPOSIT COD (RAZORPAY) & WITHDRAW TO REGISTERED BANK */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                setIsFundAddOpen(true);
-              }}
-              className="p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
-            >
-              <CreditCard className="size-4 text-emerald-200" />
-              <span>Deposit (Razorpay)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                setIsWithdrawOpen(true);
-              }}
-              className="p-3 rounded-2xl bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
-            >
-              <ArrowUpRight className="size-4 text-emerald-400" />
-              <span>Withdraw to Bank</span>
-            </button>
-          </div>
-
-          {/* CARD 2: FLOATING COD CASH / CASH IN HAND */}
-          <div className="bg-white rounded-3xl p-4 border border-zinc-200/80 shadow-2xs space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
-                  <Wallet className="size-3.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-zinc-900">Cash in Hand (COD Float)</p>
-                  <p className="text-[10px] text-zinc-500 font-medium">Customer cash collected</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-base font-black text-zinc-950">
-                  ₹{floatingCashData.floatingCash.toFixed(2)}
-                </p>
-                <p className="text-[10px] text-zinc-500">Max limit: ₹{floatingCashData.maxCodLimit}</p>
-              </div>
+              <h2 className="text-3xl font-black text-zinc-950 tracking-tight">
+                ₹{availableBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h2>
             </div>
 
-            <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
-              <div
-                style={{
-                  width: `${Math.min(100, Math.max(3, (floatingCashData.floatingCash / floatingCashData.maxCodLimit) * 100))}%`,
+            <div className="border-t border-zinc-100 divide-y divide-zinc-100">
+              {/* Row 1: All Transactions / Passbook */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(20);
+                  navigate({ to: "/history" });
                 }}
-                className={`h-full rounded-full transition-all ${
-                  floatingCashData.floatingCash >= floatingCashData.maxCodLimit
-                    ? "bg-rose-500"
-                    : floatingCashData.floatingCash > 1000
-                    ? "bg-amber-500"
-                    : "bg-emerald-500"
-                }`}
-              />
-            </div>
+                className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 active:bg-zinc-100 transition-colors text-left cursor-pointer"
+              >
+                <div>
+                  <span className="text-sm font-bold text-zinc-900 block">All Transactions & Passbook</span>
+                  <span className="text-[11px] text-zinc-500">View all credits, debits & incentives</span>
+                </div>
+                <ChevronRight className="size-4 text-zinc-400 shrink-0 ml-2" />
+              </button>
 
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] font-semibold text-zinc-500">
-                {floatingCashData.remainingLimit > 0
-                  ? `₹${floatingCashData.remainingLimit.toFixed(0)} remaining before lock`
-                  : "⚠️ Limit exceeded, deposit now"}
-              </span>
+              {/* Row 2: Deposit Cash (Razorpay) */}
               <button
                 type="button"
                 onClick={() => {
                   triggerHaptic(20);
                   setIsFundAddOpen(true);
                 }}
-                className="text-[11px] font-black text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
+                className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 active:bg-zinc-100 transition-colors text-left cursor-pointer"
               >
-                <span>Deposit via Razorpay</span>
-                <ChevronRight className="size-3" />
-              </button>
-            </div>
-          </div>
-
-          {/* CARD 3: REGISTERED BANK ACCOUNT (LINKED AT REGISTRATION) */}
-          <div className="bg-white rounded-3xl p-4 border border-zinc-200/80 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
-                  <Building2 className="size-4" />
-                </div>
                 <div>
-                  <p className="text-xs font-black text-zinc-900">
-                    {profile?.bankName || wallet?.bankName || "Registered Bank Account"}
-                  </p>
-                  <p className="text-[10px] text-zinc-500 font-medium">Linked during captain registration</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-zinc-900 block">Deposit Cash (Razorpay)</span>
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                      Instant UPI
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500">Settle customer COD float via UPI or Debit Card</span>
                 </div>
-              </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                Verified Bank ✓
-              </span>
-            </div>
+                <ChevronRight className="size-4 text-zinc-400 shrink-0 ml-2" />
+              </button>
 
-            <div className="bg-zinc-50 rounded-2xl p-3 border border-zinc-200/70 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-500 font-semibold">Account Number</span>
-                <span className="font-mono font-black text-zinc-950 tracking-wider">
-                  •••• •••• {profile?.accountLast4 || (profile?.accountNumber ? profile.accountNumber.slice(-4) : wallet?.accountLast4 || "4821")}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-500 font-semibold">IFSC Code</span>
-                <span className="font-mono font-black text-zinc-950">
-                  {profile?.ifsc || "HDFC0001234"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-500 font-semibold">Beneficiary Name</span>
-                <span className="font-bold text-zinc-900">
-                  {profile?.accountHolder || profile?.fullName || "Delivery Captain"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-0.5 text-[11px]">
-              <span className="text-zinc-500 font-medium flex items-center gap-1">
-                <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
-                <span>Direct IMPS / NEFT Settlement</span>
-              </span>
+              {/* Row 3: Withdraw to Bank Account */}
               <button
                 type="button"
                 onClick={() => {
                   triggerHaptic(20);
                   setIsWithdrawOpen(true);
                 }}
-                className="font-black text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer"
+                className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 active:bg-zinc-100 transition-colors text-left cursor-pointer"
               >
-                <span>Cashout to Bank</span>
-                <ChevronRight className="size-3" />
+                <div>
+                  <span className="text-sm font-bold text-zinc-900 block">Withdraw to Bank Account</span>
+                  <span className="text-[11px] text-zinc-500">Instant IMPS cashout to verified bank</span>
+                </div>
+                <ChevronRight className="size-4 text-zinc-400 shrink-0 ml-2" />
               </button>
+
+              {/* Row 4: View Registered Bank Details */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(20);
+                  toast.info(
+                    `Linked Bank: ${profile?.bankName || wallet?.bankName || "HDFC Bank"} •••• ${
+                      profile?.accountLast4 ||
+                      (profile?.accountNumber ? profile.accountNumber.slice(-4) : wallet?.accountLast4 || "4821")
+                    } (${profile?.ifsc || "HDFC0001234"})`
+                  );
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 active:bg-zinc-100 transition-colors text-left cursor-pointer"
+              >
+                <div>
+                  <span className="text-sm font-bold text-zinc-900 block">Registered Bank Details</span>
+                  <span className="text-[11px] text-zinc-500">
+                    {profile?.bankName || wallet?.bankName || "HDFC Bank"} ••••{" "}
+                    {profile?.accountLast4 ||
+                      (profile?.accountNumber ? profile.accountNumber.slice(-4) : wallet?.accountLast4 || "4821")}
+                  </span>
+                </div>
+                <ChevronRight className="size-4 text-zinc-400 shrink-0 ml-2" />
+              </button>
+
+              {/* Row 5: Cash in Hand & COD Float Limit */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(20);
+                  setIsFundAddOpen(true);
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 active:bg-zinc-100 transition-colors text-left cursor-pointer"
+              >
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-zinc-900 block">Cash in Hand (COD Float)</span>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                      ₹{floatingCashData.floatingCash.toFixed(2)}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500">
+                    Max allowed limit: ₹{floatingCashData.maxCodLimit} · Deposit before limit exceeds
+                  </span>
+                </div>
+                <ChevronRight className="size-4 text-zinc-400 shrink-0 ml-2" />
+              </button>
+            </div>
+          </div>
+
+          {/* Lilac YouTube Explainer Banner (Matching Screenshot 2) */}
+          <div
+            onClick={() => {
+              triggerHaptic(20);
+              window.open("https://youtube.com/@QuickPressApp", "_blank");
+            }}
+            className="p-4 rounded-2xl bg-gradient-to-r from-[#EDE9FE] to-[#F5F3FF] border border-[#DDD6FE] text-zinc-900 shadow-2xs flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-11 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <PlayCircle className="size-6 fill-white text-red-600" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-sm font-black text-zinc-950 leading-snug">
+                  Know all about your Wallet & Settlements
+                </h4>
+                <p className="text-[11px] text-zinc-600 mt-0.5 leading-snug">
+                  Watch quick video on instant bank transfers, COD limits & Razorpay deposits
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="size-4 text-zinc-500 shrink-0 ml-2" />
+          </div>
+
+          {/* Two Quick Summary Cards matching All Earnings */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1">
+              <p className="text-[11px] font-bold text-zinc-500">COD Cash in Hand</p>
+              <p className="text-lg font-black text-amber-700">
+                ₹{floatingCashData.floatingCash.toFixed(2)}
+              </p>
+            </div>
+            <div className="bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1">
+              <p className="text-[11px] font-bold text-zinc-500">Total Lifetime Payouts</p>
+              <p className="text-lg font-black text-emerald-700">
+                ₹{lifetimeEarned.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </p>
             </div>
           </div>
         </div>

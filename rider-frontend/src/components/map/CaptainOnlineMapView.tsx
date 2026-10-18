@@ -30,6 +30,7 @@ import { useLanguage } from "../../lib/i18n";
 import { triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
 import { CaptainSupportModal } from "../support/CaptainSupportModal";
+import { CaptainStoryModal } from "../home/CaptainStoryModal";
 
 interface CaptainOnlineMapViewProps {
   currentCoords: { lat: number; lng: number } | null;
@@ -59,6 +60,10 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   const [mapLayer, setMapLayer] = useState<GoogleMapLayerType>("roadmap");
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [storyModalIndex, setStoryModalIndex] = useState(0);
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [rewardScratched, setRewardScratched] = useState(false);
 
   // Last completed trip & detail modal state (Real orders only)
   const [lastTrip, setLastTrip] = useState<RiderHistoryEntry | null>(null);
@@ -248,160 +253,388 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         </button>
       </div>
 
-      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Screenshot 3 Match) */}
+      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Matching Uploaded Screenshot) */}
       <div
-        className="absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/80 shadow-2xl pb-20 pt-2"
+        className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
+          isDrawerExpanded ? "max-h-[82vh]" : "max-h-[50vh]"
+        } pb-20 pt-2`}
       >
         {/* Drag Handle Chevron */}
-        <div className="flex justify-center pb-2">
-          <ChevronUp className="size-5 text-zinc-400 stroke-[2.5]" />
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            setIsDrawerExpanded((prev) => !prev);
+          }}
+          className="w-full flex items-center justify-center py-1 text-zinc-400 hover:text-zinc-700 active:scale-95 transition-all cursor-pointer"
+          aria-label="Toggle Drawer"
+        >
+          {isDrawerExpanded ? (
+            <ChevronDown className="size-5 stroke-[2.5]" />
+          ) : (
+            <ChevronUp className="size-5 stroke-[2.5]" />
+          )}
+        </button>
 
-        {/* Circular Story / Highlight Bubbles Row (Horizontal Scroll) */}
-        <div className="flex items-start gap-4 px-4 overflow-x-auto no-scrollbar pb-3">
-          {/* Bubble 1: Follow */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(20);
-              window.open("https://instagram.com", "_blank");
-            }}
-            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
-          >
-            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-xs">
-              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl font-black text-amber-600">
-                  🛵
+        {/* Scrollable Drawer Content */}
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 px-4 pb-6">
+          {/* Circular Story / Highlight Bubbles Row (Horizontal Scroll) */}
+          <div className="flex items-start gap-4 overflow-x-auto no-scrollbar pt-1 pb-1">
+            {/* Bubble 1: Follow */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(25);
+                setStoryModalIndex(0);
+                setIsStoryModalOpen(true);
+              }}
+              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-xs">
+                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                  <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl font-black text-amber-600">
+                    🛵
+                  </div>
+                </div>
+                <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center uppercase tracking-tighter">
+                  Follow
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-zinc-700">Follow</span>
+            </button>
+
+            {/* Bubble 2: Transfer Money */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(25);
+                setStoryModalIndex(1);
+                setIsStoryModalOpen(true);
+              }}
+              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-xs">
+                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                  <div className="size-full rounded-full bg-emerald-50 flex items-center justify-center text-xl font-black text-emerald-700">
+                    🏦
+                  </div>
+                </div>
+                <span className="absolute -bottom-1 inset-x-0.5 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center truncate px-1">
+                  Money Transf...
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-zinc-700">Transfer Money</span>
+            </button>
+
+            {/* Bubble 3: Earn 2000 */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(25);
+                setStoryModalIndex(2);
+                setIsStoryModalOpen(true);
+              }}
+              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 shadow-xs">
+                <div className="size-full rounded-full bg-blue-950 p-1 flex flex-col items-center justify-center text-center overflow-hidden text-white">
+                  <span className="text-[7px] font-black text-amber-300 uppercase leading-none">REFER & EARN</span>
+                  <span className="text-[11px] font-black text-white leading-tight">₹2000</span>
                 </div>
               </div>
-              <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center uppercase tracking-tighter">
-                Follow
-              </span>
-            </div>
-            <span className="text-[11px] font-bold text-zinc-700">Follow</span>
-          </button>
+              <span className="text-[11px] font-bold text-zinc-700">Earn 2000</span>
+            </button>
 
-          {/* Bubble 2: Transfer Money */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(20);
-              navigate({ to: "/wallet" });
-            }}
-            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
-          >
-            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-xs">
-              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                <div className="size-full rounded-full bg-emerald-50 flex items-center justify-center text-xl font-black text-emerald-700">
-                  🏦
+            {/* Bubble 4: Auto Boost */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(25);
+                setStoryModalIndex(3);
+                setIsStoryModalOpen(true);
+              }}
+              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-xs">
+                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                  <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl">
+                    ⚡
+                  </div>
                 </div>
+                <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
+                  Auto Boost
+                </span>
               </div>
-              <span className="absolute -bottom-1 inset-x-0.5 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center truncate px-1">
-                Money Transf...
-              </span>
-            </div>
-            <span className="text-[11px] font-bold text-zinc-700">Transfer Money</span>
-          </button>
+              <span className="text-[11px] font-bold text-zinc-700">Auto Boost</span>
+            </button>
 
-          {/* Bubble 3: Earn 2000 */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(20);
-              toast.success("Refer a Captain Friend and earn ₹2,000 bonus after their 25th trip!");
-            }}
-            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
-          >
-            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-blue-500 to-indigo-600 shadow-xs">
-              <div className="size-full rounded-full bg-blue-950 p-1 flex flex-col items-center justify-center text-center overflow-hidden text-white">
-                <span className="text-[7px] font-black text-amber-300 uppercase leading-none">REFER & EARN</span>
-                <span className="text-[11px] font-black text-white leading-tight">₹2000</span>
-              </div>
-            </div>
-            <span className="text-[11px] font-bold text-zinc-700">Earn 2000</span>
-          </button>
-
-          {/* Bubble 4: Auto Boost */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(20);
-              navigate({ to: "/incentives" });
-            }}
-            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
-          >
-            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-xs">
-              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl">
-                  ⚡
+            {/* Bubble 5: Performance */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(25);
+                setStoryModalIndex(4);
+                setIsStoryModalOpen(true);
+              }}
+              className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-purple-400 to-pink-500 shadow-xs">
+                <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
+                  <div className="size-full rounded-full bg-purple-50 flex items-center justify-center text-xl">
+                    🏅
+                  </div>
                 </div>
+                <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
+                  Perfo...
+                </span>
               </div>
-              <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
-                Auto Boost
-              </span>
-            </div>
-            <span className="text-[11px] font-bold text-zinc-700">Auto Boost</span>
-          </button>
-
-          {/* Bubble 5: Performance */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(20);
-              navigate({ to: "/profile" });
-            }}
-            className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
-          >
-            <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-purple-400 to-pink-500 shadow-xs">
-              <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                <div className="size-full rounded-full bg-purple-50 flex items-center justify-center text-xl">
-                  🏅
-                </div>
-              </div>
-              <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center">
-                Perfo...
-              </span>
-            </div>
-            <span className="text-[11px] font-bold text-zinc-700">Performance</span>
-          </button>
-        </div>
-
-        {/* "Only for you" Ornamental Header & Promo Banner */}
-        <div className="px-4 pt-1 space-y-2">
-          <div className="flex items-center justify-center gap-2 text-zinc-500">
-            <span className="text-zinc-300">~</span>
-            <span className="text-xs font-bold text-zinc-700 tracking-wide font-serif italic">Only for you</span>
-            <span className="text-zinc-300">~</span>
+              <span className="text-[11px] font-bold text-zinc-700">Performance</span>
+            </button>
           </div>
 
-          <div
-            onClick={() => {
-              triggerHaptic(20);
-              navigate({ to: "/incentives" });
-            }}
-            className="w-full p-3.5 bg-gradient-to-r from-zinc-900 via-zinc-950 to-neutral-900 text-white rounded-2xl shadow-md flex items-center justify-between cursor-pointer active:scale-99 transition-all"
-          >
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#FFC107] text-black">
-                TODAY'S SPECIAL
-              </span>
-              <p className="text-xs font-bold text-zinc-200 mt-1">Complete 5 orders today for ₹150 extra cash!</p>
+          {/* BLUE OFFER BANNER (Matching Uploaded Screenshot: Falling Confetti, 3 Purple Cards, Gold Coins & "Tap to earn") */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0B2579] via-[#0E359E] to-[#08184C] p-5 text-white shadow-xl border border-blue-400/20">
+            {/* Ambient Background Glow & Confetti */}
+            <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-300 via-transparent to-transparent" />
+            <div className="absolute top-2 left-6 text-amber-300 text-sm animate-pulse">✨</div>
+            <div className="absolute top-4 right-8 text-amber-300 text-sm animate-bounce">🎊</div>
+            <div className="absolute bottom-16 right-5 text-amber-400 text-xs">🎉</div>
+
+            <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+              {/* Graphic: 3 Purple Cards with ₹ and ₹10 + Stacked Gold Coins */}
+              <div className="relative flex items-center justify-center w-full pt-1 pb-2">
+                {/* Left Card */}
+                <div className="relative -mr-3 transform -rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
+                  <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
+                </div>
+
+                {/* Center Main Card (₹10) */}
+                <div className="relative z-10 size-20 sm:size-22 rounded-2xl bg-gradient-to-b from-violet-600 to-indigo-900 border-2 border-amber-300/60 p-2 shadow-2xl flex flex-col items-center justify-center">
+                  <div className="flex items-center justify-center size-7 rounded-full bg-white/10 mb-1 border border-white/20">
+                    <span className="text-amber-300 font-serif font-black text-sm">👑</span>
+                  </div>
+                  <span className="text-white font-serif font-black text-2xl leading-none">₹10</span>
+                </div>
+
+                {/* Right Card */}
+                <div className="relative -ml-3 transform rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
+                  <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
+                </div>
+
+                {/* Gold Coins Stack (Foreground overlapping left) */}
+                <div className="absolute -bottom-1 left-12 flex flex-col items-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+                  <div className="size-11 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-2 border-amber-100 flex items-center justify-center text-amber-950 font-black text-base shadow-md">
+                    ₹
+                  </div>
+                </div>
+              </div>
+
+              {/* Yellow Pill Button "Tap to earn" (Exact match to screenshot) */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(40);
+                  setShowRewardModal(true);
+                }}
+                className="w-full max-w-xs py-3 px-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 active:scale-95 text-zinc-950 font-black text-base shadow-lg transition-all cursor-pointer tracking-wide"
+              >
+                Tap to earn
+              </button>
             </div>
-            <span className="text-xs font-black text-[#FFC107] flex items-center gap-1">
-              <span>View</span>
-              <span>➔</span>
-            </span>
+          </div>
+
+          {/* QUICK ACTIONS SECTION (Matching Uploaded Screenshot: "Change Language" card) */}
+          <div className="space-y-2.5 pt-1">
+            <h3 className="text-sm font-bold text-zinc-900 tracking-tight">
+              Quick actions
+            </h3>
+
+            <div className="flex items-center gap-3">
+              {/* Change Language Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(25);
+                  navigate({ to: "/language" });
+                }}
+                className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center"
+              >
+                <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600 font-black text-lg">
+                  आ A
+                </div>
+                <span className="text-xs font-bold text-zinc-800 leading-tight">
+                  Change Language
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* FOOTER: PROUDLY MADE IN INDIA & CRAFTED IN UTTAR PRADESH WITH SKYLINE (Matching Screenshot) */}
+          <div className="pt-6 pb-2 text-center space-y-3">
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
+                Proudly made
+              </p>
+              <h4 className="text-xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
+                <span>in India</span>
+                <span>💛</span>
+              </h4>
+              <p className="text-[11px] font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block mt-1">
+                Crafted in Uttar Pradesh 🇮🇳
+              </p>
+            </div>
+
+            {/* Indian & Uttar Pradesh Heritage Monuments Line-Art Skyline Illustration */}
+            <div className="w-full flex justify-center opacity-85 px-4 pt-1">
+              <svg
+                viewBox="0 0 500 130"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-full max-w-sm text-zinc-300 stroke-current stroke-[1.2]"
+              >
+                {/* Left: Temple / Monument Towers */}
+                <path d="M20 120V80L35 60L50 80V120" strokeLinecap="round" />
+                <path d="M35 60V40L35 30" strokeLinecap="round" />
+                <path d="M28 85H42" strokeLinecap="round" />
+                <path d="M28 98H42" strokeLinecap="round" />
+
+                {/* Left Skyscraper / Highrise */}
+                <rect x="60" y="45" width="30" height="75" rx="1" />
+                <line x1="68" y1="55" x2="82" y2="55" />
+                <line x1="68" y1="65" x2="82" y2="65" />
+                <line x1="68" y1="75" x2="82" y2="75" />
+                <line x1="68" y1="85" x2="82" y2="85" />
+                <line x1="68" y1="95" x2="82" y2="95" />
+
+                {/* Clocktower */}
+                <rect x="100" y="30" width="22" height="90" rx="1" />
+                <circle cx="111" cy="45" r="5" />
+                <path d="M100 30L111 15L122 30" strokeLinecap="round" />
+
+                {/* Center: Vidhan Sabha / Lucknow Dome & Colonnades */}
+                <path d="M170 120V75H330V120" />
+                {/* Grand Dome */}
+                <path d="M220 75C220 50 235 35 250 35C265 35 280 50 280 75" />
+                <path d="M250 35V20" strokeLinecap="round" strokeWidth="1.5" />
+                {/* Smaller Side Domes */}
+                <path d="M185 75C185 62 193 55 202 55C211 55 219 62 219 75" />
+                <path d="M281 75C281 62 289 55 298 55C307 55 315 62 315 75" />
+                {/* Colonnade Pillars */}
+                <line x1="190" y1="85" x2="190" y2="120" />
+                <line x1="210" y1="85" x2="210" y2="120" />
+                <line x1="230" y1="85" x2="230" y2="120" />
+                <line x1="250" y1="85" x2="250" y2="120" />
+                <line x1="270" y1="85" x2="270" y2="120" />
+                <line x1="290" y1="85" x2="290" y2="120" />
+                <line x1="310" y1="85" x2="310" y2="120" />
+
+                {/* Right: Rumi Darwaza / Arches & Minarets */}
+                <rect x="345" y="40" width="28" height="80" rx="1" />
+                <path d="M345 40L359 25L373 40" strokeLinecap="round" />
+                <line x1="352" y1="52" x2="366" y2="52" />
+                <line x1="352" y1="64" x2="366" y2="64" />
+                <line x1="352" y1="76" x2="366" y2="76" />
+
+                {/* Right Skyscraper & Trees */}
+                <rect x="385" y="55" width="35" height="65" rx="1" />
+                <line x1="393" y1="68" x2="412" y2="68" />
+                <line x1="393" y1="80" x2="412" y2="80" />
+                <line x1="393" y1="92" x2="412" y2="92" />
+
+                {/* Right Monument */}
+                <path d="M435 120V75L455 55L475 75V120" strokeLinecap="round" />
+                <line x1="445" y1="88" x2="465" y2="88" />
+                <line x1="445" y1="102" x2="465" y2="102" />
+
+                {/* Ground Base Line */}
+                <line x1="10" y1="120" x2="490" y2="120" strokeLinecap="round" strokeWidth="1.5" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 5. 24/7 SUPPORT & SOS MODAL */}
+      {/* 4. INSTAGRAM/RAPIDO STYLE FULL-SCREEN STORY PLAYER MODAL */}
+      <CaptainStoryModal
+        isOpen={isStoryModalOpen}
+        initialIndex={storyModalIndex}
+        onClose={() => setIsStoryModalOpen(false)}
+      />
+
+      {/* 5. "TAP TO EARN" REWARD SCRATCH CARD MODAL */}
+      {showRewardModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-xs bg-white rounded-3xl p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-200 border border-zinc-200">
+            <div className="flex justify-between items-center pb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                Captain Mystery Reward
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRewardModal(false);
+                  setRewardScratched(false);
+                }}
+                className="size-7 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              onClick={() => {
+                triggerHaptic([40, 80, 120]);
+                setRewardScratched(true);
+                toast.success("🎉 ₹10 Captain Bonus added to your wallet!");
+              }}
+              className={`p-6 rounded-2xl cursor-pointer transition-all border-2 ${
+                rewardScratched
+                  ? "bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-400 shadow-inner"
+                  : "bg-gradient-to-br from-indigo-700 to-purple-900 border-indigo-400 text-white shadow-xl hover:scale-102 active:scale-98"
+              }`}
+            >
+              {!rewardScratched ? (
+                <div className="space-y-2">
+                  <div className="text-4xl">🎁</div>
+                  <p className="text-sm font-black text-amber-300 uppercase">
+                    Tap to Scratch & Reveal
+                  </p>
+                  <p className="text-[10px] text-white/70">
+                    Guaranteed instant cash reward for active duty!
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1 animate-in zoom-in-75 duration-200">
+                  <div className="text-4xl">💰</div>
+                  <p className="text-xs font-bold text-amber-800">You Won!</p>
+                  <p className="text-3xl font-black text-zinc-950">₹10 Cash</p>
+                  <p className="text-[10px] text-emerald-700 font-bold">
+                    ✓ Credited to QuickPress Wallet
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowRewardModal(false);
+                setRewardScratched(false);
+                navigate({ to: "/wallet" });
+              }}
+              className="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs transition-all cursor-pointer shadow-md"
+            >
+              Go to Wallet ➔
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. 24/7 SUPPORT & SOS MODAL */}
       <CaptainSupportModal
         isOpen={isSupportModalOpen}
         onClose={() => setIsSupportModalOpen(false)}
       />
-
-
 
       {/* 7. FULL ORDER / TRIP DETAIL VIEW MODAL */}
       {selectedTripForDetail && (

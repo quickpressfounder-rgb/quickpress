@@ -459,6 +459,9 @@ export function CaptainPermissionsScreen() {
             type="button"
             onClick={() => {
               stopOrderAlertSound();
+              try {
+                localStorage.setItem("qp_captain_permissions_allowed", "1");
+              } catch {}
               if (allGranted) {
                 setShowSuccessModal(true);
                 setTimeout(() => navigate({ to: "/dashboard" }), 1400);

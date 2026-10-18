@@ -564,11 +564,14 @@ export function speakText(text: string, force: boolean = false) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
   try {
+    if (typeof window !== "undefined" && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     const lang = getAudioLanguage();
-    utterance.lang = lang;
-    utterance.rate = 1.05;
+    utterance.lang = lang.startsWith("hi") ? "hi-IN" : "en-IN";
+    utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
     const voices = window.speechSynthesis.getVoices();
@@ -621,11 +624,11 @@ export function speakDutyStatus(isOnline: boolean) {
   const isHi = getAudioLanguage().startsWith("hi");
   const text = isOnline
     ? isHi
-      ? "कप्तान ड्यूटी ऑन हो गई है। ऑर्डर्स के लिए तैयार रहें।"
-      : "Captain is now ON DUTY. Ready for new orders."
+      ? "आप ऑनलाइन हैं। क्विकप्रेस कैप्टन ड्यूटी चालू हो गई है।"
+      : "You are now Online. QuickPress Captain duty is active."
     : isHi
-      ? "कप्तान ड्यूटी ऑफ हो गई है।"
-      : "Captain is now OFF DUTY.";
+      ? "आप ऑफलाइन हैं। क्विकप्रेस कैप्टन ड्यूटी बंद हो गई है।"
+      : "You are now Offline. QuickPress Captain duty is stopped.";
   speakText(text, true);
 }
 
