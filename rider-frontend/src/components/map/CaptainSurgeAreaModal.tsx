@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { App } from "@capacitor/app";
 import { ArrowLeft, AlertCircle, Flame, Sparkles } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
 
@@ -16,38 +14,44 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
 }) => {
   const [isSurgeEnabled, setIsSurgeEnabled] = useState(false);
 
-  // Handle Mobile Hardware / Gesture Back Button
+  // Safe Native Android Back Button Interception (no router pushState corruption)
   useEffect(() => {
     if (!isOpen) return;
 
-    const handlePopState = () => {
-      onClose();
-    };
-    window.addEventListener("popstate", handlePopState);
-    window.history.pushState({ modal: "surge-area" }, "");
+    let cleanup: (() => void) | null = null;
+    if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.()) {
+      import("@capacitor/app")
+        .then(({ App }) => {
+          App.addListener("backButton", () => {
+            triggerHaptic(20);
+            onClose();
+          })
+            .then((handle) => {
+              cleanup = () => handle.remove();
+            })
+            .catch(() => {});
+        })
+        .catch(() => {});
+    }
 
-    let backHandler: any = null;
-    void App.addListener("backButton", () => {
-      triggerHaptic(20);
-      onClose();
-    })
-      .then((handle) => {
-        backHandler = handle;
-      })
-      .catch(() => {});
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        triggerHaptic(20);
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("popstate", handlePopState);
-      if (backHandler && typeof backHandler.remove === "function") {
-        backHandler.remove();
-      }
+      window.removeEventListener("keydown", handleKeyDown);
+      if (cleanup) cleanup();
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const content = (
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-slate-100 text-zinc-900 select-none animate-in fade-in duration-200">
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-zinc-900 select-none animate-in fade-in duration-200">
       {/* Top Floating Back Button (Video 00:26 Match) */}
       <div
         className="absolute top-4 left-4 z-20 pointer-events-auto"
@@ -141,6 +145,4 @@ export const CaptainSurgeAreaModal: React.FC<CaptainSurgeAreaModalProps> = ({
       </div>
     </div>
   );
-
-  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 };

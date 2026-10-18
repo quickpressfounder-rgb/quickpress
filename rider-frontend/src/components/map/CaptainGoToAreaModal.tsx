@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { App } from "@capacitor/app";
 import { ArrowLeft, Heart, Info, Trash2, Plus, MapPin, X } from "lucide-react";
 import { triggerHaptic } from "../../lib/captain-audio";
 
@@ -23,39 +21,45 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
     "Kasganj Junction, Railway Colony",
   ]);
 
-  // Handle Mobile Hardware / Gesture Back Button
+  // Safe Native Android Back Button Interception (no router pushState corruption)
   useEffect(() => {
     if (!isOpen) return;
 
-    const handlePopState = () => {
-      if (showConfirmPopup) {
-        setShowConfirmPopup(false);
-      } else {
-        onClose();
+    let cleanup: (() => void) | null = null;
+    if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.()) {
+      import("@capacitor/app")
+        .then(({ App }) => {
+          App.addListener("backButton", () => {
+            triggerHaptic(20);
+            if (showConfirmPopup) {
+              setShowConfirmPopup(false);
+            } else {
+              onClose();
+            }
+          })
+            .then((handle) => {
+              cleanup = () => handle.remove();
+            })
+            .catch(() => {});
+        })
+        .catch(() => {});
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        triggerHaptic(20);
+        if (showConfirmPopup) {
+          setShowConfirmPopup(false);
+        } else {
+          onClose();
+        }
       }
     };
-    window.addEventListener("popstate", handlePopState);
-    window.history.pushState({ modal: "goto-area" }, "");
-
-    let backHandler: any = null;
-    void App.addListener("backButton", () => {
-      triggerHaptic(20);
-      if (showConfirmPopup) {
-        setShowConfirmPopup(false);
-      } else {
-        onClose();
-      }
-    })
-      .then((handle) => {
-        backHandler = handle;
-      })
-      .catch(() => {});
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("popstate", handlePopState);
-      if (backHandler && typeof backHandler.remove === "function") {
-        backHandler.remove();
-      }
+      window.removeEventListener("keydown", handleKeyDown);
+      if (cleanup) cleanup();
     };
   }, [isOpen, showConfirmPopup, onClose]);
 
@@ -77,8 +81,8 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
     onClose();
   };
 
-  const content = (
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-white text-zinc-900 select-none animate-in fade-in duration-200">
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white text-zinc-900 select-none animate-in fade-in duration-200">
       {/* Top Header Bar (Video 00:31 Match) */}
       <header
         className="flex items-center gap-3 px-4 pb-3 border-b border-zinc-200 bg-white"
@@ -183,7 +187,7 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
 
       {/* 45-Minute Confirmation Modal (Exact Match to Reference Video 00:32 - 00:33) */}
       {showConfirmPopup && (
-        <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200">
           <div
             className="w-full max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 text-center space-y-4 animate-in slide-in-from-bottom duration-300"
             onClick={(e) => e.stopPropagation()}
@@ -221,6 +225,4 @@ export const CaptainGoToAreaModal: React.FC<CaptainGoToAreaModalProps> = ({
       )}
     </div>
   );
-
-  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 };

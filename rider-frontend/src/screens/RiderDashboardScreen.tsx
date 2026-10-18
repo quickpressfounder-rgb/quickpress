@@ -18,6 +18,7 @@ import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer"
 import { fetchUnreadCount } from "../api/rider/rider-notifications-api";
 import { CaptainHomeOfflineScreen } from "../components/home/CaptainHomeOfflineScreen";
 import { CaptainOnlineMapView } from "../components/map/CaptainOnlineMapView";
+import { CaptainRateCardModal } from "../components/home/CaptainRateCardModal";
 import { RiderBottomNav } from "../components/RiderBottomNav";
 import { formatCaptainId } from "../lib/format-ids";
 import { useLanguage } from "../lib/i18n";
@@ -59,6 +60,7 @@ export function RiderDashboardScreen() {
   const [lastOrderEarnings, setLastOrderEarnings] = useState(0);
   const [isGoingOffDutyModal, setIsGoingOffDutyModal] = useState(false);
   const [isLocationUpdatingModal, setIsLocationUpdatingModal] = useState(false);
+  const [isRateCardOpen, setIsRateCardOpen] = useState(false);
   const [captainName, setCaptainName] = useState(() => {
     const name = session?.fullName;
     return name && name !== "Delivery Captain" && name !== "Delivery Partner" ? name : "Captain";
@@ -308,6 +310,7 @@ export function RiderDashboardScreen() {
         onOpenDrawer={() => setIsDrawerOpen(true)}
         onOpenNotifications={() => navigate({ to: "/notifications" })}
         onOpenEarnings={() => navigate({ to: "/wallet" })}
+        onOpenRateCard={() => setIsRateCardOpen(true)}
         todayEarnings={todayEarnings}
         walletBalance={walletBalance}
         lastOrderEarnings={lastOrderEarnings}
@@ -413,6 +416,12 @@ export function RiderDashboardScreen() {
 
       {/* 4. 2-Tab Rapido Captain Bottom Navigation with live badge count on Orders */}
       <RiderBottomNav active="dashboard" ordersBadgeCount={pendingOrdersCount} />
+
+      {/* 5. Root Modal Overlays */}
+      <CaptainRateCardModal
+        isOpen={isRateCardOpen}
+        onClose={() => setIsRateCardOpen(false)}
+      />
     </div>
   );
 }

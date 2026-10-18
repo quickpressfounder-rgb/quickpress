@@ -3,7 +3,6 @@ import { Bell, ChevronDown, ChevronUp, MapPin, Menu, Wallet, History, ArrowUpRig
 import { useLanguage } from "../../lib/i18n";
 import { isAudioMuted, toggleAudioMuted, triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
-import { CaptainRateCardModal } from "../home/CaptainRateCardModal";
 
 interface CaptainTopBarProps {
   isOnline: boolean;
@@ -12,6 +11,7 @@ interface CaptainTopBarProps {
   onOpenNotifications?: () => void;
   onOpenEarnings?: () => void;
   onOpenLocation?: () => void;
+  onOpenRateCard?: () => void;
   todayEarnings?: number;
   walletBalance?: number;
   lastOrderEarnings?: number;
@@ -26,6 +26,7 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
   onOpenNotifications,
   onOpenEarnings,
   onOpenLocation,
+  onOpenRateCard,
   todayEarnings = 0,
   walletBalance = 0,
   lastOrderEarnings = 0,
@@ -34,7 +35,6 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
 }) => {
   const { t } = useLanguage();
   const [isEarningsExpanded, setIsEarningsExpanded] = useState(false);
-  const [isRateCardOpen, setIsRateCardOpen] = useState(false);
   const [muted, setMuted] = useState(() => isAudioMuted());
 
   const handleToggleSound = () => {
@@ -223,7 +223,7 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
                 type="button"
                 onClick={() => {
                   triggerHaptic(20);
-                  setIsRateCardOpen(true);
+                  if (onOpenRateCard) onOpenRateCard();
                 }}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 active:scale-95 transition-all cursor-pointer py-1 px-3 rounded-lg hover:bg-blue-100/50"
               >
@@ -234,12 +234,6 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
           </div>
         )}
       </div>
-
-      {/* Rate Card Modal */}
-      <CaptainRateCardModal
-        isOpen={isRateCardOpen}
-        onClose={() => setIsRateCardOpen(false)}
-      />
     </div>
   );
 };
