@@ -315,13 +315,25 @@ async def get_me(user: User = Depends(current_user)) -> AccountResponse:
 async def refresh(payload: RefreshRequest) -> AuthSessionResponse:
     claims = decode_token(payload.refresh_token, expected_type="refresh")
     token_id = str(claims.get("jti"))
-    if not await refresh_tokens.is_active(token_id):
+    is_valid, token_doc = await refresh_tokens.is_active_or_grace(token_id, grace_seconds=30)
+    if not is_valid:
         raise HTTPException(status_code=401, detail="Refresh token revoked")
     user = await users.by_id(str(claims.get("sub")))
     if user is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    await refresh_tokens.revoke(token_id)  # rotation: one use per refresh token
-    return await _issue_session(user)
+
+    new_session = await _issue_session(user)
+
+    # If token was active (not yet rotated), mark it revoked and track child token
+    if token_doc and not token_doc.get("revoked", False):
+        try:
+            new_claims = decode_token(new_session.refreshToken, expected_type="refresh")
+            new_token_id = str(new_claims.get("jti"))
+        except Exception:
+            new_token_id = None
+        await refresh_tokens.revoke(token_id, replaced_by=new_token_id)
+
+    return new_session
 
 
 # =========================================================================

@@ -328,6 +328,8 @@ class RefreshTokenRepository:
                 "expires_at": expires_at.isoformat(),
                 "created_at": utcnow().isoformat(),
                 "revoked": False,
+                "revoked_at": None,
+                "replaced_by": None,
             }
         )
 
@@ -335,11 +337,42 @@ class RefreshTokenRepository:
         doc = await self._c.find_one({"token_id": token_id})
         return bool(doc) and not doc.get("revoked", False)
 
-    async def revoke(self, token_id: str) -> None:
-        await self._c.update_one({"token_id": token_id}, {"$set": {"revoked": True}})
+    async def is_active_or_grace(self, token_id: str, grace_seconds: int = 30) -> tuple[bool, Optional[Dict[str, Any]]]:
+        """
+        Check if token is active OR revoked within the grace_seconds window.
+        Prevents race-condition logouts when concurrent requests refresh simultaneously.
+        """
+        doc = await self._c.find_one({"token_id": token_id})
+        if not doc:
+            return False, None
+        if not doc.get("revoked", False):
+            return True, doc
+        # If revoked, check if still inside concurrency grace period
+        revoked_at = doc.get("revoked_at")
+        if revoked_at:
+            try:
+                # Remove Z or parse isoformat
+                clean_ts = revoked_at.replace("Z", "+00:00")
+                rev_dt = datetime.fromisoformat(clean_ts)
+                now_dt = datetime.now(timezone.utc)
+                if rev_dt.tzinfo is None:
+                    rev_dt = rev_dt.replace(tzinfo=timezone.utc)
+                if (now_dt - rev_dt).total_seconds() <= grace_seconds:
+                    return True, doc
+            except Exception:
+                pass
+        return False, doc
+
+    async def revoke(self, token_id: str, replaced_by: Optional[str] = None) -> None:
+        now_iso = utcnow().isoformat()
+        await self._c.update_one(
+            {"token_id": token_id},
+            {"$set": {"revoked": True, "revoked_at": now_iso, "replaced_by": replaced_by}},
+        )
 
     async def revoke_all_for_user(self, user_id: str) -> None:
-        await self._c.update_one({"user_id": user_id}, {"$set": {"revoked": True}})
+        now_iso = utcnow().isoformat()
+        await self._c.update_one({"user_id": user_id}, {"$set": {"revoked": True, "revoked_at": now_iso}})
 
 
 class OtpAttemptRepository:

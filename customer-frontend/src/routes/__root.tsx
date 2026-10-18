@@ -19,6 +19,7 @@ import { reportLovableError } from "@/shared/lib/lovable-error-reporting";
 import { initTheme } from "@/lib/theme";
 import { useBackNavigation } from "@/hooks/useBackNavigation";
 import { Toaster } from "@/shared/ui/sonner";
+import { startCustomerAutoRefresh } from "@/api/customer/auth-api";
 
 // Permanently intercept and gracefully suppress benign React SSR hydration mismatch notices (#418, #423, #425)
 if (typeof window !== "undefined") {
@@ -223,6 +224,12 @@ function RootComponent() {
 
   // Handles Android hardware back button and swipe back gestures gracefully step-by-step
   useBackNavigation();
+
+  // Token refresh: keeps the customer access token continuously valid while the app stays open across all routes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    return startCustomerAutoRefresh();
+  }, []);
 
   // Applies the stored Light / Dark / System choice and follows the OS live.
   useEffect(() => initTheme(), []);

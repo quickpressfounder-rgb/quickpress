@@ -120,21 +120,34 @@ export async function fetchCurrentUser(): Promise<AuthSession["account"]> {
   return apiGetJson<AuthSession["account"]>(AUTH_ENDPOINTS.me);
 }
 
-/** POST /api/auth/refresh — rotates the access token using the refresh token. */
+let activeRefreshPromise: Promise<AuthSession | null> | null = null;
+
+/** POST /api/auth/refresh — rotates the access token using the refresh token (with concurrency mutex). */
 export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSession | null> {
-  const current = readSession(role(explicitRole));
-  if (!current?.refreshToken) return null;
-  try {
-    const next = await apiPostJson<AuthSession>(
-      AUTH_ENDPOINTS.refresh,
-      { refresh_token: current.refreshToken },
-      { anonymous: true },
-    );
-    return persist(next);
-  } catch {
-    clearSession(role(explicitRole));
-    return null;
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
   }
+
+  activeRefreshPromise = (async () => {
+    const targetRole = role(explicitRole);
+    const current = readSession(targetRole);
+    if (!current?.refreshToken) return null;
+    try {
+      const next = await apiPostJson<AuthSession>(
+        AUTH_ENDPOINTS.refresh,
+        { refresh_token: current.refreshToken },
+        { anonymous: true },
+      );
+      return persist(next);
+    } catch {
+      clearSession(targetRole);
+      return null;
+    } finally {
+      activeRefreshPromise = null;
+    }
+  })();
+
+  return activeRefreshPromise;
 }
 
 function isExpired(session: AuthSession, skewMs = 60_000): boolean {

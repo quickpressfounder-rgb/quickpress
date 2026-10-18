@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import "../styles.css";
 import { reportLovableError } from "@/shared/lib/lovable-error-reporting";
+import { startAdminAutoRefresh } from "@/api/admin/admin-auth-api";
 
 function NotFoundComponent() {
   return (
@@ -156,6 +157,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    return startAdminAutoRefresh();
+  }, []);
 
   useEffect(() => {
     import("@/api/core/onesignal").then((m) => m.initOneSignal()).catch(() => {});

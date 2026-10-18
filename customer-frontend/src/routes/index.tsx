@@ -55,19 +55,16 @@ function SplashScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    let stopRefresh: (() => void) | undefined;
     Promise.all([
       initializeApp(),
       // Ultra-fast smooth entry
       new Promise((resolve) => setTimeout(resolve, 200)),
     ]).then(([{ loggedIn }]) => {
       if (cancelled) return;
-      if (loggedIn) stopRefresh = startCustomerAutoRefresh();
       navigate({ to: loggedIn ? "/home" : "/login", replace: true });
     });
     return () => {
       cancelled = true;
-      stopRefresh?.();
     };
   }, [navigate]);
 

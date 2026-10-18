@@ -73,6 +73,22 @@ export function startSessionAutoRefresh(role: AccountRole): () => void {
   const unsubscribe = subscribeSession(schedule);
   document.addEventListener("visibilitychange", onVisible);
   window.addEventListener("online", onOnline);
+
+  let removeCapacitorListener: (() => void) | undefined;
+  if (typeof window !== "undefined") {
+    import("@capacitor/app")
+      .then(({ App }) => {
+        if (stopped) return;
+        const handle = App.addListener("appStateChange", ({ isActive }) => {
+          if (isActive) onVisible();
+        });
+        removeCapacitorListener = () => {
+          handle.then((h) => h.remove()).catch(() => {});
+        };
+      })
+      .catch(() => {});
+  }
+
   schedule();
 
   return () => {
@@ -81,5 +97,6 @@ export function startSessionAutoRefresh(role: AccountRole): () => void {
     unsubscribe();
     document.removeEventListener("visibilitychange", onVisible);
     window.removeEventListener("online", onOnline);
+    removeCapacitorListener?.();
   };
 }

@@ -100,26 +100,38 @@ export async function fetchCurrentUser(): Promise<AuthSession["account"]> {
   return apiGetJson<AuthSession["account"]>(AUTH_ENDPOINTS.me, { timeoutMs: 35000 });
 }
 
-/** POST /api/auth/refresh — rotates the access token using the refresh token. */
+let activeRefreshPromise: Promise<AuthSession | null> | null = null;
+
+/** POST /api/auth/refresh — rotates the access token using the refresh token (with concurrency mutex). */
 export async function refreshSession(explicitRole?: AccountRole): Promise<AuthSession | null> {
-  const target = role(explicitRole);
-  const current = readSession(target);
-  if (!current?.refreshToken) return current || null;
-  try {
-    const next = await apiPostJson<AuthSession>(
-      AUTH_ENDPOINTS.refresh,
-      { refresh_token: current.refreshToken },
-      { anonymous: true, timeoutMs: 35000 },
-    );
-    return persist(next);
-  } catch (err: any) {
-    if (err instanceof ApiError && (err.status === 401 || err.kind === "unauthorized")) {
-      clearSession(target);
-      return null;
-    }
-    // Network timeout / restart: preserve current session
-    return current;
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
   }
+
+  activeRefreshPromise = (async () => {
+    const target = role(explicitRole);
+    const current = readSession(target);
+    if (!current?.refreshToken) return current || null;
+    try {
+      const next = await apiPostJson<AuthSession>(
+        AUTH_ENDPOINTS.refresh,
+        { refresh_token: current.refreshToken },
+        { anonymous: true, timeoutMs: 35000 },
+      );
+      return persist(next);
+    } catch (err: any) {
+      if (err instanceof ApiError && (err.status === 401 || err.kind === "unauthorized")) {
+        clearSession(target);
+        return null;
+      }
+      // Network timeout / restart: preserve current session
+      return current;
+    } finally {
+      activeRefreshPromise = null;
+    }
+  })();
+
+  return activeRefreshPromise;
 }
 
 function isExpired(session: AuthSession, skewMs = 60_000): boolean {
