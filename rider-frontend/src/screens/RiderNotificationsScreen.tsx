@@ -1,30 +1,31 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  AlertCircle,
   ArrowLeft,
   Bell,
-  CheckCheck,
-  Clock,
-  PackageCheck,
-  Truck,
-  WalletCards,
-  ShieldCheck,
-  AlertCircle,
-  RefreshCw,
   BellOff,
+  CheckCheck,
   ChevronRight,
+  Clock,
+  Headphones,
+  PackageCheck,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  WalletCards,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchRiderNotifications,
   markRiderNotificationRead,
   markAllRiderNotificationsRead,
-  fetchUnreadCount,
-} from "@/api/rider/rider-notifications-api";
-import { playArrivalChime, triggerHaptic } from "@/lib/captain-audio";
-import { subscribeRiderNotifications } from "@/lib/rider-socket";
-import { RiderBottomNav } from "@/components/RiderBottomNav";
-import type { RiderNotification, RiderNotificationKind } from "@/shared/types/rider";
+} from "../api/rider/rider-notifications-api";
+import { playArrivalChime, triggerHaptic } from "../lib/captain-audio";
+import { subscribeRiderNotifications } from "../lib/rider-socket";
+import { RiderBottomNav } from "../components/RiderBottomNav";
+import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
+import type { RiderNotification } from "../shared/types/rider";
 
 type FilterTab = "all" | "orders" | "earnings" | "system";
 
@@ -44,6 +45,7 @@ export const RiderNotificationsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const loadNotifications = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -64,10 +66,10 @@ export const RiderNotificationsScreen: React.FC = () => {
     void loadNotifications();
   }, [loadNotifications]);
 
-  // Real-time Socket.IO subscription for instant live notification deliveries from Admin Panel
+  // Real-time Socket.IO subscription for instant live notification deliveries
   useEffect(() => {
     const unsub = subscribeRiderNotifications((notif) => {
-      console.log("[RiderNotificationsScreen] ⚡ Realtime notification received from Admin:", notif);
+      console.log("[RiderNotificationsScreen] ⚡ Realtime notification received:", notif);
       try {
         playArrivalChime();
         triggerHaptic(40);
@@ -83,7 +85,7 @@ export const RiderNotificationsScreen: React.FC = () => {
     };
   }, [loadNotifications]);
 
-  // Mark single notification read & open deep-link if applicable
+  // Mark single notification read & open deep-link
   const handleNotificationClick = async (item: RiderNotification) => {
     triggerHaptic(30);
     if (item.unread) {
@@ -93,7 +95,6 @@ export const RiderNotificationsScreen: React.FC = () => {
       markRiderNotificationRead(item.id).catch(() => {});
     }
 
-    // Action routing based on category/payload
     if (item.orderId) {
       navigate({ to: "/orders" });
     } else if (item.kind === "payment") {
@@ -148,7 +149,7 @@ export const RiderNotificationsScreen: React.FC = () => {
     return true;
   });
 
-  // Category Icon Selector (100% Professional Vector Icons - Zero Cartoon Emojis)
+  // Category Icon Selector
   const renderCategoryIcon = (item: RiderNotification) => {
     const titleLower = item.title.toLowerCase();
     const isCancelled = titleLower.includes("cancel") || titleLower.includes("cancelled");
@@ -162,7 +163,7 @@ export const RiderNotificationsScreen: React.FC = () => {
 
     if (isCancelled) {
       return (
-        <div className="flex items-center justify-center size-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 shrink-0 shadow-xs">
+        <div className="flex items-center justify-center size-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 shrink-0 shadow-2xs">
           <AlertCircle className="size-5 stroke-[2.2]" />
         </div>
       );
@@ -170,7 +171,7 @@ export const RiderNotificationsScreen: React.FC = () => {
 
     if (isEarnings) {
       return (
-        <div className="flex items-center justify-center size-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-[#00873D] shrink-0 shadow-xs">
+        <div className="flex items-center justify-center size-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 shrink-0 shadow-2xs">
           <WalletCards className="size-5 stroke-[2.2]" />
         </div>
       );
@@ -178,28 +179,28 @@ export const RiderNotificationsScreen: React.FC = () => {
 
     if (isOrder) {
       return (
-        <div className="flex items-center justify-center size-10 rounded-2xl bg-sky-50 border border-sky-200 text-sky-800 shrink-0 shadow-xs">
+        <div className="flex items-center justify-center size-10 rounded-2xl bg-sky-50 border border-sky-200 text-sky-800 shrink-0 shadow-2xs">
           <PackageCheck className="size-5 stroke-[2.2]" />
         </div>
       );
     }
 
     return (
-      <div className="flex items-center justify-center size-10 rounded-2xl bg-zinc-100 border border-zinc-200 text-zinc-800 shrink-0 shadow-xs">
+      <div className="flex items-center justify-center size-10 rounded-2xl bg-zinc-100 border border-zinc-200 text-zinc-800 shrink-0 shadow-2xs">
         <ShieldCheck className="size-5 stroke-[2.2]" />
       </div>
     );
   };
 
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-slate-50 text-zinc-900 overflow-hidden select-none">
-      {/* 1. Sticky Professional Header Bar */}
+    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-800 select-none font-sans">
+      {/* 1. Header Bar matching Rapido / QuickPress Wallet Screen */}
       <header
-        className="sticky top-0 z-30 flex flex-col bg-white border-b border-zinc-200 shadow-xs shrink-0"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
         <div className="flex items-center justify-between px-4 pb-2.5">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -207,117 +208,161 @@ export const RiderNotificationsScreen: React.FC = () => {
                 if (window.history.length > 1) window.history.back();
                 else navigate({ to: "/dashboard" });
               }}
-              aria-label="Go Back"
-              className="flex items-center justify-center size-9 rounded-xl bg-zinc-100 text-zinc-800 hover:bg-zinc-200 active:scale-95 transition-transform"
+              className="p-1.5 -ml-1 text-zinc-900 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
+              aria-label="Back"
             >
-              <ArrowLeft className="size-5 stroke-[2.4]" />
+              <ArrowLeft className="size-6 text-zinc-950 stroke-[2.2]" />
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-black text-zinc-950 tracking-tight">
-                  Notifications
+                <h1 className="text-xl font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  )}
                 </h1>
                 {unreadCount > 0 && (
-                  <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 rounded-full border border-emerald-300">
-                    {unreadCount} Unread
+                  <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
+                    {unreadCount} New
                   </span>
                 )}
               </div>
               <p className="text-[11px] font-semibold text-zinc-500">
-                Captain dispatch feed and account events
+                Captain dispatch feed & live alerts
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setIsHelpOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
+            >
+              <Headphones className="size-3.5 text-zinc-700" />
+              <span>Help</span>
+            </button>
+
             <button
               type="button"
               onClick={() => loadNotifications(true)}
               disabled={refreshing}
-              aria-label="Refresh Feed"
-              className="flex items-center justify-center size-8.5 rounded-xl text-zinc-600 hover:bg-zinc-100 active:scale-95 transition-all"
+              className="p-2 text-black hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
               title="Refresh Notifications"
             >
-              <RefreshCw className={`size-4 ${refreshing ? "animate-spin text-emerald-600" : ""}`} />
+              <RefreshCw className={`size-4 text-black ${refreshing ? "animate-spin text-emerald-600" : ""}`} />
             </button>
 
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-xl border border-emerald-200 active:scale-95 transition-all"
-                title="Mark all notifications as read"
+                className="p-2 text-emerald-700 hover:bg-emerald-50 rounded-xl active:scale-95 transition-all"
+                title="Mark all as read"
               >
-                <CheckCheck className="size-3.5 stroke-[2.5]" />
-                <span className="text-[11px] font-black">Read All</span>
+                <CheckCheck className="size-4 stroke-[2.5]" />
               </button>
             )}
           </div>
         </div>
 
-        {/* 2. Category Filter Tabs (Professional, Clean, Zero Cartoon Emojis) */}
-        <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto bg-white border-t border-zinc-100 no-scrollbar">
+        {/* 4 Integrated Sub-Tabs with Solid Yellow Underline */}
+        <div className="grid grid-cols-4 text-center text-xs font-bold border-t border-zinc-100">
           {[
             { id: "all", label: "All" },
             { id: "orders", label: "Orders" },
             { id: "earnings", label: "Earnings" },
             { id: "system", label: "System" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                setActiveTab(tab.id as FilterTab);
-              }}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer ${
-                activeTab === tab.id
-                  ? "bg-zinc-950 text-white shadow-xs"
-                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          ].map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  triggerHaptic(15);
+                  setActiveTab(tab.id as FilterTab);
+                }}
+                className={`py-3 relative cursor-pointer transition-colors ${
+                  active ? "text-zinc-950 font-black" : "text-zinc-500 hover:text-zinc-800 font-bold"
+                }`}
+              >
+                <span>{tab.label}</span>
+                {active && (
+                  <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFC700] rounded-full" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </header>
 
-      {/* 4. Notification Items List */}
-      <main className="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5 pb-24">
+      {/* 2. Scrollable Content Body */}
+      <div
+        className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
+      >
+        {/* Lilac / Purple Explainer Banner matching Wallet Screen */}
+        <div
+          onClick={() => {
+            triggerHaptic(20);
+            toast.info("Notification Bell: Live audio tones and popups keep you ready for incoming orders.");
+          }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-[#EDE9FE] to-[#F5F3FF] border border-[#DDD6FE] text-zinc-900 shadow-2xs flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-11 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Bell className="size-6 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-sm font-black text-zinc-950 leading-snug">
+                Real-Time Dispatch Feed Active
+              </h4>
+              <p className="text-[11px] text-zinc-600 mt-0.5 leading-snug">
+                Audio alerts will ring for new orders, surge boosts & wallet payouts
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="size-4 text-zinc-500 shrink-0 ml-2" />
+        </div>
+
+        {/* Notifications List as a Unified Divided Card */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-zinc-400 gap-3">
-            <div className="size-7 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs p-12 flex flex-col items-center justify-center text-zinc-400 gap-3">
+            <div className="size-7 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
             <span className="text-xs font-bold text-zinc-600">Connecting to notification pipeline...</span>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center text-zinc-500 space-y-3">
-            <div className="flex items-center justify-center size-14 rounded-3xl bg-zinc-200/70 text-zinc-500 shadow-inner">
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs p-10 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="flex items-center justify-center size-14 rounded-2xl bg-zinc-100 text-zinc-400">
               <BellOff className="size-7 stroke-[1.8]" />
             </div>
             <div>
               <p className="text-sm font-black text-zinc-900">No Notifications Available</p>
               <p className="text-xs text-zinc-500 max-w-xs mt-1">
-                You are all caught up. Live delivery dispatches, order updates, and payout alerts will show up here.
+                You are all caught up! Live delivery dispatches, surge bonuses, and wallet settlements will appear here.
               </p>
             </div>
           </div>
         ) : (
-          filteredNotifications.map((item) => (
-            <article
-              key={item.id}
-              onClick={() => handleNotificationClick(item)}
-              className={`group relative flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
-                item.unread
-                  ? "bg-white border-emerald-300 shadow-xs hover:border-emerald-400 ring-1 ring-emerald-200/50"
-                  : "bg-white/80 border-zinc-200 hover:border-zinc-300 hover:bg-white"
-              }`}
-            >
-              {/* Category Icon */}
-              {renderCategoryIcon(item)}
+          <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden divide-y divide-zinc-100">
+            {filteredNotifications.map((item) => (
+              <article
+                key={item.id}
+                onClick={() => handleNotificationClick(item)}
+                className={`p-4 flex items-start gap-3.5 transition-colors cursor-pointer hover:bg-zinc-50 ${
+                  item.unread ? "bg-amber-50/20" : ""
+                }`}
+              >
+                {/* Category Icon */}
+                {renderCategoryIcon(item)}
 
-              {/* Text Information */}
-              <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
                     <h2
                       className={`text-xs tracking-tight truncate ${
                         item.unread ? "font-black text-zinc-950" : "font-bold text-zinc-800"
@@ -326,39 +371,39 @@ export const RiderNotificationsScreen: React.FC = () => {
                       {cleanText(item.title)}
                     </h2>
                     {item.unread && (
-                      <span
-                        className="size-2.5 rounded-full bg-[#00C853] shrink-0 shadow-xs ring-4 ring-emerald-100"
-                        title="Unread"
-                      />
+                      <span className="size-2 rounded-full bg-emerald-500 shrink-0" title="Unread" />
                     )}
                   </div>
 
-                  <p className="text-xs text-zinc-700 leading-relaxed break-words font-medium">
+                  <p className="text-xs text-zinc-600 leading-relaxed break-words font-medium">
                     {cleanText(item.body)}
                   </p>
 
-                <div className="flex items-center justify-between mt-2 pt-1 border-t border-zinc-100/80 text-[10px] text-zinc-500 font-bold">
-                  <span className="flex items-center gap-1">
-                    <Clock className="size-3 text-zinc-400" />
-                    <span>{item.time}</span>
-                  </span>
-
-                  {(item.orderId || item.kind === "payment") && (
-                    <span className="flex items-center gap-0.5 text-emerald-700 font-black group-hover:translate-x-0.5 transition-transform">
-                      <span>{item.orderId ? "View Order" : "View Wallet"}</span>
-                      <ChevronRight className="size-3" />
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-zinc-100 text-[10px] text-zinc-400 font-bold">
+                    <span className="flex items-center gap-1">
+                      <Clock className="size-3 text-zinc-400" />
+                      <span>{item.time}</span>
                     </span>
-                  )}
+
+                    {(item.orderId || item.kind === "payment") && (
+                      <span className="flex items-center gap-0.5 text-zinc-900 font-black">
+                        <span>{item.orderId ? "View Order" : "View Wallet"}</span>
+                        <ChevronRight className="size-3" />
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))
+              </article>
+            ))}
+          </div>
         )}
-      </main>
+      </div>
 
-      {/* 5. Captain Bottom Navigation Bar */}
+      {/* 3. Bottom Nav */}
       <RiderBottomNav active="dashboard" />
-    </div>
 
+      {/* 4. Support Modal */}
+      <CaptainSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+    </div>
   );
 };

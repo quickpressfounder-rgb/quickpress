@@ -3,7 +3,9 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Award,
+  ChevronRight,
   Crown,
+  Headphones,
   HelpCircle,
   MapPin,
   Medal,
@@ -21,6 +23,7 @@ import {
 } from "../api/rider/rider-leaderboard-api";
 import { useRiderContext } from "../context/RiderContext";
 import { RiderBottomNav } from "../components/RiderBottomNav";
+import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
 import { triggerHaptic } from "../lib/captain-audio";
 import { useLanguage } from "../lib/i18n";
 
@@ -33,6 +36,7 @@ export function RiderLeaderboardScreen() {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Preferred or current city
   const captainCity = session?.city || "Kasganj";
@@ -73,54 +77,64 @@ export function RiderLeaderboardScreen() {
 
   return (
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-800 select-none font-sans">
-      {/* 1. Header Bar */}
+      {/* 1. Header Bar matching Rapido / QuickPress Wallet Screen */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200/70 shadow-2xs"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/dashboard" })}
-            className="p-2 -ml-1 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 rounded-full active:scale-95 transition-all"
-            aria-label="Back"
-          >
-            <ArrowLeft className="size-5" />
-          </button>
-          <div>
-            <h1 className="text-base font-black text-zinc-900 tracking-tight leading-tight flex items-center gap-1.5">
-              <span>{t("nav.leaderboard") || "City Leaderboard"}</span>
-              <span className="flex size-2 rounded-full bg-amber-500" />
-            </h1>
-            <p className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1">
-              <MapPin className="size-3 text-amber-500" />
-              <span>{data?.city || captainCity} Hub · Real Captains</span>
-            </p>
+        <div className="flex items-center justify-between px-4 pb-2.5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="p-1.5 -ml-1 text-zinc-900 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-6 text-zinc-950 stroke-[2.2]" />
+            </button>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
+                <span>{t("nav.leaderboard") || "Leaderboard"}</span>
+                <span className="flex size-2 rounded-full bg-amber-500" />
+              </h1>
+              <p className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1">
+                <MapPin className="size-3 text-amber-500" />
+                <span>{data?.city || captainCity} Hub · Real Captains</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setIsHelpOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
+            >
+              <Headphones className="size-3.5 text-zinc-700" />
+              <span>Help</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              className="p-2 text-black hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
+              title="Refresh Leaderboard"
+            >
+              <RefreshCw className={`size-4 text-black ${refreshing ? "animate-spin text-amber-600" : ""}`} />
+            </button>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => loadData(true)}
-          disabled={refreshing}
-          className="p-2 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
-          title="Refresh Leaderboard"
-        >
-          <RefreshCw className={`size-4 ${refreshing ? "animate-spin text-amber-600" : ""}`} />
-        </button>
-      </header>
-
-      {/* 2. Scrollable Body Content */}
-      <div
-        className="flex-1 overflow-y-auto space-y-3.5 p-3.5 bg-[#F4F5F7]"
-        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
-      >
-        {/* Time Scope Tabs (Today / Weekly / All Time) */}
-        <div className="flex items-center p-1 bg-white border border-zinc-200/80 rounded-2xl shadow-2xs">
+        {/* 3 Sub-Tabs matching Wallet Screen with Solid Yellow Underline */}
+        <div className="grid grid-cols-3 text-center text-sm font-bold border-t border-zinc-100">
           {[
-            { id: "today", label: "Today ☀️" },
-            { id: "weekly", label: "This Week 📅" },
-            { id: "all_time", label: "All Time 🏆" },
+            { id: "today", label: "Today" },
+            { id: "weekly", label: "This Week" },
+            { id: "all_time", label: "All Time" },
           ].map((tab) => {
             const active = period === tab.id;
             return (
@@ -128,63 +142,65 @@ export function RiderLeaderboardScreen() {
                 key={tab.id}
                 type="button"
                 onClick={() => {
-                  triggerHaptic();
+                  triggerHaptic(15);
                   setPeriod(tab.id as LeaderboardPeriod);
                 }}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-                  active
-                    ? "bg-[#FFC400] text-zinc-950 font-black shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-900"
+                className={`py-3 relative cursor-pointer transition-colors ${
+                  active ? "text-zinc-950 font-black" : "text-zinc-500 hover:text-zinc-800 font-bold"
                 }`}
               >
-                {tab.label}
+                <span>{tab.label}</span>
+                {active && (
+                  <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFC700] rounded-full" />
+                )}
               </button>
             );
           })}
         </div>
+      </header>
 
-        {/* MY CURRENT RANK HERO BANNER */}
-        <div className="p-4 bg-white rounded-3xl border border-zinc-200/90 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="size-10 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center font-black text-base shadow-2xs">
+      {/* 2. Scrollable Body Content */}
+      <div
+        className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
+      >
+        {/* MY CURRENT RANK HERO CARD */}
+        <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+          <div className="p-4 space-y-1">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-zinc-500">Your Current City Ranking</p>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+                Active Contender ✓
+              </span>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <div className="size-11 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center font-black text-xl shadow-2xs">
                 #{myRank?.rank ?? 1}
               </div>
               <div>
-                <p className="text-xs font-black text-zinc-900 leading-tight">
-                  Your Current City Ranking
-                </p>
+                <h2 className="text-2xl font-black text-zinc-950 tracking-tight">
+                  Rank #{myRank?.rank ?? 1}
+                </h2>
                 <p className="text-[11px] text-zinc-500 font-medium">
                   {myRank?.bonusStatus || "Complete rides to climb the podium!"}
                 </p>
               </div>
             </div>
-
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-              <Sparkles className="size-3 text-emerald-600" />
-              <span>Active Contender</span>
-            </span>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 text-center">
-            <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
+          {/* Quick Metrics Bar with Hairline Dividers */}
+          <div className="grid grid-cols-3 divide-x divide-zinc-100 border-t border-zinc-100 bg-zinc-50/50 text-center py-3">
+            <div>
               <p className="text-[10px] text-zinc-500 font-bold uppercase">Completed Trips</p>
-              <p className="text-sm font-black text-zinc-900 mt-0.5 tracking-tight">
-                {myRank?.trips ?? 0} Rides
-              </p>
+              <p className="text-sm font-black text-zinc-950 mt-0.5">{myRank?.trips ?? 0} Rides</p>
             </div>
-            <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
+            <div>
               <p className="text-[10px] text-zinc-500 font-bold uppercase">Estimated Pay</p>
-              <p className="text-sm font-black text-emerald-600 mt-0.5 tracking-tight">
-                ₹{Number(myRank?.earnings ?? 0).toFixed(0)}
-              </p>
+              <p className="text-sm font-black text-emerald-700 mt-0.5">₹{Number(myRank?.earnings ?? 0).toFixed(0)}</p>
             </div>
-            <div className="p-2 bg-zinc-50 rounded-xl border border-zinc-100">
-              <p className="text-[10px] text-zinc-500 font-bold uppercase">Gap to Next Rank</p>
-              <p className="text-sm font-black text-amber-600 mt-0.5 tracking-tight">
-                {myRank?.gapToNextRank ?? 0} Trips
-              </p>
+            <div>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase">Gap to Next</p>
+              <p className="text-sm font-black text-amber-700 mt-0.5">{myRank?.gapToNextRank ?? 0} Trips</p>
             </div>
           </div>
         </div>
@@ -315,35 +331,45 @@ export function RiderLeaderboardScreen() {
           </div>
         )}
 
-        {/* PRIZE POOL REWARDS CARD */}
-        <div className="p-3.5 bg-gradient-to-r from-amber-50 via-white to-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-xl bg-amber-400 text-zinc-950 flex items-center justify-center font-bold shadow-xs">
-              <Trophy className="size-4" />
+        {/* PRIZE POOL REWARDS CARD (Matching Wallet Lilac Explainer Banner) */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-[#EDE9FE] to-[#F5F3FF] border border-[#DDD6FE] text-zinc-900 shadow-2xs flex items-center justify-between cursor-pointer active:scale-98 transition-all">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-11 rounded-full bg-amber-400 text-zinc-950 flex items-center justify-center shrink-0 shadow-xs font-black">
+              <Trophy className="size-6 text-zinc-950" />
             </div>
-            <div>
-              <p className="font-black text-zinc-900">Weekly ₹1,000 Prize Pool</p>
-              <p className="text-[10px] text-zinc-500 font-medium">Top 3 Captains win cash prizes directly into wallet</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-black text-zinc-950 leading-snug">
+                  Weekly ₹1,000 Prize Pool
+                </h4>
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded border border-amber-300">
+                  Active 🎯
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-600 mt-0.5 leading-snug">
+                Top 3 Captains win cash prizes directly into wallet every Sunday
+              </p>
             </div>
           </div>
-          <span className="font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200">
-            Active 🎯
-          </span>
+          <ChevronRight className="size-4 text-zinc-500 shrink-0 ml-2" />
         </div>
 
-        {/* FULL LEADERBOARD LIST */}
+        {/* FULL LEADERBOARD LIST (Matching Divided Row Action Card) */}
         <div className="space-y-2">
-          <h3 className="text-xs font-black text-zinc-900 flex items-center gap-1.5 uppercase tracking-wide">
-            <Medal className="size-4 text-emerald-600" />
-            <span>All Ranked City Captains ({leaderboard.length})</span>
-          </h3>
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-black text-zinc-900 flex items-center gap-1.5 uppercase tracking-wide">
+              <Medal className="size-4 text-emerald-600" />
+              <span>All Ranked City Captains ({leaderboard.length})</span>
+            </h3>
+            <span className="text-[11px] font-bold text-zinc-400">Kasganj Zone</span>
+          </div>
 
           {leaderboard.length === 0 ? (
-            <div className="p-6 bg-white rounded-2xl border border-zinc-200 text-center text-xs text-zinc-400 font-medium">
+            <div className="p-6 bg-white rounded-2xl border border-zinc-200 text-center text-xs text-zinc-400 font-medium shadow-2xs">
               Start delivering to appear on the city rank board!
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden divide-y divide-zinc-100">
               {leaderboard.map((captain, idx) => {
                 const rank = captain.rank || idx + 1;
                 const isMe = captain.isMe || captain.id === session?.riderId;
@@ -351,13 +377,11 @@ export function RiderLeaderboardScreen() {
                 return (
                   <div
                     key={captain.id || idx}
-                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
-                      isMe
-                        ? "bg-emerald-50/80 border-emerald-300 shadow-xs"
-                        : "bg-white border-zinc-200/90 shadow-2xs hover:border-zinc-300"
+                    className={`p-4 transition-colors flex items-center justify-between ${
+                      isMe ? "bg-amber-50/70" : "hover:bg-zinc-50"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       {/* Rank Position */}
                       <div
                         className={`size-8 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
@@ -374,22 +398,22 @@ export function RiderLeaderboardScreen() {
                       </div>
 
                       {/* Captain Info */}
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p
-                            className={`text-xs font-black ${
-                              isMe ? "text-emerald-950" : "text-zinc-900"
+                            className={`text-sm font-bold truncate ${
+                              isMe ? "text-amber-950 font-black" : "text-zinc-900"
                             }`}
                           >
                             {captain.name}
                           </p>
                           {isMe && (
-                            <span className="text-[9px] font-black text-white bg-emerald-600 px-1.5 py-0.5 rounded-md">
-                              YOU
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded">
+                              You
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-zinc-500 font-medium">
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-zinc-500 font-medium">
                           <span className="flex items-center gap-0.5 text-amber-600 font-bold">
                             <Star className="size-3 fill-amber-400 text-amber-400" />
                             {captain.rating?.toFixed(1) || "4.9"}
@@ -397,17 +421,17 @@ export function RiderLeaderboardScreen() {
                           <span>•</span>
                           <span>{captain.city || captainCity}</span>
                           <span>•</span>
-                          <span className="text-zinc-700 font-semibold">{captain.badge || "Verified"}</span>
+                          <span className="text-zinc-600 font-semibold">{captain.badge || "Verified"}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Right Score */}
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-black text-zinc-900 tracking-tight">
+                    <div className="text-right shrink-0 pl-2">
+                      <p className="text-sm font-black text-zinc-950 tracking-tight">
                         {captain.trips} Trips
                       </p>
-                      <p className="text-[10px] text-emerald-600 font-bold tracking-tight">
+                      <p className="text-[11px] text-emerald-700 font-bold tracking-tight">
                         ₹{Number(captain.earnings || 0).toFixed(0)}
                       </p>
                     </div>
@@ -421,7 +445,9 @@ export function RiderLeaderboardScreen() {
 
       {/* 3. 2-TAB BOTTOM NAVIGATION */}
       <RiderBottomNav active="dashboard" />
-    </div>
 
+      {/* 4. Support Modal */}
+      <CaptainSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+    </div>
   );
 }

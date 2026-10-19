@@ -10,11 +10,13 @@ import {
   Compass,
   Flame,
   Gift,
+  Headphones,
   HelpCircle,
   Info,
   Layers,
   MapPin,
   Minus,
+  PlayCircle,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -34,6 +36,7 @@ import {
 } from "../api/rider/rider-incentives-api";
 import { CandyCrushMilestoneMap } from "../components/incentives/CandyCrushMilestoneMap";
 import { RiderBottomNav } from "../components/RiderBottomNav";
+import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
 import { triggerHaptic, playSuccessChime, speakText } from "../lib/captain-audio";
 import { useLanguage } from "../lib/i18n";
 
@@ -237,6 +240,7 @@ export function RiderIncentivesScreen() {
 
   // Time to midnight countdown
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -342,62 +346,112 @@ export function RiderIncentivesScreen() {
 
   return (
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-800 select-none font-sans">
-      {/* 1. Header Bar */}
+      {/* 1. Header Bar matching Rapido / QuickPress Wallet Screen */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200/70 shadow-2xs"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/dashboard" })}
-            className="p-2 -ml-1 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 rounded-full active:scale-95 transition-all"
-            aria-label="Back"
-          >
-            <ArrowLeft className="size-5" />
-          </button>
-          <div>
-            <h1 className="text-base font-black text-zinc-900 tracking-tight leading-tight flex items-center gap-1.5">
-              <span>{t("nav.incentives") || "Incentives & Targets"}</span>
-              <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
-            </h1>
-            <p className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1">
-              <Clock className="size-3 text-amber-500" />
-              <span>Resets in: {timeLeft || "01h 45m"}</span>
-            </p>
+        <div className="flex items-center justify-between px-4 pb-2.5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="p-1.5 -ml-1 text-zinc-900 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-6 text-zinc-950 stroke-[2.2]" />
+            </button>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
+                <span>{t("nav.incentives") || "Incentives & Targets"}</span>
+                <span className="flex size-2 rounded-full bg-amber-500" />
+              </h1>
+              <p className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1">
+                <Clock className="size-3 text-amber-500" />
+                <span>Resets in: {timeLeft || "01h 45m"}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setIsHelpOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
+            >
+              <Headphones className="size-3.5 text-zinc-700" />
+              <span>Help</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadData(true)}
+              disabled={loading || refreshing}
+              className="p-2 text-black hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
+              title="Refresh Incentives"
+            >
+              <RefreshCw className={`size-4 text-black ${refreshing ? "animate-spin text-amber-600" : ""}`} />
+            </button>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => loadData(true)}
-          disabled={loading || refreshing}
-          className="p-2 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-full active:scale-95 transition-all"
-          aria-label="Refresh Incentives"
-        >
-          <RefreshCw className={`size-4 ${refreshing ? "animate-spin text-emerald-600" : ""}`} />
-        </button>
+        {/* 4 Integrated Sub-Tabs with Solid Yellow Underline */}
+        <div className="grid grid-cols-4 text-center text-xs font-bold border-t border-zinc-100">
+          {[
+            { id: "candy", label: "Level Map" },
+            { id: "quests", label: "Quests" },
+            { id: "streak", label: "Streak" },
+            { id: "calculator", label: "Calc" },
+          ].map((tab) => {
+            const active = activeTab === tab.id;
+            const hasBadge = tab.id === "candy" && (data?.totalClaimableIncentives ?? 0) > 0;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  triggerHaptic(15);
+                  setActiveTab(tab.id as TabKey);
+                }}
+                className={`py-3 relative cursor-pointer transition-colors ${
+                  active ? "text-zinc-950 font-black" : "text-zinc-500 hover:text-zinc-800 font-bold"
+                }`}
+              >
+                <span className="flex items-center justify-center gap-1">
+                  <span>{tab.label}</span>
+                  {hasBadge && <span className="size-1.5 rounded-full bg-amber-500 animate-ping" />}
+                </span>
+                {active && (
+                  <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFC700] rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
       {/* 2. Scrollable Body */}
       <main
-        className="flex-1 overflow-y-auto px-4 py-3 space-y-4 bg-[#F4F5F7]"
+        className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
       >
         {/* HERO CARD: Daily Target Overview */}
-        <section className="relative rounded-3xl bg-gradient-to-br from-emerald-50/90 via-white to-amber-50/60 border border-emerald-200/80 p-4 shadow-sm overflow-hidden">
-          <div className="flex items-start justify-between">
+        <section className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+          <div className="p-4 flex items-start justify-between">
             <div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
                 <Sparkles className="size-3 text-emerald-600" />
                 <span>Today's Bonus Unlocked</span>
               </span>
               <div className="mt-1.5 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-zinc-950 tracking-tight">
+                <span className="text-3xl font-black text-zinc-950 tracking-tight">
                   ₹{totalIncentives.toFixed(2)}
                 </span>
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-100/80 px-2 py-0.5 rounded-md">
-                  Active
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Active ✓
                 </span>
               </div>
               <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">
@@ -405,65 +459,13 @@ export function RiderIncentivesScreen() {
               </p>
             </div>
 
-            <div className="flex flex-col items-end">
-              <div className="size-12 rounded-2xl bg-white shadow-xs border border-emerald-100 flex items-center justify-center">
-                <Target className="size-6 text-emerald-600" />
-              </div>
+            <div className="size-11 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center shadow-2xs">
+              <Target className="size-5 text-amber-600" />
             </div>
           </div>
 
-          {/* Claimable Bounty Banner if any unlocked */}
-          {(data?.totalClaimableIncentives ?? 0) > 0 && (
-            <div className="mt-3.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-zinc-950 font-bold border border-yellow-200 shadow-md flex items-center justify-between animate-pulse">
-              <div className="flex items-center gap-2">
-                <Gift className="size-5 text-zinc-950 shrink-0" />
-                <div>
-                  <h4 className="text-xs font-black leading-tight">
-                    ₹{Number(data?.totalClaimableIncentives).toFixed(0)} Ready to Claim!
-                  </h4>
-                  <p className="text-[10px] text-zinc-800 font-medium">
-                    Tap the glowing level on the map below to credit to wallet.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic(20);
-                  setActiveTab("candy");
-                }}
-                className="px-2.5 py-1 rounded-xl bg-zinc-950 text-white text-[10px] font-black shadow-sm shrink-0 cursor-pointer"
-              >
-                View Map ➔
-              </button>
-            </div>
-          )}
-
-          {/* Next Goal Callout Box */}
-          {nextMilestone && (
-            <div className="mt-3.5 p-3 bg-white/95 rounded-2xl border border-amber-200/90 shadow-2xs flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                  <Flame className="size-4 text-amber-600" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-zinc-900 leading-tight">
-                    {nextMilestone.title}
-                  </h4>
-                  <p className="text-[11px] text-zinc-600 font-medium">
-                    Do <span className="font-bold text-amber-600">{nextMilestone.ridesRemaining} more rides</span> to reach ₹{nextMilestone.totalReward}!
-                  </p>
-                </div>
-              </div>
-              <span className="flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 shrink-0">
-                <Target className="size-3.5 text-amber-600" />
-                <span>{nextMilestone.ridesRemaining} left</span>
-              </span>
-            </div>
-          )}
-
-          {/* Stepper Progress Line */}
-          <div className="mt-4 pt-2">
+          {/* Stepper Progress Line with Hairline Top Border */}
+          <div className="p-4 pt-3 border-t border-zinc-100 bg-zinc-50/40">
             <div className="flex items-center justify-between text-[11px] font-bold text-zinc-600 mb-1.5">
               <span>0 Rides</span>
               <span className={completedToday >= 5 ? "text-emerald-700 font-black" : ""}>5 (₹100)</span>
@@ -472,7 +474,7 @@ export function RiderIncentivesScreen() {
             </div>
 
             {/* Multi-step progress bar */}
-            <div className="relative w-full h-2.5 bg-zinc-100 rounded-full overflow-hidden border border-zinc-200">
+            <div className="relative w-full h-2.5 bg-zinc-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-amber-500 rounded-full transition-all duration-700"
                 style={{ width: `${Math.min(100, Math.round((completedToday / 15) * 100))}%` }}
@@ -495,43 +497,57 @@ export function RiderIncentivesScreen() {
           </div>
         </section>
 
-        {/* 3. Segmented Navigation Tabs */}
-        <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-100/90 rounded-2xl border border-zinc-200/70">
-          {[
-            {
-              id: "candy",
-              label: "Level Map",
-              icon: Sparkles,
-              hasBadge: (data?.totalClaimableIncentives ?? 0) > 0,
-            },
-            { id: "quests", label: "Quests", icon: Zap },
-            { id: "streak", label: "Streak", icon: Trophy },
-            { id: "calculator", label: "Calc", icon: Coins },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  setActiveTab(tab.id as TabKey);
-                }}
-                className={`relative flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isSelected
-                    ? "bg-white text-zinc-900 shadow-xs border border-zinc-200/60"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
-              >
-                <Icon className={`size-3.5 ${isSelected ? "text-emerald-600" : "text-zinc-400"}`} />
-                <span>{tab.label}</span>
-                {tab.hasBadge && (
-                  <span className="absolute top-1 right-1.5 size-2 rounded-full bg-amber-500 animate-ping" />
-                )}
-              </button>
-            );
-          })}
+        {/* Claimable Bounty Banner if any unlocked */}
+        {(data?.totalClaimableIncentives ?? 0) > 0 && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-zinc-950 font-bold border border-yellow-300 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-xl bg-white/90 text-amber-700 flex items-center justify-center shrink-0">
+                <Gift className="size-5 text-amber-700 shrink-0" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black leading-tight">
+                  ₹{Number(data?.totalClaimableIncentives).toFixed(0)} Ready to Claim!
+                </h4>
+                <p className="text-[10px] text-zinc-800 font-medium">
+                  Tap the glowing level on the map below to credit to wallet.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setActiveTab("candy");
+              }}
+              className="px-3 py-1.5 rounded-xl bg-zinc-950 text-white text-[11px] font-black shadow-xs shrink-0 cursor-pointer"
+            >
+              View Map ➔
+            </button>
+          </div>
+        )}
+
+        {/* Lilac / Purple Explainer Banner matching Wallet Screen */}
+        <div
+          onClick={() => {
+            triggerHaptic(20);
+            window.open("https://youtube.com/@QuickPressApp", "_blank");
+          }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-[#EDE9FE] to-[#F5F3FF] border border-[#DDD6FE] text-zinc-900 shadow-2xs flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-11 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <PlayCircle className="size-6 fill-white text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-sm font-black text-zinc-950 leading-snug">
+                How Daily Incentives & Jackpots Work
+              </h4>
+              <p className="text-[11px] text-zinc-600 mt-0.5 leading-snug">
+                Watch 1-min video on level unlock rewards, streak bonuses & instant wallet credit
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="size-4 text-zinc-500 shrink-0 ml-2" />
         </div>
 
         {/* TAB 1: CANDY CRUSH 10-LEVEL JOURNEY */}
@@ -886,6 +902,9 @@ export function RiderIncentivesScreen() {
 
       {/* 5. Bottom Navigation Dock */}
       <RiderBottomNav active="dashboard" />
+
+      {/* 6. Support Modal */}
+      <CaptainSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }

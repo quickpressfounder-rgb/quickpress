@@ -12,9 +12,11 @@ import {
   Compass,
   DollarSign,
   Flame,
+  Headphones,
   HelpCircle,
   Layers,
   MapPin,
+  PlayCircle,
   RefreshCw,
   RotateCw,
   ShieldCheck,
@@ -34,6 +36,7 @@ import {
 } from "../api/rider/rider-analytics-api";
 import { triggerHaptic } from "../lib/captain-audio";
 import { RiderBottomNav } from "../components/RiderBottomNav";
+import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
 import { useLanguage } from "../lib/i18n";
 
 type AnalyticsPeriod = "today" | "week" | "month" | "all";
@@ -45,6 +48,7 @@ export function RiderAnalyticsScreen() {
   const [summary, setSummary] = useState<RiderAnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false, targetPeriod = period) => {
     try {
@@ -101,51 +105,59 @@ export function RiderAnalyticsScreen() {
 
   return (
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-900 select-none font-sans">
-      {/* 1. Header Bar */}
+      {/* 1. Header Bar matching Rapido / QuickPress Wallet Screen */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/dashboard" })}
-            className="p-2 -ml-1 text-zinc-700 hover:text-black hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
-            aria-label="Back"
-          >
-            <ArrowLeft className="size-5 stroke-[2.4]" />
-          </button>
-          <div>
-            <h1 className="text-base font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
-              <span>Captain Performance & Analytics</span>
-              <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
-            </h1>
-            <p className="text-[11px] font-semibold text-zinc-500">
-              Live Real-Time Operational Metrics
-            </p>
+        <div className="flex items-center justify-between px-4 pb-2.5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="p-1.5 -ml-1 text-zinc-900 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-6 text-zinc-950 stroke-[2.2]" />
+            </button>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
+                <span>Analytics</span>
+                <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+              </h1>
+              <p className="text-[11px] font-semibold text-zinc-500">
+                Live Real-Time Operational Metrics
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setIsHelpOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
+            >
+              <Headphones className="size-3.5 text-zinc-700" />
+              <span>Help</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadData(true)}
+              disabled={refreshing || loading}
+              className="p-2 text-black hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
+              title="Refresh Analytics"
+            >
+              <RefreshCw className={`size-4 text-black ${refreshing || loading ? "animate-spin text-emerald-600" : ""}`} />
+            </button>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => loadData(true)}
-          disabled={refreshing || loading}
-          className="size-8.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-700 active:scale-90 transition-all cursor-pointer"
-          title="Refresh Analytics"
-        >
-          <RotateCw
-            className={`size-4 ${refreshing || loading ? "animate-spin text-emerald-600" : ""}`}
-          />
-        </button>
-      </header>
-
-      {/* 2. Scrollable Body */}
-      <div
-        className="flex-1 overflow-y-auto space-y-3.5 p-3.5 bg-[#F6F7F9]"
-        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
-      >
-        {/* Period Selector Tabs */}
-        <div className="flex items-center p-1 bg-white border border-zinc-200/80 rounded-2xl shadow-2xs">
+        {/* 4 Tabs: Today / This Week / This Month / All Time with Yellow Underline */}
+        <div className="grid grid-cols-4 text-center text-xs font-bold border-t border-zinc-100">
           {(["today", "week", "month", "all"] as AnalyticsPeriod[]).map((p) => {
             const active = period === p;
             return (
@@ -153,53 +165,50 @@ export function RiderAnalyticsScreen() {
                 key={p}
                 type="button"
                 onClick={() => handlePeriodChange(p)}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                  active
-                    ? "bg-zinc-950 text-white font-black shadow-xs"
-                    : "text-zinc-600 hover:text-zinc-950"
+                className={`py-3 relative cursor-pointer transition-colors ${
+                  active ? "text-zinc-950 font-black" : "text-zinc-500 hover:text-zinc-800 font-bold"
                 }`}
               >
-                {periodLabels[p]}
+                <span>{periodLabels[p]}</span>
+                {active && (
+                  <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFC700] rounded-full" />
+                )}
               </button>
             );
           })}
         </div>
+      </header>
 
-        {/* HERO EARNINGS BANNER */}
-        <div className="p-4.5 bg-gradient-to-br from-zinc-900 via-zinc-950 to-neutral-900 rounded-3xl text-white shadow-md space-y-3 border border-zinc-800">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Wallet className="size-3.5 text-emerald-400" />
-              <span>{periodLabels[period]} Total Payout</span>
-            </span>
-            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-              <ShieldCheck className="size-3" />
-              <span>0% Commission Kept</span>
-            </span>
-          </div>
-
-          <div className="flex items-baseline justify-between pt-0.5">
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-emerald-400">₹</span>
-                <span className="text-4xl font-black tracking-tight text-white">
-                  {totalEarnings.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 font-medium mt-1">
-                {tripsCompleted} successful deliveries completed
-              </p>
+      {/* 2. Scrollable Body */}
+      <div
+        className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
+      >
+        {/* HERO TOTAL PAYOUT CARD (Matching Wallet Card Layout) */}
+        <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+          <div className="p-4 space-y-1">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-zinc-500">{periodLabels[period]} Total Payout</p>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
+                0% Commission Kept ✓
+              </span>
             </div>
-            <div className="text-right">
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-1 rounded-lg">
+            <div className="flex items-baseline justify-between pt-1">
+              <h2 className="text-3xl font-black text-zinc-950 tracking-tight">
+                ₹{totalEarnings.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h2>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
                 {completionRate.toFixed(1)}% Success
               </span>
             </div>
+            <p className="text-[11px] text-zinc-500 font-medium pt-0.5">
+              {tripsCompleted} successful deliveries completed
+            </p>
           </div>
         </div>
 
         {/* 6-GRID PERFORMANCE METRICS */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           {/* 1. Trips Completed */}
           <div className="p-3.5 bg-white rounded-2xl border border-zinc-200/80 shadow-2xs space-y-1">
             <div className="flex items-center justify-between">
@@ -324,77 +333,106 @@ export function RiderAnalyticsScreen() {
           </div>
         )}
 
-        {/* FARE REVENUE BREAKDOWN */}
-        <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
-            <span className="text-xs font-black text-zinc-900 uppercase tracking-wide flex items-center gap-1.5">
-              <Sparkles className="size-3.5 text-amber-500" />
-              <span>Earnings Source Breakdown</span>
+        {/* Lilac / Purple Explainer Banner matching Wallet Screen */}
+        <div
+          onClick={() => {
+            triggerHaptic(20);
+            window.open("https://youtube.com/@QuickPressApp", "_blank");
+          }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-[#EDE9FE] to-[#F5F3FF] border border-[#DDD6FE] text-zinc-900 shadow-2xs flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-11 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <PlayCircle className="size-6 fill-white text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-sm font-black text-zinc-950 leading-snug">
+                Understand Captain Analytics & Fares
+              </h4>
+              <p className="text-[11px] text-zinc-600 mt-0.5 leading-snug">
+                Watch 1-min guide on acceptance rates, surge earnings & 5-star ratings
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="size-4 text-zinc-500 shrink-0 ml-2" />
+        </div>
+
+        {/* FARE REVENUE BREAKDOWN (Matching Wallet Screen Divided Card) */}
+        <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+          <div className="p-4 flex items-center justify-between bg-zinc-50/50">
+            <div>
+              <h3 className="text-sm font-black text-zinc-950 flex items-center gap-1.5">
+                <Sparkles className="size-4 text-amber-500" />
+                <span>Earnings Source Breakdown</span>
+              </h3>
+              <p className="text-[11px] text-zinc-500 font-medium">Real-time breakdown of gross rider payout</p>
+            </div>
+            <span className="text-sm font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+              ₹{totalEarnings.toFixed(2)}
             </span>
-            <span className="text-xs font-black text-emerald-700">₹{totalEarnings.toFixed(2)}</span>
           </div>
 
-          <div className="space-y-2.5 text-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zinc-700">
-                <div className="size-2 rounded-full bg-emerald-500" />
-                <span>Base Delivery Fares</span>
+          <div className="border-t border-zinc-100 divide-y divide-zinc-100 text-xs">
+            <div className="p-3.5 hover:bg-zinc-50 flex items-center justify-between transition-colors">
+              <div className="flex items-center gap-2.5 text-zinc-800">
+                <div className="size-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="font-semibold">Base Delivery Fares</span>
               </div>
-              <span className="font-bold text-zinc-900">₹{breakdown.baseFare.toFixed(2)}</span>
+              <span className="font-black text-zinc-950">₹{breakdown.baseFare.toFixed(2)}</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zinc-700">
-                <div className="size-2 rounded-full bg-blue-500" />
-                <span>Distance & Extra KM Bonus</span>
+            <div className="p-3.5 hover:bg-zinc-50 flex items-center justify-between transition-colors">
+              <div className="flex items-center gap-2.5 text-zinc-800">
+                <div className="size-2 rounded-full bg-blue-500 shrink-0" />
+                <span className="font-semibold">Distance & Extra KM Bonus</span>
               </div>
-              <span className="font-bold text-zinc-900">₹{breakdown.distancePay.toFixed(2)}</span>
+              <span className="font-black text-zinc-950">₹{breakdown.distancePay.toFixed(2)}</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zinc-700">
-                <div className="size-2 rounded-full bg-purple-500" />
-                <span>Peak Hour Surge Bonuses</span>
+            <div className="p-3.5 hover:bg-zinc-50 flex items-center justify-between transition-colors">
+              <div className="flex items-center gap-2.5 text-zinc-800">
+                <div className="size-2 rounded-full bg-purple-500 shrink-0" />
+                <span className="font-semibold">Peak Hour Surge Bonuses</span>
               </div>
-              <span className="font-bold text-zinc-900">₹{breakdown.surgeBonus.toFixed(2)}</span>
+              <span className="font-black text-purple-700">₹{breakdown.surgeBonus.toFixed(2)}</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-zinc-700">
-                <div className="size-2 rounded-full bg-amber-500" />
-                <span>Milestone Quest Incentives</span>
+            <div className="p-3.5 hover:bg-zinc-50 flex items-center justify-between transition-colors">
+              <div className="flex items-center gap-2.5 text-zinc-800">
+                <div className="size-2 rounded-full bg-amber-500 shrink-0" />
+                <span className="font-semibold">Milestone Quest Incentives</span>
               </div>
-              <span className="font-bold text-zinc-900">₹{breakdown.questBonus.toFixed(2)}</span>
+              <span className="font-black text-amber-700">₹{breakdown.questBonus.toFixed(2)}</span>
             </div>
 
             {breakdown.tipAmount > 0 && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-700">
-                  <div className="size-2 rounded-full bg-rose-500" />
-                  <span>Customer Tips (100% kept)</span>
+              <div className="p-3.5 hover:bg-zinc-50 flex items-center justify-between transition-colors">
+                <div className="flex items-center gap-2.5 text-zinc-800">
+                  <div className="size-2 rounded-full bg-rose-500 shrink-0" />
+                  <span className="font-semibold">Customer Tips (100% direct)</span>
                 </div>
-                <span className="font-bold text-zinc-900">₹{breakdown.tipAmount.toFixed(2)}</span>
+                <span className="font-black text-rose-700">₹{breakdown.tipAmount.toFixed(2)}</span>
               </div>
             )}
 
-            <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-emerald-800 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
-              <div className="flex items-center gap-1.5">
+            <div className="p-3.5 bg-emerald-50/70 flex items-center justify-between text-emerald-800">
+              <div className="flex items-center gap-2">
                 <ShieldCheck className="size-4 text-emerald-600" />
-                <span>Platform Commission Deductions</span>
+                <span className="font-bold">Platform Commission Fee</span>
               </div>
-              <span className="font-black">₹0.00 (Zero Fee)</span>
+              <span className="font-black text-emerald-800">₹0.00 (Zero Deductions)</span>
             </div>
           </div>
         </div>
 
         {/* CAPTAIN BADGES & RELIABILITY */}
-        <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 shadow-2xs space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+        <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs p-4 space-y-3">
+          <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
             <Trophy className="size-3.5 text-amber-500" />
             <span>Captain Performance Badges</span>
           </h4>
 
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-3 gap-2.5 text-center">
             <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200/70 space-y-1">
               <div className="text-xl">⚡</div>
               <p className="text-[11px] font-black text-zinc-900">Speed Demon</p>
@@ -416,6 +454,9 @@ export function RiderAnalyticsScreen() {
 
       {/* 3. Bottom Nav */}
       <RiderBottomNav active="history" />
+
+      {/* 4. Support Modal */}
+      <CaptainSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }
