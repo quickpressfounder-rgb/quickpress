@@ -13,10 +13,6 @@ import {
   RotateCcw,
   Home,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  Check,
 } from "lucide-react";
 
 import appCss from "../styles.css?url";
@@ -46,14 +42,9 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+  // Log full error securely to internal console only - NEVER disclose stack traces or variable names in UI
+  console.error("[QuickPress Captain ErrorBoundary]", error);
   const router = useRouter();
-  const [showStack, setShowStack] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const errorMessage =
-    error?.message ||
-    (typeof error === "string" ? error : "An error occurred while loading this page.");
 
   const handleFullReset = () => {
     try {
@@ -61,15 +52,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       sessionStorage.clear();
     } catch {}
     window.location.href = "/";
-  };
-
-  const handleCopy = () => {
-    try {
-      const text = `${error?.name || "Error"}: ${errorMessage}\n\nStack:\n${error?.stack || "No stack trace available"}`;
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
   };
 
   return (
@@ -81,19 +63,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </div>
 
         <h1 className="text-xl font-black text-slate-900">Something went wrong</h1>
-        <p className="mt-1 text-xs text-slate-500">
-          An error occurred while loading this page.
+        <p className="mt-1.5 text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+          A temporary issue occurred while loading this screen. Please tap try again or return to the home screen.
         </p>
 
-        {/* Clean Diagnostic Box */}
-        <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-xl text-left">
-          <p className="text-[11px] font-mono text-rose-700 break-words font-medium">
-            {errorMessage}
-          </p>
-        </div>
-
         {/* Action Buttons */}
-        <div className="mt-5 flex flex-col gap-2.5">
+        <div className="mt-6 flex flex-col gap-2.5">
           <div className="flex justify-center gap-2.5">
             <button
               type="button"
@@ -101,7 +76,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
                 router.invalidate();
                 reset();
               }}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-sm transition-all hover:bg-amber-500 active:scale-95"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-sm transition-all hover:bg-amber-500 active:scale-95 cursor-pointer"
             >
               <RotateCcw className="size-3.5 stroke-[2.5]" />
               <span>Try again</span>
@@ -118,45 +93,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           <button
             type="button"
             onClick={handleFullReset}
-            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 active:scale-95 transition-all"
+            className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer"
           >
             <RefreshCw className="size-3.5 stroke-[2]" />
             <span>Reset Cache & Re-login</span>
           </button>
         </div>
-
-        {/* Collapsible Tech Details */}
-        {error?.stack && (
-          <div className="mt-5 text-left border-t border-slate-150 pt-4">
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setShowStack(!showStack)}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-800"
-              >
-                <span>Diagnostic details</span>
-                {showStack ? (
-                  <ChevronUp className="size-3" />
-                ) : (
-                  <ChevronDown className="size-3" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 px-2 py-0.5 rounded bg-slate-100"
-              >
-                {copied ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
-                <span>{copied ? "Copied" : "Copy"}</span>
-              </button>
-            </div>
-            {showStack && (
-              <pre className="mt-2 max-h-40 overflow-auto rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {error.stack}
-              </pre>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

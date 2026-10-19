@@ -63,6 +63,7 @@ export function RiderDashboardScreen() {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [todayDeliveries, setTodayDeliveries] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [lastOrderEarnings, setLastOrderEarnings] = useState(0);
   const [isGoingOnDutyModal, setIsGoingOnDutyModal] = useState(false);
   const [isRateCardOpen, setIsRateCardOpen] = useState(false);
   const [captainName, setCaptainName] = useState(() => {
@@ -158,6 +159,9 @@ export function RiderDashboardScreen() {
         setTodayDeliveries(
           Number(dashRes.todayDeliveries ?? (dashRes as any).metrics?.deliveriesCompletedToday ?? 0)
         );
+        if ((dashRes as any).lastOrderEarnings !== undefined) {
+          setLastOrderEarnings(Number((dashRes as any).lastOrderEarnings || 0));
+        }
       }
     } catch {
       // quiet fallback
