@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RiderProfileScreen } from "../screens/RiderProfileScreen";
 import { requireRiderSession } from "../lib/auth-guard";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: () => {
@@ -15,5 +16,9 @@ export const Route = createFileRoute("/profile")({
       },
     ],
   }),
-  component: RiderProfileScreen,
+  component: () => (
+    <ScreenErrorBoundary fallbackTitle="Profile Temporarily Unavailable">
+      <RiderProfileScreen />
+    </ScreenErrorBoundary>
+  ),
 });

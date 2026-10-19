@@ -55,6 +55,7 @@ import { RiderBottomNav } from "../components/RiderBottomNav";
 import { triggerHaptic } from "../lib/captain-audio";
 import { subscribeRiderWallet } from "../lib/rider-socket";
 import { useLanguage } from "../lib/i18n";
+import { safeStorage } from "../lib/safe-storage";
 
 const WALLET_CACHE_KEY = "qp_cached_rider_wallet_v2";
 const TXNS_CACHE_KEY = "qp_cached_rider_txns_v2";
@@ -66,36 +67,18 @@ export function RiderWalletScreen() {
   const { t } = useLanguage();
 
   const [wallet, setWallet] = useState<RiderWalletDetail | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = localStorage.getItem(WALLET_CACHE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+    return safeStorage.getObject<RiderWalletDetail>(WALLET_CACHE_KEY, null);
   });
 
   const [transactions, setTransactions] = useState<RiderWalletTransaction[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(TXNS_CACHE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return safeStorage.getArray<RiderWalletTransaction>(TXNS_CACHE_KEY, []);
   });
 
   const [earnings, setEarnings] = useState<RiderEarningsSummary | null>(null);
   const [guarantee, setGuarantee] = useState<RiderCommissionGuarantee | null>(null);
 
   const [historyTrips, setHistoryTrips] = useState<RiderHistoryEntry[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(HISTORY_CACHE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return safeStorage.getArray<RiderHistoryEntry>(HISTORY_CACHE_KEY, []);
   });
 
   const [selectedTripForDetail, setSelectedTripForDetail] = useState<RiderHistoryEntry | null>(null);
@@ -229,7 +212,8 @@ export function RiderWalletScreen() {
 
     const orderCodeMatch = (txn.title || "").match(/#([A-Za-z0-9]+)/);
     const matchedCode = txn.orderCode || (orderCodeMatch ? orderCodeMatch[1] : "");
-    const matched = historyTrips.find(
+    const safeHistory = Array.isArray(historyTrips) ? historyTrips : [];
+    const matched = safeHistory.find(
       (h) => (matchedCode && (h.code === matchedCode || h.code?.includes(matchedCode))) || (txn.id && h.id === txn.id)
     );
 
@@ -273,7 +257,9 @@ export function RiderWalletScreen() {
 
   // Filtered Transactions with Type & Date-Wise logic
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
+    const safeTxns = Array.isArray(transactions) ? transactions : [];
+    return safeTxns.filter((t) => {
+      if (!t) return false;
       // 1. Transaction Type filter
       if (filterTxn === "credits" && !(t.direction === "credit" && t.kind !== "incentive" && t.kind !== "cod_deposit")) return false;
       if (filterTxn === "debits" && !(t.direction === "debit" || t.kind === "withdrawal")) return false;
@@ -328,14 +314,16 @@ export function RiderWalletScreen() {
   }, [transactions, filterTxn, dateFilter, customDate]);
 
   const filteredTotalCredit = useMemo(() => {
-    return filteredTransactions
-      .filter((t) => t.direction === "credit")
+    const list = Array.isArray(filteredTransactions) ? filteredTransactions : [];
+    return list
+      .filter((t) => t && t.direction === "credit")
       .reduce((acc, t) => acc + Number(t.amount || 0), 0);
   }, [filteredTransactions]);
 
   const filteredTotalDebit = useMemo(() => {
-    return filteredTransactions
-      .filter((t) => t.direction === "debit")
+    const list = Array.isArray(filteredTransactions) ? filteredTransactions : [];
+    return list
+      .filter((t) => t && t.direction === "debit")
       .reduce((acc, t) => acc + Number(t.amount || 0), 0);
   }, [filteredTransactions]);
 

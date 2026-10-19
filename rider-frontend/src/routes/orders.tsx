@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RiderOrdersScreen } from "../screens/RiderOrdersScreen";
 import { requireRiderAuth } from "../lib/auth-guard";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export const Route = createFileRoute("/orders")({
   beforeLoad: () => {
@@ -20,5 +21,9 @@ export const Route = createFileRoute("/orders")({
       },
     ],
   }),
-  component: RiderOrdersScreen,
+  component: () => (
+    <ScreenErrorBoundary fallbackTitle="Orders & History Temporarily Unavailable">
+      <RiderOrdersScreen />
+    </ScreenErrorBoundary>
+  ),
 });

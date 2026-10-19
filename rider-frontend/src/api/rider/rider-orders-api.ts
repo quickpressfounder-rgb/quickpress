@@ -14,17 +14,12 @@ import type { RiderHistoryEntry, RiderOrder } from "@/shared/types/rider";
 import { ApiError } from "../core/errors";
 import { apiGetJson, apiPostJson } from "../core/transport";
 import { offlineSyncQueue } from "@/lib/offline-sync-queue";
+import { safeStorage } from "@/lib/safe-storage";
 
 const RIDER_ORDERS_CACHE_KEY = "qp_cached_rider_orders_v1";
 
 function readCachedRiderOrders(): RiderOrder[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(RIDER_ORDERS_CACHE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return safeStorage.getArray<RiderOrder>(RIDER_ORDERS_CACHE_KEY, []);
 }
 
 function writeCachedRiderOrders(orders: RiderOrder[]) {

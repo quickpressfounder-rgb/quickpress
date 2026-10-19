@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RiderWalletScreen } from "../screens/RiderWalletScreen";
 import { requireRiderAuth } from "../lib/auth-guard";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export const Route = createFileRoute("/wallet")({
   beforeLoad: () => {
@@ -15,5 +16,9 @@ export const Route = createFileRoute("/wallet")({
       },
     ],
   }),
-  component: RiderWalletScreen,
+  component: () => (
+    <ScreenErrorBoundary fallbackTitle="Earnings & Wallet Temporarily Unavailable">
+      <RiderWalletScreen />
+    </ScreenErrorBoundary>
+  ),
 });

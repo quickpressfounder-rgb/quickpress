@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RiderAnalyticsScreen } from "../screens/RiderAnalyticsScreen";
 import { requireRiderAuth } from "../lib/auth-guard";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export const Route = createFileRoute("/analytics")({
   beforeLoad: () => {
@@ -15,5 +16,9 @@ export const Route = createFileRoute("/analytics")({
       },
     ],
   }),
-  component: RiderAnalyticsScreen,
+  component: () => (
+    <ScreenErrorBoundary fallbackTitle="Performance Analytics Temporarily Unavailable">
+      <RiderAnalyticsScreen />
+    </ScreenErrorBoundary>
+  ),
 });

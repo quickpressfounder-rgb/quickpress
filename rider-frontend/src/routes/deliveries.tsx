@@ -4,6 +4,8 @@ import { GoToPickupHUD, type ActiveOrderData } from "../components/dashboard/GoT
 import { CaptainSidebarDrawer } from "../components/layout/CaptainSidebarDrawer";
 import { useRiderContext } from "../context/RiderContext";
 import { requireRiderAuth } from "../lib/auth-guard";
+import { safeStorage } from "../lib/safe-storage";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export const Route = createFileRoute("/deliveries")({
   beforeLoad: () => {
@@ -18,7 +20,11 @@ export const Route = createFileRoute("/deliveries")({
       },
     ],
   }),
-  component: CaptainActiveDeliveryRoute,
+  component: () => (
+    <ScreenErrorBoundary fallbackTitle="Active Delivery Navigation Temporarily Unavailable">
+      <CaptainActiveDeliveryRoute />
+    </ScreenErrorBoundary>
+  ),
 });
 
 function CaptainActiveDeliveryRoute() {
@@ -27,13 +33,7 @@ function CaptainActiveDeliveryRoute() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const [activeOrder, setActiveOrder] = useState<ActiveOrderData | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("qp_active_rider_order");
-        if (saved) return JSON.parse(saved);
-      } catch {}
-    }
-    return null;
+    return safeStorage.getObject<ActiveOrderData>("qp_active_rider_order", null);
   });
 
   useEffect(() => {

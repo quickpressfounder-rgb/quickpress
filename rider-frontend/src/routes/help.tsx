@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CaptainHelpScreen } from "../screens/CaptainHelpScreen";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -25,9 +26,11 @@ function CaptainHelpRoute() {
   };
 
   return (
-    <CaptainHelpScreen
-      onBack={handleBack}
-      onOpenGuidelines={() => navigate({ to: "/guidelines" })}
-    />
+    <ScreenErrorBoundary fallbackTitle="Support Desk Temporarily Unavailable">
+      <CaptainHelpScreen
+        onBack={handleBack}
+        onOpenGuidelines={() => navigate({ to: "/guidelines" })}
+      />
+    </ScreenErrorBoundary>
   );
 }

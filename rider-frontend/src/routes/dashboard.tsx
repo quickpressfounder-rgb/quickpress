@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RiderDashboardScreen } from "../screens/RiderDashboardScreen";
 import { requireRiderAuth } from "../lib/auth-guard";
+import { ScreenErrorBoundary } from "../components/common/ScreenErrorBoundary";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: () => {
@@ -15,5 +16,9 @@ export const Route = createFileRoute("/dashboard")({
       },
     ],
   }),
-  component: RiderDashboardScreen,
+  component: () => (
+    <ScreenErrorBoundary fallbackTitle="Captain Hub Temporarily Unavailable">
+      <RiderDashboardScreen />
+    </ScreenErrorBoundary>
+  ),
 });

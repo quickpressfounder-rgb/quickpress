@@ -18,6 +18,7 @@ import {
 import appCss from "../styles.css?url";
 import { RiderProvider } from "../context/RiderContext";
 import { LanguageProvider } from "../lib/i18n";
+import { safeStorage } from "../lib/safe-storage";
 
 function NotFoundComponent() {
   return (
@@ -46,6 +47,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error("[QuickPress Captain ErrorBoundary]", error);
   const router = useRouter();
 
+  const handleTryAgain = () => {
+    try {
+      safeStorage.clearCorruptedCache();
+    } catch {}
+    router.invalidate();
+    reset();
+  };
+
   const handleFullReset = () => {
     try {
       localStorage.clear();
@@ -72,10 +81,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           <div className="flex justify-center gap-2.5">
             <button
               type="button"
-              onClick={() => {
-                router.invalidate();
-                reset();
-              }}
+              onClick={handleTryAgain}
               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-sm transition-all hover:bg-amber-500 active:scale-95 cursor-pointer"
             >
               <RotateCcw className="size-3.5 stroke-[2.5]" />
