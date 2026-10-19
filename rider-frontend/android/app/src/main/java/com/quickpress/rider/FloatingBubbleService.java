@@ -236,58 +236,28 @@ public class FloatingBubbleService extends Service {
         circleContainer.setBackground(bg);
         circleContainer.setElevation(dpToPx(8));
 
-        // 2. Center Branding Layout (Matches Rapido Captain Screenshot 1)
-        LinearLayout contentLayout = new LinearLayout(context);
-        contentLayout.setOrientation(LinearLayout.VERTICAL);
-        contentLayout.setGravity(Gravity.CENTER);
+        // 2. Official QuickPress Captain Logo (Matches User Uploaded Logo)
+        ImageView logoView = new ImageView(context);
+        int pad = dpToPx(8);
+        logoView.setPadding(pad, pad, pad, pad);
+        logoView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        try {
+            int resId = getResources().getIdentifier("bubble_captain_logo", "drawable", getPackageName());
+            if (resId != 0) {
+                logoView.setImageResource(resId);
+            } else {
+                logoView.setImageResource(R.mipmap.ic_launcher_round);
+            }
+        } catch (Throwable t) {
+            logoView.setImageResource(R.mipmap.ic_launcher);
+        }
 
-        android.widget.FrameLayout.LayoutParams contentParams = new android.widget.FrameLayout.LayoutParams(
+        android.widget.FrameLayout.LayoutParams logoParams = new android.widget.FrameLayout.LayoutParams(
             android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
             android.widget.FrameLayout.LayoutParams.MATCH_PARENT
         );
-        contentParams.gravity = Gravity.CENTER;
-
-        // Top Yellow Pill with "quickpress"
-        TextView brandPill = new TextView(context);
-        brandPill.setText("quickpress");
-        brandPill.setTextColor(Color.parseColor("#09090B"));
-        brandPill.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.5f);
-        brandPill.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-        brandPill.setGravity(Gravity.CENTER);
-
-        GradientDrawable pillBg = new GradientDrawable();
-        pillBg.setShape(GradientDrawable.RECTANGLE);
-        pillBg.setColor(Color.parseColor("#FFCC00")); // Iconic Rapido Yellow
-        pillBg.setCornerRadius(dpToPx(10));
-        brandPill.setBackground(pillBg);
-        int padH = dpToPx(7);
-        int padV = dpToPx(2);
-        brandPill.setPadding(padH, padV, padH, padV);
-
-        LinearLayout.LayoutParams pillParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        pillParams.gravity = Gravity.CENTER_HORIZONTAL;
-        contentLayout.addView(brandPill, pillParams);
-
-        // Bottom Bold "Captain"
-        TextView captainText = new TextView(context);
-        captainText.setText("Captain");
-        captainText.setTextColor(Color.parseColor("#09090B"));
-        captainText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f);
-        captainText.setTypeface(Typeface.create("sans-serif-bold", Typeface.BOLD));
-        captainText.setGravity(Gravity.CENTER);
-
-        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        textParams.gravity = Gravity.CENTER_HORIZONTAL;
-        textParams.topMargin = dpToPx(2);
-        contentLayout.addView(captainText, textParams);
-
-        circleContainer.addView(contentLayout, contentParams);
+        logoParams.gravity = Gravity.CENTER;
+        circleContainer.addView(logoView, logoParams);
         root.addView(circleContainer);
 
         return root;

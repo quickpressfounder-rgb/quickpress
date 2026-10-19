@@ -340,7 +340,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           phase="online"
           heightClassName="h-full w-full"
           showControls={false}
-          showSurgePins={true}
+          showSurgePins={false}
           surgeHotspots={surgeHotspots}
           isRapidoTheme={true}
           activeLayerOverride={mapLayer}
@@ -520,12 +520,6 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                   </div>
                 </div>
 
-                {/* Overlapping Pill Badge (Follow / Money Transf...) */}
-                {story.badge && (sIdx === 0 || sIdx === 1) && (
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[8.5px] font-bold text-white bg-[#1F2430] border border-white/80 shadow-xs">
-                    {story.badge}
-                  </div>
-                )}
               </div>
             </button>
           ))}

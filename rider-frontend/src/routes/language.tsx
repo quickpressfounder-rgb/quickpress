@@ -20,6 +20,9 @@ function CaptainLanguageRoute() {
   const navigate = useNavigate();
 
   const handleDone = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("qp_has_selected_language", "true");
+    }
     const hasAuth = !!readSession("rider")?.accessToken;
     if (typeof window !== "undefined" && window.history.length > 2) {
       window.history.back();

@@ -366,6 +366,15 @@ export function LiveDeliveryMap({
           delete surgeCirclesRef.current[k];
         });
 
+        if (!showSurgePins) {
+          Object.keys(surgeMarkersRef.current).forEach((k) => {
+            try {
+              map.removeLayer(surgeMarkersRef.current[k]);
+            } catch {}
+            delete surgeMarkersRef.current[k];
+          });
+        }
+
         if (showSurgePins && phase === "online") {
           activeSurgeList.forEach((surge) => {
             const circleColor =

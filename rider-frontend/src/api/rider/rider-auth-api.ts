@@ -445,3 +445,37 @@ export async function verifyRiderAgreementOtp(email: string, otp: string) {
   );
 }
 
+export async function checkRiderRegistered(phone: string): Promise<{
+  ok: boolean;
+  phone: string;
+  isRegistered: boolean;
+  isOnboarded: boolean;
+  isVerified: boolean;
+  name: string;
+}> {
+  try {
+    const res = await apiGetJson<{
+      ok: boolean;
+      phone: string;
+      isRegistered: boolean;
+      isOnboarded: boolean;
+      isVerified: boolean;
+      name: string;
+    }>(`/api/rider/auth/check-registered?phone=${encodeURIComponent(phone)}`, {
+      anonymous: true,
+      timeoutMs: 8000,
+    });
+    return res;
+  } catch {
+    // If network or server error, return safe fallback
+    return {
+      ok: true,
+      phone,
+      isRegistered: true,
+      isOnboarded: true,
+      isVerified: true,
+      name: "",
+    };
+  }
+}
+

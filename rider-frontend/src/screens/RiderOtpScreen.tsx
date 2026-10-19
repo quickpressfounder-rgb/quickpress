@@ -101,13 +101,10 @@ export function RiderOtpScreen() {
 
       // 2. Strict Onboarding & Verification Navigation
       if (!sessionResult.isOnboarded) {
-        toast.info("Welcome, Captain! Please complete your registration. 📋");
         navigate({ to: "/registration", replace: true });
       } else if (!sessionResult.isVerified) {
-        toast.info("Your application is under verification by Admin. ⏳");
         navigate({ to: "/verification", replace: true });
       } else {
-        toast.success("Welcome back, Captain! Checking duty readiness... 🚀");
         navigate({ to: "/permissions", replace: true });
       }
     } catch (err: any) {
@@ -132,7 +129,6 @@ export function RiderOtpScreen() {
             if (clean.length === 6) {
               const spl = clean.split("");
               setDigits(spl);
-              toast.success(`⚡ SMS OTP Auto-detected: ${clean}`);
               triggerHaptic([40, 60]);
               handleVerify(clean);
             }
@@ -209,7 +205,6 @@ export function RiderOtpScreen() {
     try {
       await sendOtp(effectivePhone);
       setTimer(30);
-      toast.success("New 6-digit OTP sent to your phone! 📱");
     } catch (err: any) {
       toast.error(err?.message || "Failed to resend OTP");
     } finally {

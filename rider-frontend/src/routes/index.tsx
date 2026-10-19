@@ -52,7 +52,12 @@ function RiderSplashScreen() {
           navigate({ to: "/dashboard", replace: true });
         }
       } else {
-        navigate({ to: "/auth", replace: true });
+        const hasSelectedLanguage = window.localStorage.getItem("qp_has_selected_language");
+        if (!hasSelectedLanguage) {
+          navigate({ to: "/language", replace: true });
+        } else {
+          navigate({ to: "/auth", replace: true });
+        }
       }
     }, 850);
 

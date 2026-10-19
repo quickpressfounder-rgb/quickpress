@@ -1,20 +1,21 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, X } from "lucide-react";
+import { ArrowLeft, Loader2, UserPlus, LogIn, AlertCircle, X } from "lucide-react";
 import React, { useEffect, useState, type FormEvent } from "react";
-import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
-import { sendOtp } from "../api/rider/rider-auth-api";
+import { sendOtp, checkRiderRegistered } from "../api/rider/rider-auth-api";
 import { readSession } from "../api/core/session-store";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 import { useLanguage } from "../lib/i18n";
 import { QuickPressLogo } from "../components/common/QuickPressLogo";
+import { triggerHaptic } from "../lib/captain-audio";
 
 export function RiderAuthScreen() {
   const navigate = useNavigate();
   const { phone, session, setPhone } = useRiderContext();
   const { t, selectedLanguageObj } = useLanguage();
 
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (phone) return phone.replace(/\D/g, "").slice(-10);
     if (typeof window !== "undefined") {
@@ -46,13 +47,12 @@ export function RiderAuthScreen() {
     }
   }, [navigate]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
     const cleanNumber = phoneNumber.replace(/\D/g, "");
 
     if (cleanNumber.length !== 10) {
       setError(t("auth.validPhone", "Enter a valid 10 digit mobile number"));
-      toast.error(t("auth.validPhone", "Enter a valid 10 digit mobile number"));
       return;
     }
 
@@ -61,12 +61,40 @@ export function RiderAuthScreen() {
 
     try {
       setPhone(cleanNumber);
+
+      // Enforce: Unregistered accounts cannot log in!
+      if (authMode === "login") {
+        const check = await checkRiderRegistered(cleanNumber);
+        if (!check.isRegistered) {
+          setError(
+            t(
+              "auth.notRegistered",
+              "This mobile number is not registered as a Captain. Please register first."
+            )
+          );
+          setLoading(false);
+          return;
+        }
+      } else {
+        // In registration mode, if already onboarded, prompt to log in
+        const check = await checkRiderRegistered(cleanNumber);
+        if (check.isRegistered && check.isOnboarded) {
+          setError(
+            t(
+              "auth.alreadyRegistered",
+              "This number is already registered. Please switch to Login."
+            )
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
       await sendOtp(cleanNumber);
-      toast.success(t("auth.otpSent", "6-digit OTP sent via SMS! 📱"));
+      // Clean, quiet navigation to OTP without in-screen toast interruption
       navigate({ to: "/otp" });
     } catch (err: any) {
-      setError(err?.message || "Failed to send OTP. Please try again.");
-      toast.error(err?.message || "Failed to send OTP");
+      setError(err?.message || "Failed to send OTP. Please check connection.");
     } finally {
       setLoading(false);
     }
@@ -107,31 +135,69 @@ export function RiderAuthScreen() {
         </div>
 
         {/* Official Brand Logo */}
-        <div className="pt-2 pb-6">
+        <div className="pt-2 pb-5">
           <QuickPressLogo size="lg" showSubtitle={true} subtitleText="DELIVERY PARTNER" />
         </div>
 
+        {/* Mode Selector: Login vs Register */}
+        <div className="flex items-center p-1 bg-neutral-100 rounded-2xl mb-6 border border-neutral-200/80">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(15);
+              setAuthMode("login");
+              setError(null);
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all ${
+              authMode === "login"
+                ? "bg-white text-neutral-950 shadow-xs"
+                : "text-neutral-500 hover:text-neutral-900"
+            }`}
+          >
+            <LogIn className="w-4 h-4" />
+            <span>{t("auth.loginTab", "Captain Login")}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic(15);
+              setAuthMode("register");
+              setError(null);
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all ${
+              authMode === "register"
+                ? "bg-white text-neutral-950 shadow-xs"
+                : "text-neutral-500 hover:text-neutral-900"
+            }`}
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>{t("auth.registerTab", "New Registration")}</span>
+          </button>
+        </div>
+
         {/* Heading & Subtitle */}
-        <div className="text-center pb-6">
+        <div className="text-center pb-5">
           <h2 className="text-xl font-black text-neutral-950 tracking-tight">
-            {t("auth.signIn", "Sign in to your account")}
+            {authMode === "login"
+              ? t("auth.signIn", "Sign in to your account")
+              : t("auth.createAccount", "Register as New Captain")}
           </h2>
           <p className="text-xs font-semibold text-neutral-500 mt-1">
-            {t("auth.loginOrCreate", "Login or create an account")}
+            {authMode === "login"
+              ? t("auth.loginDesc", "Enter your registered mobile number to continue")
+              : t("auth.registerDesc", "Join QuickPress with 0% commission & daily payouts")}
           </p>
         </div>
 
-        {/* 2. Login Form */}
+        {/* 2. Phone Input Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Phone Input Box: [ 🇮🇳 +91 | 9258730561  (x) ] */}
           <div className="relative flex items-center h-14 bg-white border-2 border-neutral-200 rounded-2xl focus-within:border-[#00C853] focus-within:shadow-xs transition-all px-4 gap-2.5">
-            {/* Flag & Prefix */}
             <div className="flex items-center gap-1.5 pr-2.5 border-r border-neutral-200 text-sm font-black text-neutral-800 shrink-0">
               <span className="text-base leading-none">🇮🇳</span>
               <span>+91</span>
             </div>
 
-            {/* Input Field */}
             <input
               type="tel"
               maxLength={10}
@@ -146,7 +212,6 @@ export function RiderAuthScreen() {
               autoFocus
             />
 
-            {/* Clear (x) button when typed */}
             {phoneNumber.length > 0 && (
               <button
                 type="button"
@@ -158,22 +223,33 @@ export function RiderAuthScreen() {
             )}
           </div>
 
-          {/* Helper Text & Help Link */}
+          {/* Error & Registration Prompt */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-2 text-left">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <p className="text-xs font-bold text-red-700 leading-tight">{error}</p>
+              </div>
+
+              {authMode === "login" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("register");
+                    setError(null);
+                  }}
+                  className="w-full py-2 bg-white border border-red-300 text-red-700 font-black text-xs rounded-lg active:scale-98 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Click here to Register as a Captain</span>
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="px-1 space-y-1">
             <p className="text-xs font-medium text-neutral-500">
               {t("auth.validPhone", "Enter a valid 10 digit mobile number")}
-            </p>
-            {error && (
-              <p className="text-xs font-bold text-red-500">{error}</p>
-            )}
-            <p className="text-xs font-medium text-neutral-500 pt-0.5">
-              {t("auth.lostPhone", "Lost your phone number?")}{" "}
-              <span
-                onClick={() => toast.info("Captain Support Helpline: +91 92587 30561")}
-                className="text-blue-600 font-bold hover:underline cursor-pointer"
-              >
-                {t("auth.reachUs", "Reach us")}
-              </span>
             </p>
           </div>
         </form>
@@ -183,14 +259,18 @@ export function RiderAuthScreen() {
       <div className="pt-4 pb-2 space-y-3">
         <button
           type="button"
-          onClick={handleSubmit}
+          onClick={() => handleSubmit()}
           disabled={loading || phoneNumber.length !== 10}
           className="w-full h-13.5 flex items-center justify-center bg-[#00C853] hover:bg-[#00B248] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm tracking-wide rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-98 transition-all"
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin text-white" />
           ) : (
-            <span>{t("auth.continue", "Continue")}</span>
+            <span>
+              {authMode === "login"
+                ? t("auth.continueLogin", "Verify & Login")
+                : t("auth.continueRegister", "Register as Captain")}
+            </span>
           )}
         </button>
 

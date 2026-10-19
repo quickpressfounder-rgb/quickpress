@@ -87,14 +87,14 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
         onClick={onClose}
         className="fixed inset-0 z-50 flex justify-start bg-black/60 backdrop-blur-xs select-none animate-in fade-in duration-200"
       >
-        {/* Drawer Container (Pure White Background with Elegant Right Curve) */}
+        {/* Drawer Container (Wallet Screen Theme) */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative flex flex-col w-[84vw] max-w-[340px] h-[100dvh] bg-white text-neutral-900 shadow-2xl rounded-r-3xl border-r border-neutral-200/80 overflow-hidden animate-in slide-in-from-left duration-300"
+          className="relative flex flex-col w-[86vw] max-w-[340px] h-[100dvh] bg-[#F4F5F7] text-zinc-900 shadow-2xl rounded-r-3xl border-r border-zinc-200/90 overflow-hidden animate-in slide-in-from-left duration-300"
         >
           {/* 1. Header with Close Button & Profile Badge (Fixed with Safe Area Padding) */}
           <div
-            className="px-4 pb-3 bg-white border-b border-neutral-100 shrink-0"
+            className="px-4 pb-3.5 bg-white border-b border-zinc-200/80 shadow-2xs shrink-0"
             style={{
               paddingTop: "max(env(safe-area-inset-top, 0px) + 12px, 22px)",
             }}
@@ -113,113 +113,175 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
 
               <button
                 type="button"
-                onClick={onClose}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 active:scale-90 transition-all"
+                onClick={() => {
+                  triggerHaptic(15);
+                  onClose();
+                }}
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-zinc-950 active:scale-90 transition-all cursor-pointer"
                 aria-label="Close Drawer"
               >
-                <X className="w-4.5 h-4.5 stroke-[2.5]" />
+                <X className="w-4 h-4 stroke-[2.5]" />
               </button>
             </div>
 
-            {/* Profile Card (Clickable to open /profile) */}
+            {/* Profile Card (Matching Wallet Hero Card layout) */}
             <button
               type="button"
               onClick={handleOpenProfile}
-              className="w-full flex items-center justify-between p-3 bg-amber-50/90 hover:bg-amber-100/80 border border-amber-200/90 rounded-2xl text-left active:scale-98 transition-all shadow-2xs"
+              className="w-full flex items-center justify-between p-3.5 bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 hover:bg-amber-50 border border-amber-200/90 rounded-2xl text-left active:scale-98 transition-all shadow-2xs cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 {effectivePhoto ? (
                   <img
                     src={effectivePhoto}
                     alt={captainName}
-                    className="w-11 h-11 rounded-full object-cover border border-amber-300 shadow-xs shrink-0"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-amber-300 shadow-xs shrink-0"
                   />
                 ) : (
-                  <div className="flex items-center justify-center w-11 h-11 rounded-full bg-amber-400 text-neutral-950 font-black text-base shadow-xs shrink-0">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[#FFC700] text-neutral-950 font-black text-lg shadow-xs shrink-0">
                     {captainName.slice(0, 1).toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <h3 className="text-sm font-black text-neutral-950 leading-tight">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-zinc-950 leading-tight truncate">
                     {captainName || "Captain"}
                   </h3>
                   {captainId && formatCaptainId(captainId) ? (
-                    <p className="text-[11px] font-bold text-neutral-500 mt-0.5 font-mono">
+                    <p className="text-[11px] font-bold text-zinc-500 mt-0.5 font-mono">
                       ID: {formatCaptainId(captainId)}
                     </p>
                   ) : null}
-                  <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-1">
                     {session?.isVerified ? (
-                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md">
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/90 border border-emerald-200 px-2 py-0.5 rounded-full">
                         {rating && rating > 0 ? `${rating.toFixed(1)} ★ ` : ""}Verified Captain
                       </span>
                     ) : (
-                      <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-md">
+                      <span className="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
                         Under Verification
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
+              <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
             </button>
           </div>
 
-          {/* 2. Scrollable Middle Body (Navigation List) */}
-          <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* 2. Scrollable Middle Body (Grouped Wallet-Themed Cards) */}
+          <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 space-y-3.5">
+            {/* Group 1: Earnings & Performance */}
+            <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+              <div className="px-3.5 pt-2.5 pb-1">
+                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">
+                  Operational Dashboard
+                </span>
+              </div>
 
-            {/* Navigation List */}
-            <div className="p-3 space-y-1">
               {[
                 {
-                  icon: Award,
-                  title: t("leaderboard.title", "City Leaderboard"),
-                  sub: "Rank #1 wins ₹500 Weekly Prize Pool",
-                  onClick: () => {
-                    onClose();
-                    navigate({ to: "/leaderboard" });
-                  },
-                },
-                {
                   icon: BarChart3,
+                  iconBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
                   title: "Performance & Analytics",
                   sub: "Live trips, KM, ratings & earnings summary",
                   onClick: () => {
+                    triggerHaptic(15);
                     onClose();
                     navigate({ to: "/analytics" });
                   },
                 },
                 {
                   icon: History,
+                  iconBg: "bg-blue-50 text-blue-700 border-blue-200",
                   title: t("history.title", "Order & Trip History"),
-                  sub: t("history.summary", "Delivered trips, OTP logs & payout receipts"),
+                  sub: t("history.summary", "Completed delivery receipts & summary"),
                   onClick: () => {
+                    triggerHaptic(15);
                     onClose();
                     navigate({ to: "/history" });
                   },
                 },
                 {
+                  icon: Award,
+                  iconBg: "bg-amber-50 text-amber-700 border-amber-200",
+                  title: t("leaderboard.title", "City Leaderboard"),
+                  sub: "Rank #1 wins ₹500 Weekly Prize Pool",
+                  onClick: () => {
+                    triggerHaptic(15);
+                    onClose();
+                    navigate({ to: "/leaderboard" });
+                  },
+                },
+                {
                   icon: TrendingUp,
+                  iconBg: "bg-purple-50 text-purple-700 border-purple-200",
                   title: t("incentives.title", "Incentives & Targets"),
                   sub: "Daily milestone bonus tracker & quests",
                   onClick: () => {
+                    triggerHaptic(15);
                     onClose();
                     navigate({ to: "/incentives" });
                   },
                 },
+              ].map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={item.onClick}
+                    className={`w-full flex items-center justify-between p-3 hover:bg-zinc-50 text-left active:scale-98 transition-all cursor-pointer ${
+                      idx !== 0 ? "border-t border-zinc-100" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-xl border shrink-0 ${item.iconBg}`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-zinc-950 leading-tight">
+                          {item.title}
+                        </h4>
+                        <p className="text-[10px] text-zinc-500 font-medium line-clamp-1">
+                          {item.sub}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
 
+            {/* Group 2: Safety & Support */}
+            <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
+              <div className="px-3.5 pt-2.5 pb-1">
+                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">
+                  Support & Standards
+                </span>
+              </div>
+
+              {[
                 {
                   icon: ShieldCheck,
+                  iconBg: "bg-teal-50 text-teal-700 border-teal-200",
                   title: t("profile.guidelines", "Captain Guidelines & SOP"),
+                  sub: "Zero commission rules & service quality",
                   onClick: () => {
+                    triggerHaptic(15);
                     onClose();
                     navigate({ to: "/guidelines" });
                   },
                 },
                 {
                   icon: HelpCircle,
+                  iconBg: "bg-rose-50 text-rose-700 border-rose-200",
                   title: t("profile.support", "24/7 Captain Support & SOS"),
+                  sub: "Direct helpline assistance & emergency SOS",
                   onClick: () => {
+                    triggerHaptic(15);
                     onClose();
                     navigate({ to: "/help" });
                   },
@@ -231,22 +293,26 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                     key={idx}
                     type="button"
                     onClick={item.onClick}
-                    className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-neutral-50 text-left active:scale-98 transition-all"
+                    className={`w-full flex items-center justify-between p-3 hover:bg-zinc-50 text-left active:scale-98 transition-all cursor-pointer ${
+                      idx !== 0 ? "border-t border-zinc-100" : ""
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-neutral-100 text-neutral-700 shrink-0">
+                      <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-xl border shrink-0 ${item.iconBg}`}
+                      >
                         <Icon className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-neutral-900 leading-tight">
+                        <h4 className="text-xs font-black text-zinc-950 leading-tight">
                           {item.title}
                         </h4>
-                        <p className="text-[10px] text-neutral-500 font-medium">
+                        <p className="text-[10px] text-zinc-500 font-medium line-clamp-1">
                           {item.sub}
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-neutral-300" />
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-300 shrink-0" />
                   </button>
                 );
               })}
@@ -255,7 +321,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
 
           {/* 3. Language Switcher & Logout Footer (Fixed with Safe Area Bottom Padding) */}
           <div
-            className="shrink-0 border-t border-neutral-100 bg-neutral-50/95 space-y-2 px-4 pt-3"
+            className="shrink-0 border-t border-zinc-200/90 bg-white shadow-xs space-y-2 p-3.5"
             style={{
               paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 14px, 22px)",
             }}
@@ -263,21 +329,26 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
             {onOpenLanguage && (
               <button
                 type="button"
-                onClick={onOpenLanguage}
-                className="w-full flex items-center justify-between p-2.5 bg-white border border-neutral-200/90 rounded-xl text-xs font-bold text-neutral-800 shadow-2xs hover:bg-neutral-50 active:scale-98 transition-all"
+                onClick={() => {
+                  triggerHaptic(15);
+                  onOpenLanguage();
+                }}
+                className="w-full flex items-center justify-between p-2.5 bg-[#F8F9FA] hover:bg-zinc-100 border border-zinc-200/90 rounded-xl text-xs font-bold text-zinc-800 shadow-2xs active:scale-98 transition-all cursor-pointer"
               >
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-2">
                   <span>🌐</span>
                   <span>{t("common.language", "Language")} ({selectedLanguageObj.nativeName})</span>
                 </span>
-                <span className="text-[11px] font-black text-emerald-600">{t("common.change", "Change")}</span>
+                <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  {t("common.change", "Change")}
+                </span>
               </button>
             )}
 
             <button
               type="button"
               onClick={handleLogoutAction}
-              className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors active:scale-98"
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors active:scale-98 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>{t("profile.logout", "Logout Captain Account")}</span>

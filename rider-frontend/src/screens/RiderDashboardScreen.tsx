@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
-import { MapPin, Radio } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { fetchRiderOffers, fetchRiderOrder } from "../api/rider/rider-orders-api";
 import {
   fetchRiderDashboard,
@@ -64,7 +64,6 @@ export function RiderDashboardScreen() {
   const [todayDeliveries, setTodayDeliveries] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
   const [lastOrderEarnings, setLastOrderEarnings] = useState(0);
-  const [isGoingOnDutyModal, setIsGoingOnDutyModal] = useState(false);
   const [isRateCardOpen, setIsRateCardOpen] = useState(false);
   const [captainName, setCaptainName] = useState(() => {
     const name = session?.fullName;
@@ -250,36 +249,19 @@ export function RiderDashboardScreen() {
     }
   }, [navigate]);
 
-  // Handle Duty Toggle with Instant Off-Duty and Animated Radar On-Duty Transition
+  // Handle Duty Toggle: Instant and direct transition without any modals or delays
   const handleToggleDuty = async (overrideState?: boolean | any) => {
     unlockAudioContext();
     const nextState = typeof overrideState === "boolean" ? overrideState : !isOnline;
     triggerHaptic(45);
 
-    if (!nextState) {
-      // 1. Going Off-Duty: Immediate instant transition (No loading spinner or dialog delay)
-      playDutyToggleSound(false);
-      speakDutyStatus(false);
-      setOnline(false);
+    playDutyToggleSound(nextState);
+    speakDutyStatus(nextState);
+    setOnline(nextState);
 
-      try {
-        await updateRiderStatus(false);
-      } catch {}
-    } else {
-      // 2. Going On-Duty: Show high-tech animated sonar/radar connecting animation
-      setIsGoingOnDutyModal(true);
-      playDutyToggleSound(true);
-      speakDutyStatus(true);
-
-      try {
-        await updateRiderStatus(true);
-      } catch {}
-
-      // Short aesthetic delay for the radar scanning & dispatch connection animation
-      await new Promise((r) => setTimeout(r, 1100));
-      setIsGoingOnDutyModal(false);
-      setOnline(true);
-    }
+    try {
+      await updateRiderStatus(nextState);
+    } catch {}
   };
 
   return (
@@ -387,41 +369,7 @@ export function RiderDashboardScreen() {
         </div>
       )}
 
-      {/* Going ON-DUTY High-Tech Radar Animated Modal */}
-      {isGoingOnDutyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="relative flex flex-col items-center justify-center px-7 py-6 bg-zinc-950/95 border border-zinc-700/80 text-white rounded-3xl shadow-2xl space-y-4 min-w-[260px] text-center overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Ambient emerald backlight glow */}
-            <div className="absolute -top-10 -left-10 size-32 bg-emerald-500/25 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute -bottom-10 -right-10 size-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
 
-            {/* Radar / Sonar Pulse Wave Animation */}
-            <div className="relative flex items-center justify-center size-20">
-              <span className="absolute inline-flex size-full rounded-full bg-emerald-400 opacity-25 animate-ping duration-1000" />
-              <span className="absolute inline-flex size-14 rounded-full bg-emerald-500/40 animate-pulse duration-700" />
-              <div className="relative flex items-center justify-center size-12 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white shadow-lg shadow-emerald-500/30">
-                <Radio className="size-6 text-white animate-pulse" />
-              </div>
-            </div>
-
-            <div className="space-y-1 z-10">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold tracking-wider uppercase">
-                <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
-                Live Dispatch Radar
-              </div>
-              <h3 className="text-base font-black text-white tracking-tight">Going ON DUTY</h3>
-              <p className="text-xs text-zinc-400 font-medium max-w-[210px]">
-                Connecting to Live Fleet Engine & GPS Dispatch...
-              </p>
-            </div>
-
-            {/* High-tech pulsing progress bar */}
-            <div className="w-44 h-1.5 bg-zinc-800 rounded-full overflow-hidden z-10">
-              <div className="h-full bg-gradient-to-r from-emerald-500 via-emerald-300 to-emerald-500 rounded-full animate-pulse w-full" />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 4. 2-Tab Rapido Captain Bottom Navigation with live badge count on Orders */}
       <RiderBottomNav active="dashboard" ordersBadgeCount={pendingOrdersCount} />
