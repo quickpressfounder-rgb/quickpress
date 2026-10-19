@@ -9,6 +9,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -19,6 +20,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -236,11 +238,28 @@ public class FloatingBubbleService extends Service {
         circleContainer.setBackground(bg);
         circleContainer.setElevation(dpToPx(8));
 
-        // 2. Official QuickPress Captain Logo (Matches User Uploaded Logo)
+        // Circular clipping to guarantee ZERO square corner bleed
+        circleContainer.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setOval(0, 0, view.getWidth(), view.getHeight());
+            }
+        });
+        circleContainer.setClipToOutline(true);
+
+        // 2. Official QuickPress Captain Logo (HD Circular Cropped & Zoomed)
         ImageView logoView = new ImageView(context);
-        int pad = dpToPx(8);
+        int pad = dpToPx(3);
         logoView.setPadding(pad, pad, pad, pad);
         logoView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        logoView.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setOval(0, 0, view.getWidth(), view.getHeight());
+            }
+        });
+        logoView.setClipToOutline(true);
+
         try {
             int resId = getResources().getIdentifier("bubble_captain_logo", "drawable", getPackageName());
             if (resId != 0) {

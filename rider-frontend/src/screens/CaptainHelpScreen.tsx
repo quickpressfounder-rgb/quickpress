@@ -103,8 +103,13 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
   // ==========================================
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     try {
-      const saved = localStorage.getItem("qp_captain_chat_history");
-      if (saved) return JSON.parse(saved);
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("qp_captain_chat_history");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
     } catch {}
     return [
       {
@@ -138,8 +143,14 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
   // ==========================================
   const [ticketsList, setTicketsList] = useState<SupportTicket[]>(() => {
     try {
-      const saved = localStorage.getItem("qp_captain_tickets");
-      if (saved) return JSON.parse(saved);
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("qp_captain_tickets");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+          if (parsed && Array.isArray(parsed.items)) return parsed.items;
+        }
+      }
     } catch {}
     return [];
   });
@@ -172,6 +183,8 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
           try {
             localStorage.setItem("qp_captain_tickets", JSON.stringify(res.items));
           } catch {}
+        } else if (Array.isArray(res)) {
+          setTicketsList(res);
         }
       })
       .catch(() => {})
@@ -527,7 +540,10 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
     return matchesCat && matchesQuery;
   });
 
-  const filteredTickets = ticketsList.filter((t) => {
+  const safeTicketsList = Array.isArray(ticketsList) ? ticketsList : [];
+
+  const filteredTickets = safeTicketsList.filter((t) => {
+    if (!t) return false;
     if (ticketFilter === "open") return t.status === "open" || t.status === "in-progress" || t.status === "awaiting-customer";
     if (ticketFilter === "resolved") return t.status === "resolved" || t.status === "closed";
     return true;
@@ -607,7 +623,7 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
           {[
             { id: "chat", label: "Live Chat" },
             { id: "ticket", label: "Raise Ticket" },
-            { id: "my-tickets", label: "My Tickets", badge: ticketsList.filter((t) => t.status === "open").length },
+            { id: "my-tickets", label: "My Tickets", badge: safeTicketsList.filter((t) => t && t.status === "open").length },
             { id: "faq", label: "FAQs & SOP" },
           ].map((tab) => {
             const active = activeTab === tab.id;
