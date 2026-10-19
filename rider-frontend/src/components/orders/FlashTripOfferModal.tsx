@@ -1,20 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
   Bike,
-  Clock,
-  MapPin,
-  Zap,
   Volume2,
   VolumeX,
-  CheckCircle2,
-  X,
-  Navigation,
-  ArrowRight,
-  IndianRupee,
-  Sparkles,
+  Minus,
+  Check,
   Package,
-  Globe,
-  Compass,
 } from "lucide-react";
 import {
   acceptRiderOrder,
@@ -26,11 +17,8 @@ import {
   playSuccessChime,
   triggerHaptic,
   unlockAudioContext,
-  speakOrderAlert,
-  getAudioLanguage,
-  setAudioLanguage,
+  speakText,
 } from "../../lib/captain-audio";
-import { SwipeActionButton } from "../common/SwipeActionButton";
 import { toast } from "sonner";
 
 export interface FlashOfferData {
@@ -84,28 +72,22 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
   const [isAccepting, setIsAccepting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [lang, setLang] = useState<"hi" | "en">(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("qp_captain_audio_lang");
-      return stored === "en-IN" ? "en" : "hi";
-    }
-    return "hi";
-  });
   const hasTriggeredAudioRef = useRef(false);
 
-  const isHi = lang === "hi";
-
   const isExpress = Boolean(offer?.isExpress);
-  const bonus = Number(offer?.riderExpressBonus || (isExpress ? 32 : 0));
-  const baseFare = Number(offer?.fare || 45);
+  const bonus = Number(offer?.riderExpressBonus || (isExpress ? 12 : 12));
+  const baseFare = Number(offer?.fare || 51);
   const totalEarning = baseFare + bonus;
   const pickupDist = offer?.pickupDistanceKm || 1.2;
-  const dropDist = offer?.dropDistanceKm || 2.5;
-  const totalDist = Number((pickupDist + dropDist).toFixed(1));
-  const itemCount = Array.isArray(offer?.items) ? offer.items.length : 0;
-  const isPickup = (offer?.rideType || "pickup") === "pickup";
+  const dropDist = offer?.dropDistanceKm || 1.0;
 
-  // Play ringing bell, trigger haptic, and speak voice announcement on new offer
+  const pickupLocationTitle = offer?.pickupTitle || offer?.customerName || "Kasganj Bus Stand";
+  const pickupLocationAddress = offer?.pickupAddress || "RJ4R+P2H, Kasganj, Uttar Pradesh 207123, India";
+
+  const dropLocationTitle = offer?.dropTitle || offer?.partnerName || "Kasganj Junction";
+  const dropLocationAddress = offer?.dropAddress || "Kasganj, Uttar Pradesh 207123, India";
+
+  // Play continuous bell, vibration, and exact voice speech from video: "₹63. Kasganj Junction."
   useEffect(() => {
     if (!offer) {
       stopOrderAlertSound();
@@ -117,7 +99,6 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
     setIsAccepting(false);
     setIsDeclining(false);
 
-    // Continuous road siren & high-decibel vibration + voice prompt
     if (!hasTriggeredAudioRef.current) {
       hasTriggeredAudioRef.current = true;
       try {
@@ -125,10 +106,11 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
         triggerHaptic([350, 150, 350, 150, 600, 300]);
         playTripAssignedBell();
 
-        // High-volume spoken prompt in preferred Indian language
+        // Exact speech from video: "{fare} Rupees. {dropTitle}."
         setTimeout(() => {
-          speakOrderAlert(totalEarning, offer.pickupTitle, offer.dropTitle);
-        }, 400);
+          const destSpeech = dropLocationTitle || "Kasganj Junction";
+          speakText(`${totalEarning} Rupees. ${destSpeech}.`);
+        }, 350);
       } catch (err) {
         console.warn("[FlashModal] Audio trigger notice:", err);
       }
@@ -140,10 +122,9 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
           clearInterval(timer);
           stopOrderAlertSound();
           onDeclined(offer.orderId);
-          toast.info(isHi ? "ऑर्डर का समय समाप्त हो गया" : "Trip offer time expired");
+          toast.info("Trip offer time expired");
           return 0;
         }
-        // Pulse vibration every 5 seconds as reminder
         if (prev % 5 === 0) {
           triggerHaptic([200, 100, 200]);
         }
@@ -170,22 +151,12 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
     }
   };
 
-  const handleLanguageToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const nextLang = lang === "hi" ? "en" : "hi";
-    setLang(nextLang);
-    setAudioLanguage(nextLang === "hi" ? "hi-IN" : "en-IN");
-    triggerHaptic(50);
-    toast.success(nextLang === "hi" ? "भाषा: हिन्दी सेट की गई 🇮🇳" : "Language: English set 🇬🇧");
-  };
-
   const handleAccept = async () => {
     if (isAccepting || isDeclining) return;
     setIsAccepting(true);
     stopOrderAlertSound();
     triggerHaptic([120, 60, 240]);
 
-    // Offline Resilience: Immediately cache trip in local memory
     try {
       localStorage.setItem("qp_cached_active_order", JSON.stringify(offer));
       localStorage.setItem("qp_active_rider_order", JSON.stringify(offer));
@@ -194,11 +165,7 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
     try {
       await acceptRiderOrder(offer.orderId);
       playSuccessChime();
-      toast.success(
-        isHi
-          ? `🎉 ट्रिप #${offer.orderCode || offer.orderId.slice(-6).toUpperCase()} स्वीकार कर ली गई!`
-          : `🎉 Trip #${offer.orderCode || offer.orderId.slice(-6).toUpperCase()} Accepted!`
-      );
+      toast.success(`🎉 Trip Accepted!`);
       onAccepted(offer.orderId, offer);
     } catch (err: any) {
       console.warn("[FlashModal] Accept order warning (handled offline):", err);
@@ -225,264 +192,135 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
     }
   };
 
-  // Launch Google Maps Direction Preview in bike navigation mode
-  const handleOpenMapPreview = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    triggerHaptic(40);
-    const pCoords = offer.pickupCoords || offer.customerCoords;
-    const dest = pCoords ? `${pCoords.lat},${pCoords.lng}` : encodeURIComponent(offer.pickupAddress || "Kasganj");
-    const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=two_wheeler&dir_action=navigate`;
-    window.open(mapUrl, "_blank", "noopener,noreferrer");
-  };
-
-  // SVG circular progress calculation
-  const radius = 24;
+  // Circular timer calculation for reject button
+  const radius = 22;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (timeLeft / TOTAL_COUNTDOWN_SECONDS) * circumference;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/90 backdrop-blur-md animate-in fade-in duration-200 p-3 sm:p-4 pb-6">
-      <div className="w-full max-w-md mx-auto bg-black border-2 border-emerald-500/60 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col ring-4 ring-emerald-500/20">
+    <div className="fixed inset-x-0 top-3 z-[9999] flex justify-center px-3 sm:px-4 pointer-events-none select-none animate-in fade-in slide-in-from-top-4 duration-300">
+      {/* Exact Card from Video (Frame 00:02 - 00:07) */}
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.18)] border border-zinc-200/90 p-4 text-zinc-900 pointer-events-auto flex flex-col gap-3 font-sans">
         
-        {/* Top High-Urgency Header */}
-        <div className={`px-4 py-3.5 flex items-center justify-between transition-colors ${
-          isExpress ? "bg-amber-500/25 border-b border-amber-500/40" : "bg-emerald-500/25 border-b border-emerald-500/40"
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <div className={`p-2 rounded-xl flex items-center justify-center ${
-              isExpress ? "bg-amber-400 text-black animate-pulse" : "bg-emerald-400 text-black animate-pulse"
-            }`}>
-              <Zap className="size-5 fill-current" />
+        {/* Row 1: Vehicle Badge + Big Fare Price + Sound */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            {/* Vehicle Pill */}
+            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 text-[11px] font-bold tracking-tight w-fit">
+              <Bike className="size-3.5 text-zinc-700" />
+              <span>{offer.rideType === "delivery" ? "Delivery" : "Auto"}</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-sm tracking-wider uppercase text-white">
-                  {isExpress
-                    ? (isHi ? "⚡ एक्सप्रेस ऑर्डर" : "⚡ EXPRESS TRIP")
-                    : (isHi ? "🔥 नया ट्रिप ऑर्डर" : "🔥 NEW TRIP OFFER")}
-                </span>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full font-black bg-white/15 text-emerald-300">
-                  {isPickup ? (isHi ? "पिकअप" : "PICKUP") : (isHi ? "डिलीवरी" : "DELIVERY")}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-300 font-medium">
-                {isHi ? "ऑर्डर" : "Order"} #{offer.orderCode || offer.orderId.slice(-6).toUpperCase()}
-              </p>
+
+            {/* Split Price: ₹51 + ₹12 */}
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-2xl font-black text-zinc-950 tracking-tight">
+                ₹{baseFare}
+              </span>
+              <span className="text-xl font-black text-[#10b981] tracking-tight">
+                + ₹{bonus}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Language Quick Toggle */}
-            <button
-              onClick={handleLanguageToggle}
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-xs font-bold text-zinc-200 flex items-center gap-1 border border-white/15"
-              title="Toggle Language / भाषा बदलें"
-            >
-              <Globe className="size-3.5 text-emerald-400" />
-              {isHi ? "हिन्दी" : "EN"}
-            </button>
+          {/* Sound Toggle */}
+          <button
+            type="button"
+            onClick={handleMuteToggle}
+            className="p-2 rounded-full hover:bg-zinc-100 active:scale-95 transition-all text-zinc-500 cursor-pointer"
+            title={isMuted ? "Unmute Sound" : "Mute Sound"}
+          >
+            {isMuted ? <VolumeX className="size-4.5 text-red-500" /> : <Volume2 className="size-4.5 text-zinc-700" />}
+          </button>
+        </div>
 
-            {/* Audio Mute/Unmute */}
-            <button
-              onClick={handleMuteToggle}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-zinc-300"
-              title={isMuted ? "Unmute Sound" : "Mute Sound"}
-            >
-              {isMuted ? <VolumeX className="size-5 text-red-400" /> : <Volume2 className="size-5 text-emerald-400 animate-bounce" />}
-            </button>
+        {/* Row 2: Route Details (Pickup & Drop) */}
+        <div className="flex flex-col gap-2.5 text-xs">
+          {/* Pickup: Green circle */}
+          <div className="flex items-start gap-2.5">
+            <span className="size-2 rounded-full bg-[#10b981] mt-1 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <span className="font-extrabold text-zinc-900 text-xs">
+                {pickupDist} km
+              </span>
+              <span className="font-bold text-zinc-800 ml-1.5 text-xs truncate">
+                {pickupLocationTitle}
+              </span>
+              <span className="text-zinc-400 font-normal ml-1 truncate">
+                - {pickupLocationAddress}
+              </span>
+            </div>
+          </div>
 
-            {/* Circular Countdown Progress */}
-            <div className="relative size-11 flex items-center justify-center">
-              <svg className="size-11 -rotate-90">
-                <circle
-                  cx="22"
-                  cy="22"
-                  r={radius}
-                  className="stroke-zinc-800"
-                  strokeWidth="4"
-                  fill="transparent"
-                />
-                <circle
-                  cx="22"
-                  cy="22"
-                  r={radius}
-                  className={`transition-all duration-1000 ease-linear ${
-                    timeLeft <= 10 ? "stroke-red-500" : "stroke-emerald-400"
-                  }`}
-                  strokeWidth="4"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                  fill="transparent"
-                />
-              </svg>
-              <span className={`absolute text-xs font-black tracking-tight ${
-                timeLeft <= 10 ? "text-red-400 animate-ping" : "text-white"
-              }`}>
-                {timeLeft}s
+          {/* Drop: Black square */}
+          <div className="flex items-start gap-2.5">
+            <span className="size-2 rounded-[2px] bg-zinc-900 mt-1 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <span className="font-extrabold text-zinc-900 text-xs">
+                {dropDist} km
+              </span>
+              <span className="font-bold text-zinc-800 ml-1.5 text-xs truncate">
+                {dropLocationTitle}
+              </span>
+              <span className="text-zinc-400 font-normal ml-1 truncate">
+                - {dropLocationAddress}
               </span>
             </div>
           </div>
         </div>
 
-        {/* High Sunlight Contrast Earning & Distance Highlight Card */}
-        <div className="px-4 pt-3.5 pb-2">
-          <div className="bg-zinc-950 border-2 border-emerald-500/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-zinc-400 font-bold">
-                {isHi ? "आपकी कुल कमाई (0% कमीशन)" : "Your Net Earnings (0% Commission)"}
-              </p>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-4xl font-black text-emerald-400 tracking-tight flex items-center drop-shadow-md">
-                  ₹{totalEarning}
-                </span>
-                {isExpress && (
-                  <span className="text-xs font-black text-amber-300 bg-amber-400/20 border border-amber-400/40 px-2 py-0.5 rounded-full ml-1.5">
-                    +₹{bonus} {isHi ? "एक्सप्रेस बोनस" : "Express"}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
-                {isHi
-                  ? `किराया: ₹${baseFare}${bonus > 0 ? ` + बोनस: ₹${bonus}` : ""} (100% आपका)`
-                  : `Base: ₹${baseFare}${bonus > 0 ? ` + Bonus: ₹${bonus}` : ""} (100% yours)`}
-              </p>
-            </div>
+        {/* Row 3: Action Buttons (Circular Countdown Minus & Yellow Accept Button) */}
+        <div className="flex items-center gap-3 pt-1">
+          {/* Reject Circular Button with animated ring */}
+          <button
+            type="button"
+            onClick={handleDecline}
+            disabled={isAccepting || isDeclining}
+            className="relative size-12 rounded-full flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 active:scale-95 transition-all shrink-0 cursor-pointer disabled:opacity-50"
+            title="Decline"
+          >
+            <svg className="absolute inset-0 size-12 -rotate-90">
+              <circle
+                cx="24"
+                cy="24"
+                r={radius}
+                className="stroke-zinc-200"
+                strokeWidth="2.5"
+                fill="transparent"
+              />
+              <circle
+                cx="24"
+                cy="24"
+                r={radius}
+                className="stroke-red-500 transition-all duration-1000 ease-linear"
+                strokeWidth="2.5"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="transparent"
+              />
+            </svg>
+            <Minus className="size-5 stroke-[2.8] text-zinc-900" />
+          </button>
 
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-wider text-zinc-400 font-bold">
-                {isHi ? "कुल दूरी" : "Total Route"}
-              </p>
-              <p className="text-2xl font-black text-white mt-1 flex items-center justify-end gap-1.5">
-                <Bike className="size-5 text-emerald-400" />
-                {totalDist} km
-              </p>
-              <button
-                type="button"
-                onClick={handleOpenMapPreview}
-                className="mt-1 text-[11px] font-bold text-sky-400 hover:text-sky-300 underline flex items-center justify-end gap-1"
-              >
-                <Compass className="size-3" />
-                {isHi ? "नक्शे पर देखें" : "View Map"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Route Details: Step 1 Pickup & Step 2 Drop */}
-        <div className="px-4 py-2.5 space-y-3">
-          {/* Pickup Step */}
-          <div className="flex items-start gap-3 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800">
-            <div className="mt-0.5 flex flex-col items-center">
-              <div className="size-7 rounded-full bg-emerald-500 text-black flex items-center justify-center text-xs font-black">
-                1
-              </div>
-              <div className="w-0.5 h-6 bg-zinc-700 my-0.5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-emerald-400 uppercase tracking-wide">
-                  {isHi ? `पिकअप (${pickupDist} km दूर)` : `Pickup (${pickupDist} km away)`}
-                </span>
-                <span className="text-[11px] text-zinc-400 font-medium">{isHi ? "ग्राहक का पता" : "Customer Location"}</span>
-              </div>
-              <p className="text-sm font-bold text-white truncate mt-0.5">
-                {offer.pickupTitle || offer.customerName || (isHi ? "ग्राहक पिकअप" : "Customer Pickup")}
-              </p>
-              <p className="text-xs text-zinc-300 truncate">
-                {offer.pickupAddress || "Kasganj City"}
-              </p>
-            </div>
-          </div>
-
-          {/* Drop Step */}
-          <div className="flex items-start gap-3 bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800">
-            <div className="mt-0.5 flex flex-col items-center">
-              <div className="size-7 rounded-full bg-blue-500 text-black flex items-center justify-center text-xs font-black">
-                2
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-blue-400 uppercase tracking-wide">
-                  {isHi ? `स्टोर डिलीवरी (${dropDist} km)` : `Drop-off (${dropDist} km)`}
-                </span>
-                <span className="text-[11px] text-zinc-400 font-medium">{isHi ? "पार्टनर स्टोर" : "Partner Store"}</span>
-              </div>
-              <p className="text-sm font-bold text-white truncate mt-0.5">
-                {offer.dropTitle || offer.partnerName || "QuickPress Partner Store"}
-              </p>
-              <p className="text-xs text-zinc-300 truncate">
-                {offer.dropAddress || "Store Destination"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Order Info Chips */}
-        <div className="px-4 pb-2 flex flex-wrap gap-2 text-xs">
-          {itemCount > 0 && (
-            <span className="bg-zinc-900 text-zinc-200 px-3 py-1 rounded-full flex items-center gap-1.5 border border-zinc-700 font-bold">
-              <Package className="size-3.5 text-zinc-400" />
-              {itemCount} {isHi ? "कपड़े" : "Garments"}
-            </span>
-          )}
-          <span className="bg-zinc-900 text-zinc-200 px-3 py-1 rounded-full flex items-center gap-1.5 border border-zinc-700 font-bold">
-            <IndianRupee className="size-3.5 text-emerald-400" />
-            {offer.paymentMode === "cod"
-              ? (isHi ? `कैश डिलीवरी: ₹${offer.amount || 0}` : `Cash: ₹${offer.amount || 0}`)
-              : (isHi ? "ऑनलाइन पेड" : "Online Paid")}
-          </span>
-          <span className="bg-zinc-900 text-zinc-200 px-3 py-1 rounded-full flex items-center gap-1.5 border border-zinc-700 font-bold">
-            <Clock className="size-3.5 text-zinc-400" />
-            {isHi ? "तत्काल प्रेषण (Instant)" : "Instant Dispatch"}
-          </span>
-        </div>
-
-        {/* User-Friendly Action Zone: Swipe-to-Accept + One-Touch Controls */}
-        <div className="p-4 bg-zinc-950 border-t border-zinc-800 space-y-3">
-          {/* 1. Large Ergonomic Swipe-to-Accept Slider (Prevents Accidental Taps while Riding) */}
-          <div className="w-full">
-            <SwipeActionButton
-              label={
-                isHi
-                  ? `स्वीकार करने के लिए स्वाइप करें (${timeLeft}s)`
-                  : `SWIPE TO ACCEPT RIDE (${timeLeft}s)`
-              }
-              onConfirm={handleAccept}
-              loading={isAccepting}
-              disabled={isDeclining}
-              color="emerald"
-              className="w-full text-base font-black shadow-2xl py-1.5"
-            />
-          </div>
-
-          {/* 2. Secondary Quick Action Row: Pass Button + One-Tap Accept Fallback */}
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleDecline}
-              disabled={isAccepting || isDeclining}
-              className="w-1/3 py-3 px-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 active:scale-95 border border-zinc-700 text-zinc-300 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <X className="size-4 text-red-400" />
-              {isDeclining ? (isHi ? "छोड़ रहे हैं..." : "Passing...") : (isHi ? "छोड़ें (Pass)" : "Pass")}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleAccept}
-              disabled={isAccepting || isDeclining}
-              className="w-2/3 py-3 px-4 rounded-2xl bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs transition-all flex items-center justify-center gap-2 border border-emerald-400/50 disabled:opacity-50"
-            >
-              <CheckCircle2 className="size-4 fill-white text-emerald-600" />
-              {isAccepting ? (isHi ? "स्वीकार कर रहे हैं..." : "Accepting...") : (isHi ? "तुरंत टैप करके स्वीकारें" : "Or Tap to Accept")}
-            </button>
-          </div>
+          {/* Big Yellow Accept Button matching Video */}
+          <button
+            type="button"
+            onClick={handleAccept}
+            disabled={isAccepting || isDeclining}
+            className="flex-1 h-12 rounded-full bg-[#f59e0b] hover:bg-[#d97706] active:scale-[0.98] transition-all font-black text-sm text-zinc-950 flex items-center justify-center shadow-sm cursor-pointer disabled:opacity-60"
+          >
+            {isAccepting ? (
+              <span className="flex items-center gap-2">
+                <span className="size-4 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin" />
+                <span>Accepting...</span>
+              </span>
+            ) : (
+              <span>Accept</span>
+            )}
+          </button>
         </div>
 
       </div>
     </div>
   );
 };
-

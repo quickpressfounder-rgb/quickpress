@@ -38,6 +38,10 @@ import {
   Timer,
   X,
   Zap,
+  User,
+  QrCode,
+  HelpCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { initRiderSocket, subscribeRiderOrders, emitRiderLocation } from "../../lib/rider-socket";
@@ -273,6 +277,33 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showCaptainReviewModal, setShowCaptainReviewModal] = useState(false);
   const [hasRatedTrip, setHasRatedTrip] = useState(false);
   const [isAddressCopied, setIsAddressCopied] = useState(false);
+
+  // --- VIDEO THEME INTEGRATION STATES ---
+  const [showProximityWarningModal, setShowProximityWarningModal] = useState(false);
+  const [showDedicatedOtpScreen, setShowDedicatedOtpScreen] = useState(false);
+  const [dedicatedOtpMode, setDedicatedOtpMode] = useState<"pickup" | "delivery" | "store_dispatch">("pickup");
+  const [dedicatedOtpDigits, setDedicatedOtpDigits] = useState<string[]>(["", "", "", ""]);
+  const [isOtpUpdatingStatus, setIsOtpUpdatingStatus] = useState(false);
+  const [showQuickPressMapsModal, setShowQuickPressMapsModal] = useState(false);
+  const [showCompleteRideConfirmation, setShowCompleteRideConfirmation] = useState(false);
+  const [showPaymentScreen, setShowPaymentScreen] = useState(false);
+  const [isCashCollected, setIsCashCollected] = useState(false);
+  const [showOrderCompleteRatingScreen, setShowOrderCompleteRatingScreen] = useState(false);
+  const [customerRating, setCustomerRating] = useState<number>(5);
+  const [ratingReaction, setRatingReaction] = useState<string>("VERY GOOD 😍");
+  const [selectedRatingTags, setSelectedRatingTags] = useState<string[]>(["Polite", "Timely"]);
+  const [isQrGenerated, setIsQrGenerated] = useState(false);
+  const [quickMessageText, setQuickMessageText] = useState("I am on my way to your pickup location");
+
+  const handleRatingChange = (stars: number) => {
+    setCustomerRating(stars);
+    triggerHaptic(30);
+    if (stars === 5) setRatingReaction("EXCELLENT 🔥");
+    else if (stars === 4) setRatingReaction("VERY GOOD 😍");
+    else if (stars === 3) setRatingReaction("GOOD 🙂");
+    else if (stars === 2) setRatingReaction("AVERAGE 😐");
+    else setRatingReaction("POOR 😞");
+  };
 
   const handleCopyAddress = (address: string) => {
     if (!address) return;
@@ -1110,6 +1141,49 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     toast.info(`📍 In-App GPS Navigation active to ${activeDestTitle}`);
   };
 
+  // Video Frame 00:29 Proximity Arrival Check
+  const handleArrivalCheck = () => {
+    if (distanceMeters > 50) {
+      setShowProximityWarningModal(true);
+    } else {
+      if (isDeliveryRide) {
+        if (stage === "en_route_pickup") {
+          handleMarkArrivedAtStore();
+        } else {
+          handleMarkArrivedAtCustomer();
+        }
+      } else {
+        handleMarkArrived();
+      }
+    }
+  };
+
+  // Dedicated OTP Verification Handler matching Video Frame 00:54 - 00:55
+  const handleVerifyDedicatedOtp = async (code: string) => {
+    setIsOtpUpdatingStatus(true);
+    triggerHaptic(40);
+    try {
+      if (dedicatedOtpMode === "pickup") {
+        await handleStartTrip(code);
+        setShowDedicatedOtpScreen(false);
+        setShowQuickPressMapsModal(true);
+      } else if (dedicatedOtpMode === "store_dispatch") {
+        setShowDedicatedOtpScreen(false);
+        setStage("in_trip");
+        toast.success("Custody verified! Navigating to customer drop.");
+        setShowQuickPressMapsModal(true);
+      } else {
+        await handleCompleteTrip(code);
+        setShowDedicatedOtpScreen(false);
+        setShowPaymentScreen(true);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Invalid OTP. Please check and try again.");
+    } finally {
+      setIsOtpUpdatingStatus(false);
+    }
+  };
+
   // Action Handlers
   const handleMarkArrived = () => {
     stopOrderAlertSound();
@@ -1673,30 +1747,36 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         <div className="relative w-full h-full rounded-3xl overflow-hidden border border-slate-300/80 shadow-lg bg-slate-950">
           <div ref={mapContainerRef} className="w-full h-full" />
 
-          {/* Rapido Top Floating Turn-by-Turn Maneuver Pill (In-App Live Navigation HUD) */}
+          {/* Video Frame 00:56 Top Floating Turn-by-Turn Maneuver Pill with Speedometer */}
           {(stage === "en_route_pickup" || stage === "in_trip") && (
-            <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-auto">
-              <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-slate-700/90 text-white shadow-2xl">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 shadow-inner">
+            <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-auto flex items-center gap-2">
+              {/* Speedometer Badge (Video Frame 00:56) */}
+              <div className="w-12 h-12 rounded-full bg-[#facc15] text-black font-black border-2 border-black/80 shadow-2xl flex flex-col items-center justify-center shrink-0">
+                <span className="text-xs leading-none font-mono">0</span>
+                <span className="text-[7.5px] uppercase tracking-tighter -mt-0.5 font-bold">km/h</span>
+              </div>
+
+              <div className="flex-1 flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-slate-700/90 text-white shadow-2xl min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 shadow-inner">
                     {nextTurnManeuver === "turn-right" || nextTurnManeuver === "slight-right" ? (
-                      <CornerUpRight className="w-5 h-5 text-[#00E676] stroke-[2.5]" />
+                      <CornerUpRight className="w-4.5 h-4.5 text-[#00E676] stroke-[2.5]" />
                     ) : nextTurnManeuver === "turn-left" || nextTurnManeuver === "slight-left" ? (
-                      <CornerUpLeft className="w-5 h-5 text-[#00E676] stroke-[2.5]" />
+                      <CornerUpLeft className="w-4.5 h-4.5 text-[#00E676] stroke-[2.5]" />
                     ) : (
-                      <Navigation className="w-5 h-5 text-[#00E676] -rotate-45 stroke-[2.5]" />
+                      <Navigation className="w-4.5 h-4.5 text-[#00E676] -rotate-45 stroke-[2.5]" />
                     )}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-base font-black font-mono tracking-tight text-white">
+                      <span className="text-sm font-black font-mono tracking-tight text-white">
                         {nextTurnDistanceM > 1000 ? `${(nextTurnDistanceM / 1000).toFixed(1)} km` : `${nextTurnDistanceM} m`}
                       </span>
-                      <span className="text-[9px] font-black text-[#00E676] uppercase tracking-wider bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-700/60">
+                      <span className="text-[8.5px] font-black text-[#00E676] uppercase tracking-wider bg-emerald-950/80 px-1 py-0.2 rounded border border-emerald-700/60">
                         {stage === "en_route_pickup" ? "To Pickup" : "In-Trip"}
                       </span>
                     </div>
-                    <p className="text-[11px] font-bold text-slate-200 truncate mt-0.5">
+                    <p className="text-[10.5px] font-bold text-slate-200 truncate mt-0.5">
                       {nextTurnInstruction || `Proceed towards ${activeDestTitle}`}
                     </p>
                   </div>
@@ -1706,11 +1786,11 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <button
                   type="button"
                   onClick={handleStartInAppNavigation}
-                  className="px-3 py-1.5 rounded-xl bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-xs shadow-lg flex items-center gap-1 active:scale-95 transition-all shrink-0 border border-emerald-300 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-xs shadow-lg flex items-center gap-1 active:scale-95 transition-all shrink-0 border border-emerald-300 cursor-pointer"
                   title="Open In-App Voice Turn-by-Turn Navigation"
                 >
                   <Navigation className="w-3 h-3 fill-slate-950 stroke-none" />
-                  <span>Voice GPS</span>
+                  <span className="hidden sm:inline">Voice GPS</span>
                 </button>
               </div>
             </div>
@@ -1881,12 +1961,53 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         {/* STAGE 1: Heading to Pickup */}
         {stage === "en_route_pickup" && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
+            {/* Video Frame 00:14 Quick Message Bar */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-neutral-100 rounded-2xl border border-neutral-200">
+              <span className="text-[11px] text-neutral-500 font-medium shrink-0">Send message:</span>
+              <input
+                type="text"
+                value={quickMessageText}
+                onChange={(e) => setQuickMessageText(e.target.value)}
+                className="flex-1 bg-transparent text-xs font-bold text-neutral-900 focus:outline-none min-w-0"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  handleSendChat(quickMessageText);
+                  toast.success("Message sent to customer!");
+                }}
+                className="w-7 h-7 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 flex items-center justify-center font-black active:scale-90 transition-transform shrink-0 cursor-pointer"
+                title="Send quick message"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Video Action Buttons (Frame 00:14: Message customer + Arrived) */}
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowChatModal(true)}
+                className="h-12 rounded-2xl border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-800 font-black text-xs flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 text-neutral-700" />
+                <span>Message customer</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleArrivalCheck}
+                className="h-12 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Arrived</span>
+              </button>
+            </div>
+
             {/* Dual Quick GPS Navigation Buttons */}
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={handleStartInAppNavigation}
-                className="py-2.5 px-2 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-950 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+                className="py-2 px-2 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-950 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs cursor-pointer"
               >
                 <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>In-App Voice GPS</span>
@@ -1894,7 +2015,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <button
                 type="button"
                 onClick={() => launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle)}
-                className="py-2.5 px-2 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
+                className="py-2 px-2 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs cursor-pointer"
               >
                 <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
                 <span>Google Maps</span>
@@ -1906,7 +2027,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               label="Swipe to Arrive at Location"
               hint="लोकेशन पहुंचकर स्लाइड करें • Mark Arrived"
               color="blue"
-              onConfirm={handleMarkArrived}
+              onConfirm={handleArrivalCheck}
             />
           </div>
         )}
@@ -2042,6 +2163,20 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     handleStartTrip(code);
                   }}
                 />
+
+                {/* Video Frame 00:54 Dedicated 4-Digit OTP Screen Trigger Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDedicatedOtpMode("pickup");
+                    setDedicatedOtpDigits(["", "", "", ""]);
+                    setShowDedicatedOtpScreen(true);
+                  }}
+                  className="w-full h-12 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>Enter 4-Digit Code (Fullscreen OTP)</span>
+                </button>
 
                 {/* Swipe to Start Trip */}
                 <SwipeActionButton
@@ -2301,6 +2436,16 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     <span>Google Maps</span>
                   </button>
                 </div>
+
+                {/* Video Frame 01:15 Complete Ride Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowCompleteRideConfirmation(true)}
+                  className="w-full h-13 rounded-2xl bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-slate-950" />
+                  <span>➔ Complete Ride</span>
+                </button>
 
                 {/* Swipe to Complete Delivery */}
                 <SwipeActionButton
@@ -2914,6 +3059,481 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           status: stage === "completed" ? "Completed" : "In Progress",
         }}
       />
+
+      {/* ========================================================================= */}
+      {/* 6 VIDEO THEME MODALS & SCREENS (MATCHING REAL-WORLD FULFILLMENT VIDEO)     */}
+      {/* ========================================================================= */}
+
+      {/* 1. Proximity Warning Modal (Video Frame 00:29) */}
+      {showProximityWarningModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 text-center space-y-4 animate-in slide-in-from-bottom-6 duration-300">
+            <div className="w-16 h-16 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center mx-auto text-amber-600 shadow-inner">
+              <MapPin className="w-8 h-8 fill-amber-500 text-white" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-slate-900">Move to Pickup Zone</h3>
+              <p className="text-xs text-slate-600 font-medium">
+                You are <span className="font-black text-amber-700">{distanceMeters} m away</span> from the customer's pickup point.
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Please move closer (within 50 meters) to confirm arrival.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProximityWarningModal(false);
+                  handleStartInAppNavigation();
+                }}
+                className="w-full h-12 bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+              >
+                <Navigation className="w-4 h-4 fill-slate-950 stroke-none" />
+                <span>Go to pickup (GPS Navigation)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProximityWarningModal(false);
+                  setDedicatedOtpMode("pickup");
+                  setDedicatedOtpDigits(["", "", "", ""]);
+                  setShowDedicatedOtpScreen(true);
+                }}
+                className="w-full h-11 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Enter OTP to start ride (Manual bypass)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Dedicated 4-Digit OTP Screen (Video Frame 00:54 - 00:55) */}
+      {showDedicatedOtpScreen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-in fade-in duration-200">
+          {/* Top Bar with Back Arrow */}
+          <div className="flex items-center justify-between p-4 border-b border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowDedicatedOtpScreen(false)}
+              className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 active:scale-95 cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-base font-black text-slate-900">
+              {dedicatedOtpMode === "pickup"
+                ? "Enter 4-digit code"
+                : dedicatedOtpMode === "store_dispatch"
+                ? "Partner Store Dispatch OTP"
+                : "Customer Delivery OTP"}
+            </h2>
+            <div className="w-10" />
+          </div>
+
+          {/* Loading Overlay: Updating Status... (Frame 00:55) */}
+          {isOtpUpdatingStatus ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <KeyRound className="w-6 h-6 text-amber-600" />
+                </div>
+              </div>
+              <div className="text-center space-y-1">
+                <h3 className="text-lg font-black text-slate-900">Updating Status...</h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Verifying OTP and securing custody with cloud ledger
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col justify-between p-6">
+              <div className="space-y-6 pt-4 text-center">
+                <div className="w-16 h-16 rounded-3xl bg-amber-50 border-2 border-amber-300 flex items-center justify-center mx-auto text-amber-600 shadow-sm">
+                  <KeyRound className="w-8 h-8" />
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="text-xl font-black text-slate-900">
+                    {dedicatedOtpMode === "pickup"
+                      ? "Ask customer for 4-digit OTP"
+                      : dedicatedOtpMode === "store_dispatch"
+                      ? "Store Dispatch Code"
+                      : "Ask customer for Delivery OTP"}
+                  </h3>
+                  <p className="text-xs text-slate-600 font-medium max-w-xs mx-auto">
+                    {dedicatedOtpMode === "pickup"
+                      ? "Ask the customer at pickup location to share the 4-digit start OTP shown on their screen."
+                      : dedicatedOtpMode === "store_dispatch"
+                      ? "Ask the store staff to confirm this handover code."
+                      : "Ask the customer at delivery doorstep to share the 4-digit OTP."}
+                  </p>
+                </div>
+
+                {/* 4 Large Digit Input Boxes (Auto-Focus & Auto-Advance) */}
+                <div className="flex justify-center gap-3 pt-2">
+                  {[0, 1, 2, 3].map((idx) => (
+                    <input
+                      key={idx}
+                      id={`dedicated-otp-${idx}`}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={dedicatedOtpDigits[idx]}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        const next = [...dedicatedOtpDigits];
+                        next[idx] = val;
+                        setDedicatedOtpDigits(next);
+                        if (val && idx < 3) {
+                          const nextInput = document.getElementById(`dedicated-otp-${idx + 1}`);
+                          nextInput?.focus();
+                        } else if (val && idx === 3 && next.every((d) => d.length === 1)) {
+                          handleVerifyDedicatedOtp(next.join(""));
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Backspace" && !dedicatedOtpDigits[idx] && idx > 0) {
+                          const prevInput = document.getElementById(`dedicated-otp-${idx - 1}`);
+                          prevInput?.focus();
+                        }
+                      }}
+                      className="w-14 h-16 text-center font-black text-2xl font-mono bg-neutral-100 rounded-2xl border-2 border-neutral-300 focus:border-[#facc15] focus:bg-white focus:outline-none shadow-sm transition-all"
+                      autoFocus={idx === 0}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottom Confirm Button */}
+              <div className="space-y-2 pb-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = dedicatedOtpDigits.join("");
+                    if (code.length === 4) {
+                      handleVerifyDedicatedOtp(code);
+                    } else {
+                      toast.error("Please enter complete 4 digits");
+                    }
+                  }}
+                  disabled={dedicatedOtpDigits.some((d) => !d)}
+                  className="w-full h-13 rounded-2xl bg-[#facc15] hover:bg-[#eab308] disabled:bg-neutral-200 disabled:text-neutral-400 text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>Submit OTP</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. Use QuickPress Maps Modal (Video Frame 00:56) */}
+      {showQuickPressMapsModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 text-center space-y-4 animate-in slide-in-from-bottom-6 duration-300">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center mx-auto text-emerald-600 shadow-inner">
+              <Navigation className="w-8 h-8 fill-emerald-500 text-white" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-slate-900">Use QuickPress Maps?</h3>
+              <p className="text-xs text-slate-600 font-medium">
+                Get accurate turn-by-turn dark GPS navigation and Hindi/English voice guidance inside the app.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQuickPressMapsModal(false);
+                  handleStartInAppNavigation();
+                }}
+                className="w-full h-12 bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+              >
+                <Navigation className="w-4 h-4 fill-slate-950 stroke-none" />
+                <span>Yes, Use QuickPress Maps</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQuickPressMapsModal(false);
+                  launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle);
+                }}
+                className="w-full h-11 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-[#4285F4]" />
+                <span>Open Google Maps</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Complete Ride Confirmation Modal (Video Frame 01:15) */}
+      {showCompleteRideConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl border border-slate-200 text-center space-y-4 animate-in slide-in-from-bottom-6 duration-300">
+            <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center mx-auto text-blue-600 shadow-inner">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-slate-900">Complete Ride?</h3>
+              <p className="text-xs text-slate-600 font-medium">
+                Are you sure you want to complete this ride? Confirm that all garments are handed over to the customer.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCompleteRideConfirmation(false);
+                  setDedicatedOtpMode("delivery");
+                  setDedicatedOtpDigits(["", "", "", ""]);
+                  setShowDedicatedOtpScreen(true);
+                }}
+                className="w-full h-12 bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Yes, Enter OTP & Complete</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCompleteRideConfirmation(false)}
+                className="w-full h-11 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-2xl flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Cancel</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Payments Screen (Video Frame 01:18) */}
+      {showPaymentScreen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-in fade-in duration-200">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between p-4 border-b border-slate-200">
+            <div className="w-10" />
+            <h2 className="text-base font-black text-slate-900">Payments</h2>
+            <div className="w-10" />
+          </div>
+
+          <div className="flex-1 flex flex-col justify-between p-6 overflow-y-auto">
+            <div className="space-y-6 text-center">
+              {/* Big Fare Card */}
+              <div className="p-6 rounded-3xl bg-neutral-50 border border-neutral-200 shadow-sm space-y-2">
+                <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">
+                  Total Fare to Collect
+                </span>
+                <div className="text-4xl font-black font-mono text-neutral-950">
+                  ₹ {order.fare.toFixed(1)}
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Double-Entry Ledger Verified</span>
+                </div>
+              </div>
+
+              {/* QR Code Display if Generated */}
+              {isQrGenerated ? (
+                <div className="p-4 bg-white rounded-3xl border-2 border-emerald-400 shadow-lg space-y-3 animate-in zoom-in-95 duration-200">
+                  <span className="text-xs font-black text-slate-900 block">
+                    Scan with any UPI App (GPay, PhonePe, Paytm)
+                  </span>
+                  <div className="w-48 h-48 mx-auto bg-white p-2 border border-slate-200 rounded-2xl flex items-center justify-center shadow-inner">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                        `upi://pay?pa=quickpress@icici&pn=QuickPress&am=${order.fare.toFixed(2)}&cu=INR&tn=Order-${order.orderId}`
+                      )}`}
+                      alt="Payment UPI QR"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 py-1.5 px-3 rounded-full">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Live Dynamic UPI QR Active</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Payment Mode Options */}
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsQrGenerated(!isQrGenerated);
+                    triggerHaptic(30);
+                  }}
+                  className="w-full h-13 rounded-2xl bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <QrCode className="w-5 h-5" />
+                  <span>{isQrGenerated ? "Hide QR Code" : "Generate QR Code"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCashCollected(true);
+                    toast.success("Cash collected successfully!");
+                    triggerHaptic(30);
+                  }}
+                  className={`w-full h-12 rounded-2xl border-2 font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer ${
+                    isCashCollected
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-900"
+                      : "bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-50"
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isCashCollected ? "✓ Cash Collected" : "Collect Cash"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Proceed Button */}
+            <div className="pt-4 pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPaymentScreen(false);
+                  setShowOrderCompleteRatingScreen(true);
+                  speakTripComplete(order.fare);
+                }}
+                className="w-full h-13 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Proceed to Rating & Finish</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Order Complete Rating Screen (Video Frame 01:19 - 01:32) */}
+      {showOrderCompleteRatingScreen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-in fade-in duration-200">
+          <div className="flex-1 flex flex-col justify-between p-6 overflow-y-auto">
+            <div className="space-y-6 text-center pt-6">
+              {/* Green Check Circle */}
+              <div className="w-20 h-20 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/25 animate-in zoom-in-75 duration-300">
+                <Check className="w-10 h-10 stroke-[3]" />
+              </div>
+
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black text-slate-900">Order Completed!</h2>
+                <div className="text-base font-black text-emerald-600 font-mono">
+                  You earned ₹{order.fare.toFixed(1)}
+                </div>
+              </div>
+
+              {/* Video Signature Stamp Badge: 0% Commission Lifetime Guarantee */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-400 shadow-sm flex items-center justify-center gap-2.5">
+                <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0" />
+                <div className="text-left">
+                  <span className="block text-xs font-black text-emerald-950 uppercase tracking-tight">
+                    0% Commission — Lifetime Guarantee
+                  </span>
+                  <span className="block text-[10.5px] font-bold text-emerald-700">
+                    Zero platform cut. 100% of the fare is yours!
+                  </span>
+                </div>
+              </div>
+
+              {/* 5-Star Rating Section */}
+              <div className="p-4 rounded-3xl bg-neutral-50 border border-neutral-200 space-y-3">
+                <h4 className="text-sm font-black text-slate-900">
+                  How was your experience with customer?
+                </h4>
+
+                {/* 5 Big Gold Stars */}
+                <div className="flex justify-center gap-2 py-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleRatingChange(star)}
+                      className="p-1 active:scale-125 transition-transform cursor-pointer"
+                      title={`${star} Star`}
+                    >
+                      <Star
+                        className={`w-9 h-9 ${
+                          star <= customerRating
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-neutral-300"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Reaction Text Badge */}
+                <div className="inline-block px-3 py-1 bg-amber-100/80 text-amber-950 font-black text-xs rounded-full border border-amber-300">
+                  {ratingReaction}
+                </div>
+
+                {/* Quick Feedback Tags */}
+                <div className="flex flex-wrap justify-center gap-1.5 pt-2">
+                  {["Polite", "Ready on time", "Easy to locate", "Helpful", "Accurate Address"].map((tag) => {
+                    const isSelected = selectedRatingTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedRatingTags(selectedRatingTags.filter((t) => t !== tag));
+                          } else {
+                            setSelectedRatingTags([...selectedRatingTags, tag]);
+                          }
+                          triggerHaptic(20);
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? "bg-slate-900 text-white"
+                            : "bg-white text-slate-700 border border-slate-300"
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Done Button */}
+            <div className="pt-6 pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(40);
+                  setShowOrderCompleteRatingScreen(false);
+                  if (onTripCompleted) {
+                    onTripCompleted();
+                  } else {
+                    navigate({ to: "/orders" });
+                  }
+                }}
+                className="w-full h-13 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-base flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
+              >
+                <span>Done</span>
+                <Check className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

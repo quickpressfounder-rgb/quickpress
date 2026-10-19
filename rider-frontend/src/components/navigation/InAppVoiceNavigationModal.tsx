@@ -198,20 +198,20 @@ export function InAppVoiceNavigationModal({
         mapInstanceRef.current.removeLayer(routePolylineRef.current);
       }
 
-      // 1. Route Casing (Dark Slate Navy for high contrast road borders)
+      // 1. Route Casing (Dark Navy for contrast)
       const casing = L.polyline(coords, {
-        color: "#0F172A",
-        weight: 9,
+        color: "#032b30",
+        weight: 10,
         opacity: 0.9,
         lineCap: "round",
         lineJoin: "round",
       }).addTo(mapInstanceRef.current);
       casingPolylineRef.current = casing;
 
-      // 2. Core Route Polyline (Vibrant Rapido Green with crisp rounded joins)
+      // 2. Core Route Polyline (Luminous Cyan Google Navigation line matching video)
       const routeLine = L.polyline(coords, {
-        color: "#00C853",
-        weight: 5.5,
+        color: "#00e5ff",
+        weight: 6,
         opacity: 1,
         lineCap: "round",
         lineJoin: "round",
@@ -251,10 +251,10 @@ export function InAppVoiceNavigationModal({
           attributionControl: false,
         });
 
-        // Google Maps High-Resolution Roadmap Navigation Tiles
-        L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+        // Dark Google Navigation Map Tiles matching video Frame 00:32
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
           maxZoom: 20,
-          subdomains: ["mt0", "mt1", "mt2", "mt3"],
+          subdomains: "abcd",
         }).addTo(map);
 
         // Custom Rapido Captain Scooter Marker (Directional Beam + White Navigation Pod)
@@ -446,94 +446,40 @@ export function InAppVoiceNavigationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-white flex flex-col overflow-hidden text-neutral-900 font-sans select-none animate-in fade-in duration-200">
-      {/* 1. TOP WHITE THEME TURN-BY-TURN HUD HEADER */}
-      <header className="relative z-30 bg-white border-b border-neutral-200 text-neutral-900 px-3.5 pt-3 pb-3 shadow-xs">
-        {/* Top Control Bar: Back, Phase Pill, Language, Audio, External Google Maps */}
-        <div className="flex items-center justify-between gap-2 mb-2.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <button
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 active:scale-95 flex items-center justify-center text-neutral-800 transition-all border border-neutral-200 shrink-0 cursor-pointer"
-              title="Exit In-App Navigation"
-            >
-              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-            </button>
+    <div className="fixed inset-0 z-[9999] bg-[#0A0D10] flex flex-col overflow-hidden text-white font-sans select-none animate-in fade-in duration-200">
+      {/* 1. TOP DARK GREEN GOOGLE NAVIGATION HUD HEADER matching Video Frame 00:32 */}
+      <header className="relative z-30 bg-[#054E3B] text-white px-4 pt-3 pb-3.5 shadow-lg border-b border-[#065F46]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-white/10 text-white shrink-0">
+              {renderManeuverIcon(currentManeuver, "size-6 text-white stroke-[3]")}
+            </div>
             <div className="min-w-0">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black tracking-wide uppercase bg-emerald-50 text-emerald-800 border border-emerald-200 truncate">
-                <Radio className="w-3 h-3 text-emerald-600 animate-pulse" />
-                <span className="truncate">{phaseLabel}</span>
-              </span>
+              <div className="text-[11px] font-black text-emerald-200 uppercase tracking-wider">
+                {distanceMeters > 1000 ? `${distanceKm} km` : `${distanceMeters} m`}
+              </div>
+              <h2 className="text-base sm:text-lg font-black text-white leading-tight truncate">
+                towards {currentStreet || targetName}
+              </h2>
             </div>
           </div>
 
-          {/* Quick Voice, Language & External Navigation Controls */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={handleToggleLanguage}
-              className="px-2.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-800 border border-neutral-200 flex items-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              title="Switch Hindi / English voice guidance"
-            >
-              <span>{language.startsWith("hi") ? "🇮🇳 हिन्दी" : "🇬🇧 English"}</span>
-            </button>
-
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleToggleMute}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all border active:scale-95 cursor-pointer shadow-2xs ${
-                isMuted
-                  ? "bg-rose-50 border-rose-200 text-rose-600"
-                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
-              }`}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white cursor-pointer"
               title={isMuted ? "Unmute Voice" : "Mute Voice"}
             >
-              {isMuted ? <VolumeX className="w-4.5 h-4.5" /> : <Volume2 className="w-4.5 h-4.5 text-emerald-600" />}
+              {isMuted ? <VolumeX className="size-4.5 text-red-400" /> : <Volume2 className="size-4.5 text-white" />}
             </button>
-
             <button
-              onClick={handleLaunchExternalGoogleMaps}
-              className="w-9 h-9 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#4285F4] flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
-              title="Open External Google Maps"
+              onClick={onClose}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white cursor-pointer"
+              title="Close Navigation"
             >
-              <ExternalLink className="w-4 h-4 text-blue-600" />
+              <X className="size-4.5 stroke-[2.5]" />
             </button>
           </div>
-        </div>
-
-        {/* Clean White Turn Instruction Banner */}
-        <div className="flex items-center gap-3 bg-neutral-50 rounded-2xl p-3 border border-neutral-200/90 shadow-xs">
-          {/* Turn Maneuver Icon */}
-          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-xs">
-            {renderManeuverIcon(currentManeuver, "w-8 h-8 text-emerald-600")}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-black font-sans tracking-tight text-neutral-950">
-                {distanceMeters > 1000 ? `${distanceKm} km` : `${distanceMeters} m`}
-              </span>
-              <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                {isArrived ? "Arrived 📍" : "Next Turn"}
-              </span>
-            </div>
-
-            <p className="text-xs sm:text-sm font-bold text-neutral-900 line-clamp-1 mt-0.5 leading-snug">
-              {currentInstruction}
-            </p>
-            {currentStreet && (
-              <p className="text-[11px] font-semibold text-neutral-500 truncate mt-0.5">
-                On: {currentStreet}
-              </p>
-            )}
-          </div>
-
-          {/* Repeat Voice Guidance Button */}
-          <button
-            onClick={handleRepeatVoice}
-            className="w-10 h-10 rounded-xl bg-white hover:bg-neutral-100 active:scale-90 flex items-center justify-center text-emerald-600 border border-neutral-200 shrink-0 shadow-2xs cursor-pointer"
-            title="Repeat voice prompt"
-          >
-            <Mic className="w-4 h-4 text-emerald-600" />
-          </button>
         </div>
       </header>
 
@@ -541,124 +487,95 @@ export function InAppVoiceNavigationModal({
       <main className="relative flex-1 w-full bg-neutral-100 overflow-hidden">
         <div ref={mapContainerRef} className="w-full h-full" />
 
+        {/* Top-left Speedometer Badge matching video Frame 00:33 & 01:03 */}
+        <div className="absolute left-3.5 top-3.5 z-[400] flex items-center gap-2">
+          <div className="size-13 rounded-full bg-[#facc15] border-2 border-white shadow-xl flex flex-col items-center justify-center text-zinc-950 font-black">
+            <span className="text-sm leading-none">{userSpeedKmh}</span>
+            <span className="text-[8px] tracking-tight uppercase leading-none mt-0.5">km/h</span>
+          </div>
+        </div>
+
         {/* Floating Map Controls (Right Side) */}
         <div className="absolute right-3.5 bottom-4 z-[400] flex flex-col gap-2">
           {/* Fit Route Overview */}
           <button
             onClick={handleFitRouteOverview}
-            className="w-10 h-10 rounded-xl bg-white/95 backdrop-blur-md border border-neutral-200 text-neutral-800 shadow-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            className="size-10 rounded-xl bg-zinc-900/90 backdrop-blur-md border border-zinc-700 text-white shadow-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
             title="Fit Route Overview"
           >
-            <Compass className="w-4.5 h-4.5 text-neutral-700" />
-          </button>
-
-          {/* Route Steps List Toggle */}
-          <button
-            onClick={() => setShowStepsSheet((prev) => !prev)}
-            className="w-10 h-10 rounded-xl bg-white/95 backdrop-blur-md border border-neutral-200 text-neutral-800 shadow-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer relative"
-            title="View Turn-by-Turn Steps"
-          >
-            <List className="w-4.5 h-4.5 text-blue-600" />
-            {routeSteps.length > 0 && (
-              <span className="absolute -top-1 -right-1 size-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center shadow-xs">
-                {routeSteps.length}
-              </span>
-            )}
+            <Compass className="size-4.5 text-zinc-300" />
           </button>
 
           {/* Zoom In / Out */}
-          <div className="flex flex-col bg-white/95 backdrop-blur-md border border-neutral-200 rounded-xl shadow-md overflow-hidden">
+          <div className="flex flex-col bg-zinc-900/90 backdrop-blur-md border border-zinc-700 rounded-xl shadow-md overflow-hidden">
             <button
               onClick={handleZoomIn}
-              className="w-10 h-10 flex items-center justify-center text-neutral-800 hover:bg-neutral-100 active:scale-90 transition-transform border-b border-neutral-150 cursor-pointer"
+              className="size-10 flex items-center justify-center text-white hover:bg-zinc-800 active:scale-90 transition-transform border-b border-zinc-800 cursor-pointer"
               title="Zoom In"
             >
-              <ZoomIn className="w-4.5 h-4.5" />
+              <ZoomIn className="size-4.5" />
             </button>
             <button
               onClick={handleZoomOut}
-              className="w-10 h-10 flex items-center justify-center text-neutral-800 hover:bg-neutral-100 active:scale-90 transition-transform cursor-pointer"
+              className="size-10 flex items-center justify-center text-white hover:bg-zinc-800 active:scale-90 transition-transform cursor-pointer"
               title="Zoom Out"
             >
-              <ZoomOut className="w-4.5 h-4.5" />
+              <ZoomOut className="size-4.5" />
             </button>
           </div>
 
           {/* Re-center GPS on Rider */}
           <button
             onClick={handleRecenter}
-            className="w-11 h-11 rounded-2xl bg-white text-neutral-900 border-2 border-emerald-500 shadow-xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+            className="size-11 rounded-2xl bg-zinc-900 text-white border-2 border-cyan-400 shadow-xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
             title="Recenter GPS Location"
           >
-            <Locate className="w-5 h-5 text-emerald-600" />
+            <Locate className="size-5 text-cyan-400" />
           </button>
         </div>
 
-        {/* Live Speedometer (Bottom Left) */}
-        <div className="absolute left-3.5 bottom-4 z-[400] flex items-center gap-2">
-          <div className="bg-white/95 backdrop-blur-md border border-neutral-200 rounded-2xl px-3 py-1.5 shadow-md flex items-center gap-2">
-            <div className="size-2 rounded-full bg-[#00C853] animate-ping" />
-            <div>
-              <div className="text-lg font-black text-neutral-950 leading-none font-sans">{userSpeedKmh}</div>
-              <div className="text-[9px] font-black text-neutral-500 uppercase tracking-wider">km/h</div>
-            </div>
-          </div>
-
-          {routeSteps.length > 0 && (
-            <button
-              onClick={() => setShowStepsSheet(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white/95 backdrop-blur-xs rounded-xl border border-neutral-200 text-[11px] font-bold text-neutral-800 shadow-md active:scale-95 transition-all cursor-pointer"
-            >
-              <List className="w-3.5 h-3.5 text-blue-600" />
-              <span>{routeSteps.length} Steps</span>
-            </button>
-          )}
-        </div>
-
-        {/* Full Turn-by-Turn Route Steps Sheet (Slide Up Drawer) */}
+        {/* Steps Sheet */}
         {showStepsSheet && (
-          <div className="absolute inset-0 z-[500] bg-black/40 backdrop-blur-2xs flex flex-col justify-end animate-in fade-in duration-200">
-            <div className="w-full max-h-[70vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
-              {/* Sheet Header */}
-              <div className="p-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50">
+          <div className="absolute inset-0 z-[500] bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-200">
+            <div className="w-full max-h-[70vh] bg-zinc-900 border-t border-zinc-800 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden text-white animate-in slide-in-from-bottom duration-300">
+              <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
                 <div className="flex items-center gap-2">
-                  <div className="size-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
-                    <List className="w-4 h-4" />
+                  <div className="size-8 rounded-full bg-cyan-950 text-cyan-400 flex items-center justify-center border border-cyan-800">
+                    <List className="size-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-neutral-900 leading-tight">
+                    <h3 className="text-sm font-black text-white leading-tight">
                       Route Directions ({routeSteps.length} Steps)
                     </h3>
-                    <p className="text-[11px] font-semibold text-neutral-500">
+                    <p className="text-[11px] font-semibold text-zinc-400">
                       Total: {distanceKm} km · Est. {etaMinutes} mins
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowStepsSheet(false)}
-                  className="size-8 rounded-full bg-neutral-200/80 hover:bg-neutral-300 flex items-center justify-center text-neutral-700 cursor-pointer"
+                  className="size-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="size-4" />
                 </button>
               </div>
 
-              {/* Steps Scroll Area */}
-              <div className="flex-1 overflow-y-auto p-4 divide-y divide-neutral-150 space-y-1">
+              <div className="flex-1 overflow-y-auto p-4 divide-y divide-zinc-800 space-y-1">
                 {routeSteps.map((step, idx) => (
                   <div key={step.id || idx} className="py-2.5 flex items-start gap-3">
-                    <div className="size-8 rounded-xl bg-neutral-100 border border-neutral-200 flex items-center justify-center shrink-0 mt-0.5">
-                      {renderManeuverIcon(step.maneuver, "w-4.5 h-4.5 text-neutral-700")}
+                    <div className="size-8 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
+                      {renderManeuverIcon(step.maneuver, "size-4.5 text-zinc-300")}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-neutral-900 leading-snug">
+                      <p className="text-xs font-bold text-white leading-snug">
                         {language.startsWith("hi") ? step.instructionHi : step.instructionEn}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-mono">
+                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-800 font-mono">
                           {step.distanceMeters > 1000 ? `${(step.distanceMeters / 1000).toFixed(1)} km` : `${step.distanceMeters} m`}
                         </span>
                         {step.streetName && (
-                          <span className="text-[10px] text-neutral-500 truncate">
+                          <span className="text-[10px] text-zinc-400 truncate">
                             {step.streetName}
                           </span>
                         )}
@@ -672,76 +589,47 @@ export function InAppVoiceNavigationModal({
         )}
       </main>
 
-      {/* 3. BOTTOM COCKPIT DRAWER (Pure White Theme & Full Controls) */}
-      <footer className="relative z-30 bg-white border-t border-neutral-200 px-4 pt-3.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] text-neutral-900">
-        {/* Destination & Target Summary */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs font-black text-emerald-700 mb-0.5">
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{phaseLabel}: {targetName}</span>
-            </div>
-            <h3 className="text-base font-black text-neutral-950 truncate leading-tight">
-              {targetName}
-            </h3>
-            <p className="text-xs font-medium text-neutral-600 truncate mt-0.5 leading-snug">
-              {targetAddress}
-            </p>
+      {/* 3. BOTTOM DARK BAR matching Video Frame 00:33 */}
+      <footer className="relative z-30 bg-[#12161A] border-t border-zinc-800 px-4 py-3 text-white flex items-center justify-between shadow-2xl">
+        <div>
+          <div className="text-xl font-black text-white leading-none">
+            {etaMinutes || 6} min
           </div>
+          <div className="text-xs text-zinc-400 font-bold mt-1">
+            {distanceKm} km • {new Date(Date.now() + (etaMinutes || 6) * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </div>
+        </div>
 
-          {/* Quick Direct Call Button */}
-          {targetPhone && (
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleRecenter}
+            className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-xs font-bold text-white flex items-center gap-1.5 border border-zinc-700 shadow-sm cursor-pointer"
+          >
+            <Locate className="size-3.5 text-cyan-400" />
+            <span>Re-centre</span>
+          </button>
+
+          {onArrived ? (
             <button
-              onClick={handleCall}
-              className="size-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white flex items-center justify-center shadow-md shrink-0 cursor-pointer"
-              title="Call Target"
+              onClick={() => {
+                triggerHaptic([100, 50, 100]);
+                onArrived();
+                onClose();
+              }}
+              className="px-4 py-2 rounded-xl bg-[#00E5FF] hover:bg-cyan-400 active:scale-95 text-zinc-950 font-black text-xs shadow-md transition-all cursor-pointer"
             >
-              <Phone className="w-5 h-5 fill-white" />
+              Arrived
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="size-9 rounded-full bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-white flex items-center justify-center border border-zinc-700 cursor-pointer"
+              title="Close"
+            >
+              <X className="size-4" />
             </button>
           )}
         </div>
-
-        {/* Trip Stats Matrix */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-2 text-center">
-            <div className="text-[9px] font-black text-neutral-500 uppercase tracking-wide">Distance</div>
-            <div className="text-sm font-black text-neutral-950 font-mono mt-0.5">{distanceKm} km</div>
-          </div>
-
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2 text-center">
-            <div className="text-[9px] font-black text-emerald-700 uppercase tracking-wide">Est. Time</div>
-            <div className="text-sm font-black text-emerald-950 font-mono mt-0.5">{etaMinutes} mins</div>
-          </div>
-
-          <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-2 text-center">
-            <div className="text-[9px] font-black text-neutral-500 uppercase tracking-wide">Voice Guide</div>
-            <div className="text-xs font-bold text-neutral-900 mt-0.5">
-              {isMuted ? "Muted 🔇" : "Active 🔊"}
-            </div>
-          </div>
-        </div>
-
-        {/* Action Button: Arrived at Location / Exit */}
-        {onArrived ? (
-          <button
-            onClick={() => {
-              triggerHaptic([100, 50, 100]);
-              onArrived();
-              onClose();
-            }}
-            className="w-full py-3.5 px-4 rounded-2xl bg-[#00C853] hover:bg-[#00B248] active:scale-[0.98] text-white font-black text-sm tracking-wider uppercase shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 border border-emerald-400 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-4.5 h-4.5" />
-            <span>Arrived at Destination • Proceed</span>
-          </button>
-        ) : (
-          <button
-            onClick={onClose}
-            className="w-full py-3 px-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] text-white font-black text-sm tracking-wider uppercase flex items-center justify-center gap-2 transition-all cursor-pointer"
-          >
-            Exit In-App Navigation
-          </button>
-        )}
       </footer>
     </div>
   );
