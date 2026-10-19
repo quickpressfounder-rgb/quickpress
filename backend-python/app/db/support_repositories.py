@@ -73,13 +73,18 @@ MESSAGES = "support_messages"
 
 CATEGORY_LABELS: Dict[str, str] = {
     "order": "Order Related",
-    "payment": "Payment Related",
+    "payment": "Payment & Payout",
     "refund": "Refund Related",
     "partner-complaint": "Partner Complaint",
     "general": "General Issue",
     "wash-quality": "Wash & Quality Issue",
     "missing-garment": "Missing / Wrong Garment",
     "delay": "Pickup / Delivery Delay",
+    "trip": "Live Trip / Dispatch",
+    "store-partner": "Store Partner Delay/Refusal",
+    "customer-issue": "Customer Issue / Unreachable",
+    "vehicle-kyc": "Vehicle / KYC / Documents",
+    "app-glitch": "App Issue / Technical Bug",
 }
 
 FIRST_RESPONSE = (

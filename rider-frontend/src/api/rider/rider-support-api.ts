@@ -199,3 +199,20 @@ export async function fetchCaptainSupportTickets(): Promise<{
     "/api/help/tickets"
   );
 }
+
+/** POST /api/help/tickets/{ticket_id}/reply — Reply to an existing ticket */
+export async function replyCaptainSupportTicket(
+  ticketId: string,
+  payload: { body: string; attachmentName?: string | null; attachmentUrl?: string | null }
+): Promise<SupportTicket> {
+  return await apiPostJson<SupportTicket>(`/api/help/tickets/${ticketId}/reply`, payload);
+}
+
+/** POST /api/help/upload — Upload ticket attachment photo */
+export async function uploadSupportPhoto(
+  base64Data: string
+): Promise<{ url: string; field: string }> {
+  return await apiPostJson<{ url: string; field: string }>("/api/help/upload", {
+    image: base64Data,
+  });
+}

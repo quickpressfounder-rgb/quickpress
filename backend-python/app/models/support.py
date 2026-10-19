@@ -21,6 +21,11 @@ TicketCategory = Literal[
     "wash-quality",
     "missing-garment",
     "delay",
+    "trip",
+    "store-partner",
+    "customer-issue",
+    "vehicle-kyc",
+    "app-glitch",
 ]
 
 TicketPriority = Literal["low", "medium", "high", "urgent"]

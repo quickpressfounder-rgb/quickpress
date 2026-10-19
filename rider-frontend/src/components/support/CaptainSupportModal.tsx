@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, Headphones, Mail, MapPin, MessageSquare, Phone, PhoneCall, ShieldAlert, X } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { AlertTriangle, ChevronRight, Headphones, Mail, MapPin, MessageSquare, Phone, PhoneCall, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { fetchCaptainSupport, type CaptainSupportResponse } from "../../api/rider/rider-support-api";
 
@@ -9,6 +10,7 @@ interface CaptainSupportModalProps {
 }
 
 export const CaptainSupportModal: React.FC<CaptainSupportModalProps> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [data, setData] = useState<CaptainSupportResponse>({
     ok: true,
     helplinePhone: "",
@@ -84,6 +86,27 @@ export const CaptainSupportModal: React.FC<CaptainSupportModalProps> = ({ isOpen
             <span>Call Support Now (मुफ्त कॉल)</span>
           </a>
         </div>
+
+        {/* Full Support Center & Ticket Desk CTA */}
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            navigate({ to: "/help" });
+          }}
+          className="w-full flex items-center justify-between p-3.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl active:scale-98 transition-all cursor-pointer shadow-xs"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-xl bg-[#FFC700] text-zinc-950 flex items-center justify-center font-black text-sm">
+              💬
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-black">Open Full Help & Ticket Desk</p>
+              <p className="text-[10px] text-zinc-400">Live AI Assistant, Raise Ticket & SOP</p>
+            </div>
+          </div>
+          <ChevronRight className="size-4 text-zinc-400" />
+        </button>
 
         {/* Action Buttons: Email Desk & SOS */}
         <div className="grid grid-cols-2 gap-2.5">

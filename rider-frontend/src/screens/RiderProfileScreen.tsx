@@ -444,19 +444,16 @@ export function RiderProfileScreen() {
   // Full-page 24/7 Helpline & Support View (not a popup)
   if (selectedView === "support") {
     return (
-      <div className="relative flex flex-col w-full min-h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-x-hidden text-zinc-800 select-none font-sans">
-        <CaptainHelpScreen
-          onBack={() => {
-            triggerHaptic(20);
-            setSelectedView("profile");
-          }}
-          onOpenGuidelines={() => {
-            triggerHaptic(20);
-            setSelectedView("guidelines");
-          }}
-        />
-        <RiderBottomNav active="profile" />
-      </div>
+      <CaptainHelpScreen
+        onBack={() => {
+          triggerHaptic(20);
+          setSelectedView("profile");
+        }}
+        onOpenGuidelines={() => {
+          triggerHaptic(20);
+          setSelectedView("guidelines");
+        }}
+      />
     );
   }
 
