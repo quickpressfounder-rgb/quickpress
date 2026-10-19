@@ -52,7 +52,6 @@ import {
 } from "../api/rider/rider-profile-api";
 import { useLanguage } from "../lib/i18n";
 import { triggerHaptic } from "../lib/captain-audio";
-import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
 import { CaptainGuidelinesModal } from "../components/support/CaptainGuidelinesModal";
 import { CaptainKycDocModal, type KycDocType } from "../components/kyc/CaptainKycDocModal";
 import { CaptainTripDetailView } from "../components/history/CaptainTripDetailView";
@@ -1341,12 +1340,6 @@ export function RiderProfileScreen() {
       <CaptainGuidelinesModal
         isOpen={showGuidelinesModal}
         onClose={() => setShowGuidelinesModal(false)}
-      />
-
-      {/* MODAL 5: 24/7 HELPLINE & SOS SUPPORT */}
-      <CaptainSupportModal
-        isOpen={showSupportModal}
-        onClose={() => setShowSupportModal(false)}
       />
 
       {/* MODAL 6: KYC DOCUMENT VIEWER (AADHAAR, PAN, DL, RC) */}

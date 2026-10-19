@@ -24,7 +24,6 @@ import {
 import { playArrivalChime, triggerHaptic } from "../lib/captain-audio";
 import { subscribeRiderNotifications } from "../lib/rider-socket";
 import { RiderBottomNav } from "../components/RiderBottomNav";
-import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
 import type { RiderNotification } from "../shared/types/rider";
 
 type FilterTab = "all" | "orders" | "earnings" | "system";
@@ -45,7 +44,6 @@ export const RiderNotificationsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const loadNotifications = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -238,7 +236,7 @@ export const RiderNotificationsScreen: React.FC = () => {
               type="button"
               onClick={() => {
                 triggerHaptic(20);
-                setIsHelpOpen(true);
+                navigate({ to: "/help" });
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
             >
@@ -401,9 +399,6 @@ export const RiderNotificationsScreen: React.FC = () => {
 
       {/* 3. Bottom Nav */}
       <RiderBottomNav active="dashboard" />
-
-      {/* 4. Support Modal */}
-      <CaptainSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 };

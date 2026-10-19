@@ -36,7 +36,6 @@ import {
 } from "../api/rider/rider-analytics-api";
 import { triggerHaptic } from "../lib/captain-audio";
 import { RiderBottomNav } from "../components/RiderBottomNav";
-import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
 import { useLanguage } from "../lib/i18n";
 
 type AnalyticsPeriod = "today" | "week" | "month" | "all";
@@ -48,7 +47,6 @@ export function RiderAnalyticsScreen() {
   const [summary, setSummary] = useState<RiderAnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false, targetPeriod = period) => {
     try {
@@ -136,7 +134,7 @@ export function RiderAnalyticsScreen() {
               type="button"
               onClick={() => {
                 triggerHaptic(20);
-                setIsHelpOpen(true);
+                navigate({ to: "/help" });
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
             >
@@ -454,9 +452,6 @@ export function RiderAnalyticsScreen() {
 
       {/* 3. Bottom Nav */}
       <RiderBottomNav active="history" />
-
-      {/* 4. Support Modal */}
-      <CaptainSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }

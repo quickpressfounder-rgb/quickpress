@@ -23,7 +23,6 @@ import { useLanguage } from "../../lib/i18n";
 import { toast } from "sonner";
 import { useRiderContext } from "../../context/RiderContext";
 import { triggerHaptic, testCaptainAlertSound } from "../../lib/captain-audio";
-import { CaptainSupportModal } from "../support/CaptainSupportModal";
 import { CaptainGuidelinesModal } from "../support/CaptainGuidelinesModal";
 
 import { formatCaptainId } from "../../lib/format-ids";
@@ -55,7 +54,6 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
   const { signOut, session } = useRiderContext();
   const { t, selectedLanguageObj } = useLanguage();
 
-  const [showSupportModal, setShowSupportModal] = useState(false);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
 
   const effectivePhoto =
@@ -223,7 +221,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                   title: t("profile.support", "24/7 Captain Support & SOS"),
                   onClick: () => {
                     onClose();
-                    navigate({ to: "/support" });
+                    navigate({ to: "/help" });
                   },
                 },
               ].map((item, idx) => {
@@ -292,12 +290,6 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
       </div>
 
 
-
-      {/* 24/7 Support Modal */}
-      <CaptainSupportModal
-        isOpen={showSupportModal}
-        onClose={() => setShowSupportModal(false)}
-      />
 
       {/* Guidelines & SOP Modal */}
       <CaptainGuidelinesModal

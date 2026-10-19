@@ -29,7 +29,6 @@ import type { RiderHistoryEntry } from "../../shared/types/rider";
 import { useLanguage } from "../../lib/i18n";
 import { triggerHaptic } from "../../lib/captain-audio";
 import { toast } from "sonner";
-import { CaptainSupportModal } from "../support/CaptainSupportModal";
 import { CaptainStoryModal } from "../home/CaptainStoryModal";
 import { CaptainSurgeAreaModal } from "./CaptainSurgeAreaModal";
 import { CaptainGoToAreaModal } from "./CaptainGoToAreaModal";
@@ -71,7 +70,6 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   const { t } = useLanguage();
   const [mapLayer, setMapLayer] = useState<GoogleMapLayerType>("roadmap");
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
-  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [storyModalIndex, setStoryModalIndex] = useState(0);
   const [showRewardModal, setShowRewardModal] = useState(false);
@@ -424,7 +422,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           type="button"
           onClick={() => {
             triggerHaptic(20);
-            setIsSupportModalOpen(true);
+            navigate({ to: "/help" });
           }}
           className="flex items-center justify-center size-9 bg-white rounded-full border border-zinc-200/80 shadow-md text-zinc-800 font-black text-sm active:scale-95 transition-transform cursor-pointer"
         >
@@ -456,7 +454,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           type="button"
           onClick={() => {
             triggerHaptic(40);
-            setIsSupportModalOpen(true);
+            navigate({ to: "/help" });
           }}
           className="flex size-11 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200/80 text-red-600 active:scale-90 transition-transform cursor-pointer"
           title="24/7 SOS Helpline"
@@ -529,11 +527,6 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                   </div>
                 )}
               </div>
-
-              {/* Title Label Below Circle */}
-              <span className="text-[11.5px] font-normal text-zinc-900 text-center max-w-[70px] truncate leading-tight mt-1.5">
-                {story.title}
-              </span>
             </button>
           ))}
         </div>
@@ -638,7 +631,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                   type="button"
                   onClick={() => {
                     triggerHaptic(20);
-                    setIsSupportModalOpen(true);
+                    navigate({ to: "/help" });
                   }}
                   className="flex items-center gap-3 p-3 rounded-2xl border border-zinc-200/80 bg-zinc-50 hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer text-left"
                 >
@@ -758,12 +751,6 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           </div>
         </div>
       )}
-
-      {/* 6. 24/7 SUPPORT & SOS MODAL */}
-      <CaptainSupportModal
-        isOpen={isSupportModalOpen}
-        onClose={() => setIsSupportModalOpen(false)}
-      />
 
       {/* 7. SURGE FARE AREA MODAL (Video 00:26 Match) */}
       <CaptainSurgeAreaModal

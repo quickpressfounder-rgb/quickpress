@@ -36,7 +36,6 @@ import {
 } from "../api/rider/rider-incentives-api";
 import { CandyCrushMilestoneMap } from "../components/incentives/CandyCrushMilestoneMap";
 import { RiderBottomNav } from "../components/RiderBottomNav";
-import { CaptainSupportModal } from "../components/support/CaptainSupportModal";
 import { triggerHaptic, playSuccessChime, speakText } from "../lib/captain-audio";
 import { useLanguage } from "../lib/i18n";
 
@@ -240,7 +239,6 @@ export function RiderIncentivesScreen() {
 
   // Time to midnight countdown
   const [timeLeft, setTimeLeft] = useState<string>("");
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -378,7 +376,7 @@ export function RiderIncentivesScreen() {
               type="button"
               onClick={() => {
                 triggerHaptic(20);
-                setIsHelpOpen(true);
+                navigate({ to: "/help" });
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
             >
@@ -902,9 +900,6 @@ export function RiderIncentivesScreen() {
 
       {/* 5. Bottom Navigation Dock */}
       <RiderBottomNav active="dashboard" />
-
-      {/* 6. Support Modal */}
-      <CaptainSupportModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useRiderContext } from "../context/RiderContext";
-import { MapPin } from "lucide-react";
+import { MapPin, Radio } from "lucide-react";
 import { fetchRiderOffers, fetchRiderOrder } from "../api/rider/rider-orders-api";
 import {
   fetchRiderDashboard,
@@ -63,9 +63,7 @@ export function RiderDashboardScreen() {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [todayDeliveries, setTodayDeliveries] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
-  const [lastOrderEarnings, setLastOrderEarnings] = useState(0);
-  const [isGoingOffDutyModal, setIsGoingOffDutyModal] = useState(false);
-  const [isLocationUpdatingModal, setIsLocationUpdatingModal] = useState(false);
+  const [isGoingOnDutyModal, setIsGoingOnDutyModal] = useState(false);
   const [isRateCardOpen, setIsRateCardOpen] = useState(false);
   const [captainName, setCaptainName] = useState(() => {
     const name = session?.fullName;
@@ -248,41 +246,35 @@ export function RiderDashboardScreen() {
     }
   }, [navigate]);
 
-  // Handle Duty Toggle with Video 00:45 Off-Duty Transition Spinner & 00:47 Location Updating Popup
+  // Handle Duty Toggle with Instant Off-Duty and Animated Radar On-Duty Transition
   const handleToggleDuty = async (overrideState?: boolean | any) => {
     unlockAudioContext();
     const nextState = typeof overrideState === "boolean" ? overrideState : !isOnline;
     triggerHaptic(45);
 
     if (!nextState) {
-      // 1. Going Off-Duty: Show Video 00:45 yellow spinner modal
-      setIsGoingOffDutyModal(true);
+      // 1. Going Off-Duty: Immediate instant transition (No loading spinner or dialog delay)
       playDutyToggleSound(false);
       speakDutyStatus(false);
+      setOnline(false);
 
       try {
         await updateRiderStatus(false);
       } catch {}
-
-      // Short aesthetic delay for native app transition (Video 00:45 match)
-      await new Promise((r) => setTimeout(r, 750));
-      setIsGoingOffDutyModal(false);
-      setOnline(false);
-
-      // 2. Location Updating Dialog (Video 00:47 - 00:58 Match)
-      setIsLocationUpdatingModal(true);
-      setTimeout(() => {
-        setIsLocationUpdatingModal(false);
-      }, 2200);
     } else {
-      // Going On-Duty: Instant feedback
+      // 2. Going On-Duty: Show high-tech animated sonar/radar connecting animation
+      setIsGoingOnDutyModal(true);
       playDutyToggleSound(true);
       speakDutyStatus(true);
-      setOnline(true);
 
       try {
         await updateRiderStatus(true);
       } catch {}
+
+      // Short aesthetic delay for the radar scanning & dispatch connection animation
+      await new Promise((r) => setTimeout(r, 1100));
+      setIsGoingOnDutyModal(false);
+      setOnline(true);
     }
   };
 
@@ -391,30 +383,37 @@ export function RiderDashboardScreen() {
         </div>
       )}
 
-      {/* Going Off-Duty Modal (Video 00:45 Match) */}
-      {isGoingOffDutyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-2xs p-4 animate-in fade-in duration-150">
-          <div className="flex flex-col items-center justify-center px-6 py-5 bg-[#1F2937] text-white rounded-2xl shadow-2xl space-y-3 min-w-[220px]">
-            <div className="size-10 rounded-full border-3 border-amber-400 border-t-transparent animate-spin" />
-            <p className="text-xs font-bold text-zinc-100">Going Off-Duty. Please wait...</p>
-          </div>
-        </div>
-      )}
+      {/* Going ON-DUTY High-Tech Radar Animated Modal */}
+      {isGoingOnDutyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="relative flex flex-col items-center justify-center px-7 py-6 bg-zinc-950/95 border border-zinc-700/80 text-white rounded-3xl shadow-2xl space-y-4 min-w-[260px] text-center overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Ambient emerald backlight glow */}
+            <div className="absolute -top-10 -left-10 size-32 bg-emerald-500/25 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-10 -right-10 size-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
 
-      {/* Location Sync Dialog (Video 00:47 - 00:58 Match) */}
-      {isLocationUpdatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-2xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-xs bg-white rounded-2xl shadow-2xl border border-zinc-200 p-5 flex flex-col items-center text-center space-y-3 animate-in zoom-in-95 duration-200">
-            <div className="flex size-11 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-              <MapPin className="size-6 stroke-[2.2]" />
+            {/* Radar / Sonar Pulse Wave Animation */}
+            <div className="relative flex items-center justify-center size-20">
+              <span className="absolute inline-flex size-full rounded-full bg-emerald-400 opacity-25 animate-ping duration-1000" />
+              <span className="absolute inline-flex size-14 rounded-full bg-emerald-500/40 animate-pulse duration-700" />
+              <div className="relative flex items-center justify-center size-12 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white shadow-lg shadow-emerald-500/30">
+                <Radio className="size-6 text-white animate-pulse" />
+              </div>
             </div>
-            <div className="space-y-1">
-              <h4 className="text-xs font-black text-zinc-900">Your location is not updated.</h4>
-              <p className="text-[11px] text-zinc-500 font-medium">Fetching latest location...</p>
+
+            <div className="space-y-1 z-10">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold tracking-wider uppercase">
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
+                Live Dispatch Radar
+              </div>
+              <h3 className="text-base font-black text-white tracking-tight">Going ON DUTY</h3>
+              <p className="text-xs text-zinc-400 font-medium max-w-[210px]">
+                Connecting to Live Fleet Engine & GPS Dispatch...
+              </p>
             </div>
-            {/* Blue Linear Progress Bar */}
-            <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-600 rounded-full animate-pulse w-3/4" />
+
+            {/* High-tech pulsing progress bar */}
+            <div className="w-44 h-1.5 bg-zinc-800 rounded-full overflow-hidden z-10">
+              <div className="h-full bg-gradient-to-r from-emerald-500 via-emerald-300 to-emerald-500 rounded-full animate-pulse w-full" />
             </div>
           </div>
         </div>

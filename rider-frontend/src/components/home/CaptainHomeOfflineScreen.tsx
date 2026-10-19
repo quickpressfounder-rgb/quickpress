@@ -305,11 +305,6 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
                   </div>
                 )}
               </div>
-
-              {/* Title Label Below Circle */}
-              <span className="text-[11.5px] font-normal text-zinc-900 text-center max-w-[70px] truncate leading-tight mt-1.5">
-                {story.title}
-              </span>
             </button>
           ))}
         </div>

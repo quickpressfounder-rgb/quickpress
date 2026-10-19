@@ -643,39 +643,79 @@ export const CaptainHelpScreen: React.FC<CaptainHelpScreenProps> = ({
         className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
       >
-        {/* INSTANT DIRECT CONTACT CARDS (SOS, HELPLINE, WHATSAPP, EMAIL) */}
-        <div className="grid grid-cols-2 gap-2.5">
-          {/* Emergency SOS 112 */}
-          <a
-            href={`tel:${supportData.emergencySosNumber}`}
-            onClick={() => triggerHaptic(40)}
-            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-rose-200/90 shadow-2xs hover:bg-rose-50/50 active:scale-98 transition-all"
-          >
-            <div className="size-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <ShieldAlert className="size-5" />
+        {/* OFFICIAL CAPTAIN HELPLINE HERO CARD (New Theme & Screenshot 2 Design) */}
+        <div className="bg-white rounded-3xl p-4 border border-zinc-200/90 shadow-2xs space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-2xs">
+                <Headphones className="size-4 stroke-[2.2]" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
+                  Official Captain Helpline
+                </span>
+                <p className="text-[11px] font-semibold text-zinc-500">24/7 Live Support Desk</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-black text-rose-700 uppercase tracking-wider block">Emergency SOS</span>
-              <p className="text-xs font-black text-zinc-950">Dial 112</p>
-              <span className="text-[10px] text-zinc-500 font-semibold block mt-0.5">Police & Medical</span>
-            </div>
-          </a>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+              ● 24/7 Live
+            </span>
+          </div>
 
-          {/* Toll-Free Hotline */}
+          {/* Large Helpline Number */}
+          <div className="text-center py-0.5">
+            <span className="text-2xl font-black text-zinc-950 tracking-wider">
+              {supportData.helplinePhone}
+            </span>
+          </div>
+
+          {/* Big Green Call Button */}
           <a
             href={`tel:${supportData.helplinePhone.replace(/\s+/g, "")}`}
-            onClick={() => triggerHaptic(20)}
-            className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-emerald-200/90 shadow-2xs hover:bg-emerald-50/50 active:scale-98 transition-all"
+            onClick={() => triggerHaptic(30)}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-sm active:scale-98 transition-all cursor-pointer"
           >
-            <div className="size-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <PhoneCall className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider block">Helpline 24/7</span>
-              <p className="text-xs font-black text-zinc-950 truncate">Toll-Free Call</p>
-              <span className="text-[10px] text-zinc-500 font-semibold block mt-0.5">Free Support</span>
-            </div>
+            <PhoneCall className="size-4" />
+            <span>Call Support Now (मुफ़्त कॉल)</span>
           </a>
+
+          {/* 3 Quick Help Pills */}
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-100">
+            {/* Email Support */}
+            <a
+              href={`mailto:${supportData.supportEmail}?subject=Captain%20Support%20Request`}
+              className="flex items-center gap-2 p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 border border-zinc-200/80 text-zinc-800 active:scale-98 transition-all"
+            >
+              <div className="size-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Mail className="size-3.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold truncate">Email Desk</p>
+                <p className="text-[9px] text-zinc-400 truncate">{supportData.supportEmail}</p>
+              </div>
+            </a>
+
+            {/* Emergency SOS 112 */}
+            <a
+              href={`tel:${supportData.emergencySosNumber}`}
+              onClick={() => triggerHaptic(40)}
+              className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50/70 hover:bg-rose-100/70 border border-rose-200 text-rose-900 active:scale-98 transition-all"
+            >
+              <div className="size-7 rounded-lg bg-rose-600 text-white flex items-center justify-center shrink-0">
+                <ShieldAlert className="size-3.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-rose-800 truncate">Emergency SOS</p>
+                <p className="text-[9px] text-rose-600 font-semibold truncate">Police / 112</p>
+              </div>
+            </a>
+          </div>
+
+          {/* Express Hub Address strip */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-50 border border-zinc-200/70 text-[10px] text-zinc-500 font-medium">
+            <MapPin className="size-3 text-zinc-400 shrink-0" />
+            <span className="truncate">{supportData.hubAddress}</span>
+          </div>
         </div>
 
         {/* Lilac / Pastel Explainer Banner matching Wallet Screen */}
