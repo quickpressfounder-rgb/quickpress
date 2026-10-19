@@ -7,6 +7,7 @@
 declare global {
   interface Window {
     QuickPressNativeBridge?: {
+      setCaptainOnlineStatus?: (online: boolean) => void;
       startFloatingBubble?: () => void;
       stopFloatingBubble?: () => void;
       isFloatingBubbleRunning?: () => boolean;
@@ -31,6 +32,18 @@ declare global {
 
 export function isNativeAndroidApp(): boolean {
   return typeof window !== "undefined" && Boolean(window.QuickPressNativeBridge);
+}
+
+export function setCaptainOnlineStatus(online: boolean): void {
+  if (typeof window === "undefined") return;
+  const bridge = window.QuickPressNativeBridge;
+  if (bridge && typeof bridge.setCaptainOnlineStatus === "function") {
+    try {
+      bridge.setCaptainOnlineStatus(online);
+    } catch (err) {
+      console.warn("[CaptainOpt] setCaptainOnlineStatus error:", err);
+    }
+  }
 }
 
 export function startFloatingBubble(): void {

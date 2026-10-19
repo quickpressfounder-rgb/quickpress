@@ -259,15 +259,10 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
           isDrawerExpanded ? "h-[76vh] overflow-y-auto pb-24" : "h-[268px] overflow-hidden pb-16"
         } pt-1.5`}
       >
-        {/* Double-Chevron Up/Down Drag Handle (Matches Screenshot ︽) */}
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic(20);
-            setIsDrawerExpanded((prev) => !prev);
-          }}
-          className="w-full flex justify-center pt-2 pb-1 text-zinc-400 hover:text-zinc-600 active:scale-95 transition-all cursor-pointer"
-          aria-label="Toggle Drawer"
+        {/* Double-Chevron Up/Down Drag Handle (Gesture only: Scroll up to open, Scroll down to close) */}
+        <div
+          className="w-full flex justify-center pt-2 pb-1 text-zinc-400 select-none pointer-events-none"
+          aria-label="Drawer Handle"
         >
           {isDrawerExpanded ? (
             <svg width="22" height="12" viewBox="0 0 22 12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -280,7 +275,7 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
               <polyline points="4 11 11 6 18 11" />
             </svg>
           )}
-        </button>
+        </div>
 
         {/* Dynamic Story / Offer Bubbles Row (Horizontal Scroll) */}
         <div className="flex items-start gap-3.5 overflow-x-auto no-scrollbar px-4 pt-1 pb-1">

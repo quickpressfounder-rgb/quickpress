@@ -43,6 +43,7 @@ import {
   isBatteryOptimizationIgnored,
   isNativeAndroidApp,
   registerGlobalNavigationHook,
+  setCaptainOnlineStatus,
   startFloatingBubble,
   stopFloatingBubble,
 } from "../lib/captain-device-opt";
@@ -51,6 +52,11 @@ export function RiderDashboardScreen() {
   const navigate = useNavigate();
   const { session, isOnline, setOnline, signOut } = useRiderContext();
   const { t } = useLanguage();
+
+  // Sync duty status with native Android floating overlay engine
+  useEffect(() => {
+    setCaptainOnlineStatus(Boolean(isOnline));
+  }, [isOnline]);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [dutyLoading, setDutyLoading] = useState(false);

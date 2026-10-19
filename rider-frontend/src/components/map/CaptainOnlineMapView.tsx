@@ -226,6 +226,113 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
     return { lat: currentCoords.lat, lng: currentCoords.lng, label: "You (Captain)" };
   }, [currentCoords?.lat, currentCoords?.lng]);
 
+  // Inline SVG artwork for each of the 5 stories matching the screenshot
+  const renderStoryVisual = (story: RiderStoryItem, index: number) => {
+    if (story.imageUrl) {
+      return <img src={story.imageUrl} alt={story.title} className="size-full object-cover" />;
+    }
+
+    if (index === 0 || story.id === "story_follow") {
+      return (
+        <svg className="size-full" viewBox="0 0 60 60" fill="none">
+          <rect width="60" height="60" fill="#FEF08A" />
+          <rect x="2" y="16" width="30" height="24" rx="3" fill="#EAB308" />
+          <rect x="6" y="20" width="10" height="10" rx="1" fill="#FFFFFF" opacity="0.8" />
+          <circle cx="9" cy="40" r="4" fill="#18181B" />
+          <circle cx="25" cy="40" r="4" fill="#18181B" />
+          <circle cx="38" cy="22" r="9" fill="#FDBA74" />
+          <path d="M30 18 C30 14 46 14 46 18 Z" fill="#18181B" />
+          <circle cx="35" cy="21" r="1" fill="#18181B" />
+          <circle cx="41" cy="21" r="1" fill="#18181B" />
+          <path d="M35 25 Q38 28 41 25" stroke="#18181B" strokeWidth="1" strokeLinecap="round" />
+          <path d="M28 48 C28 35 48 35 48 48 Z" fill="#1E3A8A" />
+          <path d="M16 28 L28 34 L25 40 L13 34 Z" fill="#86EFAC" stroke="#15803D" strokeWidth="0.8" />
+          <path d="M19 24 L31 30 L28 36 L16 30 Z" fill="#4ADE80" stroke="#15803D" strokeWidth="0.8" />
+          <path d="M22 20 L34 26 L31 32 L19 26 Z" fill="#22C55E" stroke="#15803D" strokeWidth="0.8" />
+        </svg>
+      );
+    }
+
+    if (index === 1 || story.id === "story_transfer") {
+      return (
+        <svg className="size-full" viewBox="0 0 60 60" fill="none">
+          <rect width="60" height="60" fill="#FEF3C7" />
+          <path d="M0 0 L60 0 L60 30 L0 42 Z" fill="#FDE68A" />
+          <path d="M32 30 L48 20 L64 30 Z" fill="#94A3B8" />
+          <rect x="35" y="30" width="26" height="3" fill="#64748B" />
+          <rect x="38" y="33" width="3" height="12" fill="#CBD5E1" />
+          <rect x="44" y="33" width="3" height="12" fill="#CBD5E1" />
+          <rect x="50" y="33" width="3" height="12" fill="#CBD5E1" />
+          <rect x="56" y="33" width="3" height="12" fill="#CBD5E1" />
+          <rect x="34" y="45" width="28" height="3" fill="#64748B" />
+          <rect x="6" y="24" width="22" height="15" rx="2" fill="#F59E0B" />
+          <rect x="8" y="27" width="6" height="4" rx="1" fill="#FEF3C7" />
+          <line x1="6" y1="33" x2="28" y2="33" stroke="#B45309" strokeWidth="2" />
+          <circle cx="28" cy="18" r="5" fill="#22C55E" />
+          <path d="M26 18 L27.5 19.5 L30.5 16.5" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      );
+    }
+
+    if (index === 2 || story.id === "story_earn2000") {
+      return (
+        <svg className="size-full" viewBox="0 0 60 60" fill="none">
+          <rect width="60" height="60" fill="#1D4ED8" />
+          <path d="M8 20 L16 17 L22 26 L14 29 Z" fill="#FBBF24" />
+          <ellipse cx="22" cy="21.5" rx="2.5" ry="4.5" fill="#F59E0B" />
+          <path d="M12 25 L10 32 L8 31 L10 24 Z" fill="#D97706" />
+          <text x="36" y="19" fill="#FDE047" fontSize="7" fontWeight="900" textAnchor="middle" fontFamily="sans-serif">REFER</text>
+          <text x="36" y="26" fill="#FDE047" fontSize="5.5" fontWeight="800" textAnchor="middle" fontFamily="sans-serif">&amp; EARN</text>
+          <text x="30" y="38" fill="#FFFFFF" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="sans-serif">₹2000</text>
+          <circle cx="44" cy="45" r="7" fill="#FBBF24" stroke="#F59E0B" strokeWidth="1" />
+          <text x="44" y="48" fill="#78350F" fontSize="8" fontWeight="bold" textAnchor="middle">₹</text>
+        </svg>
+      );
+    }
+
+    if (index === 3 || story.id === "story_autoboost") {
+      return (
+        <svg className="size-full" viewBox="0 0 60 60" fill="none">
+          <rect width="60" height="60" fill="#FEF08A" />
+          <circle cx="30" cy="30" r="28" fill="#FDE047" />
+          <path d="M18 42 L18 30 C18 24 22 22 30 22 C38 22 42 24 42 30 L42 42 Z" fill="#15803D" />
+          <path d="M20 28 H40 V35 H20 Z" fill="#FEF08A" />
+          <rect x="22" y="24" width="16" height="8" rx="2" fill="#E0F2FE" />
+          <circle cx="30" cy="38" r="3.5" fill="#FACC15" />
+          <circle cx="21" cy="42" r="3" fill="#18181B" />
+          <circle cx="39" cy="42" r="3" fill="#18181B" />
+          <path d="M33 4 L25 18 H32 L27 28 L41 14 H34 Z" fill="#EAB308" stroke="#CA8A04" strokeWidth="0.8" />
+        </svg>
+      );
+    }
+
+    return (
+      <svg className="size-full" viewBox="0 0 60 60" fill="none">
+        <rect width="60" height="60" fill="#EDE9FE" />
+        <path d="M22 28 L17 48 L25 43 L30 48 L28 28 Z" fill="#EF4444" />
+        <path d="M38 28 L43 48 L35 43 L30 48 L32 28 Z" fill="#DC2626" />
+        <circle cx="30" cy="24" r="14" fill="#FBBF24" stroke="#D97706" strokeWidth="1.5" />
+        <circle cx="30" cy="24" r="11" fill="#FDE047" />
+        <path d="M30 16 L32.2 21.5 L38 22 L33.5 25.5 L35 31.5 L30 28 L25 31.5 L26.5 25.5 L22 22 L27.8 21.5 Z" fill="#D97706" />
+      </svg>
+    );
+  };
+
+  const getStoryRingGradient = (idx: number) => {
+    switch (idx) {
+      case 0:
+        return "bg-gradient-to-tr from-amber-500 via-rose-500 to-red-600";
+      case 1:
+        return "bg-gradient-to-tr from-yellow-400 via-amber-500 to-orange-500";
+      case 2:
+        return "bg-gradient-to-tr from-blue-700 via-indigo-600 to-purple-600";
+      case 3:
+        return "bg-gradient-to-tr from-blue-400 via-indigo-500 to-violet-600";
+      default:
+        return "bg-gradient-to-tr from-violet-400 via-purple-500 to-indigo-600";
+    }
+  };
+
   return (
     <div className="relative flex flex-col flex-1 w-full h-full bg-white text-zinc-900 select-none overflow-hidden font-sans">
       {/* 1. FULL-BLEED WHITE & EMERALD GREEN MAP CANVAS WITH LIVE SURGE */}
@@ -268,26 +375,29 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         </div>
       )}
 
-      {/* 2. FLOATING MAP CONTROLS (Positioned perfectly above drawer peek) */}
+      {/* 3. FLOATING MAP CONTROLS (Exact Screenshot Match: Left Surge/Go To/..., Right Recenter & SOS) */}
       {/* Left Edge: Surge, Go to, ... Pills */}
       <div
-        className={`absolute bottom-[195px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none transition-all duration-300 ${
+        className={`absolute bottom-[220px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none transition-all duration-300 ${
           isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
         }`}
       >
-        {/* Surge Pill with Real Dynamic Live Bonus */}
+        {/* Surge Pill with Red Upward Icon */}
         <button
           type="button"
           onClick={() => {
             triggerHaptic(20);
             setIsSurgeModalOpen(true);
           }}
-          className="flex items-center gap-1.5 px-3 py-2 bg-white/98 rounded-full border border-zinc-200 shadow-md text-xs font-bold text-zinc-900 active:scale-95 transition-transform cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-full border border-zinc-200/80 shadow-md text-xs font-semibold text-zinc-900 active:scale-95 transition-transform cursor-pointer"
         >
-          <div className="flex items-center justify-center size-4 rounded-full bg-red-500 text-white shadow-2xs">
-            <Flame className="size-2.5 fill-white text-white" />
+          <div className="flex items-center justify-center size-5 rounded-full bg-red-600 text-white shadow-2xs">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="5 12 12 5 19 12" />
+            </svg>
           </div>
-          <span>Surge {maxSurgeBonus > 0 ? `+₹${maxSurgeBonus}` : ""}</span>
+          <span>Surge</span>
         </button>
 
         {/* Go to Pill */}
@@ -297,13 +407,15 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             triggerHaptic(20);
             setIsGoToModalOpen(true);
           }}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-full border shadow-md text-xs font-bold active:scale-95 transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border shadow-md text-xs font-semibold active:scale-95 transition-all cursor-pointer ${
             isGoToActive
-              ? "bg-[#1E40AF] text-white border-blue-700 shadow-blue-500/30 ring-2 ring-blue-400/40"
-              : "bg-white/98 text-zinc-900 border-zinc-200"
+              ? "bg-[#1E40AF] text-white border-blue-700 shadow-blue-500/30"
+              : "bg-white text-zinc-900 border-zinc-200/80"
           }`}
         >
-          <MapPin className={`size-3.5 ${isGoToActive ? "text-white fill-white" : "text-red-500 fill-red-500"}`} />
+          <div className="flex items-center justify-center size-5 rounded-full bg-rose-50 text-rose-600">
+            <MapPin className="size-3.5 text-rose-500 fill-rose-500" />
+          </div>
           <span>Go to</span>
         </button>
 
@@ -314,7 +426,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             triggerHaptic(20);
             setIsSupportModalOpen(true);
           }}
-          className="flex items-center justify-center size-8.5 bg-white/98 rounded-full border border-zinc-200 shadow-md text-zinc-800 font-black text-sm active:scale-95 transition-transform cursor-pointer"
+          className="flex items-center justify-center size-9 bg-white rounded-full border border-zinc-200/80 shadow-md text-zinc-800 font-black text-sm active:scale-95 transition-transform cursor-pointer"
         >
           <span>•••</span>
         </button>
@@ -322,7 +434,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
       {/* Right Edge: Recenter & SOS Siren Buttons */}
       <div
-        className={`absolute bottom-[195px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none transition-all duration-300 ${
+        className={`absolute bottom-[218px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none transition-all duration-300 ${
           isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
         }`}
       >
@@ -333,116 +445,133 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             triggerHaptic(40);
             if (onRecenter) onRecenter();
           }}
-          className="flex size-11 items-center justify-center rounded-full bg-white shadow-lg border border-zinc-200 text-blue-600 active:scale-90 transition-transform cursor-pointer"
+          className="flex size-11 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200/80 text-blue-600 active:scale-90 transition-transform cursor-pointer"
           title="Recenter on Captain"
         >
           <Crosshair className="size-5 text-blue-600 stroke-[2.4]" />
         </button>
 
-        {/* Red SOS / Emergency Siren Button */}
+        {/* Red SOS / Emergency Siren Button with Radiating Rays */}
         <button
           type="button"
           onClick={() => {
             triggerHaptic(40);
             setIsSupportModalOpen(true);
           }}
-          className="flex size-11 items-center justify-center rounded-full bg-white shadow-lg border border-red-200 text-red-600 active:scale-90 transition-transform cursor-pointer"
+          className="flex size-11 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200/80 text-red-600 active:scale-90 transition-transform cursor-pointer"
           title="24/7 SOS Helpline"
         >
-          <div className="flex items-center justify-center size-7 rounded-full bg-red-50 text-red-600">
-            <ShieldAlert className="size-4.5 stroke-[2.4]" />
-          </div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 18V11C7 8.24 9.24 6 12 6C14.76 6 17 8.24 17 11V18" />
+            <path d="M5 18H19V20H5Z" />
+            <path d="M12 2V4" />
+            <path d="M4 8L5.5 9.5" />
+            <path d="M20 8L18.5 9.5" />
+            <path d="M2 13H4" />
+            <path d="M20 13H22" />
+          </svg>
         </button>
       </div>
 
-      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Scroll/Swipe Up to Open, Scroll Down to Close) */}
+      {/* 4. RAPIDO BOTTOM SHEET DRAWER (Scroll/Swipe Up to Open, Scroll Down to Close - No Tap Toggle) */}
       <div
         onTouchStart={handleDrawerTouchStart}
         onTouchMove={handleDrawerTouchMove}
         onTouchEnd={handleDrawerTouchEnd}
         onWheel={handleDrawerWheel}
-        className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
-          isDrawerExpanded ? "h-[80vh]" : "h-[185px]"
-        }`}
+        className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-[28px] border-t border-zinc-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] flex flex-col ${
+          isDrawerExpanded ? "h-[76vh] overflow-y-auto pb-24" : "h-[268px] overflow-hidden pb-16"
+        } pt-1.5`}
       >
-        {/* Drag Handle Capsule & Chevron */}
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic(20);
-            setIsDrawerExpanded((prev) => !prev);
-          }}
-          className="w-full flex flex-col items-center justify-center pt-2 pb-1 text-zinc-400 hover:text-zinc-700 active:scale-95 transition-all cursor-pointer shrink-0"
-          aria-label="Toggle Drawer"
-        >
-          <div className="w-10 h-1 rounded-full bg-zinc-300 mb-0.5" />
-          <div className="flex items-center gap-1">
-            {isDrawerExpanded ? (
-              <ChevronDown className="size-4 stroke-[2.5]" />
-            ) : (
-              <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400">
-                <ChevronUp className="size-3.5 stroke-[2.5]" />
-                <span>Swipe up</span>
-              </div>
-            )}
-          </div>
-        </button>
-
-        {/* Scrollable Drawer Content */}
+        {/* Double-Chevron Up/Down Drag Handle (Gesture only: Scroll up to open, Scroll down to close) */}
         <div
-          ref={drawerScrollRef}
-          className={`flex-1 ${
-            isDrawerExpanded ? "overflow-y-auto" : "overflow-hidden"
-          } no-scrollbar space-y-4 px-4 ${isDrawerExpanded ? "pb-36" : "pb-20"}`}
+          className="w-full flex justify-center pt-2 pb-1 text-zinc-400 select-none pointer-events-none"
+          aria-label="Drawer Handle"
         >
-          {/* Dynamic Story / Highlight Bubbles Row (Horizontal Scroll - Never squished) */}
-          <div className="shrink-0 flex items-start gap-4 overflow-x-auto no-scrollbar pt-1 pb-1">
-            {stories.map((story, sIdx) => (
-              <button
-                key={story.id || sIdx}
-                type="button"
-                onClick={() => {
-                  triggerHaptic(25);
-                  setStoryModalIndex(sIdx);
-                  setIsStoryModalOpen(true);
-                }}
-                className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer active:scale-95 transition-transform"
-              >
-                <div className="relative size-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-xs">
-                  <div className="size-full rounded-full bg-white p-0.5 flex items-center justify-center overflow-hidden">
-                    {story.imageUrl ? (
-                      <img src={story.imageUrl} alt={story.title} className="size-full object-cover" />
-                    ) : (
-                      <div className="size-full rounded-full bg-amber-50 flex items-center justify-center text-xl font-black text-amber-600">
-                        {story.icon || "🛵"}
-                      </div>
-                    )}
+          {isDrawerExpanded ? (
+            <svg width="22" height="12" viewBox="0 0 22 12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="4 1 11 6 18 1" />
+              <polyline points="4 6 11 11 18 6" />
+            </svg>
+          ) : (
+            <svg width="22" height="12" viewBox="0 0 22 12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="4 6 11 1 18 6" />
+              <polyline points="4 11 11 6 18 11" />
+            </svg>
+          )}
+        </div>
+
+        {/* Dynamic Story / Highlight Bubbles Row (Horizontal Scroll) */}
+        <div className="flex items-start gap-3.5 overflow-x-auto no-scrollbar px-4 pt-1 pb-1">
+          {stories.map((story, sIdx) => (
+            <button
+              key={story.id || sIdx}
+              type="button"
+              onClick={() => {
+                triggerHaptic(25);
+                setStoryModalIndex(sIdx);
+                setIsStoryModalOpen(true);
+              }}
+              className="flex flex-col items-center shrink-0 group cursor-pointer active:scale-95 transition-transform"
+            >
+              {/* Story Circle with Gradient Ring & Bottom Pill Badge */}
+              <div className={`relative size-[62px] rounded-full p-[2px] ${getStoryRingGradient(sIdx)} shadow-xs`}>
+                <div className="size-full rounded-full bg-white p-[2px] flex items-center justify-center overflow-hidden">
+                  <div className="size-full rounded-full overflow-hidden flex items-center justify-center">
+                    {renderStoryVisual(story, sIdx)}
                   </div>
-                  <span className="absolute -bottom-1 inset-x-1 py-0.2 bg-zinc-900 text-white text-[8px] font-black rounded-full text-center uppercase tracking-tighter truncate px-0.5">
-                    {story.badge || "Story"}
-                  </span>
                 </div>
-                <span className="text-[11px] font-bold text-zinc-700 max-w-[68px] truncate text-center">
-                  {story.title.split(" ")[0]}
-                </span>
-              </button>
-            ))}
+
+                {/* Overlapping Pill Badge (Follow / Money Transf...) */}
+                {story.badge && (sIdx === 0 || sIdx === 1) && (
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[8.5px] font-bold text-white bg-[#1F2430] border border-white/80 shadow-xs">
+                    {story.badge}
+                  </div>
+                )}
+              </div>
+
+              {/* Title Label Below Circle */}
+              <span className="text-[11.5px] font-normal text-zinc-900 text-center max-w-[70px] truncate leading-tight mt-1.5">
+                {story.title}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Thin Divider Line Below Stories */}
+        <div className="w-full h-px bg-zinc-150/80 my-2" />
+
+        {/* Quick Actions Header & Card */}
+        <div className="px-4 pb-2">
+          <p className="text-[13.5px] font-semibold text-zinc-800 mb-2">Quick actions</p>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                navigate({ to: "/language" });
+              }}
+              className="flex items-center justify-center w-[88px] h-[52px] rounded-[18px] bg-[#F4F6F8] hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer shadow-2xs border border-zinc-200/50"
+              aria-label="Change Language"
+            >
+              <span className="text-[17px] font-bold text-[#38BDF8]">आ</span>
+              <span className="text-[19px] font-extrabold text-[#1D4ED8] -ml-0.5">A</span>
+            </button>
           </div>
 
-          {/* EXPANDED CONTENT ONLY: Banners, Quick Actions, and Watermark (Only rendered when scrolled up) */}
+          {/* Expanded Drawer Content (Shown when scrolled up) */}
           {isDrawerExpanded && (
-            <div className="space-y-4 pt-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              {/* DYNAMIC BLUE OFFER BANNER (Managed via Admin Console) */}
+            <div className="space-y-4 pt-3 animate-in fade-in duration-200">
+              {/* DYNAMIC BLUE OFFER BANNER */}
               {banners.length > 0 && (
                 <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0B2579] via-[#0E359E] to-[#08184C] p-5 text-white shadow-xl border border-blue-400/20">
-                  {/* Ambient Background Glow & Confetti */}
                   <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-300 via-transparent to-transparent" />
                   <div className="absolute top-2 left-6 text-amber-300 text-sm animate-pulse">✨</div>
                   <div className="absolute top-4 right-8 text-amber-300 text-sm animate-bounce">🎊</div>
                   <div className="absolute bottom-16 right-5 text-amber-400 text-xs">🎉</div>
 
                   <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-                    {/* Graphic: 3 Purple Cards with ₹ and ₹10 + Stacked Gold Coins */}
                     <div className="relative flex items-center justify-center w-full pt-1 pb-2">
                       <div className="relative -mr-3 transform -rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
                         <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
@@ -486,136 +615,67 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
                 </div>
               )}
 
-              {/* QUICK ACTIONS SECTION */}
-              <div className="space-y-2.5 pt-1">
-                <h3 className="text-sm font-bold text-zinc-900 tracking-tight">
-                  Quick actions
-                </h3>
+              {/* ADDITIONAL QUICK ACTION BUTTONS */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(20);
+                    navigate({ to: "/rate-card" as any });
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-zinc-200/80 bg-zinc-50 hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer text-left"
+                >
+                  <div className="size-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm">
+                    ₹
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900">Rate Card</p>
+                    <p className="text-[10px] text-zinc-500">View payout rates</p>
+                  </div>
+                </button>
 
-                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
-                  {/* Change Language Card */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic(25);
-                      navigate({ to: "/language" });
-                    }}
-                    className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center shrink-0"
-                  >
-                    <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600 font-black text-lg">
-                      आ A
-                    </div>
-                    <span className="text-xs font-bold text-zinc-800 leading-tight">
-                      Change Language
-                    </span>
-                  </button>
-
-                  {/* 24/7 Helpline & Support */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic(25);
-                      setIsSupportModalOpen(true);
-                    }}
-                    className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center shrink-0"
-                  >
-                    <div className="flex items-center justify-center size-10 rounded-xl bg-emerald-50 text-emerald-600 font-black text-lg">
-                      <Headphones className="size-5" />
-                    </div>
-                    <span className="text-xs font-bold text-zinc-800 leading-tight">
-                      Captain Support
-                    </span>
-                  </button>
-
-                  {/* Earnings & Wallet Card */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic(25);
-                      navigate({ to: "/wallet" });
-                    }}
-                    className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center shrink-0"
-                  >
-                    <div className="flex items-center justify-center size-10 rounded-xl bg-amber-50 text-amber-700 font-black text-lg">
-                      ₹
-                    </div>
-                    <span className="text-xs font-bold text-zinc-800 leading-tight">
-                      Wallet & Payout
-                    </span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(20);
+                    setIsSupportModalOpen(true);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-zinc-200/80 bg-zinc-50 hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer text-left"
+                >
+                  <div className="size-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
+                    🎧
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900">Captain Help</p>
+                    <p className="text-[10px] text-zinc-500">24x7 Priority Support</p>
+                  </div>
+                </button>
               </div>
 
-              {/* FOOTER: PROUDLY MADE IN INDIA & CRAFTED IN UTTAR PRADESH WITH SKYLINE */}
-              <div className="pt-6 pb-2 text-center space-y-3">
-                <div className="space-y-0.5">
-                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
-                    Proudly made
-                  </p>
-                  <h4 className="text-xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
-                    <span>in India</span>
-                    <span>💛</span>
-                  </h4>
-                  <p className="text-[11px] font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block mt-1">
-                    Crafted in Uttar Pradesh 🇮🇳
-                  </p>
+              {/* FOOTER: PROUDLY MADE IN INDIA & CRAFTED IN UTTAR PRADESH */}
+              <div className="pt-4 pb-4 text-center select-none flex flex-col items-center">
+                <div className="flex items-center justify-center gap-1 text-xs font-black text-zinc-800 mb-2">
+                  <span>Proudly made</span>
+                  <span className="text-amber-500">✨</span>
+                  <span className="font-extrabold text-sm text-zinc-950">in India</span>
                 </div>
 
-                {/* Indian & Uttar Pradesh Heritage Monuments Line-Art Skyline Illustration */}
-                <div className="w-full flex justify-center opacity-85 px-4 pt-1">
-                  <svg
-                    viewBox="0 0 500 130"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-full max-w-sm text-zinc-300 stroke-current stroke-[1.2]"
-                  >
-                    <path d="M20 120V80L35 60L50 80V120" strokeLinecap="round" />
-                    <path d="M35 60V40L35 30" strokeLinecap="round" />
-                    <path d="M28 85H42" strokeLinecap="round" />
-                    <path d="M28 98H42" strokeLinecap="round" />
-
-                    <rect x="60" y="45" width="30" height="75" rx="1" />
-                    <line x1="68" y1="55" x2="82" y2="55" />
-                    <line x1="68" y1="65" x2="82" y2="65" />
-                    <line x1="68" y1="75" x2="82" y2="75" />
-                    <line x1="68" y1="85" x2="82" y2="85" />
-                    <line x1="68" y1="95" x2="82" y2="95" />
-
-                    <rect x="100" y="30" width="22" height="90" rx="1" />
-                    <circle cx="111" cy="45" r="5" />
-                    <path d="M100 30L111 15L122 30" strokeLinecap="round" />
-
-                    <path d="M170 120V75H330V120" />
-                    <path d="M220 75C220 50 235 35 250 35C265 35 280 50 280 75" />
-                    <path d="M250 35V20" strokeLinecap="round" strokeWidth="1.5" />
-                    <path d="M185 75C185 62 193 55 202 55C211 55 219 62 219 75" />
-                    <path d="M281 75C281 62 289 55 298 55C307 55 315 62 315 75" />
-                    <line x1="190" y1="85" x2="190" y2="120" />
-                    <line x1="210" y1="85" x2="210" y2="120" />
-                    <line x1="230" y1="85" x2="230" y2="120" />
-                    <line x1="250" y1="85" x2="250" y2="120" />
-                    <line x1="270" y1="85" x2="270" y2="120" />
-                    <line x1="290" y1="85" x2="290" y2="120" />
-                    <line x1="310" y1="85" x2="310" y2="120" />
-
-                    <rect x="345" y="40" width="28" height="80" rx="1" />
-                    <path d="M345 40L359 25L373 40" strokeLinecap="round" />
-                    <line x1="352" y1="52" x2="366" y2="52" />
-                    <line x1="352" y1="64" x2="366" y2="64" />
-                    <line x1="352" y1="76" x2="366" y2="76" />
-
-                    <rect x="385" y="55" width="35" height="65" rx="1" />
-                    <line x1="393" y1="68" x2="412" y2="68" />
-                    <line x1="393" y1="80" x2="412" y2="80" />
-                    <line x1="393" y1="92" x2="412" y2="92" />
-
-                    <path d="M435 120V75L455 55L475 75V120" strokeLinecap="round" />
-                    <line x1="445" y1="88" x2="465" y2="88" />
-                    <line x1="445" y1="102" x2="465" y2="102" />
-
-                    <line x1="10" y1="120" x2="490" y2="120" strokeLinecap="round" strokeWidth="1.5" />
-                  </svg>
-                </div>
+                <svg
+                  className="w-full max-w-xs h-16 text-zinc-300 stroke-current opacity-80"
+                  viewBox="0 0 320 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M120 58 V35 H132 V58 M124 35 V24 H128 V35 M118 24 H134 V20 H118 Z" strokeWidth="1.5" />
+                  <path d="M145 58 V18 M175 58 V18" strokeWidth="1.2" />
+                  <path d="M152 58 V38 Q160 22 168 38 V58" strokeWidth="1.5" />
+                  <path d="M160 22 V15" strokeWidth="1.5" />
+                  <path d="M80 58 L85 15 H89 L94 58" strokeWidth="1.5" />
+                  <path d="M82 45 H92 M84 32 H90 M85 20 H89" strokeWidth="1" />
+                  <path d="M10 58 V42 H30 V46 H45 V42 H65 V58" strokeWidth="1.5" />
+                  <path d="M220 58 V42 H240 V46 H255 V42 H275 V58" strokeWidth="1.5" />
+                  <line x1="0" y1="58" x2="320" y2="58" strokeWidth="1.5" />
+                </svg>
               </div>
             </div>
           )}

@@ -111,7 +111,7 @@ public class FloatingBubbleService extends Service {
             }
         }
 
-        // Overlay Window Layout Parameters
+        // Overlay Window Layout Parameters (Exact 58dp Rapido Captain Bubble Size)
         int layoutType;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             layoutType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
@@ -119,17 +119,18 @@ public class FloatingBubbleService extends Service {
             layoutType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
+        int dp58 = dpToPx(58);
         params = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            dp58,
+            dp58,
             layoutType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         );
 
         params.gravity = Gravity.TOP | Gravity.START;
-        params.x = 20;
-        params.y = 250;
+        params.x = 16;
+        params.y = dpToPx(180);
 
         bubbleView = createBubbleLayout();
 
@@ -186,9 +187,9 @@ public class FloatingBubbleService extends Service {
         int middle = screenWidth / 2;
 
         if (params.x + (bubbleView.getWidth() / 2) < middle) {
-            params.x = 10; // Snap to Left
+            params.x = dpToPx(8); // Snap to Left
         } else {
-            params.x = screenWidth - bubbleView.getWidth() - 10; // Snap to Right
+            params.x = screenWidth - bubbleView.getWidth() - dpToPx(8); // Snap to Right
         }
 
         try {
@@ -203,64 +204,76 @@ public class FloatingBubbleService extends Service {
             Intent.FLAG_ACTIVITY_REORDER_TO_FRONT |
             Intent.FLAG_ACTIVITY_SINGLE_TOP
         );
-        intent.putExtra("route", "/orders");
+        intent.putExtra("route", "/dashboard");
         startActivity(intent);
     }
 
+    /**
+     * Creates a circular Rapido Captain floating bubble containing:
+     * 1. 58dp circular white background with golden amber stroke (#F59E0B)
+     * 2. QuickPress App Logo (R.mipmap.ic_launcher_round / ic_launcher)
+     * 3. Emerald-green online dot badge on the bottom-right corner
+     */
     private View createBubbleLayout() {
         Context context = this;
-        int dp64 = dpToPx(64);
+        int dp58 = dpToPx(58);
 
-        LinearLayout container = new LinearLayout(context);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setGravity(Gravity.CENTER);
-        container.setLayoutParams(new LinearLayout.LayoutParams(dp64, dp64));
+        android.widget.FrameLayout root = new android.widget.FrameLayout(context);
+        root.setLayoutParams(new WindowManager.LayoutParams(dp58, dp58));
 
-        // Background: Round white pill/circle with golden-yellow Rapido-style border
+        // 1. Circular Outer Container with Amber Border
+        android.widget.FrameLayout circleContainer = new android.widget.FrameLayout(context);
+        android.widget.FrameLayout.LayoutParams circleParams = new android.widget.FrameLayout.LayoutParams(
+            dp58, dp58
+        );
+        circleContainer.setLayoutParams(circleParams);
+
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
         bg.setColor(Color.WHITE);
-        bg.setStroke(dpToPx(3), Color.parseColor("#F59E0B")); // Amber / Rapido Yellow
-        container.setBackground(bg);
-        container.setElevation(dpToPx(6));
+        bg.setStroke(dpToPx(3), Color.parseColor("#F59E0B")); // Rapido Amber Yellow Ring
+        circleContainer.setBackground(bg);
+        circleContainer.setElevation(dpToPx(8));
 
-        // Inner Yellow pill badge with "QuickPress"
-        TextView badgeText = new TextView(context);
-        badgeText.setText("quickpress");
-        badgeText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 8);
-        badgeText.setTextColor(Color.parseColor("#B45309")); // Dark amber
-        badgeText.setGravity(Gravity.CENTER);
-        badgeText.setTypeface(null, android.graphics.Typeface.BOLD);
+        // 2. App Logo ImageView
+        ImageView logoView = new ImageView(context);
+        int pad = dpToPx(5);
+        logoView.setPadding(pad, pad, pad, pad);
+        logoView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        try {
+            logoView.setImageResource(R.mipmap.ic_launcher_round);
+        } catch (Throwable t) {
+            try {
+                logoView.setImageResource(R.mipmap.ic_launcher);
+            } catch (Throwable ignored) {}
+        }
 
-        GradientDrawable badgeBg = new GradientDrawable();
-        badgeBg.setColor(Color.parseColor("#FEF3C7")); // Light amber pill
-        badgeBg.setCornerRadius(dpToPx(6));
-        badgeText.setBackground(badgeBg);
-        badgeText.setPadding(dpToPx(4), dpToPx(1), dpToPx(4), dpToPx(1));
+        android.widget.FrameLayout.LayoutParams logoParams = new android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+            android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+        );
+        circleContainer.addView(logoView, logoParams);
 
-        // Subtitle: "Captain" in Bold Black
-        TextView titleText = new TextView(context);
-        titleText.setText("Captain");
-        titleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        titleText.setTextColor(Color.parseColor("#09090B"));
-        titleText.setGravity(Gravity.CENTER);
-        titleText.setTypeface(null, android.graphics.Typeface.BOLD);
+        // 3. Online Status Dot at Bottom-Right
+        ImageView onlineDot = new ImageView(context);
+        int dotSize = dpToPx(14);
+        android.widget.FrameLayout.LayoutParams dotParams = new android.widget.FrameLayout.LayoutParams(
+            dotSize, dotSize
+        );
+        dotParams.gravity = Gravity.BOTTOM | Gravity.END;
+        dotParams.rightMargin = dpToPx(1);
+        dotParams.bottomMargin = dpToPx(1);
 
-        // Green Online Dot
-        ImageView dot = new ImageView(context);
         GradientDrawable dotBg = new GradientDrawable();
         dotBg.setShape(GradientDrawable.OVAL);
-        dotBg.setColor(Color.parseColor("#10B981")); // Emerald Green
-        dot.setBackground(dotBg);
-        LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(dpToPx(5), dpToPx(5));
-        dotParams.topMargin = dpToPx(2);
-        dot.setLayoutParams(dotParams);
+        dotBg.setColor(Color.parseColor("#10B981")); // Emerald Green Online
+        dotBg.setStroke(dpToPx(2), Color.WHITE);
+        onlineDot.setBackground(dotBg);
 
-        container.addView(badgeText);
-        container.addView(titleText);
-        container.addView(dot);
+        root.addView(circleContainer);
+        root.addView(onlineDot, dotParams);
 
-        return container;
+        return root;
     }
 
     private int dpToPx(int dp) {

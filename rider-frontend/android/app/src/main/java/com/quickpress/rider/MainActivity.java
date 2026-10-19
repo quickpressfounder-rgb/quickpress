@@ -26,6 +26,35 @@ import java.util.List;
 
 public class MainActivity extends BridgeActivity {
     private long lastBackPressTime = 0;
+    public static boolean isCaptainOnline = false;
+
+    public void startFloatingBubbleInternal() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (Settings.canDrawOverlays(this)) {
+                    Intent intent = new Intent(this, FloatingBubbleService.class);
+                    intent.setAction(FloatingBubbleService.ACTION_START);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(intent);
+                    } else {
+                        startService(intent);
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            android.util.Log.e("MainActivity", "startFloatingBubbleInternal error: " + t.getMessage(), t);
+        }
+    }
+
+    public void stopFloatingBubbleInternal() {
+        try {
+            Intent intent = new Intent(this, FloatingBubbleService.class);
+            intent.setAction(FloatingBubbleService.ACTION_STOP);
+            stopService(intent);
+        } catch (Throwable t) {
+            android.util.Log.e("MainActivity", "stopFloatingBubbleInternal error: " + t.getMessage(), t);
+        }
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -124,9 +153,38 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        // User requested: "aager quickpress rider app open kare to buble open na ho"
+        // Hide bubble whenever app is in the foreground
+        stopFloatingBubbleInternal();
         unlockHighRefreshRate();
         optimizeWebView();
         startPeriodicApiFix();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // User requested: "jisa hi app minimze kare to buble show hone lage"
+        // When app is minimized to background, show floating bubble if captain is online
+        if (isCaptainOnline) {
+            startFloatingBubbleInternal();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (isCaptainOnline) {
+            startFloatingBubbleInternal();
+        }
+    }
+
+    @Override
+    public void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (isCaptainOnline) {
+            startFloatingBubbleInternal();
+        }
     }
 
     private void injectApiUrlFix() {
@@ -313,37 +371,23 @@ public class MainActivity extends BridgeActivity {
     public class QuickPressRiderBridge {
 
         @JavascriptInterface
+        public void setCaptainOnlineStatus(boolean online) {
+            isCaptainOnline = online;
+            if (!online) {
+                runOnUiThread(MainActivity.this::stopFloatingBubbleInternal);
+            }
+        }
+
+        @JavascriptInterface
         public void startFloatingBubble() {
-            runOnUiThread(() -> {
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        if (Settings.canDrawOverlays(MainActivity.this)) {
-                            Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
-                            intent.setAction(FloatingBubbleService.ACTION_START);
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                startForegroundService(intent);
-                            } else {
-                                startService(intent);
-                            }
-                        }
-                    }
-                } catch (Throwable t) {
-                    android.util.Log.e("MainActivity", "Safe startFloatingBubble catch: " + t.getMessage(), t);
-                }
-            });
+            isCaptainOnline = true;
+            // Note: Bubble will show automatically when app is minimized (onPause / onUserLeaveHint)
         }
 
         @JavascriptInterface
         public void stopFloatingBubble() {
-            runOnUiThread(() -> {
-                try {
-                    Intent intent = new Intent(MainActivity.this, FloatingBubbleService.class);
-                    intent.setAction(FloatingBubbleService.ACTION_STOP);
-                    stopService(intent);
-                } catch (Throwable t) {
-                    android.util.Log.e("MainActivity", "Safe stopFloatingBubble catch: " + t.getMessage(), t);
-                }
-            });
+            isCaptainOnline = false;
+            runOnUiThread(MainActivity.this::stopFloatingBubbleInternal);
         }
 
         @JavascriptInterface
