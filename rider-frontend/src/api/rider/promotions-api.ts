@@ -37,11 +37,11 @@ export interface RiderBannerItem {
 export const FALLBACK_RIDER_STORIES: RiderStoryItem[] = [
   {
     id: "story_follow",
-    title: "Join QuickPress Captains 🛵",
+    title: "Follow",
     tagline: "Uttar Pradesh's Fastest Growing Rider Community",
-    badge: "CAPTAIN COMMUNITY",
-    badgeBg: "bg-rose-500",
-    gradient: "from-amber-600 via-rose-600 to-purple-800",
+    badge: "Follow",
+    badgeBg: "bg-[#2A1E5C]",
+    gradient: "from-amber-500 via-rose-500 to-red-500",
     icon: "🛵",
     points: [
       "10,000+ active captains across Kasganj, Aligarh & UP",
@@ -54,11 +54,11 @@ export const FALLBACK_RIDER_STORIES: RiderStoryItem[] = [
   },
   {
     id: "story_transfer",
-    title: "Instant Bank Transfer ⚡",
+    title: "Transfer Money",
     tagline: "Direct IMPS Payouts with Zero Deductions",
-    badge: "INSTANT CASHOUT",
-    badgeBg: "bg-emerald-500",
-    gradient: "from-emerald-700 via-teal-800 to-slate-900",
+    badge: "Money Transf...",
+    badgeBg: "bg-[#1E293B]",
+    gradient: "from-amber-400 via-amber-500 to-yellow-500",
     icon: "🏦",
     points: [
       "Automatic daily settlements 3 times every day",
@@ -71,11 +71,11 @@ export const FALLBACK_RIDER_STORIES: RiderStoryItem[] = [
   },
   {
     id: "story_earn2000",
-    title: "Refer Friends & Earn ₹2,000 💰",
+    title: "Earn 2000",
     tagline: "Exclusive Kasganj & UP Referral Bonanza",
     badge: "REFER & EARN",
-    badgeBg: "bg-blue-500",
-    gradient: "from-blue-700 via-indigo-900 to-violet-950",
+    badgeBg: "bg-blue-600",
+    gradient: "from-indigo-600 via-blue-600 to-violet-800",
     icon: "💸",
     points: [
       "Share your referral link with biker friends",
@@ -88,11 +88,11 @@ export const FALLBACK_RIDER_STORIES: RiderStoryItem[] = [
   },
   {
     id: "story_autoboost",
-    title: "Auto Boost 2.0 ⚡",
+    title: "Auto Boost",
     tagline: "Extra Fares During Peak Laundry Demand",
-    badge: "PEAK SURGE",
-    badgeBg: "bg-amber-500",
-    gradient: "from-amber-600 via-orange-600 to-red-900",
+    badge: "Auto Boost",
+    badgeBg: "bg-amber-600",
+    gradient: "from-blue-400 via-sky-500 to-cyan-600",
     icon: "⚡",
     points: [
       "+₹20 to +₹45 extra per order during morning & evening rushes",
@@ -105,11 +105,11 @@ export const FALLBACK_RIDER_STORIES: RiderStoryItem[] = [
   },
   {
     id: "story_performance",
-    title: "Captain Performance Score 🏆",
+    title: "Performance",
     tagline: "Maintain 4.8★ & Unlock Gold VIP Captain Perks",
-    badge: "VIP TIER",
-    badgeBg: "bg-purple-500",
-    gradient: "from-purple-700 via-fuchsia-900 to-zinc-950",
+    badge: "Top Captain",
+    badgeBg: "bg-purple-600",
+    gradient: "from-purple-600 via-fuchsia-700 to-indigo-800",
     icon: "🏅",
     points: [
       "Gold Captain badge shown to store partners & customers",

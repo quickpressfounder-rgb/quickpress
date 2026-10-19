@@ -77,7 +77,7 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount }: Rider
     });
   }, [router]);
 
-  // Calculate active tab index for fluid gliding pill animation
+  // Calculate active tab
   const activeIndex = RIDER_TABS.findIndex(
     (t) =>
       t.id === active ||
@@ -85,84 +85,96 @@ export function RiderBottomNav({ active = "dashboard", ordersBadgeCount }: Rider
       (t.id === "dashboard" && (pathname === "/" || pathname === "/dashboard"))
   );
   const validIndex = activeIndex >= 0 ? activeIndex : 0;
+  const isHomeActive = validIndex === 0;
+  const isOrdersActive = validIndex === 1;
 
   return (
     <nav
       aria-label="Captain Primary Bottom Navigation"
-      className={`fixed inset-x-0 bottom-0 z-40 pt-1 transition-all duration-300 ease-out select-none ${
+      className={`fixed inset-x-0 bottom-0 z-40 bg-white border-t border-zinc-200/90 select-none shadow-[0_-4px_20px_rgba(0,0,0,0.04)] transition-all duration-300 ease-out ${
         isVisible ? "translate-y-0 opacity-100" : "translate-y-28 opacity-0 pointer-events-none"
       }`}
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 8px, 14px)" }}
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 6px, 12px)", paddingTop: "8px" }}
     >
-      {/* Floating Glass Dock (2-Tab Rapido Dock) */}
-      <div className="mx-auto w-full max-w-xs px-4 pointer-events-auto">
-        <div className="relative grid grid-cols-2 rounded-full border border-zinc-200/80 bg-white/95 p-1.5 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
-          {/* Spring-Gliding Active Pill Indicator */}
-          <div
-            className="absolute top-1.5 bottom-1.5 rounded-full bg-zinc-950 shadow-md transition-all duration-300 ease-[cubic-bezier(0.34,1.35,0.64,1)] pointer-events-none"
-            style={{
-              left: `calc(6px + ${validIndex} * ((100% - 12px) / 2))`,
-              width: `calc((100% - 12px) / 2)`,
-            }}
+      <div className="flex items-center justify-around max-w-sm mx-auto px-6">
+        {/* 1. Home Tab (Solid Black Icon + Label) - Screenshot Match */}
+        <Link
+          to="/dashboard"
+          preload="intent"
+          preloadDelay={0}
+          onPointerDown={() => void router.preloadRoute({ to: "/dashboard" as any }).catch(() => undefined)}
+          onTouchStart={() => void router.preloadRoute({ to: "/dashboard" as any }).catch(() => undefined)}
+          onClick={(e) => {
+            try {
+              triggerHaptic(20);
+            } catch {}
+            if (isHomeActive) {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+          aria-current={isHomeActive ? "page" : undefined}
+          aria-label={t("nav.dashboard", "Home")}
+          className="flex flex-col items-center justify-center py-1 px-4 cursor-pointer active:scale-95 transition-transform"
+        >
+          <Home
+            className={`size-[22px] transition-colors ${
+              isHomeActive ? "text-zinc-950 fill-zinc-950" : "text-zinc-400 fill-none"
+            }`}
+            strokeWidth={isHomeActive ? 2.5 : 2}
           />
+          <span
+            className={`text-[11px] leading-tight mt-1 transition-colors ${
+              isHomeActive ? "font-bold text-zinc-950" : "font-medium text-zinc-500"
+            }`}
+          >
+            {t("nav.dashboard", "Home")}
+          </span>
+        </Link>
 
-          {RIDER_TABS.map((item, idx) => {
-            const isActive = idx === validIndex;
-            const label = t(item.labelKey, item.fallback);
+        {/* 2. Orders Tab (Capsule Pill Button [ 📋 Orders ]) - Screenshot Match */}
+        <Link
+          to="/orders"
+          preload="intent"
+          preloadDelay={0}
+          onPointerDown={() => void router.preloadRoute({ to: "/orders" as any }).catch(() => undefined)}
+          onTouchStart={() => void router.preloadRoute({ to: "/orders" as any }).catch(() => undefined)}
+          onClick={(e) => {
+            try {
+              triggerHaptic(20);
+            } catch {}
+            if (isOrdersActive) {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+          aria-current={isOrdersActive ? "page" : undefined}
+          aria-label={t("nav.orders", "Orders")}
+          className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full transition-all cursor-pointer active:scale-95 ${
+            isOrdersActive
+              ? "bg-zinc-950 text-white shadow-xs"
+              : "bg-[#F0F2F5] text-zinc-800 hover:bg-[#E5E7EB]"
+          }`}
+        >
+          <div className="relative flex items-center justify-center">
+            <ClipboardList
+              className={`size-[17px] ${isOrdersActive ? "text-white" : "text-zinc-800"}`}
+              strokeWidth={2.2}
+            />
 
-            return (
-              <Link
-                key={item.id}
-                to={item.to as any}
-                preload="intent"
-                preloadDelay={0}
-                onPointerDown={() => void router.preloadRoute({ to: item.to as any }).catch(() => undefined)}
-                onTouchStart={() => void router.preloadRoute({ to: item.to as any }).catch(() => undefined)}
-                onClick={(e) => {
-                  try {
-                    triggerHaptic(20);
-                  } catch {}
-                  if (isActive) {
-                    e.preventDefault();
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }
-                }}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={label}
-                className="tap-target relative z-10 flex flex-col items-center justify-center gap-1 rounded-full px-2 py-2 transition-transform duration-100 cursor-pointer active:scale-90"
-              >
-                <div className="relative flex items-center justify-center">
-                  <item.icon
-                    className={`size-[1.2rem] shrink-0 transition-all duration-300 ease-out ${
-                      isActive
-                        ? "text-white scale-110 -translate-y-0.5"
-                        : "text-zinc-500 scale-100 hover:text-zinc-800"
-                    }`}
-                    strokeWidth={isActive ? 2.4 : 1.8}
-                  />
+            {/* Orders Pending Count Badge */}
+            {liveOrdersCount > 0 && (
+              <span className="absolute -top-2 -right-2.5 flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-black text-white bg-red-600 rounded-full border border-white shadow-xs animate-pulse">
+                {liveOrdersCount}
+              </span>
+            )}
+          </div>
 
-                  {/* Orders Pending Count Badge */}
-                  {item.id === "orders" && liveOrdersCount > 0 && (
-                    <span className="absolute -top-1.5 -right-3 flex items-center justify-center min-w-[17px] h-[17px] px-1 text-[9px] font-black text-white bg-red-600 rounded-full border-2 border-white shadow-xs animate-pulse">
-                      {liveOrdersCount}
-                    </span>
-                  )}
-                </div>
-
-                <span
-                  className={`text-[0.7rem] leading-none tracking-[-0.01em] transition-all duration-300 ${
-                    isActive ? "font-bold text-white scale-105" : "font-medium text-zinc-500"
-                  }`}
-                >
-                  {label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+          <span className="text-[13px] font-semibold tracking-tight">
+            {t("nav.orders", "Orders")}
+          </span>
+        </Link>
       </div>
     </nav>
   );
-
-  return bar;
 }

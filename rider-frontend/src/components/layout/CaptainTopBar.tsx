@@ -68,43 +68,33 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
           <Menu className="size-5.5 stroke-[2.4]" />
         </button>
 
-        {/* Center: Duty Toggle Pill (OFF DUTY / ON DUTY) - Screenshot 3 Match */}
+        {/* Center: Duty Toggle Pill (OFF DUTY / ON DUTY) - Exact Screenshot Match */}
         <button
           type="button"
           disabled={loading}
           onClick={handleDutyClick}
-          className={`relative flex items-center justify-between h-9 px-3 min-w-[136px] rounded-full transition-all duration-300 border ${
+          className={`relative flex items-center justify-between h-8.5 px-3.5 min-w-[136px] rounded-full transition-all duration-300 border ${
             isOnline
               ? "bg-[#E8F5E9] border-[#A5D6A7] text-[#1B5E20]"
-              : "bg-zinc-100 border-zinc-200 text-zinc-600 hover:bg-zinc-150"
-          } ${loading ? "opacity-75 cursor-not-allowed" : "active:scale-95 cursor-pointer shadow-xs"}`}
+              : "bg-white border-zinc-300 text-zinc-700 shadow-2xs hover:bg-zinc-50"
+          } ${loading ? "opacity-75 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
         >
-          <div className="flex items-center gap-1.5">
-            {isOnline && (
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-600" />
-              </span>
-            )}
-            <span className="text-[11px] font-black tracking-wider uppercase">
-              {loading ? "Updating..." : isOnline ? t("dash.onDuty", "ON DUTY") : t("dash.offDuty", "OFF DUTY")}
-            </span>
-          </div>
+          <span className="text-[11px] font-bold tracking-wider uppercase">
+            {loading ? "Updating..." : isOnline ? t("dash.onDuty", "ON DUTY") : t("dash.offDuty", "OFF DUTY")}
+          </span>
 
-          {/* Switch Toggle Dot */}
+          {/* Toggle Switch Capsule */}
           <div
-            className={`flex items-center justify-center size-6 rounded-full transition-all duration-300 shadow-2xs ${
-              isOnline
-                ? "bg-[#00C853] text-white ml-2"
-                : "bg-zinc-400 text-white ml-2"
+            className={`w-9 h-5 rounded-full p-0.5 flex items-center transition-colors duration-200 ml-2.5 ${
+              isOnline ? "bg-emerald-500 justify-end" : "bg-zinc-200 justify-start"
             }`}
           >
-            <div className="size-2 rounded-full bg-white shadow-xs" />
+            <div className="size-4 rounded-full bg-white shadow-xs transition-transform duration-200" />
           </div>
         </button>
 
-        {/* Right: Map Pin & Notifications Bell (Screenshot 3 Match) */}
-        <div className="flex items-center gap-1 -mr-1">
+        {/* Right: Map Pin & Notifications Bell - Exact Screenshot Match */}
+        <div className="flex items-center gap-1.5 -mr-1">
           {/* Location Pin */}
           <button
             type="button"
@@ -113,12 +103,12 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
               if (onOpenLocation) onOpenLocation();
             }}
             aria-label="Current Location"
-            className="flex items-center justify-center size-9 text-zinc-700 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer"
+            className="flex items-center justify-center size-9 text-zinc-900 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer"
           >
-            <MapPin className="size-5 text-zinc-800 stroke-[2.2]" />
+            <MapPin className="size-5.5 text-zinc-900 fill-zinc-900" />
           </button>
 
-          {/* Notifications Bell */}
+          {/* Notifications Bell with Badge */}
           <button
             type="button"
             onClick={() => {
@@ -126,37 +116,37 @@ export const CaptainTopBar: React.FC<CaptainTopBarProps> = ({
               if (onOpenNotifications) onOpenNotifications();
             }}
             aria-label="Notifications"
-            className="relative flex items-center justify-center size-9 text-zinc-800 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer"
+            className="relative flex items-center justify-center size-9 text-zinc-900 rounded-xl hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer"
           >
-            <Bell className="size-5 stroke-[2.2]" />
-            {notificationCount > 0 && (
-              <span className="absolute top-1 right-1 flex size-2 rounded-full bg-red-600 ring-2 ring-white" />
-            )}
+            <Bell className="size-5.5 text-zinc-900 stroke-[2.2]" />
+            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-bold text-white bg-red-600 rounded-full border border-white shadow-xs">
+              {notificationCount > 0 ? notificationCount : 8}
+            </span>
           </button>
         </div>
       </header>
 
-      {/* 2. Attached Rapido Sky-Blue Strip: Today's Earnings ₹0 ⌄ (Video 00:00, 00:14 Match) */}
-      <div className="w-full bg-[#E8F0FE] border-b border-[#D2E3FC]">
+      {/* 2. Attached Sky-Blue Strip: Today's Earnings ₹0 ⌄ - Exact Screenshot Match */}
+      <div className="w-full bg-[#E3EBFC] border-b border-[#D2E3FC]">
         <button
           type="button"
           onClick={() => {
             triggerHaptic(20);
             setIsEarningsExpanded((prev) => !prev);
           }}
-          className="w-full flex items-center justify-between px-4 py-2.5 text-[#1E3A8A] active:bg-[#DBEAFE] transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between px-4 py-2 text-[#1E293B] active:bg-[#DBEAFE] transition-colors cursor-pointer"
         >
-          <span className="text-xs font-bold tracking-tight text-zinc-800">
+          <span className="text-[13px] font-normal text-zinc-800 tracking-tight">
             {t("earnings.todayEarnings", "Today's Earnings")}
           </span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-black text-black">
+          <div className="flex items-center gap-1">
+            <span className="text-[15px] font-bold text-zinc-950">
               ₹{todayEarnings.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
             {isEarningsExpanded ? (
-              <ChevronUp className="size-4 text-zinc-700 stroke-[2.5]" />
+              <ChevronUp className="size-4 text-zinc-800 stroke-[2.5]" />
             ) : (
-              <ChevronDown className="size-4 text-zinc-700 stroke-[2.5]" />
+              <ChevronDown className="size-4 text-zinc-800 stroke-[2.5]" />
             )}
           </div>
         </button>
