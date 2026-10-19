@@ -34,6 +34,10 @@ import { CaptainStoryModal } from "../home/CaptainStoryModal";
 import { CaptainSurgeAreaModal } from "./CaptainSurgeAreaModal";
 import { CaptainGoToAreaModal } from "./CaptainGoToAreaModal";
 import {
+  fetchSurgeZones,
+  type SurgeHotspotData,
+} from "../../api/rider/rider-surge-api";
+import {
   fetchRiderStories,
   fetchRiderBanners,
   FALLBACK_RIDER_STORIES,
@@ -52,8 +56,6 @@ interface CaptainOnlineMapViewProps {
   onOpenWorkZoneInfo?: () => void;
   onOpenOrders?: () => void;
 }
-
-const EMPTY_SURGE_HOTSPOTS: SurgeHotspot[] = [];
 
 export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   currentCoords,
@@ -75,44 +77,54 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [rewardScratched, setRewardScratched] = useState(false);
 
-  // Reference Video Features: Surge & Go to Modals
+  // Real Dynamic Surge & Go to Modals
   const [isSurgeModalOpen, setIsSurgeModalOpen] = useState(false);
   const [isGoToModalOpen, setIsGoToModalOpen] = useState(false);
   const [isGoToActive, setIsGoToActive] = useState(false);
   const [onlineMinutesElapsed, setOnlineMinutesElapsed] = useState(1);
+  const [surgeHotspots, setSurgeHotspots] = useState<SurgeHotspot[]>([]);
+  const [maxSurgeBonus, setMaxSurgeBonus] = useState<number>(0);
 
-  // Swipe / Scroll gesture support for bottom sheet drawer (open / close on swipe)
+  // Swipe / Scroll gesture support for bottom sheet drawer (scroll up to open, scroll down to close)
   const drawerTouchStartYRef = useRef<number | null>(null);
-  const drawerTouchEndYRef = useRef<number | null>(null);
+  const drawerScrollRef = useRef<HTMLDivElement | null>(null);
 
   const handleDrawerTouchStart = (e: React.TouchEvent) => {
     drawerTouchStartYRef.current = e.touches[0].clientY;
-    drawerTouchEndYRef.current = e.touches[0].clientY;
   };
 
   const handleDrawerTouchMove = (e: React.TouchEvent) => {
-    drawerTouchEndYRef.current = e.touches[0].clientY;
+    if (drawerTouchStartYRef.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - drawerTouchStartYRef.current;
+
+    // Swipe up on collapsed drawer -> open
+    if (!isDrawerExpanded && deltaY < -20) {
+      triggerHaptic(20);
+      setIsDrawerExpanded(true);
+      drawerTouchStartYRef.current = null;
+    }
+    // Swipe down on expanded drawer -> close (only when scroll position is at the top)
+    else if (isDrawerExpanded && deltaY > 30) {
+      if (!drawerScrollRef.current || drawerScrollRef.current.scrollTop <= 5) {
+        triggerHaptic(20);
+        setIsDrawerExpanded(false);
+        drawerTouchStartYRef.current = null;
+      }
+    }
   };
 
   const handleDrawerTouchEnd = () => {
-    if (drawerTouchStartYRef.current === null || drawerTouchEndYRef.current === null) return;
-    const deltaY = drawerTouchEndYRef.current - drawerTouchStartYRef.current;
-    if (deltaY < -35 && !isDrawerExpanded) {
-      triggerHaptic(20);
-      setIsDrawerExpanded(true);
-    } else if (deltaY > 35 && isDrawerExpanded) {
-      triggerHaptic(20);
-      setIsDrawerExpanded(false);
-    }
     drawerTouchStartYRef.current = null;
-    drawerTouchEndYRef.current = null;
   };
 
   const handleDrawerWheel = (e: React.WheelEvent) => {
-    if (e.deltaY < -15 && !isDrawerExpanded) {
+    if (!isDrawerExpanded && e.deltaY > 5) {
       setIsDrawerExpanded(true);
-    } else if (e.deltaY > 15 && isDrawerExpanded) {
-      setIsDrawerExpanded(false);
+    } else if (isDrawerExpanded && e.deltaY < -10) {
+      if (!drawerScrollRef.current || drawerScrollRef.current.scrollTop <= 0) {
+        setIsDrawerExpanded(false);
+      }
     }
   };
 
@@ -175,6 +187,30 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
 
 
+  // Periodic & location-based real-time surge updates
+  useEffect(() => {
+    let active = true;
+    const loadSurge = () => {
+      fetchSurgeZones(currentCoords?.lat, currentCoords?.lng)
+        .then((res) => {
+          if (!active) return;
+          if (res && Array.isArray(res.zones) && res.zones.length > 0) {
+            setSurgeHotspots(res.zones);
+            const highest = Math.max(...res.zones.map((z) => z.bonus || 0));
+            setMaxSurgeBonus(highest > 0 ? highest : 25);
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadSurge();
+    const interval = setInterval(loadSurge, 25000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [currentCoords?.lat, currentCoords?.lng]);
+
   // Toggle map layer (Day Roadmap -> Night Dark -> Satellite)
   const handleToggleLayer = () => {
     triggerHaptic(40);
@@ -192,51 +228,28 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
   return (
     <div className="relative flex flex-col flex-1 w-full h-full bg-white text-zinc-900 select-none overflow-hidden font-sans">
-      {/* 1. FULL-BLEED WHITE & EMERALD GREEN MAP CANVAS */}
+      {/* 1. FULL-BLEED WHITE & EMERALD GREEN MAP CANVAS WITH LIVE SURGE */}
       <div className="absolute inset-0 size-full z-0">
         <LiveDeliveryMap
           riderLocation={memoizedRiderLocation}
           phase="online"
           heightClassName="h-full w-full"
           showControls={false}
-          showSurgePins={false}
-          surgeHotspots={EMPTY_SURGE_HOTSPOTS}
+          showSurgePins={true}
+          surgeHotspots={surgeHotspots}
           isRapidoTheme={true}
           activeLayerOverride={mapLayer}
           onLayerChange={setMapLayer}
+          onSurgeClick={() => {
+            triggerHaptic(30);
+            setIsSurgeModalOpen(true);
+          }}
         />
       </div>
 
-      {/* 2. FLOATING TOP HUD BAR */}
-      <div className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
-        {/* Main Signature Clean Card (Video 00:07, 00:23 Match) */}
-        <div className="pointer-events-auto flex items-center justify-between p-2.5 bg-white/95 backdrop-blur-md rounded-2xl border border-zinc-200/90 shadow-md text-xs">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex items-center justify-center size-8 rounded-xl bg-amber-400 text-zinc-950 font-black text-[10px] shadow-2xs border border-amber-500/20 shrink-0">
-              <span>QP</span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-zinc-950 tracking-wide text-xs">
-                  QuickPress Service
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[11px] text-zinc-500 font-medium truncate max-w-[200px] sm:max-w-[260px]">
-                  Waiting for orders...
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-zinc-400 pl-2 shrink-0">
-            <span>{onlineMinutesElapsed} min ago</span>
-            <ChevronDown className="size-3.5 stroke-[2.5]" />
-          </div>
-        </div>
-
-        {/* Floating Pending Orders Alert Banner (if pending orders exist) */}
-        {pendingOrdersCount > 0 && (
+      {/* 2. FLOATING TOP ALERT (Only if Pending Dispatches Exist) */}
+      {pendingOrdersCount > 0 && (
+        <div className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
           <div
             onClick={onOpenOrders}
             className="pointer-events-auto cursor-pointer animate-in slide-in-from-top-2 duration-200 flex items-center justify-between px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/30 font-bold text-xs active:scale-98 transition-all"
@@ -252,17 +265,17 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
               <span>➔</span>
             </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* 2. FLOATING MAP CONTROLS (Video 00:07, 00:23, 00:34 Match) */}
+      {/* 2. FLOATING MAP CONTROLS (Positioned perfectly above drawer peek) */}
       {/* Left Edge: Surge, Go to, ... Pills */}
       <div
-        className={`absolute bottom-[225px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none transition-all duration-300 ${
+        className={`absolute bottom-[195px] left-3.5 z-20 flex items-center gap-2 pointer-events-auto select-none transition-all duration-300 ${
           isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
         }`}
       >
-        {/* Surge Pill */}
+        {/* Surge Pill with Real Dynamic Live Bonus */}
         <button
           type="button"
           onClick={() => {
@@ -271,13 +284,13 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
           }}
           className="flex items-center gap-1.5 px-3 py-2 bg-white/98 rounded-full border border-zinc-200 shadow-md text-xs font-bold text-zinc-900 active:scale-95 transition-transform cursor-pointer"
         >
-          <div className="flex items-center justify-center size-4 rounded-full bg-red-100 text-red-600">
-            <span className="text-[11px] font-black leading-none">↑</span>
+          <div className="flex items-center justify-center size-4 rounded-full bg-red-500 text-white shadow-2xs">
+            <Flame className="size-2.5 fill-white text-white" />
           </div>
-          <span>Surge</span>
+          <span>Surge {maxSurgeBonus > 0 ? `+₹${maxSurgeBonus}` : ""}</span>
         </button>
 
-        {/* Go to Pill (Turns Solid Blue when destination active - Video 00:34 Match) */}
+        {/* Go to Pill */}
         <button
           type="button"
           onClick={() => {
@@ -309,7 +322,7 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
 
       {/* Right Edge: Recenter & SOS Siren Buttons */}
       <div
-        className={`absolute bottom-[225px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none transition-all duration-300 ${
+        className={`absolute bottom-[195px] right-3.5 z-20 flex flex-col gap-2.5 pointer-events-auto select-none transition-all duration-300 ${
           isDrawerExpanded ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 pointer-events-auto translate-y-0"
         }`}
       >
@@ -342,15 +355,15 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
         </button>
       </div>
 
-      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Video 00:07, 00:23 Match - Supports Swipe/Scroll Gestures) */}
+      {/* 3. RAPIDO BOTTOM SHEET DRAWER (Scroll/Swipe Up to Open, Scroll Down to Close) */}
       <div
         onTouchStart={handleDrawerTouchStart}
         onTouchMove={handleDrawerTouchMove}
         onTouchEnd={handleDrawerTouchEnd}
         onWheel={handleDrawerWheel}
-        className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-in-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
-          isDrawerExpanded ? "h-[82vh] overflow-y-auto" : "h-[215px] overflow-hidden"
-        } pb-20 pt-1.5`}
+        className={`absolute left-0 right-0 bottom-0 z-30 pointer-events-auto transition-all duration-300 ease-out select-none bg-white rounded-t-3xl border-t border-zinc-200/90 shadow-2xl flex flex-col ${
+          isDrawerExpanded ? "h-[80vh]" : "h-[185px]"
+        }`}
       >
         {/* Drag Handle Capsule & Chevron */}
         <button
@@ -359,21 +372,31 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             triggerHaptic(20);
             setIsDrawerExpanded((prev) => !prev);
           }}
-          className="w-full flex flex-col items-center justify-center py-1.5 text-zinc-400 hover:text-zinc-700 active:scale-95 transition-all cursor-pointer"
+          className="w-full flex flex-col items-center justify-center pt-2 pb-1 text-zinc-400 hover:text-zinc-700 active:scale-95 transition-all cursor-pointer shrink-0"
           aria-label="Toggle Drawer"
         >
           <div className="w-10 h-1 rounded-full bg-zinc-300 mb-0.5" />
-          {isDrawerExpanded ? (
-            <ChevronDown className="size-4.5 stroke-[2.5]" />
-          ) : (
-            <ChevronUp className="size-4.5 stroke-[2.5]" />
-          )}
+          <div className="flex items-center gap-1">
+            {isDrawerExpanded ? (
+              <ChevronDown className="size-4 stroke-[2.5]" />
+            ) : (
+              <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400">
+                <ChevronUp className="size-3.5 stroke-[2.5]" />
+                <span>Swipe up</span>
+              </div>
+            )}
+          </div>
         </button>
 
         {/* Scrollable Drawer Content */}
-        <div className={`flex-1 ${isDrawerExpanded ? "overflow-y-auto" : "overflow-hidden"} no-scrollbar space-y-4 px-4 pb-6`}>
-          {/* Dynamic Story / Highlight Bubbles Row (Horizontal Scroll) */}
-          <div className="flex items-start gap-4 overflow-x-auto no-scrollbar pt-1 pb-1">
+        <div
+          ref={drawerScrollRef}
+          className={`flex-1 ${
+            isDrawerExpanded ? "overflow-y-auto" : "overflow-hidden"
+          } no-scrollbar space-y-4 px-4 ${isDrawerExpanded ? "pb-36" : "pb-20"}`}
+        >
+          {/* Dynamic Story / Highlight Bubbles Row (Horizontal Scroll - Never squished) */}
+          <div className="shrink-0 flex items-start gap-4 overflow-x-auto no-scrollbar pt-1 pb-1">
             {stories.map((story, sIdx) => (
               <button
                 key={story.id || sIdx}
@@ -406,176 +429,196 @@ export const CaptainOnlineMapView: React.FC<CaptainOnlineMapViewProps> = ({
             ))}
           </div>
 
-          {/* DYNAMIC BLUE OFFER BANNER (Managed via Admin Console) */}
-          {banners.length > 0 && (
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0B2579] via-[#0E359E] to-[#08184C] p-5 text-white shadow-xl border border-blue-400/20">
-              {/* Ambient Background Glow & Confetti */}
-              <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-300 via-transparent to-transparent" />
-              <div className="absolute top-2 left-6 text-amber-300 text-sm animate-pulse">✨</div>
-              <div className="absolute top-4 right-8 text-amber-300 text-sm animate-bounce">🎊</div>
-              <div className="absolute bottom-16 right-5 text-amber-400 text-xs">🎉</div>
+          {/* EXPANDED CONTENT ONLY: Banners, Quick Actions, and Watermark (Only rendered when scrolled up) */}
+          {isDrawerExpanded && (
+            <div className="space-y-4 pt-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              {/* DYNAMIC BLUE OFFER BANNER (Managed via Admin Console) */}
+              {banners.length > 0 && (
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#0B2579] via-[#0E359E] to-[#08184C] p-5 text-white shadow-xl border border-blue-400/20">
+                  {/* Ambient Background Glow & Confetti */}
+                  <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-300 via-transparent to-transparent" />
+                  <div className="absolute top-2 left-6 text-amber-300 text-sm animate-pulse">✨</div>
+                  <div className="absolute top-4 right-8 text-amber-300 text-sm animate-bounce">🎊</div>
+                  <div className="absolute bottom-16 right-5 text-amber-400 text-xs">🎉</div>
 
-              <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-                {/* Graphic: 3 Purple Cards with ₹ and ₹10 + Stacked Gold Coins */}
-                <div className="relative flex items-center justify-center w-full pt-1 pb-2">
-                  {/* Left Card */}
-                  <div className="relative -mr-3 transform -rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
-                    <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
-                  </div>
-
-                  {/* Center Main Card */}
-                  <div className="relative z-10 size-20 sm:size-22 rounded-2xl bg-gradient-to-b from-violet-600 to-indigo-900 border-2 border-amber-300/60 p-2 shadow-2xl flex flex-col items-center justify-center">
-                    <div className="flex items-center justify-center size-7 rounded-full bg-white/10 mb-1 border border-white/20">
-                      <span className="text-amber-300 font-serif font-black text-sm">👑</span>
+                  <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                    {/* Graphic: 3 Purple Cards with ₹ and ₹10 + Stacked Gold Coins */}
+                    <div className="relative flex items-center justify-center w-full pt-1 pb-2">
+                      <div className="relative -mr-3 transform -rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
+                        <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
+                      </div>
+                      <div className="relative z-10 size-20 sm:size-22 rounded-2xl bg-gradient-to-b from-violet-600 to-indigo-900 border-2 border-amber-300/60 p-2 shadow-2xl flex flex-col items-center justify-center">
+                        <div className="flex items-center justify-center size-7 rounded-full bg-white/10 mb-1 border border-white/20">
+                          <span className="text-amber-300 font-serif font-black text-sm">👑</span>
+                        </div>
+                        <span className="text-white font-serif font-black text-2xl leading-none">
+                          ₹{banners[0].rewardAmount || 10}
+                        </span>
+                      </div>
+                      <div className="relative -ml-3 transform rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
+                        <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
+                      </div>
+                      <div className="absolute -bottom-1 left-12 flex flex-col items-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+                        <div className="size-11 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-2 border-amber-100 flex items-center justify-center text-amber-950 font-black text-base shadow-md">
+                          ₹
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-white font-serif font-black text-2xl leading-none">
-                      ₹{banners[0].rewardAmount || 10}
-                    </span>
-                  </div>
 
-                  {/* Right Card */}
-                  <div className="relative -ml-3 transform rotate-12 size-16 sm:size-18 rounded-2xl bg-gradient-to-b from-indigo-500 to-purple-800 border-2 border-indigo-300/40 p-2 shadow-lg flex flex-col items-center justify-center">
-                    <span className="text-white/80 font-serif font-black text-xl leading-none">₹</span>
-                  </div>
-
-                  {/* Gold Coins Stack (Foreground overlapping left) */}
-                  <div className="absolute -bottom-1 left-12 flex flex-col items-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
-                    <div className="size-11 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-2 border-amber-100 flex items-center justify-center text-amber-950 font-black text-base shadow-md">
-                      ₹
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(40);
+                        const b = banners[0];
+                        if (b.actionType === "google_form" || b.ctaLink?.startsWith("http")) {
+                          window.open(b.ctaLink, "_blank");
+                        } else if (b.actionType === "internal_route" && b.ctaLink) {
+                          navigate({ to: b.ctaLink as any });
+                        } else {
+                          setShowRewardModal(true);
+                        }
+                      }}
+                      className="w-full max-w-xs py-3 px-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 active:scale-95 text-zinc-950 font-black text-base shadow-lg transition-all cursor-pointer tracking-wide"
+                    >
+                      {banners[0].ctaText || "Tap to earn"}
+                    </button>
                   </div>
                 </div>
+              )}
 
-                {/* Yellow Pill Button (Supports Scratch or Google Form Redirect) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic(40);
-                    const b = banners[0];
-                    if (b.actionType === "google_form" || b.ctaLink?.startsWith("http")) {
-                      window.open(b.ctaLink, "_blank");
-                    } else if (b.actionType === "internal_route" && b.ctaLink) {
-                      navigate({ to: b.ctaLink as any });
-                    } else {
-                      setShowRewardModal(true);
-                    }
-                  }}
-                  className="w-full max-w-xs py-3 px-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 active:scale-95 text-zinc-950 font-black text-base shadow-lg transition-all cursor-pointer tracking-wide"
-                >
-                  {banners[0].ctaText || "Tap to earn"}
-                </button>
+              {/* QUICK ACTIONS SECTION */}
+              <div className="space-y-2.5 pt-1">
+                <h3 className="text-sm font-bold text-zinc-900 tracking-tight">
+                  Quick actions
+                </h3>
+
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
+                  {/* Change Language Card */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(25);
+                      navigate({ to: "/language" });
+                    }}
+                    className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center shrink-0"
+                  >
+                    <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600 font-black text-lg">
+                      आ A
+                    </div>
+                    <span className="text-xs font-bold text-zinc-800 leading-tight">
+                      Change Language
+                    </span>
+                  </button>
+
+                  {/* 24/7 Helpline & Support */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(25);
+                      setIsSupportModalOpen(true);
+                    }}
+                    className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center shrink-0"
+                  >
+                    <div className="flex items-center justify-center size-10 rounded-xl bg-emerald-50 text-emerald-600 font-black text-lg">
+                      <Headphones className="size-5" />
+                    </div>
+                    <span className="text-xs font-bold text-zinc-800 leading-tight">
+                      Captain Support
+                    </span>
+                  </button>
+
+                  {/* Earnings & Wallet Card */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(25);
+                      navigate({ to: "/wallet" });
+                    }}
+                    className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center shrink-0"
+                  >
+                    <div className="flex items-center justify-center size-10 rounded-xl bg-amber-50 text-amber-700 font-black text-lg">
+                      ₹
+                    </div>
+                    <span className="text-xs font-bold text-zinc-800 leading-tight">
+                      Wallet & Payout
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* FOOTER: PROUDLY MADE IN INDIA & CRAFTED IN UTTAR PRADESH WITH SKYLINE */}
+              <div className="pt-6 pb-2 text-center space-y-3">
+                <div className="space-y-0.5">
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
+                    Proudly made
+                  </p>
+                  <h4 className="text-xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
+                    <span>in India</span>
+                    <span>💛</span>
+                  </h4>
+                  <p className="text-[11px] font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block mt-1">
+                    Crafted in Uttar Pradesh 🇮🇳
+                  </p>
+                </div>
+
+                {/* Indian & Uttar Pradesh Heritage Monuments Line-Art Skyline Illustration */}
+                <div className="w-full flex justify-center opacity-85 px-4 pt-1">
+                  <svg
+                    viewBox="0 0 500 130"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-full max-w-sm text-zinc-300 stroke-current stroke-[1.2]"
+                  >
+                    <path d="M20 120V80L35 60L50 80V120" strokeLinecap="round" />
+                    <path d="M35 60V40L35 30" strokeLinecap="round" />
+                    <path d="M28 85H42" strokeLinecap="round" />
+                    <path d="M28 98H42" strokeLinecap="round" />
+
+                    <rect x="60" y="45" width="30" height="75" rx="1" />
+                    <line x1="68" y1="55" x2="82" y2="55" />
+                    <line x1="68" y1="65" x2="82" y2="65" />
+                    <line x1="68" y1="75" x2="82" y2="75" />
+                    <line x1="68" y1="85" x2="82" y2="85" />
+                    <line x1="68" y1="95" x2="82" y2="95" />
+
+                    <rect x="100" y="30" width="22" height="90" rx="1" />
+                    <circle cx="111" cy="45" r="5" />
+                    <path d="M100 30L111 15L122 30" strokeLinecap="round" />
+
+                    <path d="M170 120V75H330V120" />
+                    <path d="M220 75C220 50 235 35 250 35C265 35 280 50 280 75" />
+                    <path d="M250 35V20" strokeLinecap="round" strokeWidth="1.5" />
+                    <path d="M185 75C185 62 193 55 202 55C211 55 219 62 219 75" />
+                    <path d="M281 75C281 62 289 55 298 55C307 55 315 62 315 75" />
+                    <line x1="190" y1="85" x2="190" y2="120" />
+                    <line x1="210" y1="85" x2="210" y2="120" />
+                    <line x1="230" y1="85" x2="230" y2="120" />
+                    <line x1="250" y1="85" x2="250" y2="120" />
+                    <line x1="270" y1="85" x2="270" y2="120" />
+                    <line x1="290" y1="85" x2="290" y2="120" />
+                    <line x1="310" y1="85" x2="310" y2="120" />
+
+                    <rect x="345" y="40" width="28" height="80" rx="1" />
+                    <path d="M345 40L359 25L373 40" strokeLinecap="round" />
+                    <line x1="352" y1="52" x2="366" y2="52" />
+                    <line x1="352" y1="64" x2="366" y2="64" />
+                    <line x1="352" y1="76" x2="366" y2="76" />
+
+                    <rect x="385" y="55" width="35" height="65" rx="1" />
+                    <line x1="393" y1="68" x2="412" y2="68" />
+                    <line x1="393" y1="80" x2="412" y2="80" />
+                    <line x1="393" y1="92" x2="412" y2="92" />
+
+                    <path d="M435 120V75L455 55L475 75V120" strokeLinecap="round" />
+                    <line x1="445" y1="88" x2="465" y2="88" />
+                    <line x1="445" y1="102" x2="465" y2="102" />
+
+                    <line x1="10" y1="120" x2="490" y2="120" strokeLinecap="round" strokeWidth="1.5" />
+                  </svg>
+                </div>
               </div>
             </div>
           )}
-
-          {/* QUICK ACTIONS SECTION (Matching Uploaded Screenshot: "Change Language" card) */}
-          <div className="space-y-2.5 pt-1">
-            <h3 className="text-sm font-bold text-zinc-900 tracking-tight">
-              Quick actions
-            </h3>
-
-            <div className="flex items-center gap-3">
-              {/* Change Language Card */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic(25);
-                  navigate({ to: "/language" });
-                }}
-                className="flex flex-col items-center justify-center gap-2 p-4 w-32 h-28 bg-white hover:bg-zinc-50 active:scale-95 rounded-2xl border border-zinc-200/90 shadow-2xs transition-all cursor-pointer text-center"
-              >
-                <div className="flex items-center justify-center size-10 rounded-xl bg-blue-50 text-blue-600 font-black text-lg">
-                  आ A
-                </div>
-                <span className="text-xs font-bold text-zinc-800 leading-tight">
-                  Change Language
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* FOOTER: PROUDLY MADE IN INDIA & CRAFTED IN UTTAR PRADESH WITH SKYLINE (Matching Screenshot) */}
-          <div className="pt-6 pb-2 text-center space-y-3">
-            <div className="space-y-0.5">
-              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
-                Proudly made
-              </p>
-              <h4 className="text-xl font-black text-zinc-900 tracking-tight flex items-center justify-center gap-1.5">
-                <span>in India</span>
-                <span>💛</span>
-              </h4>
-              <p className="text-[11px] font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block mt-1">
-                Crafted in Uttar Pradesh 🇮🇳
-              </p>
-            </div>
-
-            {/* Indian & Uttar Pradesh Heritage Monuments Line-Art Skyline Illustration */}
-            <div className="w-full flex justify-center opacity-85 px-4 pt-1">
-              <svg
-                viewBox="0 0 500 130"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-full max-w-sm text-zinc-300 stroke-current stroke-[1.2]"
-              >
-                {/* Left: Temple / Monument Towers */}
-                <path d="M20 120V80L35 60L50 80V120" strokeLinecap="round" />
-                <path d="M35 60V40L35 30" strokeLinecap="round" />
-                <path d="M28 85H42" strokeLinecap="round" />
-                <path d="M28 98H42" strokeLinecap="round" />
-
-                {/* Left Skyscraper / Highrise */}
-                <rect x="60" y="45" width="30" height="75" rx="1" />
-                <line x1="68" y1="55" x2="82" y2="55" />
-                <line x1="68" y1="65" x2="82" y2="65" />
-                <line x1="68" y1="75" x2="82" y2="75" />
-                <line x1="68" y1="85" x2="82" y2="85" />
-                <line x1="68" y1="95" x2="82" y2="95" />
-
-                {/* Clocktower */}
-                <rect x="100" y="30" width="22" height="90" rx="1" />
-                <circle cx="111" cy="45" r="5" />
-                <path d="M100 30L111 15L122 30" strokeLinecap="round" />
-
-                {/* Center: Vidhan Sabha / Lucknow Dome & Colonnades */}
-                <path d="M170 120V75H330V120" />
-                {/* Grand Dome */}
-                <path d="M220 75C220 50 235 35 250 35C265 35 280 50 280 75" />
-                <path d="M250 35V20" strokeLinecap="round" strokeWidth="1.5" />
-                {/* Smaller Side Domes */}
-                <path d="M185 75C185 62 193 55 202 55C211 55 219 62 219 75" />
-                <path d="M281 75C281 62 289 55 298 55C307 55 315 62 315 75" />
-                {/* Colonnade Pillars */}
-                <line x1="190" y1="85" x2="190" y2="120" />
-                <line x1="210" y1="85" x2="210" y2="120" />
-                <line x1="230" y1="85" x2="230" y2="120" />
-                <line x1="250" y1="85" x2="250" y2="120" />
-                <line x1="270" y1="85" x2="270" y2="120" />
-                <line x1="290" y1="85" x2="290" y2="120" />
-                <line x1="310" y1="85" x2="310" y2="120" />
-
-                {/* Right: Rumi Darwaza / Arches & Minarets */}
-                <rect x="345" y="40" width="28" height="80" rx="1" />
-                <path d="M345 40L359 25L373 40" strokeLinecap="round" />
-                <line x1="352" y1="52" x2="366" y2="52" />
-                <line x1="352" y1="64" x2="366" y2="64" />
-                <line x1="352" y1="76" x2="366" y2="76" />
-
-                {/* Right Skyscraper & Trees */}
-                <rect x="385" y="55" width="35" height="65" rx="1" />
-                <line x1="393" y1="68" x2="412" y2="68" />
-                <line x1="393" y1="80" x2="412" y2="80" />
-                <line x1="393" y1="92" x2="412" y2="92" />
-
-                {/* Right Monument */}
-                <path d="M435 120V75L455 55L475 75V120" strokeLinecap="round" />
-                <line x1="445" y1="88" x2="465" y2="88" />
-                <line x1="445" y1="102" x2="465" y2="102" />
-
-                {/* Ground Base Line */}
-                <line x1="10" y1="120" x2="490" y2="120" strokeLinecap="round" strokeWidth="1.5" />
-              </svg>
-            </div>
-          </div>
         </div>
       </div>
 

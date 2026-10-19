@@ -11,9 +11,7 @@ import {
   Download,
   Edit2,
   FileCheck,
-  FileText,
   Globe,
-  Headphones,
   HelpCircle,
   History as HistoryIcon,
   Hourglass,
@@ -1016,50 +1014,8 @@ export function RiderProfileScreen() {
           )}
         </div>
 
-        {/* SECTION: KNOWLEDGE & SUPPORT ACTION CARDS (Screenshot 1 Layout) */}
+        {/* SECTION: LANGUAGE SWITCHER */}
         <div className="rounded-[28px] border border-zinc-200/80 bg-white p-2 shadow-sm space-y-1">
-          {/* Captain Guidelines & SOP */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(20);
-              setSelectedView("guidelines");
-            }}
-            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-amber-100/90 text-amber-800 shrink-0">
-                <FileText className="size-4.5" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-black text-zinc-900">Captain Onboarding & Guidelines</p>
-                <p className="text-[10px] font-medium text-zinc-500">Privacy Policy, Zero Commission & SOP</p>
-              </div>
-            </div>
-            <ChevronRight className="size-4 text-zinc-400" />
-          </button>
-
-          {/* 24/7 Helpline & SOS Support */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic(20);
-              setSelectedView("support");
-            }}
-            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all border-t border-zinc-100 cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-blue-100/90 text-blue-800 shrink-0">
-                <Headphones className="size-4.5" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-black text-zinc-900">24/7 Captain Helpline & Support</p>
-                <p className="text-[10px] font-medium text-emerald-600">Live Chat, Support Tickets & Email</p>
-              </div>
-            </div>
-            <ChevronRight className="size-4 text-zinc-400" />
-          </button>
-
           {/* Language Switcher */}
           <button
             type="button"
@@ -1067,7 +1023,7 @@ export function RiderProfileScreen() {
               triggerHaptic(20);
               navigate({ to: "/dashboard" });
             }}
-            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all border-t border-zinc-100 cursor-pointer"
+            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 active:scale-98 transition-all cursor-pointer"
           >
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100/90 text-emerald-800 shrink-0">
@@ -1083,6 +1039,7 @@ export function RiderProfileScreen() {
             <ChevronRight className="size-4 text-zinc-400" />
           </button>
         </div>
+
 
         {/* LOGOUT & DELETE ACCOUNT BUTTONS (Exact Screenshot 1 Style) */}
         <div className="pt-3 pb-2 space-y-4">
