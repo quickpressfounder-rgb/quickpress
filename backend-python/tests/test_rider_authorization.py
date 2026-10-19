@@ -27,6 +27,9 @@ PUBLIC_RIDER_PATHS = {
     "/api/rider/auth/existing-numbers",
     "/api/rider/auth/registration",
     "/api/rider/onboarding/status",
+    "/api/rider/surge/zones",
+    "/api/rider/surge/check-location",
+    "/api/rider/commission/guarantee",
 }
 
 

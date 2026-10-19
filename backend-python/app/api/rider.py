@@ -4467,7 +4467,7 @@ async def claim_rider_incentive(
 # Dynamic Location-Based Surge Engine Endpoints
 # --------------------------------------------------------------------------
 
-@router.get("/surge/zones")
+@public_router.get("/surge/zones")
 async def get_surge_zones(
     lat: Optional[float] = Query(None, description="Rider's current latitude"),
     lng: Optional[float] = Query(None, description="Rider's current longitude"),
@@ -4493,7 +4493,7 @@ async def get_surge_zones(
     )
 
 
-@router.get("/surge/check-location")
+@public_router.get("/surge/check-location")
 async def check_surge_location(
     lat: float = Query(..., description="Latitude to evaluate"),
     lng: float = Query(..., description="Longitude to evaluate"),

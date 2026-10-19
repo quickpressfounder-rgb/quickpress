@@ -4,9 +4,9 @@ import { readSession } from "../api/core/session-store";
 import { isRiderApproved, isRiderOnboarded } from "../lib/auth-guard";
 
 export const Route = createFileRoute("/registration")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    resubmit: search?.resubmit === true || search?.resubmit === "true" || search?.resubmit === "1",
-    edit: search?.edit === true || search?.edit === "true" || search?.edit === "1",
+  validateSearch: (search: Record<string, unknown>): { resubmit?: boolean; edit?: boolean } => ({
+    resubmit: search?.resubmit ? search.resubmit === true || search.resubmit === "true" || search.resubmit === "1" : undefined,
+    edit: search?.edit ? search.edit === true || search.edit === "true" || search.edit === "1" : undefined,
   }),
   beforeLoad: ({ search }: { search: { resubmit?: boolean; edit?: boolean } }) => {
     if (typeof window === "undefined") return;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Bike,
@@ -22,7 +22,7 @@ import {
   CheckCircle2,
   ChevronRight,
 } from "lucide-react";
-import { LiveDeliveryMap, type GoogleMapLayerType } from "./LiveDeliveryMap";
+import { LiveDeliveryMap, type GoogleMapLayerType, type SurgeHotspot } from "./LiveDeliveryMap";
 import { fetchRiderHistory } from "../../api/rider/rider-orders-api";
 import { CaptainTripDetailView } from "../history/CaptainTripDetailView";
 import type { RiderHistoryEntry } from "../../shared/types/rider";
