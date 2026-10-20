@@ -488,3 +488,39 @@ export async function assignRiderPincodes(
   return await apiPostJson<any>(`/api/admin/riders/${encodeURIComponent(riderId)}/assign-pincodes`, payload);
 }
 
+export type ZomatoDispatchConfig = {
+  wave1RadiusKm: number;
+  wave2RadiusKm: number;
+  wave3RadiusKm: number;
+  wave1TimeoutSec: number;
+  wave2TimeoutSec: number;
+  architecture?: string;
+};
+
+export type LiveWaveItem = {
+  rideId: string;
+  orderId?: string;
+  orderCode?: string;
+  currentWave: number;
+  tierLabel: string;
+  waveCaptainsCount: number;
+  dispatchedAt: string;
+};
+
+export type LiveWavesResponse = {
+  activeCount: number;
+  liveWaves: LiveWaveItem[];
+};
+
+export async function fetchDispatchConfig(): Promise<ZomatoDispatchConfig> {
+  return await apiGetJson<ZomatoDispatchConfig>("/api/admin/dispatch/config");
+}
+
+export async function updateDispatchConfig(payload: Partial<ZomatoDispatchConfig>): Promise<ZomatoDispatchConfig> {
+  return await apiPatchJson<ZomatoDispatchConfig>("/api/admin/dispatch/config", payload);
+}
+
+export async function fetchLiveWaves(): Promise<LiveWavesResponse> {
+  return await apiGetJson<LiveWavesResponse>("/api/admin/dispatch/live-waves");
+}
+

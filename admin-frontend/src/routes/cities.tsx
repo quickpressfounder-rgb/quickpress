@@ -84,7 +84,9 @@ import {
   fetchStates,
   saveCity,
   saveState,
-  deleteCity,
+  fetchDispatchConfig,
+  updateDispatchConfig,
+  fetchLiveWaves,
   type AdminState,
   type CityIntelligence,
   type CityPincodesIntelligence,
@@ -93,6 +95,8 @@ import {
   type PincodeCaptain,
   type CityPartner,
   type CityCaptain,
+  type ZomatoDispatchConfig,
+  type LiveWaveItem,
 } from "../api/cities";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
@@ -174,11 +178,44 @@ export function CitiesPage() {
   const citiesQuery = useQuery({ queryKey: ["admin", "cities", "intelligence"], queryFn: fetchCitiesIntelligence });
   const statsQuery = useQuery({ queryKey: ["admin", "cities", "stats"], queryFn: fetchCityStats });
   const statesQuery = useQuery({ queryKey: ["admin", "states"], queryFn: fetchStates });
+  const dispatchConfigQuery = useQuery({ queryKey: ["admin", "dispatch", "config"], queryFn: fetchDispatchConfig, refetchInterval: 10000 });
+  const liveWavesQuery = useQuery({ queryKey: ["admin", "dispatch", "liveWaves"], queryFn: fetchLiveWaves, refetchInterval: 3000 });
 
-  const [activeTab, setActiveTab] = useState<"pincodes" | "cities" | "partners" | "riders" | "states">("pincodes");
+  const [activeTab, setActiveTab] = useState<"pincodes" | "cities" | "partners" | "riders" | "states" | "dispatch">("pincodes");
   const [selectedState, setSelectedState] = useState<string>("All States");
   const [selectedCityId, setSelectedCityId] = useState<string>("");
   const [selectedPincode, setSelectedPincode] = useState<string>("");
+
+  const [waveConfigState, setWaveConfigState] = useState<Partial<ZomatoDispatchConfig>>({
+    wave1RadiusKm: 1.8,
+    wave2RadiusKm: 4.0,
+    wave3RadiusKm: 8.0,
+    wave1TimeoutSec: 15,
+    wave2TimeoutSec: 15,
+  });
+
+  useEffect(() => {
+    if (dispatchConfigQuery.data) {
+      setWaveConfigState({
+        wave1RadiusKm: dispatchConfigQuery.data.wave1RadiusKm ?? 1.8,
+        wave2RadiusKm: dispatchConfigQuery.data.wave2RadiusKm ?? 4.0,
+        wave3RadiusKm: dispatchConfigQuery.data.wave3RadiusKm ?? 8.0,
+        wave1TimeoutSec: dispatchConfigQuery.data.wave1TimeoutSec ?? 15,
+        wave2TimeoutSec: dispatchConfigQuery.data.wave2TimeoutSec ?? 15,
+      });
+    }
+  }, [dispatchConfigQuery.data]);
+
+  const updateDispatchMutation = useMutation({
+    mutationFn: updateDispatchConfig,
+    onSuccess: (data) => {
+      toast.success("⚡ Zomato Pod & Wave Dispatch configuration updated!");
+      queryClient.setQueryData(["admin", "dispatch", "config"], data);
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to update dispatch parameters: ${err.message || err}`);
+    },
+  });
 
   // Modals state
   const [editingPincode, setEditingPincode] = useState<{ cityId: string; pincode: string; detail: PincodeDetail } | null>(null);
@@ -587,6 +624,9 @@ export function CitiesPage() {
                 </TabsTrigger>
                 <TabsTrigger value="states" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
                   🏛️ State Directory ({stateList.length})
+                </TabsTrigger>
+                <TabsTrigger value="dispatch" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
+                  ⚡ Zomato Pod Dispatch {Boolean(liveWavesQuery.data?.activeCount) && `(${liveWavesQuery.data?.activeCount} Active)`}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -1584,6 +1624,239 @@ export function CitiesPage() {
               ]}
             />
           </SectionCard>
+        )}
+
+        {/* =========================================================================
+            TAB 6: ZOMATO CONCENTRIC WAVE & MICRO-ZONE (POD) DISPATCH ENGINE
+        ========================================================================= */}
+        {activeTab === "dispatch" && (
+          <div className="space-y-6">
+            {/* Top KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard
+                title="Wave 1: Ultra-Local Pod"
+                value={`${waveConfigState.wave1RadiusKm ?? 1.8} km`}
+                subtitle={`${waveConfigState.wave1TimeoutSec ?? 15}s Priority Window (0–1.8km nearest captains)`}
+                icon={Zap}
+              />
+              <KpiCard
+                title="Wave 2: Neighboring Pods"
+                value={`${waveConfigState.wave2RadiusKm ?? 4.0} km`}
+                subtitle={`${waveConfigState.wave2TimeoutSec ?? 15}s Escalation Window if Wave 1 unclaimed`}
+                icon={Radio}
+              />
+              <KpiCard
+                title="Wave 3: Citywide Fleet"
+                value={`${waveConfigState.wave3RadiusKm ?? 8.0} km`}
+                subtitle="Outer fleet perimeter fallback for 100% fulfillment"
+                icon={Truck}
+              />
+              <KpiCard
+                title="Active Concentric Waves"
+                value={`${liveWavesQuery.data?.activeCount ?? 0} In-Flight`}
+                subtitle="Real-time multi-rider concentric ring dispatches"
+                icon={Activity}
+              />
+            </div>
+
+            {/* Config & Parameters Editor */}
+            <SectionCard
+              title="Zomato Concentric Wave Dispatch Configuration"
+              description="Adjust spatial micro-zone radii and escalation timeouts in real time without restarting backend services."
+              actions={
+                <Button
+                  onClick={() => updateDispatchMutation.mutate(waveConfigState)}
+                  disabled={updateDispatchMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  <Save className="size-4" />
+                  <span>{updateDispatchMutation.isPending ? "Saving Changes..." : "Save Dispatch Parameters"}</span>
+                </Button>
+              }
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-2">
+                {/* Wave 1 Settings */}
+                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-3 rounded-full bg-emerald-500 animate-pulse" />
+                    <h4 className="font-extrabold text-xs text-emerald-950 uppercase tracking-wider">
+                      Wave 1 (Ultra-Local Pod)
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    Exclusive priority window for captains closest to store or customer. Rings first for instant dispatch.
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-zinc-700">Radius Limit (km)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0.5"
+                      max="5.0"
+                      value={waveConfigState.wave1RadiusKm ?? 1.8}
+                      onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave1RadiusKm: parseFloat(e.target.value) || 1.8 }))}
+                      className="bg-white text-xs font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-zinc-700">Priority Timeout (seconds)</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      min="5"
+                      max="60"
+                      value={waveConfigState.wave1TimeoutSec ?? 15}
+                      onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave1TimeoutSec: parseInt(e.target.value, 10) || 15 }))}
+                      className="bg-white text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Wave 2 Settings */}
+                <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-3 rounded-full bg-amber-500" />
+                    <h4 className="font-extrabold text-xs text-amber-950 uppercase tracking-wider">
+                      Wave 2 (Neighboring Pods)
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Cascades outwards to adjacent sectors if no captain in Wave 1 accepts within the priority window.
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-zinc-700">Radius Limit (km)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="1.0"
+                      max="10.0"
+                      value={waveConfigState.wave2RadiusKm ?? 4.0}
+                      onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave2RadiusKm: parseFloat(e.target.value) || 4.0 }))}
+                      className="bg-white text-xs font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-zinc-700">Escalation Timeout (seconds)</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      min="5"
+                      max="60"
+                      value={waveConfigState.wave2TimeoutSec ?? 15}
+                      onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave2TimeoutSec: parseInt(e.target.value, 10) || 15 }))}
+                      className="bg-white text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Wave 3 Settings */}
+                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-3 rounded-full bg-blue-500" />
+                    <h4 className="font-extrabold text-xs text-blue-950 uppercase tracking-wider">
+                      Wave 3 (Outer Citywide Fleet)
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-blue-800 leading-relaxed">
+                    Full citywide perimeter fallback. Broadcasts to all active fleet captains to guarantee 100% fulfillment.
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-zinc-700">Radius Limit (km)</Label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="3.0"
+                      max="25.0"
+                      value={waveConfigState.wave3RadiusKm ?? 8.0}
+                      onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave3RadiusKm: parseFloat(e.target.value) || 8.0 }))}
+                      className="bg-white text-xs font-bold"
+                    />
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-blue-100/60 border border-blue-200 text-[11px] text-blue-900 font-medium mt-3">
+                    💡 <strong>Automatic Smart Promotion:</strong> If 0 captains are online in Wave 1, the engine immediately initiates Wave 2 with zero waiting.
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Live In-Flight Dispatch Waves Surveillance */}
+            <SectionCard
+              title="Live Concentric Wave Escalation Surveillance"
+              description="Real-time monitoring of in-flight trip dispatches escalating across micro-zone pods."
+              actions={
+                <Button
+                  onClick={() => liveWavesQuery.refetch()}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-bold h-8 rounded-xl flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`size-3.5 ${liveWavesQuery.isFetching ? "animate-spin" : ""}`} />
+                  <span>Refresh Waves</span>
+                </Button>
+              }
+            >
+              {liveWavesQuery.data?.liveWaves && liveWavesQuery.data.liveWaves.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-zinc-100 text-zinc-500 font-bold uppercase text-[10px]">
+                        <th className="py-3 px-4">Trip / Order Code</th>
+                        <th className="py-3 px-4">Current Wave</th>
+                        <th className="py-3 px-4">Micro-Zone Tier</th>
+                        <th className="py-3 px-4">Ringing Captains</th>
+                        <th className="py-3 px-4">Dispatched At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {liveWavesQuery.data.liveWaves.map((wave) => (
+                        <tr key={wave.rideId} className="hover:bg-zinc-50 transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-zinc-900">
+                            #{wave.orderCode || wave.rideId.slice(-6).toUpperCase()}
+                          </td>
+                          <td className="py-3 px-4">
+                            {wave.currentWave === 1 && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px]">
+                                🟢 Wave 1 (Ultra-Local)
+                              </span>
+                            )}
+                            {wave.currentWave === 2 && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[11px]">
+                                ⚡ Wave 2 (Neighboring)
+                              </span>
+                            )}
+                            {wave.currentWave >= 3 && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-extrabold text-[11px]">
+                                🛵 Wave 3 (Citywide)
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-zinc-700 capitalize">
+                            {wave.tierLabel.replace("_", " ")}
+                          </td>
+                          <td className="py-3 px-4 font-extrabold text-zinc-900">
+                            {wave.waveCaptainsCount} Captains
+                          </td>
+                          <td className="py-3 px-4 text-zinc-500">
+                            {new Date(wave.dispatchedAt).toLocaleTimeString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-12 flex flex-col items-center justify-center text-center p-6 space-y-2">
+                  <div className="size-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <CheckCircle2 className="size-6" />
+                  </div>
+                  <h4 className="font-extrabold text-sm text-zinc-900">All Micro-Zones Dispatched & Claimed</h4>
+                  <p className="text-xs text-zinc-500 max-w-sm">
+                    No active concentric wave timers currently escalating. Orders are either claimed by nearby captains or awaiting customer checkout.
+                  </p>
+                </div>
+              )}
+            </SectionCard>
+          </div>
         )}
       </div>
 

@@ -1047,170 +1047,14 @@ class Smart2RideEngine:
             .replace("+00:00", "Z")
         )
 
-        is_express = bool(ride.get("isExpress"))
-        rider_express_bonus = float(ride.get("riderExpressBonus") or 0.0)
-        express_share_pct = float(ride.get("expressRiderSharePercent") or 80.0)
-        express_fee = float(ride.get("expressFee") or 0.0)
-        base_fare = ride.get("fare") or ride.get("estimatedEarning", 45)
-
-        # 1. INSTANT BROADCAST TO ALL ONLINE CAPTAINS (Zero-Latency Alert Bell & Siren)
-        broadcast_payload = {
-            "offerId": f"off-{ride_id}-broadcast",
-            "rideId": ride_id,
-            "orderId": order_id,
-            "orderCode": ride.get("orderCode"),
-            "rideType": ride_type,
-            "type": ride_type,
-            "fare": base_fare,
-            "estimatedEarning": base_fare,
-            "pickupAddress": target_loc.get("address") or "Customer Pickup Location",
-            "dropAddress": (ride.get("dropLocation") or {}).get("address") or "QuickPress Store",
-            "pickupTitle": (ride.get("pickupLocation") or {}).get("contactName") or "Pickup",
-            "dropTitle": (ride.get("dropLocation") or {}).get("contactName") or "Drop",
-            "customerName": target_loc.get("contactName") or "Customer",
-            "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
-            "distanceKm": round(float(ride.get("distanceKm") or 2.0), 1),
-            "isExpress": is_express,
-            "riderExpressBonus": rider_express_bonus,
-            "createdAt": now,
-            "autoAssigned": False,
-        }
-        await sio.emit("order.rider_offer", broadcast_payload, room="riders")
-        await sio.emit("new_order_offer", broadcast_payload, room="riders")
-
-        # 2. Targeted emissions to specific online captains immediately
-        async def _persist_and_notify_rider(best_rider: dict, best_dist: float) -> None:
-            r_id = str(best_rider.get("_id") or best_rider.get("riderId") or best_rider.get("id") or "")
-            offer_id = f"off-{ride_id}-{r_id}"
-
-            offer_doc = {
-                "_id": offer_id,
-                "offerId": offer_id,
-                "rideId": ride_id,
-                "orderId": order_id,
-                "orderCode": ride.get("orderCode"),
-                "rideType": ride_type,
-                "type": ride_type,
-                "riderId": r_id,
-                "status": "pending",
-                "distanceKm": round(best_dist, 1),
-                "estimatedEarning": base_fare,
-                "fare": base_fare,
-                "isExpress": is_express,
-                "expressFee": express_fee,
-                "riderExpressBonus": rider_express_bonus,
-                "expressRiderSharePercent": express_share_pct,
-                "isReassigned": ride.get("isReassigned", False),
-                "isReassignedBonus": ride.get("isReassignedBonus", False),
-                "extraBonusPercent": ride.get("extraBonusPercent", 0),
-                "extraBonusAmount": rider_express_bonus if is_express else ride.get("extraBonusAmount", 0),
-                "pickupAddress": target_loc.get("address"),
-                "dropAddress": (ride.get("dropLocation") or {}).get("address"),
-                "customerName": target_loc.get("contactName") or "Customer",
-                "customerPhone": mask_phone(target_loc.get("contactPhone") or ""),
-                "customerPhoneMasked": mask_phone(target_loc.get("contactPhone") or ""),
-                "isNumberMasked": True,
-                "virtualCallAvailable": True,
-                "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
-                "partnerPhone": (ride.get("dropLocation") or {}).get("contactPhone") or "",
-                "createdAt": now,
-                "expiresAt": expires_at,
-                "timeoutSeconds": timeout_sec,
-            }
-
-            # Send targeted socket offer to rider across all room aliases
-            socket_rooms = [f"rider:{r_id}"]
-            r_phone = str(best_rider.get("phone") or "").replace("+", "").strip()
-            if r_phone:
-                socket_rooms.extend([f"rider:{r_phone}", f"rider:+{r_phone}"])
-            r_uid = str(best_rider.get("userId") or "").strip()
-            if r_uid:
-                socket_rooms.append(f"rider:{r_uid}")
-
-            for s_room in socket_rooms:
-                await sio.emit("order.rider_offer", offer_doc, room=s_room)
-                await sio.emit("new_order_offer", offer_doc, room=s_room)
-
-            # Persist offer docs concurrently
-            await asyncio.gather(
-                database.collection(RIDE_ASSIGNMENTS_COLLECTION).update_one(
-                    {"_id": offer_id},
-                    {"$set": {k: v for k, v in offer_doc.items() if k != "_id"}},
-                    upsert=True,
-                ),
-                database.collection("rider_offers").update_one(
-                    {"_id": offer_id},
-                    {"$set": {k: v for k, v in offer_doc.items() if k != "_id"}},
-                    upsert=True,
-                ),
-                return_exceptions=True,
-            )
-
-            if is_express:
-                notif_title = "⚡ Express Laundry Pickup Trip"
-                notif_msg = f"⚡ EXPRESS Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away)! Earn ₹{base_fare} (+₹{int(round(rider_express_bonus))} Express Bonus)!"
-            else:
-                notif_title = "New Laundry Pickup Trip" if ride_type == "pickup" else "New Laundry Delivery Trip"
-                notif_msg = f"Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away). Earn ₹{base_fare} — Fastest acceptance wins!"
-
-            await database.collection(NOTIFICATIONS_COLLECTION).update_one(
-                {"_id": f"notif-{offer_id}"},
-                {
-                    "$set": {
-                        "riderId": r_id,
-                        "orderId": order_id,
-                        "rideId": ride_id,
-                        "type": "new_order_offer",
-                        "title": notif_title,
-                        "message": notif_msg,
-                        "createdAt": now,
-                        "read": False,
-                    }
-                },
-                upsert=True,
-            )
-
-            # Push notification in background
-            try:
-                from app.services.order_notifications import _dispatch_external_pushes
-                await _dispatch_external_pushes(
-                    r_id,
-                    title=notif_title,
-                    body=notif_msg,
-                    deep_link="/orders",
-                    data={"orderId": str(order_id), "rideId": str(ride_id), "type": "new_order_offer"},
-                    role="rider",
-                )
-            except Exception:
-                pass
-
-        # Concurrently dispatch to all ranked riders
-        dispatched_count = len(ranked_riders)
-        if ranked_riders:
-            await asyncio.gather(
-                *[_persist_and_notify_rider(best_rider, best_dist) for best_rider, best_dist in ranked_riders],
-                return_exceptions=True,
-            )
-
-        # Log Automation Event: Auto-Dispatch Broadcast
-        try:
-            from app.db.automation_repositories import automation_repository
-            await automation_repository.log_event(
-                automation_type="dispatch",
-                title=f"Auto-Dispatched {ride_type.upper()} Ride ({dispatched_count} Captains)",
-                description=f"Radial search dispatched {ride_type} offer for #{ride.get('orderCode')} to {dispatched_count} eligible captains.",
-                order_id=order_id,
-                order_code=ride.get("orderCode"),
-                severity="info",
-                metadata={
-                    "rideId": ride_id,
-                    "rideType": ride_type,
-                    "dispatchedCount": dispatched_count,
-                    "timeoutSeconds": timeout_sec,
-                },
-            )
-        except Exception as auto_err:
-            logger.debug(f"[Automation] Dispatch log error: {auto_err}")
+        # Delegate to Zomato-Style Concentric Wave Dispatch Engine
+        from app.services.zomato_dispatch_engine import zomato_dispatch_engine
+        await zomato_dispatch_engine.start_concentric_wave_dispatch(
+            ride_id=ride_id,
+            order_id=order_id,
+            ride=ride,
+            ranked_riders=ranked_riders,
+        )
 
         # Update ride record state only if still searching/unclaimed (do not overwrite if already ACCEPTED)
         await database.collection(RIDES_COLLECTION).update_one(
@@ -1219,16 +1063,16 @@ class Smart2RideEngine:
                 "$set": {
                     "status": "OFFER_SENT",
                     "offeredRiderId": ranked_riders[0][0].get("_id") if ranked_riders else None,
-                    "dispatchedRidersCount": dispatched_count,
+                    "dispatchedRidersCount": len(ranked_riders),
                     "updatedAt": now,
                 }
             },
         )
         logger.info(
-            "⚡ Flash Broadcast %s Ride %s to %d online Captains simultaneously.",
+            "⚡ [Zomato Wave Dispatch] Initiated for %s Ride %s across %d eligible Captains.",
             ride_type,
             ride_id,
-            dispatched_count,
+            len(ranked_riders),
         )
 
     # -------------------------------------------------------------------------
@@ -1253,6 +1097,10 @@ class Smart2RideEngine:
             if ride_id in self._active_timers:
                 self._active_timers[ride_id].cancel()
                 self._active_timers.pop(ride_id, None)
+
+            # Cancel any pending wave escalation timers immediately!
+            from app.services.zomato_dispatch_engine import zomato_dispatch_engine
+            zomato_dispatch_engine.cancel_dispatch(ride_id)
 
             now = lifecycle.now_iso()
             rider_profile = await database.find_one(RIDERS_COLLECTION, {"_id": rider_id}) or {}

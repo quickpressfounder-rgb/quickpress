@@ -1049,6 +1049,27 @@ async def update_city_pincode(city_id: str, pincode: str, payload: dict, user: U
     return city
 
 
+@router.get("/dispatch/config")
+async def get_dispatch_config(user: User = Depends(current_user)):
+    from app.services.zomato_dispatch_engine import zomato_dispatch_engine
+    return zomato_dispatch_engine.get_config()
+
+
+@router.patch("/dispatch/config")
+async def update_dispatch_config(payload: dict, user: User = Depends(current_user)):
+    from app.services.zomato_dispatch_engine import zomato_dispatch_engine
+    cfg = zomato_dispatch_engine.update_config(payload)
+    await audit_repository.log(await _actor(user), "dispatch.update_config", "global", payload)
+    return cfg
+
+
+@router.get("/dispatch/live-waves")
+async def get_live_dispatch_waves(user: User = Depends(current_user)):
+    from app.services.zomato_dispatch_engine import zomato_dispatch_engine
+    return zomato_dispatch_engine.get_live_waves()
+
+
+
 @router.delete("/cities/{city_id}/pincodes/{pincode}")
 async def delete_city_pincode(city_id: str, pincode: str, user: User = Depends(current_user)):
     city = await city_repository.delete_pincode(city_id, pincode)

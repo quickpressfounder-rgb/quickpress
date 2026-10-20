@@ -53,6 +53,12 @@ export interface FlashOfferData {
   partnerCoords?: { lat: number; lng: number };
   pickupCoords?: { lat: number; lng: number };
   dropCoords?: { lat: number; lng: number };
+  // Zomato Pod & Wave Dispatch properties
+  wave?: number;
+  proximityTier?: "ultra_local" | "nearby_zone" | "outer_city" | string;
+  proximityBadge?: string;
+  estimatedArrivalMinutes?: number;
+  waveTimeoutSeconds?: number;
 }
 
 interface FlashTripOfferModalProps {
@@ -216,11 +222,49 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (timeLeft / TOTAL_COUNTDOWN_SECONDS) * circumference;
 
+  // Zomato Concentric Wave & Micro-Zone (Pod) Badge
+  const waveNumber = offer.wave || (pickupDist <= 1.8 ? 1 : pickupDist <= 4.0 ? 2 : 3);
+  const etaMins = offer.estimatedArrivalMinutes || Math.max(2, Math.round(pickupDist * 2.8));
+  const waveBadgeConfig = {
+    1: {
+      badgeText: offer.proximityBadge || `🟢 Ultra-Local • ${pickupDist} km (~${etaMins} min arrival)`,
+      subText: "Priority Pod: Fast pickup near you",
+      pillClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      dotClass: "bg-emerald-500 animate-pulse",
+    },
+    2: {
+      badgeText: offer.proximityBadge || `⚡ Nearby Zone • ${pickupDist} km (~${etaMins} min arrival)`,
+      subText: "Neighboring Zone: Cascaded to nearby fleet",
+      pillClass: "bg-amber-50 text-amber-700 border-amber-200",
+      dotClass: "bg-amber-500",
+    },
+    3: {
+      badgeText: offer.proximityBadge || `🛵 Citywide Fleet • ${pickupDist} km (~${etaMins} min arrival)`,
+      subText: "Citywide Fleet Dispatch",
+      pillClass: "bg-blue-50 text-blue-700 border-blue-200",
+      dotClass: "bg-blue-500",
+    },
+  }[waveNumber as 1 | 2 | 3] || {
+    badgeText: `🟢 Fast Dispatch • ${pickupDist} km`,
+    subText: "Nearest Captain Dispatch",
+    pillClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    dotClass: "bg-emerald-500",
+  };
+
   return (
     <div className="fixed inset-x-0 top-3 z-[9999] flex justify-center px-3 sm:px-4 pointer-events-none select-none animate-in fade-in slide-in-from-top-4 duration-300">
       {/* Exact Card from Video (Frame 00:02 - 00:07) */}
       <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.18)] border border-zinc-200/90 p-4 text-zinc-900 pointer-events-auto flex flex-col gap-3 font-sans">
         
+        {/* Zomato Wave Proximity Pill Banner */}
+        <div className={`flex items-center justify-between px-3 py-1 rounded-xl border text-[11px] font-semibold ${waveBadgeConfig.pillClass}`}>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`size-2 rounded-full shrink-0 ${waveBadgeConfig.dotClass}`} />
+            <span className="font-bold truncate">{waveBadgeConfig.badgeText}</span>
+          </div>
+          <span className="text-[10px] opacity-80 shrink-0 pl-1 font-semibold">Wave {waveNumber}</span>
+        </div>
+
         {/* Row 1: Vehicle Badge + Big Fare Price + Sound */}
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
