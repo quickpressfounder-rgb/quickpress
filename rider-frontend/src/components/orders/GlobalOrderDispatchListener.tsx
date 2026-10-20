@@ -123,6 +123,8 @@ export const GlobalOrderDispatchListener: React.FC = () => {
         proximityBadge: offer.proximityBadge,
         estimatedArrivalMinutes: offer.estimatedArrivalMinutes !== undefined ? Number(offer.estimatedArrivalMinutes) : undefined,
         waveTimeoutSeconds: offer.waveTimeoutSeconds !== undefined ? Number(offer.waveTimeoutSeconds) : undefined,
+        fareBreakdown: offer.fareBreakdown,
+        fareBreakdownText: offer.fareBreakdownText || (offer.fareBreakdown ? offer.fareBreakdown.breakdownText : undefined),
       };
 
       // Trigger Flash Offer Modal (FlashTripOfferModal handles the siren, language speech, and countdown)

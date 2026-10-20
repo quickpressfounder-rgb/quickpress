@@ -332,37 +332,57 @@ class FinancialEngine:
         city: str = "",
     ) -> RiderTripFareResult:
         """Calculates precise trip fare, distance rate, surge, and tips for a rider."""
-        city_lower = (city or "").strip().lower()
-        is_tier_1 = city_lower in TIER_1_CITIES
+        try:
+            from app.services.distance_rate_engine import distance_rate_engine
+            fare_breakdown = distance_rate_engine.calculate_trip_fare(
+                distance_km=distance_km,
+                is_rain=is_rain,
+                waiting_minutes=waiting_minutes,
+                city=city,
+            )
+            tip = max(0.0, float(tip_amount or 0.0))
+            return RiderTripFareResult(
+                baseFare=fare_breakdown.baseFare,
+                distanceKm=fare_breakdown.distanceKm,
+                distanceFare=fare_breakdown.distanceFare,
+                surgeAmount=fare_breakdown.surgeFee + fare_breakdown.nightFee,
+                surgeReason=fare_breakdown.surgeReason if not fare_breakdown.isNight else f"{fare_breakdown.surgeReason}, Late Night",
+                waitingFare=fare_breakdown.waitingFare,
+                tipAmount=tip,
+                totalTripEarnings=round(fare_breakdown.totalFare + tip, 2),
+                dailyIncentiveEligible=True,
+            )
+        except Exception:
+            city_lower = (city or "").strip().lower()
+            is_tier_1 = city_lower in TIER_1_CITIES
 
-        base = 35.0 if is_tier_1 else float(self.config["riderBaseFare"])
-        per_km = float(self.config["riderPerKmRate"])
-        dist = max(0.5, float(distance_km or 2.5))
-        distance_fare = round(dist * per_km, 2)
+            base = 35.0 if is_tier_1 else float(self.config["riderBaseFare"])
+            per_km = float(self.config["riderPerKmRate"])
+            dist = max(0.5, float(distance_km or 2.5))
+            distance_fare = round(dist * per_km, 2)
 
-        # Surge pricing permanently disabled across platform
-        surge_amount = 0.0
-        surge_reasons = []
+            surge_amount = 0.0
+            surge_reasons = []
 
-        waiting_fare = 0.0
-        if waiting_minutes > 10:
-            extra_mins = waiting_minutes - 10
-            waiting_fare = round(extra_mins * float(self.config["riderWaitingFeePerMin"]), 2)
+            waiting_fare = 0.0
+            if waiting_minutes > 10:
+                extra_mins = waiting_minutes - 10
+                waiting_fare = round(extra_mins * float(self.config["riderWaitingFeePerMin"]), 2)
 
-        tip = max(0.0, float(tip_amount or 0.0))
-        total_fare = round(base + distance_fare + surge_amount + waiting_fare + tip, 2)
+            tip = max(0.0, float(tip_amount or 0.0))
+            total_fare = round(base + distance_fare + surge_amount + waiting_fare + tip, 2)
 
-        return RiderTripFareResult(
-            baseFare=base,
-            distanceKm=dist,
-            distanceFare=distance_fare,
-            surgeAmount=surge_amount,
-            surgeReason=", ".join(surge_reasons) if surge_reasons else "Normal Traffic",
-            waitingFare=waiting_fare,
-            tipAmount=tip,
-            totalTripEarnings=total_fare,
-            dailyIncentiveEligible=True,
-        )
+            return RiderTripFareResult(
+                baseFare=base,
+                distanceKm=dist,
+                distanceFare=distance_fare,
+                surgeAmount=surge_amount,
+                surgeReason=", ".join(surge_reasons) if surge_reasons else "Normal Traffic",
+                waitingFare=waiting_fare,
+                tipAmount=tip,
+                totalTripEarnings=total_fare,
+                dailyIncentiveEligible=True,
+            )
 
     def compute_daily_incentives(self, completed_trips_today: int) -> Dict[str, Any]:
         """Calculates rider daily target progression and bonus unlock status."""

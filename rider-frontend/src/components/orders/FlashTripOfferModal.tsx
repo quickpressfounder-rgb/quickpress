@@ -53,12 +53,14 @@ export interface FlashOfferData {
   partnerCoords?: { lat: number; lng: number };
   pickupCoords?: { lat: number; lng: number };
   dropCoords?: { lat: number; lng: number };
-  // Zomato Pod & Wave Dispatch properties
   wave?: number;
   proximityTier?: "ultra_local" | "nearby_zone" | "outer_city" | string;
   proximityBadge?: string;
   estimatedArrivalMinutes?: number;
   waveTimeoutSeconds?: number;
+  // Distance Rate Engine fare breakdown
+  fareBreakdown?: any;
+  fareBreakdownText?: string;
 }
 
 interface FlashTripOfferModalProps {
@@ -283,6 +285,13 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
                 + ₹{bonus}
               </span>
             </div>
+
+            {/* Itemized Fare Rate Breakdown from Distance Rate Engine */}
+            {offer.fareBreakdownText && (
+              <div className="text-[10px] font-semibold text-zinc-600 bg-zinc-100/80 px-2 py-0.5 rounded-md border border-zinc-200/60 w-fit mt-1">
+                🧾 {offer.fareBreakdownText}
+              </div>
+            )}
           </div>
 
           {/* Sound Toggle */}

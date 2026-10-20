@@ -353,6 +353,8 @@ class ZomatoDispatchEngine:
             "proximityTier": tier_label,
             "proximityBadge": f"{badge_prefix} • Wave {wave_num}",
             "waveTimeoutSeconds": self.wave_1_timeout_sec if wave_num == 1 else self.wave_2_timeout_sec,
+            "fareBreakdown": ride.get("fareBreakdown"),
+            "fareBreakdownText": (ride.get("fareBreakdown") or {}).get("breakdownText"),
         }
 
         # Emit to global riders channel
@@ -387,6 +389,8 @@ class ZomatoDispatchEngine:
                 "expressFee": express_fee,
                 "riderExpressBonus": rider_express_bonus,
                 "expressRiderSharePercent": express_share_pct,
+                "fareBreakdown": ride.get("fareBreakdown"),
+                "fareBreakdownText": (ride.get("fareBreakdown") or {}).get("breakdownText"),
                 "pickupAddress": target_loc.get("address"),
                 "dropAddress": drop_loc.get("address"),
                 "customerName": target_loc.get("contactName") or "Customer",

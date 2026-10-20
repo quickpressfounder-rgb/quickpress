@@ -273,13 +273,20 @@ class Smart2RideEngine:
         partner_phone = partner.get("phone") or ""
         drop_addr = partner.get("address") or "QuickPress Partner Store"
 
-        # Calculate trip distance and dynamic fare
+        # Calculate trip distance and dynamic fare using Master Distance Rate Engine
         distance_km = max(0.5, haversine_distance_km(cust_lat, cust_lng, p_lat, p_lng))
         partner_city = str((partner or {}).get("city") or "").strip()
         city_raw = str(addr.get("city") or order.get("city") or partner_city or "")
         clean_city = extract_clean_city(city_raw) or extract_clean_city(partner_city) or normalize_city_name(city_raw) or normalize_city_name(partner_city) or ""
-        fare_calc = financial_engine.compute_rider_trip_fare(distance_km=distance_km, city=clean_city.title())
-        base_pickup_earning = max(35, int(round(fare_calc.totalTripEarnings)))
+        
+        from app.services.distance_rate_engine import distance_rate_engine
+        fare_calc = distance_rate_engine.calculate_trip_fare(
+            distance_km=distance_km,
+            is_rain=bool(order.get("isRain")),
+            is_express=bool(order.get("isExpress")),
+            city=clean_city.title(),
+        )
+        base_pickup_earning = max(30, int(round(fare_calc.totalFare)))
 
         # Extract Express Pickup & Bonus allocations from parent order
         is_express = bool(order.get("isExpress") or (order.get("pickup") or {}).get("express"))
@@ -343,6 +350,7 @@ class Smart2RideEngine:
             "estimatedEarning": pickup_earning,
             "fare": pickup_earning,
             "baseFare": base_pickup_earning,
+            "fareBreakdown": fare_calc.to_dict(),
             "otp": {
                 "pickup": pickup_otp,
                 "handover": handover_otp,
@@ -466,8 +474,15 @@ class Smart2RideEngine:
         partner_city = str((partner or {}).get("city") or "").strip()
         city_raw = str(addr.get("city") or order.get("city") or partner_city or "")
         clean_city = extract_clean_city(city_raw) or extract_clean_city(partner_city) or normalize_city_name(city_raw) or normalize_city_name(partner_city) or ""
-        fare_calc = financial_engine.compute_rider_trip_fare(distance_km=distance_km, city=clean_city.title())
-        delivery_earning = max(35, int(round(fare_calc.totalTripEarnings)))
+        
+        from app.services.distance_rate_engine import distance_rate_engine
+        fare_calc = distance_rate_engine.calculate_trip_fare(
+            distance_km=distance_km,
+            is_rain=bool(order.get("isRain")),
+            is_express=bool(order.get("isExpress")),
+            city=clean_city.title(),
+        )
+        delivery_earning = max(30, int(round(fare_calc.totalFare)))
 
         # Preserve existing dispatch and delivery OTPs if already generated
         existing_dispatch = (order.get("otp") or {}).get("dispatch")
@@ -572,6 +587,7 @@ class Smart2RideEngine:
             "distanceKm": distance_km,
             "estimatedEarning": delivery_earning,
             "fare": delivery_earning,
+            "fareBreakdown": fare_calc.to_dict(),
             "isReassigned": is_reassigned,
             "isReassignedBonus": has_opted_out,
             "extraBonusPercent": extra_bonus_percent,

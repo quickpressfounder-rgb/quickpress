@@ -1069,6 +1069,34 @@ async def get_live_dispatch_waves(user: User = Depends(current_user)):
     return zomato_dispatch_engine.get_live_waves()
 
 
+@router.get("/fare-engine/config")
+async def get_fare_engine_config(user: User = Depends(current_user)):
+    from app.services.distance_rate_engine import distance_rate_engine
+    return distance_rate_engine.get_config()
+
+
+@router.put("/fare-engine/config")
+async def update_fare_engine_config(payload: dict, user: User = Depends(current_user)):
+    from app.services.distance_rate_engine import distance_rate_engine
+    cfg = await distance_rate_engine.update_config(payload)
+    await audit_repository.log(await _actor(user), "fare_engine.update_config", "global", payload)
+    return cfg
+
+
+@router.post("/fare-engine/simulate")
+async def simulate_fare_calculation(payload: dict, user: User = Depends(current_user)):
+    from app.services.distance_rate_engine import distance_rate_engine
+    return distance_rate_engine.simulate_fare(payload)
+
+
+@router.post("/fare-engine/reset-defaults")
+async def reset_fare_engine_defaults(user: User = Depends(current_user)):
+    from app.services.distance_rate_engine import distance_rate_engine
+    cfg = await distance_rate_engine.reset_defaults()
+    await audit_repository.log(await _actor(user), "fare_engine.reset_defaults", "global")
+    return cfg
+
+
 
 @router.delete("/cities/{city_id}/pincodes/{pincode}")
 async def delete_city_pincode(city_id: str, pincode: str, user: User = Depends(current_user)):

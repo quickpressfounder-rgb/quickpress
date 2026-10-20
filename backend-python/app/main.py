@@ -103,6 +103,13 @@ async def lifespan(app: FastAPI):
     from app.core.async_queue import async_task_queue
     await async_task_queue.start(num_workers=4)
 
+    # Initialize Master Distance Rate & Dynamic Fare Calculation Engine
+    try:
+        from app.services.distance_rate_engine import distance_rate_engine
+        await distance_rate_engine.initialize()
+    except Exception as d_err:
+        logger.warning("DistanceRateEngine init warning: %s", d_err)
+
     # Start Background Order Timeline SLA Engine (5m Partner SLA / 2m Rider SLA)
     from app.services.order_timeline_engine import order_timeline_engine
     order_timeline_engine.start(interval_seconds=5)

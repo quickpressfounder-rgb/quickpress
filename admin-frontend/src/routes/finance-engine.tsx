@@ -44,8 +44,20 @@ import {
   CalendarCheck,
   ArrowRight,
   Wallet,
+  Navigation,
+  CloudRain,
+  Moon,
+  Timer,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  fetchFareEngineConfig,
+  updateFareEngineConfig,
+  simulateFareCalculation,
+  resetFareEngineConfig,
+  type DistanceRateConfig,
+  type FareBreakdownResult,
+} from "@/api/fare-engine";
 
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -931,6 +943,7 @@ export function FinanceEnginePage() {
   // Sub-tab under rules (9 Dedicated Modules + Versioning & Legacy Aliases)
   const [rulesSubTab, setRulesSubTab] = useState<
     | "service-pricing"
+    | "distance-fare"
     | "delivery"
     | "commission"
     | "gst"
@@ -1026,6 +1039,94 @@ export function FinanceEnginePage() {
       toast.error(err?.message || "Failed to update loyalty campaign configuration");
     },
   });
+
+  // Master Distance Rate & Dynamic Fare Engine State
+  const fareEngineQuery = useQuery({
+    queryKey: ["finance", "fareEngineConfig"],
+    queryFn: fetchFareEngineConfig,
+  });
+
+  const [fareEngineForm, setFareEngineForm] = useState<Partial<DistanceRateConfig>>({
+    baseFare: 35,
+    baseDistanceKm: 2.0,
+    extraKmRate: 8.0,
+    minimumFare: 30,
+    maximumFareCap: 600,
+    surgeEnabled: true,
+    surgeMultiplier: 1.0,
+    rainSurgeFee: 20,
+    peakHourSurgeFee: 15,
+    lateNightEnabled: true,
+    lateNightFee: 25,
+    lateNightStartTime: "22:00",
+    lateNightEndTime: "06:00",
+    waitingEnabled: true,
+    freeWaitingMinutes: 5,
+    waitingFeePerMinute: 2.0,
+    expressBonus: 25.0,
+    vehicleTypeMultipliers: {
+      bike: 1.0,
+      electric_bike: 1.0,
+      bicycle: 0.85,
+      auto: 1.25,
+      cargo: 1.5,
+    },
+  });
+
+  useEffect(() => {
+    if (fareEngineQuery.data) {
+      setFareEngineForm(fareEngineQuery.data);
+    }
+  }, [fareEngineQuery.data]);
+
+  const updateFareEngineMutation = useMutation({
+    mutationFn: updateFareEngineConfig,
+    onSuccess: (data) => {
+      toast.success("⚡ Master Distance Rate & Dynamic Fare Engine updated successfully!");
+      setFareEngineForm(data);
+      queryClient.setQueryData(["finance", "fareEngineConfig"], data);
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to update fare engine: ${err.message || err}`);
+    },
+  });
+
+  const resetFareEngineMutation = useMutation({
+    mutationFn: resetFareEngineConfig,
+    onSuccess: (data) => {
+      toast.info("Factory default fare rates restored.");
+      setFareEngineForm(data);
+      queryClient.setQueryData(["finance", "fareEngineConfig"], data);
+    },
+  });
+
+  // Interactive Live Trip Fare Simulator State
+  const [simDistance, setSimDistance] = useState<number>(3.5);
+  const [simIsNight, setSimIsNight] = useState<boolean>(false);
+  const [simIsRain, setSimIsRain] = useState<boolean>(false);
+  const [simIsExpress, setSimIsExpress] = useState<boolean>(false);
+  const [simWaitingMinutes, setSimWaitingMinutes] = useState<number>(0);
+  const [simVehicle, setSimVehicle] = useState<string>("bike");
+  const [simResult, setSimResult] = useState<FareBreakdownResult | null>(null);
+
+  const simulateFareMutation = useMutation({
+    mutationFn: simulateFareCalculation,
+    onSuccess: (data) => {
+      setSimResult(data);
+    },
+  });
+
+  // Trigger live simulation when inputs change
+  useEffect(() => {
+    simulateFareMutation.mutate({
+      distanceKm: simDistance,
+      timeOfDay: simIsNight ? "23:30" : "14:00",
+      isRain: simIsRain,
+      isExpress: simIsExpress,
+      waitingMinutes: simWaitingMinutes,
+      vehicleType: simVehicle,
+    });
+  }, [simDistance, simIsNight, simIsRain, simIsExpress, simWaitingMinutes, simVehicle, fareEngineForm]);
 
   // Local editable rules copy initialized immediately so inputs are NEVER null/locked
   const [editableRules, setEditableRules] = useState<any>(DEFAULT_FINANCIAL_RULES);
@@ -1658,38 +1759,42 @@ export function FinanceEnginePage() {
 
             {/* Sub Tabs */}
             <Tabs value={rulesSubTab} onValueChange={(v) => setRulesSubTab(v as any)}>
-              <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1 bg-zinc-100 p-1.5 rounded-xl h-auto border border-zinc-200/80">
+              <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-1 bg-zinc-100 p-1.5 rounded-xl h-auto border border-zinc-200/80">
                 <TabsTrigger value="service-pricing" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
                   <Sparkles className="size-3.5 mr-1 text-emerald-600" />
-                  1. Base Pricing & Fees
+                  1. Base Pricing
+                </TabsTrigger>
+                <TabsTrigger value="distance-fare" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs">
+                  <Navigation className="size-3.5 mr-1 text-emerald-600" />
+                  2. Distance Fare
                 </TabsTrigger>
                 <TabsTrigger value="delivery" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-sky-700 data-[state=active]:shadow-xs">
                   <Truck className="size-3.5 mr-1 text-sky-600" />
-                  2. Delivery
+                  3. Delivery
                 </TabsTrigger>
                 <TabsTrigger value="commission" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-xs">
                   <Percent className="size-3.5 mr-1 text-amber-600" />
-                  3. Commission
+                  4. Commission
                 </TabsTrigger>
                 <TabsTrigger value="gst" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs">
                   <Receipt className="size-3.5 mr-1 text-purple-600" />
-                  4. Tax / GST
+                  5. Tax / GST
                 </TabsTrigger>
                 <TabsTrigger value="cancellation" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-orange-700 data-[state=active]:shadow-xs">
                   <RotateCcw className="size-3.5 mr-1 text-orange-600" />
-                  5. Refunds
+                  6. Refunds
                 </TabsTrigger>
                 <TabsTrigger value="rider-incentives" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-xs">
                   <Bike className="size-3.5 mr-1 text-teal-600" />
-                  6. Riders
+                  7. Riders
                 </TabsTrigger>
                 <TabsTrigger value="settlement" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs">
                   <Building2 className="size-3.5 mr-1 text-indigo-600" />
-                  7. Settlement
+                  8. Settlement
                 </TabsTrigger>
                 <TabsTrigger value="versioning" className="text-xs font-bold py-2 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs">
                   <Clock className="size-3.5 mr-1 text-zinc-600" />
-                  8. Versioning
+                  9. Versioning
                 </TabsTrigger>
               </TabsList>
 
@@ -1891,6 +1996,600 @@ export function FinanceEnginePage() {
                     </div>
                   </div>
                 </SectionCard>
+              </TabsContent>
+
+              {/* =========================================================================
+                  MODULE: MASTER DISTANCE RATE & DYNAMIC FARE ENGINE
+                 ========================================================================= */}
+              <TabsContent value="distance-fare" className="mt-4 space-y-6">
+                {/* Header Banner */}
+                <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-zinc-900 text-white rounded-2xl p-6 shadow-lg border border-emerald-700/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300">
+                        <Navigation className="size-5" />
+                      </span>
+                      <h2 className="text-xl font-black tracking-tight">
+                        Master Distance Rate & Dynamic Fare Engine
+                      </h2>
+                      <Badge className="bg-emerald-500 text-emerald-950 font-black text-[10px] tracking-wide">
+                        LIVE PRICING
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-zinc-300 max-w-2xl leading-relaxed">
+                      Enterprise dynamic fare calculation algorithm with Admin controls for Base Distance, Extra KM Slabs, Weather & Peak Rush Surge, Late Night Surcharges, and Doorstep Waiting Compensation.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resetFareEngineMutation.mutate()}
+                      disabled={resetFareEngineMutation.isPending}
+                      className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 text-xs font-bold"
+                    >
+                      <RotateCcw className="size-3.5 mr-1.5" />
+                      Reset Defaults
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => updateFareEngineMutation.mutate(fareEngineForm)}
+                      disabled={updateFareEngineMutation.isPending}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xs shadow-md shadow-emerald-900/50"
+                    >
+                      {updateFareEngineMutation.isPending ? (
+                        <RefreshCw className="size-3.5 mr-1.5 animate-spin" />
+                      ) : (
+                        <Save className="size-3.5 mr-1.5" />
+                      )}
+                      Save Fare Rates
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 4 Top KPI Highlights */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-2xs">
+                    <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Base Tariff</div>
+                    <div className="text-2xl font-black text-zinc-900 mt-1">
+                      ₹{fareEngineForm.baseFare}
+                      <span className="text-xs font-semibold text-zinc-500 ml-1">/ first {fareEngineForm.baseDistanceKm} km</span>
+                    </div>
+                    <div className="text-[11px] text-emerald-600 font-semibold mt-1">
+                      Floor Guarantee: ₹{fareEngineForm.minimumFare}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-2xs">
+                    <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Extra KM Slab</div>
+                    <div className="text-2xl font-black text-zinc-900 mt-1">
+                      ₹{fareEngineForm.extraKmRate}
+                      <span className="text-xs font-semibold text-zinc-500 ml-1">/ km</span>
+                    </div>
+                    <div className="text-[11px] text-zinc-500 font-semibold mt-1">
+                      Safety Cap: ₹{fareEngineForm.maximumFareCap} max
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-2xs">
+                    <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Surge Engine</div>
+                    <div className="text-2xl font-black text-amber-600 mt-1 flex items-center gap-1.5">
+                      {fareEngineForm.surgeEnabled ? `${fareEngineForm.surgeMultiplier}x Active` : "Disabled"}
+                    </div>
+                    <div className="text-[11px] text-zinc-500 font-semibold mt-1">
+                      Rain: +₹{fareEngineForm.rainSurgeFee} • Peak: +₹{fareEngineForm.peakHourSurgeFee}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-2xs">
+                    <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Late Night Tariff</div>
+                    <div className="text-2xl font-black text-purple-700 mt-1">
+                      +₹{fareEngineForm.lateNightFee}
+                      <span className="text-xs font-semibold text-zinc-500 ml-1">night fee</span>
+                    </div>
+                    <div className="text-[11px] text-zinc-500 font-semibold mt-1">
+                      Window: {fareEngineForm.lateNightStartTime} – {fareEngineForm.lateNightEndTime}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main 2-Column Grid: Left Controls + Right Live Simulator */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Rate Parameters (7 cols) */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* 1. Base Distance & Extra KM Card */}
+                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-2xs space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+                            <Navigation className="size-4" />
+                          </span>
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900">1. Base Distance & Extra KM Slabs</h3>
+                            <p className="text-xs text-zinc-500">Core distance pricing charged for every trip</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Base Fare (₹)</Label>
+                          <Input
+                            type="number"
+                            step="1"
+                            value={fareEngineForm.baseFare ?? 35}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, baseFare: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Fixed charge for initial ride</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Base Distance (km)</Label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            value={fareEngineForm.baseDistanceKm ?? 2.0}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, baseDistanceKm: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Included in base fare</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Extra KM Rate (₹/km)</Label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            value={fareEngineForm.extraKmRate ?? 8.0}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, extraKmRate: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Rate beyond base distance</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Minimum Floor (₹)</Label>
+                          <Input
+                            type="number"
+                            step="1"
+                            value={fareEngineForm.minimumFare ?? 30}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, minimumFare: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Guaranteed minimum rider earning</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Maximum Ceiling Cap (₹)</Label>
+                          <Input
+                            type="number"
+                            step="10"
+                            value={fareEngineForm.maximumFareCap ?? 600}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, maximumFareCap: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Safety ceiling limit</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Express Priority Bonus (₹)</Label>
+                          <Input
+                            type="number"
+                            step="5"
+                            value={fareEngineForm.expressBonus ?? 25}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, expressBonus: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">For urgent express orders</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. Dynamic Surge Model Card */}
+                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-2xs space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 rounded-lg bg-amber-50 text-amber-700">
+                            <Zap className="size-4" />
+                          </span>
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900">2. Dynamic Surge Pricing Engine</h3>
+                            <p className="text-xs text-zinc-500">Weather conditions, demand/supply multiplier, rush hours</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-zinc-600">Surge Toggle</span>
+                          <Switch
+                            checked={fareEngineForm.surgeEnabled ?? true}
+                            onCheckedChange={(checked) => setFareEngineForm((prev) => ({ ...prev, surgeEnabled: checked }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Dynamic Multiplier (x)</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="1.0"
+                            max="3.0"
+                            value={fareEngineForm.surgeMultiplier ?? 1.0}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, surgeMultiplier: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Base & distance multiplier</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Monsoon Rain Surcharge (₹)</Label>
+                          <Input
+                            type="number"
+                            step="5"
+                            value={fareEngineForm.rainSurgeFee ?? 20}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, rainSurgeFee: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">Applied during rainy weather</p>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-zinc-700">Peak Rush Hour Surcharge (₹)</Label>
+                          <Input
+                            type="number"
+                            step="5"
+                            value={fareEngineForm.peakHourSurgeFee ?? 15}
+                            onChange={(e) => setFareEngineForm((prev) => ({ ...prev, peakHourSurgeFee: Number(e.target.value) }))}
+                            className="mt-1 font-bold text-sm"
+                          />
+                          <p className="text-[10px] text-zinc-400 mt-0.5">08:00-11:00 & 18:00-22:00</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. Late Night & Waiting Charges */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Late Night Card */}
+                      <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-2xs space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1.5 rounded-lg bg-purple-50 text-purple-700">
+                              <Moon className="size-4" />
+                            </span>
+                            <div>
+                              <h3 className="text-sm font-bold text-zinc-900">3. Late Night Model</h3>
+                              <p className="text-xs text-zinc-500">Overnight delivery compensation</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={fareEngineForm.lateNightEnabled ?? true}
+                            onCheckedChange={(checked) => setFareEngineForm((prev) => ({ ...prev, lateNightEnabled: checked }))}
+                          />
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-xs font-bold text-zinc-700">Flat Night Surcharge (₹)</Label>
+                            <Input
+                              type="number"
+                              step="5"
+                              value={fareEngineForm.lateNightFee ?? 25}
+                              onChange={(e) => setFareEngineForm((prev) => ({ ...prev, lateNightFee: Number(e.target.value) }))}
+                              className="mt-1 font-bold text-sm"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs font-bold text-zinc-700">Start Time</Label>
+                              <Input
+                                type="text"
+                                value={fareEngineForm.lateNightStartTime ?? "22:00"}
+                                onChange={(e) => setFareEngineForm((prev) => ({ ...prev, lateNightStartTime: e.target.value }))}
+                                className="mt-1 text-xs font-bold"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs font-bold text-zinc-700">End Time</Label>
+                              <Input
+                                type="text"
+                                value={fareEngineForm.lateNightEndTime ?? "06:00"}
+                                onChange={(e) => setFareEngineForm((prev) => ({ ...prev, lateNightEndTime: e.target.value }))}
+                                className="mt-1 text-xs font-bold"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Waiting Charges Card */}
+                      <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-2xs space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1.5 rounded-lg bg-sky-50 text-sky-700">
+                              <Timer className="size-4" />
+                            </span>
+                            <div>
+                              <h3 className="text-sm font-bold text-zinc-900">4. Waiting Charges</h3>
+                              <p className="text-xs text-zinc-500">Doorstep delay compensation</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={fareEngineForm.waitingEnabled ?? true}
+                            onCheckedChange={(checked) => setFareEngineForm((prev) => ({ ...prev, waitingEnabled: checked }))}
+                          />
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-xs font-bold text-zinc-700">Free Grace Period (minutes)</Label>
+                            <Input
+                              type="number"
+                              step="1"
+                              value={fareEngineForm.freeWaitingMinutes ?? 5}
+                              onChange={(e) => setFareEngineForm((prev) => ({ ...prev, freeWaitingMinutes: Number(e.target.value) }))}
+                              className="mt-1 font-bold text-sm"
+                            />
+                            <p className="text-[10px] text-zinc-400 mt-0.5">Rider waits free up to this duration</p>
+                          </div>
+
+                          <div>
+                            <Label className="text-xs font-bold text-zinc-700">Waiting Fee / Minute (₹/min)</Label>
+                            <Input
+                              type="number"
+                              step="0.5"
+                              value={fareEngineForm.waitingFeePerMinute ?? 2.0}
+                              onChange={(e) => setFareEngineForm((prev) => ({ ...prev, waitingFeePerMinute: Number(e.target.value) }))}
+                              className="mt-1 font-bold text-sm"
+                            />
+                            <p className="text-[10px] text-zinc-400 mt-0.5">Charged per billable minute after grace</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 5. Vehicle Modifiers */}
+                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-2xs space-y-4">
+                      <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-700">
+                            <Bike className="size-4" />
+                          </span>
+                          <div>
+                            <h3 className="text-sm font-bold text-zinc-900">5. Vehicle Multipliers</h3>
+                            <p className="text-xs text-zinc-500">Relative tariff weighting by vehicle type</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                        <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-center">
+                          <div className="text-[11px] font-bold text-zinc-600">Standard Bike</div>
+                          <div className="text-xs font-black text-zinc-900 mt-1">1.00x</div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-center">
+                          <div className="text-[11px] font-bold text-zinc-600">Electric Bike</div>
+                          <div className="text-xs font-black text-zinc-900 mt-1">1.00x</div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-center">
+                          <div className="text-[11px] font-bold text-zinc-600">Bicycle</div>
+                          <div className="text-xs font-black text-zinc-900 mt-1">0.85x</div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-center">
+                          <div className="text-[11px] font-bold text-zinc-600">Auto Rickshaw</div>
+                          <div className="text-xs font-black text-zinc-900 mt-1">1.25x</div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-center">
+                          <div className="text-[11px] font-bold text-zinc-600">Cargo Van</div>
+                          <div className="text-xs font-black text-zinc-900 mt-1">1.50x</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live Interactive Trip Fare Simulator (5 cols) */}
+                  <div className="lg:col-span-5 sticky top-6 space-y-4">
+                    <div className="bg-gradient-to-br from-zinc-900 via-zinc-950 to-black text-white p-6 rounded-3xl shadow-xl border border-zinc-800 space-y-5">
+                      <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+                        <div className="flex items-center gap-2">
+                          <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            <Zap className="size-4" />
+                          </span>
+                          <div>
+                            <h3 className="text-base font-black text-white">Live Trip Fare Simulator</h3>
+                            <p className="text-[11px] text-zinc-400">Real-time breakdown calculator</p>
+                          </div>
+                        </div>
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px]">
+                          INSTANT
+                        </Badge>
+                      </div>
+
+                      {/* Simulator Controls */}
+                      <div className="space-y-4 bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800/80">
+                        {/* Distance Slider */}
+                        <div>
+                          <div className="flex items-center justify-between text-xs font-bold text-zinc-300 mb-1.5">
+                            <span>Trip Distance</span>
+                            <span className="text-emerald-400 text-sm font-black">{simDistance.toFixed(1)} km</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="25.0"
+                            step="0.5"
+                            value={simDistance}
+                            onChange={(e) => setSimDistance(Number(e.target.value))}
+                            className="w-full accent-emerald-500 cursor-pointer h-2 bg-zinc-800 rounded-lg"
+                          />
+                          <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+                            <span>0.5 km</span>
+                            <span>12.5 km</span>
+                            <span>25.0 km</span>
+                          </div>
+                        </div>
+
+                        {/* Waiting Duration Slider */}
+                        <div>
+                          <div className="flex items-center justify-between text-xs font-bold text-zinc-300 mb-1.5">
+                            <span>Doorstep Waiting Duration</span>
+                            <span className="text-sky-400 text-sm font-black">{simWaitingMinutes} mins</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="30"
+                            step="1"
+                            value={simWaitingMinutes}
+                            onChange={(e) => setSimWaitingMinutes(Number(e.target.value))}
+                            className="w-full accent-sky-500 cursor-pointer h-2 bg-zinc-800 rounded-lg"
+                          />
+                          <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+                            <span>0 min (Free)</span>
+                            <span>15 mins</span>
+                            <span>30 mins</span>
+                          </div>
+                        </div>
+
+                        {/* Simulation Toggles */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setSimIsNight(!simIsNight)}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                              simIsNight
+                                ? "bg-purple-950/80 border-purple-500 text-purple-200 shadow-xs"
+                                : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
+                            }`}
+                          >
+                            <Moon className="size-3.5" />
+                            <span>{simIsNight ? "🌙 Night (23:30)" : "☀️ Day (14:00)"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSimIsRain(!simIsRain)}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                              simIsRain
+                                ? "bg-amber-950/80 border-amber-500 text-amber-200 shadow-xs"
+                                : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
+                            }`}
+                          >
+                            <CloudRain className="size-3.5" />
+                            <span>{simIsRain ? "🌧️ Heavy Rain" : "☀️ Clear Sky"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSimIsExpress(!simIsExpress)}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                              simIsExpress
+                                ? "bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs"
+                                : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
+                            }`}
+                          >
+                            <Zap className="size-3.5" />
+                            <span>{simIsExpress ? "⚡ Express Order" : "Standard Order"}</span>
+                          </button>
+
+                          <select
+                            value={simVehicle}
+                            onChange={(e) => setSimVehicle(e.target.value)}
+                            className="bg-zinc-800 border border-zinc-700 text-xs font-bold text-zinc-200 rounded-xl px-2.5 py-2"
+                          >
+                            <option value="bike">🛵 Standard Bike (1.0x)</option>
+                            <option value="electric_bike">⚡ Electric Bike (1.0x)</option>
+                            <option value="bicycle">🚲 Bicycle (0.85x)</option>
+                            <option value="auto">🛺 Auto (1.25x)</option>
+                            <option value="cargo">🚐 Cargo (1.50x)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Receipt Output Card */}
+                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3.5">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Rider Earning</span>
+                          <span className="text-3xl font-black text-emerald-400 tracking-tight">
+                            ₹{simResult ? Math.round(simResult.totalFare) : 35}
+                          </span>
+                        </div>
+
+                        {simResult?.breakdownText && (
+                          <div className="text-[11px] font-semibold text-zinc-300 bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-700/50">
+                            🧾 {simResult.breakdownText}
+                          </div>
+                        )}
+
+                        {/* Itemized Line Items */}
+                        <div className="space-y-1.5 text-xs text-zinc-300 pt-1">
+                          <div className="flex justify-between">
+                            <span className="text-zinc-400">Base Fare (First {simResult?.baseDistanceKm ?? 2} km):</span>
+                            <span className="font-bold">₹{simResult?.baseFare ?? 35}</span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span className="text-zinc-400">Extra Distance ({simResult?.extraDistanceKm ?? 0} km @ ₹{simResult?.extraKmRate ?? 8}/km):</span>
+                            <span className="font-bold text-emerald-400">+₹{simResult?.distanceFare ?? 0}</span>
+                          </div>
+
+                          {simResult && simResult.isNight && (
+                            <div className="flex justify-between text-purple-300">
+                              <span>Late Night Surcharge:</span>
+                              <span className="font-bold">+₹{simResult.nightFee}</span>
+                            </div>
+                          )}
+
+                          {simResult && simResult.isSurge && (
+                            <div className="flex justify-between text-amber-300">
+                              <span>Surge ({simResult.surgeReason}):</span>
+                              <span className="font-bold">+₹{simResult.surgeFee}</span>
+                            </div>
+                          )}
+
+                          {simResult && simResult.waitingFare > 0 && (
+                            <div className="flex justify-between text-sky-300">
+                              <span>Waiting ({simResult.billableWaitingMinutes}m billable):</span>
+                              <span className="font-bold">+₹{simResult.waitingFare}</span>
+                            </div>
+                          )}
+
+                          {simResult && simResult.expressBonus > 0 && (
+                            <div className="flex justify-between text-emerald-300">
+                              <span>Express Priority Bonus:</span>
+                              <span className="font-bold">+₹{simResult.expressBonus}</span>
+                            </div>
+                          )}
+
+                          {simResult && simResult.vehicleMultiplier !== 1.0 && (
+                            <div className="flex justify-between text-zinc-400">
+                              <span>Vehicle Multiplier ({simResult.vehicleType}):</span>
+                              <span className="font-bold">{simResult.vehicleMultiplier}x</span>
+                            </div>
+                          )}
+
+                          <div className="pt-2 border-t border-zinc-800 flex justify-between text-xs font-black">
+                            <span className="text-zinc-400">Raw Computed Total:</span>
+                            <span>₹{simResult?.rawTotal ?? 35}</span>
+                          </div>
+                        </div>
+
+                        {/* Clamping indicator */}
+                        {simResult?.isClampedMin && (
+                          <div className="text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-800/50 p-2 rounded-lg text-center">
+                            ⚠️ Clamped up to Minimum Floor Guarantee (₹{fareEngineForm.minimumFare})
+                          </div>
+                        )}
+                        {simResult?.isClampedMax && (
+                          <div className="text-[10px] font-bold text-red-400 bg-red-950/40 border border-red-800/50 p-2 rounded-lg text-center">
+                            ⚠️ Clamped down to Safety Ceiling Cap (₹{fareEngineForm.maximumFareCap})
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
 
               {/* =========================================================================
