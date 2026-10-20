@@ -506,15 +506,13 @@ export function RiderOrdersScreen() {
       rideType: offer.rideType || (offer.type === "delivery" || offer.type === "handover_delivery" ? "delivery" : "pickup"),
     };
 
-    // Save to persistent storage and state
-    try {
-      localStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, JSON.stringify(newActiveOrder));
-    } catch {}
-    setActiveOrder(newActiveOrder);
-    setIsHudMinimized(false);
-
     // Call Real Backend API to claim trip (skip for simulated test orders)
     if (targetId.startsWith("TEST-")) {
+      try {
+        localStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, JSON.stringify(newActiveOrder));
+      } catch {}
+      setActiveOrder(newActiveOrder);
+      setIsHudMinimized(false);
       return;
     }
 
@@ -567,11 +565,11 @@ export function RiderOrdersScreen() {
           fare: Number(ord.estimatedEarning ?? ord.fare ?? newActiveOrder.fare),
         };
         setActiveOrder(updatedActiveOrder);
+        setIsHudMinimized(false);
         try {
           localStorage.setItem(ACTIVE_ORDER_STORAGE_KEY, JSON.stringify(updatedActiveOrder));
         } catch {}
-      } else if (res.ok === false) {
-        // If conflict or already claimed by another captain
+      } else {
         toast.error("Trip could not be claimed or is no longer available.");
         try {
           localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
@@ -579,7 +577,26 @@ export function RiderOrdersScreen() {
         setActiveOrder(null);
         loadOffers(false);
       }
-    } catch {}
+    } catch (err: any) {
+      console.warn("[RiderOrdersScreen] Failed to claim order:", err);
+      try {
+        localStorage.removeItem(ACTIVE_ORDER_STORAGE_KEY);
+      } catch {}
+      setActiveOrder(null);
+
+      const isConflict =
+        err?.status === 409 ||
+        err?.status === 403 ||
+        err?.kind === "conflict" ||
+        /already accepted|already assigned|another|claimed|not available/i.test(err?.message || "");
+
+      if (isConflict) {
+        toast.error("❌ Yeh trip kisi aur Captain ne accept kar li!", { duration: 4000 });
+      } else {
+        toast.error("Trip could not be claimed or is no longer available.");
+      }
+      loadOffers(false);
+    }
   };
 
   // Handle Reject

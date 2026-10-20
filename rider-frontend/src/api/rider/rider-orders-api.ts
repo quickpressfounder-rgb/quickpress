@@ -60,6 +60,17 @@ export async function acceptRiderOrder(orderId: string) {
     const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/accept`);
     return { ok: true as const, orderId, order };
   } catch (err: any) {
+    const isConflict =
+      err?.status === 409 ||
+      err?.status === 403 ||
+      err?.kind === "conflict" ||
+      /already accepted|already assigned|another|claimed|not available/i.test(err?.message || "");
+
+    if (isConflict) {
+      // Trip claimed by another Captain or no longer available - DO NOT enqueue offline sync!
+      throw err;
+    }
+
     offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/accept`, undefined, `Accept order ${orderId}`);
     const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
     return { ok: true as const, orderId, order: (cached ? { ...cached, status: "accepted" as any } : null) as any };

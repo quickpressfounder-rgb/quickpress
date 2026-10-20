@@ -3147,11 +3147,17 @@ async def _rider_action(action, order_id: str, user: User, **kwargs) -> dict:
     except LookupError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
     except lifecycle.OrderAuthorizationError as error:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+        err_msg = str(error)
+        if any(w in err_msg.lower() for w in ("already accepted", "already assigned", "no longer available", "claimed")):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This trip has already been accepted by another Captain.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=err_msg)
     except PermissionError as error:  # OTP mismatch
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
     except ValueError as error:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+        err_msg = str(error)
+        if any(w in err_msg.lower() for w in ("already accepted", "already assigned", "no longer available", "claimed")):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This trip has already been accepted by another Captain.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err_msg)
 
 
 @router.post("/orders/{order_id}/accept")
@@ -3164,15 +3170,21 @@ async def accept_order(order_id: str, user: User = Depends(current_user)) -> dic
     import re
 
     canonical_ord_id = order_id
-    offer_doc = await database.find_one("rider_offers", {"_id": order_id}) or await database.find_one("ride_assignments", {"_id": order_id})
-    if offer_doc and offer_doc.get("orderId"):
-        canonical_ord_id = offer_doc["orderId"]
-    else:
-        ord_m = re.search(r'(ord-[a-zA-Z0-9]+|QP[a-zA-Z0-9]+)', order_id)
-        if ord_m:
-            canonical_ord_id = ord_m.group(1)
-
+    offer_doc = None
     customer_order = await database.find_one("customer_orders", {"_id": canonical_ord_id})
+    if not customer_order:
+        offer_doc = await database.find_one("rider_offers", {"_id": order_id}) or await database.find_one("ride_assignments", {"_id": order_id})
+        if offer_doc and offer_doc.get("orderId"):
+            canonical_ord_id = offer_doc["orderId"]
+            customer_order = await database.find_one("customer_orders", {"_id": canonical_ord_id})
+    if not customer_order:
+        ord_m = re.search(r'(ord-[a-zA-Z0-9_\-]+|QP[a-zA-Z0-9_\-]+)', order_id)
+        if ord_m:
+            cand_id = ord_m.group(1)
+            found = await database.find_one("customer_orders", {"_id": cand_id})
+            if found:
+                customer_order = found
+                canonical_ord_id = cand_id
     if not customer_order:
         customer_order = await database.find_one("customer_orders", {"id": canonical_ord_id})
     if not customer_order:
@@ -3210,11 +3222,15 @@ async def accept_order(order_id: str, user: User = Depends(current_user)) -> dic
                 return lifecycle.to_rider_delivery(ord_doc)
             return res
         except ValueError as err:
-            if "already accepted" in str(err).lower() or ride.get("riderId") == rider_id:
+            latest_ride = await database.find_one(RIDES_COLLECTION, {"_id": ride["_id"]}) or ride
+            if latest_ride.get("riderId") == rider_id:
                 ord_doc = await lifecycle.find_order(canonical_ord_id)
                 if ord_doc:
                     return lifecycle.to_rider_delivery(ord_doc)
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(err))
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This trip has already been accepted by another Captain.",
+            )
 
     return await _rider_action(rider_delivery_repository.accept, canonical_ord_id, user)
 

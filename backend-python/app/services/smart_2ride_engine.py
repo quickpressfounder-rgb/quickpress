@@ -188,6 +188,7 @@ class Smart2RideEngine:
     def __init__(self) -> None:
         self._active_timers: Dict[str, asyncio.Task] = {}
         self._inflight_dispatches: set[str] = set()
+        self._ride_locks: Dict[str, asyncio.Lock] = {}
 
     # -------------------------------------------------------------------------
     # 1. RIDE 1 CREATION (Pickup: Customer -> Partner)
@@ -863,6 +864,13 @@ class Smart2RideEngine:
             all_riders = await database.find_many("riders", {})
         eligible: List[Tuple[Dict[str, Any], float]] = []
 
+        # Batch pre-query all currently engaged/busy riders in 1 query for instant 0ms performance
+        active_rides_list = await database.find_many(
+            RIDES_COLLECTION,
+            {"status": {"$in": ["ACCEPTED", "PICKED_UP", "OUT_FOR_DELIVERY"]}},
+        )
+        busy_rider_ids = {str(r.get("riderId") or "") for r in (active_rides_list or []) if r.get("riderId")}
+
         for rider in all_riders:
             is_online = rider.get("isOnline") or rider.get("is_available")
             if is_online not in (True, 1, "true", "True"):
@@ -908,11 +916,7 @@ class Smart2RideEngine:
                 continue
 
             if dist <= radius_km:
-                active_rides = await database.find_many(
-                    RIDES_COLLECTION,
-                    {"riderId": r_id, "status": {"$in": ["ACCEPTED", "PICKED_UP", "OUT_FOR_DELIVERY"]}},
-                )
-                if len(active_rides) >= 1:
+                if r_id in busy_rider_ids:
                     continue
 
                 # Floating COD Cash Limit Check (Only applicable for Cash-on-Delivery Delivery Rides, NOT Pickup Rides)
@@ -1043,15 +1047,41 @@ class Smart2RideEngine:
             .replace("+00:00", "Z")
         )
 
-        # Broadcast offers to ALL eligible nearby online riders simultaneously (Flash Broadcast)
-        dispatched_count = 0
-        for best_rider, best_dist in ranked_riders:
+        is_express = bool(ride.get("isExpress"))
+        rider_express_bonus = float(ride.get("riderExpressBonus") or 0.0)
+        express_share_pct = float(ride.get("expressRiderSharePercent") or 80.0)
+        express_fee = float(ride.get("expressFee") or 0.0)
+        base_fare = ride.get("fare") or ride.get("estimatedEarning", 45)
+
+        # 1. INSTANT BROADCAST TO ALL ONLINE CAPTAINS (Zero-Latency Alert Bell & Siren)
+        broadcast_payload = {
+            "offerId": f"off-{ride_id}-broadcast",
+            "rideId": ride_id,
+            "orderId": order_id,
+            "orderCode": ride.get("orderCode"),
+            "rideType": ride_type,
+            "type": ride_type,
+            "fare": base_fare,
+            "estimatedEarning": base_fare,
+            "pickupAddress": target_loc.get("address") or "Customer Pickup Location",
+            "dropAddress": (ride.get("dropLocation") or {}).get("address") or "QuickPress Store",
+            "pickupTitle": (ride.get("pickupLocation") or {}).get("contactName") or "Pickup",
+            "dropTitle": (ride.get("dropLocation") or {}).get("contactName") or "Drop",
+            "customerName": target_loc.get("contactName") or "Customer",
+            "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
+            "distanceKm": round(float(ride.get("distanceKm") or 2.0), 1),
+            "isExpress": is_express,
+            "riderExpressBonus": rider_express_bonus,
+            "createdAt": now,
+            "autoAssigned": False,
+        }
+        await sio.emit("order.rider_offer", broadcast_payload, room="riders")
+        await sio.emit("new_order_offer", broadcast_payload, room="riders")
+
+        # 2. Targeted emissions to specific online captains immediately
+        async def _persist_and_notify_rider(best_rider: dict, best_dist: float) -> None:
             r_id = str(best_rider.get("_id") or best_rider.get("riderId") or best_rider.get("id") or "")
             offer_id = f"off-{ride_id}-{r_id}"
-            is_express = bool(ride.get("isExpress"))
-            rider_express_bonus = float(ride.get("riderExpressBonus") or 0.0)
-            express_share_pct = float(ride.get("expressRiderSharePercent") or 80.0)
-            express_fee = float(ride.get("expressFee") or 0.0)
 
             offer_doc = {
                 "_id": offer_id,
@@ -1064,8 +1094,8 @@ class Smart2RideEngine:
                 "riderId": r_id,
                 "status": "pending",
                 "distanceKm": round(best_dist, 1),
-                "estimatedEarning": ride.get("estimatedEarning", 45),
-                "fare": ride.get("fare") or ride.get("estimatedEarning", 45),
+                "estimatedEarning": base_fare,
+                "fare": base_fare,
                 "isExpress": is_express,
                 "expressFee": express_fee,
                 "riderExpressBonus": rider_express_bonus,
@@ -1088,25 +1118,40 @@ class Smart2RideEngine:
                 "timeoutSeconds": timeout_sec,
             }
 
-            await database.collection(RIDE_ASSIGNMENTS_COLLECTION).update_one(
-                {"_id": offer_id},
-                {"$set": {k: v for k, v in offer_doc.items() if k != "_id"}},
-                upsert=True,
-            )
-            await database.collection("rider_offers").update_one(
-                {"_id": offer_id},
-                {"$set": {k: v for k, v in offer_doc.items() if k != "_id"}},
-                upsert=True,
+            # Send targeted socket offer to rider across all room aliases
+            socket_rooms = [f"rider:{r_id}"]
+            r_phone = str(best_rider.get("phone") or "").replace("+", "").strip()
+            if r_phone:
+                socket_rooms.extend([f"rider:{r_phone}", f"rider:+{r_phone}"])
+            r_uid = str(best_rider.get("userId") or "").strip()
+            if r_uid:
+                socket_rooms.append(f"rider:{r_uid}")
+
+            for s_room in socket_rooms:
+                await sio.emit("order.rider_offer", offer_doc, room=s_room)
+                await sio.emit("new_order_offer", offer_doc, room=s_room)
+
+            # Persist offer docs concurrently
+            await asyncio.gather(
+                database.collection(RIDE_ASSIGNMENTS_COLLECTION).update_one(
+                    {"_id": offer_id},
+                    {"$set": {k: v for k, v in offer_doc.items() if k != "_id"}},
+                    upsert=True,
+                ),
+                database.collection("rider_offers").update_one(
+                    {"_id": offer_id},
+                    {"$set": {k: v for k, v in offer_doc.items() if k != "_id"}},
+                    upsert=True,
+                ),
+                return_exceptions=True,
             )
 
             if is_express:
                 notif_title = "⚡ Express Laundry Pickup Trip"
-                notif_msg = f"⚡ EXPRESS Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away)! Earn ₹{ride.get('estimatedEarning', 45)} (+₹{int(round(rider_express_bonus))} Express Bonus)!"
+                notif_msg = f"⚡ EXPRESS Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away)! Earn ₹{base_fare} (+₹{int(round(rider_express_bonus))} Express Bonus)!"
             else:
-                notif_title = (
-                    "New Laundry Pickup Trip" if ride_type == "pickup" else "New Laundry Delivery Trip"
-                )
-                notif_msg = f"Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away). Earn ₹{ride.get('estimatedEarning', 45)} — Fastest acceptance wins!"
+                notif_title = "New Laundry Pickup Trip" if ride_type == "pickup" else "New Laundry Delivery Trip"
+                notif_msg = f"Order #{ride.get('orderCode')} ({round(best_dist, 1)} km away). Earn ₹{base_fare} — Fastest acceptance wins!"
 
             await database.collection(NOTIFICATIONS_COLLECTION).update_one(
                 {"_id": f"notif-{offer_id}"},
@@ -1125,20 +1170,7 @@ class Smart2RideEngine:
                 upsert=True,
             )
 
-            # Send real-time socket offer to rider across all possible room identifiers and aliases
-            socket_rooms = [f"rider:{r_id}"]
-            r_phone = str(best_rider.get("phone") or "").replace("+", "").strip()
-            if r_phone:
-                socket_rooms.extend([f"rider:{r_phone}", f"rider:+{r_phone}"])
-            r_uid = str(best_rider.get("userId") or "").strip()
-            if r_uid:
-                socket_rooms.append(f"rider:{r_uid}")
-
-            for s_room in socket_rooms:
-                await sio.emit("order.rider_offer", offer_doc, room=s_room)
-                await sio.emit("new_order_offer", offer_doc, room=s_room)
-
-            # High-priority external push notification
+            # Push notification in background
             try:
                 from app.services.order_notifications import _dispatch_external_pushes
                 await _dispatch_external_pushes(
@@ -1152,32 +1184,13 @@ class Smart2RideEngine:
             except Exception:
                 pass
 
-            dispatched_count += 1
-
-        # Also emit to global riders channel with complete details so any connected captain immediately gets the alert & bell
-        broadcast_payload = {
-            "offerId": f"off-{ride_id}-broadcast",
-            "rideId": ride_id,
-            "orderId": order_id,
-            "orderCode": ride.get("orderCode"),
-            "rideType": ride_type,
-            "type": ride_type,
-            "fare": ride.get("fare") or ride.get("estimatedEarning", 45),
-            "estimatedEarning": ride.get("estimatedEarning", 45),
-            "pickupAddress": target_loc.get("address") or "Customer Pickup Location",
-            "dropAddress": (ride.get("dropLocation") or {}).get("address") or "QuickPress Store",
-            "pickupTitle": (ride.get("pickupLocation") or {}).get("contactName") or "Pickup",
-            "dropTitle": (ride.get("dropLocation") or {}).get("contactName") or "Drop",
-            "customerName": target_loc.get("contactName") or "Customer",
-            "partnerName": (ride.get("dropLocation") or {}).get("contactName") or "QuickPress Store",
-            "distanceKm": round(float(ride.get("distanceKm") or 2.0), 1),
-            "isExpress": bool(ride.get("isExpress")),
-            "riderExpressBonus": float(ride.get("riderExpressBonus") or 0.0),
-            "createdAt": now,
-            "autoAssigned": False,
-        }
-        await sio.emit("order.rider_offer", broadcast_payload, room="riders")
-        await sio.emit("new_order_offer", broadcast_payload, room="riders")
+        # Concurrently dispatch to all ranked riders
+        dispatched_count = len(ranked_riders)
+        if ranked_riders:
+            await asyncio.gather(
+                *[_persist_and_notify_rider(best_rider, best_dist) for best_rider, best_dist in ranked_riders],
+                return_exceptions=True,
+            )
 
         # Log Automation Event: Auto-Dispatch Broadcast
         try:
@@ -1223,200 +1236,212 @@ class Smart2RideEngine:
     # -------------------------------------------------------------------------
     async def handle_rider_accept(self, ride_id: str, rider_id: str) -> Dict[str, Any]:
         """Atomically claim the ride. Guarantees that only ONE rider can win the ride."""
-        ride = await database.find_one(RIDES_COLLECTION, {"_id": ride_id})
-        if not ride:
-            raise LookupError(f"Ride {ride_id} does not exist")
+        lock = self._ride_locks.setdefault(ride_id, asyncio.Lock())
+        async with lock:
+            ride = await database.find_one(RIDES_COLLECTION, {"_id": ride_id})
+            if not ride:
+                raise LookupError(f"Ride {ride_id} does not exist")
 
-        if ride.get("status") == "ACCEPTED":
-            if ride.get("riderId") == rider_id:
-                return ride
-            raise ValueError("RIDE_ALREADY_ASSIGNED: Another delivery partner has already accepted this trip.")
+            if ride.get("status") == "ACCEPTED":
+                if ride.get("riderId") == rider_id:
+                    return ride
+                raise ValueError("RIDE_ALREADY_ASSIGNED: Another delivery partner has already accepted this trip.")
 
-        if ride.get("status") in ("COMPLETED", "CANCELLED"):
-            raise ValueError("This trip is no longer active.")
+            if ride.get("status") in ("COMPLETED", "CANCELLED"):
+                raise ValueError("This trip is no longer active.")
 
-        if ride_id in self._active_timers:
-            self._active_timers[ride_id].cancel()
-            self._active_timers.pop(ride_id, None)
+            if ride_id in self._active_timers:
+                self._active_timers[ride_id].cancel()
+                self._active_timers.pop(ride_id, None)
 
-        now = lifecycle.now_iso()
-        rider_profile = await database.find_one(RIDERS_COLLECTION, {"_id": rider_id}) or {}
-        if not rider_profile:
-            rider_profile = await database.find_one("riders", {"_id": rider_id}) or {}
+            now = lifecycle.now_iso()
+            rider_profile = await database.find_one(RIDERS_COLLECTION, {"_id": rider_id}) or {}
+            if not rider_profile:
+                rider_profile = await database.find_one("riders", {"_id": rider_id}) or {}
 
-        # Strict City Isolation Check: Captain must belong to the same city as the ride
-        ride_city_raw = str(ride.get("city") or (ride.get("pickupLocation") or {}).get("city") or "").strip()
-        if not ride_city_raw:
-            ord_doc = await database.find_one("customer_orders", {"_id": ride.get("orderId")}) or await database.find_one("orders", {"_id": ride.get("orderId")})
-            if ord_doc:
-                ride_city_raw = str((ord_doc.get("address") or {}).get("city") or ord_doc.get("city") or "")
+            # Strict City Isolation Check: Captain must belong to the same city as the ride
+            ride_city_raw = str(ride.get("city") or (ride.get("pickupLocation") or {}).get("city") or "").strip()
+            if not ride_city_raw:
+                ord_doc = await database.find_one("customer_orders", {"_id": ride.get("orderId")}) or await database.find_one("orders", {"_id": ride.get("orderId")})
+                if ord_doc:
+                    ride_city_raw = str((ord_doc.get("address") or {}).get("city") or ord_doc.get("city") or "")
 
-        rider_city_raw = (
-            rider_profile.get("city")
-            or rider_profile.get("preferredCity")
-            or rider_profile.get("operatingCity")
-            or rider_profile.get("serviceCity")
-        )
-        if not rider_city_raw:
-            rp = await database.find_one("rider_profiles", {"_id": rider_id}) or {}
-            rider_city_raw = rp.get("city") or rp.get("preferredCity") or rp.get("operatingCity")
+            rider_city_raw = (
+                rider_profile.get("city")
+                or rider_profile.get("preferredCity")
+                or rider_profile.get("operatingCity")
+                or rider_profile.get("serviceCity")
+            )
+            if not rider_city_raw:
+                rp = await database.find_one("rider_profiles", {"_id": rider_id}) or {}
+                rider_city_raw = rp.get("city") or rp.get("preferredCity") or rp.get("operatingCity")
 
-        norm_ride_city = normalize_city_name(ride_city_raw)
-        norm_rider_city = normalize_city_name(rider_city_raw)
-        if norm_ride_city and norm_rider_city:
-            if not is_city_match(norm_rider_city, norm_ride_city, ride_city_raw, rider_city_raw):
-                raise ValueError(
-                    f"CITY_MISMATCH: Trip belongs to {norm_ride_city.title()}, but you are registered in {norm_rider_city.title()}. Rides can only be accepted by Captains in the same city."
-                )
+            norm_ride_city = normalize_city_name(ride_city_raw)
+            norm_rider_city = normalize_city_name(rider_city_raw)
+            if norm_ride_city and norm_rider_city:
+                if not is_city_match(norm_rider_city, norm_ride_city, ride_city_raw, rider_city_raw):
+                    raise ValueError(
+                        f"CITY_MISMATCH: Trip belongs to {norm_ride_city.title()}, but you are registered in {norm_rider_city.title()}. Rides can only be accepted by Captains in the same city."
+                    )
 
-        from app.services.rider_dispatch import resolve_real_rider_party
-        resolved_party = await resolve_real_rider_party(rider_profile or rider_id)
-        if resolved_party:
-            rider_party = resolved_party
-            r_name = rider_party.get("name") or "Delivery Captain"
-            r_phone = rider_party.get("phone") or rider_profile.get("phone") or ""
-            r_vehicle = rider_party.get("vehicle") or rider_profile.get("vehicleType") or "Bike"
-            r_plate = rider_party.get("plate") or rider_profile.get("vehicleNumber") or ""
-            r_avatar = rider_party.get("avatar") or rider_profile.get("photoUrl") or ""
-            r_lat = float(rider_party.get("latitude") or 0.0)
-            r_lng = float(rider_party.get("longitude") or 0.0)
-        else:
-            r_name = rider_profile.get("fullName") or rider_profile.get("name") or "Delivery Captain"
-            r_phone = rider_profile.get("phone") or ""
-            r_vehicle = rider_profile.get("vehicleType") or "Bike"
-            r_plate = rider_profile.get("vehicleNumber") or ""
-            r_avatar = rider_profile.get("photoUrl") or rider_profile.get("selfieUrl") or ""
-            r_lat = float(rider_profile.get("lat") or rider_profile.get("latitude") or 0.0)
-            r_lng = float(rider_profile.get("lng") or rider_profile.get("longitude") or 0.0)
+            from app.services.rider_dispatch import resolve_real_rider_party
+            resolved_party = await resolve_real_rider_party(rider_profile or rider_id)
+            if resolved_party:
+                rider_party = resolved_party
+                r_name = rider_party.get("name") or "Delivery Captain"
+                r_phone = rider_party.get("phone") or rider_profile.get("phone") or ""
+                r_vehicle = rider_party.get("vehicle") or rider_profile.get("vehicleType") or "Bike"
+                r_plate = rider_party.get("plate") or rider_profile.get("vehicleNumber") or ""
+                r_avatar = rider_party.get("avatar") or rider_profile.get("photoUrl") or ""
+                r_lat = float(rider_party.get("latitude") or 0.0)
+                r_lng = float(rider_party.get("longitude") or 0.0)
+            else:
+                r_name = rider_profile.get("fullName") or rider_profile.get("name") or "Delivery Captain"
+                r_phone = rider_profile.get("phone") or ""
+                r_vehicle = rider_profile.get("vehicleType") or "Bike"
+                r_plate = rider_profile.get("vehicleNumber") or ""
+                r_avatar = rider_profile.get("photoUrl") or rider_profile.get("selfieUrl") or ""
+                r_lat = float(rider_profile.get("lat") or rider_profile.get("latitude") or 0.0)
+                r_lng = float(rider_profile.get("lng") or rider_profile.get("longitude") or 0.0)
 
-            rider_party = {
-                "id": rider_id,
-                "name": r_name,
-                "phone": r_phone,
-                "vehicle": r_vehicle,
-                "vehicleType": r_vehicle,
-                "plate": r_plate,
-                "vehicleNumber": r_plate,
-                "avatar": r_avatar,
-                "photo": r_avatar,
-                "image": r_avatar,
-                "latitude": float(r_lat),
-                "longitude": float(r_lng),
-                "location": {"latitude": float(r_lat), "longitude": float(r_lng)},
-                "rating": float(rider_profile.get("rating", 5.0)),
-                "trips": str(rider_profile.get("lifetimeDeliveries") or rider_profile.get("totalTrips") or "10+ deliveries"),
-            }
+                rider_party = {
+                    "id": rider_id,
+                    "name": r_name,
+                    "phone": r_phone,
+                    "vehicle": r_vehicle,
+                    "vehicleType": r_vehicle,
+                    "plate": r_plate,
+                    "vehicleNumber": r_plate,
+                    "avatar": r_avatar,
+                    "photo": r_avatar,
+                    "image": r_avatar,
+                    "latitude": float(r_lat),
+                    "longitude": float(r_lng),
+                    "location": {"latitude": float(r_lat), "longitude": float(r_lng)},
+                    "rating": float(rider_profile.get("rating", 5.0)),
+                    "trips": str(rider_profile.get("lifetimeDeliveries") or rider_profile.get("totalTrips") or "10+ deliveries"),
+                }
 
-        # Atomic update on RIDES_COLLECTION
-        await database.collection(RIDES_COLLECTION).update_one(
-            {"_id": ride_id},
-            {
-                "$set": {
-                    "status": "ACCEPTED",
-                    "riderId": rider_id,
-                    "rider": rider_party,
-                    "acceptedAt": now,
-                    "updatedAt": now,
-                },
-                "$push": {
-                    "assignmentHistory": {
+            # Atomic update on RIDES_COLLECTION with status check
+            update_res = await database.collection(RIDES_COLLECTION).update_one(
+                {"_id": ride_id, "status": {"$ne": "ACCEPTED"}},
+                {
+                    "$set": {
+                        "status": "ACCEPTED",
                         "riderId": rider_id,
-                        "outcome": "accepted",
-                        "at": now,
+                        "rider": rider_party,
+                        "acceptedAt": now,
+                        "updatedAt": now,
+                    },
+                    "$push": {
+                        "assignmentHistory": {
+                            "riderId": rider_id,
+                            "outcome": "accepted",
+                            "at": now,
+                        }
+                    },
+                },
+            )
+            if update_res.modified_count == 0:
+                curr = await database.find_one(RIDES_COLLECTION, {"_id": ride_id})
+                if curr and curr.get("riderId") == rider_id:
+                    return curr
+                raise ValueError("RIDE_ALREADY_ASSIGNED: Another delivery partner has already accepted this trip.")
+
+            # Mark this rider's offer as accepted
+            await database.collection(RIDE_ASSIGNMENTS_COLLECTION).update_one(
+                {"rideId": ride_id, "riderId": rider_id},
+                {"$set": {"status": "accepted", "updatedAt": now}},
+            )
+
+            # Mark all other competing pending offers as claimed_by_other
+            await database.collection(RIDE_ASSIGNMENTS_COLLECTION).update_many(
+                {"rideId": ride_id, "riderId": {"$ne": rider_id}, "status": "pending"},
+                {"$set": {"status": "claimed_by_other", "updatedAt": now}},
+            )
+
+            order_id = ride.get("orderId")
+            if ride.get("rideType") == "handover_delivery":
+                target_status = lifecycle.HANDOVER_RIDER_ASSIGNED
+            elif ride.get("rideType") == "pickup":
+                target_status = lifecycle.PICKUP_RIDER_ACCEPTED
+            else:
+                target_status = lifecycle.DELIVERY_RIDER_ACCEPTED
+
+            existing_order = await lifecycle.find_order(order_id) or {}
+            orig_r_id = rider_id if ride.get("rideType") == "pickup" else (existing_order.get("originalRiderId") or existing_order.get("assignedRiderId") or rider_id)
+
+            await database.collection(ORDERS_COLLECTION).update_one(
+                {"_id": order_id},
+                {
+                    "$set": {
+                        "assignedRiderId": rider_id,
+                        "originalRiderId": orig_r_id,
+                        "transferRider": rider_party if ride.get("rideType") == "handover_delivery" else None,
+                        "transferRiderId": rider_id if ride.get("rideType") == "handover_delivery" else None,
+                        "rider": rider_party if ride.get("rideType") != "handover_delivery" else None,
+                        "riderId": rider_id if ride.get("rideType") != "handover_delivery" else None,
+                        "rider_id": rider_id if ride.get("rideType") != "handover_delivery" else None,
+                        "status": target_status,
+                        "updatedAt": now,
                     }
                 },
-            },
-        )
-
-        # Mark this rider's offer as accepted
-        await database.collection(RIDE_ASSIGNMENTS_COLLECTION).update_one(
-            {"rideId": ride_id, "riderId": rider_id},
-            {"$set": {"status": "accepted", "updatedAt": now}},
-        )
-
-        # Mark all other competing pending offers as claimed_by_other
-        await database.collection(RIDE_ASSIGNMENTS_COLLECTION).update_many(
-            {"rideId": ride_id, "riderId": {"$ne": rider_id}, "status": "pending"},
-            {"$set": {"status": "claimed_by_other", "updatedAt": now}},
-        )
-
-        order_id = ride.get("orderId")
-        if ride.get("rideType") == "handover_delivery":
-            target_status = lifecycle.HANDOVER_RIDER_ASSIGNED
-        elif ride.get("rideType") == "pickup":
-            target_status = lifecycle.PICKUP_RIDER_ACCEPTED
-        else:
-            target_status = lifecycle.DELIVERY_RIDER_ACCEPTED
-
-        existing_order = await lifecycle.find_order(order_id) or {}
-        orig_r_id = rider_id if ride.get("rideType") == "pickup" else (existing_order.get("originalRiderId") or existing_order.get("assignedRiderId") or rider_id)
-
-        await database.collection(ORDERS_COLLECTION).update_one(
-            {"_id": order_id},
-            {
-                "$set": {
-                    "assignedRiderId": rider_id,
-                    "originalRiderId": orig_r_id,
-                    "transferRider": rider_party if ride.get("rideType") == "handover_delivery" else None,
-                    "transferRiderId": rider_id if ride.get("rideType") == "handover_delivery" else None,
-                    "rider": rider_party if ride.get("rideType") != "handover_delivery" else None,
-                    "riderId": rider_id if ride.get("rideType") != "handover_delivery" else None,
-                    "rider_id": rider_id if ride.get("rideType") != "handover_delivery" else None,
-                    "status": target_status,
-                    "updatedAt": now,
-                }
-            },
-        )
-
-        order = await lifecycle.find_order(order_id)
-        if order:
-            event_type = (
-                "HANDOVER_RIDER_ACCEPTED"
-                if ride.get("rideType") == "handover_delivery"
-                else ("PICKUP_RIDER_ACCEPTED" if ride.get("rideType") == "pickup" else "DELIVERY_RIDER_ACCEPTED")
-            )
-            await lifecycle.record_event(
-                order,
-                event_type,
-                actor_id=rider_id,
-                actor_role="rider",
-                at=now,
             )
 
-        # Broadcast that this ride is now assigned so all other captains' modals dismiss
-        await broadcast_order_event(
-            EVENT_ORDER_RIDER_ASSIGNED,
-            order or {"_id": order_id, "rider": rider_party},
-            extra_data={"rideId": ride_id, "riderId": rider_id, "riderName": r_name},
-        )
-        await sio.emit(
-            "ride.claimed",
-            {"rideId": ride_id, "claimedBy": rider_id, "orderId": order_id},
-            room="riders",
-        )
-
-        # Automated WhatsApp notification to customer
-        try:
-            from app.core.whatsapp_service import whatsapp_service
-            cust_phone = (order or {}).get("customerPhone") or ((order or {}).get("customer") or {}).get("phone")
-            cust_name = (order or {}).get("customerName") or ((order or {}).get("customer") or {}).get("name") or "Valued Customer"
-            ride_type = ride.get("rideType", "pickup")
-            if cust_phone:
-                asyncio.create_task(
-                    whatsapp_service.send_captain_assigned_whatsapp(
-                        phone=str(cust_phone),
-                        customer_name=str(cust_name),
-                        order_id=order_id,
-                        captain_name=str(r_name),
-                        captain_phone=str(r_phone),
-                        eta_minutes=15,
-                        ride_type=ride_type,
-                    )
+            order = await lifecycle.find_order(order_id)
+            if order:
+                event_type = (
+                    "HANDOVER_RIDER_ACCEPTED"
+                    if ride.get("rideType") == "handover_delivery"
+                    else ("PICKUP_RIDER_ACCEPTED" if ride.get("rideType") == "pickup" else "DELIVERY_RIDER_ACCEPTED")
                 )
-        except Exception as exc:
-            logger.warning("WhatsApp captain assigned trigger error: %s", exc)
+                await lifecycle.record_event(
+                    order,
+                    event_type,
+                    actor_id=rider_id,
+                    actor_role="rider",
+                    at=now,
+                )
 
-        return await database.find_one(RIDES_COLLECTION, {"_id": ride_id}) or ride
+            # Broadcast that this ride is now assigned so all other captains' modals dismiss and sirens stop!
+            await sio.emit(
+                "ride.claimed",
+                {"rideId": ride_id, "claimedBy": rider_id, "orderId": order_id},
+                room="riders",
+            )
+            await sio.emit(
+                "order.claimed",
+                {"rideId": ride_id, "claimedBy": rider_id, "orderId": order_id},
+                room="riders",
+            )
+            await broadcast_order_event(
+                EVENT_ORDER_RIDER_ASSIGNED,
+                order or {"_id": order_id, "rider": rider_party},
+                extra_data={"rideId": ride_id, "riderId": rider_id, "riderName": r_name},
+            )
+
+            # Automated WhatsApp notification to customer
+            try:
+                from app.core.whatsapp_service import whatsapp_service
+                cust_phone = (order or {}).get("customerPhone") or ((order or {}).get("customer") or {}).get("phone")
+                cust_name = (order or {}).get("customerName") or ((order or {}).get("customer") or {}).get("name") or "Valued Customer"
+                ride_type = ride.get("rideType", "pickup")
+                if cust_phone:
+                    asyncio.create_task(
+                        whatsapp_service.send_captain_assigned_whatsapp(
+                            phone=str(cust_phone),
+                            customer_name=str(cust_name),
+                            order_id=order_id,
+                            captain_name=str(r_name),
+                            captain_phone=str(r_phone),
+                            eta_minutes=15,
+                            ride_type=ride_type,
+                        )
+                    )
+            except Exception as exc:
+                logger.warning("WhatsApp captain assigned trigger error: %s", exc)
+
+            return await database.find_one(RIDES_COLLECTION, {"_id": ride_id}) or ride
 
     async def handle_rider_reject(
         self, ride_id: str, rider_id: str, reason: str = "Declined by rider"

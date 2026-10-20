@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useRiderContext } from "../../context/RiderContext";
-import { subscribeRiderOffers } from "../../lib/rider-socket";
+import { subscribeRiderOffers, subscribeRiderOrders } from "../../lib/rider-socket";
 import { fetchRiderOffers } from "../../api/rider/rider-orders-api";
 import { stopOrderAlertSound } from "../../lib/captain-audio";
 import { FlashTripOfferModal, type FlashOfferData } from "./FlashTripOfferModal";
@@ -131,12 +131,58 @@ export const GlobalOrderDispatchListener: React.FC = () => {
       }
     };
 
-    // 1. Listen via WebSocket
-    const unsubscribe = subscribeRiderOffers((rawOffer) => {
+    // 1. Listen for new incoming offers via WebSocket
+    const unsubscribeOffers = subscribeRiderOffers((rawOffer) => {
       handleIncomingOffer(rawOffer);
     });
 
-    // 2. Initial check
+    // 2. Listen for ride claimed / order assigned events to instantly stop siren & dismiss modal if another captain accepted
+    const unsubscribeOrders = subscribeRiderOrders((eventData: any) => {
+      const evType = eventData?.event || "";
+      if (
+        evType === "ride.claimed" ||
+        evType === "order.claimed" ||
+        evType === "order.rider_assigned" ||
+        eventData?.claimedBy ||
+        eventData?.riderId
+      ) {
+        const claimedRideId = String(eventData?.rideId || "");
+        const claimedOrderId = String(eventData?.orderId || eventData?._id || eventData?.id || "");
+        const claimedBy = String(
+          eventData?.claimedBy || eventData?.riderId || (eventData?.rider || {}).id || ""
+        );
+
+        const myRiderId = String(
+          (session as any)?.riderId ||
+          (session as any)?.account?.riderId ||
+          (session as any)?.account?.linkedId ||
+          (typeof window !== "undefined" ? localStorage.getItem("qp_rider_id") || "" : "")
+        );
+
+        if (activeFlashOfferRef.current) {
+          const currentOrderId = String(activeFlashOfferRef.current.orderId || "");
+          const currentRideId = String(activeFlashOfferRef.current.rideId || "");
+
+          const isMatch =
+            (claimedOrderId && (claimedOrderId === currentOrderId || claimedOrderId === currentRideId)) ||
+            (claimedRideId && (claimedRideId === currentRideId || claimedRideId === currentOrderId));
+
+          if (isMatch && claimedBy && claimedBy !== myRiderId) {
+            console.log(
+              `[DispatchListener] Offer ${currentOrderId} was claimed by another Captain (${claimedBy}). Stopping bell & dismissing modal.`
+            );
+            declinedOrderIdsRef.current.add(currentOrderId);
+            if (currentRideId) declinedOrderIdsRef.current.add(currentRideId);
+            stopOrderAlertSound();
+            activeFlashOfferRef.current = null;
+            setActiveFlashOffer(null);
+            toast.info("⚡ Yeh order kisi aur Captain ne accept kar liya!");
+          }
+        }
+      }
+    });
+
+    // 3. Initial check
     fetchRiderOffers()
       .then((offers) => {
         if (Array.isArray(offers) && offers.length > 0) {
@@ -150,7 +196,7 @@ export const GlobalOrderDispatchListener: React.FC = () => {
       })
       .catch(() => {});
 
-    // 3. Snappy 3-second heartbeat polling
+    // 4. Snappy 3-second heartbeat polling
     const pollInterval = setInterval(async () => {
       try {
         const offers = await fetchRiderOffers();
@@ -172,7 +218,8 @@ export const GlobalOrderDispatchListener: React.FC = () => {
     }, 3000);
 
     return () => {
-      unsubscribe();
+      unsubscribeOffers();
+      unsubscribeOrders();
       clearInterval(pollInterval);
     };
   }, [session?.token, isOnline]);

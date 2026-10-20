@@ -158,19 +158,38 @@ export const FlashTripOfferModal: React.FC<FlashTripOfferModalProps> = ({
     triggerHaptic([120, 60, 240]);
 
     try {
-      localStorage.setItem("qp_cached_active_order", JSON.stringify(offer));
-      localStorage.setItem("qp_active_rider_order", JSON.stringify(offer));
-    } catch {}
-
-    try {
       await acceptRiderOrder(offer.orderId);
+
+      try {
+        localStorage.setItem("qp_cached_active_order", JSON.stringify(offer));
+        localStorage.setItem("qp_active_rider_order", JSON.stringify(offer));
+      } catch {}
+
       playSuccessChime();
       toast.success(`🎉 Trip Accepted!`);
       onAccepted(offer.orderId, offer);
     } catch (err: any) {
-      console.warn("[FlashModal] Accept order warning (handled offline):", err);
-      playSuccessChime();
-      onAccepted(offer.orderId, offer);
+      console.warn("[FlashModal] Accept order error:", err);
+      stopOrderAlertSound();
+
+      const isConflict =
+        err?.status === 409 ||
+        err?.status === 403 ||
+        err?.kind === "conflict" ||
+        /already accepted|already assigned|another|claimed|not available/i.test(err?.message || "");
+
+      if (isConflict) {
+        toast.error("❌ Yeh trip kisi aur Captain ne accept kar li!", { duration: 4000 });
+        onDeclined(offer.orderId);
+      } else {
+        try {
+          localStorage.setItem("qp_cached_active_order", JSON.stringify(offer));
+          localStorage.setItem("qp_active_rider_order", JSON.stringify(offer));
+        } catch {}
+        playSuccessChime();
+        toast.success(`🎉 Trip Accepted (Offline)!`);
+        onAccepted(offer.orderId, offer);
+      }
     } finally {
       setIsAccepting(false);
     }
