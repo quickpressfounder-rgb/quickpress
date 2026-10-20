@@ -193,8 +193,6 @@ export function RiderProfileScreen() {
     }
   };
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   // Ultra-Fast Parallel Fetching (Promise.allSettled)
   const loadProfileData = async () => {
     setLoading(true);
@@ -285,28 +283,6 @@ export function RiderProfileScreen() {
     void loadProfileData();
   }, []);
 
-  // Handle Photo Upload / Update
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result as string;
-      setProfilePhoto(base64);
-      try {
-        localStorage.setItem("qp_rider_profile_photo", base64);
-      } catch {}
-      triggerHaptic();
-      toast.success(t("profile.photoUpdated") || "Profile selfie updated successfully! 📸");
-      try {
-        await updateRiderProfile({ photoUrl: base64, selfieUrl: base64 });
-      } catch (err) {
-        console.warn("Could not save photo to backend:", err);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
   // Copy Rider ID
   const handleCopyId = () => {
@@ -554,7 +530,7 @@ export function RiderProfileScreen() {
         <div className="rounded-[28px] border border-zinc-200/80 bg-white p-4 shadow-sm space-y-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3.5 min-w-0">
-              {/* Real Registration Photo Avatar with Camera Button (Circular) */}
+              {/* Real Registration Photo Avatar (Only displays registration photo) */}
               <div className="relative shrink-0">
                 <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-950 font-black text-2xl shadow-xs overflow-hidden border-2 border-emerald-500/30">
                   <img
@@ -566,22 +542,6 @@ export function RiderProfileScreen() {
                     }}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md hover:bg-emerald-700 active:scale-95 transition-all border-2 border-white"
-                  title="Update Registration Photo"
-                  aria-label="Upload Photo"
-                >
-                  <Camera className="size-3 stroke-[2.2]" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
               </div>
 
               {/* Captain Basic Info */}
@@ -757,58 +717,6 @@ export function RiderProfileScreen() {
                 </span>
                 <Eye className="size-3.5 text-zinc-400" />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  setSelectedKycDoc("aadhaar");
-                }}
-                className={`p-2.5 border rounded-xl text-center active:scale-95 transition-all cursor-pointer shadow-2xs group ${
-                  aadhaarNumber
-                    ? "bg-emerald-50/80 hover:bg-emerald-100/90 border-emerald-300"
-                    : "bg-zinc-50 hover:bg-zinc-100 border-zinc-200"
-                }`}
-                title="Tap to View Aadhaar Card"
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <p className={`text-[10px] font-bold ${aadhaarNumber ? "text-emerald-700" : "text-zinc-600"}`}>Aadhaar Card</p>
-                  <Eye className={`size-3 ${aadhaarNumber ? "text-emerald-600" : "text-zinc-400"} group-hover:scale-115 transition-transform`} />
-                </div>
-                <p className={`text-xs font-black ${aadhaarNumber ? "text-emerald-800" : "text-zinc-700"}`}>
-                  {aadhaarNumber ? "Linked ✓" : "Not Linked"}
-                </p>
-                <span className={`text-[9px] font-semibold block mt-0.5 ${aadhaarNumber ? "text-emerald-600/90" : "text-zinc-400"}`}>
-                  Tap to View 🪪
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  setSelectedKycDoc("pan");
-                }}
-                className={`p-2.5 border rounded-xl text-center active:scale-95 transition-all cursor-pointer shadow-2xs group ${
-                  panNumber
-                    ? "bg-emerald-50/80 hover:bg-emerald-100/90 border-emerald-300"
-                    : "bg-zinc-50 hover:bg-zinc-100 border-zinc-200"
-                }`}
-                title="Tap to View PAN Card"
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <p className={`text-[10px] font-bold ${panNumber ? "text-emerald-700" : "text-zinc-600"}`}>PAN Card</p>
-                  <Eye className={`size-3 ${panNumber ? "text-emerald-600" : "text-zinc-400"} group-hover:scale-115 transition-transform`} />
-                </div>
-                <p className={`text-xs font-black ${panNumber ? "text-emerald-800" : "text-zinc-700"}`}>
-                  {panNumber ? "Verified ✓" : "Not Linked"}
-                </p>
-                <span className={`text-[9px] font-semibold block mt-0.5 ${panNumber ? "text-emerald-600/90" : "text-zinc-400"}`}>
-                  Tap to View 🪪
-                </span>
-              </button>
             </div>
           </div>
           )}

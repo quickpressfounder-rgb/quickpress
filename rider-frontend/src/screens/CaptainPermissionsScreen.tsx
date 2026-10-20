@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
-  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BatteryCharging,
@@ -8,25 +7,14 @@ import {
   Camera,
   Check,
   CheckCircle2,
-  ChevronRight,
   ExternalLink,
-  Headphones,
-  HelpCircle,
   Layers,
-  MapPin,
-  MessageSquare,
   Navigation,
-  Power,
-  RotateCcw,
-  ShieldAlert,
+  Settings,
   ShieldCheck,
-  Smartphone,
   Sparkles,
-  Volume2,
-  VolumeX,
-  Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 
 import {
@@ -35,7 +23,6 @@ import {
   isBackgroundLocationGranted,
   isBatteryOptimizationIgnored,
   isCameraGranted,
-  isFloatingBubbleRunning,
   isLocationGranted,
   isNativeAndroidApp,
   openAppSettings,
@@ -44,15 +31,8 @@ import {
   requestCameraPermission,
   requestIgnoreBatteryOptimization,
   requestOverlayPermission,
-  startFloatingBubble,
-  stopFloatingBubble,
 } from "../lib/captain-device-opt";
-import {
-  playOrderAlertSound,
-  stopOrderAlertSound,
-  triggerHaptic,
-  unlockAudioContext,
-} from "../lib/captain-audio";
+import { triggerHaptic } from "../lib/captain-audio";
 
 export function CaptainPermissionsScreen() {
   const navigate = useNavigate();
@@ -63,38 +43,78 @@ export function CaptainPermissionsScreen() {
   const [overlaysAllowed, setOverlaysAllowed] = useState(false);
   const [notificationsAllowed, setNotificationsAllowed] = useState(false);
   const [cameraAllowed, setCameraAllowed] = useState(false);
-  const [isBubbleActive, setIsBubbleActive] = useState(false);
-  const [isTestingSound, setIsTestingSound] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const refreshPermissions = () => {
-    setBgLocationGranted(isBackgroundLocationGranted());
-    setBatteryIgnored(isBatteryOptimizationIgnored());
-    setOverlaysAllowed(canDrawOverlays());
-    setNotificationsAllowed(areNotificationsEnabled());
-    setCameraAllowed(isCameraGranted());
-    setIsBubbleActive(isFloatingBubbleRunning());
-  };
+  const refreshPermissions = useCallback(() => {
+    // 1. Native bridge / Sync checks
+    const bgLoc = isBackgroundLocationGranted() || isLocationGranted();
+    const battery = isBatteryOptimizationIgnored();
+    const overlays = canDrawOverlays();
+    const notifs = areNotificationsEnabled();
+    const cam = isCameraGranted();
 
+    setBgLocationGranted(bgLoc);
+    setBatteryIgnored(battery);
+    setOverlaysAllowed(overlays);
+    setNotificationsAllowed(notifs);
+    setCameraAllowed(cam);
+
+    // 2. Web Permissions API fallback checks (browser/PWA environment)
+    if (typeof navigator !== "undefined" && navigator.permissions?.query) {
+      if (!bgLoc) {
+        navigator.permissions
+          .query({ name: "geolocation" as any })
+          .then((res) => {
+            if (res.state === "granted") setBgLocationGranted(true);
+          })
+          .catch(() => {});
+      }
+      if (!notifs) {
+        navigator.permissions
+          .query({ name: "notifications" as any })
+          .then((res) => {
+            if (res.state === "granted") setNotificationsAllowed(true);
+          })
+          .catch(() => {});
+      }
+      if (!cam) {
+        navigator.permissions
+          .query({ name: "camera" as any })
+          .then((res) => {
+            if (res.state === "granted") setCameraAllowed(true);
+          })
+          .catch(() => {});
+      }
+    }
+  }, []);
+
+  // Live polling every 800ms + focus/visibility/resume listeners
   useEffect(() => {
     refreshPermissions();
 
-    const handleFocus = () => {
+    const handleActive = () => {
       refreshPermissions();
     };
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
+
+    window.addEventListener("focus", handleActive);
+    document.addEventListener("visibilitychange", handleActive);
+    document.addEventListener("resume", handleActive);
+
+    const interval = setInterval(refreshPermissions, 800);
+
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("focus", handleActive);
+      document.removeEventListener("visibilitychange", handleActive);
+      document.removeEventListener("resume", handleActive);
+      clearInterval(interval);
     };
-  }, []);
+  }, [refreshPermissions]);
 
   const totalSteps = 5;
   const grantedCount = [
-    bgLocationGranted,
     batteryIgnored,
     overlaysAllowed,
+    bgLocationGranted,
     notificationsAllowed,
     cameraAllowed,
   ].filter(Boolean).length;
@@ -102,136 +122,155 @@ export function CaptainPermissionsScreen() {
   const allGranted = grantedCount === totalSteps;
   const progressPercent = Math.round((grantedCount / totalSteps) * 100);
 
-  const handleToggleSoundTest = () => {
-    unlockAudioContext();
-    if (isTestingSound) {
-      stopOrderAlertSound();
-      setIsTestingSound(false);
-      toast.info("Audio test stopped.");
-    } else {
-      setIsTestingSound(true);
-      playOrderAlertSound();
-      triggerHaptic([300, 100, 300, 100, 500]);
-      toast.success("Playing high-decibel captain dispatch siren...");
-      setTimeout(() => {
-        stopOrderAlertSound();
-        setIsTestingSound(false);
-      }, 5000);
+  // Trigger next ungranted permission
+  const handleTriggerFirstUngranted = () => {
+    triggerHaptic(30);
+    if (!batteryIgnored) {
+      requestIgnoreBatteryOptimization();
+      toast.info("Allow 'Ignore Battery Optimization' so app can run in background.");
+    } else if (!overlaysAllowed) {
+      requestOverlayPermission();
+      toast.info("Turn ON 'Display over other apps' to receive instant ride alerts.");
+    } else if (!bgLocationGranted) {
+      requestBackgroundLocationPermission();
+      toast.info("Allow 'Precise Location' for live order dispatch.");
+    } else if (!notificationsAllowed) {
+      openNotificationSettings();
+      toast.info("Enable notifications for loud incoming order sirens.");
+    } else if (!cameraAllowed) {
+      requestCameraPermission();
+      toast.info("Allow camera access for doorstep intake & delivery proof.");
     }
+    setTimeout(refreshPermissions, 1000);
   };
 
-  const handleTestFloatingBubble = () => {
-    if (!overlaysAllowed) {
-      toast.error("Please allow 'Display Over Google Maps' permission first!");
-      requestOverlayPermission();
+  const handleContinue = () => {
+    if (!allGranted) {
+      toast.error("आगे बढ़ने के लिए कृपया सभी 5 परमिशन्स Allow करें!");
+      handleTriggerFirstUngranted();
       return;
     }
-    if (isBubbleActive) {
-      stopFloatingBubble();
-      setIsBubbleActive(false);
-      toast.info("Floating Bubble hidden.");
-    } else {
-      startFloatingBubble();
-      setIsBubbleActive(true);
-      toast.success("⚡ Rapido-style Floating Bubble is now active! Tap it anytime to return to app.");
-    }
+
+    triggerHaptic([50, 50, 100]);
+    try {
+      localStorage.setItem("qp_captain_permissions_allowed", "1");
+    } catch {}
+
+    setShowSuccessModal(true);
+    setTimeout(() => {
+      navigate({ to: "/dashboard", replace: true });
+    }, 1200);
   };
 
   return (
-    <div className="min-h-screen bg-white pb-36 text-slate-950 select-none font-sans">
-      {/* 1. Top Navigation Bar (White, Left Arrow + Right Help Pill) */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3 shadow-2xs">
-        <button
-          type="button"
-          onClick={() => {
-            stopOrderAlertSound();
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              navigate({ to: "/dashboard" });
-            }
-          }}
-          className="flex size-9 items-center justify-center rounded-full text-slate-900 hover:bg-slate-100 active:scale-95 transition cursor-pointer"
-          aria-label="Back"
-        >
-          <ArrowLeft className="size-5 stroke-[2.5]" />
-        </button>
+    <div
+      className="min-h-screen bg-[#F6F7F9] pb-32 text-slate-900 select-none font-sans"
+      style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 8px), 44px)" }}
+    >
+      {/* 1. Clean Top App Header (Notch Safe, Single Header) */}
+      <header className="sticky top-0 z-30 bg-[#F6F7F9] border-b border-slate-200/80 px-4 pb-3">
+        <div className="mx-auto max-w-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (allGranted) {
+                  navigate({ to: "/dashboard" });
+                } else {
+                  toast.info("Duty shuru karne ke liye sari permissions allow karein");
+                }
+              }}
+              className="flex size-9 items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-5 stroke-[2.2]" />
+            </button>
+            <div>
+              <h1 className="text-base font-black tracking-tight text-slate-950 leading-tight">
+                Duty Permissions
+              </h1>
+              <p className="text-[11px] font-semibold text-slate-500">
+                QuickPress Captain Device Setup
+              </p>
+            </div>
+          </div>
 
-        {/* Right Help Pill Button (Matching Screenshot 3) */}
-        <button
-          type="button"
-          onClick={openAppSettings}
-          className="flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3.5 py-1 text-xs font-bold text-slate-800 hover:bg-slate-50 active:scale-95 transition shadow-2xs cursor-pointer"
-        >
-          <Headphones className="size-3.5 text-slate-800 stroke-[2.2]" />
-          <span>Help</span>
-        </button>
-      </header>
+          {/* Direct System App Settings Shortcut */}
+          <button
+            type="button"
+            onClick={openAppSettings}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition shadow-2xs cursor-pointer"
+            title="Open Phone Settings"
+          >
+            <Settings className="size-3.5 text-slate-600" />
+            <span>Settings</span>
+          </button>
+        </div>
 
-      {/* 2. Blue Header Banner (Matching Screenshot 3) */}
-      <div className="bg-[#1E56B3] text-white px-5 py-4 flex items-center justify-between shadow-xs">
-        <div>
-          <h1 className="text-base sm:text-lg font-black tracking-tight text-white">
-            Give all permissions to proceed
-          </h1>
-          <p className="text-xs text-blue-100 mt-0.5 font-medium">
-            Zomato Rider & Rapido Captain style live GPS, bubble & ringtone
-          </p>
-        </div>
-        <div className="size-10 rounded-2xl bg-white/15 flex items-center justify-center text-white shrink-0">
-          <Zap className="size-5 fill-amber-300 text-amber-300" />
-        </div>
-      </div>
-
-      {/* 3. Duty Readiness Progress Bar with Yellow Visual Accent */}
-      <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-slate-700">Duty Readiness:</span>
-          <span className="font-black text-slate-950">
-            {grantedCount} of {totalSteps} Allowed
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-24 sm:w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+        {/* 2. Duty Readiness Card */}
+        <div className="mx-auto max-w-lg mt-3 bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-600">Duty Readiness:</span>
+              <span className="font-black text-slate-950 font-mono">
+                {grantedCount} of {totalSteps} Allowed
+              </span>
+            </div>
+            {allGranted ? (
+              <span className="flex items-center gap-1 font-bold text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                <Check className="size-3 stroke-[3]" />
+                <span>Road Ready</span>
+              </span>
+            ) : (
+              <span className="font-mono font-black text-amber-600 text-[11px]">
+                {progressPercent}%
+              </span>
+            )}
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-amber-400 rounded-full transition-all duration-500"
+              className={`h-full rounded-full transition-all duration-500 ${
+                allGranted ? "bg-emerald-500" : "bg-amber-400"
+              }`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <span className="font-mono font-black text-amber-600 text-[11px]">
-            {progressPercent}%
-          </span>
         </div>
-      </div>
+      </header>
 
-      <main className="mx-auto max-w-lg px-4 pt-3 space-y-3">
-        {/* Permission Item 1: Battery Usage */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 transition-all shadow-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 border border-amber-200/80 shadow-2xs">
+      {/* 3. Clean Permissions List (Direct Redirects on Click) */}
+      <main className="mx-auto max-w-lg px-4 pt-3 space-y-2.5">
+        {/* Permission 1: Battery Usage */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border shadow-2xs transition-colors ${
+              batteryIgnored ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+            }`}>
               <BatteryCharging className="size-5.5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-950 truncate">
-                Battery Usage
+                Battery Usage (No Sleep)
               </h3>
-              <p className="text-xs text-slate-600 font-semibold leading-snug mt-0.5">
-                Helps app run in background
+              <p className="text-xs text-slate-500 font-medium leading-snug mt-0.5">
+                App background me bina freeze hue chalta rahe
               </p>
             </div>
           </div>
 
           <div className="shrink-0">
             {batteryIgnored ? (
-              <div className="flex size-7 items-center justify-center rounded-full bg-[#1E56B3] text-white shadow-xs">
-                <Check className="size-4 stroke-[3]" />
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black">
+                <Check className="size-3.5 stroke-[3]" />
+                <span>Allowed</span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic(20);
                   requestIgnoreBatteryOptimization();
-                  setTimeout(refreshPermissions, 1500);
+                  setTimeout(refreshPermissions, 1000);
                 }}
                 className="rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2 shadow-xs transition-all active:scale-95 cursor-pointer"
               >
@@ -241,33 +280,37 @@ export function CaptainPermissionsScreen() {
           </div>
         </div>
 
-        {/* Permission Item 2: Display Over Other Apps */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 transition-all shadow-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 border border-amber-200/80 shadow-2xs">
+        {/* Permission 2: Display Over Other Apps */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border shadow-2xs transition-colors ${
+              overlaysAllowed ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+            }`}>
               <Layers className="size-5.5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-950 truncate">
-                Display over other apps
+                Display Over Other Apps
               </h3>
-              <p className="text-xs text-slate-600 font-semibold leading-snug mt-0.5">
-                Permit app to display on top of other apps to get rides alerts
+              <p className="text-xs text-slate-500 font-medium leading-snug mt-0.5">
+                Google Maps ke upar order alert aur popup dikhane ke liye
               </p>
             </div>
           </div>
 
           <div className="shrink-0">
             {overlaysAllowed ? (
-              <div className="flex size-7 items-center justify-center rounded-full bg-[#1E56B3] text-white shadow-xs">
-                <Check className="size-4 stroke-[3]" />
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black">
+                <Check className="size-3.5 stroke-[3]" />
+                <span>Allowed</span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic(20);
                   requestOverlayPermission();
-                  setTimeout(refreshPermissions, 1500);
+                  setTimeout(refreshPermissions, 1000);
                 }}
                 className="rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2 shadow-xs transition-all active:scale-95 cursor-pointer"
               >
@@ -277,33 +320,37 @@ export function CaptainPermissionsScreen() {
           </div>
         </div>
 
-        {/* Permission Item 3: Background Location */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 transition-all shadow-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 border border-amber-200/80 shadow-2xs">
+        {/* Permission 3: Background Location (GPS) */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border shadow-2xs transition-colors ${
+              bgLocationGranted ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+            }`}>
               <Navigation className="size-5.5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-950 truncate">
-                Background Location
+                Location Access (GPS)
               </h3>
-              <p className="text-xs text-slate-600 font-semibold leading-snug mt-0.5">
-                Helps dispatch server track live GPS for active orders
+              <p className="text-xs text-slate-500 font-medium leading-snug mt-0.5">
+                Nearest orders assign karne aur live tracking ke liye
               </p>
             </div>
           </div>
 
           <div className="shrink-0">
             {bgLocationGranted ? (
-              <div className="flex size-7 items-center justify-center rounded-full bg-[#1E56B3] text-white shadow-xs">
-                <Check className="size-4 stroke-[3]" />
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black">
+                <Check className="size-3.5 stroke-[3]" />
+                <span>Allowed</span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic(20);
                   requestBackgroundLocationPermission();
-                  setTimeout(refreshPermissions, 1500);
+                  setTimeout(refreshPermissions, 1000);
                 }}
                 className="rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2 shadow-xs transition-all active:scale-95 cursor-pointer"
               >
@@ -313,33 +360,37 @@ export function CaptainPermissionsScreen() {
           </div>
         </div>
 
-        {/* Permission Item 4: Loud Order Alerts (Notifications) */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 transition-all shadow-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 border border-amber-200/80 shadow-2xs">
+        {/* Permission 4: Order Alerts & Siren (Notifications) */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border shadow-2xs transition-colors ${
+              notificationsAllowed ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+            }`}>
               <BellRing className="size-5.5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-950 truncate">
                 Order Alerts & Loud Ringtone
               </h3>
-              <p className="text-xs text-slate-600 font-semibold leading-snug mt-0.5">
-                Plays loud audio siren & bike vibration on new trip offers
+              <p className="text-xs text-slate-500 font-medium leading-snug mt-0.5">
+                Naye trip offers par loud siren ringtone aur vibration ke liye
               </p>
             </div>
           </div>
 
           <div className="shrink-0">
             {notificationsAllowed ? (
-              <div className="flex size-7 items-center justify-center rounded-full bg-[#1E56B3] text-white shadow-xs">
-                <Check className="size-4 stroke-[3]" />
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black">
+                <Check className="size-3.5 stroke-[3]" />
+                <span>Allowed</span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic(20);
                   openNotificationSettings();
-                  setTimeout(refreshPermissions, 1500);
+                  setTimeout(refreshPermissions, 1000);
                 }}
                 className="rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2 shadow-xs transition-all active:scale-95 cursor-pointer"
               >
@@ -349,33 +400,37 @@ export function CaptainPermissionsScreen() {
           </div>
         </div>
 
-        {/* Permission Item 5: Camera Access */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 transition-all shadow-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 border border-amber-200/80 shadow-2xs">
+        {/* Permission 5: Camera Access */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3 transition-all">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border shadow-2xs transition-colors ${
+              cameraAllowed ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+            }`}>
               <Camera className="size-5.5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-950 truncate">
                 Camera Access
               </h3>
-              <p className="text-xs text-slate-600 font-semibold leading-snug mt-0.5">
-                Doorstep intake photos & customer drop proof verification
+              <p className="text-xs text-slate-500 font-medium leading-snug mt-0.5">
+                Pickup par kapdo ki photo aur delivery proof verification ke liye
               </p>
             </div>
           </div>
 
           <div className="shrink-0">
             {cameraAllowed ? (
-              <div className="flex size-7 items-center justify-center rounded-full bg-[#1E56B3] text-white shadow-xs">
-                <Check className="size-4 stroke-[3]" />
+              <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black">
+                <Check className="size-3.5 stroke-[3]" />
+                <span>Allowed</span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => {
+                  triggerHaptic(20);
                   requestCameraPermission();
-                  setTimeout(refreshPermissions, 1500);
+                  setTimeout(refreshPermissions, 1000);
                 }}
                 className="rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs px-4 py-2 shadow-xs transition-all active:scale-95 cursor-pointer"
               >
@@ -384,111 +439,47 @@ export function CaptainPermissionsScreen() {
             )}
           </div>
         </div>
-
-        {/* Interactive Features: Siren Tester & Floating Bubble */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          <button
-            type="button"
-            onClick={handleToggleSoundTest}
-            className={`p-3 rounded-2xl border text-center transition-all active:scale-95 shadow-2xs cursor-pointer flex flex-col items-center justify-center gap-1 ${
-              isTestingSound
-                ? "bg-red-50 border-red-300 text-red-700 animate-pulse"
-                : "bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100"
-            }`}
-          >
-            <div className="size-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
-              {isTestingSound ? <VolumeX className="size-4 text-red-600" /> : <Volume2 className="size-4" />}
-            </div>
-            <span className="text-xs font-black">
-              {isTestingSound ? "Stop Siren" : "Test Loud Siren"}
-            </span>
-            <span className="text-[10px] text-slate-500 font-medium">Check audio alert</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleTestFloatingBubble}
-            className={`p-3 rounded-2xl border text-center transition-all active:scale-95 shadow-2xs cursor-pointer flex flex-col items-center justify-center gap-1 ${
-              isBubbleActive
-                ? "bg-emerald-50 border-emerald-300 text-emerald-800"
-                : "bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100"
-            }`}
-          >
-            <div className="size-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
-              <Sparkles className="size-4" />
-            </div>
-            <span className="text-xs font-black">
-              {isBubbleActive ? "Hide Bubble" : "Test Floating Bubble"}
-            </span>
-            <span className="text-[10px] text-slate-500 font-medium">Rapido Captain icon</span>
-          </button>
-        </div>
-
-        {/* OEM Background Autostart Help Footnote */}
-        <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-center space-y-1">
-          <p className="text-xs font-bold text-amber-950">
-            Using Xiaomi, Vivo, Oppo or Realme?
-          </p>
-          <p className="text-[11px] text-amber-900 font-medium leading-relaxed">
-            Phone Settings ➔ Apps ➔ QuickPress Captain ➔ Turn ON "Autostart" & "Allow background activity".
-          </p>
-          <button
-            type="button"
-            onClick={openAppSettings}
-            className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 hover:text-amber-800 pt-0.5 cursor-pointer"
-          >
-            <span>Open Android App Settings</span>
-            <ExternalLink className="size-3" />
-          </button>
-        </div>
       </main>
 
-      {/* 4. Sticky Bottom Action Bar (Pure White Background, Black Text, Yellow Button) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-3 shadow-xl">
+      {/* 4. Sticky Bottom Action Bar (Strict Permission Gate) */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-3.5 shadow-xl">
         <div className="mx-auto max-w-lg flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-black text-slate-950 truncate">
-              {allGranted ? "✓ 5 of 5 permissions allowed" : `${grantedCount} of ${totalSteps} permissions allowed`}
+              {allGranted ? "✓ Sabhi 5 permissions allowed hain" : `${grantedCount} of ${totalSteps} permissions allowed`}
             </p>
-            <p className="text-[10px] text-slate-500 font-semibold">
-              {allGranted ? "Phone is 100% road-ready" : "Remaining can be enabled anytime"}
+            <p className="text-[11px] text-slate-500 font-medium">
+              {allGranted ? "Phone duty ke liye ready hai" : "Bina allow kiye aage nahi badh sakte"}
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() => {
-              stopOrderAlertSound();
-              try {
-                localStorage.setItem("qp_captain_permissions_allowed", "1");
-              } catch {}
-              if (allGranted) {
-                setShowSuccessModal(true);
-                setTimeout(() => navigate({ to: "/dashboard" }), 1400);
-              } else {
-                navigate({ to: "/dashboard" });
-              }
-            }}
-            className="flex items-center gap-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 py-2.5 text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+            onClick={handleContinue}
+            className={`flex items-center gap-1.5 rounded-2xl px-5 py-3 text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer ${
+              allGranted
+                ? "bg-amber-400 hover:bg-amber-300 text-slate-950"
+                : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+            }`}
           >
-            <span>Continue to Duty</span>
+            <span>{allGranted ? "Continue to Duty" : `Allow All (${grantedCount}/5)`}</span>
             <ArrowRight className="size-4 stroke-[2.5]" />
           </button>
         </div>
       </div>
 
-      {/* 5. "App Permissions Given" Popup Modal (Matching Screenshot 3) */}
+      {/* 5. App Permissions Given Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-2xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-xs bg-white rounded-3xl p-6 shadow-2xl text-center space-y-3 animate-in zoom-in-95 duration-200 border border-slate-100">
-            <div className="size-20 rounded-full bg-[#107C41] text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/30">
-              <Check className="size-10 stroke-[3.5]" />
+            <div className="size-16 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/30">
+              <Check className="size-8 stroke-[3.5]" />
             </div>
             <h3 className="text-base font-black text-slate-950">
-              App Permissions Given
+              Permissions Granted!
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              Captain phone is ready to receive orders!
+              Captain phone is now 100% ready for orders!
             </p>
           </div>
         </div>

@@ -230,22 +230,24 @@ export function RiderDashboardScreen() {
     }
   }, [isOnline]);
 
-  // Permissions Gate: After registration, captain cannot enter home page until all permissions enabled
+  // Permissions Gate: After login/registration, captain is guided to permissions page once.
+  // Once allowed, do not re-open permissions page repeatedly from inside the app.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const alreadyAllowed = localStorage.getItem("qp_captain_permissions_allowed") === "1";
+    if (alreadyAllowed) return;
+
     if (isNativeAndroidApp()) {
       const bgOk = isBackgroundLocationGranted();
       const batteryOk = isBatteryOptimizationIgnored();
       const overlayOk = canDrawOverlays();
       if (!bgOk || !batteryOk || !overlayOk) {
         navigate({ to: "/permissions" });
+      } else {
+        localStorage.setItem("qp_captain_permissions_allowed", "1");
       }
     } else {
-      const allowed =
-        typeof window !== "undefined" &&
-        localStorage.getItem("qp_captain_permissions_allowed") === "1";
-      if (!allowed) {
-        navigate({ to: "/permissions" });
-      }
+      navigate({ to: "/permissions" });
     }
   }, [navigate]);
 
