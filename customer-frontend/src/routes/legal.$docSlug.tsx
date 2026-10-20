@@ -12,6 +12,7 @@ import {
   Shield,
   ShieldCheck,
   Globe,
+  ExternalLink,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -86,10 +87,21 @@ function LegalDocScreen() {
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 cursor-pointer"
             >
               <Printer className="size-3.5" /> Print Policy
             </button>
+            <a
+              href={`https://quickpress.app/${docSlug === "privacy-policy" ? "privacy-policy" : docSlug === "terms-of-service" ? "terms" : docSlug === "cancellation-refund-policy" ? "refund" : "terms"}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition cursor-pointer"
+              title="View on Official Website"
+            >
+              <Globe className="size-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">quickpress.app</span>
+              <ExternalLink className="size-3 text-emerald-600" />
+            </a>
             <Link
               to="/contact"
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"

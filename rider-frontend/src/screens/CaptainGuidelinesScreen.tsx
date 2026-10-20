@@ -289,6 +289,27 @@ export const CaptainGuidelinesScreen: React.FC<CaptainGuidelinesScreenProps> = (
                   </a>
                 </p>
               </div>
+
+              {/* Action Buttons to Read Full Legal Document or Open Website */}
+              <div className="pt-1 flex items-center gap-2">
+                <a
+                  href="/legal/privacy-policy"
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black text-center shadow-xs flex items-center justify-center gap-1.5 transition active:scale-98 cursor-pointer"
+                >
+                  <FileText className="size-3.5" />
+                  <span>Read Full Legal Document</span>
+                </a>
+                <a
+                  href="https://quickpress.app/privacy-policy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold text-center border border-zinc-300 flex items-center gap-1.5 transition active:scale-98 cursor-pointer"
+                  title="Open Official Website"
+                >
+                  <Globe className="size-3.5 text-emerald-600" />
+                  <span>Website</span>
+                </a>
+              </div>
             </div>
           </div>
         )}

@@ -26,6 +26,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SuspendedRouteImport } from './routes/suspended'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as LegalDocSlugRouteImport } from './routes/legal.$docSlug'
 import { Route as OrdersIndexRouteImport } from './routes/orders.index'
 import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
 import { Route as ServicesIndexRouteImport } from './routes/services.index'
@@ -117,6 +118,11 @@ const WalletRoute = WalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalDocSlugRoute = LegalDocSlugRouteImport.update({
+  id: '/legal/$docSlug',
+  path: '/legal/$docSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersIndexRoute = OrdersIndexRouteImport.update({
   id: '/orders/',
   path: '/orders/',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/suspended': typeof SuspendedRoute
   '/wallet': typeof WalletRoute
+  '/legal/$docSlug': typeof LegalDocSlugRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/services/new': typeof ServicesNewRoute
   '/orders/': typeof OrdersIndexRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/suspended': typeof SuspendedRoute
   '/wallet': typeof WalletRoute
+  '/legal/$docSlug': typeof LegalDocSlugRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/services/new': typeof ServicesNewRoute
   '/orders': typeof OrdersIndexRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/suspended': typeof SuspendedRoute
   '/wallet': typeof WalletRoute
+  '/legal/$docSlug': typeof LegalDocSlugRoute
   '/orders/$orderId': typeof OrdersOrderIdRoute
   '/services/new': typeof ServicesNewRoute
   '/orders/': typeof OrdersIndexRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/suspended'
     | '/wallet'
+    | '/legal/$docSlug'
     | '/orders/$orderId'
     | '/services/new'
     | '/orders/'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/suspended'
     | '/wallet'
+    | '/legal/$docSlug'
     | '/orders/$orderId'
     | '/services/new'
     | '/orders'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/suspended'
     | '/wallet'
+    | '/legal/$docSlug'
     | '/orders/$orderId'
     | '/services/new'
     | '/orders/'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   SuspendedRoute: typeof SuspendedRoute
   WalletRoute: typeof WalletRoute
+  LegalDocSlugRoute: typeof LegalDocSlugRoute
   OrdersOrderIdRoute: typeof OrdersOrderIdRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
 }
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/$docSlug': {
+      id: '/legal/$docSlug'
+      path: '/legal/$docSlug'
+      fullPath: '/legal/$docSlug'
+      preLoaderRoute: typeof LegalDocSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders/': {
       id: '/orders/'
       path: '/orders'
@@ -504,6 +524,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   SuspendedRoute: SuspendedRoute,
   WalletRoute: WalletRoute,
+  LegalDocSlugRoute: LegalDocSlugRoute,
   OrdersOrderIdRoute: OrdersOrderIdRoute,
   OrdersIndexRoute: OrdersIndexRoute,
 }

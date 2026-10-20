@@ -3078,9 +3078,16 @@ export function RiderRegistrationScreen() {
                     Service level agreement, legal terms, and mandatory digital signature
                   </p>
                 </div>
-                <span className="text-[10px] font-bold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded border border-neutral-200">
-                  QP-SLA-2026.9
-                </span>
+                <a
+                  href="/legal/rider-agreement"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  title="View Official Agreement & SLA"
+                >
+                  <span>QP-SLA-2026.9</span>
+                  <ExternalLink className="size-2.5" />
+                </a>
               </div>
 
               {/* Contracting Parties Card */}
@@ -3234,7 +3241,24 @@ export function RiderRegistrationScreen() {
                     मैंने QuickPress डिलीवरी पार्टनर अनुबंध की सभी शर्तें व नियम पढ़ लिए हैं और मैं पूर्ण सहमति देता हूँ। *
                   </label>
                   <p className="text-[10px] text-neutral-500 mt-0.5">
-                    I declare that all information is truthful, and I accept the terms of the service agreement.
+                    I declare that all information is truthful, and I accept the terms of the{" "}
+                    <a
+                      href="/legal/rider-agreement"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-emerald-700 underline hover:text-emerald-800"
+                    >
+                      Service Agreement
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="/legal/privacy-policy"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-emerald-700 underline hover:text-emerald-800"
+                    >
+                      Privacy Policy
+                    </a>.
                   </p>
                   {!hasScrolledToBottom && (
                     <p className="text-[10px] font-bold text-amber-700 mt-1">

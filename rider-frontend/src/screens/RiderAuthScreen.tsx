@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, UserPlus, LogIn, AlertCircle, X } from "lucide-react";
 import React, { useEffect, useState, type FormEvent } from "react";
 
@@ -274,8 +274,23 @@ export function RiderAuthScreen() {
           )}
         </button>
 
-        <p className="text-[11px] text-neutral-500 text-center font-medium leading-tight">
-          {t("auth.termsNotice", "By continuing, you agree to our Terms and Conditions")}
+        <p className="text-[11.5px] text-neutral-500 text-center font-medium leading-relaxed px-2">
+          By continuing, you acknowledge our{" "}
+          <Link
+            to="/legal/$docSlug"
+            params={{ docSlug: "privacy-policy" }}
+            className="font-bold text-neutral-800 underline hover:text-[#00C853] transition-colors"
+          >
+            Privacy Policy
+          </Link>{" "}
+          and agree to the{" "}
+          <Link
+            to="/legal/$docSlug"
+            params={{ docSlug: "terms-of-service" }}
+            className="font-bold text-neutral-800 underline hover:text-[#00C853] transition-colors"
+          >
+            Terms & Conditions
+          </Link>.
         </p>
       </div>
     </div>
