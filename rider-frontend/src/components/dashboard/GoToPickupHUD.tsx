@@ -42,6 +42,7 @@ import {
   QrCode,
   HelpCircle,
   Loader2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { initRiderSocket, subscribeRiderOrders, emitRiderLocation } from "../../lib/rider-socket";
@@ -69,6 +70,7 @@ import {
   ManeuverType,
 } from "../../lib/voice-navigation-engine";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "../../shared/lib/google-maps-loader";
+import { RiderCancelTripModal } from "../orders/RiderCancelTripModal";
 import { RiderUnableToDeliverModal } from "../orders/RiderUnableToDeliverModal";
 import { RiderHandoverWaitingCard } from "../orders/RiderHandoverWaitingCard";
 import { CaptainReviewModal } from "./CaptainReviewModal";
@@ -204,6 +206,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [doorstepNotes, setDoorstepNotes] = useState<string>("");
   const [showDiscrepancyInput, setShowDiscrepancyInput] = useState<boolean>(false);
   const [showUnableModal, setShowUnableModal] = useState(false);
+  const [showRiderCancelModal, setShowRiderCancelModal] = useState(false);
   const [isVerifyingHandover, setIsVerifyingHandover] = useState(false);
   const [handoverVerifyOtpDigits, setHandoverVerifyOtpDigits] = useState<string[]>(["", "", "", ""]);
   const [handoverData, setHandoverData] = useState<{
@@ -1572,6 +1575,22 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           >
             <Phone className="w-4.5 h-4.5 fill-slate-950 stroke-none" />
           </button>
+
+          {/* Trip Cancellation / Unassign Button before pickup */}
+          {(stage === "en_route_pickup" || stage === "arrived_pickup") && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                setShowRiderCancelModal(true);
+              }}
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/35 hover:bg-rose-500/30 shadow-xs active:scale-95 transition-all cursor-pointer"
+              aria-label="Cancel Trip"
+              title="Cancel / Unassign Pickup Trip"
+            >
+              <XCircle className="w-4.5 h-4.5 text-rose-400" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -2029,6 +2048,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               color="blue"
               onConfirm={handleArrivalCheck}
             />
+
+            {/* Quick Cancel / Unassign Pickup Trip */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("heavy");
+                setShowRiderCancelModal(true);
+              }}
+              className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+            >
+              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+              <span>Cancel / Decline Pickup (गाड़ी पंचर / समस्या)</span>
+            </button>
           </div>
         )}
 
@@ -3016,6 +3048,24 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         onSuccess={(data) => {
           setHandoverData(data);
           setStage("handover_waiting");
+        }}
+      />
+
+      {/* Rider Trip Cancellation & Concentric Re-dispatch Modal */}
+      <RiderCancelTripModal
+        isOpen={showRiderCancelModal}
+        onClose={() => setShowRiderCancelModal(false)}
+        orderId={order.orderId}
+        orderCode={order.orderCode}
+        onSuccess={() => {
+          setShowRiderCancelModal(false);
+          if (onCancelTrip) {
+            onCancelTrip();
+          } else if (onTripCompleted) {
+            onTripCompleted();
+          } else {
+            window.location.reload();
+          }
         }}
       />
 

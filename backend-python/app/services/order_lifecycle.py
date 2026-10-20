@@ -662,6 +662,37 @@ async def transition(
     except Exception as exc:
         logger.warning(f"Failed to broadcast transition to Socket.IO: {exc}")
 
+    # Active Concentric Wave Dispatch & Rider Assignment Cancellation hook
+    if target == CANCELLED:
+        try:
+            oid = order_id_of(updated)
+            from app.services.zomato_dispatch_engine import zomato_dispatch_engine
+            zomato_dispatch_engine.cancel_dispatch(oid)
+            zomato_dispatch_engine.cancel_dispatch(f"ride-pk-{oid}")
+            zomato_dispatch_engine.cancel_dispatch(f"ride-del-{oid}")
+
+            from app.services.smart_2ride_engine import smart_2ride_engine, RIDES_COLLECTION
+            rides = await database.find_many(RIDES_COLLECTION, {"orderId": oid})
+            for r in rides:
+                r_id = r["_id"]
+                if r_id in smart_2ride_engine._active_timers:
+                    smart_2ride_engine._active_timers[r_id].cancel()
+                    smart_2ride_engine._active_timers.pop(r_id, None)
+                await database.collection(RIDES_COLLECTION).update_one(
+                    {"_id": r_id},
+                    {"$set": {"status": "CANCELLED", "cancelledAt": at, "cancellationReason": (metadata or {}).get("reason") or "Order cancelled"}}
+                )
+
+            # Broadcast ride.cancelled to all riders so ringing sirens/modals stop instantly
+            try:
+                from app.services.socket_service import sio
+                await sio.emit("ride.cancelled", {"orderId": oid, "reason": (metadata or {}).get("reason") or "Order cancelled"}, room="riders")
+                await sio.emit("order.cancelled", {"orderId": oid, "reason": (metadata or {}).get("reason") or "Order cancelled"}, room="riders")
+            except Exception:
+                pass
+        except Exception as err:
+            logger.warning(f"Order cancellation dispatch cleanup hook error: {err}")
+
     # Referral, Settlement, and Automated Email Invoice Dispatch hooks on order delivery
     if target in (DELIVERED, COMPLETED):
         try:

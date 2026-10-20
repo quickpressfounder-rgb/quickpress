@@ -696,13 +696,50 @@ class PartnerOrderRepository:
 
     async def reject(self, partner_id: str, order_id: str, reason: str) -> Dict[str, Any]:
         text = reason or "Rejected by store"
-        return await self._transition(
+        res = await self._transition(
             partner_id,
             order_id,
             lifecycle.CANCELLED,
             metadata={"reason": text},
             changes={"cancelledReason": text},
         )
+
+        # Automatic 100% full refund to customer when partner rejects order
+        try:
+            order_doc = await lifecycle.find_order(order_id)
+            if order_doc:
+                user_id = str(order_doc.get("userId") or (order_doc.get("customer") or {}).get("id") or "")
+                payment = order_doc.get("payment") or {}
+                is_paid = payment.get("paid") or payment.get("mode") == "wallet"
+                if is_paid and user_id:
+                    from app.services.unified_finance_service import unified_finance_service
+                    from app.db.repositories import users
+                    from app.db.wallet_repositories import wallet_repository
+
+                    totals = order_doc.get("totals") or {}
+                    grand_total = float(totals.get("grandTotal") or order_doc.get("total") or 0.0)
+                    if grand_total > 0:
+                        await unified_finance_service.process_refund(
+                            order_id=order_id,
+                            refund_amount=grand_total,
+                            reason=f"Store Rejected: {text}",
+                            processed_by=partner_id,
+                        )
+                        user_obj = await users.by_id(user_id)
+                        if user_obj:
+                            await wallet_repository.credit(
+                                user_obj,
+                                grand_total,
+                                kind="refund",
+                                title="Order Refund (Store Declined)",
+                                description=f"100% refund for Order #{order_doc.get('code', order_id)} (Store Declined: {text})",
+                                method="wallet",
+                                reference=f"ref-{order_id}",
+                            )
+        except Exception as e:
+            logger.warning("Error processing partner rejection refund for %s: %s", order_id, e)
+
+        return res
 
     async def receive_laundry(self, partner_id: str, order_id: str) -> Dict[str, Any]:
         """Partner store confirms receipt of laundry dropped by rider or customer."""

@@ -3264,6 +3264,35 @@ async def reject_order(
         return {"ok": True, "orderId": canonical_ord_id}
 
 
+@router.post("/orders/{order_id}/cancel-trip")
+@router.post("/rides/{order_id}/cancel-trip")
+async def cancel_trip_by_rider(
+    order_id: str, body: dict | None = None, user: User = Depends(current_user)
+) -> dict:
+    """Rider cancels / unassigns from an accepted trip (e.g. breakdown, emergency, unreachable)."""
+    rider_id = await _rider_id(user)
+    from app.services.smart_2ride_engine import smart_2ride_engine, RIDES_COLLECTION
+    import re
+
+    ord_m = re.search(r'(ord-[a-zA-Z0-9]+|QP[a-zA-Z0-9]+)', order_id)
+    canonical_ord_id = ord_m.group(1) if ord_m else order_id
+
+    ride = await database.find_one(RIDES_COLLECTION, {"_id": order_id})
+    if not ride:
+        ride = await database.find_one(RIDES_COLLECTION, {"_id": f"ride-pk-{canonical_ord_id}"})
+    if not ride:
+        ride = await database.find_one(RIDES_COLLECTION, {"orderId": canonical_ord_id})
+
+    if not ride:
+        raise HTTPException(status_code=404, detail="Active ride assignment not found for this order.")
+
+    reason = str((body or {}).get("reason") or "Trip cancelled by captain")
+    try:
+        return await smart_2ride_engine.cancel_ride_by_rider(ride["_id"], rider_id, reason)
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
+
+
 
 @router.post("/orders/{order_id}/pickup")
 @router.post("/orders/{order_id}/verify-pickup-otp")

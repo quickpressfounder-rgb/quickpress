@@ -187,6 +187,28 @@ export const GlobalOrderDispatchListener: React.FC = () => {
           }
         }
       }
+
+      // 2b. Listen for ride / order cancellation (Customer or Partner cancelled)
+      if (
+        evType === "ride.cancelled" ||
+        evType === "order.cancelled" ||
+        eventData?.status === "cancelled"
+      ) {
+        const cancelledOrderId = String(eventData?.orderId || eventData?._id || eventData?.id || "");
+        if (activeFlashOfferRef.current) {
+          const currentOrderId = String(activeFlashOfferRef.current.orderId || "");
+          const currentRideId = String(activeFlashOfferRef.current.rideId || "");
+          if (
+            cancelledOrderId &&
+            (cancelledOrderId === currentOrderId || cancelledOrderId === currentRideId)
+          ) {
+            stopOrderAlertSound();
+            activeFlashOfferRef.current = null;
+            setActiveFlashOffer(null);
+            toast.error("❌ Yeh order customer/store dwara cancel kar diya gaya.");
+          }
+        }
+      }
     });
 
     // 3. Initial check

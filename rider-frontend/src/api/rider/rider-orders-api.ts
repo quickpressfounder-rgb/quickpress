@@ -424,7 +424,19 @@ export async function fetchDispatchOtp(orderId: string) {
   }>(`/api/rider/orders/${orderId}/dispatch-otp`);
 }
 
+/** POST /api/rider/orders/{id}/cancel-trip — Rider cancels an accepted trip before pickup (breakdown, emergency) */
+export async function cancelTripByRider(orderId: string, reason: string) {
+  return apiPostJson<{
+    ok: boolean;
+    rideId: string;
+    orderId: string;
+    status: string;
+    message: string;
+  }>(`/api/rider/orders/${orderId}/cancel-trip`, { reason });
+}
+
 /** Re-exported so screens can show backend error copy without importing core. */
 export { ApiError };
+
 
 

@@ -1346,6 +1346,165 @@ class Smart2RideEngine:
         asyncio.create_task(self.dispatch_next_offer(ride_id))
         return {"ok": True, "rideId": ride_id, "status": "REJECTED"}
 
+    async def cancel_ride_by_rider(
+        self, ride_id: str, rider_id: str, reason: str = "Trip cancelled by rider"
+    ) -> Dict[str, Any]:
+        """Rider cancels an accepted trip before laundry pickup (e.g. breakdown, unreachable).
+
+        Frees up the rider immediately, unassigns from the order, resets order to
+        rider_searching, and triggers Zomato Concentric Wave re-dispatch for the next nearest captain.
+        """
+        ride = await database.find_one(RIDES_COLLECTION, {"_id": ride_id})
+        if not ride:
+            return {"ok": False, "error": "Ride not found"}
+
+        now = lifecycle.now_iso()
+        order_id = ride.get("orderId")
+        order = await lifecycle.find_order(order_id) if order_id else None
+
+        # Check if already picked up or beyond
+        if order and order.get("status") in ("picked_up", "at_partner", "processing", "completed", "out_for_delivery", "delivered"):
+            raise ValueError("Laundry has already been picked up. Please use emergency handover protocol.")
+
+        # 1. Cancel any active timers for this ride
+        if ride_id in self._active_timers:
+            self._active_timers[ride_id].cancel()
+            self._active_timers.pop(ride_id, None)
+
+        # 2. Record rider cancellation in ride history and reset ride state
+        await database.collection(RIDES_COLLECTION).update_one(
+            {"_id": ride_id},
+            {
+                "$push": {
+                    "assignmentHistory": {
+                        "riderId": rider_id,
+                        "outcome": "cancelled_by_rider",
+                        "reason": reason,
+                        "at": now,
+                    }
+                },
+                "$set": {
+                    "status": "SEARCHING_RIDER",
+                    "riderId": None,
+                    "rider": None,
+                    "offeredRiderId": None,
+                    "activeOfferId": None,
+                    "updatedAt": now,
+                    "lastCancelledByRider": {"riderId": rider_id, "reason": reason, "at": now},
+                },
+            },
+        )
+
+        # 3. Free up rider profile so they return to available/idle radar
+        try:
+            await database.update(
+                RIDERS_COLLECTION,
+                {"$or": [{"_id": rider_id}, {"riderId": rider_id}, {"id": rider_id}]},
+                {"$set": {"status": "online", "currentOrderId": None, "currentRideId": None, "activeOrderId": None, "updatedAt": now}},
+            )
+        except Exception as err:
+            logger.warning(f"Error resetting rider profile state: {err}")
+
+        # 4. Unassign rider from canonical order and update status to rider_searching
+        if order:
+            await database.collection(ORDERS_COLLECTION).update_one(
+                {"_id": order["_id"]},
+                {
+                    "$unset": {"riderId": "", "rider": "", "assignedRiderId": "", "pickupRider": ""},
+                    "$set": {
+                        "status": lifecycle.RIDER_SEARCHING,
+                        "canonicalStatus": lifecycle.RIDER_SEARCHING,
+                        "updatedAt": now,
+                    },
+                    "$push": {
+                        "events": {
+                            "id": f"{order.get('code')}-evt-unassigned-{int(datetime.now(timezone.utc).timestamp())}",
+                            "status": lifecycle.RIDER_SEARCHING,
+                            "label": "Captain Reassignment Required",
+                            "at": now,
+                            "actor": "rider",
+                            "metadata": {"reason": reason, "unassignedRiderId": rider_id},
+                        }
+                    },
+                },
+            )
+
+            # Broadcast real-time status update to Customer, Partner, and Fleet
+            try:
+                from app.services.socket_service import broadcast_order_event, sio
+
+                payload = {
+                    "orderId": order_id,
+                    "id": order_id,
+                    "code": order.get("code") or order_id,
+                    "status": lifecycle.RIDER_SEARCHING,
+                    "previousRiderId": rider_id,
+                    "reason": reason,
+                    "at": now,
+                }
+                asyncio.create_task(broadcast_order_event("order.status_changed", order, extra_data=payload))
+                asyncio.create_task(broadcast_order_event("order.rider_unassigned", order, extra_data=payload))
+                await sio.emit("order.rider_unassigned", payload, room=f"rider_{rider_id}")
+            except Exception as exc:
+                logger.warning("Error broadcasting rider unassignment socket: %s", exc)
+
+            # Notifications to Customer and Partner
+            try:
+                from app.services.order_notifications import (
+                    send_customer_notification,
+                    send_partner_notification,
+                    send_rider_notification,
+                )
+                user_id = str(order.get("userId") or (order.get("customer") or {}).get("id") or "")
+                partner = order.get("partner") or {}
+                partner_id = str(partner.get("id") or order.get("partner_id") or order.get("partnerId") or "")
+                code = order.get("code", order_id[:8])
+
+                if user_id:
+                    asyncio.create_task(
+                        send_customer_notification(
+                            user_id,
+                            kind="rider-reassigning",
+                            title=f"Captain Reassigning for #{code}",
+                            description=f"Your assigned Captain experienced an issue ({reason}). Locating your nearest available Captain now.",
+                            order_id=order_id,
+                            order_code=code,
+                        )
+                    )
+                if partner_id:
+                    asyncio.create_task(
+                        send_partner_notification(
+                            partner_id,
+                            title=f"Order #{code} Captain Reassigned",
+                            description=f"Delivery Captain unassigned ({reason}). Re-dispatching to nearby fleet.",
+                            kind="order-update",
+                            order_id=order_id,
+                            order_code=code,
+                        )
+                    )
+                asyncio.create_task(
+                    send_rider_notification(
+                        rider_id,
+                        title=f"Trip Unassigned for #{code}",
+                        message="Trip cancelled successfully. You are now available to receive new offers.",
+                        order_id=order_id,
+                    )
+                )
+            except Exception as exc:
+                logger.warning("Error sending rider cancellation notifications: %s", exc)
+
+        # 5. Automatically trigger Zomato Concentric Wave Re-Dispatch for next nearest captain!
+        logger.info("⚡ [Smart2Ride] Re-dispatching order %s after rider %s cancellation...", order_id, rider_id)
+        asyncio.create_task(self.dispatch_next_offer(ride_id))
+
+        return {
+            "ok": True,
+            "rideId": ride_id,
+            "orderId": order_id,
+            "status": "REASSIGNING",
+            "message": "Trip successfully cancelled and re-dispatched to nearby fleet.",
+        }
+
     # -------------------------------------------------------------------------
     # 6. SECURE OTP VERIFICATION LIFECYCLE
     # -------------------------------------------------------------------------
