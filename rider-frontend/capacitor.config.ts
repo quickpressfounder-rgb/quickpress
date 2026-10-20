@@ -11,6 +11,18 @@ const config: CapacitorConfig = {
     url: "https://quickpress-caption.vercel.app",
     cleartext: true,
   },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 400,
+      launchAutoHide: true,
+      backgroundColor: "#ffffff",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+  },
 };
 
 export default config;
