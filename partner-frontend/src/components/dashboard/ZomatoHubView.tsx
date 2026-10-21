@@ -55,7 +55,7 @@ import { usePartnerOrders } from "../../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../../hooks/use-order-action-handler";
 import { useLanguage } from "../../lib/i18n";
 import type { ManagedOrder, PartnerOrderFilterTab } from "../../data/partner-orders-mock";
-import { STAGE_LABEL, isOrderMatchingTab } from "../../data/partner-orders-mock";
+import { STAGE_LABEL, isOrderMatchingTab, formatOrderPlacedTime } from "../../data/partner-orders-mock";
 import {
   isNativeAndroidApp,
   isBatteryOptimizationIgnored,
@@ -333,7 +333,6 @@ export function ZomatoHubView() {
   }, [orders]);
 
   const FILTER_TABS: { id: PartnerOrderFilterTab; label: string; count: number }[] = useMemo(() => [
-    { id: "all", label: "All", count: orders.length },
     { id: "active", label: "Active", count: activeOrders.length },
     { id: "pickup", label: "Pickup", count: activeOrders.filter((o) => isOrderMatchingTab(o, "pickup")).length },
     { id: "processing", label: "Processing", count: activeOrders.filter((o) => isOrderMatchingTab(o, "processing")).length },
@@ -346,13 +345,17 @@ export function ZomatoHubView() {
   ], [activeOrders, orders]);
 
   const displayedOrders = useMemo(() => {
-    if (activeFilterTab === "active") {
-      return activeOrders;
-    }
-    if (activeFilterTab === "all") {
-      return orders;
-    }
-    return orders.filter((order) => isOrderMatchingTab(order, activeFilterTab));
+    const list = activeFilterTab === "active"
+      ? activeOrders
+      : orders.filter((order) => isOrderMatchingTab(order, activeFilterTab));
+    return [...list].sort((a, b) => {
+      const timeA = new Date(a.placedAt || 0).getTime();
+      const timeB = new Date(b.placedAt || 0).getTime();
+      if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+        return timeB - timeA;
+      }
+      return (a.placedMinutesAgo ?? 0) - (b.placedMinutesAgo ?? 0);
+    });
   }, [activeOrders, orders, activeFilterTab]);
 
   return (
@@ -571,10 +574,10 @@ export function ZomatoHubView() {
         <div>
           <div className="flex items-center justify-between">
             <h2 className="text-base font-black tracking-tight text-black">
-              {activeFilterTab === "active" || activeFilterTab === "all" ? (
+              {activeFilterTab === "active" ? (
                 <>Active Orders Queue ({displayedOrders.length})</>
               ) : (
-                <>Active Orders · {activeFilterTab.toUpperCase()} ({displayedOrders.length})</>
+                <>Orders · {activeFilterTab.toUpperCase()} ({displayedOrders.length})</>
               )}
             </h2>
             <button
@@ -599,7 +602,7 @@ export function ZomatoHubView() {
                 <div>
                   <h4 className="text-sm font-black text-black">
                     {isOnline
-                      ? (activeFilterTab === "active" || activeFilterTab === "all"
+                      ? (activeFilterTab === "active"
                           ? "Store is Online & Listening"
                           : `No orders in "${activeFilterTab}" status`)
                       : "Store is Offline (स्टोर ऑफलाइन है)"}
@@ -625,6 +628,7 @@ export function ZomatoHubView() {
               displayedOrders.map((order) => {
                 const stepIdx = getStageTimelineIndex(order.stage);
                 const isNew = order.stage === "new";
+                const placedInfo = formatOrderPlacedTime((order as any).placedAt || (order as any).placedAtRaw || order.placedAt);
 
                 return (
                   <div
@@ -677,6 +681,28 @@ export function ZomatoHubView() {
                           {STAGE_LABEL[order.stage] || order.stage}
                         </span>
                       </div>
+                    </div>
+
+                    {/* ORDER RECEIVED TIME BOX (ऑर्डर आने का समय) */}
+                    <div className="flex items-center justify-between rounded-xl bg-blue-50/70 border border-blue-200/70 px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="size-6 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-2xs">
+                          <Clock className="size-3.5" />
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-zinc-500 text-[11px] uppercase tracking-wider">Order Arrived:</span>
+                          <span className="font-black text-black text-[12px] tracking-tight">
+                            {placedInfo.time}
+                          </span>
+                          <span className="text-zinc-400 text-[11px]">•</span>
+                          <span className="font-semibold text-zinc-700 text-[11px]">
+                            {placedInfo.date}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="rounded-md bg-white border border-blue-200 px-2 py-0.5 text-[10px] font-black text-blue-700 shadow-2xs">
+                        {placedInfo.relative}
+                      </span>
                     </div>
 
                     {/* 2. CUSTOMER INFO & DIRECT 1-TAP CONTACT ACTIONS */}

@@ -82,6 +82,10 @@ export type ManagedOrder = {
   expressFee?: number;
   partnerExpressBonus?: number;
   expressPartnerSharePercent?: number;
+  partnerAcceptedAt?: string | null;
+  cancelledBy?: string | null;
+  slaBreached?: string | null;
+  autoCancelled?: boolean;
 };
 
 /* ------------------------------------------------------------------ */
@@ -191,7 +195,6 @@ export const STAGE_TIMELINE_INDEX: Record<string, number> = {
 };
 
 export type PartnerOrderFilterTab =
-  | "all"
   | "active"
   | "pickup"
   | "processing"
@@ -201,6 +204,46 @@ export type PartnerOrderFilterTab =
   | "delivered"
   | "cancelled"
   | "refunded";
+
+export function formatOrderPlacedTime(placedAt?: string): { time: string; date: string; relative: string } {
+  if (!placedAt) return { time: "Recently", date: "Today", relative: "Just now" };
+  const d = new Date(placedAt);
+  if (isNaN(d.getTime())) return { time: placedAt, date: "Today", relative: placedAt };
+
+  const time = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+
+  const date = isToday
+    ? "Today"
+    : isYesterday
+      ? "Yesterday"
+      : d.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+        });
+
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  let relative = "Just now";
+  if (diffMins >= 1 && diffMins < 60) {
+    relative = `${diffMins}m ago`;
+  } else if (diffMins >= 60 && diffMins < 1440) {
+    relative = `${Math.floor(diffMins / 60)}h ago`;
+  } else if (diffMins >= 1440) {
+    relative = `${Math.floor(diffMins / 1440)}d ago`;
+  }
+
+  return { time, date, relative };
+}
 
 export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterTab): boolean {
   const stage = (order.stage || "") as string;
@@ -215,11 +258,10 @@ export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterT
     Boolean((order as any).refundStatus && (order as any).refundStatus !== "none");
 
   switch (tab) {
-    case "all":
-      return true;
     case "active":
       return stage !== "completed" && stage !== "delivered" && stage !== "cancelled" && !isRefunded;
     case "pickup":
+      if (stage === "cancelled" || isRefunded) return false;
       return (
         stage === "new" ||
         stage === "placed" ||
@@ -252,8 +294,21 @@ export function isOrderMatchingTab(order: ManagedOrder, tab: PartnerOrderFilterT
       return stage === "out_for_delivery" || stage === "delivery_otp_pending";
     case "delivered":
       return stage === "completed" || stage === "delivered";
-    case "cancelled":
-      return stage === "cancelled";
+    case "cancelled": {
+      if (stage !== "cancelled") return false;
+      // Partner should only see cancellations where the order was actually accepted by the partner
+      const hasPartnerAccepted = Boolean(
+        order.partnerAcceptedAt ||
+        (order as any).partner_accepted_at ||
+        order.timeline?.some((t) => t.id === "accepted" || t.label?.toLowerCase().includes("accepted"))
+      );
+      // Exclude orders missed by partner SLA timeout or rejected by partner without accepting
+      const wasMissedByPartner =
+        order.slaBreached === "partner_acceptance" ||
+        order.cancelReason?.toLowerCase().includes("partner did not accept") ||
+        (order as any).cancelledReason?.toLowerCase().includes("partner did not accept");
+      return hasPartnerAccepted && !wasMissedByPartner;
+    }
     case "refunded":
       return isRefunded;
     default:

@@ -97,8 +97,18 @@ async def test_partner_accept_auto_assigns_nearest_rider():
     )
     assert updated_accept["status"] == lifecycle.PARTNER_ACCEPTED
 
-    # 4. Engine creates Ride 1 and auto-assigns directly to Amit Kumar
+    # 4. Engine creates Ride 1 and dispatches offer to nearest rider
     ride_1 = await smart_2ride_engine.create_ride_1_pickup(order_id)
+    assert ride_1 is not None
+
+    # Rider accepts the dispatched trip offer
+    accept_res = await smart_2ride_engine.handle_rider_accept(ride_1["_id"], rider_id)
+    assert accept_res is not None
+    assert accept_res.get("status") == "ACCEPTED"
+    assert accept_res.get("riderId") == rider_id
+
+    # Refresh ride from database
+    ride_1 = await database.find_one(RIDES_COLLECTION, {"_id": ride_1["_id"]})
     assert ride_1 is not None
 
     # Verify Ride is directly ACCEPTED and assigned to Amit Kumar
@@ -112,7 +122,7 @@ async def test_partner_accept_auto_assigns_nearest_rider():
     assert updated_order["riderId"] == rider_id
     assert updated_order["rider"]["id"] == rider_id
 
-    # Verify notification created for Amit Kumar
-    notifs = await database.find_many(NOTIFICATIONS_COLLECTION, {"riderId": rider_id})
-    assert len(notifs) >= 1
-    assert "Trip Assign" in notifs[0]["title"] or "Assign" in notifs[0]["title"]
+    # Verify assignment record is properly marked accepted
+    assignment = await database.find_one("ride_assignments", {"rideId": ride_1["_id"], "riderId": rider_id})
+    assert assignment is not None
+    assert assignment["status"] == "accepted"

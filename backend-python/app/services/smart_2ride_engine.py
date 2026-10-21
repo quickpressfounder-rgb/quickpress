@@ -1102,13 +1102,29 @@ class Smart2RideEngine:
             if not ride:
                 raise LookupError(f"Ride {ride_id} does not exist")
 
-            if ride.get("status") == "ACCEPTED":
+            ride_status_upper = str(ride.get("status") or "").upper()
+            if ride_status_upper == "ACCEPTED":
                 if ride.get("riderId") == rider_id:
                     return ride
                 raise ValueError("RIDE_ALREADY_ASSIGNED: Another delivery partner has already accepted this trip.")
 
-            if ride.get("status") in ("COMPLETED", "CANCELLED"):
+            if ride_status_upper in ("COMPLETED", "CANCELLED"):
                 raise ValueError("This trip is no longer active.")
+
+            order_id = ride.get("orderId")
+            parent_order = await lifecycle.find_order(order_id) if order_id else None
+            if parent_order:
+                if (
+                    parent_order.get("status") in (lifecycle.CANCELLED, lifecycle.REFUNDED)
+                    or parent_order.get("autoCancelled")
+                    or parent_order.get("cancelledBy")
+                    or (parent_order.get("payment") or {}).get("status") == "refunded"
+                ):
+                    await database.collection(RIDES_COLLECTION).update_one(
+                        {"_id": ride_id},
+                        {"$set": {"status": "CANCELLED", "cancellationReason": parent_order.get("cancelledReason") or "Order already cancelled"}}
+                    )
+                    raise ValueError("ORDER_ALREADY_CANCELLED: This trip has been cancelled and cannot be claimed.")
 
             if ride_id in self._active_timers:
                 self._active_timers[ride_id].cancel()

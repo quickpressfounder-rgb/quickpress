@@ -15,6 +15,7 @@ import React, { useState } from "react";
 import {
   STAGE_LABEL,
   STAGE_TONE,
+  formatOrderPlacedTime,
   type ManagedOrder,
   type PaymentStatus,
 } from "../../data/partner-orders-mock";
@@ -71,6 +72,7 @@ export const OrderCard = React.memo(function OrderCard({
   const [expanded, setExpanded] = useState(false);
   const { verifyDispatchOtp } = usePartnerOrders();
   const isNew = order.stage === "new";
+  const placedInfo = formatOrderPlacedTime((order as any).placedAt || (order as any).placedAtRaw || order.placedAt);
 
   return (
     <article
@@ -106,6 +108,17 @@ export const OrderCard = React.memo(function OrderCard({
             )}
             <PrintBagTagButton order={order} />
           </div>
+
+          {/* Order Received Time badge */}
+          <div className="mt-1.5 flex items-center gap-1.5 text-[0.68rem] text-muted-foreground font-semibold flex-wrap">
+            <span className="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 px-1.5 py-0.5 text-blue-700 dark:text-blue-300 font-bold">
+              <Clock className="size-3" />
+              <span>Arrived: {placedInfo.time} ({placedInfo.relative})</span>
+            </span>
+            <span className="text-muted-foreground/60">•</span>
+            <span>{placedInfo.date}</span>
+          </div>
+
           {order.isExpress && (
             <div className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[0.65rem] font-black text-amber-700 dark:text-amber-400">
               <Zap className="size-3 fill-amber-500" />

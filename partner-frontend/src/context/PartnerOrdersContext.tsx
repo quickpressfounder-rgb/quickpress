@@ -160,7 +160,17 @@ function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
   const items = Array.isArray(order?.items) ? order.items : [];
   const cancelledEntry = timeline.find((entry: any) => /reject|cancel/i.test(entry.label));
   const rawStatus = String(order?.status || order?.stage || "new").toLowerCase().trim();
-  const stage: OrderStage = STATUS_TO_STAGE[rawStatus] ?? "new";
+  const isCancelledByMeta = Boolean(
+    order?.autoCancelled ||
+    order?.cancelledBy ||
+    order?.cancelledAt ||
+    order?.cancelledReason ||
+    order?.cancellationReason ||
+    order?.payment?.status === "refunded" ||
+    order?.paymentStatus === "refunded"
+  );
+  const effectiveStatus = (rawStatus === "cancelled" || isCancelledByMeta) ? "cancelled" : rawStatus;
+  const stage: OrderStage = STATUS_TO_STAGE[effectiveStatus] ?? "new";
   const rawAmount = Number(
     order?.amount ??
     order?.payableAmount ??
@@ -206,7 +216,7 @@ function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
     services: order?.serviceLabel ? [order.serviceLabel] : (Array.isArray(order?.services) ? order.services : ["Laundry Service"]),
     itemCount: order?.itemCount || items.reduce((sum: number, it: any) => sum + (it.qty || 1), 0) || 1,
     amount: rawAmount,
-    paymentStatus: rawStatus === "cancelled" ? "refunded" : (order?.paymentMode === "cod" ? "pending" : "paid"),
+    paymentStatus: (effectiveStatus === "cancelled" || isCancelledByMeta) ? "refunded" : (order?.paymentMode === "cod" ? "pending" : "paid"),
     paymentMode: order?.paymentMode || order?.payment?.mode || "cod",
     placedAt: order?.placedAt || order?.createdAt || "Recently",
     placedMinutesAgo: 0,
@@ -227,8 +237,14 @@ function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
     },
     timeline: timeline.map((entry: any) => ({ id: entry.id || "", label: entry.label || "", time: entry.time || "" })),
     invoiceNo: null,
-    cancelReason: rawStatus === "cancelled" ? (cancelledEntry?.label ?? order?.cancelledReason ?? "Cancelled") : null,
+    cancelReason: (effectiveStatus === "cancelled" || isCancelledByMeta)
+      ? (order?.cancelledReason || order?.cancellationReason || cancelledEntry?.label || "Cancelled")
+      : null,
     assignedRider: order?.riderName || order?.rider?.name || null,
+    partnerAcceptedAt: order?.partnerAcceptedAt || order?.partner_accepted_at || null,
+    cancelledBy: order?.cancelledBy || null,
+    slaBreached: order?.slaBreached || null,
+    autoCancelled: Boolean(order?.autoCancelled),
     isExpress: Boolean(
       order?.isExpress ||
       order?.pickup?.express ||
@@ -238,7 +254,7 @@ function toManagedOrder(order: PartnerOrder | any): ManagedOrder {
     expressFee: Number(order?.expressFee || order?.express_fee) || 0,
     partnerExpressBonus: Number(order?.partnerExpressBonus || order?.partner_express_bonus) || 0,
     expressPartnerSharePercent: Number(order?.expressPartnerSharePercent || order?.express_partner_share_percent) || 20,
-    status: rawStatus,
+    status: effectiveStatus,
   } as any;
 }
 

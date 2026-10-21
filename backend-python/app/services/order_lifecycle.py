@@ -351,7 +351,20 @@ def normalize_status(value: Any) -> str:
 
 
 def order_status(order: Dict[str, Any]) -> str:
-    return normalize_status(order.get("status"))
+    raw_status = normalize_status(order.get("status"))
+    if raw_status in (CANCELLED, REFUNDED):
+        return CANCELLED
+    if (
+        order.get("autoCancelled")
+        or order.get("cancelledBy")
+        or order.get("cancelledAt")
+        or order.get("cancelledReason")
+        or order.get("cancellationReason")
+        or (order.get("payment") or {}).get("status") == "refunded"
+        or (order.get("payment") or {}).get("refundStatus") == "refunded"
+    ):
+        return CANCELLED
+    return raw_status
 
 
 def order_id_of(order: Dict[str, Any]) -> str:
@@ -1142,11 +1155,13 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
         "dispatchOtpRequired": status in (READY, READY_FOR_DELIVERY, COMPLETED, DISPATCH_OTP_PENDING) and not bool((order.get("otp") or {}).get("dispatch", {}).get("verified") or order.get("dispatchOtpVerified")),
         "cancelledReason": order.get("cancelledReason"),
         "cancellationReason": order.get("cancellationReason") or order.get("cancelledReason"),
+        "cancelledBy": order.get("cancelledBy"),
+        "slaBreached": order.get("slaBreached"),
         "partnerAcceptDeadline": order.get("partnerAcceptDeadline"),
         "partnerSlaSeconds": order.get("partnerSlaSeconds", PARTNER_ACCEPT_SLA_SECONDS),
         "riderAcceptDeadline": order.get("riderAcceptDeadline"),
         "riderSlaSeconds": order.get("riderSlaSeconds", RIDER_ACCEPT_SLA_SECONDS),
-        "partnerAcceptedAt": order.get("partnerAcceptedAt"),
+        "partnerAcceptedAt": order.get("partnerAcceptedAt") or order.get("partner_accepted_at"),
         "autoCancelled": bool(order.get("autoCancelled")),
         "items": [
             {

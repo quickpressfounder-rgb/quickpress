@@ -43,7 +43,7 @@ import { InvoiceSheet } from "../components/orders/OrderSheets";
 import { usePartnerOrders } from "../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../hooks/use-order-action-handler";
 import { partnerRoutes } from "../navigation/partner-routes";
-import { STAGE_LABEL, type ManagedOrder } from "../data/partner-orders-mock";
+import { STAGE_LABEL, formatOrderPlacedTime, type ManagedOrder } from "../data/partner-orders-mock";
 
 import { useEffect, useState } from "react";
 import { fetchPartnerOrder, verifyPartnerDispatchOtp } from "@/api/partner/partner-orders-api";
@@ -257,6 +257,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
   };
 
   const stageLabel = order ? (STAGE_LABEL[order.stage] || order.stage || "Active") : "";
+  const placedInfo = formatOrderPlacedTime((order as any)?.placedAt || (order as any)?.placedAtRaw || order?.placedAt);
   const items = order?.items || [];
   const charges = order?.charges || {
     subtotal: order?.amount || 0,
@@ -449,9 +450,16 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                         cancellationReason={(order as any).cancellationReason || (order as any).cancelledReason}
                       />
                     </div>
-                    <p className="mt-1 text-[11px] font-medium text-zinc-500">
-                      Booked: <span className="font-bold text-zinc-700">{formatOrderTime(order.placedAt)}</span>
-                    </p>
+                    <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 px-2 py-1 text-[11px] text-blue-900 dark:text-blue-200 border border-blue-200/60 dark:border-blue-800/40 font-semibold flex-wrap">
+                      <Clock className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="text-zinc-600 dark:text-zinc-400">Order Arrived:</span>
+                      <span className="font-black text-zinc-900 dark:text-zinc-100">{placedInfo.time}</span>
+                      <span className="text-zinc-400">•</span>
+                      <span>{placedInfo.date}</span>
+                      <span className="rounded bg-white dark:bg-zinc-800 px-1.5 py-0.2 text-[10px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60">
+                        {placedInfo.relative}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1124,9 +1132,16 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     <p className="mt-1 text-xs text-muted-foreground font-medium">
                       Verified Customer · {order.customerOrders || 1} previous orders
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Booked at {formatOrderTime(order.placedAt)}
-                    </p>
+                    <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 text-xs text-blue-900 dark:text-blue-200 border border-blue-200/60 dark:border-blue-800/40 font-semibold flex-wrap">
+                      <Clock className="size-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="text-zinc-600 dark:text-zinc-400">Order Arrived:</span>
+                      <span className="font-black text-zinc-900 dark:text-zinc-100">{placedInfo.time}</span>
+                      <span className="text-zinc-400">•</span>
+                      <span>{placedInfo.date}</span>
+                      <span className="rounded bg-white dark:bg-zinc-800 px-1.5 py-0.5 text-[11px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60">
+                        {placedInfo.relative}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2.5">
                     {order.customerPhone ? (
