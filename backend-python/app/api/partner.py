@@ -563,6 +563,77 @@ async def dashboard(partner_id: str = Depends(_verified_partner_id)) -> PartnerD
 # --------------------------------------------------------------------------
 
 
+@public_router.get("/auth/check-registered")
+async def check_partner_registered(phone: str = Query(...)) -> dict:
+    """Verifies whether a partner store account is registered before allowing login."""
+    from app.api.auth import _normalize_phone
+    from app.db.client import database
+
+    norm_phone = _normalize_phone(phone)
+    raw_10 = norm_phone[-10:] if len(norm_phone) >= 10 else norm_phone
+    phone_candidates = [p for p in [norm_phone, raw_10, f"+91{raw_10}", f"+91 {raw_10}", f"91{raw_10}"] if p]
+
+    # 1. Check partner_profiles collection
+    prof = await database.find_one("partner_profiles", {
+        "$or": [
+            {"phone": {"$in": phone_candidates}},
+            {"phone": {"$regex": f"{raw_10}$"}},
+            {"ownerPhone": {"$in": phone_candidates}},
+            {"ownerPhone": {"$regex": f"{raw_10}$"}},
+            {"mobile": {"$in": phone_candidates}},
+            {"mobile": {"$regex": f"{raw_10}$"}},
+        ]
+    })
+
+    # 2. Check admin_partners collection
+    admin_prof = None
+    if not prof:
+        admin_prof = await database.find_one("admin_partners", {
+            "$or": [
+                {"phone": {"$in": phone_candidates}},
+                {"phone": {"$regex": f"{raw_10}$"}},
+                {"mobile": {"$in": phone_candidates}},
+                {"mobile": {"$regex": f"{raw_10}$"}},
+            ]
+        })
+
+    # 3. Check users collection for partner role
+    u_doc = await database.find_one("users", {
+        "phone": {"$in": phone_candidates},
+        "role": "partner"
+    })
+    if not u_doc:
+        u_doc = await database.find_one("users", {
+            "phone": {"$regex": f"{raw_10}$"},
+            "role": "partner"
+        })
+
+    matched_doc = prof or admin_prof
+    is_registered = bool(matched_doc or (u_doc and (u_doc.get("is_onboarded") or u_doc.get("linked_id"))))
+    is_onboarded = bool(
+        (matched_doc and matched_doc.get("isOnboarded") is not False)
+        or (u_doc and u_doc.get("is_onboarded") is True)
+    )
+    is_verified = bool(
+        (matched_doc and (matched_doc.get("isVerified") is True or matched_doc.get("status") in ("active", "approved")))
+        or (u_doc and u_doc.get("is_verified") is True)
+    )
+    business_name = (
+        (matched_doc and (matched_doc.get("businessName") or matched_doc.get("storeName") or matched_doc.get("name")))
+        or (u_doc and (u_doc.get("display_name") or u_doc.get("name")))
+        or ""
+    )
+
+    return {
+        "ok": True,
+        "phone": norm_phone,
+        "isRegistered": is_registered,
+        "isOnboarded": is_onboarded,
+        "isVerified": is_verified,
+        "businessName": business_name,
+    }
+
+
 @public_router.get("/verification-status")
 @router.get("/verification-status")
 async def get_partner_verification_status(

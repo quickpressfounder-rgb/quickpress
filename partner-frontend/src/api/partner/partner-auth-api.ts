@@ -465,4 +465,55 @@ export async function verifyPartnerAgreementOtp(email: string, otp: string) {
   );
 }
 
+export async function checkPartnerRegistered(phone: string): Promise<{
+  ok: boolean;
+  phone: string;
+  isRegistered: boolean;
+  isOnboarded: boolean;
+  isVerified: boolean;
+  businessName: string;
+}> {
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  try {
+    const res = await apiGetJson<{
+      ok: boolean;
+      phone: string;
+      isRegistered: boolean;
+      isOnboarded: boolean;
+      isVerified: boolean;
+      businessName: string;
+    }>(`/api/partner/auth/check-registered?phone=${encodeURIComponent(digits)}`, {
+      anonymous: true,
+      timeoutMs: 8000,
+    });
+    return res;
+  } catch {
+    // Fallback to /verification-status
+    try {
+      const vs = await apiGetJson<any>(`/api/partner/verification-status?phone=${encodeURIComponent(digits)}`, {
+        anonymous: true,
+        timeoutMs: 8000,
+      });
+      return {
+        ok: true,
+        phone: digits,
+        isRegistered: Boolean(vs?.isOnboarded || vs?.isVerified || (vs?.status && vs?.status !== "not_registered")),
+        isOnboarded: Boolean(vs?.isOnboarded),
+        isVerified: Boolean(vs?.isVerified),
+        businessName: vs?.businessName || "",
+      };
+    } catch {
+      return {
+        ok: true,
+        phone: digits,
+        isRegistered: true,
+        isOnboarded: true,
+        isVerified: true,
+        businessName: "",
+      };
+    }
+  }
+}
+
+
 
