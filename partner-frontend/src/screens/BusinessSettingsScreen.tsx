@@ -418,7 +418,6 @@ export function BusinessSettingsScreen() {
                   <div
                     onClick={() => {
                       testPartnerSoundAndVibration();
-                      toast.info("🔊 Testing Store Order Alert Chime & Vibration...");
                     }}
                     className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
                   >

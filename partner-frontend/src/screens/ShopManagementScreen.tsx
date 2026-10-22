@@ -3,9 +3,6 @@ import {
   ArrowLeft,
   BarChart3,
   ChevronRight,
-  Clock3,
-  Images,
-  MapPinned,
   Pencil,
   Sparkles,
   Store,
@@ -17,11 +14,7 @@ import { PartnerLayout } from "../components/layout/PartnerLayout";
 import { PullToRefresh } from "../components/dashboard/PullToRefresh";
 import { SectionHeading } from "../components/PartnerPrimitives";
 import { ShopEditSheet } from "../components/shop/ShopEditSheet";
-import { ShopGallery } from "../components/shop/ShopGallery";
-import { ShopHoursCard } from "../components/shop/ShopHoursCard";
 import { ShopProfileHeader } from "../components/shop/ShopProfileHeader";
-import { ShopServiceArea } from "../components/shop/ShopServiceArea";
-import { ShopCoverageModal } from "../components/shop/ShopCoverageModal";
 import { ShopProfileSkeleton } from "../components/shop/ShopSkeletons";
 import { ShopStatsGrid } from "../components/shop/ShopStatsGrid";
 import { ShopStatusSheet } from "../components/shop/ShopStatusSheet";
@@ -60,7 +53,6 @@ function ShopManagementContent() {
   } = usePartnerShop();
 
   const [editOpen, setEditOpen] = useState(false);
-  const [coverageOpen, setCoverageOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -153,45 +145,6 @@ function ShopManagementContent() {
                   </button>
                 </div>
               </div>
-
-              {/* 4. Operating Hours & Service Area (2-column on desktop) */}
-              <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-                <section className="rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-3.5">
-                  <SectionHeading
-                    title="Operating Hours & Weekly Off"
-                    action={<SectionIcon icon={Clock3} color="bg-amber-50 text-amber-700" />}
-                  />
-                  <ShopHoursCard hours={hours} onSave={updateHours} />
-                </section>
-
-                <section className="rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-3.5">
-                  <SectionHeading
-                    title="Pickup & Delivery Area Coverage"
-                    action={<SectionIcon icon={MapPinned} color="bg-purple-50 text-purple-700" />}
-                  />
-                  <ShopServiceArea area={area} onEdit={() => setCoverageOpen(true)} />
-                </section>
-              </div>
-
-              {/* 5. Real Store Photos & Machinery Gallery */}
-              <section className="rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-3.5">
-                <SectionHeading
-                  title="Store Photos & Machinery Showcase"
-                  action={<SectionIcon icon={Images} color="bg-teal-50 text-teal-700" />}
-                />
-                <ShopGallery
-                  images={gallery}
-                  limit={galleryLimit}
-                  onUpload={async (base64) => {
-                    const ok = await addImage(base64);
-                    if (ok) setSuccess("Photo added to your store gallery");
-                    return ok;
-                  }}
-                  onRemove={async (idOrUrl) => {
-                    await removeImage(idOrUrl);
-                  }}
-                />
-              </section>
             </div>
           )}
         </PullToRefresh>
@@ -211,23 +164,7 @@ function ShopManagementContent() {
         />
       ) : null}
 
-      {/* Coverage & Service Area Modal */}
-      {coverageOpen ? (
-        <ShopCoverageModal
-          open={coverageOpen}
-          onClose={() => setCoverageOpen(false)}
-          pickupRadiusKm={area.pickupRadiusKm}
-          deliveryRadiusKm={area.deliveryRadiusKm}
-          servicePincodes={area.servicePincodes}
-          sectors={area.sectors}
-          city={area.city}
-          onSave={async (patch) => {
-            await updateArea(patch);
-            setCoverageOpen(false);
-            setSuccess("Coverage radius & service PIN codes updated successfully");
-          }}
-        />
-      ) : null}
+
 
       {/* Status Sheet */}
       {statusOpen ? (
