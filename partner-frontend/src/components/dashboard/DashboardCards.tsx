@@ -517,11 +517,11 @@ export function OrderStatusFlowCard({
                       isSelected
                         ? isCancelledStage
                           ? "bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/25 scale-102"
-                          : "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25 scale-102"
+                          : "border-2 border-black bg-zinc-100 text-black shadow-xs scale-102 font-black"
                         : count > 0
                           ? isCancelledStage
                             ? "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
-                            : "bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
+                            : "bg-zinc-50 text-black border-zinc-300 hover:bg-zinc-100"
                           : "bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >
@@ -530,11 +530,11 @@ export function OrderStatusFlowCard({
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
                         isSelected
-                          ? "bg-white/20 text-white"
+                          ? "bg-zinc-200 text-black"
                           : count > 0
                             ? isCancelledStage
                               ? "bg-rose-600 text-white"
-                              : "bg-blue-600 text-white"
+                              : "bg-zinc-200 text-black"
                             : "bg-slate-200 text-slate-600"
                       }`}
                     >

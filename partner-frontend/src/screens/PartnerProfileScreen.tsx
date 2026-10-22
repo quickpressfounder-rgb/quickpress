@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Clock,
   Coins,
+  Copy,
   CreditCard,
   Download,
   ExternalLink,
@@ -44,6 +45,7 @@ import {
   Percent,
   Phone,
   PhoneCall,
+  Printer,
   QrCode,
   Receipt,
   RefreshCw,
@@ -134,6 +136,7 @@ export function PartnerProfileScreen() {
   const [showGstModal, setShowGstModal] = useState(false);
   const [showOffersModal, setShowOffersModal] = useState(false);
   const [showQrStandeeModal, setShowQrStandeeModal] = useState(false);
+  const [copiedStoreLink, setCopiedStoreLink] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showApprovalsModal, setShowApprovalsModal] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
@@ -300,6 +303,56 @@ export function PartnerProfileScreen() {
     session?.partnerId ||
     ""
   );
+
+  const customerBaseUrl = (() => {
+    if (typeof window !== "undefined") {
+      const hostname = window.location.hostname;
+      const isLocal =
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname.startsWith("192.168.") ||
+        hostname.startsWith("10.") ||
+        hostname.endsWith(".local");
+      if (isLocal) {
+        return `${window.location.protocol}//${hostname}:8081`;
+      }
+    }
+    return (
+      (import.meta.env.VITE_CUSTOMER_URL as string | undefined) ||
+      "https://quickpress-customer.vercel.app"
+    );
+  })();
+
+  const storeCustomerUrl = `${customerBaseUrl}/partner/${encodeURIComponent(partnerId)}`;
+
+  const handleCopyStoreLink = async () => {
+    try {
+      await navigator.clipboard.writeText(storeCustomerUrl);
+      setCopiedStoreLink(true);
+      toast.success("Store link copied to clipboard!");
+      setTimeout(() => setCopiedStoreLink(false), 2500);
+    } catch {
+      toast.error("Could not copy link to clipboard");
+    }
+  };
+
+  const handleShareStoreLink = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${storeName} on QuickPress`,
+          text: `Book laundry and garment care directly from ${storeName} on QuickPress!`,
+          url: storeCustomerUrl,
+        });
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          handleCopyStoreLink();
+        }
+      }
+    } else {
+      handleCopyStoreLink();
+    }
+  };
   const phone = normalizeDisplayPhone(
     effectiveProfile?.phone ||
     effectiveProfile?.ownerPhone ||
@@ -797,12 +850,12 @@ export function PartnerProfileScreen() {
               <button
                 type="button"
                 onClick={() => handleOpenDocuments("documents")}
-                className="flex flex-col items-center justify-center rounded-2xl border border-blue-200/80 bg-blue-50/60 p-3 text-center shadow-xs transition-transform active:scale-95 cursor-pointer"
+                className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3 text-center shadow-xs transition-transform active:scale-95 cursor-pointer hover:bg-zinc-100"
               >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-950 text-white shadow-xs">
                   <FileCheck2 className="size-5" />
                 </div>
-                <p className="mt-1.5 text-[10px] font-black leading-tight text-blue-950">
+                <p className="mt-1.5 text-[10px] font-black leading-tight text-zinc-900">
                   Documents &amp; KYC
                 </p>
               </button>
@@ -878,17 +931,17 @@ export function PartnerProfileScreen() {
                   <QrCode className="size-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-zinc-900">Store Counter QR Standee</p>
-                  <p className="text-[10px] font-medium text-zinc-400">Printable QR standee for walk-in customers</p>
+                  <p className="text-xs font-black text-zinc-900">Store Counter QR &amp; Share Link</p>
+                  <p className="text-[10px] font-medium text-zinc-400">Scan QR to order or share store profile link</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowQrStandeeModal(true)}
-                className="flex items-center gap-1 rounded-full bg-zinc-950 px-3 py-1.5 text-xs font-black text-white active:scale-95"
+                className="flex items-center gap-1.5 rounded-full border-2 border-black bg-zinc-100 px-3.5 py-1.5 text-xs font-black text-black active:scale-95 hover:bg-zinc-200 transition-all cursor-pointer"
               >
-                <Download className="size-3.5" />
-                <span>PDF</span>
+                <QrCode className="size-3.5" />
+                <span>QR &amp; Share</span>
               </button>
             </div>
           </div>
@@ -1244,7 +1297,7 @@ export function PartnerProfileScreen() {
               {/* Header */}
               <div className="p-4 sm:p-5 border-b border-zinc-200/80 bg-gradient-to-r from-zinc-50 via-white to-blue-50/40 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-sm">
                     <FileCheck2 className="size-5" />
                   </div>
                   <div>
@@ -1812,35 +1865,100 @@ export function PartnerProfileScreen() {
         )}
 
         {/* ------------------------------------------------------------- */}
-        {/* MODAL 7: Printable Store QR Standee                           */}
+        {/* MODAL 7: Printable Store QR Standee & Direct Share Link       */}
         {/* ------------------------------------------------------------- */}
         {showQrStandeeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div onClick={() => setShowQrStandeeModal(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-xs" />
-            <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl text-center space-y-4">
+            <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl text-center space-y-3.5">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black text-zinc-900">Store QR Standee</h3>
-                <button type="button" onClick={() => setShowQrStandeeModal(false)} className="rounded-full bg-zinc-100 p-1.5 text-zinc-500">✕</button>
+                <div className="text-left">
+                  <h3 className="text-sm font-black text-zinc-900">Store QR Standee</h3>
+                  <p className="text-[10.5px] font-medium text-zinc-500">Scan to open store &amp; order directly</p>
+                </div>
+                <button type="button" onClick={() => setShowQrStandeeModal(false)} className="rounded-full bg-zinc-100 p-1.5 text-zinc-500 hover:bg-zinc-200">✕</button>
               </div>
 
               {/* Printable Standee Preview */}
-              <div className="rounded-2xl border-2 border-dashed border-zinc-300 bg-gradient-to-b from-amber-500/10 via-white to-emerald-500/10 p-6 space-y-3">
+              <div className="rounded-2xl border-2 border-dashed border-zinc-300 bg-gradient-to-b from-amber-500/10 via-white to-emerald-500/10 p-5 space-y-2.5">
                 <div className="flex items-center justify-center gap-1.5">
                   <Sparkles className="size-4 text-emerald-600" />
-                  <p className="text-sm font-black tracking-tight text-zinc-950">QuickPress Laundry Hub</p>
+                  <p className="text-xs font-black tracking-tight text-zinc-950 uppercase">QuickPress Laundry Hub</p>
                 </div>
-                <h4 className="text-base font-black text-zinc-900">{storeName}</h4>
+                <h4 className="text-base font-black text-zinc-900 leading-tight">{storeName}</h4>
                 <p className="text-[11px] font-semibold text-zinc-500">Partner Store ID: {partnerId}</p>
 
                 {/* QR Code */}
-                <div className="mx-auto flex size-44 items-center justify-center rounded-2xl bg-white p-3 shadow-md border border-zinc-200">
+                <div className="mx-auto flex size-44 items-center justify-center rounded-2xl bg-white p-2 shadow-md border border-zinc-200">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://with.quickpress.com/store/${partnerId}`}
-                    alt="QuickPress Store QR"
-                    className="size-full rounded-xl"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(storeCustomerUrl)}`}
+                    alt={`QuickPress Store QR - ${storeName}`}
+                    className="size-full rounded-xl object-contain"
                   />
                 </div>
-                <p className="text-xs font-black text-emerald-800">Scan & Book Laundry Pickup</p>
+                <div>
+                  <p className="text-xs font-black text-emerald-800">Scan &amp; Book Laundry Pickup</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Scans redirect directly to your customer storefront</p>
+                </div>
+              </div>
+
+              {/* Store Direct Link Box */}
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-2.5 text-left space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Store Direct Link</span>
+                  <a
+                    href={storeCustomerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] font-bold text-zinc-900 hover:underline"
+                  >
+                    <span>Open</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5">
+                  <span className="truncate text-xs font-medium text-zinc-700 select-all flex-1">
+                    {storeCustomerUrl}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyStoreLink}
+                    className="flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-[11px] font-black text-zinc-900 hover:bg-zinc-200 active:scale-95 transition-all shrink-0 cursor-pointer"
+                  >
+                    {copiedStoreLink ? (
+                      <>
+                        <Check className="size-3 text-emerald-600" />
+                        <span className="text-emerald-700">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons: Share Link & WhatsApp */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleShareStoreLink}
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border-2 border-black bg-zinc-100 py-2.5 text-xs font-black text-black active:scale-95 transition-all hover:bg-zinc-200 cursor-pointer shadow-xs"
+                >
+                  <Share2 className="size-3.5" />
+                  <span>Share Link</span>
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Book laundry & dry cleaning from ${storeName} on QuickPress:\n${storeCustomerUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border border-emerald-600 bg-emerald-600 py-2.5 text-xs font-black text-white active:scale-95 transition-all hover:bg-emerald-700 shadow-xs cursor-pointer"
+                >
+                  <PhoneCall className="size-3.5" />
+                  <span>WhatsApp</span>
+                </a>
               </div>
 
               <button
@@ -1849,9 +1967,9 @@ export function PartnerProfileScreen() {
                   window.print();
                   toast.success("Printing Store Standee QR!");
                 }}
-                className="w-full rounded-2xl bg-zinc-950 py-3 text-xs font-black text-white active:scale-95 flex items-center justify-center gap-2"
+                className="w-full rounded-2xl bg-zinc-950 py-2.5 text-xs font-black text-white active:scale-95 flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all cursor-pointer"
               >
-                <Download className="size-4" />
+                <Printer className="size-4" />
                 <span>Print Standee Document</span>
               </button>
             </div>

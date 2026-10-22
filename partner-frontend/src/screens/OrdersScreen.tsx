@@ -128,14 +128,14 @@ export function OrdersScreen() {
                   onClick={() => setFilterTab(tab.id)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
                     isActive
-                      ? "bg-blue-600 text-white border border-blue-600 shadow-xs"
-                      : "border border-zinc-200 bg-white text-black hover:border-blue-400 hover:text-blue-600"
+                      ? "border-2 border-black bg-zinc-100 text-black font-black shadow-xs"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400 hover:text-black"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                      isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-black"
+                      isActive ? "bg-zinc-200 text-black" : "bg-zinc-100 text-zinc-700"
                     }`}
                   >
                     {tab.count}
@@ -164,7 +164,7 @@ export function OrdersScreen() {
               <button
                 type="button"
                 onClick={isSearching ? resetSearch : () => void refresh()}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full border-2 border-black bg-zinc-100 hover:bg-zinc-200 px-4 py-2 text-xs font-black text-black shadow-xs active:scale-95 transition-all cursor-pointer"
               >
                 <RotateCcw className="size-3" />
                 <span>{isSearching ? "Reset filter" : "Refresh Orders"}</span>
@@ -200,16 +200,16 @@ export function OrdersScreen() {
                   key={tab.id}
                   type="button"
                   onClick={() => setFilterTab(tab.id)}
-                  className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 ${
+                  className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                     isActive
-                      ? "bg-primary text-white shadow-sm shadow-primary/30"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-primary/50"
+                      ? "border-2 border-black bg-zinc-100 text-black shadow-xs"
+                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-black hover:text-black"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                      isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-700"
+                      isActive ? "bg-zinc-200 text-black" : "bg-zinc-100 text-zinc-700"
                     }`}
                   >
                     {tab.count}

@@ -442,8 +442,8 @@ export function AnalyticsScreen() {
                     }}
                     className={`shrink-0 rounded-lg px-3 sm:px-3.5 py-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer ${
                       isActive
-                        ? "bg-[#2563EB] text-white shadow-xs"
-                        : "text-black hover:bg-zinc-200/80"
+                        ? "border-2 border-black bg-zinc-100 text-black shadow-xs"
+                        : "text-zinc-600 hover:bg-zinc-200/80 hover:text-black"
                     }`}
                   >
                     {p.label}
@@ -461,14 +461,14 @@ export function AnalyticsScreen() {
                 onClick={() => setShowFilterDrawer(true)}
                 className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-black text-xs transition-all border cursor-pointer active:scale-95 ${
                   activeFilterCount > 0
-                    ? "bg-[#2563EB] text-white border-[#2563EB] shadow-xs"
+                    ? "border-2 border-black bg-zinc-100 text-black shadow-xs"
                     : "bg-white text-black border-zinc-200 hover:bg-zinc-100 shadow-2xs"
                 }`}
               >
-                <SlidersHorizontal className={`size-3.5 ${activeFilterCount > 0 ? "text-white" : "text-black"}`} />
+                <SlidersHorizontal className="size-3.5 text-black" />
                 <span>Filters</span>
                 {activeFilterCount > 0 && (
-                  <span className="flex size-4.5 items-center justify-center rounded-full bg-white text-[10px] font-black text-blue-700">
+                  <span className="flex size-4.5 items-center justify-center rounded-full bg-black text-[10px] font-black text-white">
                     {activeFilterCount}
                   </span>
                 )}
@@ -738,8 +738,8 @@ export function AnalyticsScreen() {
                   onClick={() => setChartView("area")}
                   className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
                     chartView === "area"
-                      ? "bg-[#2563EB] text-white shadow-xs"
-                      : "text-black hover:bg-zinc-200/70"
+                      ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                      : "text-zinc-600 hover:bg-zinc-200/70 hover:text-black"
                   }`}
                   title="Spline Area Waveform"
                 >
@@ -751,8 +751,8 @@ export function AnalyticsScreen() {
                   onClick={() => setChartView("bars")}
                   className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
                     chartView === "bars"
-                      ? "bg-[#2563EB] text-white shadow-xs"
-                      : "text-black hover:bg-zinc-200/70"
+                      ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                      : "text-zinc-600 hover:bg-zinc-200/70 hover:text-black"
                   }`}
                   title="Vertical Bar Columns"
                 >
@@ -768,8 +768,8 @@ export function AnalyticsScreen() {
                   onClick={() => setChartMode("revenue")}
                   className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
                     chartMode === "revenue"
-                      ? "bg-[#2563EB] text-white shadow-xs"
-                      : "text-black hover:bg-zinc-200/70"
+                      ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                      : "text-zinc-600 hover:bg-zinc-200/70 hover:text-black"
                   }`}
                 >
                   <DollarSign className="size-3.5" />
@@ -780,8 +780,8 @@ export function AnalyticsScreen() {
                   onClick={() => setChartMode("orders")}
                   className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-black transition-all cursor-pointer ${
                     chartMode === "orders"
-                      ? "bg-[#2563EB] text-white shadow-xs"
-                      : "text-black hover:bg-zinc-200/70"
+                      ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                      : "text-zinc-600 hover:bg-zinc-200/70 hover:text-black"
                   }`}
                 >
                   <Package className="size-3.5" />
@@ -1154,10 +1154,10 @@ export function AnalyticsScreen() {
           </div>
 
           {/* 4. Peak Ordering Hours & Heatmap */}
-          <div className="rounded-2xl sm:rounded-3xl border border-blue-100 bg-white p-4 sm:p-6 shadow-xs">
-            <div className="flex items-center justify-between border-b border-blue-100/80 pb-3">
+          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-xs">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB]">
+                <span className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
                   <Clock className="size-4" />
                 </span>
                 <div>
@@ -1175,18 +1175,18 @@ export function AnalyticsScreen() {
                     <span className="font-bold text-zinc-800">{slot.slot}</span>
                     <span className="font-black text-zinc-500">{slot.count} bookings ({slot.percentage}%)</span>
                   </div>
-                  <div className="h-2.5 w-full rounded-full bg-blue-50 overflow-hidden">
+                  <div className="h-2.5 w-full rounded-full bg-zinc-100 overflow-hidden">
                     <div
                       style={{ width: `${Math.max(8, slot.percentage)}%` }}
-                      className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-indigo-500"
+                      className="h-full rounded-full bg-zinc-900"
                     />
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-4 rounded-xl bg-blue-50 p-3 text-blue-950 text-xs flex items-start gap-2 border border-blue-200">
-              <Sparkles className="size-4 text-[#2563EB] mt-0.5 shrink-0" />
+            <div className="mt-4 rounded-xl bg-zinc-50 p-3 text-zinc-900 text-xs flex items-start gap-2 border border-zinc-200">
+              <Sparkles className="size-4 text-zinc-900 mt-0.5 shrink-0" />
               <p className="leading-relaxed">
                 <strong>Peak Slot Insight:</strong> Morning 07:00 – 11:00 AM accounts for the highest laundry pickups in your cluster. Keep steam iron station heated and app online for 2-min auto acceptance.
               </p>
@@ -1245,8 +1245,8 @@ export function AnalyticsScreen() {
                     onClick={() => setSpeedFilter(opt.id as DeliverySpeedFilter)}
                     className={`rounded-xl py-2 px-2 text-xs font-black transition-all cursor-pointer ${
                       speedFilter === opt.id
-                        ? "bg-[#2563EB] text-white shadow-xs"
-                        : "bg-blue-50/70 text-blue-900 border border-blue-100 hover:bg-blue-100/70"
+                        ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                        : "bg-zinc-50 text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
                     }`}
                   >
                     {opt.label}
@@ -1271,8 +1271,8 @@ export function AnalyticsScreen() {
                     onClick={() => setCategoryFilter(opt.id as CategoryFilter)}
                     className={`rounded-xl py-2 px-2 text-xs font-black transition-all cursor-pointer ${
                       categoryFilter === opt.id
-                        ? "bg-[#2563EB] text-white shadow-xs"
-                        : "bg-blue-50/70 text-blue-900 border border-blue-100 hover:bg-blue-100/70"
+                        ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                        : "bg-zinc-50 text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
                     }`}
                   >
                     {opt.label}
@@ -1296,8 +1296,8 @@ export function AnalyticsScreen() {
                     onClick={() => setPaymentFilter(opt.id as PaymentFilter)}
                     className={`rounded-xl py-2 px-2 text-xs font-black transition-all cursor-pointer ${
                       paymentFilter === opt.id
-                        ? "bg-[#2563EB] text-white shadow-xs"
-                        : "bg-blue-50/70 text-blue-900 border border-blue-100 hover:bg-blue-100/70"
+                        ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                        : "bg-zinc-50 text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
                     }`}
                   >
                     {opt.label}
@@ -1320,8 +1320,8 @@ export function AnalyticsScreen() {
                     onClick={() => setStatusFilter(opt.id as StatusFilter)}
                     className={`rounded-xl py-2 px-2 text-xs font-black transition-all cursor-pointer ${
                       statusFilter === opt.id
-                        ? "bg-[#2563EB] text-white shadow-xs"
-                        : "bg-blue-50/70 text-blue-900 border border-blue-100 hover:bg-blue-100/70"
+                        ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                        : "bg-zinc-50 text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
                     }`}
                   >
                     {opt.label}
@@ -1338,7 +1338,7 @@ export function AnalyticsScreen() {
                   setShowFilterDrawer(false);
                   toast.success(`Filters applied: showing ${clientAggregated.totalOrders} matching orders`);
                 }}
-                className="w-full rounded-2xl bg-[#2563EB] py-3 text-sm font-black text-white hover:bg-blue-700 shadow-md transition-all active:scale-98 cursor-pointer"
+                className="w-full rounded-2xl bg-black py-3 text-sm font-black text-white hover:bg-zinc-800 shadow-md transition-all active:scale-98 cursor-pointer"
               >
                 Apply Filters ({clientAggregated.totalOrders} Orders Match)
               </button>

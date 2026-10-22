@@ -116,7 +116,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
               <div className="relative flex items-center justify-center">
                 <tab.icon
                   className={`size-5 transition-colors ${
-                    isActive ? "text-blue-600 stroke-[2.5]" : "text-zinc-700 stroke-[1.8]"
+                    isActive ? "text-black stroke-[2.5]" : "text-zinc-600 stroke-[1.8]"
                   }`}
                 />
 
@@ -124,7 +124,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
                 {isHub || isStore ? (
                   <span
                     className={`absolute -top-0.5 -right-1 size-2 rounded-full ring-2 ring-white ${
-                      isStoreOnline ? "bg-blue-600" : "bg-zinc-400"
+                      isStoreOnline ? "bg-emerald-500" : "bg-zinc-400"
                     }`}
                     title={isStoreOnline ? "Store Online" : "Store Offline"}
                   />
@@ -132,7 +132,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
 
                 {/* Orders Tab: Live Active Orders Count Badge */}
                 {isOrders && activeOrdersCount > 0 ? (
-                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-black text-white shadow-xs ring-2 ring-white">
+                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-black text-white shadow-xs ring-2 ring-white">
                     {activeOrdersCount > 99 ? "99+" : activeOrdersCount}
                   </span>
                 ) : null}
@@ -141,7 +141,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
               {/* Tab Name under Icon */}
               <span
                 className={`mt-1 text-[10.5px] tracking-tight transition-colors truncate max-w-[64px] ${
-                  isActive ? "font-black text-blue-600" : "font-bold text-black"
+                  isActive ? "font-black text-black" : "font-semibold text-zinc-600"
                 }`}
               >
                 {label}
@@ -149,7 +149,7 @@ export function PartnerBottomNav({ active }: { active: PartnerTabId }) {
 
               {/* Minimal Micro Indicator Dot under active label */}
               {isActive ? (
-                <span className="mt-0.5 size-1 rounded-full bg-blue-600" />
+                <span className="mt-0.5 size-1 rounded-full bg-black" />
               ) : (
                 <span className="mt-0.5 size-1 rounded-full bg-transparent" />
               )}

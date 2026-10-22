@@ -80,7 +80,7 @@ export function QuickMerchantToolsBar({
             <button
               type="button"
               onClick={() => setShowWalkInModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-blue-600 px-3.5 py-2 text-xs font-black text-white shadow-xs transition-all hover:bg-blue-700 active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-2xl border-2 border-black bg-zinc-100 px-3.5 py-2 text-xs font-black text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
             >
               <PlusCircle className="size-4" />
               <span>+ Counter Walk-In</span>

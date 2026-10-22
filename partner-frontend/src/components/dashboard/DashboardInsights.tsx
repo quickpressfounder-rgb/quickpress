@@ -284,7 +284,7 @@ export function DailyAnalyticsSection({
                 onClick={() => setMetricMode("revenue")}
                 className={`rounded-xl px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
                   metricMode === "revenue"
-                    ? "bg-emerald-600 text-white shadow-xs"
+                    ? "border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-black shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -295,7 +295,7 @@ export function DailyAnalyticsSection({
                 onClick={() => setMetricMode("orders")}
                 className={`rounded-xl px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
                   metricMode === "orders"
-                    ? "bg-blue-600 text-white shadow-xs"
+                    ? "border-2 border-black bg-zinc-100 text-black font-black shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -377,7 +377,7 @@ export function DailyAnalyticsSection({
                             ? "bg-gradient-to-t from-emerald-600 via-emerald-500 to-teal-400 shadow-md shadow-emerald-500/20 group-hover:scale-105"
                             : "bg-muted/70 group-hover:bg-muted"
                           : hasActivity
-                            ? "bg-gradient-to-t from-blue-600 via-blue-500 to-indigo-400 shadow-md shadow-blue-500/20 group-hover:scale-105"
+                            ? "bg-gradient-to-t from-zinc-900 via-zinc-800 to-zinc-700 shadow-md shadow-zinc-900/20 group-hover:scale-105"
                             : "bg-muted/70 group-hover:bg-muted"
                       } ${isHovered ? "ring-2 ring-foreground/20 scale-105" : ""}`}
                     />
@@ -408,7 +408,7 @@ export function DailyAnalyticsSection({
             <div className="flex items-center gap-2">
               <span
                 className={`size-3 rounded-full ${
-                  metricMode === "revenue" ? "bg-emerald-500" : "bg-blue-500"
+                  metricMode === "revenue" ? "bg-emerald-500" : "bg-zinc-900"
                 }`}
               />
               <span className="font-bold text-foreground">

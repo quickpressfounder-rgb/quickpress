@@ -158,7 +158,7 @@ export function PartnerDesktopTopBar({
         >
           <Bell className="size-4" />
           {unreadCount > 0 ? (
-            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-blue-600 text-[9px] font-black text-white">
+            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black text-[9px] font-black text-white">
               {unreadCount}
             </span>
           ) : null}

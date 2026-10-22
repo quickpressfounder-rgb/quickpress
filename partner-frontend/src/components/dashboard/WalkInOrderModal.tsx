@@ -244,7 +244,7 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
                       <button
                         type="button"
                         onClick={() => handleQtyChange(item.id, 1)}
-                        className="flex size-6 items-center justify-center rounded-lg bg-blue-600 text-white font-black hover:bg-blue-700 active:scale-95"
+                        className="flex size-6 items-center justify-center rounded-lg bg-zinc-950 text-white font-black hover:bg-zinc-800 active:scale-95"
                       >
                         <Plus className="size-3" />
                       </button>
@@ -272,7 +272,7 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
                   onClick={() => setPaymentMode(pm.id as any)}
                   className={`rounded-2xl border py-2 px-3 text-xs font-black transition-all ${
                     paymentMode === pm.id
-                      ? "border-blue-600 bg-blue-600 text-white shadow-xs"
+                      ? "border-2 border-black bg-zinc-100 text-black font-black shadow-xs"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
@@ -285,7 +285,7 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
           {/* Pricing & Tag Preview */}
           <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-xl bg-blue-600 text-white">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-zinc-950 text-white">
                 <Tag className="size-4" />
               </span>
               <div>
@@ -314,7 +314,7 @@ export function WalkInOrderModal({ onClose, onOrderCreated }: WalkInOrderModalPr
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-2.5 text-xs font-black text-white shadow-xs hover:bg-blue-700 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl border-2 border-black bg-zinc-950 px-6 py-2.5 text-xs font-black text-white shadow-xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               <CheckCircle2 className="size-4" />
               <span>{isSubmitting ? "Creating..." : "Confirm & Create Order"}</span>

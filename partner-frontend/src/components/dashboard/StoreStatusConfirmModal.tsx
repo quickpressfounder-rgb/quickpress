@@ -112,13 +112,13 @@ export function StoreStatusConfirmModal({
           /* ============================================================== */
           <div className="space-y-4">
             {/* Flat Royal Blue Icon */}
-            <div className="relative mx-auto flex size-14 items-center justify-center rounded-2xl bg-blue-50 border border-blue-200 text-blue-600">
+            <div className="relative mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700">
               <Radio className="size-6 stroke-[2.2]" />
             </div>
 
             {/* Target Status Pill */}
             <div className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1 text-[11px] font-black uppercase text-black tracking-wider">
-              <span className="size-1.5 rounded-full bg-blue-600" />
+              <span className="size-1.5 rounded-full bg-emerald-600" />
               <span>Switching to Online</span>
             </div>
 
@@ -156,7 +156,7 @@ export function StoreStatusConfirmModal({
                 type="button"
                 disabled={isLoading}
                 onClick={() => void onConfirm()}
-                className="flex-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-xs font-black shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
+                className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-xs font-black shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
               >
                 {isLoading ? (
                   <Loader2 className="size-4 animate-spin text-white" />

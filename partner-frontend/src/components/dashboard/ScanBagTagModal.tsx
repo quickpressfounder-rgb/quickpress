@@ -108,7 +108,7 @@ export function ScanBagTagModal({ orders, onClose, onSelectOrder }: ScanBagTagMo
             <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 space-y-3 animate-in fade-in duration-200">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="inline-block rounded-md bg-blue-600 text-white px-2 py-0.5 text-[10px] font-black uppercase">
+                  <span className="inline-block rounded-md border border-black bg-zinc-100 text-black px-2 py-0.5 text-[10px] font-black uppercase">
                     Order #{matchedOrder.code}
                   </span>
                   <h4 className="mt-1 text-sm font-black text-slate-950">
@@ -122,22 +122,22 @@ export function ScanBagTagModal({ orders, onClose, onSelectOrder }: ScanBagTagMo
                   <p className="text-sm font-black text-slate-950">
                     {inr(matchedOrder.amount)}
                   </p>
-                  <span className="text-[10px] font-bold uppercase text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-black uppercase text-black bg-zinc-200 px-2 py-0.5 rounded-full">
                     {matchedOrder.stage}
                   </span>
                 </div>
               </div>
 
-              <div className="border-t border-blue-200/60 pt-2 flex items-center justify-between">
+              <div className="border-t border-zinc-200 pt-2 flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-                  <Tag className="size-3.5 text-blue-600" />
+                  <Tag className="size-3.5 text-black" />
                   Tag: {matchedOrder.bagTagToken || "Assigned"}
                 </span>
 
                 <button
                   type="button"
                   onClick={() => onSelectOrder(matchedOrder.id)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-black text-white hover:bg-blue-700 cursor-pointer shadow-2xs"
+                  className="inline-flex items-center gap-1.5 rounded-xl border-2 border-black bg-zinc-950 px-3 py-1.5 text-xs font-black text-white hover:bg-zinc-800 cursor-pointer shadow-2xs active:scale-95 transition-all"
                 >
                   <span>Open Full Order</span>
                   <ArrowRight className="size-3.5" />
