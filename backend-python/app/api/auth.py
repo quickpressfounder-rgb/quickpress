@@ -32,24 +32,7 @@ from app.models.user import Role, User, UserStatus
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-async def _issue_session(user: User, is_new: bool = False) -> AuthSessionResponse:
-    access_token, access_expires = create_access_token(user.id, user.role.value)
-    refresh_token, token_id, refresh_expires = create_refresh_token(user.id, user.role.value)
-    
-    # Store refresh token & login timestamp in background task to never block the response
-    async def _persist_session_background():
-        try:
-            await refresh_tokens.store(token_id, user.id, refresh_expires)
-            now_ts = datetime.now(timezone.utc).isoformat()
-            await database.update("users", {"_id": user.id}, {"last_login_at": now_ts, "updated_at": now_ts})
-        except Exception as exc:
-            _log.warning("Background session persist: %s", exc)
-
-    asyncio.create_task(_persist_session_background())
-
-    account = AccountResponse.from_user(user)
-    account.isNewUser = is_new
-
+async def _enrich_account(account: AccountResponse, user: User) -> AccountResponse:
     # Attach Staff RBAC Permissions & Department Profile
     if user.role in (Role.admin, Role.super_admin, Role.operations, Role.support, Role.finance):
         staff_doc = None
@@ -69,39 +52,117 @@ async def _issue_session(user: User, is_new: bool = False) -> AuthSessionRespons
                 "finance", "wallet", "cities", "coupons", "memberships",
                 "analytics", "notifications", "support", "staff", "settings"
             ]
-    # Attach Partner Real Identity & Store Name
+
+    # Attach Partner Real Identity, Store Name & Verification / Onboarding Status
     if user.role == Role.partner:
         try:
             pid = user.linked_id
             prof = None
             if pid:
-                prof = await database.find_one("partner_profiles", {"$or": [{"_id": pid}, {"partnerId": pid}]})
+                prof = (
+                    await database.find_one("partner_profiles", {"$or": [{"_id": pid}, {"partnerId": pid}]})
+                    or await database.find_one("admin_partners", {"$or": [{"_id": pid}, {"partnerId": pid}]})
+                )
             if not prof and user.phone:
                 raw_p = user.phone.replace("+91", "").replace("+", "").strip()
-                prof = await database.find_one("partner_profiles", {
-                    "$or": [
-                        {"phone": user.phone},
-                        {"phone": raw_p},
-                        {"ownerPhone": user.phone},
-                        {"ownerPhone": raw_p},
-                    ]
-                })
+                last10 = raw_p[-10:] if len(raw_p) >= 10 else raw_p
+                phone_candidates = [p for p in [user.phone, raw_p, last10, f"+91{last10}", f"91{last10}"] if p]
+                prof = (
+                    await database.find_one("partner_profiles", {
+                        "$or": [
+                            {"phone": {"$in": phone_candidates}},
+                            {"ownerPhone": {"$in": phone_candidates}},
+                            {"mobile": {"$in": phone_candidates}},
+                        ]
+                    })
+                    or await database.find_one("admin_partners", {
+                        "$or": [
+                            {"phone": {"$in": phone_candidates}},
+                            {"ownerPhone": {"$in": phone_candidates}},
+                            {"mobile": {"$in": phone_candidates}},
+                        ]
+                    })
+                )
+            if not prof and user.id:
+                prof = (
+                    await database.find_one("partner_profiles", {"userId": user.id})
+                    or await database.find_one("admin_partners", {"userId": user.id})
+                )
+
             if prof:
-                real_name = prof.get("businessName") or prof.get("ownerName") or prof.get("name")
+                resolved_pid = str(prof.get("_id") or prof.get("partnerId") or "")
+                real_name = prof.get("businessName") or prof.get("ownerName") or prof.get("name") or prof.get("storeName")
                 if real_name:
                     account.name = real_name
-                    if not user.display_name:
-                        await database.update(
-                            "users",
-                            {"_id": user.id},
-                            {"$set": {"display_name": real_name, "linked_id": str(prof.get("_id") or prof.get("partnerId"))}}
-                        )
-                if not account.linkedId:
-                    account.linkedId = str(prof.get("_id") or prof.get("partnerId") or "")
+                if resolved_pid:
+                    account.linkedId = resolved_pid
                 if prof.get("city") and not account.city:
                     account.city = str(prof.get("city"))
-        except Exception:
-            pass
+
+                status_str = str(prof.get("status", "")).lower()
+                is_verified = bool(
+                    prof.get("isVerified") is True
+                    or status_str in ("active", "approved")
+                    or prof.get("kycStatus") == "verified"
+                )
+                is_onboarded = bool(
+                    prof.get("isOnboarded") is not False
+                    or is_verified
+                    or status_str not in ("not_registered", "")
+                )
+
+                account.isVerified = is_verified
+                account.isOnboarded = is_onboarded
+                if is_verified:
+                    account.status = "active"
+                elif is_onboarded:
+                    account.status = "pending_verification"
+                elif status_str:
+                    account.status = status_str
+
+                # Keep users table ground-truth in sync
+                user_updates: dict = {}
+                if real_name and not user.display_name:
+                    user_updates["display_name"] = real_name
+                if resolved_pid and user.linked_id != resolved_pid:
+                    user_updates["linked_id"] = resolved_pid
+                if is_verified and not user.is_verified:
+                    user_updates["is_verified"] = True
+                    user_updates["status"] = "active"
+                if is_onboarded and not user.is_onboarded:
+                    user_updates["is_onboarded"] = True
+
+                if user_updates:
+                    user_updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    try:
+                        await database.update("users", {"_id": user.id}, {"$set": user_updates})
+                    except Exception as u_exc:
+                        _log.debug("Non-blocking user ground-truth sync: %s", u_exc)
+        except Exception as exc:
+            _log.warning("Partner account enrichment error: %s", exc)
+
+    return account
+
+
+async def _issue_session(user: User, is_new: bool = False) -> AuthSessionResponse:
+    access_token, access_expires = create_access_token(user.id, user.role.value)
+    refresh_token, token_id, refresh_expires = create_refresh_token(user.id, user.role.value)
+    
+    # Store refresh token & login timestamp in background task to never block the response
+    async def _persist_session_background():
+        try:
+            await refresh_tokens.store(token_id, user.id, refresh_expires)
+            now_ts = datetime.now(timezone.utc).isoformat()
+            await database.update("users", {"_id": user.id}, {"last_login_at": now_ts, "updated_at": now_ts})
+        except Exception as exc:
+            _log.warning("Background session persist: %s", exc)
+
+    asyncio.create_task(_persist_session_background())
+
+    account = AccountResponse.from_user(user)
+    account.isNewUser = is_new
+
+    account = await _enrich_account(account, user)
 
     return AuthSessionResponse(
         token=access_token,
@@ -301,14 +362,11 @@ async def apple_login(payload: SocialLoginRequest, request: Request) -> AuthSess
 
 
 @router.get("/me", response_model=AccountResponse)
-async def me(user: User = Depends(current_user)) -> AccountResponse:
-    return AccountResponse.from_user(user)
-
-
-@router.get("/me", response_model=AccountResponse)
 async def get_me(user: User = Depends(current_user)) -> AccountResponse:
     latest_user = await users.by_id(user.id)
-    return AccountResponse.from_user(latest_user or user)
+    u = latest_user or user
+    account = AccountResponse.from_user(u)
+    return await _enrich_account(account, u)
 
 
 @router.post("/refresh", response_model=AuthSessionResponse)

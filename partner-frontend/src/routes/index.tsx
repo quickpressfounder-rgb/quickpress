@@ -28,16 +28,23 @@ function computeTargetRoute(sess: any): string {
     sess.status === "suspended" || sess.isSuspended === true;
   if (isSuspended) return partnerRoutes.suspended;
 
-  const isOnboarded = Boolean(
-    sess.isOnboarded ?? sess.account?.isOnboarded
-  );
-  if (!isOnboarded) return partnerRoutes.registration;
-
   const isVerified = Boolean(
     (sess.isVerified ?? sess.account?.isVerified) ||
       sess.status === "active" ||
-      sess.kycStatus === "verified"
+      sess.status === "approved" ||
+      sess.account?.status === "active" ||
+      sess.account?.status === "approved" ||
+      sess.kycStatus === "verified" ||
+      sess.account?.kycStatus === "verified"
   );
+
+  const hasLinkedStore = Boolean(sess.account?.linkedId || sess.partnerId);
+  const isOnboarded = Boolean(
+    (sess.isOnboarded ?? sess.account?.isOnboarded) ||
+    isVerified ||
+    hasLinkedStore
+  );
+  if (!isOnboarded) return partnerRoutes.registration;
   if (!isVerified) return partnerRoutes.registrationSubmitted;
 
   return partnerRoutes.dashboard;

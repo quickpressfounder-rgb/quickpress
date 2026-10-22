@@ -164,7 +164,41 @@ export async function restoreSession(explicitRole?: AccountRole): Promise<AuthSe
       clearSession(target);
       return null;
     }
-    return persist({ ...stored, account });
+    const isStoredVerified = Boolean(
+      stored.account?.isVerified ||
+      (stored as any).isVerified ||
+      stored.account?.status === "active" ||
+      stored.account?.status === "approved" ||
+      (stored as any).status === "active" ||
+      (stored as any).status === "approved" ||
+      account.isVerified ||
+      account.status === "active" ||
+      account.status === "approved"
+    );
+    const isStoredOnboarded = Boolean(
+      stored.account?.isOnboarded ||
+      (stored as any).isOnboarded ||
+      account.isOnboarded ||
+      isStoredVerified ||
+      account.linkedId ||
+      stored.account?.linkedId
+    );
+    const mergedAccount = {
+      ...stored.account,
+      ...account,
+      name: (account.name && account.name !== "QuickPress User") ? account.name : (stored.account?.name || account.name),
+      linkedId: account.linkedId || stored.account?.linkedId,
+      isOnboarded: isStoredOnboarded,
+      isVerified: isStoredVerified,
+      status: isStoredVerified ? "active" : (account.status || stored.account?.status || "pending"),
+    };
+    return persist({
+      ...stored,
+      isOnboarded: isStoredOnboarded,
+      isVerified: isStoredVerified,
+      status: isStoredVerified ? "active" : (stored.status || account.status),
+      account: mergedAccount,
+    });
   } catch (error: any) {
     if (error instanceof ApiError && (error.kind === "unauthorized" || error.status === 401 || error.status === 403 || error.status === 404)) {
       clearSession(target);

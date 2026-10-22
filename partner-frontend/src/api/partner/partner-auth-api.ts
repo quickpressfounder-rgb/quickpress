@@ -33,7 +33,9 @@ function toPartnerSession(session: AuthSession): PartnerSession {
   const isOnboarded = Boolean(
     session.account?.isOnboarded === true ||
     (session as any).isOnboarded === true ||
-    isVerified
+    isVerified ||
+    session.account?.linkedId ||
+    (session as any).partnerId
   );
   const status = isVerified
     ? "active"

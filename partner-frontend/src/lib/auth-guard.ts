@@ -18,16 +18,31 @@ export function requirePartnerAuth() {
   if (sess.status === "suspended" || (sess as any).isSuspended) {
     throw redirect({ to: partnerRoutes.suspended });
   }
-  const isOnboarded = Boolean(sess.isOnboarded === true || sess.account?.isOnboarded === true);
-  if (!isOnboarded) {
-    throw redirect({ to: partnerRoutes.registration });
-  }
+
+  // A partner is verified if marked verified, status is approved/active, or kycStatus is verified
   const isVerified = Boolean(
     sess.isVerified === true ||
     sess.account?.isVerified === true ||
     sess.status === "approved" ||
-    sess.account?.status === "approved"
+    sess.account?.status === "approved" ||
+    sess.status === "active" ||
+    sess.account?.status === "active" ||
+    (sess as any).kycStatus === "verified" ||
+    (sess.account as any)?.kycStatus === "verified"
   );
+
+  // A partner who is verified or possesses a linked store ID is by definition onboarded
+  const hasLinkedStore = Boolean(sess.account?.linkedId || (sess as any).partnerId);
+  const isOnboarded = Boolean(
+    sess.isOnboarded === true ||
+    sess.account?.isOnboarded === true ||
+    isVerified ||
+    hasLinkedStore
+  );
+
+  if (!isOnboarded) {
+    throw redirect({ to: partnerRoutes.registration });
+  }
   if (!isVerified) {
     throw redirect({ to: partnerRoutes.registrationSubmitted });
   }
