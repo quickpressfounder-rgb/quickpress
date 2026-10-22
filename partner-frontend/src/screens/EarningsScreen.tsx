@@ -33,6 +33,8 @@ import {
   type TaxInvoice,
   fetchFinanceOverview,
   fetchFinanceTaxInvoices,
+  getCachedFinanceOverview,
+  getCachedFinanceInvoices,
   downloadSettlementReport,
   downloadSettlementPdfBlob,
   downloadSettlementExcelBlob,
@@ -48,13 +50,16 @@ export function EarningsScreen() {
   const navigate = useNavigate();
   const { data: profile } = usePartnerResource(fetchPartnerProfile);
 
-  const [financeData, setFinanceData] = useState<FinanceOverviewResponse | null>(null);
-  const [invoices, setInvoices] = useState<TaxInvoice[]>([]);
-  const [orderInvoices, setOrderInvoices] = useState<TaxInvoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedOverview = getCachedFinanceOverview();
+  const cachedInvoices = getCachedFinanceInvoices();
+
+  const [financeData, setFinanceData] = useState<FinanceOverviewResponse | null>(cachedOverview);
+  const [invoices, setInvoices] = useState<TaxInvoice[]>(cachedInvoices?.invoices || []);
+  const [orderInvoices, setOrderInvoices] = useState<TaxInvoice[]>(cachedInvoices?.orderInvoices || []);
+  const [loading, setLoading] = useState(!cachedOverview);
 
   const [activeSubTab, setActiveSubTab] = useState<"payouts" | "invoices">("payouts");
-  const [selectedPastRange, setSelectedPastRange] = useState<string>("");
+  const [selectedPastRange, setSelectedPastRange] = useState<string>(cachedOverview?.filterOptions?.[0] || "");
   const [selectedCycleForModal, setSelectedCycleForModal] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -274,14 +279,14 @@ export function EarningsScreen() {
             </div>
           </div>
 
-          {/* Subtabs: Payouts vs Invoices & Taxes in Royal Blue Theme */}
+          {/* Subtabs: Payouts vs Invoices & Taxes */}
           <div className="mt-3.5 flex gap-2">
             <button
               type="button"
               onClick={() => setActiveSubTab("payouts")}
               className={`rounded-full px-5 py-2 text-xs font-black transition-all cursor-pointer active:scale-95 ${
                 activeSubTab === "payouts"
-                  ? "bg-[#2563EB] text-white shadow-xs"
+                  ? "bg-black text-white shadow-xs"
                   : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
               }`}
             >
@@ -292,7 +297,7 @@ export function EarningsScreen() {
               onClick={() => setActiveSubTab("invoices")}
               className={`rounded-full px-5 py-2 text-xs font-black transition-all cursor-pointer active:scale-95 ${
                 activeSubTab === "invoices"
-                  ? "bg-[#2563EB] text-white shadow-xs"
+                  ? "bg-black text-white shadow-xs"
                   : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
               }`}
             >
@@ -303,7 +308,7 @@ export function EarningsScreen() {
 
         {loading ? (
           <div className="flex h-96 flex-col items-center justify-center gap-3">
-            <div className="size-8 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+            <div className="size-8 animate-spin rounded-full border-2 border-black border-t-transparent" />
             <p className="text-xs font-bold text-zinc-500">Loading settlement cycles...</p>
           </div>
         ) : activeSubTab === "invoices" ? (
@@ -317,7 +322,7 @@ export function EarningsScreen() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-black text-black">Store Order Tax Invoices</h2>
-                    <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[11px] font-black text-[#2563EB]">
+                    <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[11px] font-black text-black">
                       {orderInvoices.length} Invoices
                     </span>
                   </div>
@@ -334,7 +339,7 @@ export function EarningsScreen() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search invoice or order #..."
-                    className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-9 pr-3 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-[#2563EB] focus:bg-white focus:outline-none"
+                    className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-9 pr-3 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-black focus:bg-white focus:outline-none"
                   />
                 </div>
               </div>
@@ -413,7 +418,7 @@ export function EarningsScreen() {
                     Monthly platform fee tax invoices issued by QuickPress for your Input Tax Credit (ITC) claims.
                   </p>
                 </div>
-                <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-[10px] font-black text-[#2563EB]">
+                <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-[10px] font-black text-black">
                   SAC 998311
                 </span>
               </div>
@@ -443,7 +448,7 @@ export function EarningsScreen() {
                       <div className="flex items-center justify-between gap-4 sm:justify-end">
                         <div className="text-right">
                           <p className="text-xs font-black text-black">Fee: ₹{inv.amount.toFixed(2)}</p>
-                          <p className="text-[10px] font-bold text-[#2563EB]">
+                          <p className="text-[10px] font-bold text-zinc-900">
                             ITC GST: ₹{inv.gstAmount.toFixed(2)}
                           </p>
                         </div>
@@ -486,19 +491,19 @@ export function EarningsScreen() {
           </div>
         ) : (
           /* ========================================================================= */
-          /* PAYOUTS TAB VIEW (Royal Blue Fintech Theme)                               */
+          /* PAYOUTS TAB VIEW                                                          */
           /* ========================================================================= */
           <div className="space-y-4 p-4">
             {/* HERO CARD: Scheduled 7-Day Cycle Bank Disbursal Card */}
-            <div className="relative overflow-hidden rounded-3xl border border-blue-200 bg-white p-5 shadow-sm">
+            <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
               {/* Top Accent Strip */}
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#2563EB]" />
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
 
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <Calendar className="size-3.5 text-[#2563EB]" />
-                    <p className="text-[11px] font-black uppercase tracking-wider text-[#2563EB]">
+                    <Calendar className="size-3.5 text-black" />
+                    <p className="text-[11px] font-black uppercase tracking-wider text-black">
                       Ongoing Payout Cycle
                     </p>
                   </div>
@@ -535,7 +540,7 @@ export function EarningsScreen() {
                 <button
                   type="button"
                   onClick={() => setSelectedCycleForModal("current")}
-                  className="text-xs font-black text-[#2563EB] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>View itemized breakdown</span>
                   <span>→</span>
@@ -546,7 +551,7 @@ export function EarningsScreen() {
                     type="button"
                     disabled={isProcessingInstantPayout}
                     onClick={handleInstantPayoutClick}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-zinc-800 text-white text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <Zap className="size-3.5" />
                     <span>Instant Payout ⚡</span>
@@ -564,7 +569,7 @@ export function EarningsScreen() {
               {/* Chip 1: Payout Cycle */}
               <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-[#2563EB]">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-black">
                     <Clock3 className="size-3.5" />
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
@@ -643,7 +648,7 @@ export function EarningsScreen() {
                   <select
                     value={selectedPastRange}
                     onChange={(e) => setSelectedPastRange(e.target.value)}
-                    className="h-10 w-full appearance-none rounded-xl border border-zinc-200 bg-white pl-3.5 pr-9 text-xs font-black text-black shadow-2xs focus:border-[#2563EB] focus:outline-none"
+                    className="h-10 w-full appearance-none rounded-xl border border-zinc-200 bg-white pl-3.5 pr-9 text-xs font-black text-black shadow-2xs focus:border-black focus:outline-none"
                   >
                     {financeData?.months && financeData.months.length > 0 && (
                       <optgroup label="Monthly Consolidated Statements">
@@ -725,7 +730,7 @@ export function EarningsScreen() {
                       <button
                         type="button"
                         onClick={() => selectedCycleObj && setSelectedCycleForModal(selectedCycleObj.cycleId)}
-                        className="text-xs font-black text-[#2563EB] hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <span>View details</span>
                         <span>→</span>
@@ -773,7 +778,7 @@ export function EarningsScreen() {
                         <button
                           type="button"
                           onClick={() => setSelectedCycleForModal(cycle.cycleId)}
-                          className="text-xs font-black text-[#2563EB] hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <span>View details</span>
                           <span>→</span>
@@ -832,7 +837,7 @@ export function EarningsScreen() {
                     onClick={() => setActiveSubTab("payouts")}
                     className={`rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
                       activeSubTab === "payouts"
-                        ? "bg-[#2563EB] text-white shadow-xs"
+                        ? "bg-black text-white shadow-xs"
                         : "text-black hover:bg-zinc-100"
                     }`}
                   >
@@ -843,7 +848,7 @@ export function EarningsScreen() {
                     onClick={() => setActiveSubTab("invoices")}
                     className={`rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
                       activeSubTab === "invoices"
-                        ? "bg-[#2563EB] text-white shadow-xs"
+                        ? "bg-black text-white shadow-xs"
                         : "text-black hover:bg-zinc-100"
                     }`}
                   >
@@ -873,7 +878,7 @@ export function EarningsScreen() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h2 className="text-base font-black text-black">Store Order Tax Invoices</h2>
-                        <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-xs font-black text-[#2563EB]">
+                        <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-xs font-black text-black">
                           {orderInvoices.length} Invoices
                         </span>
                       </div>
@@ -890,7 +895,7 @@ export function EarningsScreen() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search invoice or customer..."
-                        className="h-9.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-9 pr-3 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-[#2563EB] focus:bg-white focus:outline-none"
+                        className="h-9.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-9 pr-3 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-black focus:bg-white focus:outline-none"
                       />
                     </div>
                   </div>
@@ -964,7 +969,7 @@ export function EarningsScreen() {
                 <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-black text-black">GST Commission (ITC)</h2>
-                    <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-black text-[#2563EB]">
+                    <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-black">
                       SAC 998311
                     </span>
                   </div>
@@ -991,7 +996,7 @@ export function EarningsScreen() {
                           <div className="mt-2 flex items-center justify-between">
                             <div>
                               <p className="text-xs font-black text-black">Fee: ₹{inv.amount.toFixed(2)}</p>
-                              <p className="text-[10px] font-bold text-[#2563EB]">ITC GST: ₹{inv.gstAmount.toFixed(2)}</p>
+                              <p className="text-[10px] font-bold text-zinc-900">ITC GST: ₹{inv.gstAmount.toFixed(2)}</p>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <button
@@ -1037,13 +1042,13 @@ export function EarningsScreen() {
               <div className="grid grid-cols-3 gap-6">
                 <div className="space-y-5">
                   {/* Hero Card */}
-                  <div className="relative overflow-hidden rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#2563EB]" />
+                  <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="size-4 text-[#2563EB]" />
-                        <p className="text-xs font-black uppercase tracking-wider text-[#2563EB]">
+                        <Calendar className="size-4 text-black" />
+                        <p className="text-xs font-black uppercase tracking-wider text-black">
                           Current 7-Day Cycle
                         </p>
                       </div>
@@ -1061,7 +1066,7 @@ export function EarningsScreen() {
                       <button
                         type="button"
                         onClick={() => setSelectedCycleForModal("current")}
-                        className="text-xs font-black text-[#2563EB] hover:underline cursor-pointer"
+                        className="text-xs font-black text-black hover:underline cursor-pointer"
                       >
                         View itemized breakdown →
                       </button>
@@ -1071,7 +1076,7 @@ export function EarningsScreen() {
                           type="button"
                           disabled={isProcessingInstantPayout}
                           onClick={handleInstantPayoutClick}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-black hover:bg-zinc-800 text-white text-xs font-black shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                         >
                           <Zap className="size-3.5" />
                           <span>Instant Payout ⚡</span>
@@ -1127,7 +1132,7 @@ export function EarningsScreen() {
                         <select
                           value={selectedPastRange}
                           onChange={(e) => setSelectedPastRange(e.target.value)}
-                          className="h-9 appearance-none rounded-xl border border-zinc-200 bg-white pl-3 pr-8 text-xs font-black text-black shadow-2xs focus:border-[#2563EB] focus:outline-none"
+                          className="h-9 appearance-none rounded-xl border border-zinc-200 bg-white pl-3 pr-8 text-xs font-black text-black shadow-2xs focus:border-black focus:outline-none"
                         >
                           {financeData?.months && financeData.months.length > 0 && (
                             <optgroup label="Monthly Statements">
@@ -1213,7 +1218,7 @@ export function EarningsScreen() {
                             <button
                               type="button"
                               onClick={() => setSelectedCycleForModal(cycle.cycleId)}
-                              className="text-xs font-black text-[#2563EB] hover:underline cursor-pointer"
+                              className="text-xs font-black text-black hover:underline cursor-pointer"
                             >
                               Details →
                             </button>

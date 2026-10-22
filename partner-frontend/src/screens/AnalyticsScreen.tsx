@@ -558,14 +558,14 @@ export function AnalyticsScreen() {
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-2.5 py-1 rounded-lg border border-blue-200 text-blue-950 text-xs focus:outline-hidden focus:border-blue-600 bg-white"
+                className="px-2.5 py-1 rounded-lg border border-zinc-200 text-black text-xs focus:outline-hidden focus:border-black bg-white"
               />
               <button
                 type="button"
                 onClick={() => {
                   toast.success("Custom date range applied");
                 }}
-                className="bg-[#2563EB] text-white px-3 py-1 rounded-lg font-bold text-xs hover:bg-blue-700 cursor-pointer"
+                className="bg-black text-white px-3 py-1 rounded-lg font-bold text-xs hover:bg-zinc-800 cursor-pointer"
               >
                 Apply Range
               </button>

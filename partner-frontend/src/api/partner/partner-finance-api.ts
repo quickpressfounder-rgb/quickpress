@@ -129,12 +129,77 @@ export type TaxInvoice = {
   downloadUrl?: string;
 };
 
+// Multi-tier client-side cache for instantaneous (<10ms) rendering
+let _cachedOverview: FinanceOverviewResponse | null = null;
+let _cachedInvoices: { invoices: TaxInvoice[]; orderInvoices?: TaxInvoice[] } | null = null;
+const _cycleBreakdownsCache = new Map<string, SettlementBreakdown>();
+
+export function getCachedFinanceOverview(): FinanceOverviewResponse | null {
+  if (_cachedOverview) return _cachedOverview;
+  try {
+    const raw = typeof window !== "undefined" ? sessionStorage.getItem("qp_finance_overview_cache") : null;
+    if (raw) {
+      _cachedOverview = JSON.parse(raw);
+      return _cachedOverview;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function getCachedFinanceInvoices(): { invoices: TaxInvoice[]; orderInvoices?: TaxInvoice[] } | null {
+  if (_cachedInvoices) return _cachedInvoices;
+  try {
+    const raw = typeof window !== "undefined" ? sessionStorage.getItem("qp_finance_invoices_cache") : null;
+    if (raw) {
+      _cachedInvoices = JSON.parse(raw);
+      return _cachedInvoices;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function invalidateFinanceCaches(): void {
+  _cachedOverview = null;
+  _cachedInvoices = null;
+  _cycleBreakdownsCache.clear();
+  try {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("qp_finance_overview_cache");
+      sessionStorage.removeItem("qp_finance_invoices_cache");
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export async function fetchFinanceOverview(): Promise<FinanceOverviewResponse> {
-  return apiGetJson<FinanceOverviewResponse>("/api/partner/finance/overview");
+  const data = await apiGetJson<FinanceOverviewResponse>("/api/partner/finance/overview");
+  if (data) {
+    _cachedOverview = data;
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("qp_finance_overview_cache", JSON.stringify(data));
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return data;
 }
 
 export async function fetchSettlementBreakdown(cycleId: string): Promise<SettlementBreakdown> {
-  return apiGetJson<SettlementBreakdown>(`/api/partner/finance/settlement/${cycleId}`);
+  if (_cycleBreakdownsCache.has(cycleId)) {
+    return _cycleBreakdownsCache.get(cycleId)!;
+  }
+  const data = await apiGetJson<SettlementBreakdown>(`/api/partner/finance/settlement/${cycleId}`);
+  if (data) {
+    _cycleBreakdownsCache.set(cycleId, data);
+  }
+  return data;
 }
 
 export async function downloadSettlementReport(cycleId: string): Promise<{ ok: boolean; filename: string; data: SettlementBreakdown }> {
@@ -146,7 +211,18 @@ export async function emailSettlementReport(cycleId: string): Promise<{ ok: bool
 }
 
 export async function fetchFinanceTaxInvoices(): Promise<{ invoices: TaxInvoice[]; orderInvoices?: TaxInvoice[] }> {
-  return apiGetJson<{ invoices: TaxInvoice[]; orderInvoices?: TaxInvoice[] }>("/api/partner/finance/invoices");
+  const data = await apiGetJson<{ invoices: TaxInvoice[]; orderInvoices?: TaxInvoice[] }>("/api/partner/finance/invoices");
+  if (data) {
+    _cachedInvoices = data;
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("qp_finance_invoices_cache", JSON.stringify(data));
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return data;
 }
 
 export function getPartnerOrderInvoicePdfUrl(orderId: string): string {
@@ -275,7 +351,7 @@ export async function downloadSettlementExcelBlob(cycleId: string, customFileNam
 }
 
 export async function requestPartnerInstantPayout(amount: number) {
-  return await apiPostJson<{
+  const res = await apiPostJson<{
     ok: boolean;
     settlementId: string;
     amount: number;
@@ -286,6 +362,8 @@ export async function requestPartnerInstantPayout(amount: number) {
   }>("/api/partner/finance/instant-payout", {
     amount: Math.abs(amount),
   });
+  invalidateFinanceCaches();
+  return res;
 }
 
 

@@ -166,7 +166,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                   onClick={() => setActiveSubTab(tab)}
                   className={`rounded-full px-4.5 py-1.5 text-xs font-black capitalize transition-all cursor-pointer active:scale-95 ${
                     activeSubTab === tab
-                      ? "bg-[#2563EB] text-white shadow-xs"
+                      ? "bg-black text-white shadow-xs"
                       : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
                   }`}
                 >
@@ -179,7 +179,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
 
         {loading ? (
           <div className="flex h-96 flex-col items-center justify-center gap-3">
-            <div className="size-8 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+            <div className="size-8 animate-spin rounded-full border-2 border-black border-t-transparent" />
             <p className="text-xs font-bold text-zinc-500">Calculating settlement breakdown...</p>
           </div>
         ) : (
@@ -191,14 +191,14 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
             {activeSubTab === "summary" && data && (
               <>
                 {/* Hero Payout Headline Card */}
-                <div className="relative overflow-hidden rounded-3xl border border-blue-200 bg-white p-5 shadow-xs">
-                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#2563EB]" />
+                <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
 
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="size-3.5 text-[#2563EB]" />
-                        <p className="text-[11px] font-black uppercase tracking-wider text-[#2563EB]">
+                        <Calendar className="size-3.5 text-black" />
+                        <p className="text-[11px] font-black uppercase tracking-wider text-black">
                           Settlement Disbursal
                         </p>
                       </div>
@@ -256,7 +256,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                         type="button"
                         onClick={handleEmail}
                         disabled={emailing}
-                        className="flex size-8 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-[#2563EB] hover:bg-blue-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                        className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-black hover:bg-zinc-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
                         title="Email Statement"
                       >
                         <Mail className="size-3.5" />
@@ -406,11 +406,11 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                     )}
                   </div>
 
-                  {/* --- Est. Payout Result Row (Royal Blue Theme) --- */}
-                  <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#2563EB] p-4 text-white shadow-xs">
+                  {/* --- Est. Payout Result Row --- */}
+                  <div className="mt-4 flex items-center justify-between rounded-2xl border-2 border-zinc-900 bg-zinc-950 p-4 text-white shadow-xs">
                     <div>
                       <p className="text-xs font-black">Est. Net Disbursal</p>
-                      <p className="text-[10px] text-blue-100 font-medium">(A + B - C - D)</p>
+                      <p className="text-[10px] text-zinc-400 font-medium">(A + B - C - D)</p>
                     </div>
                     <p className="text-2xl font-black tracking-tight text-white">
                       ₹{data.estNetPayout.toFixed(2)}
@@ -421,7 +421,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                 {/* Beneficiary Bank Details Card */}
                 <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
                   <div className="flex items-center gap-2">
-                    <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-[#2563EB]">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-black">
                       <Wallet className="size-3.5" />
                     </div>
                     <h3 className="text-sm font-black text-black">Beneficiary Bank Account</h3>

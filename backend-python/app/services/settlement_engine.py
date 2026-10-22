@@ -15,14 +15,28 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import random
 
 from app.db.client import database
 from app.services.financial_engine import financial_engine
 
 logger = logging.getLogger(__name__)
+
+_FINANCE_OVERVIEW_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+_OVERVIEW_CACHE_TTL: float = 60.0
+
+
+def _partner_cands(partner_id: str) -> List[str]:
+    p = str(partner_id).strip()
+    cands = [p]
+    if p.upper().startswith("PRT-"):
+        cands.append(p[4:])
+    elif p.isalnum():
+        cands.append(f"PRT-{p}")
+    return cands
 
 
 class SettlementEngine:
@@ -54,10 +68,11 @@ class SettlementEngine:
         start_of_week = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
         
+        curr_period = f"{start_of_week.strftime('%d %b')} - {end_of_week.strftime('%d %b')}'{end_of_week.strftime('%y')}"
         current_cycle = {
             "cycleId": "current",
-            "title": f"{start_of_week.strftime('%d %b')} - {end_of_week.strftime('%d %b\'%y')}",
-            "period": f"{start_of_week.strftime('%d %b')} - {end_of_week.strftime('%d %b\'%y')}",
+            "title": curr_period,
+            "period": curr_period,
             "startDate": start_of_week.strftime("%Y-%m-%d"),
             "endDate": end_of_week.strftime("%Y-%m-%d"),
             "payoutDate": "-",
@@ -78,14 +93,15 @@ class SettlementEngine:
                 break
 
             payout_dt = cycle_end + timedelta(days=3)  # Paid on Wednesday following cycle end
+            past_period = f"{cycle_start.strftime('%d %b')} - {cycle_end.strftime('%d %b')}'{cycle_end.strftime('%y')}"
             
             past_cycles.append({
                 "cycleId": f"cycle-{cycle_start.strftime('%Y%m%d')}",
-                "title": f"{cycle_start.strftime('%d %b')} - {cycle_end.strftime('%d %b\'%y')}",
-                "period": f"{cycle_start.strftime('%d %b')} - {cycle_end.strftime('%d %b\'%y')}",
+                "title": past_period,
+                "period": past_period,
                 "startDate": cycle_start.strftime("%Y-%m-%d"),
                 "endDate": cycle_end.strftime("%Y-%m-%d"),
-                "payoutDate": payout_dt.strftime("%d %b'%y"),
+                "payoutDate": f"{payout_dt.strftime('%d %b')}'{payout_dt.strftime('%y')}",
                 "status": "PAID",
                 "isCurrent": False,
             })
@@ -93,16 +109,26 @@ class SettlementEngine:
         return [current_cycle] + past_cycles
 
     async def compute_cycle_breakdown(
-        self, partner_id: str, cycle_id: str = "current"
+        self,
+        partner_id: str,
+        cycle_id: str = "current",
+        *,
+        preloaded_orders: Optional[List[Dict[str, Any]]] = None,
+        preloaded_profile: Optional[Dict[str, Any]] = None,
+        preloaded_rules: Optional[Dict[str, Any]] = None,
+        preloaded_settlements: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
-        """Calculates the complete itemized (A + B + C + D + E + F) financial breakdown."""
-        # Fetch partner profile for join date, bank & business name
-        profile = (
-            await database.find_one("partner_profiles", {"_id": partner_id})
-            or await database.find_one("partner_profiles", {"partnerId": partner_id})
-            or await database.find_one("admin_partners", {"_id": partner_id})
-            or {}
-        )
+        """Calculates the complete itemized (A + B + C + D + E + F) financial breakdown with optimal indexed queries."""
+        p_cands = _partner_cands(partner_id)
+        if preloaded_profile is not None:
+            profile = preloaded_profile
+        else:
+            profile = (
+                await database.find_one("partner_profiles", {"_id": {"$in": p_cands}})
+                or await database.find_one("partner_profiles", {"partnerId": {"$in": p_cands}})
+                or await database.find_one("admin_partners", {"_id": {"$in": p_cands}})
+                or {}
+            )
         join_dt = self._extract_partner_join_date(profile)
         matched_cycle = None
         if cycle_id and (cycle_id.startswith("month-") or re.match(r"^\d{4}-\d{2}$", cycle_id)):
@@ -137,12 +163,20 @@ class SettlementEngine:
                 unfiltered_cycles = self.get_weekly_cycles()
                 matched_cycle = next((c for c in unfiltered_cycles if c["cycleId"] == cycle_id), cycles[0])
         
-        # Fetch actual customer orders for this partner
-        all_orders = await database.find_many("customer_orders")
-        partner_orders = [
-            o for o in all_orders
-            if str((o.get("partner") or {}).get("id") or o.get("partnerId") or o.get("partner_id") or "") == partner_id
-        ]
+        # Fetch actual customer orders strictly scoped to this partner
+        if preloaded_orders is not None:
+            partner_orders = preloaded_orders
+        else:
+            partner_orders = await database.find_many(
+                "customer_orders",
+                {
+                    "$or": [
+                        {"partner.id": {"$in": p_cands}},
+                        {"partnerId": {"$in": p_cands}},
+                        {"partner_id": {"$in": p_cands}},
+                    ]
+                }
+            )
         
         cycle_start = matched_cycle.get("startDate", "")
         cycle_end = matched_cycle.get("endDate", "")
@@ -172,8 +206,11 @@ class SettlementEngine:
 
         order_count = len(cycle_orders)
         # Fetch live active finance rules
-        from app.services.unified_finance_service import unified_finance_service
-        fin_rules = await unified_finance_service.get_active_rules()
+        if preloaded_rules is not None:
+            fin_rules = preloaded_rules
+        else:
+            from app.services.unified_finance_service import unified_finance_service
+            fin_rules = await unified_finance_service.get_active_rules()
         laundry_gst_rate = float(fin_rules.get("gst", {}).get("laundryGstRate", 0.05))
         platform_gst_rate = float(fin_rules.get("gst", {}).get("platformGstRate", 0.18))
         tcs_rate = float(fin_rules.get("gst", {}).get("tcsRate", 0.01))
@@ -278,7 +315,10 @@ class SettlementEngine:
         # Build itemized order rows for Orders tab
         mapped_orders = []
         settlements_by_order = {}
-        order_settlements = await database.find_many("order_settlements", {"partnerId": partner_id})
+        if preloaded_settlements is not None:
+            order_settlements = preloaded_settlements
+        else:
+            order_settlements = await database.find_many("order_settlements", {"partnerId": {"$in": p_cands}})
         for s in order_settlements:
             if s.get("orderId"):
                 settlements_by_order[str(s["orderId"])] = s
@@ -400,18 +440,36 @@ class SettlementEngine:
 
     async def get_overview(self, partner_id: str) -> Dict[str, Any]:
         """Returns the main Finance screen overview with current cycle and past cycles list bounded by partner join date."""
+        cache_entry = _FINANCE_OVERVIEW_CACHE.get(partner_id)
+        now_ts = time.time()
+        if cache_entry and (now_ts - cache_entry[0] < _OVERVIEW_CACHE_TTL):
+            return cache_entry[1]
+
+        p_cands = _partner_cands(partner_id)
         profile = (
-            await database.find_one("partner_profiles", {"_id": partner_id})
-            or await database.find_one("partner_profiles", {"partnerId": partner_id})
-            or await database.find_one("admin_partners", {"_id": partner_id})
+            await database.find_one("partner_profiles", {"_id": {"$in": p_cands}})
+            or await database.find_one("partner_profiles", {"partnerId": {"$in": p_cands}})
+            or await database.find_one("admin_partners", {"_id": {"$in": p_cands}})
             or {}
         )
-        all_orders = await database.find_many("customer_orders")
-        partner_orders = [
-            o for o in all_orders
-            if str((o.get("partner") or {}).get("id") or o.get("partnerId") or o.get("partner_id") or "") == partner_id
-        ]
         
+        # Strictly fetch ONLY this partner's orders (indexed, ultra fast)
+        partner_orders = await database.find_many(
+            "customer_orders",
+            {
+                "$or": [
+                    {"partner.id": {"$in": p_cands}},
+                    {"partnerId": {"$in": p_cands}},
+                    {"partner_id": {"$in": p_cands}},
+                ]
+            }
+        )
+        
+        # Preload active rules and settlements once for all cycles
+        from app.services.unified_finance_service import unified_finance_service
+        fin_rules = await unified_finance_service.get_active_rules()
+        order_settlements = await database.find_many("order_settlements", {"partnerId": {"$in": p_cands}})
+
         join_dt = self._extract_partner_join_date(profile)
         # If partner has earlier orders, respect the earliest order date
         for o in partner_orders:
@@ -425,11 +483,50 @@ class SettlementEngine:
                     pass
 
         cycles = self.get_weekly_cycles(join_date=join_dt)
-        current_data = await self.compute_cycle_breakdown(partner_id, "current")
+        current_data = await self.compute_cycle_breakdown(
+            partner_id,
+            "current",
+            preloaded_orders=partner_orders,
+            preloaded_profile=profile,
+            preloaded_rules=fin_rules,
+            preloaded_settlements=order_settlements,
+        )
         
+        # Collect distinct delivered order dates for instantaneous cycle filtering
+        delivered_order_dates = [
+            str(
+                o.get("settledAt")
+                or o.get("deliveredAt")
+                or o.get("completedAt")
+                or o.get("createdAt")
+                or o.get("placedAt")
+                or ""
+            )[:10]
+            for o in partner_orders
+            if (
+                str(o.get("status", "")).lower() in ("delivered", "completed")
+                or str(o.get("stage", "")).lower() in ("delivered", "completed")
+                or str(o.get("canonicalStatus", "")).lower() in ("delivered", "completed")
+            )
+        ]
+        delivered_order_dates = [d for d in delivered_order_dates if d]
+
         past_summaries = []
         for c in cycles[1:]:
-            past_calc = await self.compute_cycle_breakdown(partner_id, c["cycleId"])
+            c_start = c["startDate"]
+            c_end = c["endDate"]
+            # Skip empty cycles without delivered orders instantly (O(1) skip)
+            if not any(c_start <= od <= c_end for od in delivered_order_dates):
+                continue
+
+            past_calc = await self.compute_cycle_breakdown(
+                partner_id,
+                c["cycleId"],
+                preloaded_orders=partner_orders,
+                preloaded_profile=profile,
+                preloaded_rules=fin_rules,
+                preloaded_settlements=order_settlements,
+            )
             # Only list past cycles in settlement history that had actual orders/settlement activity
             if past_calc["totalOrders"] > 0:
                 past_summaries.append({
@@ -467,7 +564,7 @@ class SettlementEngine:
                 "monthKey": curr_dt.strftime("%Y-%m"),
             })
 
-        return {
+        overview_data = {
             "currentCycle": {
                 "cycleId": "current",
                 "period": current_data["cycle"]["period"],
@@ -480,6 +577,13 @@ class SettlementEngine:
             "filterOptions": [c["period"] for c in past_summaries],
             "months": months_list,
         }
+
+        # Cache valid overview response
+        _FINANCE_OVERVIEW_CACHE[partner_id] = (time.time(), overview_data)
+        for cand in p_cands:
+            _FINANCE_OVERVIEW_CACHE[cand] = (time.time(), overview_data)
+
+        return overview_data
 
     async def settle_order_on_completion(self, order: Dict[str, Any]) -> Dict[str, Any]:
         """Triggered when an order is delivered/completed:
@@ -610,6 +714,11 @@ class SettlementEngine:
             )
         except Exception as notif_err:
             logger.warning(f"Failed to dispatch partner settlement notification: {notif_err}")
+
+        # Clear finance overview cache so updated settled figures show immediately
+        _FINANCE_OVERVIEW_CACHE.pop(partner_id, None)
+        for cand in _partner_cands(partner_id):
+            _FINANCE_OVERVIEW_CACHE.pop(cand, None)
 
         # 8. Update rider profile wallet & balance + rider_wallets collection & transaction ledger
         for rp in ride_payouts:
@@ -892,13 +1001,14 @@ class SettlementEngine:
         start_of_week = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
+        curr_period = f"{start_of_week.strftime('%d %b')} - {end_of_week.strftime('%d %b')}'{end_of_week.strftime('%y')}"
         current_cycle = {
             "cycleId": "current",
-            "title": f"{start_of_week.strftime('%d %b')} - {end_of_week.strftime('%d %b\'%y')}",
-            "period": f"{start_of_week.strftime('%d %b')} - {end_of_week.strftime('%d %b\'%y')}",
+            "title": curr_period,
+            "period": curr_period,
             "startDate": start_of_week.strftime("%Y-%m-%d"),
             "endDate": end_of_week.strftime("%Y-%m-%d"),
-            "payoutDate": (end_of_week + timedelta(days=1)).strftime("%d %b'%y"),
+            "payoutDate": f"{(end_of_week + timedelta(days=1)).strftime('%d %b')}'{(end_of_week + timedelta(days=1)).strftime('%y')}",
             "status": "ACCRUING",
             "isCurrent": True,
         }
@@ -914,13 +1024,14 @@ class SettlementEngine:
                 break
 
             payout_dt = cycle_end + timedelta(days=1)
+            past_period = f"{cycle_start.strftime('%d %b')} - {cycle_end.strftime('%d %b')}'{cycle_end.strftime('%y')}"
             past_cycles.append({
                 "cycleId": f"rider-cycle-{cycle_start.strftime('%Y%m%d')}",
-                "title": f"{cycle_start.strftime('%d %b')} - {cycle_end.strftime('%d %b\'%y')}",
-                "period": f"{cycle_start.strftime('%d %b')} - {cycle_end.strftime('%d %b\'%y')}",
+                "title": past_period,
+                "period": past_period,
                 "startDate": cycle_start.strftime("%Y-%m-%d"),
                 "endDate": cycle_end.strftime("%Y-%m-%d"),
-                "payoutDate": payout_dt.strftime("%d %b'%y"),
+                "payoutDate": f"{payout_dt.strftime('%d %b')}'{payout_dt.strftime('%y')}",
                 "status": "PAID",
                 "isCurrent": False,
             })
@@ -1225,6 +1336,11 @@ class SettlementEngine:
             "requestedAt": now_iso,
             "processedAt": now_iso,
         })
+
+        # Clear finance overview cache so the updated balance and cycles reflect instantly
+        _FINANCE_OVERVIEW_CACHE.pop(partner_id, None)
+        for cand in _partner_cands(partner_id):
+            _FINANCE_OVERVIEW_CACHE.pop(cand, None)
 
         return {
             "ok": True,
