@@ -83,14 +83,14 @@ export function PartnerDesktopTopBar({
     : t("nav.dashboard", "Dashboard");
 
   return (
-    <header className="sticky top-0 z-30 hidden h-20 items-center justify-between border-b border-border/80 bg-background/85 px-8 backdrop-blur-md md:flex">
+    <header className="sticky top-0 z-30 hidden h-20 items-center justify-between border-b border-slate-200/90 bg-white px-8 md:flex">
       {/* Title & Subtitle or Search */}
       <div>
-        <h1 className="text-xl font-extrabold tracking-tight text-foreground">
+        <h1 className="text-xl font-black tracking-tight text-slate-950">
           {displayTitle}
         </h1>
         {subtitle ? (
-          <p className="text-xs font-semibold text-muted-foreground">{subtitle}</p>
+          <p className="text-xs font-semibold text-slate-500">{subtitle}</p>
         ) : null}
       </div>
 
@@ -98,13 +98,13 @@ export function PartnerDesktopTopBar({
       <div className="flex items-center gap-3">
         {onSearchChange ? (
           <div className="relative w-56 lg:w-72">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={t("common.searchPlaceholder", "Search orders, customers, services...")}
-              className="h-10 w-full rounded-2xl border border-border bg-card pl-10 pr-4 text-xs font-medium text-foreground transition-all placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-xs font-medium text-slate-900 transition-all placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs"
             />
           </div>
         ) : null}
@@ -113,9 +113,9 @@ export function PartnerDesktopTopBar({
         <Link
           to={partnerRoutes.analytics}
           title="Store Analytics & Growth"
-          className="flex items-center gap-1.5 rounded-2xl border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground transition-all hover:bg-muted active:scale-95 shadow-2xs"
+          className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-900 transition-all hover:bg-slate-50 active:scale-95 shadow-2xs"
         >
-          <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
+          <TrendingUp className="size-4 text-blue-600" />
           <span className="hidden lg:inline">{t("nav.analytics", "Analytics")}</span>
         </Link>
 
@@ -124,11 +124,11 @@ export function PartnerDesktopTopBar({
           type="button"
           onClick={openLanguageModal}
           title="Change App Language"
-          className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground transition-all hover:bg-muted active:scale-95 cursor-pointer shadow-2xs"
+          className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-900 transition-all hover:bg-slate-50 active:scale-95 cursor-pointer shadow-2xs"
         >
-          <Globe className="size-4 text-amber-500" />
+          <Globe className="size-4 text-blue-600" />
           <span className="font-extrabold">{currentLang?.nativeName || "Language"}</span>
-          <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-700 dark:text-amber-300">
+          <span className="rounded-md bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-blue-700">
             {language}
           </span>
         </button>
@@ -139,13 +139,13 @@ export function PartnerDesktopTopBar({
           onClick={onToggleStatus}
           className={`flex items-center gap-2 rounded-2xl border px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer ${
             isOnline
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-              : "border-border bg-muted text-muted-foreground"
+              ? "border-blue-200 bg-blue-50 text-blue-700"
+              : "border-slate-200 bg-slate-100 text-slate-600"
           }`}
         >
           <span
             className={`size-2 rounded-full ${
-              isOnline ? "bg-emerald-500 animate-ping inline-block" : "bg-zinc-400"
+              isOnline ? "bg-blue-600 animate-ping inline-block" : "bg-slate-400"
             }`}
           />
           <span>{isOnline ? t("common.storeOnline", "Store Online") : t("common.storeOffline", "Store Offline")}</span>
@@ -154,11 +154,11 @@ export function PartnerDesktopTopBar({
         {/* Notifications */}
         <Link
           to={partnerRoutes.notifications}
-          className="relative flex size-10 items-center justify-center rounded-2xl border border-border bg-card text-foreground transition-colors hover:bg-muted"
+          className="relative flex size-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-900 transition-colors hover:bg-slate-50 shadow-2xs"
         >
           <Bell className="size-4" />
           {unreadCount > 0 ? (
-            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[9px] font-black text-white">
+            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-blue-600 text-[9px] font-black text-white">
               {unreadCount}
             </span>
           ) : null}
@@ -169,11 +169,11 @@ export function PartnerDesktopTopBar({
           <button
             type="button"
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2.5 rounded-2xl border border-border/80 bg-card p-1.5 pr-2.5 transition-colors hover:bg-muted cursor-pointer active:scale-95"
+            className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white p-1.5 pr-2.5 transition-colors hover:bg-slate-50 cursor-pointer active:scale-95 shadow-2xs"
             aria-expanded={dropdownOpen}
             aria-haspopup="true"
           >
-            <div className="relative size-7 shrink-0 overflow-hidden rounded-xl border border-emerald-500/20 bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-[11px]">
+            <div className="relative size-7 shrink-0 overflow-hidden rounded-xl border border-blue-500/20 bg-gradient-to-tr from-blue-600 to-blue-500 flex items-center justify-center text-white font-black text-[11px]">
               {shopLogo && !imgFailed ? (
                 <img
                   src={shopLogo}
@@ -185,11 +185,11 @@ export function PartnerDesktopTopBar({
                 <span>{(shopName || "QP").slice(0, 2).toUpperCase()}</span>
               )}
             </div>
-            <span className="text-xs font-bold text-foreground max-w-[130px] truncate">
+            <span className="text-xs font-black text-slate-950 max-w-[130px] truncate">
               {shopName || "Partner Store"}
             </span>
             <ChevronDown
-              className={`size-3.5 text-muted-foreground transition-transform duration-200 ${
+              className={`size-3.5 text-slate-400 transition-transform duration-200 ${
                 dropdownOpen ? "rotate-180" : ""
               }`}
             />

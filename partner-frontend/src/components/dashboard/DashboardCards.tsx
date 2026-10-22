@@ -63,20 +63,27 @@ export function WelcomeCard({
   const active = useCountUp(summary.activeOrders);
 
   return (
-    <section className="animate-rise relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-brand-dark to-brand-green p-5 shadow-soft md:p-7">
-      <div className="pointer-events-none absolute -right-12 -top-14 size-48 rounded-full bg-primary/25 blur-2xl" />
-      <div className="relative">
-        <p className="text-[0.68rem] font-semibold uppercase tracking-widest text-background/70">
-          {greeting()},
-        </p>
-        <h2 className="mt-1 text-2xl font-black tracking-tight text-background md:text-3xl">
-          {shop.partnerName}
-        </h2>
-        <p className="mt-1 text-[0.72rem] font-semibold text-background/70">Today's Summary</p>
+    <section className="animate-rise relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs md:p-6">
+      <div className="relative flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-blue-700 border border-blue-200/60">
+              {greeting()}
+            </span>
+            <span className="text-[11px] font-bold text-slate-500">Live Partner Terminal</span>
+          </div>
+
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+            {shop.partnerName}
+          </h2>
+          <p className="mt-0.5 text-xs font-semibold text-slate-500">
+            Today's Laundry Operations Overview
+          </p>
+        </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <SummaryTile label="Total Orders" value={`${totalOrders}`} />
-          <SummaryTile label="Earnings" value={inr(earnings)} />
+          <SummaryTile label="Earnings" value={inr(earnings)} isHighlight />
           <SummaryTile label="Active Orders" value={`${active}`} />
         </div>
       </div>
@@ -84,13 +91,33 @@ export function WelcomeCard({
   );
 }
 
-function SummaryTile({ label, value }: { label: string; value: string }) {
+function SummaryTile({
+  label,
+  value,
+  isHighlight = false,
+}: {
+  label: string;
+  value: string;
+  isHighlight?: boolean;
+}) {
   return (
-    <div className="rounded-2xl bg-background/12 p-3 backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5">
-      <p className="text-[0.62rem] font-bold uppercase tracking-wider text-background/65">
+    <div
+      className={`rounded-2xl border p-3.5 transition-all duration-300 hover:-translate-y-0.5 ${
+        isHighlight
+          ? "border-blue-200 bg-blue-50/60"
+          : "border-slate-200/80 bg-slate-50/70"
+      }`}
+    >
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
         {label}
       </p>
-      <p className="mt-1 truncate text-lg font-black tracking-tight text-background">{value}</p>
+      <p
+        className={`mt-1 truncate text-lg font-black tracking-tight ${
+          isHighlight ? "text-blue-700" : "text-slate-950"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -329,25 +356,22 @@ export function RevenueCard({
   const netPayoutRate = Math.max(0, Math.round(100 - commissionRate - 1)); // -1% TCS
 
   return (
-    <section className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-card via-card to-emerald-50/40 dark:to-emerald-950/20 p-5 md:p-6 shadow-sm h-full">
-      {/* Decorative subtle ambient glow */}
-      <div className="pointer-events-none absolute -right-10 -top-10 size-36 rounded-full bg-emerald-500/10 blur-2xl" />
-
+    <section className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 md:p-6 shadow-xs h-full">
       <div>
         {/* Header */}
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <span className="flex size-10 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shadow-xs">
+            <span className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-200/60 shadow-2xs">
               <IndianRupee className="size-5" strokeWidth={2.4} />
             </span>
             <div>
-              <h3 className="text-sm font-black tracking-tight text-foreground">Today's Sale</h3>
-              <p className="text-[11px] font-semibold text-muted-foreground">Aaj Ki Kul Bikri (Today's Total Sale)</p>
+              <h3 className="text-sm font-black tracking-tight text-slate-950">Today's Sale</h3>
+              <p className="text-[11px] font-semibold text-slate-500">Aaj Ki Kul Bikri (Today's Total Sale)</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+            <span className="size-1.5 rounded-full bg-blue-600 animate-pulse" />
             <span>Auto-Payout Daily 06:00 AM</span>
           </div>
         </div>
@@ -355,47 +379,47 @@ export function RevenueCard({
         {/* Main Metric */}
         <div className="relative mt-5">
           <div className="flex items-baseline gap-3">
-            <p className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+            <p className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950">
               {isLoading ? "..." : inr(amount)}
             </p>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-black">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 text-xs font-black">
               <ArrowUpRight className="size-3.5" /> Today's Sale
             </span>
           </div>
-          <p className="mt-1 text-xs font-medium text-muted-foreground">
+          <p className="mt-1 text-xs font-medium text-slate-500">
             Aaj ke sabhi orders ki kul sale (Total sales from today's orders)
           </p>
         </div>
 
         {/* Live Active Pipeline Strip */}
         {pipelineGross > 0 ? (
-          <div className="mt-4 flex items-center justify-between rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2.5 text-xs">
-            <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-200">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-xs">
+            <div className="flex items-center gap-2 font-bold text-slate-900">
+              <span className="size-2 rounded-full bg-blue-600 animate-pulse" />
               <span>In-Flight Pipeline:</span>
-              <span className="font-extrabold text-foreground">{inr(pipelineAmount)}</span>
+              <span className="font-extrabold text-blue-700">{inr(pipelineAmount)}</span>
             </div>
-            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+            <span className="text-[11px] font-bold text-slate-600">
               {activeOrders.length} bookings active
             </span>
           </div>
         ) : null}
 
         {/* 3 Key Operational Stat Tiles with 100% Real Data */}
-        <div className="relative mt-4 grid grid-cols-3 gap-2.5 pt-3 border-t border-border/70">
-          <div className="rounded-2xl bg-muted/40 p-2.5 border border-border/50">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Completed</p>
-            <p className="mt-0.5 text-sm font-black text-foreground">{completedCount} Orders</p>
+        <div className="relative mt-4 grid grid-cols-3 gap-2.5 pt-3 border-t border-slate-100">
+          <div className="rounded-2xl bg-slate-50/70 p-2.5 border border-slate-200/80">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Completed</p>
+            <p className="mt-0.5 text-sm font-black text-slate-950">{completedCount} Orders</p>
           </div>
-          <div className="rounded-2xl bg-muted/40 p-2.5 border border-border/50">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Avg Value</p>
-            <p className="mt-0.5 text-sm font-black text-foreground">
+          <div className="rounded-2xl bg-slate-50/70 p-2.5 border border-slate-200/80">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Avg Value</p>
+            <p className="mt-0.5 text-sm font-black text-slate-950">
               {completedCount > 0 ? inr(avgOrderValue) : "₹0"}
             </p>
           </div>
-          <div className="rounded-2xl bg-muted/40 p-2.5 border border-border/50">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Commission</p>
-            <p className="mt-0.5 text-sm font-black text-emerald-600 dark:text-emerald-400">
+          <div className="rounded-2xl bg-blue-50/50 p-2.5 border border-blue-200/60">
+            <p className="text-[10px] font-black uppercase tracking-wider text-blue-600">Commission</p>
+            <p className="mt-0.5 text-sm font-black text-blue-700">
               Net {netPayoutRate}% Pay
             </p>
           </div>
@@ -403,11 +427,11 @@ export function RevenueCard({
       </div>
 
       {/* Bottom Action Footer */}
-      <div className="mt-5 pt-3 flex items-center justify-between border-t border-border/50">
+      <div className="mt-5 pt-3 flex items-center justify-between border-t border-slate-100">
         <button
           type="button"
           onClick={() => navigate({ to: partnerRoutes.earnings })}
-          className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+          className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
         >
           View Detailed Statement & Ledger <ArrowRight className="size-3.5" />
         </button>
@@ -474,10 +498,7 @@ export function OrderStatusFlowCard({
   const CurrentIcon = currentStageObj.icon;
 
   return (
-    <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card p-5 md:p-6 shadow-sm h-full">
-      {/* Subtle ambient light */}
-      <div className="pointer-events-none absolute -left-10 -top-10 size-36 rounded-full bg-primary/5 blur-2xl" />
-
+    <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 md:p-6 shadow-xs h-full">
       <div>
         {/* Interactive Horizontal Stage Chips */}
         <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 scrollbar-none">
@@ -496,12 +517,12 @@ export function OrderStatusFlowCard({
                       isSelected
                         ? isCancelledStage
                           ? "bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/25 scale-102"
-                          : "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/25 scale-102"
+                          : "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25 scale-102"
                         : count > 0
                           ? isCancelledStage
-                            ? "bg-rose-500/10 text-rose-800 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/20"
-                            : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
-                          : "bg-muted/60 text-muted-foreground border-border/70 hover:bg-muted hover:text-foreground"
+                            ? "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
+                            : "bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >
                     <Icon className="size-3.5" />
@@ -513,8 +534,8 @@ export function OrderStatusFlowCard({
                           : count > 0
                             ? isCancelledStage
                               ? "bg-rose-600 text-white"
-                              : "bg-emerald-600 text-white"
-                            : "bg-muted-foreground/20 text-muted-foreground"
+                              : "bg-blue-600 text-white"
+                            : "bg-slate-200 text-slate-600"
                       }`}
                     >
                       {count}

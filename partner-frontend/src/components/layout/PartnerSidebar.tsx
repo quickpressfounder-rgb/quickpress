@@ -49,10 +49,10 @@ export function PartnerSidebar({
   }, [shopLogo]);
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r border-border/80 bg-card/95 backdrop-blur-md transition-all duration-300 md:flex lg:w-72">
+    <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r border-slate-200/90 bg-white transition-all duration-300 md:flex lg:w-72">
       {/* Partner Store Header with Real Store Image */}
-      <div className="flex h-20 items-center gap-3 border-b border-border/60 px-5">
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl border-2 border-emerald-500/30 shadow-sm bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-base group">
+      <div className="flex h-20 items-center gap-3 border-b border-slate-200/80 px-5 bg-white">
+        <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl border-2 border-blue-500/30 shadow-xs bg-gradient-to-tr from-blue-600 to-blue-500 flex items-center justify-center text-white font-black text-base group">
           {shopLogo && !logoFailed ? (
             <img
               src={shopLogo}
@@ -66,14 +66,14 @@ export function PartnerSidebar({
         </div>
         <div className="min-w-0 flex-1">
           <h2
-            className="truncate font-black text-sm text-foreground tracking-tight"
+            className="truncate font-black text-sm text-slate-950 tracking-tight"
             title={shopName || "Partner Store"}
           >
             {shopName || "Partner Store"}
           </h2>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="size-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-            <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 truncate flex items-center gap-1">
+            <span className="size-1.5 rounded-full bg-blue-600 shrink-0 animate-pulse" />
+            <p className="text-[11px] font-bold text-blue-600 truncate flex items-center gap-1">
               <span>✓</span> {t("common.verifiedPartner", "Verified Partner")}
             </p>
           </div>
@@ -82,18 +82,18 @@ export function PartnerSidebar({
 
       {/* Store status card */}
       <div className="px-5 pt-4">
-        <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-muted/40 p-3">
+        <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
           <div className="flex items-center gap-2.5">
             <span
               className={`size-2.5 rounded-full ${
-                isOnline ? "bg-emerald-500 shadow-sm shadow-emerald-500/50 animate-pulse" : "bg-zinc-400"
+                isOnline ? "bg-blue-600 shadow-xs shadow-blue-500/50 animate-pulse" : "bg-slate-400"
               }`}
             />
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-500">
                 {t("common.storeStatus", "Store Status")}
               </p>
-              <p className="text-xs font-bold text-foreground">
+              <p className="text-xs font-black text-slate-950">
                 {isOnline ? t("common.acceptingOrders", "Accepting Orders") : t("common.storeClosed", "Store Closed")}
               </p>
             </div>
@@ -103,7 +103,7 @@ export function PartnerSidebar({
             onClick={onToggleStatus}
             aria-label="Toggle store online status"
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              isOnline ? "bg-emerald-600" : "bg-zinc-300 dark:bg-zinc-700"
+              isOnline ? "bg-blue-600" : "bg-slate-300"
             }`}
           >
             <span
@@ -117,7 +117,7 @@ export function PartnerSidebar({
 
       {/* Navigation List */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 scrollbar-thin">
-        <div className="px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground/70">
+        <div className="px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
           {t("nav.operations", "Operations")}
         </div>
         {partnerOperationsLinks.map((link) => {
@@ -130,13 +130,13 @@ export function PartnerSidebar({
               to={link.to}
               className={`group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${
                 isActive
-                  ? "bg-primary text-brand-dark shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-blue-50 text-blue-700 font-extrabold shadow-2xs border border-blue-200/80"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
               }`}
             >
               <Icon
                 className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                  isActive ? "text-brand-dark" : "text-muted-foreground group-hover:text-foreground"
+                  isActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-900"
                 }`}
               />
               <span className="flex-1 truncate">{translatedLabel}</span>
@@ -144,7 +144,7 @@ export function PartnerSidebar({
           );
         })}
 
-        <div className="pt-3 px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground/70">
+        <div className="pt-3 px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
           {t("nav.management", "Management")}
         </div>
         {partnerManagementLinks.map((link) => {
@@ -157,13 +157,13 @@ export function PartnerSidebar({
               to={link.to}
               className={`group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${
                 isActive
-                  ? "bg-primary text-brand-dark shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-blue-50 text-blue-700 font-extrabold shadow-2xs border border-blue-200/80"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
               }`}
             >
               <Icon
                 className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                  isActive ? "text-brand-dark" : "text-muted-foreground group-hover:text-foreground"
+                  isActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-900"
                 }`}
               />
               <span className="flex-1 truncate">{translatedLabel}</span>
@@ -173,29 +173,29 @@ export function PartnerSidebar({
       </nav>
 
       {/* Footer / Account */}
-      <div className="border-t border-border/70 p-4 space-y-2">
+      <div className="border-t border-slate-200/80 p-4 space-y-2 bg-white">
         {/* Language Selection Button */}
         <button
           type="button"
           onClick={openLanguageModal}
-          className="flex w-full items-center justify-between rounded-2xl border border-border/80 bg-muted/40 p-2.5 transition-colors hover:bg-muted active:scale-[0.98] cursor-pointer"
+          className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 p-2.5 transition-colors hover:bg-slate-100 active:scale-[0.98] cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <Globe className="size-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs font-bold text-foreground">
+            <Globe className="size-4 text-blue-600" />
+            <span className="text-xs font-bold text-slate-900">
               {t("common.language", "Language / भाषा")}
             </span>
           </div>
-          <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-300">
+          <span className="rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-black uppercase text-blue-700">
             {language}
           </span>
         </button>
 
         <Link
           to={partnerRoutes.profile}
-          className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-muted"
+          className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-slate-50"
         >
-          <div className="relative size-9 shrink-0 overflow-hidden rounded-xl border border-emerald-500/20 bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-xs">
+          <div className="relative size-9 shrink-0 overflow-hidden rounded-xl border border-blue-500/20 bg-gradient-to-tr from-blue-600 to-blue-500 flex items-center justify-center text-white font-black text-xs">
             {shopLogo && !bottomLogoFailed ? (
               <img
                 src={shopLogo}
@@ -208,10 +208,10 @@ export function PartnerSidebar({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-foreground">
+            <p className="truncate text-xs font-black text-slate-950">
               {shopName || "Partner Account"}
             </p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-slate-500 font-semibold">
               {t("common.manageProfile", "Manage profile")}
             </p>
           </div>
