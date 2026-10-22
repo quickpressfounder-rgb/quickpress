@@ -175,5 +175,141 @@ class NotificationRepository:
         removed = await self._c.delete_many({"_id": notification_id, "user_id": user_id})
         return bool(removed)
 
+    async def _all_for_partner(self, user_id: str, partner_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        ids = [str(user_id)] if user_id else []
+        if partner_id:
+            p_str = str(partner_id).strip()
+            if p_str and p_str not in ids:
+                ids.append(p_str)
+            if p_str.upper().startswith("PRT-"):
+                raw_num = p_str[4:]
+                if raw_num and raw_num not in ids:
+                    ids.append(raw_num)
+            elif p_str.isalnum():
+                prefixed = f"PRT-{p_str}"
+                if prefixed not in ids:
+                    ids.append(prefixed)
+
+        query = {
+            "$or": [
+                {"user_id": {"$in": ids}},
+                {"accountId": {"$in": ids}},
+                {"partner_id": {"$in": ids}},
+                {"partnerId": {"$in": ids}},
+                {"audience": {"$in": ["all", "everyone", "partner", "partners", "all_partner"]}},
+                {"role": "partner", "user_id": {"$in": [*ids, "all"]}},
+            ]
+        }
+        documents = await database.find_many(COLLECTION, query)
+        seen = set()
+        deduped = []
+        for doc in documents:
+            doc_id = str(doc.get("_id") or doc.get("id") or "")
+            if doc_id and doc_id in seen:
+                continue
+            if doc_id:
+                seen.add(doc_id)
+            deduped.append(doc)
+
+        deduped.sort(key=lambda doc: _iso(doc.get("created_at") or doc.get("createdAt")), reverse=True)
+        return deduped
+
+    async def list_for_partner(
+        self,
+        user_id: str,
+        partner_id: Optional[str] = None,
+        *,
+        page: int = 1,
+        limit: int = 50,
+        search: str = "",
+        type_filter: str = "all",
+    ) -> List[Dict[str, Any]]:
+        documents = await self._all_for_partner(user_id, partner_id)
+        needle = (search or "").strip().lower()
+        wanted = (type_filter or "all").strip().lower()
+
+        def map_kind(doc: Dict[str, Any]) -> str:
+            raw_kind = str(doc.get("kind") or "").lower().strip()
+            cat = str(doc.get("category") or "").lower().strip()
+            title = str(doc.get("title") or "").lower()
+
+            if any(k in raw_kind for k in ("order", "pickup", "delivered", "rider", "processing", "accepted")):
+                return "order"
+            if any(k in raw_kind for k in ("payout", "wallet", "settle", "transfer", "withdraw")):
+                return "payout"
+            if any(k in raw_kind for k in ("promo", "offer", "discount", "sale", "campaign", "broadcast")) or cat in ("promotional", "promo", "offer"):
+                return "promo"
+            if "payout" in title or "settle" in title or "wallet" in title or "earning" in title:
+                return "payout"
+            if "order" in title or "cloth" in title or "garment" in title or "pickup" in title:
+                return "order"
+            if "offer" in title or "discount" in title or "deal" in title or "voucher" in title:
+                return "promo"
+            return "alert"
+
+        results = []
+        for doc in documents:
+            k = map_kind(doc)
+            if wanted and wanted != "all" and k != wanted:
+                continue
+            if needle:
+                haystack = f"{doc.get('title', '')} {doc.get('description', '')} {doc.get('message', '')} {doc.get('order_code', '')}".lower()
+                if needle not in haystack:
+                    continue
+            results.append({
+                "id": str(doc.get("_id") or doc.get("id")),
+                "title": str(doc.get("title") or "Store Notification"),
+                "body": str(doc.get("description") or doc.get("message") or doc.get("body") or ""),
+                "date": _iso(doc.get("created_at") or doc.get("createdAt")),
+                "read": bool(doc.get("read")),
+                "kind": k,
+                "category": str(doc.get("category") or "system"),
+                "orderId": doc.get("order_id") or doc.get("orderId"),
+                "orderCode": doc.get("order_code") or doc.get("orderCode"),
+            })
+
+        page = max(1, page)
+        limit = max(1, min(limit, 100))
+        return results[(page - 1) * limit : page * limit]
+
+    async def unread_count_for_partner(self, user_id: str, partner_id: Optional[str] = None) -> int:
+        documents = await self._all_for_partner(user_id, partner_id)
+        return sum(1 for doc in documents if not doc.get("read"))
+
+    async def mark_read_for_partner(self, user_id: str, partner_id: Optional[str], notification_id: str) -> bool:
+        ids = [str(user_id)] if user_id else []
+        if partner_id:
+            ids.append(str(partner_id))
+            p_str = str(partner_id).strip()
+            if p_str.upper().startswith("PRT-"):
+                ids.append(p_str[4:])
+            elif p_str.isalnum():
+                ids.append(f"PRT-{p_str}")
+
+        query = {
+            "_id": notification_id,
+            "$or": [
+                {"user_id": {"$in": ids}},
+                {"accountId": {"$in": ids}},
+                {"partner_id": {"$in": ids}},
+                {"partnerId": {"$in": ids}},
+                {"audience": {"$in": ["all", "everyone", "partner", "partners", "all_partner"]}},
+            ],
+        }
+        res = await self._c.update_one(query, {"$set": {"read": True, "read_at": utcnow().isoformat()}})
+        return bool(res)
+
+    async def mark_all_read_for_partner(self, user_id: str, partner_id: Optional[str]) -> int:
+        documents = await self._all_for_partner(user_id, partner_id)
+        changed = 0
+        for doc in documents:
+            if doc.get("read"):
+                continue
+            doc_id = str(doc.get("_id") or doc.get("id"))
+            if doc_id:
+                await self._c.update_one({"_id": doc_id}, {"$set": {"read": True, "read_at": utcnow().isoformat()}})
+                changed += 1
+        return changed
+
 
 notification_repository = NotificationRepository()

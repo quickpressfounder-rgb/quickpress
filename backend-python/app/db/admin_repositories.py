@@ -6546,6 +6546,23 @@ class NotificationRepository:
                 "audience": audience,
             }
             await sio.emit(EVENT_NOTIFICATION_CREATED, rider_event, room="riders")
+
+            # Send targeted Socket.IO event to partners room
+            partner_event = {
+                "id": f"ntf-broadcast-{new_id('ntf')}",
+                "title": title or "QuickPress Announcement",
+                "message": message or "",
+                "description": message or "",
+                "body": message or "",
+                "date": created_at,
+                "time": "Just now",
+                "read": False,
+                "kind": "promo" if is_promo else "alert",
+                "category": effective_category,
+                "audience": audience,
+            }
+            await sio.emit(EVENT_NOTIFICATION_CREATED, partner_event, room="partners")
+            await sio.emit("notification:created", partner_event, room="partners")
         except Exception as exc:
             pass
 

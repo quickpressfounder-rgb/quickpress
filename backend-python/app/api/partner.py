@@ -1472,22 +1472,66 @@ async def get_partner_order_review(
 
 
 @router.get("/notifications", response_model=List[PartnerNotificationResponse])
-async def notifications(user: User = Depends(current_user)) -> List[PartnerNotificationResponse]:
-    feed = await notification_repository.list(user.id, page=1, limit=50, search="", type_filter="all")
-    items = getattr(feed, "items", None)
-    if items is None and isinstance(feed, dict):
-        items = feed.get("items", [])
-    return [
-        PartnerNotificationResponse(
-            id=item.id if hasattr(item, "id") else item["id"],
-            title=item.title if hasattr(item, "title") else item["title"],
-            body=item.description if hasattr(item, "description") else item.get("description", ""),
-            date=str(item.createdAt if hasattr(item, "createdAt") else item.get("createdAt", "")),
-            read=item.read if hasattr(item, "read") else item.get("read", False),
-            kind=item.kind if hasattr(item, "kind") else item.get("kind", "alert"),
-        )
-        for item in (items or [])
-    ]
+async def notifications(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    search: str = Query("", max_length=120),
+    type: str = Query("all", max_length=32),
+    user: User = Depends(current_user),
+) -> List[PartnerNotificationResponse]:
+    partner_id = None
+    try:
+        partner_id = await partner_repository.resolve_partner_id(user)
+    except Exception:
+        pass
+    items = await notification_repository.list_for_partner(
+        user.id,
+        partner_id=partner_id,
+        page=page,
+        limit=limit,
+        search=search,
+        type_filter=type,
+    )
+    return [PartnerNotificationResponse(**item) for item in items]
+
+
+@router.get("/notifications/unread-count")
+async def notifications_unread_count(user: User = Depends(current_user)) -> dict:
+    partner_id = None
+    try:
+        partner_id = await partner_repository.resolve_partner_id(user)
+    except Exception:
+        pass
+    count = await notification_repository.unread_count_for_partner(user.id, partner_id)
+    return {"count": count}
+
+
+@router.post("/notifications/read-all")
+@router.put("/notifications/read-all")
+async def mark_all_notifications_read(user: User = Depends(current_user)) -> dict:
+    partner_id = None
+    try:
+        partner_id = await partner_repository.resolve_partner_id(user)
+    except Exception:
+        pass
+    changed = await notification_repository.mark_all_read_for_partner(user.id, partner_id)
+    return {"ok": True, "markedRead": changed, "unread": 0}
+
+
+@router.post("/notifications/{notification_id}/read")
+@router.put("/notifications/{notification_id}/read")
+async def mark_single_notification_read(
+    notification_id: str,
+    user: User = Depends(current_user),
+) -> dict:
+    partner_id = None
+    try:
+        partner_id = await partner_repository.resolve_partner_id(user)
+    except Exception:
+        pass
+    ok = await notification_repository.mark_read_for_partner(user.id, partner_id, notification_id)
+    unread = await notification_repository.unread_count_for_partner(user.id, partner_id)
+    return {"ok": ok, "id": notification_id, "unread": unread}
 
 
 @router.get("/customers")
@@ -1546,6 +1590,17 @@ async def update_store_status(
         from app.core.redis_cache import hybrid_cache
         await hybrid_cache.delete_pattern("catalog:*")
         await hybrid_cache.delete_pattern("partners:*")
+    except Exception:
+        pass
+    try:
+        from app.services.order_notifications import send_partner_notification
+        await send_partner_notification(
+            partner_id,
+            title="Store is Online — Accepting Orders" if is_online else "Store is Offline / Paused",
+            description="Your laundry store is now active and accepting new customer bookings." if is_online else "Your store has been paused. Customers cannot place new orders until you re-open.",
+            kind="alert",
+            category="system",
+        )
     except Exception:
         pass
     return PartnerProfileResponse(**{k: v for k, v in doc.items() if k in PartnerProfileResponse.model_fields})

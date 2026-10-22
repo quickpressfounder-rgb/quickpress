@@ -595,6 +595,22 @@ class SettlementEngine:
                 }
             )
 
+        # Trigger partner payout notification for this order settlement
+        try:
+            from app.services.order_notifications import send_partner_notification
+            order_code = order.get("code") or canonical_id[:8].upper()
+            await send_partner_notification(
+                partner_id,
+                title=f"Payout Credited: ₹{partner_net:,.2f} — #{order_code}",
+                description=f"Store net earnings of ₹{partner_net:,.2f} for Order #{order_code} credited to your balance. Scheduled for weekly bank transfer.",
+                kind="payout",
+                category="wallet",
+                order_id=canonical_id,
+                order_code=order_code,
+            )
+        except Exception as notif_err:
+            logger.warning(f"Failed to dispatch partner settlement notification: {notif_err}")
+
         # 8. Update rider profile wallet & balance + rider_wallets collection & transaction ledger
         for rp in ride_payouts:
             rid = rp.get("riderId")
@@ -820,16 +836,43 @@ class SettlementEngine:
                 {"_id": s["_id"]},
                 {"$set": {"status": "settled", "utr": utr, "settledAt": now_iso}}
             )
+            # Dispatch payout notification to partner store
+            if s.get("role") == "partner" and s.get("partnerId"):
+                try:
+                    from app.services.order_notifications import send_partner_notification
+                    await send_partner_notification(
+                        str(s["partnerId"]),
+                        title=f"Bank Settlement Disbursed: ₹{amt:,.2f}",
+                        description=f"Your weekly payout settlement of ₹{amt:,.2f} has been processed via IMPS/NEFT to your registered bank account. UTR: {utr}.",
+                        kind="payout",
+                        category="wallet",
+                    )
+                except Exception:
+                    pass
 
         # Also disburse partner_withdrawals
         pending_with = await database.find_many("partner_withdrawals", {"status": "pending"})
         for w in pending_with:
             count += 1
-            total_amount += float(w.get("amount") or 0.0)
+            w_amt = float(w.get("amount") or 0.0)
+            total_amount += w_amt
+            w_utr = f"NPCI{random.randint(100000000000, 999999999999)}"
             await database.collection("partner_withdrawals").update_one(
                 {"_id": w["_id"]},
-                {"$set": {"status": "Approved", "utr": f"NPCI{random.randint(100000000000, 999999999999)}"}}
+                {"$set": {"status": "Approved", "utr": w_utr}}
             )
+            if w.get("partnerId"):
+                try:
+                    from app.services.order_notifications import send_partner_notification
+                    await send_partner_notification(
+                        str(w["partnerId"]),
+                        title=f"Withdrawal Approved: ₹{w_amt:,.2f}",
+                        description=f"Your withdrawal payout of ₹{w_amt:,.2f} has been approved and disbursed to your registered bank account. UTR: {w_utr}.",
+                        kind="payout",
+                        category="wallet",
+                    )
+                except Exception:
+                    pass
 
         return {
             "ok": True,

@@ -49,7 +49,8 @@ import { toast } from "sonner";
 import { partnerRoutes } from "../../navigation/partner-routes";
 import { fetchDashboardSummary, getCachedDashboardSummary, setStoreOpen } from "../../api/partner/partner-dashboard-api";
 import { fetchEarnings } from "../../api/partner/partner-earnings-api";
-import { fetchPartnerProfile, getCachedPartnerProfile, getCleanPartnerName, isPhoneNumber } from "../../api/partner/partner-profile-api";
+import { fetchPartnerProfile, fetchPartnerUnreadCount, getCachedPartnerProfile, getCleanPartnerName, isPhoneNumber } from "../../api/partner/partner-profile-api";
+import { subscribePartnerNotifications } from "../../lib/partner-socket";
 import { usePartnerContext } from "../../context/PartnerContext";
 import { usePartnerOrders } from "../../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../../hooks/use-order-action-handler";
@@ -179,6 +180,21 @@ export function ZomatoHubView() {
   const [expandedItemsOrderIds, setExpandedItemsOrderIds] = useState<Record<string, boolean>>({});
   const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    void fetchPartnerUnreadCount().then((cnt) => {
+      if (mounted) setUnreadCount(cnt);
+    });
+    const unsub = subscribePartnerNotifications(() => {
+      if (mounted) setUnreadCount((prev) => prev + 1);
+    });
+    return () => {
+      mounted = false;
+      unsub();
+    };
+  }, []);
 
   const toggleItemsExpanded = (orderId: string) => {
     setExpandedItemsOrderIds((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
@@ -445,7 +461,11 @@ export function ZomatoHubView() {
               className="relative flex size-9 items-center justify-center rounded-xl bg-white border border-zinc-200 text-black hover:border-zinc-400 shadow-none active:scale-95 transition-all"
             >
               <Bell className="size-4" />
-              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-black ring-2 ring-white" />
+              {unreadCount > 0 ? (
+                <span className="absolute -top-1 -right-1 flex min-w-4 h-4 px-1 items-center justify-center rounded-full bg-black text-[9px] font-black text-white ring-2 ring-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              ) : null}
             </Link>
 
             <Link

@@ -235,4 +235,7 @@ export type PartnerNotification = {
   time: string;
   read: boolean;
   kind: "order" | "payout" | "alert" | "promo";
+  orderId?: string;
+  orderCode?: string;
+  category?: string;
 };

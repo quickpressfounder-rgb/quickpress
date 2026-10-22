@@ -17,6 +17,9 @@ import {
 import { partnerRoutes } from "../../navigation/partner-routes";
 import { useLanguage, SUPPORTED_LANGUAGES } from "../../lib/i18n";
 
+import { fetchPartnerUnreadCount } from "@/api/partner/partner-profile-api";
+import { subscribePartnerNotifications } from "../../lib/partner-socket";
+
 export function PartnerDesktopTopBar({
   title,
   subtitle,
@@ -44,7 +47,22 @@ export function PartnerDesktopTopBar({
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === language);
   const [imgFailed, setImgFailed] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [liveUnreadCount, setLiveUnreadCount] = useState<number>(unreadCount);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    void fetchPartnerUnreadCount().then((cnt) => {
+      if (mounted) setLiveUnreadCount(cnt);
+    });
+    const unsub = subscribePartnerNotifications(() => {
+      if (mounted) setLiveUnreadCount((prev) => prev + 1);
+    });
+    return () => {
+      mounted = false;
+      unsub();
+    };
+  }, []);
 
   useEffect(() => {
     setImgFailed(false);
@@ -157,9 +175,9 @@ export function PartnerDesktopTopBar({
           className="relative flex size-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-900 transition-colors hover:bg-slate-50 shadow-2xs"
         >
           <Bell className="size-4" />
-          {unreadCount > 0 ? (
+          {Math.max(unreadCount, liveUnreadCount) > 0 ? (
             <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black text-[9px] font-black text-white">
-              {unreadCount}
+              {Math.max(unreadCount, liveUnreadCount) > 9 ? "9+" : Math.max(unreadCount, liveUnreadCount)}
             </span>
           ) : null}
         </Link>

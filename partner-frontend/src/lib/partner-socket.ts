@@ -11,6 +11,7 @@ import { getCachedPartnerProfile } from "../api/partner/partner-profile-api";
 let socket: Socket | null = null;
 const orderListeners = new Set<(order: any) => void>();
 const statusListeners = new Set<(status: any) => void>();
+const notificationListeners = new Set<(notification: any) => void>();
 
 const PRODUCTION_SOCKET_URL = "https://quickpress-api-production.up.railway.app";
 
@@ -202,6 +203,26 @@ export function initPartnerSocket(): Socket | null {
       socket.on("partner.status_changed", handleStatus);
       socket.on("partner.online_status", handleStatus);
 
+      // Notification and Broadcast events
+      const handleNotification = (data: any) => {
+        console.log("[PartnerSocket] ⚡ Realtime notification received:", data);
+        notificationListeners.forEach((listener) => {
+          try {
+            listener(data);
+          } catch (err) {
+            console.error("[PartnerSocket] Error in notification listener:", err);
+          }
+        });
+      };
+
+      socket.on("notification_created", handleNotification);
+      socket.on("notification:created", handleNotification);
+      socket.on("admin_broadcast", handleNotification);
+      socket.on("admin:broadcast", handleNotification);
+      socket.on("partner.notification", handleNotification);
+      socket.on("partner:notification", handleNotification);
+      socket.on("broadcast:notification", handleNotification);
+
       socket.on("disconnect", (reason) => {
         lastJoinedRoomsKey = "";
         console.log("[PartnerSocket] Disconnected from gateway:", reason);
@@ -243,5 +264,14 @@ export function subscribePartnerStatus(callback: (status: any) => void): () => v
 
   return () => {
     statusListeners.delete(callback);
+  };
+}
+
+export function subscribePartnerNotifications(callback: (notification: any) => void): () => void {
+  notificationListeners.add(callback);
+  rebindPartnerSocket();
+
+  return () => {
+    notificationListeners.delete(callback);
   };
 }

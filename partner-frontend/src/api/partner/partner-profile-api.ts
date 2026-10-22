@@ -2,35 +2,102 @@
 import { apiGetJson, apiPostJson, apiRequest } from "../core/transport";
 import type { BusinessSettings, PartnerNotification, PartnerProfile } from "@/shared/types/partner";
 
-type RawNotification = {
-  id: string;
-  title: string;
-  body: string;
-  date: string;
-  read: boolean;
-  kind: string;
+export type RawNotification = {
+  id?: string;
+  _id?: string;
+  title?: string;
+  body?: string;
+  description?: string;
+  message?: string;
+  date?: string;
+  createdAt?: string;
+  created_at?: string;
+  read?: boolean;
+  kind?: string;
+  category?: string;
+  orderId?: string;
+  order_id?: string;
+  orderCode?: string;
+  order_code?: string;
 };
 
-const NOTIFICATION_KIND: Record<string, PartnerNotification["kind"]> = {
+const NOTIFICATION_KIND_MAP: Record<string, PartnerNotification["kind"]> = {
+  order: "order",
+  "order-new": "order",
+  "order-cancelled": "order",
   "partner-accepted": "order",
   "pickup-scheduled": "order",
   "pickup-completed": "order",
   processing: "order",
   "out-for-delivery": "order",
   delivered: "order",
+  "rider-assigned": "order",
+  payout: "payout",
   wallet: "payout",
+  settlement: "payout",
+  withdrawal: "payout",
+  bank_transfer: "payout",
   cashback: "promo",
+  promo: "promo",
+  promotion: "promo",
   offer: "promo",
+  coupon: "promo",
+  broadcast: "promo",
+  campaign: "promo",
+  alert: "alert",
+  urgent: "alert",
+  system: "alert",
+  operational: "alert",
 };
 
-function toPartnerNotification(item: RawNotification): PartnerNotification {
+export function toPartnerNotification(item: RawNotification): PartnerNotification {
+  const rawKind = String(item.kind || "").toLowerCase().trim();
+  const rawCat = String(item.category || "").toLowerCase().trim();
+  const title = String(item.title || "").toLowerCase();
+
+  let resolvedKind: PartnerNotification["kind"] = "alert";
+  if (NOTIFICATION_KIND_MAP[rawKind]) {
+    resolvedKind = NOTIFICATION_KIND_MAP[rawKind];
+  } else if (
+    rawCat === "order" ||
+    title.includes("order") ||
+    title.includes("cloth") ||
+    title.includes("garment") ||
+    title.includes("pickup")
+  ) {
+    resolvedKind = "order";
+  } else if (
+    rawCat === "wallet" ||
+    rawCat === "payment" ||
+    title.includes("payout") ||
+    title.includes("settl") ||
+    title.includes("bank") ||
+    title.includes("withdraw") ||
+    title.includes("earning")
+  ) {
+    resolvedKind = "payout";
+  } else if (
+    rawCat === "promotional" ||
+    rawCat === "promo" ||
+    rawCat === "offer" ||
+    title.includes("offer") ||
+    title.includes("discount") ||
+    title.includes("deal") ||
+    title.includes("voucher")
+  ) {
+    resolvedKind = "promo";
+  }
+
   return {
-    id: item.id,
-    title: item.title,
-    body: item.body,
-    time: item.date,
-    read: item.read,
-    kind: NOTIFICATION_KIND[item.kind] ?? "alert",
+    id: String(item.id || item._id || `notif-${Math.random().toString(36).substring(2, 9)}`),
+    title: item.title || "Notification",
+    body: item.body || item.description || item.message || "",
+    time: item.date || item.createdAt || item.created_at || new Date().toISOString(),
+    read: Boolean(item.read),
+    kind: resolvedKind,
+    orderId: item.orderId || item.order_id,
+    orderCode: item.orderCode || item.order_code,
+    category: item.category,
   };
 }
 
@@ -128,12 +195,48 @@ export async function updateBusinessSettings(patch: Partial<BusinessSettings>) {
 }
 
 export async function fetchPartnerNotifications(): Promise<PartnerNotification[]> {
-  const items = await apiGetJson<RawNotification[]>("/api/partner/notifications");
-  return items.map(toPartnerNotification);
+  try {
+    const items = await apiGetJson<RawNotification[]>("/api/partner/notifications");
+    return (items || []).map(toPartnerNotification);
+  } catch (err) {
+    console.warn("Failed to fetch partner notifications from /api/partner/notifications, falling back to /api/notifications:", err);
+    try {
+      const resp = await apiGetJson<{ items: RawNotification[] }>("/api/notifications");
+      return (resp?.items || []).map(toPartnerNotification);
+    } catch {
+      return [];
+    }
+  }
+}
+
+export async function fetchPartnerUnreadCount(): Promise<number> {
+  try {
+    const res = await apiGetJson<{ count: number }>("/api/partner/notifications/unread-count");
+    return typeof res?.count === "number" ? res.count : 0;
+  } catch {
+    try {
+      const res = await apiGetJson<{ count: number }>("/api/notifications/unread-count");
+      return typeof res?.count === "number" ? res.count : 0;
+    } catch {
+      return 0;
+    }
+  }
 }
 
 export async function markNotificationsRead() {
-  return apiPostJson<{ ok: true }>("/api/notifications/read-all");
+  try {
+    return await apiPostJson<{ ok: boolean }>("/api/partner/notifications/read-all");
+  } catch {
+    return await apiPostJson<{ ok: boolean }>("/api/notifications/read-all");
+  }
+}
+
+export async function markSingleNotificationRead(id: string) {
+  try {
+    return await apiPostJson<{ ok: boolean }>(`/api/partner/notifications/${id}/read`);
+  } catch {
+    return await apiPostJson<{ ok: boolean }>(`/api/notifications/${id}/read`);
+  }
 }
 
 export async function updatePartnerProfile(

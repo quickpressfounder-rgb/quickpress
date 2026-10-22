@@ -292,8 +292,11 @@ class PartnerNotificationResponse(BaseModel):
     title: str
     body: str
     date: str
-    read: bool
-    kind: str
+    read: bool = False
+    kind: str = "alert"
+    category: Optional[str] = "system"
+    orderId: Optional[str] = None
+    orderCode: Optional[str] = None
 
 
 class OnboardingPayload(BaseModel):

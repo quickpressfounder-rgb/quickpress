@@ -14,7 +14,7 @@ import {
   Wallet,
   ChevronRight,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Toaster } from "@/shared/ui/sonner";
@@ -25,8 +25,40 @@ import { partnerRoutes } from "../navigation/partner-routes";
 import {
   fetchPartnerNotifications,
   markNotificationsRead,
+  markSingleNotificationRead,
+  toPartnerNotification,
 } from "@/api/partner/partner-profile-api";
+import { subscribePartnerNotifications } from "../lib/partner-socket";
 import type { PartnerNotification } from "@/shared/types/partner";
+
+function formatNotificationTime(rawTime?: string): string {
+  if (!rawTime) return "Just now";
+  try {
+    const d = new Date(rawTime);
+    if (isNaN(d.getTime())) return rawTime;
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs < 0) return "Just now";
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHour / 24);
+
+    if (diffSec < 45) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHour < 24) return `${diffHour}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return d.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return rawTime;
+  }
+}
 
 type FilterKind = "all" | "order" | "payout" | "alert" | "promo";
 
@@ -85,6 +117,23 @@ export function NotificationsScreen() {
   const { data: items, setData } = usePartnerResource(fetchPartnerNotifications);
   const [selectedFilter, setSelectedFilter] = useState<FilterKind>("all");
 
+  // Realtime notification event subscription
+  useEffect(() => {
+    const unsub = subscribePartnerNotifications((incoming) => {
+      try {
+        const parsed = toPartnerNotification(incoming);
+        setData((prev) => {
+          if (!prev) return [parsed];
+          if (prev.some((n) => n.id === parsed.id)) return prev;
+          return [parsed, ...prev];
+        });
+      } catch (err) {
+        console.warn("[NotificationsScreen] Error handling incoming notification:", err);
+      }
+    });
+    return unsub;
+  }, [setData]);
+
   const unreadCount = useMemo(() => {
     return items ? items.filter((i) => !i.read).length : 0;
   }, [items]);
@@ -117,13 +166,24 @@ export function NotificationsScreen() {
     );
   };
 
-  const handleNotificationClick = (item: PartnerNotification) => {
-    handleMarkItemRead(item.id);
-    // If notification mentions an order or is order-kind, navigate to orders
+  const handleNotificationClick = async (item: PartnerNotification) => {
+    if (!item.read) {
+      handleMarkItemRead(item.id);
+      try {
+        await markSingleNotificationRead(item.id);
+      } catch (e) {
+        console.warn("Failed to mark single notification read:", e);
+      }
+    }
+    // Deep links
     if (item.kind === "order" || item.title.toLowerCase().includes("order")) {
-      navigate({ to: partnerRoutes.orders });
-    } else if (item.kind === "payout" || item.title.toLowerCase().includes("payout")) {
-      navigate({ to: partnerRoutes.earnings });
+      void navigate({ to: partnerRoutes.orders });
+    } else if (
+      item.kind === "payout" ||
+      item.title.toLowerCase().includes("payout") ||
+      item.title.toLowerCase().includes("settl")
+    ) {
+      void navigate({ to: partnerRoutes.earnings });
     }
   };
 
@@ -292,7 +352,7 @@ export function NotificationsScreen() {
                       )}
                       <span className="ml-auto flex items-center gap-1 text-[10px] font-bold text-zinc-400">
                         <Clock className="size-3" />
-                        {item.time}
+                        {formatNotificationTime(item.time)}
                       </span>
                     </div>
 

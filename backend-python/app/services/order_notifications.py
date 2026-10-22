@@ -123,26 +123,44 @@ async def send_partner_notification(
     *,
     title: str,
     description: str = "",
-    kind: str = "order-new",
+    kind: str = "order",
+    category: Optional[str] = None,
     order_id: Optional[str] = None,
     order_code: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Insert an in-app notification and trigger concurrent real FCM push for the partner."""
+    """Insert an in-app notification and trigger concurrent real FCM push & realtime Socket for the partner."""
     if not partner_id:
         return {}
     now = _now_iso()
+    p_str = str(partner_id).strip()
+    effective_category = category or ("order" if "order" in kind else "wallet" if "payout" in kind else "system")
+
+    # Resolve linked user_id if this is a partner profile ID
+    linked_user_id = ""
+    try:
+        profile = await database.find_one("partner_profiles", {"$or": [{"_id": p_str}, {"partnerId": p_str}]})
+        if profile and profile.get("userId"):
+            linked_user_id = str(profile["userId"])
+    except Exception:
+        pass
+
     doc = {
         "_id": f"pntf-{uuid.uuid4().hex[:16]}",
-        "user_id": str(partner_id),
-        "accountId": str(partner_id),
+        "user_id": p_str,
+        "accountId": p_str,
+        "partner_id": p_str,
+        "partnerId": p_str,
+        "linked_user_id": linked_user_id,
         "role": "partner",
         "kind": kind,
-        "category": "order",
+        "category": effective_category,
         "title": title,
         "description": description,
+        "message": description,
         "created_at": now,
         "createdAt": now,
         "read": False,
+        "read_at": None,
         "order_id": order_id,
         "orderId": order_id,
         "order_code": order_code,
@@ -150,15 +168,55 @@ async def send_partner_notification(
     }
     await database.collection("notifications").insert_one(doc)
 
+    # Real-time Socket.IO emission to partner console
+    try:
+        from app.services.socket_service import sio, EVENT_NOTIFICATION_CREATED
+        socket_payload = {
+            "id": doc["_id"],
+            "title": title,
+            "body": description,
+            "description": description,
+            "message": description,
+            "date": now,
+            "time": "Just now",
+            "read": False,
+            "kind": kind,
+            "category": effective_category,
+            "orderId": order_id,
+            "orderCode": order_code,
+        }
+        await sio.emit(EVENT_NOTIFICATION_CREATED, socket_payload, room=f"partner:{p_str}")
+        await sio.emit("notification:created", socket_payload, room=f"partner:{p_str}")
+        if p_str.upper().startswith("PRT-"):
+            raw_num = p_str[4:]
+            await sio.emit(EVENT_NOTIFICATION_CREATED, socket_payload, room=f"partner:{raw_num}")
+            await sio.emit("notification:created", socket_payload, room=f"partner:{raw_num}")
+        if linked_user_id:
+            await sio.emit(EVENT_NOTIFICATION_CREATED, socket_payload, room=f"user:{linked_user_id}")
+            await sio.emit("notification:created", socket_payload, room=f"user:{linked_user_id}")
+        await sio.emit(EVENT_NOTIFICATION_CREATED, socket_payload, room="partners")
+        await sio.emit("notification:created", socket_payload, room="partners")
+    except Exception:
+        pass
+
     deep_link = f"/orders/{order_id}" if order_id else "/orders"
     await _dispatch_external_pushes(
-        partner_id,
+        p_str,
         title=title,
         body=description,
         deep_link=deep_link,
         data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "role": "partner", "kind": kind},
         role="partner",
     )
+    if linked_user_id and linked_user_id != p_str:
+        await _dispatch_external_pushes(
+            linked_user_id,
+            title=title,
+            body=description,
+            deep_link=deep_link,
+            data={"orderId": str(order_id or ""), "orderCode": str(order_code or ""), "url": deep_link, "role": "partner", "kind": kind},
+            role="partner",
+        )
 
     return doc
 
