@@ -332,7 +332,7 @@ export function ContactPage({
               <div className="w-6 h-6 rounded-lg bg-emerald-50 text-[#16a34a] flex items-center justify-center">
                 <IconPhone className="w-3.5 h-3.5" />
               </div>
-              <span>Helpline: +91 9258730561</span>
+              <span>Call Helpline</span>
             </a>
 
             <a
@@ -344,7 +344,7 @@ export function ContactPage({
               <div className="w-6 h-6 rounded-lg bg-emerald-50 text-[#16a34a] flex items-center justify-center">
                 <IconMessageCircle className="w-3.5 h-3.5" />
               </div>
-              <span>WhatsApp: +91 9258730561</span>
+              <span>WhatsApp Chat</span>
             </a>
 
             <a
@@ -406,11 +406,15 @@ export function ContactPage({
 
                 {/* Direct Contact Details Block */}
                 <div className="p-4 rounded-2xl bg-white border border-zinc-200 space-y-2 text-xs font-mono">
-                  {ch.phoneDisplay && (
+                  {ch.phone && (
                     <div className="flex items-center justify-between">
                       <span className="text-zinc-500">Helpline:</span>
-                      <a href={`tel:${ch.phone}`} className="font-bold text-black hover:text-[#16a34a] transition-colors">
-                        {ch.phoneDisplay}
+                      <a
+                        href={`tel:${ch.phone}`}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-[#16a34a] font-bold text-xs hover:bg-[#22c55e] hover:text-black transition-all cursor-pointer"
+                      >
+                        <IconPhone className="w-3 h-3" />
+                        <span>Call Direct</span>
                       </a>
                     </div>
                   )}
@@ -730,10 +734,14 @@ export function ContactPage({
                   <span className="text-zinc-600 font-semibold">CIN:</span>
                   <span className="font-mono text-[#16a34a] font-black text-right">U96010UW2026PTC259787</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-zinc-100">
+                <div className="flex justify-between items-center py-1 border-b border-zinc-100">
                   <span className="text-zinc-600 font-semibold">Helpline:</span>
-                  <a href="tel:+919258730561" className="font-black text-black hover:text-[#16a34a] transition-colors">
-                    +91 9258730561
+                  <a
+                    href="tel:+919258730561"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-[#16a34a] font-bold text-xs hover:bg-[#22c55e] hover:text-black transition-all cursor-pointer"
+                  >
+                    <IconPhone className="w-3.5 h-3.5" />
+                    <span>Call Helpline</span>
                   </a>
                 </div>
                 <div className="flex justify-between py-1 border-b border-zinc-100">
@@ -811,7 +819,16 @@ export function ContactPage({
                 <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
                 <p><strong>CIN:</strong> U96010UW2026PTC259787</p>
                 <p><strong>Nodal Email:</strong> <a href="mailto:legal@withquickpress.com" className="text-[#16a34a] font-bold hover:underline">legal@withquickpress.com</a></p>
-                <p><strong>Direct Helpline:</strong> <a href="tel:+919258730561" className="text-black font-bold hover:underline">+91 9258730561</a></p>
+                <div className="flex items-center justify-between pt-1">
+                  <span><strong>Direct Helpline:</strong></span>
+                  <a
+                    href="tel:+919258730561"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-50 border border-emerald-300 text-[#16a34a] font-bold text-xs hover:bg-[#22c55e] hover:text-black transition-all cursor-pointer"
+                  >
+                    <IconPhone className="w-3 h-3" />
+                    <span>Call Desk</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -884,7 +901,7 @@ export function ContactPage({
               className="px-8 py-4 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all duration-300 shadow-xl hover:scale-105 hover:shadow-emerald-500/30 cursor-pointer flex items-center gap-2"
             >
               <IconPhone className="w-4 h-4" />
-              <span>Call Helpline (+91 9258730561)</span>
+              <span>Call Helpline</span>
             </a>
             <a
               href="https://wa.me/919258730561?text=Hi%20QuickPress%20Emergency%20Desk,%20I%20need%20urgent%20support%20with%20an%20order."

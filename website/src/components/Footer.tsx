@@ -68,24 +68,6 @@ export function Footer({
                   Contact Us
                 </button>
               </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onNavigate("about")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-zinc-400"
-                >
-                  Who We Are
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenModal("contact")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-zinc-400"
-                >
-                  Investor Relations
-                </button>
-              </li>
             </ul>
           </div>
 
@@ -100,15 +82,6 @@ export function Footer({
                   type="button"
                   onClick={() => onNavigate("b2b-partner")}
                   className="hover:text-white transition-colors cursor-pointer text-left font-semibold text-emerald-400"
-                >
-                  B2B Bulk Orders (Hotels & PGs)
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onNavigate("b2b-partner")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Partner With Us
                 </button>
