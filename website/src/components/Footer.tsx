@@ -21,14 +21,15 @@ export function Footer({
   return (
     <footer className="pt-16 pb-12 bg-black text-white font-sans border-t border-zinc-900 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ─── Top Brand Logo (Zomato-Style Italic Wordmark) ─── */}
+        {/* ─── Top Brand Logo (Exact Image Styling: White Quick + Green Press) ─── */}
         <div className="mb-10 text-left">
           <button
             type="button"
             onClick={() => onNavigate("home")}
-            className="text-3xl sm:text-4xl font-black italic tracking-tighter text-white hover:text-emerald-400 transition-colors cursor-pointer"
+            className="text-4xl sm:text-5xl font-black italic tracking-tight hover:scale-105 transition-transform cursor-pointer inline-flex items-center"
           >
-            quickpress
+            <span className="text-white">Quick</span>
+            <span className="text-[#22c55e]">Press</span>
           </button>
         </div>
 
