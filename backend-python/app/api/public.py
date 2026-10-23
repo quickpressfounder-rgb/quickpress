@@ -371,3 +371,54 @@ async def submit_public_contact(payload: ContactFormPayload) -> Dict[str, Any]:
         message=payload.message
     )
 
+
+# =========================================================================
+#  9. Public Mobile App Download Link Dispatcher (Email-only for 3 Apps)
+# =========================================================================
+
+class AppLinkEmailPayload(BaseModel):
+    email: str = Field(..., pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    apps: List[str] = Field(default=["customer", "partner", "rider"])
+
+
+@router.post("/send-app-link")
+async def send_app_download_link(payload: AppLinkEmailPayload) -> Dict[str, Any]:
+    """Send official direct download links for QuickPress Customer, Partner, and Captain Apps."""
+    normalized_email = payload.email.strip().lower()
+    chosen_apps = [a.lower().strip() for a in payload.apps] or ["customer", "partner", "rider"]
+
+    lead_doc = {
+        "email": normalized_email,
+        "apps": chosen_apps,
+        "status": "sent",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "source": "website_get_app_section"
+    }
+
+    try:
+        await database.insert_one("app_download_leads", lead_doc)
+    except Exception as e:
+        logger.warning(f"Could not record app download lead: {e}")
+
+    # Format human-friendly app names
+    app_names = []
+    if "customer" in chosen_apps:
+        app_names.append("Customer App")
+    if "partner" in chosen_apps:
+        app_names.append("Partner Hub App")
+    if "rider" in chosen_apps or "captain" in chosen_apps:
+        app_names.append("Captain Fleet App")
+
+    return {
+        "success": True,
+        "message": f"Download links for {', '.join(app_names)} have been sent to {normalized_email}!",
+        "apps": chosen_apps,
+        "links": {
+            "customer": "/apks/QuickPress-Customer.apk",
+            "partner": "/apks/QuickPress-Partner.apk",
+            "captain": "/apks/QuickPress-Captain.apk",
+            "playStore": "https://play.google.com"
+        }
+    }
+
+

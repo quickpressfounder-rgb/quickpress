@@ -7,6 +7,10 @@ import {
   IconFacebook,
   IconLinkedIn,
   IconTwitter,
+  IconSmartphone,
+  IconStore,
+  IconVan,
+  IconArrowRight,
 } from "./Icons";
 
 export function Footer({
@@ -17,23 +21,26 @@ export function Footer({
   onOpenModal: (type: ModalType) => void;
 }) {
   return (
-    <footer className="pt-16 pb-12 bg-[#07160D] text-white border-t border-emerald-950">
+    <footer className="pt-16 pb-12 bg-[#07160D] text-white border-t border-emerald-950 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-12">
-          {/* Brand & Corporate Info */}
-          <div className="col-span-2 md:col-span-2 space-y-4 pr-0 md:pr-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-8 sm:gap-10 mb-12">
+          {/* Brand & Corporate Info (Spans 2 columns on desktop) */}
+          <div className="col-span-2 space-y-4 pr-0 lg:pr-6">
             <Logo size="md" dark={true} onClick={() => onNavigate("home")} />
             <p className="text-white text-xs sm:text-sm leading-relaxed max-w-sm">
-              <strong className="text-white">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
-              <span className="text-[11px] text-white/80 block">CIN: U96010UW2026PTC259787</span>
+              <strong className="text-white font-bold">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
+              <span className="text-[11px] text-white/80 block mt-1">CIN: U96010UW2026PTC259787</span>
               <span className="text-[11px] text-white/80 block">
                 Regd. Office: C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh
               </span>
-              <span className="text-[11px] text-white/80 block">
-                Helpline: <a href="tel:+918279538461" className="underline hover:text-emerald-300">+91 8279538461</a> • <a href="mailto:info@withquickpress.com" className="underline hover:text-emerald-300">info@withquickpress.com</a>
+              <span className="text-[11px] text-white/80 block mt-1">
+                Helpline: <a href="tel:+918279538461" className="underline hover:text-emerald-300 font-semibold">+91 8279538461</a> • <a href="mailto:info@withquickpress.com" className="underline hover:text-emerald-300 font-semibold">info@withquickpress.com</a>
               </span>
-              Building India's smart on-demand laundry and garment care delivery infrastructure.
+              <span className="text-[11px] text-white/70 block mt-1">
+                India's smart hyper-local on-demand laundry and garment care marketplace.
+              </span>
             </p>
+
             <div className="flex items-center gap-2.5 pt-2">
               {[
                 {
@@ -77,65 +84,129 @@ export function Footer({
             </div>
           </div>
 
-          {/* Column 1: Company */}
+          {/* Column 1: Explore & Navigation (All Pages) */}
           <div>
-            <h5 className="text-xs font-black tracking-wider uppercase text-white mb-4">
-              Company
+            <h5 className="text-xs font-black tracking-wider uppercase text-emerald-400 mb-4">
+              Explore Pages
             </h5>
             <ul className="space-y-2.5 text-xs text-white">
               <li>
                 <button
-                  onClick={() => onNavigate("about")}
-                  className="text-white hover:text-emerald-300 transition-colors cursor-pointer text-left"
+                  onClick={() => onNavigate("home")}
+                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
                 >
-                  About
+                  Home
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => onNavigate("services")}
-                  className="text-white hover:text-emerald-300 transition-colors cursor-pointer text-left"
+                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
                 >
-                  Services
+                  All Services
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => onNavigate("how-it-works")}
-                  className="text-white hover:text-emerald-300 transition-colors cursor-pointer text-left"
+                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
                 >
                   How It Works
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate("about")}
-                  className="text-white hover:text-emerald-300 transition-colors cursor-pointer text-left"
+                  onClick={() => onNavigate("partners")}
+                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
                 >
-                  Careers
+                  Partner With Us
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate("ecosystem")}
+                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
+                >
+                  Ecosystem & Node Map
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate("about")}
+                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
+                >
+                  About Us & Story
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => onNavigate("contact")}
-                  className="text-white hover:text-emerald-300 transition-colors cursor-pointer text-left"
+                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
                 >
-                  Contact
+                  Contact Us
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Column 2: Legal */}
+          {/* Column 2: Our 3 Mobile Apps */}
           <div>
-            <h5 className="text-xs font-black tracking-wider uppercase text-white mb-4">
-              Legal
+            <h5 className="text-xs font-black tracking-wider uppercase text-emerald-400 mb-4">
+              Our 3 Apps
+            </h5>
+            <ul className="space-y-3 text-xs text-white">
+              <li>
+                <a
+                  href="/apks/QuickPress-Customer.apk"
+                  download="QuickPress-Customer.apk"
+                  className="group flex items-start gap-2 text-white/90 hover:text-emerald-300 transition-colors"
+                >
+                  <IconSmartphone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Customer App</span>
+                    <span className="text-[10px] text-white/60 block">Book laundry & track GPS</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/apks/QuickPress-Partner.apk"
+                  download="QuickPress-Partner.apk"
+                  className="group flex items-start gap-2 text-white/90 hover:text-emerald-300 transition-colors"
+                >
+                  <IconStore className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Partner Hub App</span>
+                    <span className="text-[10px] text-white/60 block">Laundromat POS & orders</span>
+                  </div>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/apks/QuickPress-Captain.apk"
+                  download="QuickPress-Captain.apk"
+                  className="group flex items-start gap-2 text-white/90 hover:text-emerald-300 transition-colors"
+                >
+                  <IconVan className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Captain Fleet App</span>
+                    <span className="text-[10px] text-white/60 block">Delivery pickups & earnings</span>
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: Legal & Support */}
+          <div>
+            <h5 className="text-xs font-black tracking-wider uppercase text-emerald-400 mb-4">
+              Legal & Support
             </h5>
             <ul className="space-y-2.5 text-xs text-white">
               <li>
                 <button
                   onClick={() => onNavigate("privacy")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer font-semibold"
+                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer font-medium"
                 >
                   Privacy Policy
                 </button>
@@ -143,7 +214,7 @@ export function Footer({
               <li>
                 <button
                   onClick={() => onNavigate("terms")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer font-semibold"
+                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer font-medium"
                 >
                   Terms & Conditions
                 </button>
@@ -151,15 +222,15 @@ export function Footer({
               <li>
                 <button
                   onClick={() => onNavigate("terms")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
                 >
-                  Cancellation & Refund Policy
+                  Cancellation & Refund
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => onNavigate("terms")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
                 >
                   Pickup & Delivery Policy
                 </button>
@@ -167,50 +238,17 @@ export function Footer({
               <li>
                 <button
                   onClick={() => onNavigate("privacy")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
                 >
                   Cookie Policy
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate("terms")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer"
-                >
-                  Grievance Redressal
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Support */}
-          <div>
-            <h5 className="text-xs font-black tracking-wider uppercase text-white mb-4">
-              Support
-            </h5>
-            <ul className="space-y-2.5 text-xs text-white">
-              <li>
-                <button
                   onClick={() => onNavigate("contact")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
                 >
-                  Help Center
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate("contact")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer"
-                >
-                  Contact Support
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate("privacy")}
-                  className="text-white hover:text-emerald-300 transition-colors text-left cursor-pointer"
-                >
-                  Privacy & Data Help
+                  Help Center & Support
                 </button>
               </li>
             </ul>
@@ -219,14 +257,14 @@ export function Footer({
 
         {/* Bottom Copyright Bar */}
         <div className="border-t border-emerald-900/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white">
-          <p className="text-white">© 2026 QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (CIN: U96010UW2026PTC259787). All rights reserved.</p>
-          <div className="flex items-center gap-4 text-[11px] text-white">
-            <button onClick={() => onNavigate("privacy")} className="text-white hover:text-emerald-300 cursor-pointer">
+          <p className="text-white/80">© 2026 QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (CIN: U96010UW2026PTC259787). All rights reserved.</p>
+          <div className="flex items-center gap-4 text-[11px] text-white/80">
+            <button onClick={() => onNavigate("privacy")} className="text-white/80 hover:text-emerald-300 cursor-pointer">
               Privacy Policy
             </button>
             <span className="text-white/40">•</span>
-            <button onClick={() => onNavigate("terms")} className="text-white hover:text-emerald-300 cursor-pointer">
-              Terms
+            <button onClick={() => onNavigate("terms")} className="text-white/80 hover:text-emerald-300 cursor-pointer">
+              Terms & Conditions
             </button>
           </div>
         </div>
