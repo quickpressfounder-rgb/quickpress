@@ -9,14 +9,16 @@ import {
   IconSearch,
   IconClose,
   IconGooglePlay,
+  IconApple,
   IconSmartphone,
   IconShirt,
   IconIron,
   IconFootprints,
-  IconBag,
   IconStore,
   IconVan,
   IconShield,
+  IconBolt,
+  IconBuilding,
 } from "@/components/Icons";
 import { Logo } from "@/components/Navbar";
 import customerLogo from "@/assets/quickpress-customer-logo.jpg";
@@ -139,13 +141,12 @@ const AVAILABLE_SERVICES: ServiceInfo[] = [
   },
 ];
 
-// Available Operational City & Zones (Only real, active areas in Kasganj, UP)
+// Available Operational City & Zones (Kasganj, UP)
 const AVAILABLE_LOCALITIES = [
   {
     name: "Kasganj (All Operational Zones)",
     places: "24 Partner Laundromats",
     eta: "Sub-12 min pickup",
-    isDefault: true,
   },
   {
     name: "Civil Lines, Kasganj",
@@ -227,7 +228,7 @@ export function HomePage({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // App Download Form States (Email-Only for 3 Apps)
+  // App Download States (Email Only for 3 Apps)
   const [emailInput, setEmailInput] = useState("");
   const [selectedApps, setSelectedApps] = useState<{
     customer: boolean;
@@ -240,6 +241,9 @@ export function HomePage({
   });
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const [emailSuccessMessage, setEmailSuccessMessage] = useState<string | null>(null);
+
+  // Feature Toggle Simulation on Smartphone Showcase
+  const [ecoModeActive, setEcoModeActive] = useState(true);
 
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -263,7 +267,6 @@ export function HomePage({
 
   // Handler: Selecting Service -> Redirects Directly to Services Page
   const handleServiceClick = (serviceId?: string) => {
-    // Navigate directly to the services page
     onNavigate("services");
     onShowToast("Redirecting to available services...");
   };
@@ -272,7 +275,6 @@ export function HomePage({
   const toggleAppSelection = (appKey: "customer" | "partner" | "captain") => {
     setSelectedApps((prev) => {
       const next = { ...prev, [appKey]: !prev[appKey] };
-      // Keep at least one app selected
       if (!next.customer && !next.partner && !next.captain) {
         return prev;
       }
@@ -297,8 +299,7 @@ export function HomePage({
     setIsSubmittingEmail(true);
 
     try {
-      // Call public backend endpoint
-      const res = await fetch("/api/public/send-app-link", {
+      await fetch("/api/public/send-app-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -307,7 +308,6 @@ export function HomePage({
         }),
       });
 
-      const data = await res.json().catch(() => null);
       const appNames = [];
       if (selectedApps.customer) appNames.push("Customer App");
       if (selectedApps.partner) appNames.push("Partner App");
@@ -317,7 +317,6 @@ export function HomePage({
       setEmailSuccessMessage(successMsg);
       onShowToast(`✓ ${successMsg}`);
     } catch {
-      // Fallback
       const appNames = [];
       if (selectedApps.customer) appNames.push("Customer App");
       if (selectedApps.partner) appNames.push("Partner App");
@@ -334,7 +333,7 @@ export function HomePage({
   return (
     <div className="min-h-screen bg-white text-gray-900 selection:bg-emerald-200 selection:text-emerald-950 font-sans">
       {/* ─── 1. Clean Hero Header with Dual Search Bar ───────────────────────────────── */}
-      <section className="relative pt-28 sm:pt-36 pb-20 sm:pb-28 bg-gradient-to-b from-emerald-50/60 via-white to-white overflow-hidden border-b border-gray-100">
+      <section className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 bg-gradient-to-b from-emerald-50/60 via-white to-white overflow-hidden border-b border-gray-100">
         {/* Subtle Ambient Mesh Pattern */}
         <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
         <div
@@ -368,10 +367,10 @@ export function HomePage({
             Find the best laundry, dry cleaning & steam press partners in your city. Doorstep pickup in 45 minutes with 100% loss-free guarantee.
           </p>
 
-          {/* ─── Dual Search Bar: Location (Only Available Cities) + Service Search ───────── */}
+          {/* ─── Dual Search Bar: Location (Kasganj & Operational Areas) + Service Search ─── */}
           <div className="max-w-3xl mx-auto relative">
             <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-emerald-950/5 border-2 border-emerald-600/30 p-2 sm:p-2.5 flex flex-col md:flex-row items-stretch gap-2 transition-all duration-200 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/10">
-              {/* Left Segment: Location Selector (Only Available Operational Areas) */}
+              {/* Left Segment: Location Selector */}
               <div className="relative md:w-5/12">
                 <button
                   type="button"
@@ -391,7 +390,7 @@ export function HomePage({
                   />
                 </button>
 
-                {/* Location Dropdown Modal / Popup (Strictly Available Areas Only) */}
+                {/* Location Dropdown Modal */}
                 {isLocationDropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-full sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200/90 py-2.5 z-50 animate-slide-up text-left">
                     <div className="px-4 py-2 border-b border-gray-100">
@@ -425,7 +424,7 @@ export function HomePage({
                 )}
               </div>
 
-              {/* Center Divider for Desktop */}
+              {/* Center Divider */}
               <div className="hidden md:block w-px bg-gray-200 my-1 self-stretch" />
 
               {/* Right Segment: Service Search Input */}
@@ -462,7 +461,7 @@ export function HomePage({
                   <IconArrowRight className="w-3.5 h-3.5" />
                 </button>
 
-                {/* Instant Search Suggestions Dropdown -> Redirects Directly to Services */}
+                {/* Instant Search Suggestions Dropdown */}
                 {isSearchFocused && searchQuery.trim() && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50 animate-slide-up text-left max-h-72 overflow-y-auto">
                     <div className="px-4 py-1.5 text-[10px] font-black uppercase tracking-wider text-gray-400">
@@ -489,7 +488,7 @@ export function HomePage({
                       ))
                     ) : (
                       <div className="px-4 py-3 text-xs text-gray-500">
-                        No service found for "{searchQuery}". Available services: Wash & Fold, Dry Cleaning, Steam Press, Shoe Spa.
+                        No service found for "{searchQuery}". Available: Wash & Fold, Dry Cleaning, Steam Press, Shoe Spa.
                       </div>
                     )}
                   </div>
@@ -497,7 +496,7 @@ export function HomePage({
               </div>
             </div>
 
-            {/* Quick Keyword Pills (Clicking redirects directly to available services) */}
+            {/* Quick Keyword Pills */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
               <span className="text-gray-500 font-medium">Available:</span>
               {[
@@ -521,416 +520,486 @@ export function HomePage({
         </div>
       </section>
 
-      {/* ─── 2. The 3 Big Cards With Official App Logos (Zomato Style) ──────────────── */}
+      {/* ─── 2. The 4 App Ecosystem Cards (Zomato Multi-App Style - Screenshot 2) ───── */}
       <section className="py-14 sm:py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {/* Card 1: QuickPress Customer App */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {/* Card 1: quickpress (Customer App) - Peach/Pink tint */}
             <div
               onClick={() => onOpenModal("booking")}
-              className="group rounded-3xl border border-gray-200/90 bg-white shadow-xs hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col justify-between"
+              className="rounded-[32px] p-7 flex flex-col items-center text-center justify-between border border-rose-100/80 bg-gradient-to-b from-[#FFF5F5] via-[#FFF9F9] to-white shadow-xs hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group"
             >
-              <div className="h-48 sm:h-52 w-full overflow-hidden relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[28px] bg-[#E23744] shadow-md shadow-rose-900/10 flex items-center justify-center p-3 mb-5 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
                 <img
-                  src="/images/services/wash-fold.jpg"
-                  alt="QuickPress Customer App"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                  src={customerLogo}
+                  alt="quickpress"
+                  className="w-full h-full object-contain rounded-xl"
                 />
-                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-900 border border-emerald-100 shadow-xs">
-                  STARTS @ ₹29 • 24H RETURN
-                </div>
-
-                {/* Official Customer App Logo Badge */}
-                <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-2">
-                  <img
-                    src={customerLogo}
-                    alt="QuickPress Customer App"
-                    className="w-8 h-8 rounded-xl object-contain shadow-xs"
-                  />
-                  <div className="pr-2">
-                    <span className="text-[10px] font-black text-gray-900 block leading-none">Customer App</span>
-                    <span className="text-[8px] text-emerald-700 font-bold uppercase tracking-wider">Book Laundry</span>
-                  </div>
-                </div>
               </div>
 
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="text-xl font-black text-gray-950 group-hover:text-emerald-800 transition-colors">
-                    Order Doorstep Care
-                  </h3>
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                    <IconArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Stay home and get everyday laundry, formal dry cleaning, and steam pressing picked up in 45 mins.
+              <div className="space-y-2 mb-6">
+                <h3 className="text-2xl font-black text-gray-950 tracking-tight lowercase">
+                  quickpress
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[210px] mx-auto">
+                  Get the app now to start scheduling doorstep laundry, dry cleaning & shoe spa!
                 </p>
+              </div>
+
+              <div className="text-xs sm:text-sm font-black text-[#E23744] flex items-center gap-1 group-hover:gap-2 transition-all">
+                <span>Check it out</span>
+                <span className="text-[10px]">▶</span>
               </div>
             </div>
 
-            {/* Card 2: QuickPress Partner Hub App */}
+            {/* Card 2: partner hub (Partner Merchant App) - Soft Yellow/Gold tint */}
             <div
               onClick={() => onNavigate("partners")}
-              className="group rounded-3xl border border-gray-200/90 bg-white shadow-xs hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col justify-between"
+              className="rounded-[32px] p-7 flex flex-col items-center text-center justify-between border border-amber-100/80 bg-gradient-to-b from-[#FEFCE8] via-[#FFFDF5] to-white shadow-xs hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group"
             >
-              <div className="h-48 sm:h-52 w-full overflow-hidden relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[28px] bg-[#F7C942] shadow-md shadow-amber-900/10 flex items-center justify-center p-3 mb-5 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
                 <img
-                  src="/images/services/dry-cleaning.jpg"
-                  alt="QuickPress Partner Hub App"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                  src={partnerLogo}
+                  alt="partner hub"
+                  className="w-full h-full object-contain bg-white rounded-xl p-1"
                 />
-                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-amber-900 border border-amber-200 shadow-xs">
-                  CERTIFIED RO PLANTS
-                </div>
-
-                {/* Official Partner App Logo Badge */}
-                <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-2">
-                  <img
-                    src={partnerLogo}
-                    alt="QuickPress Partner App"
-                    className="w-8 h-8 rounded-xl object-contain shadow-xs bg-white"
-                  />
-                  <div className="pr-2">
-                    <span className="text-[10px] font-black text-gray-900 block leading-none">Partner Hub App</span>
-                    <span className="text-[8px] text-amber-700 font-bold uppercase tracking-wider">Merchant POS</span>
-                  </div>
-                </div>
               </div>
 
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="text-xl font-black text-gray-950 group-hover:text-emerald-800 transition-colors">
-                    Partner Laundromats
-                  </h3>
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                    <IconArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Explore our verified network of commercial facilities equipped with Italian steam formers and eco-solvents.
+              <div className="space-y-2 mb-6">
+                <h3 className="text-2xl font-black text-gray-950 tracking-tight lowercase">
+                  partner hub
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[210px] mx-auto">
+                  Cloud POS, live order intake & automated payouts for laundromats and processing plants.
                 </p>
+              </div>
+
+              <div className="text-xs sm:text-sm font-black text-amber-800 flex items-center gap-1 group-hover:gap-2 transition-all">
+                <span>Check it out</span>
+                <span className="text-[10px]">▶</span>
               </div>
             </div>
 
-            {/* Card 3: QuickPress Captain Fleet App */}
+            {/* Card 3: captain fleet (Delivery Rider App) - Purple tint */}
             <div
               onClick={() => onNavigate("ecosystem")}
-              className="group rounded-3xl border border-gray-200/90 bg-white shadow-xs hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col justify-between"
+              className="rounded-[32px] p-7 flex flex-col items-center text-center justify-between border border-purple-100/80 bg-gradient-to-b from-[#F5F3FF] via-[#FAF8FF] to-white shadow-xs hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group"
             >
-              <div className="h-48 sm:h-52 w-full overflow-hidden relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[28px] bg-gradient-to-br from-[#5E35B1] to-[#3949AB] shadow-md shadow-purple-900/10 flex items-center justify-center p-3 mb-5 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
                 <img
-                  src="/images/services/express-laundry.jpg"
-                  alt="QuickPress Captain Fleet App"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                  src={captainLogo}
+                  alt="captain fleet"
+                  className="w-full h-full object-contain bg-white rounded-xl p-1"
                 />
-                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-900 border border-emerald-100 shadow-xs">
-                  SUB-12 MIN DISPATCH
-                </div>
+              </div>
 
-                {/* Official Captain App Logo Badge */}
-                <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border border-gray-100 flex items-center gap-2">
-                  <img
-                    src={captainLogo}
-                    alt="QuickPress Captain App"
-                    className="w-8 h-8 rounded-xl object-contain shadow-xs bg-white"
-                  />
-                  <div className="pr-2">
-                    <span className="text-[10px] font-black text-gray-900 block leading-none">Captain Fleet App</span>
-                    <span className="text-[8px] text-blue-700 font-bold uppercase tracking-wider">Delivery Fleet</span>
-                  </div>
+              <div className="space-y-2 mb-6">
+                <h3 className="text-2xl font-black text-gray-950 tracking-tight lowercase">
+                  captain fleet
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[210px] mx-auto">
+                  Hyper-local pickup dispatch, barcode bag scans, and instant delivery earnings.
+                </p>
+              </div>
+
+              <div className="text-xs sm:text-sm font-black text-indigo-700 flex items-center gap-1 group-hover:gap-2 transition-all">
+                <span>Check it out</span>
+                <span className="text-[10px]">▶</span>
+              </div>
+            </div>
+
+            {/* Card 4: enterprise care (B2B Supply & Institutional) - Emerald/Mint tint */}
+            <div
+              onClick={() => onNavigate("services")}
+              className="rounded-[32px] p-7 flex flex-col items-center text-center justify-between border border-emerald-100/80 bg-gradient-to-b from-[#F0FDF4] via-[#F7FEFA] to-white shadow-xs hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group"
+            >
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[28px] bg-gradient-to-br from-[#1A7A3C] to-[#0F4622] shadow-md shadow-emerald-900/10 flex items-center justify-center p-3 mb-5 group-hover:scale-105 transition-transform duration-300 text-white">
+                <div className="text-center">
+                  <IconBuilding className="w-9 h-9 mx-auto text-emerald-200" />
+                  <span className="text-[9px] font-black tracking-widest uppercase block mt-1">B2B CARE</span>
                 </div>
               </div>
 
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="text-xl font-black text-gray-950 group-hover:text-emerald-800 transition-colors">
-                    Captain & Courier Fleet
-                  </h3>
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                    <IconArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Real-time GPS route clustering, digital tamper-evident QR bags, and zero loss-loss verification.
+              <div className="space-y-2 mb-6">
+                <h3 className="text-2xl font-black text-gray-950 tracking-tight lowercase">
+                  enterprise care
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[210px] mx-auto">
+                  Offering complete bulk garment care & laundry supply chain solutions for your business.
                 </p>
+              </div>
+
+              <div className="text-xs sm:text-sm font-black text-emerald-800 flex items-center gap-1 group-hover:gap-2 transition-all">
+                <span>Check it out</span>
+                <span className="text-[10px]">▶</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── 3. Popular Localities Section (Kasganj & Operational Zones Only) ────────── */}
-      <section className="py-14 sm:py-20 bg-gray-50/70 border-y border-gray-200/70">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 text-left">
-            <span className="text-xs font-black tracking-widest text-emerald-800 uppercase bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
-              Live Coverage Network
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-950 mt-3 tracking-tight">
-              Operational Localities In Kasganj, UP
+      {/* ─── 3. "What's waiting for you on the app?" Showcase (Screenshot 4) ─────────── */}
+      <section className="py-20 sm:py-28 bg-gradient-to-b from-rose-50/40 via-white to-gray-50/60 border-t border-gray-100 relative overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          {/* Section Header */}
+          <div className="max-w-3xl mx-auto mb-16 sm:mb-20">
+            <h2 className="text-4xl sm:text-6xl font-black text-[#E23744] tracking-tight leading-tight mb-4">
+              What’s waiting for you <br />
+              on the app?
             </h2>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Select your neighbourhood to verify active laundromats, scheduled captain routes, and estimated arrival times.
+            <p className="text-sm sm:text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
+              Our app is packed with features that enable you to experience laundry & garment care like never before
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {AVAILABLE_LOCALITIES.map((loc) => {
-              const isSelected = selectedLocation === loc.name;
-              return (
+          {/* Central Smartphone with Surrounding Floating Feature Badges */}
+          <div className="relative max-w-4xl mx-auto flex items-center justify-center min-h-[460px]">
+            {/* Desktop Left Column Floating Badges */}
+            <div className="hidden lg:flex flex-col gap-5 absolute left-0 top-1/2 -translate-y-1/2 z-20 w-56 text-left">
+              {/* Badge 1: RO Water Wash */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <IconSparkle className="w-6 h-6 text-blue-500" />
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 block">RO Water Wash</span>
+                  <span className="text-[10px] text-gray-400 font-semibold block">0% Hard Minerals</span>
+                </div>
+              </div>
+
+              {/* Badge 2: Eco Botanical (with toggle switch!) */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center justify-between gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <IconShield className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-900 block">Eco Mode</span>
+                    <span className="text-[10px] text-gray-400 font-semibold block">100% Plant Safe</span>
+                  </div>
+                </div>
                 <div
-                  key={loc.name}
-                  onClick={() => handleSelectLocality(loc.name)}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer group ${
-                    isSelected
-                      ? "border-emerald-600 bg-emerald-50/80 shadow-md ring-2 ring-emerald-500/20"
-                      : "border-gray-200/80 bg-white hover:border-emerald-400 hover:shadow-md hover:-translate-y-0.5"
+                  onClick={() => setEcoModeActive(!ecoModeActive)}
+                  className={`w-11 h-6 rounded-full flex items-center p-1 cursor-pointer transition-colors ${
+                    ecoModeActive ? "bg-emerald-600" : "bg-gray-300"
                   }`}
                 >
-                  <div className="min-w-0">
-                    <h4 className="text-xs sm:text-sm font-black text-gray-900 group-hover:text-emerald-900 truncate">
-                      {loc.name}
-                    </h4>
-                    <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5">
-                      <span>{loc.places}</span>
-                      <span>•</span>
-                      <span className="text-emerald-700 font-semibold">{loc.eta}</span>
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform ${
+                      ecoModeActive ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Badge 3: Shoe Spa */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                  <IconFootprints className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 block">Sneaker Spa</span>
+                  <span className="text-[10px] text-gray-400 font-semibold block">Deep Sole Scrub</span>
+                </div>
+              </div>
+
+              {/* Badge 4: Zero Lost Clothes */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <span className="text-lg">🛡️</span>
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 block">Zero Loss QA</span>
+                  <span className="text-[10px] text-gray-400 font-semibold block">Barcode QR Tagged</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Central Smartphone Mockup */}
+            <div className="relative w-72 sm:w-80 rounded-[44px] p-3.5 bg-gray-950 shadow-2xl border-4 border-gray-800 z-10">
+              {/* Speaker Notch */}
+              <div className="w-28 h-4 bg-gray-900 rounded-full mx-auto mb-4" />
+
+              {/* Inner Smartphone Screen Content */}
+              <div className="bg-gradient-to-b from-gray-50 via-white to-gray-50 rounded-[32px] p-5 space-y-4 border border-gray-100 min-h-[360px] flex flex-col justify-between text-center">
+                {/* Screen Header */}
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 text-[10px] font-black">
+                  <span className="text-emerald-800">QUICKPRESS GO</span>
+                  <span className="text-gray-400">Kasganj Flagship</span>
+                </div>
+
+                {/* Calendar Schedule Card (Matches Screenshot 4!) */}
+                <div className="p-5 rounded-2xl bg-white shadow-md border border-gray-100 space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-50 text-[#E23744] flex items-center justify-center mx-auto shadow-2xs">
+                    <span className="text-2xl">📅</span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-black text-gray-950">Schedule your order</h4>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Choose 1-hour collection slot that fits your schedule
                     </p>
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-gray-50 group-hover:bg-emerald-100 flex items-center justify-center text-gray-400 group-hover:text-emerald-800 shrink-0 transition-colors">
-                    <IconArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 animate-live-dot" />
+                    <span>Today, 10:30 AM Slot Available</span>
                   </div>
                 </div>
-              );
-            })}
+
+                {/* Bottom App Button */}
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("booking")}
+                  className="w-full py-3 rounded-xl bg-gray-950 hover:bg-black text-white font-black text-xs shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
+                >
+                  Book 45-Min Pickup →
+                </button>
+              </div>
+
+              {/* Bottom Home Indicator */}
+              <div className="w-28 h-1 bg-gray-700 rounded-full mx-auto mt-3" />
+            </div>
+
+            {/* Desktop Right Column Floating Badges */}
+            <div className="hidden lg:flex flex-col gap-5 absolute right-0 top-1/2 -translate-y-1/2 z-20 w-56 text-left">
+              {/* Badge 5: Italian Steam Press */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <IconIron className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 block">Steam Press</span>
+                  <span className="text-[10px] text-gray-400 font-semibold block">Italian Vacuum Former</span>
+                </div>
+              </div>
+
+              {/* Badge 6: Offers & VIP Club */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <span className="text-lg">🏷️</span>
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 block">Offers & Rewards</span>
+                  <span className="text-[10px] text-blue-600 font-bold block">Up to 25% Savings</span>
+                </div>
+              </div>
+
+              {/* Badge 7: Live GPS Route */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <IconVan className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 block">Live GPS Telemetry</span>
+                  <span className="text-[10px] text-gray-400 font-semibold block">Sub-12 Min Tracking</span>
+                </div>
+              </div>
+
+              {/* Badge 8: Express 4-Hour */}
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3.5 shadow-lg border border-gray-100 flex items-center gap-3 hover:scale-105 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-rose-50 text-[#E23744] flex items-center justify-center shrink-0">
+                  <IconBolt className="w-6 h-6 text-[#E23744]" />
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-900 block">Express 4-Hour</span>
+                  <span className="text-[10px] text-gray-400 font-semibold block">Same-Day Wardrobe</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Feature Badges Grid (Shown on tablet & mobile) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-10 lg:hidden text-left">
+            {[
+              { title: "RO Water Wash", sub: "0% Hard Minerals", icon: "💧" },
+              { title: "Eco Mode", sub: "100% Plant Safe", icon: "🌱" },
+              { title: "Italian Steam", sub: "Vacuum-Bed Former", icon: "👔" },
+              { title: "Sneaker Spa", sub: "Deep Sole Scrub", icon: "👟" },
+              { title: "Zero Loss QA", sub: "Barcode QR Tagged", icon: "🛡️" },
+              { title: "Offers & VIP", sub: "Up to 25% Savings", icon: "🏷️" },
+              { title: "Live GPS", sub: "Sub-12 Min Tracking", icon: "🛵" },
+              { title: "Express 4h", sub: "Same-Day Return", icon: "⚡" },
+            ].map((f) => (
+              <div key={f.title} className="bg-white rounded-2xl p-3 shadow-xs border border-gray-100 flex items-center gap-2.5">
+                <span className="text-lg">{f.icon}</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-gray-900 block truncate">{f.title}</span>
+                  <span className="text-[10px] text-gray-400 block truncate">{f.sub}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ─── 4. "Get the QuickPress App" Section (Email-Only with 3-App Selector) ────── */}
-      <section className="py-16 sm:py-24 bg-white">
+      {/* ─── 4. Email Link Dispatch Tool (Support For All 3 Apps) ────────────────────── */}
+      <section className="py-12 bg-white border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+            Instant Email Dispatch
+          </span>
+          <h3 className="text-xl sm:text-2xl font-black text-gray-950 mt-2 mb-2">
+            Receive Download Links Directly in Your Inbox
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-500 max-w-lg mx-auto mb-6">
+            Pick your apps and enter your email address to get verified APK download links sent immediately.
+          </p>
+
+          <form onSubmit={handleSendAppLinksEmail} className="max-w-xl mx-auto flex flex-col sm:flex-row gap-2.5">
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="Enter your email address"
+              required
+              className="flex-1 px-4 py-3 rounded-2xl border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:border-emerald-600 bg-white shadow-2xs"
+            />
+            <button
+              type="submit"
+              disabled={isSubmittingEmail}
+              className="px-6 py-3 rounded-2xl font-bold text-white text-xs sm:text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 disabled:opacity-50"
+              style={{ background: GREEN }}
+            >
+              {isSubmittingEmail ? "Sending..." : "Send Links to Email"}
+            </button>
+          </form>
+
+          {emailSuccessMessage && (
+            <p className="text-xs font-bold text-emerald-800 mt-3 animate-fade-in">
+              ✓ {emailSuccessMessage}
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* ─── 5. "Download the app now!" QR Card (Screenshot 5 - Placed at Page End) ─── */}
+      <section className="py-16 sm:py-24 bg-white border-t border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-br from-emerald-50/50 via-white to-gray-50/80 rounded-3xl p-6 sm:p-12 border border-emerald-100 shadow-xl grid lg:grid-cols-12 gap-8 lg:gap-12 items-center relative overflow-hidden">
-            {/* Left Smartphone Screen Mockup */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="relative w-64 sm:w-72 rounded-3xl p-3 bg-gray-900 shadow-2xl border-4 border-gray-800">
-                {/* Speaker Notch */}
-                <div className="w-20 h-3.5 bg-gray-950 rounded-full mx-auto mb-3" />
+          <div className="rounded-[36px] bg-gradient-to-r from-rose-50/50 via-[#FFF9F9] to-white border border-rose-100/70 p-8 sm:p-12 lg:p-14 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 sm:gap-12">
+            {/* Background Aesthetic Waves */}
+            <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full border border-rose-200/40 pointer-events-none" />
+            <div className="absolute -right-10 -top-10 w-96 h-96 rounded-full border border-rose-200/20 pointer-events-none" />
+            <div className="absolute -right-32 -bottom-20 w-[420px] h-[420px] rounded-full border border-rose-200/30 pointer-events-none" />
 
-                {/* Screen Content */}
-                <div className="bg-white rounded-2xl p-4 space-y-3.5 border border-gray-100">
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-live-dot" />
-                      <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">
-                        QuickPress Dispatch
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold text-gray-400">Kasganj Hub</span>
-                  </div>
-
-                  {/* 3 Apps Quick Icon Showcase */}
-                  <div className="grid grid-cols-3 gap-2 py-1">
-                    <div className="p-2 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
-                      <img src={customerLogo} alt="Customer" className="w-7 h-7 rounded-lg object-contain mb-1 shadow-2xs" />
-                      <span className="text-[9px] font-bold text-gray-800">Customer</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
-                      <img src={partnerLogo} alt="Partner" className="w-7 h-7 rounded-lg object-contain mb-1 shadow-2xs bg-white" />
-                      <span className="text-[9px] font-bold text-gray-800">Partner</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
-                      <img src={captainLogo} alt="Captain" className="w-7 h-7 rounded-lg object-contain mb-1 shadow-2xs bg-white" />
-                      <span className="text-[9px] font-bold text-gray-800">Captain</span>
-                    </div>
-                  </div>
-
-                  {/* Live Order Simulation */}
-                  <div className="bg-emerald-50/70 rounded-xl p-3 border border-emerald-100">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-emerald-900 mb-1">
-                      <span>Captain Assigned</span>
-                      <span className="text-emerald-700">0.4 km away</span>
-                    </div>
-                    <div className="text-xs font-black text-gray-900">Arriving in 8 Minutes</div>
-                    <div className="w-full h-1.5 bg-emerald-200/70 rounded-full mt-2 overflow-hidden">
-                      <div className="w-3/4 h-full bg-emerald-600 rounded-full" />
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] font-black">
-                    <span className="text-gray-500">Security OTP:</span>
-                    <span className="text-emerald-800 tracking-widest bg-emerald-100 px-2 py-0.5 rounded-md font-mono">
-                      8492
-                    </span>
-                  </div>
-                </div>
-
-                {/* Home bar */}
-                <div className="w-24 h-1 bg-gray-700 rounded-full mx-auto mt-3" />
-              </div>
-            </div>
-
-            {/* Right Form: Email Only for 3 Apps */}
-            <div className="lg:col-span-7 space-y-5">
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
-                Mobile Ecosystem
-              </span>
-
-              <h2 className="text-3xl sm:text-4xl font-black text-gray-950 leading-tight">
-                Get the QuickPress Apps via Email
+            {/* Left Content Column */}
+            <div className="md:w-7/12 space-y-4 text-center md:text-left relative z-10">
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-950 tracking-tight leading-[1.12]">
+                Download the app now!
               </h2>
 
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                Choose the apps you need below and enter your email address. We will send the verified download links directly to your inbox.
+              <p className="text-sm sm:text-lg text-gray-600 leading-relaxed max-w-md">
+                Experience seamless online laundry & garment care only on the QuickPress app
               </p>
 
-              {/* 3 App Selector Checkboxes */}
-              <div className="space-y-2 pt-1">
-                <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider block">
-                  Select Apps to Receive:
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* Customer App Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => toggleAppSelection("customer")}
-                    className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-2.5 cursor-pointer ${
-                      selectedApps.customer
-                        ? "border-emerald-600 bg-emerald-50/90 shadow-xs"
-                        : "border-gray-200 bg-white opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <img src={customerLogo} alt="Customer" className="w-8 h-8 rounded-xl object-contain shadow-2xs shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-xs font-black text-gray-900 block truncate">Customer</span>
-                      <span className="text-[10px] text-emerald-700 font-bold block">
-                        {selectedApps.customer ? "✓ Selected" : "+ Select"}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* Partner App Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => toggleAppSelection("partner")}
-                    className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-2.5 cursor-pointer ${
-                      selectedApps.partner
-                        ? "border-emerald-600 bg-emerald-50/90 shadow-xs"
-                        : "border-gray-200 bg-white opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <img src={partnerLogo} alt="Partner" className="w-8 h-8 rounded-xl object-contain shadow-2xs bg-white shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-xs font-black text-gray-900 block truncate">Partner Hub</span>
-                      <span className="text-[10px] text-amber-700 font-bold block">
-                        {selectedApps.partner ? "✓ Selected" : "+ Select"}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* Captain App Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => toggleAppSelection("captain")}
-                    className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-2.5 cursor-pointer ${
-                      selectedApps.captain
-                        ? "border-emerald-600 bg-emerald-50/90 shadow-xs"
-                        : "border-gray-200 bg-white opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <img src={captainLogo} alt="Captain" className="w-8 h-8 rounded-xl object-contain shadow-2xs bg-white shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-xs font-black text-gray-900 block truncate">Captain Fleet</span>
-                      <span className="text-[10px] text-blue-700 font-bold block">
-                        {selectedApps.captain ? "✓ Selected" : "+ Select"}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Working Email Input Form */}
-              <form onSubmit={handleSendAppLinksEmail} className="flex flex-col sm:flex-row gap-2.5 pt-1">
-                <input
-                  type="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="Enter your email address"
-                  required
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:border-emerald-600 bg-white shadow-2xs placeholder:text-gray-400"
-                />
-
+              {/* Store Download Badges (Google Play + App Store) */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-3">
                 <button
-                  type="submit"
-                  disabled={isSubmittingEmail}
-                  className="px-6 py-3 rounded-xl font-bold text-white text-xs sm:text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0 disabled:opacity-50"
-                  style={{ background: GREEN }}
+                  type="button"
+                  onClick={() => onOpenModal("download_app")}
+                  className="px-5 py-2.5 rounded-2xl bg-black hover:bg-gray-900 text-white flex items-center gap-2.5 shadow-md hover:scale-105 transition-all cursor-pointer"
                 >
-                  {isSubmittingEmail ? "Sending..." : "Send Download Links"}
+                  <IconGooglePlay className="w-5 h-5 text-emerald-400" />
+                  <div className="text-left">
+                    <span className="text-[8px] uppercase tracking-wider text-gray-400 block leading-none">GET IT ON</span>
+                    <span className="text-xs sm:text-sm font-bold block leading-tight">Google Play</span>
+                  </div>
                 </button>
-              </form>
 
-              {/* Success Notification Banner */}
-              {emailSuccessMessage && (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-900 flex items-center gap-2 animate-fade-in">
-                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 text-[10px]">
-                    ✓
+                <a
+                  href="/apks/QuickPress-Customer.apk"
+                  download="QuickPress-Customer.apk"
+                  onClick={() => onShowToast("Downloading QuickPress Customer APK...")}
+                  className="px-5 py-2.5 rounded-2xl bg-black hover:bg-gray-900 text-white flex items-center gap-2.5 shadow-md hover:scale-105 transition-all cursor-pointer"
+                >
+                  <IconApple className="w-5 h-5 text-white" />
+                  <div className="text-left">
+                    <span className="text-[8px] uppercase tracking-wider text-gray-400 block leading-none">Download on the</span>
+                    <span className="text-xs sm:text-sm font-bold block leading-tight">App Store</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            {/* Right Smartphone Screen Mockup with QR Code (Matches Screenshot 5!) */}
+            <div className="md:w-5/12 flex justify-center relative z-10">
+              <div className="relative w-64 sm:w-72 rounded-t-[36px] pt-4 px-4 bg-gray-900 shadow-2xl border-4 border-b-0 border-gray-800 -mb-14">
+                {/* Speaker Notch */}
+                <div className="w-20 h-3.5 bg-gray-950 rounded-full mx-auto mb-4" />
+
+                <div className="bg-white rounded-2xl p-4 sm:p-5 text-center shadow-inner border border-gray-100">
+                  <span className="text-xs font-bold text-gray-700 block mb-3 leading-tight">
+                    Scan the QR code to <br />download the app
                   </span>
-                  <span>{emailSuccessMessage}</span>
-                </div>
-              )}
 
-              {/* Instant Direct Download Links for the 3 Apps */}
-              <div className="pt-2">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2.5">
-                  Direct Download Links:
-                </span>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {selectedApps.customer && (
-                    <a
-                      href="/apks/QuickPress-Customer.apk"
-                      download="QuickPress-Customer.apk"
-                      onClick={() => onShowToast("Downloading QuickPress Customer APK...")}
-                      className="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs hover:scale-105 transition-all"
+                  {/* Pixel-Perfect Authentic QR Code SVG with Corner Finder Blocks */}
+                  <div className="p-3 bg-white rounded-2xl border border-gray-200/90 shadow-xs inline-block">
+                    <svg
+                      className="w-36 h-36 sm:w-40 sm:h-40"
+                      viewBox="0 0 140 140"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
-                      <IconSmartphone className="w-4 h-4 text-emerald-400" />
-                      <span>Customer APK</span>
-                    </a>
-                  )}
+                      {/* Top-Left Finder */}
+                      <rect x="10" y="10" width="36" height="36" rx="8" stroke="#E23744" strokeWidth="6" fill="white" />
+                      <rect x="22" y="22" width="12" height="12" rx="3" fill="#E23744" />
 
-                  {selectedApps.partner && (
-                    <a
-                      href="/apks/QuickPress-Partner.apk"
-                      download="QuickPress-Partner.apk"
-                      onClick={() => onShowToast("Downloading QuickPress Partner APK...")}
-                      className="px-3.5 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs hover:scale-105 transition-all"
-                    >
-                      <IconStore className="w-4 h-4 text-amber-300" />
-                      <span>Partner APK</span>
-                    </a>
-                  )}
+                      {/* Top-Right Finder */}
+                      <rect x="94" y="10" width="36" height="36" rx="8" stroke="#E23744" strokeWidth="6" fill="white" />
+                      <rect x="106" y="22" width="12" height="12" rx="3" fill="#E23744" />
 
-                  {selectedApps.captain && (
-                    <a
-                      href="/apks/QuickPress-Captain.apk"
-                      download="QuickPress-Captain.apk"
-                      onClick={() => onShowToast("Downloading QuickPress Captain APK...")}
-                      className="px-3.5 py-2 rounded-xl bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs hover:scale-105 transition-all"
-                    >
-                      <IconVan className="w-4 h-4 text-blue-300" />
-                      <span>Captain APK</span>
-                    </a>
-                  )}
+                      {/* Bottom-Left Finder */}
+                      <rect x="10" y="94" width="36" height="36" rx="8" stroke="#E23744" strokeWidth="6" fill="white" />
+                      <rect x="22" y="106" width="12" height="12" rx="3" fill="#E23744" />
 
-                  <button
-                    type="button"
-                    onClick={() => onOpenModal("booking")}
-                    className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold border border-gray-200 flex items-center gap-1.5 cursor-pointer hover:scale-105 transition-all"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 animate-live-dot" />
-                    <span>Launch Web App</span>
-                  </button>
+                      {/* QR Matrix Dots */}
+                      <rect x="54" y="12" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="66" y="12" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="78" y="12" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="54" y="24" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="72" y="24" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="60" y="36" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="78" y="36" width="6" height="6" rx="1.5" fill="#111827" />
+
+                      <rect x="12" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="24" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="36" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="48" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="60" y="54" width="20" height="20" rx="4" fill="#1A7A3C" />
+                      <rect x="86" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="98" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="110" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="122" y="54" width="6" height="6" rx="1.5" fill="#111827" />
+
+                      <rect x="12" y="66" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="36" y="66" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="92" y="66" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="116" y="66" width="6" height="6" rx="1.5" fill="#111827" />
+
+                      <rect x="24" y="78" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="42" y="78" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="84" y="78" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="102" y="78" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="120" y="78" width="6" height="6" rx="1.5" fill="#111827" />
+
+                      <rect x="54" y="90" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="72" y="90" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="90" y="90" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="108" y="90" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="126" y="90" width="6" height="6" rx="1.5" fill="#111827" />
+
+                      <rect x="54" y="104" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="66" y="104" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="78" y="104" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="102" y="104" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="120" y="104" width="6" height="6" rx="1.5" fill="#111827" />
+
+                      <rect x="54" y="120" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="72" y="120" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="90" y="120" width="6" height="6" rx="1.5" fill="#111827" />
+                      <rect x="114" y="120" width="6" height="6" rx="1.5" fill="#111827" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -938,8 +1007,8 @@ export function HomePage({
         </div>
       </section>
 
-      {/* ─── 5. FAQs Accordion ───────────────────────────────────────────────────────── */}
-      <section className="py-16 sm:py-24 bg-gray-50/70 border-t border-gray-200/70">
+      {/* ─── 6. FAQs Accordion ───────────────────────────────────────────────────────── */}
+      <section className="py-16 sm:py-24 bg-gray-50/70 border-t border-gray-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <span className="text-xs font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
@@ -980,45 +1049,6 @@ export function HomePage({
                 )}
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 6. Final Call to Action Banner ─────────────────────────────────────────── */}
-      <section className="py-20 sm:py-28 bg-gradient-to-b from-emerald-50/50 via-white to-white border-t border-gray-100 text-center relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mb-6 flex justify-center">
-            <Logo size="lg" onClick={() => onNavigate("home")} />
-          </div>
-
-          <h2 className="text-3xl sm:text-5xl font-black text-gray-950 leading-tight mb-4">
-            Ready to experience <br />
-            <span style={{ color: GREEN }}>QuickPress?</span>
-          </h2>
-
-          <p className="text-sm sm:text-lg text-gray-600 mb-8 max-w-xl mx-auto leading-relaxed">
-            Schedule a 45-minute doorstep pickup today or join our verified merchant and delivery network.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-10">
-            <button
-              type="button"
-              onClick={() => onOpenModal("booking")}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full font-bold text-white text-sm shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-              style={{ background: GREEN }}
-            >
-              <span>Book a Pickup Now</span>
-              <IconArrowRight className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onNavigate("partners")}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full font-bold text-emerald-900 text-sm border-2 border-emerald-700 bg-white hover:bg-emerald-50 transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>Partner With Us</span>
-              <IconArrowRight className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </section>
