@@ -461,35 +461,6 @@ export function ContactPage({
                   <IconClock className="w-4 h-4 text-emerald-700 shrink-0" />
                   <span>Office Hours: Monday – Saturday, 9:00 AM – 7:00 PM IST</span>
                 </p>
-                <p className="flex items-center gap-2 font-mono text-[11px] text-gray-500">
-                  <span>GSTIN: 09KQCPK2468E1ZM</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-gray-200 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 text-emerald-800 text-xs font-bold uppercase tracking-wider">
-                <IconStore className="w-4 h-4 text-emerald-700" />
-                <span>Central Operations Master Hub</span>
-              </div>
-              <h3 className="text-lg font-black text-gray-950">
-                Kasganj Flagship Operations Center
-              </h3>
-              <div className="text-xs text-gray-600 space-y-2 leading-relaxed">
-                <p className="flex items-start gap-2">
-                  <IconMapPin className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Master Logistics & Sorting Facility:</strong><br />
-                    Bilram Gate & Station Road Corridor, Kasganj, Uttar Pradesh 207123
-                  </span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <IconClock className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span>Facility Operations: 7 Days a Week, 7:00 AM – 10:00 PM IST</span>
-                </p>
-                <p className="flex items-center gap-2 font-mono text-[11px] text-emerald-700 font-bold">
-                  <span>Servicing: Bilram Gate, Station Rd, Soron Gate, Nadrai Gate</span>
-                </p>
               </div>
             </div>
 

@@ -186,17 +186,6 @@ function ContactScreen() {
                     C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
                   </p>
                 </div>
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="size-4 text-slate-400 shrink-0 mt-0.5" />
-                  <p>
-                    <strong>Central Operations Hub:</strong><br />
-                    Bilram Gate & Station Road Corridor, Kasganj, Uttar Pradesh 207123, India
-                  </p>
-                </div>
-
-                <div className="border-t border-slate-100 pt-3 space-y-1 text-[11px] text-slate-500">
-                  <p><strong>GSTIN:</strong> 09KQCPK2468E1ZM</p>
-                </div>
               </div>
             </div>
           </div>
