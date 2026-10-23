@@ -103,6 +103,13 @@ def build_partner(apks_dir):
     else:
         raise RuntimeError("Partner APK build artifact not found!")
 
+    # Build AAB for Play Store
+    print("\n--- [Partner App] Building Google Play Store AAB Bundle ---")
+    run_cmd("./gradlew bundleDebug", part_android_dir)
+    part_aab_src = os.path.join(part_android_dir, "app", "build", "outputs", "bundle", "debug", "app-debug.aab")
+    if os.path.exists(part_aab_src):
+        copy_to_artifacts(part_aab_src, "QuickPress-Partner.aab", apks_dir)
+
 def build_rider(apks_dir):
     print("\n--- [Rider App] Building Rider / Captain App (APK + Play Store AAB) ---")
     run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:rider", ROOT_DIR)
