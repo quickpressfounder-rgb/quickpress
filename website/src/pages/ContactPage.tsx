@@ -436,17 +436,17 @@ export function ContactPage({
                 <span>Corporate Headquarters</span>
               </div>
               <h3 className="text-lg font-black text-gray-950">
-                SHRI KRISHNA EVS
+                QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
               </h3>
               <div className="text-xs text-gray-600 space-y-2 leading-relaxed">
                 <p>
-                  <strong>Legal Name / Proprietor:</strong> SAROJ KUMARI
+                  <strong>Corporate Identity Number (CIN):</strong> U96010UW2026PTC259787
                 </p>
                 <p className="flex items-start gap-2">
                   <IconMapPin className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                   <span>
                     <strong>Registered Office:</strong><br />
-                    0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
+                    C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
                   </span>
                 </p>
                 <p className="flex items-center gap-2">
@@ -502,9 +502,9 @@ export function ContactPage({
                 In compliance with the Information Technology Act 2000 and Consumer Protection (E-Commerce) Rules:
               </p>
               <div className="text-xs text-gray-800 font-mono space-y-1">
-                <p><strong>Grievance Officer:</strong> SAROJ KUMARI</p>
-                <p><strong>Entity:</strong> SHRI KRISHNA EVS</p>
-                <p><strong>Direct Email:</strong> <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
+                <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
+                <p><strong>CIN:</strong> U96010UW2026PTC259787</p>
+                <p><strong>Direct Email:</strong> <a href="mailto:info@withquickpress.com" className="text-emerald-700 underline font-bold">info@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
                 <p><strong>Official Phone / Helpdesk:</strong> <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a></p>
               </div>
             </div>

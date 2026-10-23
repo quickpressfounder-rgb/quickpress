@@ -285,7 +285,7 @@ function CaptainLegalDocScreen() {
                 <span>QuickPress Statutory & Grievance Desk</span>
               </div>
               <p className="text-[11px] text-slate-300 font-medium leading-relaxed">
-                Operating Entity: <strong>SHRI KRISHNA EVS</strong> (Legal Name / Proprietor: <strong>SAROJ KUMARI</strong>).
+                Operating Entity: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (CIN: <strong>U96010UW2026PTC259787</strong>).
                 For compliance or grievance inquiries, reach out to our legal officer.
               </p>
               <div className="pt-1 flex flex-wrap items-center gap-3 text-xs">

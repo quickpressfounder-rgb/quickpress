@@ -202,16 +202,16 @@ function PartnerLegalDocScreen() {
                 Statutory Compliance
               </h3>
               <p className="text-slate-500 leading-relaxed">
-                Operating Entity: <strong>SHRI KRISHNA EVS</strong><br />
-                Proprietor: <strong>SAROJ KUMARI</strong><br />
-                Jurisdiction: <strong>Gautam Buddha Nagar / Noida, UP, India</strong>
+                Operating Entity: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
+                CIN: <strong>U96010UW2026PTC259787</strong><br />
+                Registered Office: <strong>C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, UP, India</strong>
               </p>
               <div className="pt-2 border-t border-slate-100 space-y-1">
                 <a
-                  href="mailto:official.quickpress@gmail.com"
+                  href="mailto:info@withquickpress.com"
                   className="flex items-center gap-1.5 text-emerald-700 hover:underline font-semibold"
                 >
-                  <Mail className="size-3.5" /> official.quickpress@gmail.com
+                  <Mail className="size-3.5" /> info@withquickpress.com
                 </a>
               </div>
             </div>

@@ -181,9 +181,9 @@ function ContactScreen() {
                 <div className="flex items-start gap-2.5">
                   <MapPin className="size-4 text-slate-400 shrink-0 mt-0.5" />
                   <p>
-                    <strong>SHRI KRISHNA EVS</strong><br />
-                    <span className="text-slate-500">Legal Name / Proprietor: SAROJ KUMARI</span><br />
-                    0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
+                    <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
+                    <span className="text-slate-500">CIN: U96010UW2026PTC259787</span><br />
+                    C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
                   </p>
                 </div>
                 <div className="flex items-start gap-2.5">

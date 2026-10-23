@@ -119,22 +119,22 @@ export function AboutPage({
                 <div>
                   <span className="text-gray-400 font-bold block text-[10px] uppercase">Corporate Entity</span>
                   <span className="text-gray-900 font-bold text-xs">
-                    SHRI KRISHNA EVS
+                    QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
                   </span>
                   <span className="text-gray-500 font-medium text-[11px] block">
-                    Legal Name / Proprietor: SAROJ KUMARI
+                    CIN: U96010UW2026PTC259787
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 font-bold block text-[10px] uppercase">Contact & Support</span>
                   <span className="text-gray-700 font-medium text-[11px] block">
-                    Phone: +91 8279538461 | official.quickpress@gmail.com
+                    Phone: +91 8279538461 | info@withquickpress.com
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 font-bold block text-[10px] uppercase">Registered Office</span>
                   <span className="text-emerald-700 font-medium text-[11px] leading-tight block">
-                    0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India
+                    C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
                   </span>
                 </div>
               </div>
