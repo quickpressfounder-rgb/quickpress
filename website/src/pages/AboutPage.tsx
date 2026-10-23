@@ -6,9 +6,6 @@ import {
   IconSparkle,
   IconAward,
   IconUsers,
-  IconCode,
-  IconTrendingUp,
-  IconBriefcase,
   IconCpu,
 } from "@/components/Icons";
 import logoLight from "@/assets/quickpress-logo.png";
@@ -143,97 +140,7 @@ export function AboutPage({
         </div>
       </section>
 
-      {/* ─── Visual Organizational Hierarchy Tree (As requested by Founder) ─────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <span className="text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
-            Organizational Structure
-          </span>
-          <h2 className="text-3xl sm:text-5xl font-black text-gray-950 mt-3">
-            The Leadership Hierarchy
-          </h2>
-          <p className="text-gray-500 text-sm sm:text-base mt-2">
-            Clear accountability, aligned leadership, and relentless execution.
-          </p>
-        </div>
 
-        {/* Tree Layout Container */}
-        <div className="bg-gradient-to-b from-gray-50/80 via-white to-gray-50/50 rounded-3xl p-6 sm:p-12 border border-gray-200/80 shadow-md">
-          {/* ── TIER 1: FOUNDER (Himanshu Pal / Himanshu Baghel) ── */}
-          <div className="flex flex-col items-center">
-            <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-600 shadow-xl relative text-center">
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-black bg-emerald-800 text-white uppercase tracking-widest shadow-md">
-                Founder & Business Owner
-              </span>
-
-              <div className="mt-2">
-                <h3 className="text-2xl sm:text-3xl font-black text-gray-950">
-                  Himanshu Pal
-                </h3>
-                <p className="text-xs sm:text-sm font-bold text-emerald-700 mt-0.5">
-                  (People Call Me: Himanshu Baghel)
-                </p>
-
-                {/* Badges / Domains */}
-                <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold">
-                    <IconCode className="w-3.5 h-3.5 text-emerald-700" />
-                    Full Stack Developer
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-900 text-xs font-bold">
-                    <IconTrendingUp className="w-3.5 h-3.5 text-yellow-700" />
-                    Marketing Leader
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold">
-                    <IconBriefcase className="w-3.5 h-3.5 text-blue-700" />
-                    Business Owner & Strategy
-                  </span>
-                </div>
-
-                <p className="text-xs sm:text-sm text-gray-600 mt-4 leading-relaxed max-w-lg mx-auto">
-                  Architect of the QuickPress vision, technical infrastructure, and marketing roadmap. Driving overall business strategy, product architecture, and long-term ecosystem development.
-                </p>
-              </div>
-            </div>
-
-            {/* Vertical Connector Line from Tier 1 to Tier 2 */}
-            <div className="w-0.5 h-12 bg-emerald-600/70 my-1 relative">
-              <div className="w-2 h-2 rounded-full bg-emerald-600 absolute bottom-0 -left-[3px]" />
-            </div>
-          </div>
-
-          {/* ── TIER 2: CEO (Rishab Baghel / Rishuuu) ── */}
-          <div className="flex flex-col items-center">
-            <div className="w-full max-w-md bg-white rounded-3xl p-6 border-2 border-yellow-500 shadow-lg relative text-center">
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-black bg-yellow-400 text-gray-950 uppercase tracking-widest shadow-md">
-                Chief Executive Officer (CEO)
-              </span>
-
-              <div className="mt-2">
-                <h3 className="text-xl sm:text-2xl font-black text-gray-950">
-                  Rishab Baghel
-                </h3>
-                <p className="text-xs font-bold text-yellow-800 mt-0.5">
-                  (Known As: Rishuuu)
-                </p>
-
-                <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
-                  <span className="px-2.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-900 text-xs font-bold">
-                    Business Development
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold">
-                    Leadership & Execution
-                  </span>
-                </div>
-
-                <p className="text-xs text-gray-600 mt-3 leading-relaxed">
-                  Leading executive decision-making, strategic partnerships, daily business development, and driving company execution.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ─── Why QuickPress? ─────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
