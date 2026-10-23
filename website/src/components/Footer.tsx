@@ -1,17 +1,15 @@
 import React from "react";
 import { PageType, ModalType } from "@/types";
-import { Logo } from "./Navbar";
 import {
-  IconMail,
   IconInstagram,
   IconFacebook,
   IconLinkedIn,
   IconTwitter,
-  IconSmartphone,
-  IconStore,
-  IconVan,
-  IconArrowRight,
+  IconYouTube,
+  IconApple,
+  IconGooglePlay,
 } from "./Icons";
+import { handleGetStartedRedirect } from "@/utils/storeRedirect";
 
 export function Footer({
   onNavigate,
@@ -21,223 +19,339 @@ export function Footer({
   onOpenModal: (type: ModalType) => void;
 }) {
   return (
-    <footer className="pt-16 pb-12 bg-[#07160D] text-white border-t border-emerald-950 font-sans">
+    <footer className="pt-16 pb-12 bg-black text-white font-sans border-t border-zinc-900 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-8 sm:gap-10 mb-12">
-          {/* Brand & Corporate Info (Spans 2 columns on desktop) */}
-          <div className="col-span-2 space-y-4 pr-0 lg:pr-6">
-            <Logo size="md" dark={true} onClick={() => onNavigate("home")} />
-            <p className="text-white text-xs sm:text-sm leading-relaxed max-w-sm">
-              <strong className="text-white font-bold">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
-              <span className="text-[11px] text-white/80 block mt-1">CIN: U96010UW2026PTC259787</span>
-              <span className="text-[11px] text-white/80 block">
-                Regd. Office: C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh
-              </span>
-              <span className="text-[11px] text-white/80 block mt-1">
-                Helpline: <a href="tel:+918279538461" className="underline hover:text-emerald-300 font-semibold">+91 8279538461</a> • <a href="mailto:info@withquickpress.com" className="underline hover:text-emerald-300 font-semibold">info@withquickpress.com</a>
-              </span>
-              <span className="text-[11px] text-white/70 block mt-1">
-                India's smart hyper-local on-demand laundry and garment care marketplace.
-              </span>
-            </p>
+        {/* ─── Top Brand Logo (Zomato-Style Italic Wordmark) ─── */}
+        <div className="mb-10 text-left">
+          <button
+            type="button"
+            onClick={() => onNavigate("home")}
+            className="text-3xl sm:text-4xl font-black italic tracking-tighter text-white hover:text-emerald-400 transition-colors cursor-pointer"
+          >
+            quickpress
+          </button>
+        </div>
 
-            <div className="flex items-center gap-2.5 pt-2">
-              {[
-                {
-                  name: "Instagram",
-                  href: "https://www.instagram.com/with.quickpress/",
-                  icon: <IconInstagram className="w-4 h-4 text-white" />,
-                },
-                {
-                  name: "Facebook",
-                  href: "https://facebook.com/quickpress",
-                  icon: <IconFacebook className="w-4 h-4 text-white" />,
-                },
-                {
-                  name: "LinkedIn",
-                  href: "https://linkedin.com/company/quickpress",
-                  icon: <IconLinkedIn className="w-4 h-4 text-white" />,
-                },
-                {
-                  name: "X",
-                  href: "https://x.com/quickpress",
-                  icon: <IconTwitter className="w-4 h-4 text-white" />,
-                },
-                {
-                  name: "Email",
-                  href: "mailto:official.quickpress@gmail.com",
-                  icon: <IconMail className="w-4 h-4 text-white" />,
-                },
-              ].map((s) => (
-                <a
-                  key={s.name}
-                  href={s.href}
-                  target={s.href.startsWith("http") ? "_blank" : undefined}
-                  rel={s.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                  className="w-9 h-9 rounded-full bg-emerald-950 border border-emerald-800/80 flex items-center justify-center text-white hover:bg-emerald-700 hover:border-emerald-600 transition-all cursor-pointer shadow-xs hover:scale-110"
-                  aria-label={s.name}
-                  title={s.name}
-                >
-                  {s.icon}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Column 1: Explore & Navigation (All Pages) */}
-          <div>
-            <h5 className="text-xs font-black tracking-wider uppercase text-emerald-400 mb-4">
-              Explore Pages
+        {/* ─── 5-Column Grid ─── */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-10 mb-12 text-left">
+          {/* Column 1: About QuickPress / Company */}
+          <div className="space-y-3">
+            <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
+              About QuickPress
             </h5>
-            <ul className="space-y-2.5 text-xs text-white">
+            <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("home")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Home
                 </button>
               </li>
-
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("about")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   About Us & Story
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("contact")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Contact Us
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("about")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-zinc-400"
+                >
+                  Who We Are
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("contact")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-zinc-400"
+                >
+                  Investor Relations
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Column 2: Our 3 Mobile Apps */}
-          <div>
-            <h5 className="text-xs font-black tracking-wider uppercase text-emerald-400 mb-4">
-              Our 3 Apps
+          {/* Column 2: For Partners (Reserved Space for Future Partner Pages) */}
+          <div className="space-y-3">
+            <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
+              For Partners
             </h5>
-            <ul className="space-y-3 text-xs text-white">
+            <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
               <li>
-                <a
-                  href="/apks/QuickPress-Customer.apk"
-                  download="QuickPress-Customer.apk"
-                  className="group flex items-start gap-2 text-white/90 hover:text-emerald-300 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("partner")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-emerald-400 font-semibold"
                 >
-                  <IconSmartphone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Customer App</span>
-                    <span className="text-[10px] text-white/60 block">Book laundry & track GPS</span>
-                  </div>
-                </a>
+                  Partner With Us
+                </button>
               </li>
               <li>
                 <a
                   href="/apks/QuickPress-Partner.apk"
                   download="QuickPress-Partner.apk"
-                  className="group flex items-start gap-2 text-white/90 hover:text-emerald-300 transition-colors"
+                  className="hover:text-white transition-colors block font-medium"
                 >
-                  <IconStore className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Partner Hub App</span>
-                    <span className="text-[10px] text-white/60 block">Laundromat POS & orders</span>
-                  </div>
+                  Partner Hub App
+                </a>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("partner")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  Laundromat POS Software
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("partner")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  Merchant Onboarding
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("partner")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  Processing Facilities
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: For Delivery Partners / Captains */}
+          <div className="space-y-3">
+            <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
+              For Delivery Partners
+            </h5>
+            <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
+              <li>
+                <a
+                  href="/apks/QuickPress-Captain.apk"
+                  download="QuickPress-Captain.apk"
+                  className="hover:text-white transition-colors block font-medium text-emerald-400 font-semibold"
+                >
+                  Partner With Us (Captain)
                 </a>
               </li>
               <li>
                 <a
                   href="/apks/QuickPress-Captain.apk"
                   download="QuickPress-Captain.apk"
-                  className="group flex items-start gap-2 text-white/90 hover:text-emerald-300 transition-colors"
+                  className="hover:text-white transition-colors block font-medium"
                 >
-                  <IconVan className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">Captain Fleet App</span>
-                    <span className="text-[10px] text-white/60 block">Delivery pickups & earnings</span>
-                  </div>
+                  Apps For You
                 </a>
+              </li>
+              <li>
+                <a
+                  href="/apks/QuickPress-Captain.apk"
+                  download="QuickPress-Captain.apk"
+                  className="hover:text-white transition-colors block font-medium text-zinc-400"
+                >
+                  Captain Fleet App
+                </a>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("contact")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-zinc-400"
+                >
+                  Fleet Safety & Support
+                </button>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Legal & Support */}
-          <div>
-            <h5 className="text-xs font-black tracking-wider uppercase text-emerald-400 mb-4">
-              Legal & Support
+          {/* Column 4: Learn More & Legal Policies */}
+          <div className="space-y-3">
+            <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
+              Learn More
             </h5>
-            <ul className="space-y-2.5 text-xs text-white">
+            <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("privacy")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer font-medium"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Privacy Policy
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("terms")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer font-medium"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Terms & Conditions
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("terms")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Cancellation & Refund
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("terms")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Pickup & Delivery Policy
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("privacy")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Cookie Policy
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate("contact")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors text-left cursor-pointer"
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
                   Help Center & Support
                 </button>
               </li>
             </ul>
           </div>
+
+          {/* Column 5: Social Links & App Download Buttons */}
+          <div className="space-y-4 col-span-2 md:col-span-1">
+            <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
+              Social Links
+            </h5>
+
+            {/* Circular Social Icons in a Row (White Circles with Black Icons like Zomato) */}
+            <div className="flex items-center gap-2 mb-6">
+              {[
+                {
+                  name: "LinkedIn",
+                  href: "https://linkedin.com/company/quickpress",
+                  icon: <IconLinkedIn className="w-3.5 h-3.5 text-black" />,
+                },
+                {
+                  name: "Instagram",
+                  href: "https://www.instagram.com/with.quickpress/",
+                  icon: <IconInstagram className="w-3.5 h-3.5 text-black" />,
+                },
+                {
+                  name: "YouTube",
+                  href: "https://youtube.com/@quickpress",
+                  icon: <IconYouTube className="w-3.5 h-3.5 text-black" />,
+                },
+                {
+                  name: "Facebook",
+                  href: "https://facebook.com/quickpress",
+                  icon: <IconFacebook className="w-3.5 h-3.5 text-black" />,
+                },
+                {
+                  name: "X",
+                  href: "https://x.com/quickpress",
+                  icon: <IconTwitter className="w-3.5 h-3.5 text-black" />,
+                },
+              ].map((s) => (
+                <a
+                  key={s.name}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.name}
+                  title={s.name}
+                  className="w-7 h-7 rounded-full bg-white flex items-center justify-center hover:scale-110 hover:bg-emerald-400 transition-all cursor-pointer shadow-xs"
+                >
+                  {s.icon}
+                </a>
+              ))}
+            </div>
+
+            {/* Zomato-Style App Store Buttons */}
+            <div className="space-y-2.5 max-w-[170px]">
+              {/* Apple App Store */}
+              <button
+                type="button"
+                onClick={() => handleGetStartedRedirect()}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-black text-white border border-zinc-700 hover:border-zinc-400 transition-all cursor-pointer group shadow-sm text-left"
+              >
+                <IconApple className="w-6 h-6 text-white shrink-0 group-hover:scale-105 transition-transform" />
+                <div className="leading-tight">
+                  <span className="text-[8px] uppercase tracking-wider text-zinc-400 block font-medium">
+                    Download on the
+                  </span>
+                  <span className="text-xs font-black text-white block">
+                    App Store
+                  </span>
+                </div>
+              </button>
+
+              {/* Google Play Store */}
+              <button
+                type="button"
+                onClick={() => handleGetStartedRedirect()}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-black text-white border border-zinc-700 hover:border-zinc-400 transition-all cursor-pointer group shadow-sm text-left"
+              >
+                <IconGooglePlay className="w-6 h-6 text-white shrink-0 group-hover:scale-105 transition-transform" />
+                <div className="leading-tight">
+                  <span className="text-[8px] uppercase tracking-wider text-zinc-400 block font-medium">
+                    GET IT ON
+                  </span>
+                  <span className="text-xs font-black text-white block">
+                    Google Play
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Bottom Copyright Bar */}
-        <div className="border-t border-emerald-900/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white">
-          <p className="text-white/80">© 2026 QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (CIN: U96010UW2026PTC259787). All rights reserved.</p>
-          <div className="flex items-center gap-4 text-[11px] text-white/80">
-            <button onClick={() => onNavigate("privacy")} className="text-white/80 hover:text-emerald-300 cursor-pointer">
-              Privacy Policy
-            </button>
-            <span className="text-white/40">•</span>
-            <button onClick={() => onNavigate("terms")} className="text-white/80 hover:text-emerald-300 cursor-pointer">
-              Terms & Conditions
-            </button>
-          </div>
+        {/* ─── Bottom Divider ─── */}
+        <hr className="border-t border-zinc-900 my-8" />
+
+        {/* ─── Disclaimer & Corporate Copyright ─── */}
+        <div className="text-left space-y-2 text-[11px] text-zinc-500 leading-relaxed">
+          <p>
+            By continuing past this page, you agree to our Terms of Service, Cookie Policy, Privacy Policy and Content Policies. All trademarks are properties of their respective owners.
+          </p>
+          <p>
+            2026 © <strong className="text-zinc-400 font-bold">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (CIN: U96010UW2026PTC259787). All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
   );
 }
+
