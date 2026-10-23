@@ -17,6 +17,7 @@ import { AboutPage } from "@/pages/AboutPage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { ContactPage } from "@/pages/ContactPage";
+import { B2BPartnerPage } from "@/pages/B2BPartnerPage";
 
 interface ToastState {
   show: boolean;
@@ -48,12 +49,17 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "").toLowerCase();
+      if (hash === "b2b" || hash === "b2b-partner") {
+        setCurrentPage("b2b-partner");
+        return;
+      }
       const validPages: PageType[] = [
         "home",
         "about",
         "contact",
         "privacy",
         "terms",
+        "b2b-partner",
       ];
       if (validPages.includes(hash as PageType)) {
         setCurrentPage(hash as PageType);
@@ -127,6 +133,13 @@ export default function App() {
 
         {currentPage === "terms" && (
           <TermsPage
+            onNavigate={navigateTo}
+            onOpenModal={handleOpenModal}
+          />
+        )}
+
+        {currentPage === "b2b-partner" && (
+          <B2BPartnerPage
             onNavigate={navigateTo}
             onOpenModal={handleOpenModal}
           />

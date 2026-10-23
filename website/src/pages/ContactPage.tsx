@@ -219,6 +219,7 @@ export function ContactPage({
                     onClick={() => {
                       if (ch.id === "partner") onOpenModal("partner");
                       else if (ch.id === "captain") onOpenModal("download_app");
+                      else if (ch.id === "corporate") onNavigate("b2b-partner");
                       else {
                         setInquiryType(ch.id);
                         document.getElementById("inquiry-form-section")?.scrollIntoView({ behavior: "smooth" });

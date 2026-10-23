@@ -62,6 +62,7 @@ from app.api.wallet_ledger import router as wallet_ledger_router
 from app.api.webhooks import router as webhooks_router
 from app.api.whatsapp_api import router as whatsapp_api_router
 from app.api.promotions import router as promotions_router
+from app.api.b2b_api import router as b2b_router
 from app.config import get_settings
 from app.db.availability_seed import AVAILABILITY_SEED
 from app.db.client import database
@@ -290,6 +291,9 @@ def create_app() -> FastAPI:
 
     # QuickPress Public Website routes.
     app.include_router(public_router, prefix=settings.api_prefix)
+
+    # QuickPress B2B Bulk Order Partner routes.
+    app.include_router(b2b_router, prefix=settings.api_prefix)
 
     # Health check + meta (countries list) mounted exactly once under /api.
     app.include_router(health_router, prefix=settings.api_prefix)  # → /api/health, /api/countries

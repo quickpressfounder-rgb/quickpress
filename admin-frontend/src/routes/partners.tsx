@@ -89,6 +89,7 @@ import {
 } from "../api/partners";
 import { fetchPartnerApprovalRequests } from "../api/services";
 import { PartnerRequestsBox } from "./-partner-requests-box";
+import { B2BPartnersBox } from "./-b2b-partners-box";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 import { onRealtimeEvent } from "../api/core/socket-client";
@@ -250,7 +251,7 @@ function PartnersPage() {
     };
   }, [queryClient, selectedId]);
 
-  const [activeView, setActiveView] = useState<"directory" | "requests">("directory");
+  const [activeView, setActiveView] = useState<"directory" | "requests" | "b2b">("directory");
 
   // Live partner approval requests query for Request Box & pending count badge
   const partnerRequestsQuery = useQuery({
@@ -765,6 +766,8 @@ function PartnersPage() {
             : "Partner Store 360° Details"
           : activeView === "requests"
           ? "Partner Requests & Approvals Box"
+          : activeView === "b2b"
+          ? "B2B Bulk Order Partners & Enterprise Clients"
           : "Partner Control Center & 360° Management"
       }
     >
@@ -1923,6 +1926,15 @@ function PartnersPage() {
                   </span>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("b2b")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <Building2 className="size-4 text-zinc-700" />
+                <span>B2B Partners (Bulk Orders)</span>
+              </button>
             </div>
 
             <Button
@@ -1942,6 +1954,60 @@ function PartnersPage() {
               setActiveView("directory");
             }}
           />
+        </div>
+      ) : activeView === "b2b" ? (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          {/* Top Switcher Navigation Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">
+              <button
+                type="button"
+                onClick={() => setActiveView("directory")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <Store className="size-4 text-zinc-500" />
+                <span>Partner Stores Directory</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white text-zinc-600 border border-zinc-200">
+                  {allPartners.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("requests")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <FileCheck2 className="size-4 text-blue-600" />
+                <span>Partner Request Box</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white animate-pulse">
+                    {pendingRequestsCount} Pending
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("b2b")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-zinc-950 text-white shadow-xs"
+              >
+                <Building2 className="size-4 text-emerald-400" />
+                <span>B2B Partners (Bulk Orders)</span>
+              </button>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveView("directory")}
+              className="text-xs font-bold rounded-xl border-zinc-200 hover:bg-zinc-100 h-8.5 gap-1.5 self-start sm:self-center"
+            >
+              <ArrowLeft className="size-3.5 text-zinc-600" />
+              <span>Back to Store Directory</span>
+            </Button>
+          </div>
+
+          <B2BPartnersBox />
         </div>
       ) : (
         /* =========================================================================
@@ -1979,6 +2045,15 @@ function PartnersPage() {
                     {(partnerRequestsQuery.data ?? []).length}
                   </span>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("b2b")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <Building2 className="size-4 text-zinc-700" />
+                <span>B2B Partners (Bulk Orders)</span>
               </button>
             </div>
 

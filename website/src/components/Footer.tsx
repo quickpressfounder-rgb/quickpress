@@ -98,10 +98,19 @@ export function Footer({
               <li>
                 <button
                   type="button"
-                  onClick={() => onOpenModal("partner")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-emerald-400 font-semibold"
+                  onClick={() => onNavigate("b2b-partner")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-semibold text-emerald-400"
                 >
-                  Partner With Us
+                  B2B Bulk Orders (Hotels & PGs)
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("partner")}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  Partner With Us (Laundromat)
                 </button>
               </li>
               <li>

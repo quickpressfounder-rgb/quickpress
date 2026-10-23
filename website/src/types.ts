@@ -3,7 +3,36 @@ export type PageType =
   | "about"
   | "contact"
   | "privacy"
-  | "terms";
+  | "terms"
+  | "b2b-partner";
+
+export interface B2BPartnerLead {
+  id?: string;
+  businessName: string;
+  category: string;
+  address: string;
+  city: string;
+  pincode: string;
+  unitsCount: string;
+  contactName: string;
+  designation: string;
+  phone: string;
+  whatsapp?: string;
+  email: string;
+  dailyVolume: string;
+  frequency: string;
+  services: string[];
+  sla: string;
+  gstin?: string;
+  pan?: string;
+  billingModel: string;
+  creditTerms: string;
+  trialRequested: boolean;
+  trialDate?: string;
+  specialNotes?: string;
+  status?: string;
+  createdAt?: string;
+}
 
 export type ModalType =
   | "booking"
