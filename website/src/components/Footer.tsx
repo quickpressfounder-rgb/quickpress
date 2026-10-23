@@ -33,8 +33,8 @@ export function Footer({
           </button>
         </div>
 
-        {/* ─── 5-Column Grid ─── */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-10 mb-12 text-left">
+        {/* ─── 4-Column Grid ─── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 mb-12 text-left">
           {/* Column 1: About QuickPress / Company */}
           <div className="space-y-3">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
@@ -89,7 +89,7 @@ export function Footer({
             </ul>
           </div>
 
-          {/* Column 2: For Partners (Reserved Space for Future Partner Pages) */}
+          {/* Column 2: For Partners */}
           <div className="space-y-3">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
               For Partners
@@ -107,97 +107,16 @@ export function Footer({
               <li>
                 <button
                   type="button"
-                  onClick={() => onOpenModal("partner")}
+                  onClick={() => onNavigate("b2b-partner")}
                   className="hover:text-white transition-colors cursor-pointer text-left font-medium"
                 >
-                  Partner With Us (Laundromat)
-                </button>
-              </li>
-              <li>
-                <a
-                  href="/apks/QuickPress-Partner.apk"
-                  download="QuickPress-Partner.apk"
-                  className="hover:text-white transition-colors block font-medium"
-                >
-                  Partner Hub App
-                </a>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenModal("partner")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
-                >
-                  Laundromat POS Software
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenModal("partner")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
-                >
-                  Merchant Onboarding
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenModal("partner")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium"
-                >
-                  Processing Facilities
+                  Partner With Us
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: For Delivery Partners / Captains */}
-          <div className="space-y-3">
-            <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
-              For Delivery Partners
-            </h5>
-            <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
-              <li>
-                <a
-                  href="/apks/QuickPress-Captain.apk"
-                  download="QuickPress-Captain.apk"
-                  className="hover:text-white transition-colors block font-medium text-emerald-400 font-semibold"
-                >
-                  Partner With Us (Captain)
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/apks/QuickPress-Captain.apk"
-                  download="QuickPress-Captain.apk"
-                  className="hover:text-white transition-colors block font-medium"
-                >
-                  Apps For You
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/apks/QuickPress-Captain.apk"
-                  download="QuickPress-Captain.apk"
-                  className="hover:text-white transition-colors block font-medium text-zinc-400"
-                >
-                  Captain Fleet App
-                </a>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => onOpenModal("contact")}
-                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-zinc-400"
-                >
-                  Fleet Safety & Support
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 4: Learn More & Legal Policies */}
+          {/* Column 3: Learn More & Legal Policies */}
           <div className="space-y-3">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
               Learn More
@@ -260,7 +179,7 @@ export function Footer({
             </ul>
           </div>
 
-          {/* Column 5: Social Links & App Download Buttons */}
+          {/* Column 4: Social Links & App Download Buttons */}
           <div className="space-y-4 col-span-2 md:col-span-1">
             <h5 className="text-xs sm:text-sm font-black tracking-wider uppercase text-white mb-4">
               Social Links
