@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { PageType, ModalType } from "@/types";
 import logoLight from "@/assets/quickpress-logo.png";
 
-// Clean, sharp vector outline icons (Strictly NO 3D, NO cartoon graphics)
+// Clean, sharp vector outline icons (Strictly NO 3D icons, NO cartoon graphics, NO emojis)
 const IconGraduationCap = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
@@ -50,6 +50,14 @@ const IconCheck = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
+const IconXCircle = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="15" y1="9" x2="9" y2="15" />
+    <line x1="9" y1="9" x2="15" y2="15" />
+  </svg>
+);
+
 const IconArrowRight = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="12" x2="19" y2="12" />
@@ -86,6 +94,36 @@ const IconHeartHandshake = ({ className = "w-5 h-5" }: { className?: string }) =
   </svg>
 );
 
+const IconInstagram = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
+
+const IconLinkedIn = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect x="2" y="9" width="4" height="12" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const IconTwitter = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+  </svg>
+);
+
+const IconExternalLink = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
+
 const MISSION_PILLARS = [
   {
     number: "01",
@@ -117,33 +155,34 @@ const MISSION_PILLARS = [
   },
 ];
 
+// Operational Timeline: Operations started in 2024 (Kasganj, UP)
 const MILESTONES = [
   {
-    year: "2018–2020",
-    badge: "Formative Roots",
-    title: "Classrooms of Saraswati Vidya Mandir, Kasganj",
-    desc: "Early school education at Suraj Prasad Daga Saraswati Vidya Mandir. Imbibed values of self-reliance (स्वावलंबन), rigorous discipline, and a deep-rooted passion to build technology that impacts common Indian families.",
-    icon: IconGraduationCap,
-  },
-  {
-    year: "2021–2023",
-    badge: "The Problem Identified",
-    title: "Observing India's Broken Everyday Laundry & Pressing Crisis",
-    desc: "Saw mothers, students, and working professionals spending 8–10 hours each week scrubbing clothes, while urgent requirements for ironed shirts before job interviews or functions resulted in panic due to delayed, unpredictable local dhobis.",
-    icon: IconClock,
-  },
-  {
-    year: "2024–2025",
-    badge: "Architecting the Engine",
-    title: "Engineering the 3-App Hyper-local Architecture",
-    desc: "Designed and coded the unified ecosystem connecting Customers, Laundromat Partners, and Delivery Captains with GPS dispatch, live barcoded order tracking, and 80°C medical-grade thermal hygiene.",
+    year: "2024",
+    badge: "Operations Launch",
+    title: "Ground Operations Commenced in Kasganj",
+    desc: "Founded by Himanshu Pal (alumnus of Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj) and Rishab Baghel. QuickPress commenced live on-ground operations in Kasganj, solving household laundry fatigue and urgent pressing panic with dedicated doorstep collections.",
     icon: IconZap,
   },
   {
-    year: "2026 & Beyond",
-    badge: "National Expansion",
-    title: "Born in Kasganj, Scaling Across Bharat",
-    desc: "Operating live across Kasganj, Noida, Greater Noida, and Western UP, on a bold mission to bring organized garment care to over 100+ Tier-2 and Tier-3 Indian cities.",
+    year: "2025",
+    badge: "Hyper-Local Engine",
+    title: "Proprietary 3-App Platform & Partner Hubs",
+    desc: "Architected and coded the unified digital ecosystem connecting Customer, Partner Hub, and Delivery Captain apps. Introduced 80°C anti-bacterial thermal hygiene, 2-hour express steam pressing, and automated GPS dispatching.",
+    icon: IconShieldCheck,
+  },
+  {
+    year: "2026",
+    badge: "Commercial Growth",
+    title: "Live Scaling Across Western UP & NCR",
+    desc: "Rapidly expanding across Kasganj, Noida, Greater Noida, and Western UP, servicing thousands of households backed by our ₹5,000 QuickPress Garment Care Guarantee.",
+    icon: IconClock,
+  },
+  {
+    year: "2027 & Beyond",
+    badge: "National Vision",
+    title: "Scaling Organized Garment Care Across Bharat",
+    desc: "On a mission to expand into 100+ Tier-2 and Tier-3 Indian cities, empowering 25,000+ local laundry operators and delivery captains into tech-enabled, high-income entrepreneurs.",
     icon: IconSparkles,
   },
 ];
@@ -255,34 +294,57 @@ export function AboutPage({
                 </p>
               </div>
 
-              {/* Founder Badges: Pure White with Crisp Border */}
+              {/* Founder Badges: Pure Vector Outline Icons (Zero Emojis) */}
               <div className="flex flex-wrap gap-2.5 pt-2">
-                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all">
-                  ⚡ Full Stack Engineer & Architect
+                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all flex items-center gap-2">
+                  <IconZap className="w-3.5 h-3.5 text-[#16a34a]" />
+                  <span>Full Stack Engineer & Architect</span>
                 </span>
-                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all">
-                  🏫 Saraswati Vidya Mandir Alumnus
+                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all flex items-center gap-2">
+                  <IconGraduationCap className="w-3.5 h-3.5 text-[#16a34a]" />
+                  <span>Saraswati Vidya Mandir Alumnus</span>
                 </span>
-                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all">
-                  🚀 Grassroots Execution Leader
+                <span className="px-3.5 py-2 rounded-xl bg-white border-2 border-zinc-200 text-[11px] font-mono font-bold text-black shadow-xs hover:border-[#22c55e] transition-all flex items-center gap-2">
+                  <IconTarget className="w-3.5 h-3.5 text-[#16a34a]" />
+                  <span>Grassroots Execution Leader</span>
                 </span>
               </div>
             </div>
 
-            {/* Right Column: Company Trust Card: Pure White with Emerald Accents */}
+            {/* Right Column: Short Introduction Card & Official Overview */}
             <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-sm rounded-3xl bg-white border-2 border-zinc-200 p-6 sm:p-8 space-y-6 text-left relative shadow-xl hover:shadow-2xl hover:border-emerald-300 transition-all duration-300 animate-pop-zoom">
-                <div className="flex items-center gap-3 pb-4 border-b border-zinc-200">
-                  <div className="w-12 h-12 rounded-2xl bg-white border-2 border-emerald-300 overflow-hidden flex items-center justify-center p-1.5 shadow-sm">
-                    <img src={logoLight} alt="QuickPress Logo" className="w-full h-auto object-contain" />
+              <div className="w-full max-w-md rounded-3xl bg-white border-2 border-zinc-200 p-6 sm:p-8 space-y-5 text-left relative shadow-xl hover:shadow-2xl hover:border-emerald-300 transition-all duration-300 animate-pop-zoom">
+                <div className="flex items-center justify-between pb-4 border-b border-zinc-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-emerald-300 overflow-hidden flex items-center justify-center p-1.5 shadow-sm">
+                      <img src={logoLight} alt="QuickPress Logo" className="w-full h-auto object-contain" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-black font-mono">QuickPress Technologies</h4>
+                      <span className="text-[11px] text-zinc-600 font-mono font-semibold">Kasganj Headquarters</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-black text-sm text-black font-mono">QuickPress Technologies</h4>
-                    <span className="text-[11px] text-zinc-600 font-mono font-semibold">Kasganj Headquarters</span>
-                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800">
+                    Est. 2024
+                  </span>
                 </div>
 
-                <div className="space-y-3.5 text-xs font-mono">
+                {/* Short Introduction */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#16a34a] block">
+                    SHORT INTRODUCTION
+                  </span>
+                  <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
+                    QuickPress is India's on-demand hyper-local garment care network. Launched on the ground in Kasganj in 2024, our proprietary 3-app technology connects everyday households with local partner laundromat hubs — delivering 10–12 minute captain pickups, 2-hour express steam pressing, and medical-grade 80°C thermal fabric care.
+                  </p>
+                </div>
+
+                {/* Company Details Table */}
+                <div className="space-y-3 text-xs font-mono pt-2 border-t border-zinc-100">
+                  <div className="flex justify-between py-1 border-b border-zinc-100">
+                    <span className="text-zinc-600 font-semibold">Operations Started:</span>
+                    <span className="font-black text-black text-right">2024 (Kasganj, UP)</span>
+                  </div>
                   <div className="flex justify-between py-1 border-b border-zinc-100">
                     <span className="text-zinc-600 font-semibold">Corporate Entity:</span>
                     <span className="font-black text-black text-right">QuickPress Tech Pvt Ltd</span>
@@ -298,12 +360,33 @@ export function AboutPage({
                     </span>
                   </div>
                   <div className="flex justify-between py-1">
-                    <span className="text-zinc-600 font-semibold">Founder Desk:</span>
-                    <span className="font-black text-[#16a34a]">Himanshu Pal</span>
+                    <span className="text-zinc-600 font-semibold">Founding Desk:</span>
+                    <span className="font-black text-[#16a34a]">Himanshu Pal & Rishab Baghel</span>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-[11px] text-zinc-800 leading-relaxed font-sans font-medium">
+                {/* SVM Alma Mater Link */}
+                <a
+                  href="https://www.shrisurajprasaddagasvmickasganj.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-white border border-zinc-200 hover:border-[#22c55e] hover:shadow-md transition-all text-left text-xs group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#16a34a] flex items-center justify-center shrink-0">
+                      <IconGraduationCap className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-black text-[11px] group-hover:text-[#16a34a] transition-colors">
+                        Suraj Prasad Daga SVM Inter College
+                      </div>
+                      <div className="text-[10px] text-zinc-500 font-mono">Alma Mater • Kasganj, UP</div>
+                    </div>
+                  </div>
+                  <IconExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover:text-[#16a34a] transition-colors" />
+                </a>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-[11px] text-zinc-800 leading-relaxed font-sans font-medium">
                   "Every garment handed to QuickPress represents someone's hard work, confidence, and trust. We treat it like our own family's clothes."
                 </div>
               </div>
@@ -352,13 +435,13 @@ export function AboutPage({
           </div>
         </div>
 
-        {/* Dynamic Comparison Grid: Pure White Cards */}
+        {/* Dynamic Comparison Grid: Pure White Cards with Vector Icons */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {activeTab === "struggle" ? (
             <>
               <div className="bg-white border-2 border-red-300 rounded-3xl p-7 space-y-4 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 animate-slide-left">
-                <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg border border-red-200">
-                  ❌
+                <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold border border-red-200">
+                  <IconXCircle className="w-6 h-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-black text-black font-mono">The Weekend Laundry Trap</h3>
                 <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed font-medium">
@@ -370,8 +453,8 @@ export function AboutPage({
               </div>
 
               <div className="bg-white border-2 border-red-300 rounded-3xl p-7 space-y-4 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 animate-slide-left">
-                <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg border border-red-200">
-                  ❌
+                <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold border border-red-200">
+                  <IconXCircle className="w-6 h-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-black text-black font-mono">The Urgent Pressing Panic</h3>
                 <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed font-medium">
@@ -383,8 +466,8 @@ export function AboutPage({
               </div>
 
               <div className="bg-white border-2 border-red-300 rounded-3xl p-7 space-y-4 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 animate-slide-left">
-                <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg border border-red-200">
-                  ❌
+                <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold border border-red-200">
+                  <IconXCircle className="w-6 h-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-black text-black font-mono">Lost Clothes & Zero Recourse</h3>
                 <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed font-medium">
@@ -489,7 +572,7 @@ export function AboutPage({
           </div>
         </div>
 
-        {/* Mission: 4 Core Pillars Grid (Pure White Cards with Pop Animation) */}
+        {/* Mission: 4 Core Pillars Grid */}
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white border-2 border-black text-black flex items-center justify-center font-bold shadow-sm">
@@ -538,17 +621,17 @@ export function AboutPage({
         </div>
       </section>
 
-      {/* ─── Interactive Journey & Milestones Timeline: Pure White ─────────── */}
+      {/* ─── Interactive Journey & Milestones Timeline: Commenced 2024 ───────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
           <span className="px-3.5 py-1 rounded-full bg-white border-2 border-zinc-300 text-black text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
-            THE CHRONOLOGY
+            OPERATIONS TIMELINE (2024–PRESENT)
           </span>
           <h2 className="text-3xl sm:text-4xl font-black text-black tracking-tight animate-pop-zoom">
-            From Kasganj School Bench to National Platform
+            From Kasganj Operations to National Scale
           </h2>
           <p className="text-xs sm:text-sm text-zinc-600 font-medium">
-            Click through the defining chapters of how QuickPress evolved from a student observation into India's fastest garment care network.
+            Starting live ground operations in 2024, click through the defining operational chapters of QuickPress.
           </p>
         </div>
 
@@ -624,7 +707,7 @@ export function AboutPage({
         </div>
       </section>
 
-      {/* ─── Leadership Team: Pure White Elevated Cards ─────────────────────── */}
+      {/* ─── Leadership Team with Verified Social Handles & Alma Mater ──────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
           <span className="px-3.5 py-1 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold uppercase tracking-widest shadow-xs">
@@ -639,7 +722,7 @@ export function AboutPage({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Himanshu Pal */}
+          {/* Himanshu Pal (Instagram, LinkedIn, Twitter/X, SVM College) */}
           <div className="bg-white rounded-3xl p-8 border-2 border-[#22c55e] shadow-xl hover:shadow-2xl hover:border-[#16a34a] transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] space-y-5 animate-slide-left">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-black text-white shadow-xs">
@@ -657,33 +740,101 @@ export function AboutPage({
               Spearheads entire end-to-end Full Stack Software Engineering, Product Strategy, Algorithms, and Brand Growth. Committed to proving that deep-tech startups can be rooted outside Tier-1 metros.
             </p>
 
-            <div className="pt-4 border-t border-zinc-100 flex flex-wrap gap-2 text-[11px] font-mono font-bold text-black">
+            <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono font-bold text-black">
               <span className="bg-white border border-zinc-200 px-3 py-1.5 rounded-xl shadow-xs">Product Architecture</span>
               <span className="bg-white border border-zinc-200 px-3 py-1.5 rounded-xl shadow-xs">Engineering & Growth</span>
             </div>
+
+            {/* Social Links for Himanshu Pal: Instagram, LinkedIn, Twitter, SVM College */}
+            <div className="pt-4 border-t border-zinc-100 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href="https://www.instagram.com/unfiltered_himanshu_._/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Himanshu Pal on Instagram"
+                  className="px-3 py-2 rounded-xl bg-white border-2 border-zinc-200 hover:border-[#e1306c] text-zinc-800 hover:text-[#e1306c] hover:scale-105 shadow-xs transition-all flex items-center gap-1.5 text-xs font-mono font-bold cursor-pointer"
+                >
+                  <IconInstagram className="w-3.5 h-3.5 text-[#e1306c]" />
+                  <span>Instagram</span>
+                </a>
+
+                <a
+                  href="https://www.linkedin.com/in/himanshubaghel"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Himanshu Pal on LinkedIn"
+                  className="px-3 py-2 rounded-xl bg-white border-2 border-zinc-200 hover:border-[#0077b5] text-zinc-800 hover:text-[#0077b5] hover:scale-105 shadow-xs transition-all flex items-center gap-1.5 text-xs font-mono font-bold cursor-pointer"
+                >
+                  <IconLinkedIn className="w-3.5 h-3.5 text-[#0077b5]" />
+                  <span>LinkedIn</span>
+                </a>
+
+                <a
+                  href="https://x.com/himanshubaghel"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Himanshu Pal on Twitter / X"
+                  className="px-3 py-2 rounded-xl bg-white border-2 border-zinc-200 hover:border-black text-zinc-800 hover:text-black hover:scale-105 shadow-xs transition-all flex items-center gap-1.5 text-xs font-mono font-bold cursor-pointer"
+                >
+                  <IconTwitter className="w-3.5 h-3.5 text-black" />
+                  <span>Twitter / X</span>
+                </a>
+              </div>
+
+              {/* SVM Inter College Official Website Link */}
+              <a
+                href="https://www.shrisurajprasaddagasvmickasganj.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between w-full p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 hover:border-[#22c55e] text-emerald-900 hover:text-black text-xs font-mono font-bold transition-all group cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <IconGraduationCap className="w-4 h-4 text-[#16a34a]" />
+                  <span>Suraj Prasad Daga SVM Inter College, Kasganj</span>
+                </div>
+                <IconExternalLink className="w-3.5 h-3.5 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+            </div>
           </div>
 
-          {/* Rishab Baghel */}
-          <div className="bg-white rounded-3xl p-8 border-2 border-zinc-300 hover:border-[#22c55e] shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] space-y-5 animate-slide-right">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white text-black border-2 border-zinc-300 shadow-xs">
-                Co-Founder & Ops Lead
-              </span>
-              <span className="text-xs font-mono text-zinc-500 font-bold">Kasganj, UP</span>
+          {/* Rishab Baghel (ONLY Instagram as requested) */}
+          <div className="bg-white rounded-3xl p-8 border-2 border-zinc-300 hover:border-[#22c55e] shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] space-y-5 animate-slide-right flex flex-col justify-between">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white text-black border-2 border-zinc-300 shadow-xs">
+                  Co-Founder & Ops Lead
+                </span>
+                <span className="text-xs font-mono text-zinc-500 font-bold">Kasganj, UP</span>
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-black text-black">Rishab Baghel</h3>
+                <p className="text-xs font-mono text-zinc-600 font-bold">Rishuuu</p>
+              </div>
+
+              <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
+                Leads ground-level Fleet Logistics, Delivery Captain Recruitment, and Laundromat Partner Hub Quality Assurance. Ensures 100% SLA turnaround and on-time doorstep collections.
+              </p>
+
+              <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono font-bold text-black">
+                <span className="bg-white border border-zinc-200 px-3 py-1.5 rounded-xl shadow-xs">Fleet Operations</span>
+                <span className="bg-white border border-zinc-200 px-3 py-1.5 rounded-xl shadow-xs">Partner Success</span>
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-2xl font-black text-black">Rishab Baghel</h3>
-              <p className="text-xs font-mono text-zinc-600 font-bold">Rishuuu</p>
-            </div>
-
-            <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
-              Leads ground-level Fleet Logistics, Delivery Captain Recruitment, and Laundromat Partner Hub Quality Assurance. Ensures 100% SLA turnaround and on-time doorstep collections.
-            </p>
-
-            <div className="pt-4 border-t border-zinc-100 flex flex-wrap gap-2 text-[11px] font-mono font-bold text-black">
-              <span className="bg-white border border-zinc-200 px-3 py-1.5 rounded-xl shadow-xs">Fleet Operations</span>
-              <span className="bg-white border border-zinc-200 px-3 py-1.5 rounded-xl shadow-xs">Partner Success</span>
+            {/* Social Link for Rishab Baghel: ONLY Instagram */}
+            <div className="pt-4 border-t border-zinc-100">
+              <a
+                href="https://www.instagram.com/who_rishab_/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Rishab Baghel on Instagram"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border-2 border-zinc-200 hover:border-[#e1306c] text-zinc-800 hover:text-[#e1306c] hover:scale-105 shadow-xs transition-all text-xs font-mono font-bold cursor-pointer"
+              >
+                <IconInstagram className="w-4 h-4 text-[#e1306c]" />
+                <span>Instagram (who_rishab_)</span>
+              </a>
             </div>
           </div>
         </div>
