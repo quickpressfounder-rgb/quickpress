@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://withquickpress.com/sitemap.xml
