@@ -1,0 +1,32 @@
+{
+  "name": "QuickPress - On-Demand Laundry & Garment Care",
+  "short_name": "QuickPress",
+  "description": "On-demand laundry, dry cleaning, steam iron, and doorstep pickup & delivery.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBBF24",
+  "theme_color": "#FBBF24",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    }
+  ]
+}

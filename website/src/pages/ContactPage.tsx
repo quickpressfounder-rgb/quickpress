@@ -366,7 +366,7 @@ export function ContactPage({
       </section>
 
       {/* ─── Department Directory ────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal-on-scroll">
         <div className="mb-8">
           <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full">
             DEPARTMENT DIRECTORY
@@ -509,7 +509,7 @@ export function ContactPage({
       </section>
 
       {/* ─── Interactive Form & Corporate HQ Directory ──────────────────────── */}
-      <section id="inquiry-form-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="inquiry-form-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal-on-scroll">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           {/* Left Column: Interactive Priority Support Ticket Form */}
           <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-10 border-2 border-zinc-200 shadow-xl space-y-6 animate-slide-left">
@@ -836,7 +836,7 @@ export function ContactPage({
       </section>
 
       {/* ─── Frequently Asked Questions (Accordion) ─────────────────────────── */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 reveal-on-scroll">
         <div className="text-center mb-10 space-y-2">
           <span className="text-xs font-mono font-bold uppercase text-emerald-800 tracking-wider bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-300 shadow-xs">
             COMMON INQUIRIES
@@ -879,7 +879,7 @@ export function ContactPage({
       </section>
 
       {/* ─── Bottom 24x7 WhatsApp & Call Emergency Banner ───────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 reveal-on-scroll">
         <div className="bg-white text-black rounded-3xl p-8 sm:p-12 text-center space-y-6 border-2 border-[#22c55e] shadow-2xl relative overflow-hidden animate-spring-up hover:shadow-emerald-500/20 transition-all duration-500">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-100/60 rounded-full blur-3xl pointer-events-none" />
 

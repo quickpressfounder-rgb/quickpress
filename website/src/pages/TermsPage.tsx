@@ -76,7 +76,7 @@ export function TermsPage({
   return (
     <div className="bg-white text-gray-900 min-h-screen pt-24 sm:pt-32 pb-24">
       {/* ─── Hero Header ──────────────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 mb-10">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 mb-10 reveal-on-scroll">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold tracking-widest uppercase mb-4 shadow-xs">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-live-dot" />
           <span>STATUTORY LEGAL & REGULATORY COMPLIANCE CENTER • INDIA</span>
@@ -148,7 +148,7 @@ export function TermsPage({
       </div>
 
       {/* ─── Main Document Canvas ────────────────────────────────────────────── */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 reveal-on-scroll delay-100">
         <div className="bg-white rounded-3xl p-6 sm:p-12 border-2 border-gray-200 shadow-sm space-y-10">
           {/* Active Tab Subtitle & Version Strip */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-gray-100">

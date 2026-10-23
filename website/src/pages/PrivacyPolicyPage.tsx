@@ -512,7 +512,7 @@ export function PrivacyPolicyPage({
   return (
     <div className="bg-white text-gray-900 min-h-screen pt-24 pb-20 selection:bg-emerald-200 selection:text-emerald-950">
       {/* Header Banner */}
-      <div className="bg-emerald-50/60 text-gray-950 py-14 sm:py-18 px-4 sm:px-6 lg:px-8 border-b border-emerald-100">
+      <div className="bg-emerald-50/60 text-gray-950 py-14 sm:py-18 px-4 sm:px-6 lg:px-8 border-b border-emerald-100 reveal-on-scroll">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-bold uppercase tracking-wider">
@@ -603,7 +603,7 @@ export function PrivacyPolicyPage({
       </div>
 
       {/* Main Grid: Desktop Left Sticky Sidebar + Right Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 reveal-on-scroll delay-100">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Left Desktop Sticky Table of Contents */}
           <aside className="hidden lg:block lg:col-span-4 xl:col-span-3">

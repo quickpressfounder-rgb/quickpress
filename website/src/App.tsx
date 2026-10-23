@@ -97,6 +97,33 @@ export default function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  // Global Zomato-Style Scroll-Driven Reveal Observer across all pages
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-revealed");
+          }
+        });
+      },
+      {
+        threshold: 0.08,
+        rootMargin: "0px 0px -40px 0px",
+      }
+    );
+
+    const timer = setTimeout(() => {
+      const revealElements = document.querySelectorAll(".reveal-on-scroll");
+      revealElements.forEach((el) => observer.observe(el));
+    }, 80);
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [currentPage]);
+
   const navigateTo = (page: PageType) => {
     setCurrentPage(page);
     window.location.hash = `#${page}`;
@@ -210,51 +237,53 @@ export default function App() {
         onOpenModal={handleOpenModal}
       />
 
-      {/* Primary Page Outlet */}
+      {/* Primary Page Outlet with Smooth Page Entrance Animation */}
       <main className="flex-grow">
-        {currentPage === "home" && (
-          <HomePage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-            onSelectService={handleSelectService}
-            onShowToast={showToast}
-          />
-        )}
+        <div key={currentPage} className="animate-page-enter">
+          {currentPage === "home" && (
+            <HomePage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+              onSelectService={handleSelectService}
+              onShowToast={showToast}
+            />
+          )}
 
-        {currentPage === "about" && (
-          <AboutPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
+          {currentPage === "about" && (
+            <AboutPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
 
-        {currentPage === "privacy" && (
-          <PrivacyPolicyPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
+          {currentPage === "privacy" && (
+            <PrivacyPolicyPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
 
-        {currentPage === "contact" && (
-          <ContactPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
+          {currentPage === "contact" && (
+            <ContactPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
 
-        {currentPage === "terms" && (
-          <TermsPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
+          {currentPage === "terms" && (
+            <TermsPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
 
-        {currentPage === "b2b-partner" && (
-          <B2BPartnerPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
+          {currentPage === "b2b-partner" && (
+            <B2BPartnerPage
+              onNavigate={navigateTo}
+              onOpenModal={handleOpenModal}
+            />
+          )}
+        </div>
       </main>
 
       {/* Cookie Consent Banner */}

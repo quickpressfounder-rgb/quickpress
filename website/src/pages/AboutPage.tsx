@@ -254,7 +254,7 @@ export function AboutPage({
       </section>
 
       {/* ─── Founder Spotlight: Pure White Luxury Card ────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 reveal-on-scroll">
         <div className="group relative rounded-3xl bg-white text-black p-8 sm:p-14 border-2 border-emerald-300 shadow-2xl overflow-hidden hover:border-[#22c55e] hover:shadow-emerald-500/15 transition-all duration-500 animate-spring-up hover:-translate-y-1">
           {/* Subtle Radiant Emerald Glow */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-100/60 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-200/50 transition-all duration-500" />
@@ -396,7 +396,7 @@ export function AboutPage({
       </section>
 
       {/* ─── The Problem Observed: The Everyday Household Struggle ─────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 reveal-on-scroll">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
           <span className="px-3.5 py-1 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold uppercase tracking-widest shadow-xs">
             THE SPARK • WHY QUICKPRESS EXISTS
@@ -524,7 +524,7 @@ export function AboutPage({
       </section>
 
       {/* ─── Vision & Mission: Pure White with Vibrant Emerald Accents ─────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200 reveal-on-scroll">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold tracking-widest uppercase shadow-xs animate-spring-up">
             <IconCompass className="w-4 h-4 text-[#16a34a]" />
@@ -622,7 +622,7 @@ export function AboutPage({
       </section>
 
       {/* ─── Interactive Journey & Milestones Timeline: Commenced 2024 ───────── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 reveal-on-scroll">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
           <span className="px-3.5 py-1 rounded-full bg-white border-2 border-zinc-300 text-black text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
             THE CHRONOLOGY • FROM SCHOOL TO NATIONAL SCALE
@@ -708,7 +708,7 @@ export function AboutPage({
       </section>
 
       {/* ─── Leadership Team with Verified Social Handles & Alma Mater ──────── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200 reveal-on-scroll">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
           <span className="px-3.5 py-1 rounded-full bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-mono font-bold uppercase tracking-widest shadow-xs">
             LEADERSHIP
@@ -841,7 +841,7 @@ export function AboutPage({
       </section>
 
       {/* ─── Bottom CTA Banner: Pure White Radiant Card ───────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 reveal-on-scroll">
         <div className="bg-white text-black rounded-3xl p-8 sm:p-14 text-center space-y-6 border-2 border-[#22c55e] shadow-2xl relative overflow-hidden animate-spring-up hover:shadow-emerald-500/20 transition-all duration-500">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-100/60 rounded-full blur-3xl pointer-events-none" />
 
