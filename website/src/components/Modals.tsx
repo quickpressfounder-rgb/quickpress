@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ServiceInfo, JobPosition } from "@/types";
-import { IconClose, IconCheck } from "./Icons";
+import { IconClose, IconCheck, IconApple, IconGooglePlay } from "./Icons";
 
 const GREEN = "#1A7A3C";
 const YELLOW = "#F59E0B";

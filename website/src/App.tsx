@@ -14,10 +14,6 @@ import { handleGetStartedRedirect } from "@/utils/storeRedirect";
 // Pages
 import { HomePage } from "@/pages/HomePage";
 import { AboutPage } from "@/pages/AboutPage";
-import { ServicesPage } from "@/pages/ServicesPage";
-import { HowItWorksPage } from "@/pages/HowItWorksPage";
-import { PartnersPage } from "@/pages/PartnersPage";
-import { EcosystemPage } from "@/pages/EcosystemPage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { ContactPage } from "@/pages/ContactPage";
@@ -55,10 +51,6 @@ export default function App() {
       const validPages: PageType[] = [
         "home",
         "about",
-        "services",
-        "how-it-works",
-        "partners",
-        "ecosystem",
         "contact",
         "privacy",
         "terms",
@@ -108,40 +100,12 @@ export default function App() {
             onNavigate={navigateTo}
             onOpenModal={handleOpenModal}
             onSelectService={handleSelectService}
+            onShowToast={showToast}
           />
         )}
 
         {currentPage === "about" && (
           <AboutPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
-
-        {currentPage === "services" && (
-          <ServicesPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-            onSelectService={handleSelectService}
-          />
-        )}
-
-        {currentPage === "how-it-works" && (
-          <HowItWorksPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
-
-        {currentPage === "partners" && (
-          <PartnersPage
-            onNavigate={navigateTo}
-            onOpenModal={handleOpenModal}
-          />
-        )}
-
-        {currentPage === "ecosystem" && (
-          <EcosystemPage
             onNavigate={navigateTo}
             onOpenModal={handleOpenModal}
           />
@@ -179,10 +143,7 @@ export default function App() {
       <PartnerModal
         isOpen={activeModal === "partner"}
         onClose={() => setActiveModal(null)}
-        onSuccess={() => {
-          setActiveModal(null);
-          showToast("Partner application submitted! Our team will reach out within 24 hours.");
-        }}
+        onShowToast={showToast}
       />
 
       <ContactModal
@@ -194,22 +155,21 @@ export default function App() {
         }}
       />
 
-      <ServiceDetailModal
-        service={selectedService}
-        isOpen={activeModal === "service_detail"}
-        onClose={() => setActiveModal(null)}
-        onBook={() => {
-          setActiveModal(null);
-          handleGetStartedRedirect();
-        }}
-      />
+      {activeModal === "service_detail" && selectedService && (
+        <ServiceDetailModal
+          service={selectedService}
+          onClose={() => setActiveModal(null)}
+          onBook={(_serviceId) => {
+            setActiveModal(null);
+            handleGetStartedRedirect();
+          }}
+        />
+      )}
 
       <DownloadAppModal
         isOpen={activeModal === "download_app"}
         onClose={() => setActiveModal(null)}
-        onSuccess={(phone) => {
-          showToast(`Download link dispatched to +91 ${phone}! Check your SMS.`);
-        }}
+        onShowToast={showToast}
       />
     </div>
   );

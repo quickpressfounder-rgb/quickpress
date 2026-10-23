@@ -98,38 +98,7 @@ export function Footer({
                   Home
                 </button>
               </li>
-              <li>
-                <button
-                  onClick={() => onNavigate("services")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
-                >
-                  All Services
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate("how-it-works")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
-                >
-                  How It Works
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate("partners")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
-                >
-                  Partner With Us
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate("ecosystem")}
-                  className="text-white/90 hover:text-emerald-300 transition-colors cursor-pointer text-left font-medium"
-                >
-                  Ecosystem & Node Map
-                </button>
-              </li>
+
               <li>
                 <button
                   onClick={() => onNavigate("about")}

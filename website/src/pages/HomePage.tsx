@@ -253,10 +253,9 @@ export function HomePage({
     onShowToast(`📍 Service area confirmed: ${locName}`);
   };
 
-  // Handler: Selecting Service -> Redirects Directly to Services Page
+  // Handler: Selecting Service -> Opens Booking
   const handleServiceClick = (serviceId?: string) => {
-    onNavigate("services");
-    onShowToast("Redirecting to available services...");
+    onOpenModal("booking");
   };
 
   // Handler: Send App Download Links via Email
@@ -511,7 +510,7 @@ export function HomePage({
 
             {/* Card 2: partner hub (Partner Merchant App) - Real Blue & White Partner Logo */}
             <div
-              onClick={() => onNavigate("partners")}
+              onClick={() => onOpenModal("partner")}
               className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-blue-200/70 bg-gradient-to-b from-[#EFF6FF]/80 via-[#F8FAFC] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden"
             >
               {/* Big Real Partner Squircle Logo (Blue background, White text) */}
@@ -540,7 +539,12 @@ export function HomePage({
 
             {/* Card 3: captain fleet (Delivery Rider App) - Real Captain Logo */}
             <div
-              onClick={() => onNavigate("ecosystem")}
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = "/apks/QuickPress-Captain.apk";
+                a.download = "QuickPress-Captain.apk";
+                a.click();
+              }}
               className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-emerald-200/70 bg-gradient-to-b from-[#ECFDF5]/80 via-[#F7FEFA] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden"
             >
               {/* Big Real Captain Squircle Logo */}

@@ -201,9 +201,9 @@ export function AboutPage({
             >
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6"
-                style={{ background: val.bg }}
+                style={{ background: val.bg, color: val.color }}
               >
-                <val.icon className="w-6 h-6" style={{ color: val.color }} />
+                <val.icon className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">{val.title}</h3>
               <p className="text-xs text-gray-500 leading-relaxed">{val.desc}</p>
@@ -249,7 +249,7 @@ export function AboutPage({
               Book a Service →
             </button>
             <button
-              onClick={() => onNavigate("partners")}
+              onClick={() => onOpenModal("partner")}
               className="px-8 py-3.5 rounded-full font-bold text-gray-950 text-sm shadow-md hover:scale-105 transition-all cursor-pointer"
               style={{ background: YELLOW }}
             >

@@ -1,10 +1,6 @@
 export type PageType =
   | "home"
   | "about"
-  | "services"
-  | "how-it-works"
-  | "partners"
-  | "ecosystem"
   | "contact"
   | "privacy"
   | "terms";
