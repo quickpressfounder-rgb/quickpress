@@ -115,14 +115,14 @@ function ContactScreen() {
 
               <div className="space-y-4 text-xs">
                 <a
-                  href="tel:+918279538461"
+                  href="tel:+919258730561"
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
                     <Phone className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">+91 8279538461</p>
+                    <p className="font-bold text-slate-900 text-sm">+91 9258730561</p>
                     <p className="text-slate-500 mt-0.5">Quickpress Helpdesk (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                   </div>
                 </a>

@@ -119,7 +119,7 @@ If you have any questions, concerns, or requests regarding this Privacy Policy o
 * **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
 * **CIN:** U96010UW2026PTC259787
 * **Official Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [+91 8279538461](tel:+918279538461) (Mon–Sun, 7:00 AM – 10:00 PM IST)
+* **Phone / Helpline:** [+91 9258730561](tel:+919258730561) (Mon–Sun, 7:00 AM – 10:00 PM IST)
 * **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
 """,
         "versions": [
@@ -230,7 +230,7 @@ For any clarifications regarding these Terms:
 * **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
 * **CIN:** U96010UW2026PTC259787
 * **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [+91 8279538461](tel:+918279538461)
+* **Phone / Helpline:** [+91 9258730561](tel:+919258730561)
 * **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
 """,
         "versions": [
@@ -326,7 +326,7 @@ If you are unsatisfied with garment cleaning quality or if an item is missing/da
 * **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
 * **CIN:** U96010UW2026PTC259787
 * **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [+91 8279538461](tel:+918279538461)
+* **Phone / Helpline:** [+91 9258730561](tel:+919258730561)
 * **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
 """,
         "versions": [
@@ -516,7 +516,7 @@ If your complaint is not resolved satisfactorily at Level 1 within 48 hours, you
 - **CIN:** U96010UW2026PTC259787
 - **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
 - **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-- **Phone / Helpline:** [+91 8279538461](tel:+918279538461) (Mon–Sun, 7:00 AM – 10:00 PM IST)
+- **Phone / Helpline:** [+91 9258730561](tel:+919258730561) (Mon–Sun, 7:00 AM – 10:00 PM IST)
 - **Statutory Acknowledgment:** Within **48 hours** with unique Ticket Reference ID.
 - **Resolution SLA:** Mandatory disposal and resolution within **30 days** of filing.
 

@@ -115,13 +115,6 @@ const IconCopy = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
-const IconGraduationCap = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-    <path d="M6 12v5c3 3 9 3 12 0v-5" />
-  </svg>
-);
-
 const IconInstagram = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
@@ -167,9 +160,9 @@ const DEPARTMENT_CHANNELS: DepartmentChannel[] = [
     categoryLabel: "Customer Care & Order Desk",
     title: "Order & Garment Care Desk",
     desc: "Instant assistance with active laundry orders, pickup time rescheduling, special fabric care instructions, barcode tracking, and billing queries.",
-    phone: "+918279538461",
-    phoneDisplay: "+91 8279538461",
-    whatsapp: "918279538461",
+    phone: "+919258730561",
+    phoneDisplay: "+91 9258730561",
+    whatsapp: "919258730561",
     email: "support@withquickpress.com",
     secondaryEmail: "official.quickpress@gmail.com",
     slaBadge: "Avg Response < 10 Mins",
@@ -182,9 +175,9 @@ const DEPARTMENT_CHANNELS: DepartmentChannel[] = [
     categoryLabel: "B2B & Institutional Accounts",
     title: "Corporate & Enterprise Care",
     desc: "Commercial garment care agreements for hotels, hospitals, student hostels, corporate offices, and uniform bulk care with formal monthly GST invoicing.",
-    phone: "+918279538461",
-    phoneDisplay: "+91 8279538461",
-    whatsapp: "918279538461",
+    phone: "+919258730561",
+    phoneDisplay: "+91 9258730561",
+    whatsapp: "919258730561",
     email: "b2b@withquickpress.com",
     secondaryEmail: "info@withquickpress.com",
     slaBadge: "Dedicated Key Account Manager",
@@ -197,9 +190,9 @@ const DEPARTMENT_CHANNELS: DepartmentChannel[] = [
     categoryLabel: "Partner Stores & Franchise",
     title: "Laundromat Hub & MD Desk",
     desc: "Equip your existing laundry store with Italian vacuum steam tables, connect to our hyper-local dispatch grid, or escalate directly to Managing Leadership.",
-    phone: "+918279538461",
-    phoneDisplay: "+91 8279538461",
-    whatsapp: "918279538461",
+    phone: "+919258730561",
+    phoneDisplay: "+91 9258730561",
+    whatsapp: "919258730561",
     email: "partner@withquickpress.com",
     secondaryEmail: "official.quickpress@gmail.com",
     slaBadge: "Executive Priority Desk",
@@ -212,9 +205,9 @@ const DEPARTMENT_CHANNELS: DepartmentChannel[] = [
     categoryLabel: "Delivery Captain Fleet",
     title: "Captain & Rider Logistics Hub",
     desc: "Join our hyper-local on-demand courier fleet across Kasganj, Noida, Greater Noida, and Western UP with weekly incentive bank deposits.",
-    phone: "+918279538461",
-    phoneDisplay: "+91 8279538461",
-    whatsapp: "918279538461",
+    phone: "+919258730561",
+    phoneDisplay: "+91 9258730561",
+    whatsapp: "919258730561",
     email: "fleet@withquickpress.com",
     slaBadge: "Instant Joining Support",
     icon: (cls) => <IconBike className={cls || "w-5 h-5"} />,
@@ -226,8 +219,8 @@ const DEPARTMENT_CHANNELS: DepartmentChannel[] = [
     categoryLabel: "Legal, Statutory & Nodal",
     title: "Statutory Grievance & Legal Desk",
     desc: "Statutory compliance under Information Technology Act 2000 and Consumer Protection (E-Commerce) Rules 2020. Guaranteed nodal resolution.",
-    phone: "+918279538461",
-    phoneDisplay: "+91 8279538461",
+    phone: "+919258730561",
+    phoneDisplay: "+91 9258730561",
     email: "legal@withquickpress.com",
     secondaryEmail: "grievance@withquickpress.com",
     slaBadge: "Statutory 48h Resolution",
@@ -266,7 +259,6 @@ export function ContactPage({
   onNavigate: (page: PageType) => void;
   onOpenModal: (type: ModalType) => void;
 }) {
-  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [inquiryType, setInquiryType] = useState<string>("customer");
   const [city, setCity] = useState<string>("Kasganj");
   const [fullName, setFullName] = useState<string>("");
@@ -304,10 +296,6 @@ export function ContactPage({
     setTimeout(() => setCopiedAddress(false), 2500);
   };
 
-  const filteredChannels = activeFilter === "all"
-    ? DEPARTMENT_CHANNELS
-    : DEPARTMENT_CHANNELS.filter((ch) => ch.categoryTag === activeFilter);
-
   return (
     <div className="pt-24 sm:pt-28 pb-24 bg-white text-zinc-950 font-sans selection:bg-[#22c55e] selection:text-black overflow-hidden space-y-20">
       {/* ─── Hero Section with Animated Ambient Emerald Radiant Glow ────────── */}
@@ -338,17 +326,17 @@ export function ContactPage({
           {/* Quick 1-Click Action Bar: Pure White Floating Pills */}
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4 font-mono text-xs animate-pop-zoom">
             <a
-              href="tel:+918279538461"
+              href="tel:+919258730561"
               className="px-5 py-3 rounded-2xl bg-white border-2 border-emerald-300 hover:border-[#16a34a] text-black hover:text-[#16a34a] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2.5 font-bold cursor-pointer"
             >
               <div className="w-6 h-6 rounded-lg bg-emerald-50 text-[#16a34a] flex items-center justify-center">
                 <IconPhone className="w-3.5 h-3.5" />
               </div>
-              <span>Helpline: +91 8279538461</span>
+              <span>Helpline: +91 9258730561</span>
             </a>
 
             <a
-              href="https://wa.me/918279538461?text=Hi%20QuickPress%20Support,%20I%20need%20assistance%20with%20my%20laundry%20order."
+              href="https://wa.me/919258730561?text=Hi%20QuickPress%20Support,%20I%20need%20assistance%20with%20my%20laundry%20order."
               target="_blank"
               rel="noopener noreferrer"
               className="px-5 py-3 rounded-2xl bg-white border-2 border-zinc-200 hover:border-[#22c55e] text-black hover:text-[#16a34a] shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2.5 font-bold cursor-pointer"
@@ -356,7 +344,7 @@ export function ContactPage({
               <div className="w-6 h-6 rounded-lg bg-emerald-50 text-[#16a34a] flex items-center justify-center">
                 <IconMessageCircle className="w-3.5 h-3.5" />
               </div>
-              <span>WhatsApp: +91 8279538461</span>
+              <span>WhatsApp: +91 9258730561</span>
             </a>
 
             <a
@@ -377,47 +365,20 @@ export function ContactPage({
         </div>
       </section>
 
-      {/* ─── Department Directory with Interactive Filter Switcher ─────────── */}
+      {/* ─── Department Directory ────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
-          <div>
-            <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full">
-              DEPARTMENT DIRECTORY
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-black mt-2 tracking-tight">
-              Direct Communication Channels
-            </h2>
-          </div>
-
-          {/* Department Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-2xl bg-white border-2 border-zinc-200 shadow-sm font-mono text-xs">
-            {[
-              { id: "all", label: "All Departments" },
-              { id: "customer", label: "Customer Care" },
-              { id: "b2b", label: "B2B Bulk" },
-              { id: "partner", label: "Store Partner" },
-              { id: "fleet", label: "Fleet Hub" },
-              { id: "legal", label: "Legal" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setActiveFilter(f.id)}
-                className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                  activeFilter === f.id
-                    ? "bg-[#22c55e] text-black shadow-md font-black scale-105"
-                    : "bg-white text-zinc-600 hover:text-black hover:bg-zinc-50"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+        <div className="mb-8">
+          <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full">
+            DEPARTMENT DIRECTORY
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-black mt-2 tracking-tight">
+            Direct Communication Channels
+          </h2>
         </div>
 
         {/* Channels Grid: Pure White Elevated Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredChannels.map((ch) => (
+          {DEPARTMENT_CHANNELS.map((ch) => (
             <div
               key={ch.id}
               className="rounded-3xl p-7 border-2 border-zinc-200 hover:border-[#22c55e] bg-white hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between animate-pop-zoom space-y-6"
@@ -583,7 +544,7 @@ export function ContactPage({
 
                 <div className="flex flex-wrap justify-center gap-3 pt-2">
                   <a
-                    href={`https://wa.me/918279538461?text=Hi%20QuickPress,%20I%20just%20submitted%20ticket%20${submittedTicket}%20regarding%20${inquiryType}.%20Name:%20${encodeURIComponent(fullName)}`}
+                    href={`https://wa.me/919258730561?text=Hi%20QuickPress,%20I%20just%20submitted%20ticket%20${submittedTicket}%20regarding%20${inquiryType}.%20Name:%20${encodeURIComponent(fullName)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-6 py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg hover:scale-105 cursor-pointer"
@@ -771,8 +732,8 @@ export function ContactPage({
                 </div>
                 <div className="flex justify-between py-1 border-b border-zinc-100">
                   <span className="text-zinc-600 font-semibold">Helpline:</span>
-                  <a href="tel:+918279538461" className="font-black text-black hover:text-[#16a34a] transition-colors">
-                    +91 8279538461
+                  <a href="tel:+919258730561" className="font-black text-black hover:text-[#16a34a] transition-colors">
+                    +91 9258730561
                   </a>
                 </div>
                 <div className="flex justify-between py-1 border-b border-zinc-100">
@@ -807,27 +768,6 @@ export function ContactPage({
                   C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah - 207123, Uttar Pradesh, India
                 </p>
               </div>
-
-              {/* School Alma Mater Link */}
-              <a
-                href="https://www.shrisurajprasaddagasvmickasganj.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50/70 border-2 border-emerald-300 hover:border-[#16a34a] hover:shadow-md transition-all text-left text-xs group cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-white border border-emerald-300 text-[#16a34a] flex items-center justify-center shrink-0">
-                    <IconGraduationCap className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-black text-[11px] group-hover:text-[#16a34a] transition-colors">
-                      Suraj Prasad Daga SVM Inter College
-                    </div>
-                    <div className="text-[10px] text-zinc-600 font-mono">Founders' Alma Mater • Kasganj, UP</div>
-                  </div>
-                </div>
-                <IconExternalLink className="w-3.5 h-3.5 text-emerald-800 group-hover:translate-x-0.5 transition-transform" />
-              </a>
 
               {/* Direct Founder Desk Handles */}
               <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-xs font-mono">
@@ -871,7 +811,7 @@ export function ContactPage({
                 <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
                 <p><strong>CIN:</strong> U96010UW2026PTC259787</p>
                 <p><strong>Nodal Email:</strong> <a href="mailto:legal@withquickpress.com" className="text-[#16a34a] font-bold hover:underline">legal@withquickpress.com</a></p>
-                <p><strong>Direct Helpline:</strong> <a href="tel:+918279538461" className="text-black font-bold hover:underline">+91 8279538461</a></p>
+                <p><strong>Direct Helpline:</strong> <a href="tel:+919258730561" className="text-black font-bold hover:underline">+91 9258730561</a></p>
               </div>
             </div>
           </div>
@@ -940,14 +880,14 @@ export function ContactPage({
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <a
-              href="tel:+918279538461"
+              href="tel:+919258730561"
               className="px-8 py-4 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-xs font-mono uppercase tracking-wider transition-all duration-300 shadow-xl hover:scale-105 hover:shadow-emerald-500/30 cursor-pointer flex items-center gap-2"
             >
               <IconPhone className="w-4 h-4" />
-              <span>Call Helpline (+91 8279538461)</span>
+              <span>Call Helpline (+91 9258730561)</span>
             </a>
             <a
-              href="https://wa.me/918279538461?text=Hi%20QuickPress%20Emergency%20Desk,%20I%20need%20urgent%20support%20with%20an%20order."
+              href="https://wa.me/919258730561?text=Hi%20QuickPress%20Emergency%20Desk,%20I%20need%20urgent%20support%20with%20an%20order."
               target="_blank"
               rel="noopener noreferrer"
               className="px-8 py-4 rounded-2xl bg-white hover:bg-zinc-50 text-black border-2 border-zinc-300 hover:border-black text-xs font-mono font-bold uppercase tracking-wider transition-all duration-300 shadow-md hover:scale-105 cursor-pointer flex items-center gap-2"

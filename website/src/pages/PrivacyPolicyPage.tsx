@@ -53,7 +53,7 @@ export function PrivacyPolicyPage({
               <p className="font-sans font-bold text-gray-900 text-sm">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
               <p>Corporate Identity Number (CIN): U96010UW2026PTC259787</p>
               <p>Registered Office: C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India</p>
-              <p>Official Phone / Helpline: <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a></p>
+              <p>Official Phone / Helpline: <a href="tel:+919258730561" className="text-emerald-700 underline font-bold">+91 9258730561</a></p>
               <p>Grievance / Privacy Email: <a href="mailto:info@withquickpress.com" className="text-emerald-700 underline font-bold">info@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
               <p>Official Website: https://withquickpress.com</p>
             </div>
@@ -443,7 +443,7 @@ export function PrivacyPolicyPage({
               <p><strong>CIN:</strong> U96010UW2026PTC259787</p>
               <p><strong>Registered Office:</strong> C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India</p>
               <p className="font-bold">Email: <a href="mailto:info@withquickpress.com" className="text-emerald-700 underline">info@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
-              <p><strong>Phone / Helpline:</strong> <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
+              <p><strong>Phone / Helpline:</strong> <a href="tel:+919258730561" className="text-emerald-700 underline font-bold">+91 9258730561</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
               <p className="text-emerald-800/80 text-xs">Acknowledgment Time: Within 24 hours | Resolution Time: Within 15 business days</p>
             </div>
           </div>
@@ -459,7 +459,7 @@ export function PrivacyPolicyPage({
             <p>For any queries, feedback, or data privacy requests, you may connect with our team through:</p>
             <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm text-gray-700">
               <li>Legal Entity: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (CIN: <strong>U96010UW2026PTC259787</strong>)</li>
-              <li>Official Phone / Helpline: <a href="tel:+918279538461" className="text-emerald-700 font-bold underline">+91 8279538461</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</li>
+              <li>Official Phone / Helpline: <a href="tel:+919258730561" className="text-emerald-700 font-bold underline">+91 9258730561</a> (Mon–Sun, 7:00 AM – 10:00 PM IST)</li>
               <li>General Support & Grievance Email: <a href="mailto:info@withquickpress.com" className="text-emerald-700 font-bold underline">info@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 font-bold underline">official.quickpress@gmail.com</a></li>
               <li>In-App Support: Available on Customer, Partner, and Captain apps.</li>
               <li>Physical Registered Office: C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India</li>
