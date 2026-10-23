@@ -155,13 +155,20 @@ const MISSION_PILLARS = [
   },
 ];
 
-// Operational Timeline: Operations started in 2024 (Kasganj, UP)
+// Operational Timeline: From School to National Scale
 const MILESTONES = [
+  {
+    year: "SVM Roots",
+    badge: "Formative Roots",
+    title: "Classrooms of Suraj Prasad Daga Saraswati Vidya Mandir",
+    desc: "Himanshu Pal and Rishab Baghel studied together at Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj. Imbibing core values of self-reliance (स्वावलंबन) and discipline, they observed first-hand the daily chaos of weekend laundry and urgent pressing in Indian households.",
+    icon: IconGraduationCap,
+  },
   {
     year: "2024",
     badge: "Operations Launch",
     title: "Ground Operations Commenced in Kasganj",
-    desc: "Founded by Himanshu Pal (alumnus of Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj) and Rishab Baghel. QuickPress commenced live on-ground operations in Kasganj, solving household laundry fatigue and urgent pressing panic with dedicated doorstep collections.",
+    desc: "Turning classroom conviction into real-world execution, two school friends officially launched live QuickPress operations on the ground in Kasganj, UP — proving that high-speed hyper-local technology can originate outside Tier-1 metros with guaranteed 10–12 minute doorstep pickup.",
     icon: IconZap,
   },
   {
@@ -172,17 +179,10 @@ const MILESTONES = [
     icon: IconShieldCheck,
   },
   {
-    year: "2026",
-    badge: "Commercial Growth",
-    title: "Live Scaling Across Western UP & NCR",
-    desc: "Rapidly expanding across Kasganj, Noida, Greater Noida, and Western UP, servicing thousands of households backed by our ₹5,000 QuickPress Garment Care Guarantee.",
-    icon: IconClock,
-  },
-  {
-    year: "2027 & Beyond",
-    badge: "National Vision",
-    title: "Scaling Organized Garment Care Across Bharat",
-    desc: "On a mission to expand into 100+ Tier-2 and Tier-3 Indian cities, empowering 25,000+ local laundry operators and delivery captains into tech-enabled, high-income entrepreneurs.",
+    year: "2026 & Beyond",
+    badge: "National Scale",
+    title: "Born in Kasganj, Scaling Across Bharat",
+    desc: "Operating live across Kasganj, Noida, Greater Noida, and Western UP, on a bold mission to bring organized garment care to over 100+ Tier-2 and Tier-3 Indian cities, empowering 25,000+ local laundry operators and captains into tech entrepreneurs.",
     icon: IconSparkles,
   },
 ];
@@ -625,13 +625,13 @@ export function AboutPage({
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
           <span className="px-3.5 py-1 rounded-full bg-white border-2 border-zinc-300 text-black text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
-            OPERATIONS TIMELINE (2024–PRESENT)
+            THE CHRONOLOGY • FROM SCHOOL TO NATIONAL SCALE
           </span>
           <h2 className="text-3xl sm:text-4xl font-black text-black tracking-tight animate-pop-zoom">
-            From Kasganj Operations to National Scale
+            From School Benches to National Scale
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-600 font-medium">
-            Starting live ground operations in 2024, click through the defining operational chapters of QuickPress.
+          <p className="text-xs sm:text-sm text-zinc-600 font-medium leading-relaxed">
+            How classroom conviction at Suraj Prasad Daga Saraswati Vidya Mandir, Kasganj evolved into live ground operations in 2024 and is now expanding across Bharat.
           </p>
         </div>
 
