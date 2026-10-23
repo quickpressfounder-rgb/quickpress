@@ -54,8 +54,8 @@ export function PrivacyPolicyPage({
               <p>Legal Name / Proprietor: SAROJ KUMARI</p>
               <p>Registered Office: 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123, India</p>
               <p>Official Phone / Helpline: <a href="tel:+918279538461" className="text-emerald-700 underline font-bold">+91 8279538461</a></p>
-              <p>Grievance / Privacy Email: <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline font-bold">official.quickpress@gmail.com</a></p>
-              <p>Official Website: https://with.quickpress.com</p>
+              <p>Grievance / Privacy Email: <a href="mailto:info@withquickpress.com" className="text-emerald-700 underline font-bold">info@withquickpress.com</a> / <a href="mailto:official.quickpress@gmail.com" className="text-emerald-700 underline">official.quickpress@gmail.com</a></p>
+              <p>Official Website: https://withquickpress.com</p>
             </div>
           </div>
         ),

@@ -184,7 +184,7 @@ export function TermsPage({
                   <strong>SHRI KRISHNA EVS</strong> (Legal Name / Proprietor: <strong>SAROJ KUMARI</strong>) ("QuickPress", "We", "Us", "Our"), having its registered office at 0, JAIL ROAD, NAGLA BENI, NEAR GADDA FACTORY, KALIYANPUR, Kasganj, Kasganj, Uttar Pradesh, 207123.
                 </p>
                 <p>
-                  By accessing, browsing, or using our website (<a href="https://with.quickpress.com" className="text-emerald-700 underline font-mono">with.quickpress.com</a>), consumer mobile application, partner portal, or booking doorstep laundry or courier services, you irrevocably accept and agree to be bound by these Terms, in conjunction with our Privacy Policy, Cancellation & Refund Policy, and Logistics Policy.
+                  By accessing, browsing, or using our website (<a href="https://withquickpress.com" className="text-emerald-700 underline font-mono">withquickpress.com</a>), consumer mobile application, partner portal, or booking doorstep laundry or courier services, you irrevocably accept and agree to be bound by these Terms, in conjunction with our Privacy Policy, Cancellation & Refund Policy, and Logistics Policy.
                 </p>
               </section>
 

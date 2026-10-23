@@ -70,7 +70,7 @@ const CONTACT_CHANNELS: ChannelCard[] = [
     category: "B2B & Enterprise",
     title: "Corporate & Institutional Care",
     desc: "Dedicated garment care agreements for hotels, hospitals, corporate workforces, and uniform laundry with formal GST billing.",
-    contactText: "enterprise@with.quickpress.com",
+    contactText: "info@withquickpress.com",
     actionText: "Request B2B Quote",
     badge: "Dedicated Account Manager",
     icon: (cls) => <IconBuilding className={cls || "w-5 h-5"} />,
@@ -169,11 +169,11 @@ export function ContactPage({
             <span>official.quickpress@gmail.com</span>
           </a>
           <a
-            href="https://with.quickpress.com"
+            href="https://withquickpress.com"
             className="px-4 py-2 rounded-xl bg-white border border-gray-200 shadow-2xs hover:border-emerald-500 hover:text-emerald-800 transition-all flex items-center gap-2"
           >
             <IconGlobe className="w-4 h-4 text-emerald-700" />
-            <span>with.quickpress.com</span>
+            <span>withquickpress.com</span>
           </a>
         </div>
       </section>
