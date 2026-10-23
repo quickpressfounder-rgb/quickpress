@@ -250,3 +250,61 @@ html {
 .animate-pulse-border {
   animation: pulseBorder 3s infinite;
 }
+
+/* Zomato-Style High Graphic Motion & Scroll Reveal */
+@keyframes shimmerSweep {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-15deg);
+  }
+}
+
+@keyframes floatGentleY {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes zomatoCardPop {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmerSweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-float-y {
+  animation: floatGentleY 4s ease-in-out infinite;
+}
+
+.animate-zomato-pop {
+  animation: zomatoCardPop 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Scroll reveal utility classes */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(32px) scale(0.98);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PageType, ModalType, ServiceInfo } from "@/types";
 import {
   IconCheck,
@@ -19,6 +19,7 @@ import {
 } from "@/components/Icons";
 import { IPhone15OrderTracking } from "@/components/IPhone15OrderTracking";
 import { AreaUnavailableModal } from "@/components/AreaUnavailableModal";
+import { DPIITRecognitionBadge } from "@/components/DPIITRecognitionBadge";
 import { handleGetStartedRedirect } from "@/utils/storeRedirect";
 import customerLogo from "@/assets/quickpress-customer-logo.jpg";
 import partnerLogo from "@/assets/quickpress-partner-blue.png";
@@ -303,6 +304,30 @@ export function HomePage({
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
+  // Zomato-Style Scroll-Driven Reveal Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-revealed");
+          }
+        });
+      },
+      {
+        threshold: 0.08,
+        rootMargin: "0px 0px -40px 0px",
+      }
+    );
+
+    const revealElements = document.querySelectorAll(".reveal-on-scroll");
+    revealElements.forEach((el) => observer.observe(el));
+
+    return () => {
+      revealElements.forEach((el) => observer.unobserve(el));
+    };
+  }, []);
+
   // Filter available services based on search query
   const filteredServices = searchQuery.trim()
     ? AVAILABLE_SERVICES.filter(
@@ -476,7 +501,7 @@ export function HomePage({
         />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-gray-950 tracking-tight leading-[1.08] mb-4">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-gray-950 tracking-tight leading-[1.08] mb-4 animate-spring-up">
             Fresh Clothes. <br />
             Delivered In{" "}
             <span style={{ color: GREEN }} className="relative inline-block font-black">
@@ -491,12 +516,12 @@ export function HomePage({
             </span>
           </h1>
 
-          <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+          <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed font-normal animate-spring-up">
             Find the best laundry, dry cleaning & steam press partners in your city. Doorstep pickup in 45 minutes with 100% loss-free guarantee.
           </p>
 
           {/* ─── Dual Search Bar: Location (Kasganj & Operational Areas) + Service Search ─── */}
-          <div className="max-w-3xl mx-auto relative">
+          <div className="max-w-3xl mx-auto relative animate-pop-zoom">
             <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-emerald-950/5 border-2 border-emerald-600/30 p-2 sm:p-2.5 flex flex-col md:flex-row items-stretch gap-2 transition-all duration-200 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/10">
               {/* Left Segment: Location Selector with Live GPS Detection */}
               <div className="relative md:w-5/12">
@@ -744,7 +769,7 @@ export function HomePage({
             )}
 
             {/* Quick Keyword Pills */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs animate-slide-up">
               <span className="text-gray-500 font-medium">Available:</span>
               {[
                 { label: "Wash & Fold", id: "wash-fold" },
@@ -763,18 +788,23 @@ export function HomePage({
                 </button>
               ))}
             </div>
+
+            {/* ─── DPIIT & Startup India Recognition Badge (Prominently in Center) ─── */}
+            <div className="mt-8 sm:mt-10 animate-spring-up">
+              <DPIITRecognitionBadge />
+            </div>
           </div>
         </div>
       </section>
 
       {/* ─── 2. The 3 Big Cards With Real Logos & Generous UI (Zomato-Style Bada Bada UI) ── */}
-      <section className="py-16 sm:py-24 bg-white">
+      <section className="py-16 sm:py-24 bg-white reveal-on-scroll">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
             {/* Card 1: quickpress (Customer App) - Real Yellow Customer Logo */}
             <div
               onClick={() => onOpenModal("booking")}
-              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-amber-200/70 bg-gradient-to-b from-[#FEFCE8]/80 via-[#FFFDF5] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden"
+              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-amber-200/70 bg-gradient-to-b from-[#FEFCE8]/80 via-[#FFFDF5] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-100"
             >
               {/* Big Real Customer Squircle Logo */}
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-[#FFCA28] shadow-xl shadow-amber-900/15 flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden">
@@ -803,7 +833,7 @@ export function HomePage({
             {/* Card 2: partner hub (Partner Merchant App) - Real Blue & White Partner Logo */}
             <div
               onClick={() => onOpenModal("partner")}
-              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-blue-200/70 bg-gradient-to-b from-[#EFF6FF]/80 via-[#F8FAFC] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden"
+              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-blue-200/70 bg-gradient-to-b from-[#EFF6FF]/80 via-[#F8FAFC] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-200"
             >
               {/* Big Real Partner Squircle Logo (Blue background, White text) */}
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-[#1D4ED8] shadow-xl shadow-blue-900/15 flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden">
@@ -837,7 +867,7 @@ export function HomePage({
                 a.download = "QuickPress-Captain.apk";
                 a.click();
               }}
-              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-emerald-200/70 bg-gradient-to-b from-[#ECFDF5]/80 via-[#F7FEFA] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden"
+              className="rounded-[40px] p-8 sm:p-12 flex flex-col items-center text-center justify-between min-h-[460px] sm:min-h-[500px] border border-emerald-200/70 bg-gradient-to-b from-[#ECFDF5]/80 via-[#F7FEFA] to-white shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 cursor-pointer group relative overflow-hidden reveal-on-scroll delay-300"
             >
               {/* Big Real Captain Squircle Logo */}
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-[36px] bg-white shadow-xl shadow-emerald-900/15 flex items-center justify-center p-3 mb-8 group-hover:scale-108 transition-transform duration-500 overflow-hidden border border-emerald-100">
@@ -867,7 +897,7 @@ export function HomePage({
       </section>
 
       {/* ─── 3. "What's waiting for you on the app?" (Green Theme + Attractive Zoom Animation) ── */}
-      <section className="py-20 sm:py-28 bg-gradient-to-b from-emerald-50/40 via-white to-gray-50/60 border-t border-gray-100 relative overflow-hidden">
+      <section className="py-20 sm:py-28 bg-gradient-to-b from-emerald-50/40 via-white to-gray-50/60 border-t border-gray-100 relative overflow-hidden reveal-on-scroll">
         {/* Glow Rings behind Section */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-emerald-300/10 blur-3xl pointer-events-none" />
 
@@ -1075,7 +1105,7 @@ export function HomePage({
       </section>
 
       {/* ─── 4. Email Link Dispatch Tool ─────────────────────────────────────────────── */}
-      <section className="py-12 bg-white border-t border-gray-100">
+      <section className="py-12 bg-white border-t border-gray-100 reveal-on-scroll">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
             Instant Email Dispatch
@@ -1115,7 +1145,7 @@ export function HomePage({
       </section>
 
       {/* ─── 5. "Download the app now!" QR Card (Screenshot 5 - Green Theme at Page End) ─ */}
-      <section className="py-16 sm:py-24 bg-white border-t border-gray-100">
+      <section className="py-16 sm:py-24 bg-white border-t border-gray-100 reveal-on-scroll">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="rounded-[36px] bg-gradient-to-r from-emerald-50/70 via-emerald-50/30 to-white border border-emerald-100 p-8 sm:p-12 lg:p-14 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 sm:gap-12">
             {/* Background Aesthetic Waves */}
@@ -1249,7 +1279,7 @@ export function HomePage({
       </section>
 
       {/* ─── 6. FAQs Accordion ───────────────────────────────────────────────────────── */}
-      <section className="py-16 sm:py-24 bg-gray-50/70 border-t border-gray-100">
+      <section className="py-16 sm:py-24 bg-gray-50/70 border-t border-gray-100 reveal-on-scroll">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <span className="text-xs font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
