@@ -65,6 +65,66 @@ const IconBuilding = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
+const IconCompass = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+  </svg>
+);
+
+const IconTarget = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+
+const IconEye = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="3" r="3" />
+  </svg>
+);
+
+const IconHeartHandshake = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    <path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.18 0l1.71 1.39" />
+  </svg>
+);
+
+const MISSION_PILLARS = [
+  {
+    number: "01",
+    title: "Household Freedom",
+    desc: "Reclaim 32+ hours every month for Indian families and students by turning the chore of laundry into a 1-tap digital delivery habit.",
+    metric: "32+ hrs reclaimed / mo",
+    icon: IconClock,
+  },
+  {
+    number: "02",
+    title: "Partner Dignity",
+    desc: "Empower traditional dhobis and local laundromats with Italian vacuum steam equipment, predictable volumes, and guaranteed timely payouts.",
+    metric: "25,000+ Partners targeted",
+    icon: IconHeartHandshake,
+  },
+  {
+    number: "03",
+    title: "Medical-Grade Hygiene",
+    desc: "Set the national benchmark with 80°C anti-bacterial thermal wash, individual QR/barcoding, and an unconditional ₹5,000 garment protection guarantee.",
+    metric: "₹5,000 Care Guarantee",
+    icon: IconShieldCheck,
+  },
+  {
+    number: "04",
+    title: "Hyper-Local Velocity",
+    desc: "Dispatch captains within 10–12 minutes and return urgent steam-pressed garments within 2 hours through algorithmic micro-clustering.",
+    metric: "10m dispatch • 2h express",
+    icon: IconZap,
+  },
+];
+
 const MILESTONES = [
   {
     year: "2018–2020",
@@ -385,6 +445,104 @@ export function AboutPage({
               </div>
             </>
           )}
+        </div>
+      </section>
+
+      {/* ─── Vision & Mission: The North Star ──────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200">
+        <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold tracking-widest uppercase">
+            <IconCompass className="w-4 h-4 text-[#22c55e]" />
+            <span>THE NORTH STAR • PURPOSE & AMBITION</span>
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-black text-black tracking-tight">
+            Our Vision & Mission
+          </h2>
+          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed">
+            Bridging cutting-edge technology with grassroots empathy to build India's most dependable, dignified, and sustainable garment care network.
+          </p>
+        </div>
+
+        {/* Vision Hero Banner Card */}
+        <div className="group relative rounded-3xl bg-zinc-950 text-white p-8 sm:p-12 border border-zinc-800 shadow-2xl overflow-hidden hover:border-[#22c55e]/50 transition-all duration-300 mb-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#22c55e]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[#22c55e]/20 transition-all duration-500" />
+          <div className="relative z-10 grid lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-8 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-700 text-[#22c55e] text-xs font-mono font-bold uppercase tracking-wider">
+                <IconEye className="w-3.5 h-3.5" />
+                <span>Our Vision</span>
+              </div>
+              <h3 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-snug">
+                To organize India's ₹2.5 Lakh Crore garment care economy and give every home effortless 10-minute doorstep service.
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-2xl font-sans">
+                We envision a Bharat where no family spends their precious weekend soaked in laundry tubs, where students and working professionals never panic over un-ironed clothes, and where local laundromat partners thrive with sustainable, tech-enabled prosperity.
+              </p>
+            </div>
+
+            <div className="lg:col-span-4 grid grid-cols-1 gap-3 font-mono">
+              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 backdrop-blur-sm hover:border-[#22c55e]/40 transition-colors">
+                <div className="text-2xl sm:text-3xl font-black text-[#22c55e]">100+ Cities</div>
+                <div className="text-[11px] text-zinc-400">Expansion Target Across Bharat</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 backdrop-blur-sm hover:border-white/40 transition-colors">
+                <div className="text-2xl sm:text-3xl font-black text-white">32+ Hours</div>
+                <div className="text-[11px] text-zinc-400">Reclaimed Per Month Per Household</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 backdrop-blur-sm hover:border-[#22c55e]/40 transition-colors">
+                <div className="text-2xl sm:text-3xl font-black text-[#22c55e]">25,000+</div>
+                <div className="text-[11px] text-zinc-400">Local Partners & Captains Empowered</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mission: 4 Core Pillars Grid */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-black text-[#22c55e] flex items-center justify-center">
+              <IconTarget className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-black font-mono">
+                Our 4 Mission Pillars
+              </h3>
+              <p className="text-xs text-zinc-500">Every operational line of code we write is measured against these four fundamental commitments.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {MISSION_PILLARS.map((pillar) => (
+              <div
+                key={pillar.number}
+                className="group relative bg-zinc-50 border border-zinc-200 hover:border-black rounded-3xl p-6 transition-all duration-300 hover:shadow-xl flex flex-col justify-between hover:-translate-y-1"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-black text-[#22c55e] bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                      Pillar {pillar.number}
+                    </span>
+                    <div className="w-10 h-10 rounded-xl bg-white border border-zinc-200 flex items-center justify-center text-zinc-900 group-hover:bg-[#22c55e] group-hover:text-black group-hover:border-[#22c55e] transition-all">
+                      <pillar.icon className="w-5 h-5" />
+                    </div>
+                  </div>
+
+                  <h4 className="text-lg font-black text-black tracking-tight">
+                    {pillar.title}
+                  </h4>
+
+                  <p className="text-xs text-zinc-600 leading-relaxed font-sans">
+                    {pillar.desc}
+                  </p>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-zinc-200 text-[11px] font-mono font-bold text-zinc-900 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+                  <span>{pillar.metric}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
