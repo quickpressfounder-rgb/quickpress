@@ -6,8 +6,9 @@ import sys
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/4d042ff9-b5fb-466e-9fd8-619baf1d44e8"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/bf9cca5c-94b7-4a2d-9ac5-b3a72ec05c29"
 OLD_ARTIFACT_DIRS = [
+    "/Users/himanshupal/.gemini/antigravity-ide/brain/4d042ff9-b5fb-466e-9fd8-619baf1d44e8",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/d9a17d27-557a-4305-95cf-5af07e62d93b",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/5704e1e6-724e-4d52-b79d-6a75a3604744",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/9ae7c0d2-c173-49e5-8148-83bbec7e4565",
@@ -17,8 +18,12 @@ OLD_ARTIFACT_DIRS = [
 def run_cmd(cmd, cwd=ROOT_DIR):
     print(f"\n===> Executing: {cmd} (in {cwd})")
     env = os.environ.copy()
-    node22 = "/Users/himanshupal/.nvm/versions/node/v22.23.2/bin"
-    env["PATH"] = f"{node22}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{env.get('PATH', '')}"
+    node_bins = [
+        "/Users/himanshupal/.nvm/versions/node/v22.23.2/bin",
+        "/Users/himanshupal/.nvm/versions/node/v20.20.2/bin",
+    ]
+    node_path_prefix = ":".join(b for b in node_bins if os.path.exists(b))
+    env["PATH"] = f"{node_path_prefix}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{env.get('PATH', '')}"
     if "ANDROID_HOME" not in env or not env["ANDROID_HOME"]:
         sdk = os.path.expanduser("~/Library/Android/sdk")
         if os.path.exists(sdk):
@@ -73,11 +78,14 @@ def build_customer(apks_dir):
     if os.path.exists(cust_aab_src):
         copy_to_artifacts(cust_aab_src, "QuickPress-Customer.aab", apks_dir)
 
-    # Sync iOS
+    # Sync iOS (Optional)
     cust_ios_dir = os.path.join(ROOT_DIR, "customer-frontend", "ios")
     if os.path.exists(cust_ios_dir):
         print("Syncing Customer iOS project...")
-        run_cmd("npx cap sync ios", os.path.join(ROOT_DIR, "customer-frontend"))
+        try:
+            run_cmd("npx cap sync ios", os.path.join(ROOT_DIR, "customer-frontend"))
+        except Exception as e:
+            print(f"⚠️ iOS sync skipped or failed (non-blocking for APK): {e}")
 
 def build_partner(apks_dir):
     print("\n--- [Partner App] Building Partner App ---")
@@ -118,11 +126,14 @@ def build_rider(apks_dir):
     if os.path.exists(rdr_aab_src):
         copy_to_artifacts(rdr_aab_src, "QuickPress-Captain.aab", apks_dir)
 
-    # 3. Sync iOS
+    # 3. Sync iOS (Optional)
     rdr_ios_dir = os.path.join(ROOT_DIR, "rider-frontend", "ios")
     if os.path.exists(rdr_ios_dir):
         print("Syncing Rider iOS project...")
-        run_cmd("npx cap sync ios", os.path.join(ROOT_DIR, "rider-frontend"))
+        try:
+            run_cmd("npx cap sync ios", os.path.join(ROOT_DIR, "rider-frontend"))
+        except Exception as e:
+            print(f"⚠️ iOS sync skipped or failed (non-blocking for APK): {e}")
 
 def main():
     target = sys.argv[1].lower() if len(sys.argv) > 1 else "all"
