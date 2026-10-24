@@ -914,6 +914,31 @@ export function BusinessSettingsScreen() {
                       }
                     />
                   </div>
+
+                  {/* Order Buzzer / Chime Test (Desktop) */}
+                  <div
+                    onClick={() => {
+                      testPartnerSoundAndVibration();
+                      toast.success("Order alert chime ringing!");
+                    }}
+                    className="flex items-center justify-between p-4 rounded-2xl border border-zinc-200/80 hover:border-emerald-300 hover:bg-emerald-50/20 cursor-pointer transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                        <Volume2 className="size-5" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-black text-zinc-900">Store Order Alert Ringtone</p>
+                        <p className="text-xs text-zinc-500">Commercial buzzer & counter bell alert</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-black transition-all cursor-pointer shadow-2xs"
+                    >
+                      Play Chime 🔊
+                    </button>
+                  </div>
                 </div>
               </section>
 

@@ -422,47 +422,73 @@ export function ManageServicesScreen() {
       {/* ========================================================================= */}
       {/* DESKTOP MENU & SERVICES VIEW (>= md)                                      */}
       {/* ========================================================================= */}
-      <div className="hidden mx-auto w-full max-w-7xl px-4 py-4 md:block md:px-8 md:py-6">
+      <div className="hidden mx-auto w-full max-w-7xl px-4 py-4 md:block md:px-8 md:py-6 select-none">
         <PullToRefresh onRefresh={refresh}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <ServiceToolbar
-              query={query}
-              onQueryChange={setQuery}
-              filters={filters}
-              onFilterToggle={(f) =>
-                setFilters((prev) =>
-                  prev.includes(f) ? prev.filter((item) => item !== f) : [...prev, f],
-                )
-              }
-              sort={sort}
-              onSortChange={setSort}
-              totalCount={services.length}
-              visibleCount={visible.length}
-            />
+          {/* Zomato-style Category Tabs Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b border-zinc-100">
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = categoryFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setCategoryFilter(tab.id)}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 ${
+                    isActive
+                      ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-950"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+            <div className="relative w-72 lg:w-96">
+              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search service name, category, or garment..."
+                className="h-11 w-full rounded-2xl border border-zinc-200 bg-zinc-50/70 pl-10 pr-4 text-xs font-medium text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-2xs"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
+                >
+                  <X className="size-4" />
+                </button>
+              ) : null}
+            </div>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setOfferSheetOpen(true)}
-                className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-2.5 text-xs font-bold tracking-tight text-foreground transition-all hover:border-primary/60 active:scale-95"
+                className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold tracking-tight text-zinc-800 transition-all hover:bg-zinc-50 active:scale-95 shadow-2xs cursor-pointer"
               >
-                <Tag className="size-4 text-brand-green-dark" />
-                Add Offer ({offers.length})
+                <Tag className="size-4 text-emerald-600" />
+                <span>Add Offer ({offers.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCatalogModalOpen(true)}
-                className="flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-black tracking-tight text-amber-950 shadow-xs transition-all hover:bg-amber-100 active:scale-95"
+                className="flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-black tracking-tight text-amber-950 shadow-xs transition-all hover:bg-amber-100 active:scale-95 cursor-pointer"
               >
                 <Sparkles className="size-4 text-amber-600" />
-                Quick Add Catalog
+                <span>Quick Add Catalog</span>
               </button>
               <Link
                 to={partnerRoutes.serviceNew}
-                className="flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-xs font-black tracking-tight text-primary-foreground shadow-sm transition-all hover:brightness-105 active:scale-95"
+                className="flex items-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-4.5 py-2.5 text-xs font-black tracking-tight text-white shadow-md shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
               >
                 <Plus className="size-4" />
-                + Custom Service
+                <span>+ Custom Service</span>
               </Link>
             </div>
           </div>

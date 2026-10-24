@@ -350,6 +350,8 @@ export function playPartnerOrderChime(): void {
   }
 }
 
+export const playPartnerOrderAlertChime = playPartnerOrderChime;
+
 /**
  * Starts continuous repeating merchant alert ring for incoming new orders.
  * Rings every 1.5 seconds with dual engine (Pre-warmed Web Audio + HTML5 WAV fallback).

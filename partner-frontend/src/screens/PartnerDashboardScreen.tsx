@@ -3,12 +3,17 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bike,
+  Check,
   CheckCircle2,
+  ChevronRight,
   Clock,
+  IndianRupee,
   LayoutGrid,
+  LayoutList,
   ListOrdered,
   MapPin,
   Package,
+  Phone,
   Plus,
   Radio,
   RotateCcw,
@@ -16,6 +21,7 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
+  Table,
   TrendingUp,
   Wallet,
   X,
@@ -135,6 +141,7 @@ export function PartnerDashboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [trackingOrder, setTrackingOrder] = useState<LiveOrder | null>(null);
+  const [orderViewMode, setOrderViewMode] = useState<"cards" | "table">("cards");
 
   // Restore cached dashboard data strictly after hydration to prevent React error #418
   useEffect(() => {
@@ -477,11 +484,11 @@ export function PartnerDashboardScreen() {
             </div>
           ) : (
             <div className="animate-soft-fade space-y-7 lg:space-y-9">
-              {/* 1. Executive Store Command Hub Banner */}
-              <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white p-6 lg:p-7 shadow-xl shadow-slate-950/20">
-                {/* Background ambient lighting */}
-                <div className="pointer-events-none absolute -right-12 -top-12 size-72 rounded-full bg-blue-500/15 blur-3xl" />
-                <div className="pointer-events-none absolute -left-12 -bottom-12 size-72 rounded-full bg-emerald-500/10 blur-3xl" />
+              {/* 1. Executive Store Command Hub Banner - 100% Pure White Zomato Partner Console Style */}
+              <div className="relative overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-6 lg:p-7 shadow-xs">
+                {/* Subtle light ambient glow */}
+                <div className="pointer-events-none absolute -right-12 -top-12 size-72 rounded-full bg-emerald-500/5 blur-3xl" />
+                <div className="pointer-events-none absolute -left-12 -bottom-12 size-72 rounded-full bg-blue-500/5 blur-3xl" />
 
                 <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   {/* Left Column: Store Details & Live Radar Telemetry */}
@@ -490,58 +497,58 @@ export function PartnerDashboardScreen() {
                       <button
                         type="button"
                         onClick={() => setShowStatusConfirmModal(true)}
-                        className={`flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-bold backdrop-blur-md border transition-all cursor-pointer ${
+                        className={`flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-black border transition-all cursor-pointer shadow-2xs ${
                           isOnline
-                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25"
-                            : "bg-rose-500/15 border-rose-500/30 text-rose-300 hover:bg-rose-500/25"
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                            : "bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100"
                         }`}
                       >
                         <span
                           className={`size-2 rounded-full ${
                             isOnline
-                              ? "bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"
-                              : "bg-rose-400"
+                              ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse"
+                              : "bg-rose-500"
                           }`}
                         />
-                        <span>{isOnline ? "STORE ONLINE & ACCEPTING ORDERS" : "STORE OFFLINE / PAUSED"}</span>
+                        <span>{isOnline ? "STORE ONLINE & ACCEPTING ORDERS 🟢" : "STORE OFFLINE / PAUSED 🔴"}</span>
                       </button>
 
-                      <span className="rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 px-3 py-1 text-[11px] font-black tracking-wide">
+                      <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 text-[11px] font-black tracking-wide">
                         {session?.city ? `${session.city} Operations Hub` : "Store Operations Hub"}
                       </span>
 
-                      <span className="text-slate-400 text-xs font-mono font-medium">
+                      <span className="text-zinc-500 text-xs font-mono font-bold">
                         ID: #PRT-{(session as any)?.partnerId || (session as any)?.account?.linkedId || (session as any)?.account?.id || (session as any)?.id || ""}
                       </span>
                     </div>
 
                     <div>
-                      <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
+                      <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-zinc-950 flex items-center gap-2.5">
                         <span>{shop?.shopName || session?.businessName || session?.ownerName || "Merchant Store"}</span>
-                        <span className="text-emerald-400 text-xs font-black bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                          <ShieldCheck className="size-3.5" /> Verified Partner
+                        <span className="text-emerald-800 text-xs font-black bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1 shadow-2xs">
+                          <ShieldCheck className="size-3.5 text-emerald-600" /> Verified Partner
                         </span>
                       </h2>
-                      <p className="mt-1 text-xs text-slate-300 font-medium max-w-xl leading-relaxed">
+                      <p className="mt-1 text-xs text-zinc-600 font-medium max-w-xl leading-relaxed">
                         Commercial Laundry & Garment Care Operations Console · Hyper-Local Delivery Coverage Active
                       </p>
                     </div>
 
                     {/* Live Telemetry Ticker */}
-                    <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-300 font-semibold">
+                    <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-zinc-600 font-semibold">
                       <div className="flex items-center gap-1.5">
-                        <Radio className="size-3.5 text-emerald-400 animate-pulse" />
-                        <span>Radar: <strong className="text-white font-bold">Broadcasting (12ms)</strong></span>
+                        <Radio className="size-3.5 text-emerald-600 animate-pulse" />
+                        <span>Radar: <strong className="text-zinc-950 font-black">Broadcasting (12ms)</strong></span>
                       </div>
-                      <span className="text-slate-600">•</span>
+                      <span className="text-zinc-300">•</span>
                       <div className="flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-blue-400" />
-                        <span>Auto Settlement: <strong className="text-white font-bold">Daily 06:00 AM</strong></span>
+                        <Clock className="size-3.5 text-blue-600" />
+                        <span>Auto Settlement: <strong className="text-zinc-950 font-black">Daily 06:00 AM</strong></span>
                       </div>
-                      <span className="text-slate-600">•</span>
+                      <span className="text-zinc-300">•</span>
                       <div className="flex items-center gap-1.5">
-                        <Zap className="size-3.5 text-amber-400" />
-                        <span>Supabase Live Channel: <strong className="text-white font-bold">Active</strong></span>
+                        <Zap className="size-3.5 text-amber-500" />
+                        <span>Supabase Live Channel: <strong className="text-zinc-950 font-black">Active</strong></span>
                       </div>
                     </div>
                   </div>
@@ -551,7 +558,7 @@ export function PartnerDashboardScreen() {
                     <button
                       type="button"
                       onClick={() => navigate({ to: partnerRoutes.orders })}
-                      className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs px-5 py-3 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer active:scale-95"
+                      className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-5 py-3 shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
                     >
                       <ListOrdered className="size-4" />
                       <span>Open Live Queue ({orders.length})</span>
@@ -562,9 +569,9 @@ export function PartnerDashboardScreen() {
                       <button
                         type="button"
                         onClick={() => navigate({ to: partnerRoutes.services })}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs px-3.5 py-2.5 border border-white/15 transition-all cursor-pointer active:scale-95"
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-bold text-xs px-3.5 py-2.5 border border-zinc-200 transition-all cursor-pointer active:scale-95 shadow-2xs"
                       >
-                        <Sparkles className="size-3.5 text-amber-300" />
+                        <Sparkles className="size-3.5 text-amber-500" />
                         <span>Rate Card</span>
                       </button>
 
@@ -573,9 +580,9 @@ export function PartnerDashboardScreen() {
                         onClick={refresh}
                         disabled={isLoading}
                         title="Refresh Live Data"
-                        className="flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/15 text-white p-2.5 border border-white/15 transition-all cursor-pointer active:scale-95"
+                        className="flex items-center justify-center rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-800 p-2.5 border border-zinc-200 transition-all cursor-pointer active:scale-95 shadow-2xs"
                       >
-                        <RotateCcw className={`size-4 ${isLoading ? "animate-spin text-emerald-400" : ""}`} />
+                        <RotateCcw className={`size-4 ${isLoading ? "animate-spin text-emerald-600" : ""}`} />
                       </button>
                     </div>
                   </div>
@@ -589,7 +596,7 @@ export function PartnerDashboardScreen() {
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                   >
                     <span>{t("View Queue", "View Full Queue")}</span>
                     <ArrowRight className="size-3.5" />
@@ -617,25 +624,65 @@ export function PartnerDashboardScreen() {
                 </section>
               </div>
 
-              {/* 4. Live Orders Section */}
-              <section>
-                <div className="flex items-center justify-between">
-                  <SectionHeading title={t("dashboard.liveOrders", "Active Orders")} />
-                  <button
-                    type="button"
-                    onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline cursor-pointer"
-                  >
-                    <span>{t("View all", "View all")} ({orders.length})</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
+              {/* 4. Live Orders Section with Table / Cards View Mode Toggle */}
+              <section className="space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <SectionHeading title={t("dashboard.liveOrders", "Active Orders")} />
+                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-black text-emerald-800 shadow-2xs">
+                      {liveOrders.length} Live
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* View Switcher: Zomato Cards vs Table Layout */}
+                    <div className="flex items-center rounded-xl border border-zinc-200 bg-zinc-50/80 p-0.5 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setOrderViewMode("cards")}
+                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                          orderViewMode === "cards"
+                            ? "bg-white text-zinc-950 font-black shadow-xs"
+                            : "text-zinc-500 hover:text-zinc-900"
+                        }`}
+                        title="Zomato Card Grid"
+                      >
+                        <LayoutGrid className="size-3.5" />
+                        <span>Cards</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrderViewMode("table")}
+                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                          orderViewMode === "table"
+                            ? "bg-white text-zinc-950 font-black shadow-xs"
+                            : "text-zinc-500 hover:text-zinc-900"
+                        }`}
+                        title="Compact Order Table"
+                      >
+                        <LayoutList className="size-3.5" />
+                        <span>Table Layout</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate({ to: partnerRoutes.orders })}
+                      className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer pl-2"
+                    >
+                      <span>{t("View all", "View all")} ({orders.length})</span>
+                      <ArrowRight className="size-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-3.5">
+
+                <div>
                   {!isOnline ? (
                     <OfflineEmptyState onGoOnline={() => setShowStatusConfirmModal(true)} />
                   ) : liveOrders.length === 0 ? (
                     <NoOrdersEmptyState />
-                  ) : (
+                  ) : orderViewMode === "cards" ? (
+                    /* Zomato Order Cards Grid */
                     <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
                       {liveOrders.map((order, index) => (
                         <LiveOrderCard
@@ -648,6 +695,99 @@ export function PartnerDashboardScreen() {
                           onTrackMap={(o) => setTrackingOrder(o)}
                         />
                       ))}
+                    </div>
+                  ) : (
+                    /* High-Density Pure White Zomato Table Layout */
+                    <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-zinc-200 bg-zinc-50/80 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                              <th className="px-4 py-3">Order ID</th>
+                              <th className="px-4 py-3">Customer</th>
+                              <th className="px-4 py-3">Services / Items</th>
+                              <th className="px-4 py-3">Pickup Time</th>
+                              <th className="px-4 py-3">Amount</th>
+                              <th className="px-4 py-3">Status</th>
+                              <th className="px-4 py-3 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100 font-medium">
+                            {liveOrders.map((order) => {
+                              const isPending = order.status === "pending";
+                              return (
+                                <tr
+                                  key={order.id}
+                                  className="transition-colors hover:bg-zinc-50/80"
+                                >
+                                  <td className="px-4 py-3 font-mono font-black text-zinc-950">
+                                    #{order.code}
+                                  </td>
+                                  <td className="px-4 py-3 font-bold text-zinc-900">
+                                    {order.customerName}
+                                  </td>
+                                  <td className="px-4 py-3 text-zinc-600">
+                                    <div className="flex items-center gap-1 flex-wrap max-w-xs">
+                                      {order.services.map((svc, sIdx) => (
+                                        <span
+                                          key={sIdx}
+                                          className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
+                                        >
+                                          {svc}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-zinc-700 font-semibold whitespace-nowrap">
+                                    <div className="flex items-center gap-1.5">
+                                      <Clock className="size-3.5 text-zinc-400" />
+                                      <span>{order.pickupTime}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 font-black text-zinc-950 whitespace-nowrap">
+                                    ₹{order.amount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
+                                      {order.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      {isPending ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleReject(order)}
+                                            className="rounded-lg bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer"
+                                          >
+                                            Reject
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleAccept(order)}
+                                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                                          >
+                                            Accept
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleView(order)}
+                                          className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
+                                        >
+                                          View Details
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -752,7 +892,7 @@ export function PartnerDashboardScreen() {
                 <button
                   type="button"
                   onClick={() => setTrackingOrder(null)}
-                  className="rounded-xl bg-zinc-900 px-3.5 py-1.5 font-bold text-white text-xs hover:bg-black cursor-pointer"
+                  className="rounded-xl bg-emerald-600 px-3.5 py-1.5 font-bold text-white text-xs hover:bg-emerald-700 cursor-pointer shadow-xs transition-all"
                 >
                   Done
                 </button>

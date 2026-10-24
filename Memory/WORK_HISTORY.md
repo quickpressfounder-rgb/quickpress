@@ -33,6 +33,36 @@
 
 ## Detailed Log of Work Done Today (24 October 2026)
 
+### 2. Partner Console Desktop Redesign: Pure White Theme & Zomato Merchant UI/UX
+- **Objective:** Upgrade the entire **Partner Panel Desktop View** (`https://quickpress.online`) to a **Pure White Theme** inspired by the **Zomato Merchant Partner Panel**, featuring smooth micro-animations, pure white backgrounds (`#ffffff`/`#fafafa`), soft emerald indicators (`emerald-600`/`emerald-50`), zero dark/black containers or buttons, and crisp typography (`text-zinc-950`).
+- **1. Sidebar Navigation (`partner-frontend/src/components/layout/PartnerSidebar.tsx`):**
+  - Converted sidebar to pure white merchant style with subtle borders (`border-r border-zinc-200/80 bg-white`).
+  - Added transparent QuickPress Partner branding header (`/quickpress-partner-onboarding-transparent.png`).
+  - Added live store acceptance toggle switch with glowing emerald beacon (`Accepting Orders 🟢` / `Store Paused 🔴`).
+  - Active navigation pill styled with soft emerald badge (`bg-emerald-50 text-emerald-950 border border-emerald-200 font-extrabold`).
+  - Styled sign-out button with soft rose hover rather than dark styling.
+- **2. Top Header (`partner-frontend/src/components/layout/PartnerDesktopTopBar.tsx`):**
+  - Pure white sticky header (`bg-white/95 backdrop-blur-md border-b border-zinc-200/80`).
+  - Added 1-click **"Test Alert" (🔊)** sound test button calling `playPartnerOrderChime()`.
+  - Replaced black notification badge with pulsing rose-500 badge (`bg-rose-500 text-white`).
+  - Store status pill with live emerald indicator and pure white profile dropdown menu.
+- **3. Order Table Layout vs. Order Cards (`PartnerDashboardScreen.tsx` & `OrdersScreen.tsx`):**
+  - Added desktop **Cards vs. Table Layout Switcher** (`orderViewMode`: `"cards"` | `"table"`) with `<LayoutGrid />` and `<LayoutList />` toggle buttons.
+  - Implemented high-density **Pure White Zomato Table Layout** with columns: Order ID, Customer Name & Phone, Services/Items chips, Pickup Time slot, Amount, Stage/Status pill, and 1-click action buttons (Accept, View Details).
+  - Upgraded `OrderCard.tsx` and `OrderActionBar.tsx` to pure white cards with subtle zinc borders, micro-elevation hover lifts, and emerald action buttons.
+  - Upgraded `ZomatoHubView.tsx` by replacing all black buttons/chips with emerald action buttons and zinc-100 chips.
+- **4. Services / Rate Card Management (`ManageServicesScreen.tsx` & `ServiceCard.tsx`):**
+  - Added Zomato-style horizontal category filter carousel (Wash & Fold, Steam Iron, Dry Clean, Shoe Care, Offers, Paused).
+  - Upgraded `ServiceCard.tsx` to pure white menu card with instant availability switch toggle (`bg-emerald-600` for Live 🟢, `bg-zinc-300` for Paused ⏸️).
+  - Eliminated dark buttons in catalog creation and custom service modals.
+- **5. Shop Profile & Settings (`ShopManagementScreen.tsx`, `ShopProfileHeader.tsx`, `ShopEditSheet.tsx`, `BusinessSettingsScreen.tsx`, `PartnerProfileScreen.tsx`):**
+  - Upgraded shop cover banner placeholder to pure white/emerald dashed container with zero dark gradients.
+  - Replaced all black action buttons ("Edit Store Info", "Upload Cover", "New Change Request", "Save Changes") with vibrant emerald and pure white buttons.
+  - Added buzzer sound test chime button in `BusinessSettingsScreen.tsx`.
+- **Verification:**
+  - `npm run build:partner` passed with 0 errors across client, server, and SSR environments.
+  - `npm run build:rider` passed with 0 errors.
+
 ### 1. Legal Pages & Cross-App Statutory Integration
 - **Objective:** Connect all legal, grievance, and policy screens across Customer, Partner, and Rider apps directly to the official live website (`https://withquickpress.com`), eliminating broken dummy URLs and detached copies.
 - **Website Mobile Bypass (`website/src/utils/mobileAppRedirect.ts` & `website/src/App.tsx`):**

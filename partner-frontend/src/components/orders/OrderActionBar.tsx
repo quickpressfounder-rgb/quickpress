@@ -131,10 +131,10 @@ export function OrderActionBar({
             onClick={() => onAction(action.id)}
             className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl font-black tracking-tight transition-all duration-200 active:scale-[0.98] ${sizeClass} ${
               isPrimary
-                ? "bg-primary hover:bg-primary-dark text-white shadow-primary/25"
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
                 : action.intent === "danger"
                 ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
-                : "bg-zinc-900 hover:bg-black text-white"
+                : "bg-zinc-50 hover:bg-zinc-100 text-zinc-900 border border-zinc-200"
             }`}
           >
             {busy ? (

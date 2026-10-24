@@ -11,129 +11,154 @@ import {
 } from "../../data/partner-services-mock";
 import { serviceIcon } from "./service-icons";
 
-/** Premium service card used on the Manage Services grid. */
+/** Pure White Zomato Merchant Service & Rate Card item */
 export function ServiceCard({
   service,
-  offers,
-  index,
+  offers = [],
+  index = 0,
   onToggle,
+  onToggleEnabled,
   onEdit,
   onViewDetails,
+  onOpenDetails,
 }: {
   service: ManagedService;
-  offers: ServiceOffer[];
-  index: number;
-  onToggle: () => void;
-  onEdit: () => void;
-  onViewDetails: () => void;
+  offers?: ServiceOffer[];
+  index?: number;
+  onToggle?: () => void;
+  onToggleEnabled?: (id: string) => void;
+  onEdit?: () => void;
+  onViewDetails?: () => void;
+  onOpenDetails?: (s: ManagedService) => void;
 }) {
   const Icon = serviceIcon(service.icon);
   const isPending = Boolean(service.pendingApproval || service.approvalStatus === "pending");
   const isRejected = service.approvalStatus === "rejected";
 
+  const handleToggle = () => {
+    if (isPending) {
+      toast.error("Yeh service Admin review ke liye pending hai. Approval ke baad hi live hogi!");
+      return;
+    }
+    if (isRejected) {
+      toast.error(`Service Admin ne reject kar di: ${service.rejectionReason || "Please edit and resubmit."}`);
+      return;
+    }
+    if (onToggle) {
+      onToggle();
+    } else if (onToggleEnabled) {
+      onToggleEnabled(service.id);
+    }
+  };
+
+  const handleView = () => {
+    if (onViewDetails) {
+      onViewDetails();
+    } else if (onOpenDetails) {
+      onOpenDetails(service);
+    }
+  };
+
   return (
     <article
-      className={`card-soft animate-slide-up group flex flex-col border border-border p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-soft stagger-${
-        (index % 6) + 1
-      }`}
+      className="card-soft animate-rise group flex flex-col justify-between border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md rounded-2xl relative select-none"
+      style={{ animationDelay: `${(index % 6) * 50}ms` }}
     >
-      <div className="flex items-start gap-3">
-        <span
-          className={`flex size-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 ${
-            isPending
-              ? "bg-amber-100 text-amber-800"
-              : isRejected
-              ? "bg-rose-100 text-rose-800"
-              : service.enabled
-              ? "bg-primary/15 text-brand-dark"
-              : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Icon className="size-5" strokeWidth={2.1} />
-        </span>
+      <div>
+        <div className="flex items-start gap-3.5">
+          <span
+            className={`flex size-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 border ${
+              isPending
+                ? "bg-amber-50 text-amber-800 border-amber-200"
+                : isRejected
+                ? "bg-rose-50 text-rose-800 border-rose-200"
+                : service.enabled
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200/80 shadow-2xs"
+                : "bg-zinc-100 text-zinc-500 border-zinc-200"
+            }`}
+          >
+            <Icon className="size-5.5" strokeWidth={2.2} />
+          </span>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-black tracking-tight text-foreground">
-                {service.name}
-              </h3>
-              <p className="mt-0.5 text-[0.68rem] font-bold uppercase tracking-wider text-muted-foreground">
-                {categoryLabel(service.category)}
-              </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-black tracking-tight text-zinc-950">
+                  {service.name}
+                </h3>
+                <p className="mt-0.5 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
+                  {categoryLabel(service.category)}
+                </p>
+              </div>
+
+              {/* Instant In-Stock / Availability Switch (Zomato Style) */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={service.enabled}
+                aria-label={`Toggle ${service.name}`}
+                onClick={handleToggle}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  isPending
+                    ? "bg-amber-300 cursor-not-allowed opacity-80"
+                    : isRejected
+                    ? "bg-rose-300 cursor-not-allowed opacity-80"
+                    : service.enabled
+                    ? "bg-emerald-600 shadow-xs"
+                    : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    service.enabled && !isPending && !isRejected ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
 
-            <button
-              type="button"
-              role="switch"
-              aria-checked={service.enabled}
-              aria-label={`Toggle ${service.name}`}
-              onClick={() => {
-                if (isPending) {
-                  toast.error("Yeh service Admin review ke liye pending hai. Approval ke baad hi live hogi!");
-                  return;
-                }
-                if (isRejected) {
-                  toast.error(`Service Admin ne reject kar di: ${service.rejectionReason || "Please edit and resubmit."}`);
-                  return;
-                }
-                onToggle();
-              }}
-              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ${
-                isPending
-                  ? "bg-amber-300 cursor-not-allowed opacity-80"
-                  : isRejected
-                  ? "bg-rose-300 cursor-not-allowed opacity-80"
-                  : service.enabled
-                  ? "bg-secondary"
-                  : "bg-muted"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 size-5 rounded-full bg-background shadow-soft transition-all duration-300 ${
-                  service.enabled && !isPending && !isRejected ? "left-[1.4rem]" : "left-0.5"
-                }`}
-              />
-            </button>
+            <p className="mt-2 line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600">
+              {service.description}
+            </p>
           </div>
+        </div>
 
-          <p className="mt-2 line-clamp-2 text-xs font-medium leading-relaxed text-muted-foreground">
-            {service.description}
-          </p>
+        {/* Badges strip */}
+        <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
+          <StatusPill
+            enabled={service.enabled}
+            pendingApproval={isPending}
+            approvalStatus={service.approvalStatus}
+            rejectionReason={service.rejectionReason}
+          />
+          <Chip icon={Clock3} label={formatTurnaround(service.estimatedHours)} />
+          {service.ordersThisMonth > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10.5px] font-bold tracking-tight text-emerald-800">
+              <TrendingUp className="size-3 text-emerald-600" />
+              {service.ordersThisMonth} orders
+            </span>
+          ) : null}
+          {offers.map((offer) => (
+            <span
+              key={offer.id}
+              className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10.5px] font-black tracking-tight text-emerald-900"
+            >
+              🏷️ {offer.type === "flat" ? `₹${offer.value} off` : `${offer.value}% off`}
+            </span>
+          ))}
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <StatusPill
-          enabled={service.enabled}
-          pendingApproval={isPending}
-          approvalStatus={service.approvalStatus}
-          rejectionReason={service.rejectionReason}
-        />
-        <Chip icon={Clock3} label={formatTurnaround(service.estimatedHours)} />
-        {service.ordersThisMonth > 0 ? (
-          <Chip icon={TrendingUp} label={`${service.ordersThisMonth} orders`} />
-        ) : null}
-        {offers.map((offer) => (
-          <span
-            key={offer.id}
-            className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[0.65rem] font-bold tracking-tight text-brand-dark"
-          >
-            {offer.type === "flat" ? `₹${offer.value} off` : `${offer.value}% off`}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-4 flex items-end justify-between gap-3 border-t border-border pt-3">
+      {/* Price & Action Buttons */}
+      <div className="mt-4 flex items-end justify-between gap-3 border-t border-zinc-100 pt-3.5">
         <div>
-          <span className="flex items-center gap-0.5 text-lg font-black tracking-tight text-foreground">
-            <IndianRupee className="size-4" />
+          <span className="flex items-center gap-0.5 text-xl font-black tracking-tight text-zinc-950">
+            <IndianRupee className="size-4.5 text-zinc-800" strokeWidth={2.4} />
             {service.price}
-            <span className="text-[0.7rem] font-bold text-muted-foreground">
+            <span className="text-xs font-bold text-zinc-500 ml-0.5">
               {unitSuffix(service.unit)}
             </span>
           </span>
-          <p className="text-[0.65rem] font-medium text-muted-foreground">
+          <p className="text-[10.5px] font-medium text-zinc-500 mt-0.5">
             Updated {formatUpdated(service.updatedMinutesAgo)} · Min ₹{service.minOrderValue}
           </p>
         </div>
@@ -141,20 +166,22 @@ export function ServiceCard({
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={onViewDetails}
-            className="ripple rounded-2xl border border-border bg-card px-3 py-2 text-[0.7rem] font-bold tracking-tight text-foreground transition-all duration-300 hover:border-primary/60 active:scale-[0.96]"
+            onClick={handleView}
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 transition-all hover:bg-zinc-50 active:scale-95 cursor-pointer shadow-2xs"
           >
-            View Details
+            Details
           </button>
-          <button
-            type="button"
-            onClick={onEdit}
-            aria-label={`Edit ${service.name}`}
-            className="ripple flex items-center gap-1 rounded-2xl bg-primary/15 px-3 py-2 text-[0.7rem] font-bold tracking-tight text-brand-dark transition-all duration-300 active:scale-[0.96]"
-          >
-            <Pencil className="size-3.5" />
-            Edit
-          </button>
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label={`Edit ${service.name}`}
+              className="flex items-center gap-1 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-800 transition-all hover:bg-emerald-100 active:scale-95 cursor-pointer shadow-2xs"
+            >
+              <Pencil className="size-3 text-emerald-600" />
+              Edit
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -174,9 +201,9 @@ export function StatusPill({
 }) {
   if (pendingApproval || approvalStatus === "pending") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[0.65rem] font-black tracking-tight text-amber-800 border border-amber-300">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10.5px] font-black tracking-tight text-amber-800 border border-amber-300">
         <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-        ⏳ Pending Admin Approval
+        ⏳ Pending Approval
       </span>
     );
   }
@@ -184,23 +211,25 @@ export function StatusPill({
     return (
       <span
         title={rejectionReason}
-        className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-1 text-[0.65rem] font-black tracking-tight text-rose-800 border border-rose-300"
+        className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10.5px] font-black tracking-tight text-rose-800 border border-rose-300"
       >
         <span className="size-1.5 rounded-full bg-rose-500" />
-        ❌ Rejected by Admin
+        ❌ Rejected
       </span>
     );
   }
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.65rem] font-bold tracking-tight ${
-        enabled ? "bg-secondary/15 text-brand-green-dark" : "bg-muted text-muted-foreground"
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-black tracking-tight border ${
+        enabled
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border-zinc-200 bg-zinc-100 text-zinc-600"
       }`}
     >
       <span
-        className={`size-1.5 rounded-full ${enabled ? "bg-brand-green" : "bg-muted-foreground"}`}
+        className={`size-1.5 rounded-full ${enabled ? "bg-emerald-600" : "bg-zinc-400"}`}
       />
-      {enabled ? "Active" : "Inactive"}
+      {enabled ? "Live 🟢" : "Paused ⏸️"}
     </span>
   );
 }
@@ -213,8 +242,8 @@ function Chip({
   label: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[0.65rem] font-bold tracking-tight text-muted-foreground">
-      <Icon className="size-3" />
+    <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[10.5px] font-semibold tracking-tight text-zinc-700">
+      <Icon className="size-3 text-zinc-500" />
       {label}
     </span>
   );

@@ -149,7 +149,7 @@ export function ShopProfileHeader({
       />
 
       {/* 1. High-Resolution Cover Banner */}
-      <div className="relative h-44 sm:h-56 w-full overflow-hidden rounded-3xl border border-zinc-200/80 bg-zinc-900 shadow-sm">
+      <div className="relative h-44 sm:h-56 w-full overflow-hidden rounded-3xl border border-zinc-200/80 bg-zinc-100 shadow-xs">
         {bannerImg ? (
           <img
             src={bannerImg}
@@ -157,23 +157,25 @@ export function ShopProfileHeader({
             className="size-full object-cover"
           />
         ) : (
-          <div className="relative flex size-full items-center justify-center bg-gradient-to-br from-emerald-800 via-teal-900 to-zinc-950 p-6 text-center">
-            <div className="pointer-events-none space-y-1">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white/10 text-white backdrop-blur-md">
+          <div className="relative flex size-full items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-zinc-50 p-6 text-center border-2 border-dashed border-emerald-200/90 rounded-3xl">
+            <div className="pointer-events-none space-y-1.5">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800">
                 <Store className="size-6" />
               </div>
-              <p className="text-sm font-black tracking-tight text-white">
+              <p className="text-sm font-black tracking-tight text-zinc-950">
                 Upload Storefront Cover
               </p>
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-zinc-600 font-medium">
                 Show customers your storefront & laundry machines
               </p>
             </div>
           </div>
         )}
 
-        {/* Top Vignette Overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/40" />
+        {/* Top Vignette Overlay (subtle when image exists) */}
+        {bannerImg ? (
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+        ) : null}
 
         {/* Top bar over banner: Status pill on left, Upload Cover on right */}
         <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3.5 z-10">
@@ -183,12 +185,12 @@ export function ShopProfileHeader({
             type="button"
             onClick={() => bannerInputRef.current?.click()}
             disabled={uploadingBanner}
-            className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-white shadow-md transition-all hover:bg-black/80 active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur-md px-3.5 py-1.5 text-xs font-bold text-zinc-900 border border-zinc-200/80 shadow-xs transition-all hover:bg-white active:scale-95 cursor-pointer"
           >
             {uploadingBanner ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              <Camera className="size-3.5 text-emerald-400" />
+              <Camera className="size-3.5 text-emerald-600" />
             )}
             <span>{bannerImg ? "Change Cover" : "Upload Cover"}</span>
           </button>
@@ -196,12 +198,12 @@ export function ShopProfileHeader({
       </div>
 
       {/* 2. Store Identity Block (Floats on top of banner) */}
-      <div className="relative z-10 -mt-10 mx-2 sm:mx-4 rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-md space-y-4">
+      <div className="relative z-10 -mt-10 mx-2 sm:mx-4 rounded-3xl border border-zinc-200/80 bg-white p-4.5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5 min-w-0">
             {/* Store Logo with Camera Trigger */}
             <div className="relative shrink-0">
-              <div className="flex size-18 sm:size-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-amber-400 text-zinc-950 font-black text-2xl shadow-md">
+              <div className="flex size-18 sm:size-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-amber-400 text-zinc-950 font-black text-2xl shadow-xs">
                 {logoImg ? (
                   <img
                     src={logoImg}
@@ -217,7 +219,7 @@ export function ShopProfileHeader({
                 onClick={() => logoInputRef.current?.click()}
                 disabled={uploadingLogo}
                 title="Change Store Logo"
-                className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
+                className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-90 cursor-pointer"
               >
                 {uploadingLogo ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -270,16 +272,16 @@ export function ShopProfileHeader({
             <button
               type="button"
               onClick={onEdit}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-2xl bg-zinc-900 px-4 py-2.5 text-xs font-black text-white shadow-xs transition-all hover:bg-zinc-800 active:scale-95 cursor-pointer"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-95 cursor-pointer"
             >
-              <Pencil className="size-3.5 text-emerald-400" />
+              <Pencil className="size-3.5 text-white" />
               <span>Edit Store Info</span>
             </button>
 
             <button
               type="button"
               onClick={onChangeStatus}
-              className="flex items-center justify-center gap-1.5 rounded-2xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-xs font-bold text-zinc-800 shadow-2xs transition-all hover:bg-zinc-100 active:scale-95 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2.5 text-xs font-bold text-zinc-800 shadow-2xs transition-all hover:bg-zinc-50 active:scale-95 cursor-pointer"
             >
               <Power className="size-3.5 text-zinc-500" />
               <span>Status</span>

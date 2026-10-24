@@ -6,6 +6,8 @@ import {
   CheckCircle2,
   Clock,
   Layers,
+  LayoutGrid,
+  LayoutList,
   Menu,
   Phone,
   Play,
@@ -54,6 +56,7 @@ export function OrdersScreen() {
   const [filterTab, setFilterTab] = useState<PartnerOrderFilterTab>("active");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<OrderSortId>("latest");
+  const [orderViewMode, setOrderViewMode] = useState<"cards" | "table">("cards");
 
   const STAGE_TABS: { id: PartnerOrderFilterTab; label: string; count: number }[] = useMemo(() => {
     return [
@@ -128,14 +131,14 @@ export function OrdersScreen() {
                   onClick={() => setFilterTab(tab.id)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
                     isActive
-                      ? "border-2 border-black bg-zinc-100 text-black font-black shadow-xs"
-                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400 hover:text-black"
+                      ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-black"
                   }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                      isActive ? "bg-zinc-200 text-black" : "bg-zinc-100 text-zinc-700"
+                      isActive ? "bg-emerald-200/80 text-emerald-900" : "bg-zinc-100 text-zinc-700"
                     }`}
                   >
                     {tab.count}
@@ -152,8 +155,8 @@ export function OrdersScreen() {
             <OrderListSkeleton />
           ) : visible.length === 0 ? (
             <div className="my-8 rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-xs">
-              <div className="mx-auto size-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
-                <ShoppingBag className="size-6 text-blue-600" />
+              <div className="mx-auto size-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                <ShoppingBag className="size-6 text-emerald-600" />
               </div>
               <h3 className="mt-3 text-sm font-black text-black">
                 {isSearching ? "No matching orders found" : `No orders in "${filterTab}" queue`}
@@ -164,7 +167,7 @@ export function OrdersScreen() {
               <button
                 type="button"
                 onClick={isSearching ? resetSearch : () => void refresh()}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full border-2 border-black bg-zinc-100 hover:bg-zinc-200 px-4 py-2 text-xs font-black text-black shadow-xs active:scale-95 transition-all cursor-pointer"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 px-4 py-2 text-xs font-black text-zinc-900 shadow-xs active:scale-95 transition-all cursor-pointer"
               >
                 <RotateCcw className="size-3" />
                 <span>{isSearching ? "Reset filter" : "Refresh Orders"}</span>
@@ -191,32 +194,64 @@ export function OrdersScreen() {
       {/* ========================================================================= */}
       <div className="hidden mx-auto w-full max-w-7xl px-4 py-4 md:block md:px-8 md:py-6">
         <PullToRefresh onRefresh={refresh}>
-          {/* Canonical 8 Status Filter Tabs */}
-          <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
-            {STAGE_TABS.map((tab) => {
-              const isActive = filterTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setFilterTab(tab.id)}
-                  className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 cursor-pointer ${
-                    isActive
-                      ? "border-2 border-black bg-zinc-100 text-black shadow-xs"
-                      : "border border-zinc-200 bg-white text-zinc-700 hover:border-black hover:text-black"
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  <span
-                    className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                      isActive ? "bg-zinc-200 text-black" : "bg-zinc-100 text-zinc-700"
+          {/* Canonical Status Filter Tabs + Table/Cards Switcher Header */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200/80 pb-4">
+            <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
+              {STAGE_TABS.map((tab) => {
+                const isActive = filterTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setFilterTab(tab.id)}
+                    className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all active:scale-95 cursor-pointer ${
+                      isActive
+                        ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
+                        : "border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:text-black"
                     }`}
                   >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
+                    <span>{tab.label}</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
+                        isActive ? "bg-emerald-200/80 text-emerald-900" : "bg-zinc-100 text-zinc-700"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* View Switcher: Cards vs Table Layout */}
+            <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1 border border-zinc-200/80 shrink-0 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={() => setOrderViewMode("cards")}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  orderViewMode === "cards"
+                    ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+                title="Card Grid View"
+              >
+                <LayoutGrid className="size-3.5" />
+                <span>Cards</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderViewMode("table")}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  orderViewMode === "table"
+                    ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+                title="Compact Order Table"
+              >
+                <LayoutList className="size-3.5" />
+                <span>Table Layout</span>
+              </button>
+            </div>
           </div>
 
           {/* Orders Content View */}
@@ -230,7 +265,7 @@ export function OrdersScreen() {
                 variant={isSearching ? "no-results" : "no-orders"}
                 onAction={isSearching ? resetSearch : () => void refresh()}
               />
-            ) : (
+            ) : orderViewMode === "cards" ? (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {visible.map((order, index) => (
                   <OrderCard
@@ -241,6 +276,95 @@ export function OrdersScreen() {
                     busyAction={busy?.orderId === order.id ? busy.actionId : null}
                   />
                 ))}
+              </div>
+            ) : (
+              /* High-Density Pure White Zomato Table Layout */
+              <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-zinc-200 bg-zinc-50/80 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                        <th className="px-4 py-3.5">Order ID</th>
+                        <th className="px-4 py-3.5">Customer</th>
+                        <th className="px-4 py-3.5">Services / Items</th>
+                        <th className="px-4 py-3.5">Pickup Time</th>
+                        <th className="px-4 py-3.5">Amount</th>
+                        <th className="px-4 py-3.5">Stage / Status</th>
+                        <th className="px-4 py-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-medium">
+                      {visible.map((order) => {
+                        return (
+                          <tr
+                            key={order.id}
+                            className="transition-colors hover:bg-zinc-50/80 cursor-pointer"
+                            onClick={() => navigate({ to: partnerRoutes.orderDetail(order.id) })}
+                          >
+                            <td className="px-4 py-3.5 font-mono font-black text-zinc-950">
+                              #{order.code}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <p className="font-bold text-zinc-900">{order.customerName}</p>
+                              <p className="text-[11px] text-zinc-500">{order.customerPhone}</p>
+                            </td>
+                            <td className="px-4 py-3.5 text-zinc-600">
+                              <div className="flex items-center gap-1 flex-wrap max-w-xs">
+                                {(order.services || []).map((svc, sIdx) => (
+                                  <span
+                                    key={sIdx}
+                                    className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
+                                  >
+                                    {svc}
+                                  </span>
+                                ))}
+                                {(!order.services || order.services.length === 0) && (
+                                  <span className="text-[11px] text-zinc-500">
+                                    {order.itemCount || 1} items
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 text-zinc-700 font-semibold whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="size-3.5 text-zinc-400" />
+                                <span>{order.pickupTime || "Today"}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 font-black text-zinc-950 whitespace-nowrap">
+                              ₹{(order.amount || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
+                                {order.stage}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => navigate({ to: partnerRoutes.orderDetail(order.id) })}
+                                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                                >
+                                  Details
+                                </button>
+                                {order.stage === "new" || order.stage === "pending" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAction(order, "accept")}
+                                    className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                                  >
+                                    Accept
+                                  </button>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

@@ -81,13 +81,13 @@ export const OrderCard = React.memo(function OrderCard({
         if (target.closest("button, a, input, select, textarea")) return;
         navigate({ to: partnerRoutes.orderDetails, params: { orderId: order.id } });
       }}
-      className="contain-render card-soft animate-rise border border-border p-4 transition-all duration-300 hover:border-primary/60 cursor-pointer"
+      className="contain-render card-soft animate-rise border border-zinc-200/90 bg-white p-5 rounded-2xl shadow-xs transition-all duration-300 hover:border-emerald-300 hover:shadow-md cursor-pointer select-none"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-sm font-black tracking-tight text-foreground">
+            <p className="truncate text-sm font-black tracking-tight text-zinc-950">
               {order.customerName}
             </p>
             <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[0.62rem] font-bold text-foreground">
@@ -245,7 +245,7 @@ export const OrderCard = React.memo(function OrderCard({
         <Link
           to={partnerRoutes.orderDetails}
           params={{ orderId: order.id }}
-          className="ripple flex shrink-0 items-center justify-center rounded-2xl border border-border bg-card px-4 py-2.5 text-xs font-bold tracking-tight text-foreground transition-all duration-300 hover:border-primary/60 active:scale-[0.97]"
+          className="flex shrink-0 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold tracking-tight text-zinc-800 transition-all duration-200 hover:bg-zinc-50 active:scale-95 shadow-2xs"
         >
           Details
         </Link>

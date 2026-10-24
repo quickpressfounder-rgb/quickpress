@@ -1333,7 +1333,7 @@ export function PartnerProfileScreen() {
                   onClick={() => setActiveKycTab("documents")}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     activeKycTab === "documents"
-                      ? "bg-zinc-900 text-white shadow-xs"
+                      ? "border border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
                       : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
                   }`}
                 >
@@ -1345,7 +1345,7 @@ export function PartnerProfileScreen() {
                   onClick={() => setActiveKycTab("history")}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     activeKycTab === "history"
-                      ? "bg-zinc-900 text-white shadow-xs"
+                      ? "border border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
                       : "bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
                   }`}
                 >
@@ -1389,9 +1389,9 @@ export function PartnerProfileScreen() {
                           setShowApprovalsModal(false);
                           setShowKycEditModal(true);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 text-white px-3 py-1.5 text-xs font-bold shadow-xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
                       >
-                        <PenTool className="size-3" />
+                        <PenTool className="size-3 text-white" />
                         Request Document Edit
                       </button>
                     </div>
@@ -1621,9 +1621,9 @@ export function PartnerProfileScreen() {
                           setShowApprovalsModal(false);
                           setShowKycEditModal(true);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 text-white px-3 py-1.5 text-xs font-bold shadow-xs hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white px-3.5 py-1.5 text-xs font-bold shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
                       >
-                        <PenTool className="size-3" />
+                        <PenTool className="size-3 text-white" />
                         New Change Request
                       </button>
                     </div>
@@ -1715,7 +1715,7 @@ export function PartnerProfileScreen() {
                     setShowDocumentsModal(false);
                     setShowApprovalsModal(false);
                   }}
-                  className="rounded-xl bg-zinc-900 px-5 py-2 text-xs font-black text-white hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
+                  className="rounded-xl border border-zinc-200 bg-white px-5 py-2 text-xs font-black text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
                 >
                   Close
                 </button>
@@ -2539,7 +2539,7 @@ export function PartnerProfileScreen() {
       {/* ========================================================================= */}
       {showKycEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white border border-zinc-200/90 p-6 shadow-2xl space-y-5">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div>
@@ -2759,7 +2759,7 @@ export function PartnerProfileScreen() {
       {/* ========================================================================= */}
       {showDocPreview && showDocPreview.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl space-y-4">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white border border-zinc-200/90 p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div>
                 <h3 className="text-sm font-black text-foreground">{showDocPreview.title}</h3>

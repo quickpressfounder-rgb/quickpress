@@ -462,7 +462,7 @@ export function ZomatoHubView() {
             >
               <Bell className="size-4" />
               {unreadCount > 0 ? (
-                <span className="absolute -top-1 -right-1 flex min-w-4 h-4 px-1 items-center justify-center rounded-full bg-black text-[9px] font-black text-white ring-2 ring-white">
+                <span className="absolute -top-1 -right-1 flex min-w-4 h-4 px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white animate-pulse">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               ) : null}
@@ -489,14 +489,14 @@ export function ZomatoHubView() {
                 onClick={() => setActiveFilterTab(tab.id)}
                 className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
                   isActive
-                    ? "border-2 border-black bg-zinc-100 text-black font-black shadow-xs"
-                    : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400 hover:text-black"
+                    ? "border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs"
+                    : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-black"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${
-                    isActive ? "bg-zinc-200 text-black" : "bg-zinc-100 text-zinc-700"
+                    isActive ? "bg-emerald-200/80 text-emerald-950" : "bg-zinc-100 text-zinc-700"
                   }`}
                 >
                   {tab.count}
@@ -663,7 +663,7 @@ export function ZomatoHubView() {
                     {/* 1. TOP BAR: Order Code + Services + SLA Timer + Print Tag + Status Badge */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center rounded-lg bg-black px-2.5 py-1 text-xs font-black text-white tracking-wide shadow-xs">
+                        <span className="inline-flex items-center rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-black text-zinc-950 tracking-wide shadow-2xs">
                           #{order.code}
                         </span>
                         {isNew && (
@@ -884,16 +884,16 @@ export function ZomatoHubView() {
                               {idx > 0 && (
                                 <div
                                   className={`absolute top-2.5 -left-1/2 w-full h-[2px] -z-0 transition-colors ${
-                                    idx <= stepIdx ? "bg-black" : "bg-zinc-200"
+                                    idx <= stepIdx ? "bg-emerald-600" : "bg-zinc-200"
                                   }`}
                                 />
                               )}
                               <div
                                 className={`relative z-10 flex size-5 items-center justify-center rounded-full text-[10px] font-black transition-all ${
                                   isCurrent
-                                    ? "border-2 border-black bg-zinc-100 text-black shadow-xs font-black"
+                                    ? "border-2 border-emerald-600 bg-emerald-50 text-emerald-950 shadow-xs font-black"
                                     : isDone
-                                      ? "bg-black text-white"
+                                      ? "bg-emerald-600 text-white"
                                       : "bg-zinc-200 text-zinc-500"
                                 }`}
                               >
@@ -969,7 +969,7 @@ export function ZomatoHubView() {
                         <button
                           type="button"
                           onClick={() => handleAction(order, "start_washing")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border-2 border-black bg-zinc-950 hover:bg-zinc-800 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-xs transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                         >
                           <span>Start Cleaning 🧺</span>
                           <ArrowRight className="size-3.5" />
@@ -978,7 +978,7 @@ export function ZomatoHubView() {
                         <button
                           type="button"
                           onClick={() => handleAction(order, "mark_ready")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border-2 border-black bg-zinc-950 hover:bg-zinc-800 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-xs transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                         >
                           <span>Mark Ready ✓</span>
                           <ArrowRight className="size-3.5" />
@@ -990,7 +990,7 @@ export function ZomatoHubView() {
                             setSelectedManageOrder(order);
                             setHubDispatchOtp("");
                           }}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border-2 border-black bg-zinc-950 hover:bg-zinc-800 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-xs transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 py-2.5 sm:py-3 px-3 text-xs font-black text-white active:scale-95 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                         >
                           <ShieldCheck className="size-4" />
                           <span>Handover (OTP)</span>
@@ -1005,7 +1005,7 @@ export function ZomatoHubView() {
                               params: { orderId: order.id },
                             })
                           }
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border-2 border-black bg-zinc-100 hover:bg-zinc-200 py-2.5 sm:py-3 px-3 text-xs font-black text-black active:scale-95 shadow-xs transition-all cursor-pointer"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 py-2.5 sm:py-3 px-3 text-xs font-black text-zinc-950 active:scale-95 shadow-2xs transition-all cursor-pointer"
                         >
                           <span>Manage Order</span>
                           <ArrowRight className="size-3.5" />
@@ -1034,7 +1034,7 @@ export function ZomatoHubView() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-lg bg-black px-2 py-0.5 text-xs font-black text-white">
+                  <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-black text-zinc-950">
                     #{selectedManageOrder.code}
                   </span>
                   <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-black uppercase text-blue-700 border border-blue-200">
@@ -1119,7 +1119,7 @@ export function ZomatoHubView() {
                     type="button"
                     disabled={hubDispatchOtp.trim().length !== 4 || isVerifyingHubDispatch}
                     onClick={handleHubVerifyDispatch}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95 cursor-pointer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
                     {isVerifyingHubDispatch ? (
                       <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -1181,7 +1181,7 @@ export function ZomatoHubView() {
                     handleAction(selectedManageOrder, "start_washing");
                     setSelectedManageOrder(null);
                   }}
-                  className="w-full rounded-xl bg-zinc-950 hover:bg-zinc-800 py-3 text-xs font-black text-white shadow-xs active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-black text-white shadow-xs active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                 >
                   <span>Start Cleaning 🧺</span>
                   <ArrowRight className="size-3" />
@@ -1193,7 +1193,7 @@ export function ZomatoHubView() {
                     handleAction(selectedManageOrder, "mark_ready");
                     setSelectedManageOrder(null);
                   }}
-                  className="w-full rounded-xl bg-zinc-950 hover:bg-zinc-800 py-3 text-xs font-black text-white shadow-xs active:scale-95 cursor-pointer"
+                  className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-black text-white shadow-xs active:scale-95 cursor-pointer transition-all"
                 >
                   Mark Order Ready for Delivery ✓
                 </button>
@@ -1207,7 +1207,7 @@ export function ZomatoHubView() {
                     });
                     setSelectedManageOrder(null);
                   }}
-                  className="w-full rounded-xl bg-zinc-950 hover:bg-zinc-800 py-3 text-xs font-black text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                  className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-black text-white shadow-xs active:scale-95 transition-all cursor-pointer"
                 >
                   View Full Order Details →
                 </button>

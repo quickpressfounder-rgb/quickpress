@@ -251,12 +251,12 @@ export function ShopEditSheet({
               type="button"
               disabled={uploadingBanner}
               onClick={() => bannerInputRef.current?.click()}
-              className="absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black text-white backdrop-blur-xs transition-all hover:bg-black/80 active:scale-95 disabled:opacity-50"
+              className="absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/95 border border-zinc-200/80 px-3 py-1.5 text-[10px] font-black text-zinc-900 shadow-xs transition-all hover:bg-white active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {uploadingBanner ? (
-                <Loader2 className="size-3 animate-spin" />
+                <Loader2 className="size-3 animate-spin text-emerald-600" />
               ) : (
-                <Camera className="size-3" />
+                <Camera className="size-3 text-emerald-600" />
               )}
               <span>{uploadingBanner ? "Uploading..." : bannerPreview ? "Change Banner" : "Upload Banner"}</span>
             </button>
