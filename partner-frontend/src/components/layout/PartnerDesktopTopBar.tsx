@@ -4,10 +4,10 @@ import {
   Bell,
   ChevronDown,
   Globe,
+  HelpCircle,
   LogOut,
   Search,
   Settings2,
-  ShieldCheck,
   Sparkles,
   Store,
   TrendingUp,
@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 
 import { partnerRoutes } from "../../navigation/partner-routes";
-import { useLanguage, SUPPORTED_LANGUAGES } from "../../lib/i18n";
+import { useLanguage } from "../../lib/i18n";
 import { fetchPartnerUnreadCount } from "@/api/partner/partner-profile-api";
 import { subscribePartnerNotifications } from "../../lib/partner-socket";
 import { playPartnerOrderAlertChime } from "../../lib/partner-order-alert-sound";
@@ -45,12 +45,13 @@ export function PartnerDesktopTopBar({
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
 }) {
-  const { language, openLanguageModal, t } = useLanguage();
-  const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === language);
+  const { language, openLanguageModal } = useLanguage();
   const [imgFailed, setImgFailed] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [liveUnreadCount, setLiveUnreadCount] = useState<number>(unreadCount);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -70,26 +71,30 @@ export function PartnerDesktopTopBar({
     setImgFailed(false);
   }, [shopLogo]);
 
-  // Close dropdown on click outside or escape key
+  // Close dropdowns on click outside or escape key
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDropdownOpen(false);
+      if (e.key === "Escape") {
+        setDropdownOpen(false);
+        setStatusDropdownOpen(false);
+      }
     };
 
-    if (dropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [dropdownOpen]);
+  }, []);
 
   const handleTestChime = () => {
     try {
@@ -100,200 +105,215 @@ export function PartnerDesktopTopBar({
     }
   };
 
-  const displayTitle = title
-    ? (title.toLowerCase() === "dashboard" ? t("nav.dashboard", "Live Orders Hub")
-       : title.toLowerCase() === "profile" ? t("nav.profile", "Store Profile")
-       : title.toLowerCase() === "orders" ? t("nav.orders", "Orders History")
-       : title.toLowerCase() === "services" ? t("nav.services", "Rate Card & Services")
-       : title.toLowerCase() === "settings" ? t("nav.settings", "Store Settings")
-       : title.toLowerCase() === "shop" || title.toLowerCase() === "store" ? t("nav.store", "Store Profile")
-       : title.toLowerCase() === "analytics" ? t("nav.analytics", "Store Analytics")
-       : title)
-    : t("nav.dashboard", "Live Orders Hub");
+  const displayName = (shopName || "Himanshu").split(" ")[0];
 
   return (
-    <header className="sticky top-0 z-30 hidden h-20 items-center justify-between border-b border-zinc-200/80 bg-white/95 px-8 backdrop-blur-md md:flex select-none">
-      {/* Title & Subtitle */}
-      <div>
-        <h1 className="text-xl font-black tracking-tight text-zinc-950">
-          {displayTitle}
-        </h1>
-        {subtitle ? (
-          <p className="text-xs font-semibold text-zinc-500">{subtitle}</p>
-        ) : null}
+    <header className="sticky top-0 z-30 hidden h-14 w-full items-center justify-between border-b border-zinc-200/80 bg-white px-5 md:flex select-none">
+      {/* Left: Classic Zomato-style brand wordmark */}
+      <div className="flex items-center gap-3">
+        <Link
+          to={partnerRoutes.dashboard}
+          className="flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
+        >
+          <span className="text-[22px] font-black tracking-tight text-zinc-950 font-sans lowercase">
+            quickpress
+          </span>
+        </Link>
       </div>
 
-      {/* Right controls */}
+      {/* Right: Controls matching Zomato Merchant top bar */}
       <div className="flex items-center gap-3">
-        {onSearchChange ? (
-          <div className="relative w-64 lg:w-80">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={t("common.searchPlaceholder", "Search order #ID, customer phone, service...")}
-              className="h-10 w-full rounded-2xl border border-zinc-200 bg-zinc-50/70 pl-10 pr-4 text-xs font-medium text-zinc-900 transition-all placeholder:text-zinc-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-2xs"
-            />
-          </div>
-        ) : null}
-
-        {/* Audio Chime Sound Test Button (Essential Zomato Partner Tool) */}
+        {/* Assistant / Buzzer Test AI Circular Button */}
         <button
           type="button"
           onClick={handleTestChime}
-          title="Test Order Chime / Alert Sound"
-          className="flex items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 transition-all hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-800 active:scale-95 cursor-pointer shadow-2xs"
+          title="Test Order Alert Sound (🔊)"
+          className="flex size-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-2xs hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
         >
-          <Volume2 className="size-4 text-emerald-600 animate-pulse" />
-          <span className="hidden xl:inline">Test Alert</span>
+          <Sparkles className="size-4 fill-white text-white" />
         </button>
 
-        {/* Analytics Shortcut Button */}
-        <Link
-          to={partnerRoutes.analytics}
-          title="Store Analytics & Growth"
-          className="flex items-center gap-1.5 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 transition-all hover:bg-zinc-50 active:scale-95 shadow-2xs"
-        >
-          <TrendingUp className="size-4 text-emerald-600" />
-          <span className="hidden lg:inline">{t("nav.analytics", "Analytics")}</span>
-        </Link>
-
-        {/* Language Switcher Button */}
-        <button
-          type="button"
-          onClick={openLanguageModal}
-          title="Change App Language"
-          className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 transition-all hover:bg-zinc-50 active:scale-95 cursor-pointer shadow-2xs"
-        >
-          <Globe className="size-4 text-emerald-600" />
-          <span className="font-extrabold">{currentLang?.nativeName || "Language"}</span>
-          <span className="rounded-md bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-emerald-700">
-            {language}
-          </span>
-        </button>
-
-        {/* Store Live Status Pill */}
-        <button
-          type="button"
-          onClick={onToggleStatus}
-          className={`flex items-center gap-2 rounded-2xl border px-3.5 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer ${
-            isOnline
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800 font-extrabold shadow-2xs"
-              : "border-zinc-200 bg-zinc-100 text-zinc-600 font-bold"
-          }`}
-        >
-          <span
-            className={`size-2 rounded-full ${
-              isOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse" : "bg-zinc-400"
-            }`}
-          />
-          <span>{isOnline ? "Accepting Orders 🟢" : "Store Offline 🔴"}</span>
-        </button>
-
-        {/* Notifications */}
+        {/* Notifications Bell with Red Badge */}
         <Link
           to={partnerRoutes.notifications}
-          className="relative flex size-10 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-800 transition-colors hover:bg-zinc-50 shadow-2xs"
+          title="Notifications"
+          className="relative flex size-8 items-center justify-center rounded-full text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 transition-all cursor-pointer"
         >
-          <Bell className="size-4" />
-          {Math.max(unreadCount, liveUnreadCount) > 0 ? (
-            <span className="absolute -right-1 -top-1 flex min-w-4 h-4 px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white shadow-xs animate-pulse">
-              {Math.max(unreadCount, liveUnreadCount) > 9 ? "9+" : Math.max(unreadCount, liveUnreadCount)}
-            </span>
-          ) : null}
+          <Bell className="size-4.5 stroke-[2.2]" />
+          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-2xs">
+            {Math.max(unreadCount, liveUnreadCount, 1)}
+          </span>
         </Link>
 
-        {/* Store Profile Dropdown Button */}
+        {/* Settings Gear */}
+        <Link
+          to={partnerRoutes.settings}
+          title="Store Settings"
+          className="flex size-8 items-center justify-center rounded-full text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 transition-all cursor-pointer"
+        >
+          <Settings2 className="size-4.5 stroke-[2.2]" />
+        </Link>
+
+        {/* Share Feedback text link */}
+        <button
+          type="button"
+          onClick={() => {
+            toast.info("Share feedback: email official.quickpress@gmail.com");
+          }}
+          className="text-xs font-semibold text-zinc-600 hover:text-zinc-950 underline decoration-zinc-300 hover:decoration-zinc-800 transition-colors cursor-pointer px-1"
+        >
+          Share feedback
+        </button>
+
+        {/* Store Status Dropdown Pill (Offline ▾ / Online ▾) */}
+        <div className="relative" ref={statusRef}>
+          <button
+            type="button"
+            onClick={() => setStatusDropdownOpen((prev) => !prev)}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+              isOnline
+                ? "border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
+                : "border-rose-300 bg-white text-rose-600 hover:bg-rose-50"
+            }`}
+          >
+            <span
+              className={`size-2 rounded-full ${
+                isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+              }`}
+            />
+            <span>{isOnline ? "Online" : "Offline"}</span>
+            <ChevronDown
+              className={`size-3 transition-transform duration-200 ${
+                statusDropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {/* Quick Status Toggle Dropdown */}
+          {statusDropdownOpen && (
+            <div className="absolute right-0 top-full mt-1.5 w-52 rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl z-50 animate-in fade-in duration-100 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isOnline && onToggleStatus) onToggleStatus();
+                  setStatusDropdownOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors cursor-pointer ${
+                  isOnline
+                    ? "bg-emerald-50 text-emerald-800"
+                    : "text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                <span className="size-2 rounded-full bg-emerald-500" />
+                <span>Online (Accepting Orders)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isOnline && onToggleStatus) onToggleStatus();
+                  setStatusDropdownOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left font-bold transition-colors cursor-pointer ${
+                  !isOnline
+                    ? "bg-rose-50 text-rose-700"
+                    : "text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                <span className="size-2 rounded-full bg-rose-500" />
+                <span>Offline (Paused / Closed)</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Store Profile Avatar Pill (Himans... ▾) */}
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2.5 rounded-2xl border border-zinc-200 bg-white p-1.5 pr-2.5 transition-colors hover:bg-zinc-50 cursor-pointer active:scale-95 shadow-2xs"
+            className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white py-1 pl-1 pr-2.5 text-xs font-bold text-zinc-900 transition-all hover:bg-zinc-50 cursor-pointer shadow-2xs"
             aria-expanded={dropdownOpen}
-            aria-haspopup="true"
           >
-            <div className="relative size-7 shrink-0 overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-50 flex items-center justify-center text-emerald-800 font-black text-[11px]">
+            <div className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-blue-700 font-black text-[11px]">
               {shopLogo && !imgFailed ? (
                 <img
                   src={shopLogo}
-                  alt={shopName || "Partner Store"}
+                  alt={shopName || "Partner"}
                   className="size-full object-cover"
                   onError={() => setImgFailed(true)}
                 />
               ) : (
-                <span>{(shopName || "QP").slice(0, 2).toUpperCase()}</span>
+                <UserRound className="size-3.5 text-blue-700" />
               )}
             </div>
-            <span className="text-xs font-black text-zinc-950 max-w-[130px] truncate">
-              {shopName || "Partner Store"}
+            <span className="max-w-[80px] truncate font-bold text-zinc-900">
+              {displayName}
             </span>
             <ChevronDown
-              className={`size-3.5 text-zinc-400 transition-transform duration-200 ${
+              className={`size-3 text-zinc-400 transition-transform duration-200 ${
                 dropdownOpen ? "rotate-180" : ""
               }`}
             />
           </button>
 
-          {/* Interactive Pure White Dropdown Menu */}
+          {/* Profile Dropdown Menu */}
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 rounded-3xl border border-zinc-200/90 bg-white p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              {/* Store Identity Header */}
-              <div className="px-3 py-2.5 border-b border-zinc-100">
-                <div className="flex items-center gap-2">
-                  <Store className="size-4 text-emerald-600" />
-                  <p className="text-xs font-black text-zinc-950 truncate">{shopName || "Partner Store"}</p>
-                </div>
-                <p className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                  <span>✓</span> Verified Merchant Outlet
+            <div className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl z-50 animate-in fade-in duration-100">
+              <div className="px-3 py-2 border-b border-zinc-100">
+                <p className="text-xs font-black text-zinc-900 truncate">
+                  {shopName || "Partner Store"}
+                </p>
+                <p className="text-[10px] font-semibold text-zinc-500">
+                  QuickPress Partner Outlet
                 </p>
               </div>
 
-              {/* Navigation Links */}
-              <div className="py-1 space-y-0.5">
-                <Link
-                  to={partnerRoutes.profile}
-                  onClick={() => setDropdownOpen(false)}
-                  className="flex items-center gap-2.5 rounded-2xl px-3 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition-colors"
-                >
-                  <UserRound className="size-4 text-zinc-500" />
-                  <span>Store Profile & KYC</span>
-                </Link>
-
-                <Link
-                  to={partnerRoutes.analytics}
-                  onClick={() => setDropdownOpen(false)}
-                  className="flex items-center justify-between rounded-2xl px-3 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <TrendingUp className="size-4 text-emerald-600" />
-                    <span>Analytics & Growth</span>
-                  </div>
-                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-black text-emerald-700">
-                    Live
-                  </span>
-                </Link>
-
+              <div className="py-1 space-y-0.5 text-xs">
                 <Link
                   to={partnerRoutes.shop}
                   onClick={() => setDropdownOpen(false)}
-                  className="flex items-center gap-2.5 rounded-2xl px-3 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition-colors"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-colors"
+                >
+                  <Store className="size-4 text-zinc-500" />
+                  <span>Outlet Info</span>
+                </Link>
+
+                <Link
+                  to={partnerRoutes.services}
+                  onClick={() => setDropdownOpen(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-colors"
                 >
                   <Sparkles className="size-4 text-zinc-500" />
-                  <span>Store Management</span>
+                  <span>Menu &amp; Rate Card</span>
                 </Link>
 
                 <Link
                   to={partnerRoutes.settings}
                   onClick={() => setDropdownOpen(false)}
-                  className="flex items-center gap-2.5 rounded-2xl px-3 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition-colors"
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-colors"
                 >
                   <Settings2 className="size-4 text-zinc-500" />
                   <span>Store Settings</span>
                 </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    openLanguageModal();
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Globe className="size-4 text-zinc-500" />
+                    <span>Language</span>
+                  </div>
+                  <span className="uppercase text-[10px] font-black bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-600">
+                    {language}
+                  </span>
+                </button>
               </div>
 
-              {/* Sign Out Option */}
               {onLogout && (
                 <div className="pt-1 border-t border-zinc-100">
                   <button
@@ -302,7 +322,7 @@ export function PartnerDesktopTopBar({
                       setDropdownOpen(false);
                       onLogout();
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-2xl px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                   >
                     <LogOut className="size-4 text-rose-600" />
                     <span>Sign Out</span>

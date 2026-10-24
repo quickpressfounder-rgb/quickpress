@@ -127,6 +127,130 @@ function getCachedDashboard(): {
   }
 }
 
+function ZomatoOfflineView({ onGoOnline }: { onGoOnline: () => void }) {
+  return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 py-16 text-center select-none animate-in fade-in duration-200">
+      {/* Exact Zomato Hanging CLOSED Board from Image 1 */}
+      <div className="relative mb-6">
+        <svg
+          width="260"
+          height="170"
+          viewBox="0 0 260 170"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="mx-auto drop-shadow-sm"
+        >
+          {/* Red Hanging Pin / Nail */}
+          <circle cx="130" cy="22" r="12" fill="#E23744" />
+          <circle cx="130" cy="22" r="6" fill="#B91C1C" />
+
+          {/* Ropes hanging down to board corners */}
+          <line
+            x1="130"
+            y1="22"
+            x2="56"
+            y2="82"
+            stroke="#94A3B8"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <line
+            x1="130"
+            y1="22"
+            x2="204"
+            y2="82"
+            stroke="#94A3B8"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+
+          {/* Tilted Hanging Signboard */}
+          <g transform="rotate(-6 130 105)">
+            {/* Board Shadow */}
+            <rect
+              x="42"
+              y="66"
+              width="176"
+              height="84"
+              rx="14"
+              fill="#CBD5E1"
+              opacity="0.6"
+            />
+            {/* Board Background */}
+            <rect
+              x="38"
+              y="62"
+              width="176"
+              height="84"
+              rx="14"
+              fill="#FFFFFF"
+              stroke="#64748B"
+              strokeWidth="3.5"
+            />
+            {/* Inner Border */}
+            <rect
+              x="44"
+              y="68"
+              width="164"
+              height="72"
+              rx="9"
+              fill="none"
+              stroke="#CBD5E1"
+              strokeWidth="1.5"
+            />
+            {/* Holes / Rivets */}
+            <circle cx="54" cy="78" r="3.5" fill="#64748B" />
+            <circle cx="198" cy="78" r="3.5" fill="#64748B" />
+
+            {/* CLOSED Typography matching Image 1 */}
+            <text
+              x="126"
+              y="117"
+              textAnchor="middle"
+              fill="#475569"
+              fontSize="28"
+              fontWeight="900"
+              fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+              letterSpacing="3.5"
+            >
+              CLOSED
+            </text>
+          </g>
+        </svg>
+      </div>
+
+      {/* Title matching Image 1 */}
+      <h2 className="text-base sm:text-lg font-bold text-zinc-800">
+        You are offline
+      </h2>
+
+      {/* Subtitle with dotted underline matching Image 1 */}
+      <p className="mt-1.5 text-xs text-zinc-500">
+        Visit{" "}
+        <a
+          href="/settings"
+          className="border-b border-dotted border-zinc-400 font-medium text-zinc-700 hover:text-black transition-colors"
+        >
+          help centre
+        </a>{" "}
+        for more details
+      </p>
+
+      {/* Go Online Button */}
+      <div className="mt-6">
+        <button
+          type="button"
+          onClick={onGoOnline}
+          className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-95 cursor-pointer"
+        >
+          <span className="size-2 rounded-full bg-white animate-pulse" />
+          <span>Go Online &amp; Accept Orders</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function PartnerDashboardScreen() {
   const navigate = useNavigate();
   const { session, isOnline, toggleOnline } = usePartnerContext();
@@ -482,110 +606,61 @@ export function PartnerDashboardScreen() {
             <div className="px-4 py-16 text-center text-sm font-medium text-muted-foreground md:px-6">
               {error}
             </div>
+          ) : !isOnline ? (
+            /* EXACT Zomato Offline Screen matching Image 1 */
+            <ZomatoOfflineView onGoOnline={() => setShowStatusConfirmModal(true)} />
           ) : (
-            <div className="animate-soft-fade space-y-7 lg:space-y-9">
-              {/* 1. Executive Store Command Hub Banner - 100% Pure White Zomato Partner Console Style */}
-              <div className="relative overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-6 lg:p-7 shadow-xs">
-                {/* Subtle light ambient glow */}
-                <div className="pointer-events-none absolute -right-12 -top-12 size-72 rounded-full bg-emerald-500/5 blur-3xl" />
-                <div className="pointer-events-none absolute -left-12 -bottom-12 size-72 rounded-full bg-blue-500/5 blur-3xl" />
-
-                <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                  {/* Left Column: Store Details & Live Radar Telemetry */}
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => setShowStatusConfirmModal(true)}
-                        className={`flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-black border transition-all cursor-pointer shadow-2xs ${
-                          isOnline
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
-                            : "bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100"
-                        }`}
-                      >
-                        <span
-                          className={`size-2 rounded-full ${
-                            isOnline
-                              ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse"
-                              : "bg-rose-500"
-                          }`}
-                        />
-                        <span>{isOnline ? "STORE ONLINE & ACCEPTING ORDERS 🟢" : "STORE OFFLINE / PAUSED 🔴"}</span>
-                      </button>
-
-                      <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 text-[11px] font-black tracking-wide">
-                        {session?.city ? `${session.city} Operations Hub` : "Store Operations Hub"}
-                      </span>
-
-                      <span className="text-zinc-500 text-xs font-mono font-bold">
-                        ID: #PRT-{(session as any)?.partnerId || (session as any)?.account?.linkedId || (session as any)?.account?.id || (session as any)?.id || ""}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-zinc-950 flex items-center gap-2.5">
-                        <span>{shop?.shopName || session?.businessName || session?.ownerName || "Merchant Store"}</span>
-                        <span className="text-emerald-800 text-xs font-black bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1 shadow-2xs">
-                          <ShieldCheck className="size-3.5 text-emerald-600" /> Verified Partner
-                        </span>
-                      </h2>
-                      <p className="mt-1 text-xs text-zinc-600 font-medium max-w-xl leading-relaxed">
-                        Commercial Laundry & Garment Care Operations Console · Hyper-Local Delivery Coverage Active
-                      </p>
-                    </div>
-
-                    {/* Live Telemetry Ticker */}
-                    <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-zinc-600 font-semibold">
-                      <div className="flex items-center gap-1.5">
-                        <Radio className="size-3.5 text-emerald-600 animate-pulse" />
-                        <span>Radar: <strong className="text-zinc-950 font-black">Broadcasting (12ms)</strong></span>
-                      </div>
-                      <span className="text-zinc-300">•</span>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-blue-600" />
-                        <span>Auto Settlement: <strong className="text-zinc-950 font-black">Daily 06:00 AM</strong></span>
-                      </div>
-                      <span className="text-zinc-300">•</span>
-                      <div className="flex items-center gap-1.5">
-                        <Zap className="size-3.5 text-amber-500" />
-                        <span>Supabase Live Channel: <strong className="text-zinc-950 font-black">Active</strong></span>
-                      </div>
-                    </div>
+            <div className="animate-soft-fade space-y-6">
+              {/* 1. Sleek Store Operational Status Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-200/90 bg-white p-4 sm:px-6 sm:py-3.5 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-900 font-black text-xs">
+                    {(shop?.shopName || session?.businessName || "QP").slice(0, 2).toUpperCase()}
                   </div>
-
-                  {/* Right Column: Quick Desktop Actions */}
-                  <div className="flex flex-wrap lg:flex-col items-stretch justify-center gap-2.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => navigate({ to: partnerRoutes.orders })}
-                      className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-5 py-3 shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
-                    >
-                      <ListOrdered className="size-4" />
-                      <span>Open Live Queue ({orders.length})</span>
-                      <ArrowRight className="size-3.5" />
-                    </button>
-
+                  <div>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => navigate({ to: partnerRoutes.services })}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-bold text-xs px-3.5 py-2.5 border border-zinc-200 transition-all cursor-pointer active:scale-95 shadow-2xs"
-                      >
-                        <Sparkles className="size-3.5 text-amber-500" />
-                        <span>Rate Card</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={refresh}
-                        disabled={isLoading}
-                        title="Refresh Live Data"
-                        className="flex items-center justify-center rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-800 p-2.5 border border-zinc-200 transition-all cursor-pointer active:scale-95 shadow-2xs"
-                      >
-                        <RotateCcw className={`size-4 ${isLoading ? "animate-spin text-emerald-600" : ""}`} />
-                      </button>
+                      <h2 className="text-sm sm:text-base font-black text-zinc-950 tracking-tight">
+                        {shop?.shopName || session?.businessName || session?.ownerName || "Merchant Store"}
+                      </h2>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Online
+                      </span>
                     </div>
+                    <p className="text-[11px] font-medium text-zinc-500">
+                      ID: #PRT-{(session as any)?.partnerId || (session as any)?.account?.linkedId || "186660"} · {session?.city || "Active Operations"}
+                    </p>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: partnerRoutes.orders })}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <ListOrdered className="size-3.5" />
+                    <span>Live Queue ({orders.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: partnerRoutes.services })}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <Sparkles className="size-3.5 text-zinc-500" />
+                    <span>Rate Card</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={refresh}
+                    disabled={isLoading}
+                    title="Refresh Live Data"
+                    className="flex size-8.5 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <RotateCcw className={`size-3.5 ${isLoading ? "animate-spin text-emerald-600" : ""}`} />
+                  </button>
                 </div>
               </div>
 
@@ -811,7 +886,7 @@ export function PartnerDashboardScreen() {
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.analytics })}
-                    className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                   >
                     <span>{t("Detailed Analytics", "Detailed Analytics & Reports")}</span>
                     <ArrowRight className="size-3.5" />

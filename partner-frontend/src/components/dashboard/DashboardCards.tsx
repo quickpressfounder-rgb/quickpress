@@ -180,56 +180,38 @@ function QuickStatCard({
   const value = useCountUp(stat.value, 700 + delay);
   const Icon = STAT_ICON[stat.id as keyof typeof STAT_ICON] ?? ListOrdered;
 
-  // Rich themed styling per card category
+  // Classic clean card config (no cartoon rainbow colors)
   const cardConfig = useMemo(() => {
     switch (stat.id) {
       case "new":
         return {
           title: "New Orders",
           sub: "Awaiting store response",
-          badge: stat.value > 0 ? "Action Required" : "All Clear",
-          badgeColor:
-            stat.value > 0
-              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-black animate-pulse"
-              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700",
-          bg: "bg-gradient-to-br from-amber-500/10 via-amber-500/3 to-transparent border-amber-200/90 dark:border-amber-900/40 hover:border-amber-500/60",
-          iconColor: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25",
+          badge: stat.value > 0 ? `${stat.value} Required` : "All Clear",
         };
       case "processing":
         return {
           title: "In Processing",
           sub: "Washing, drying & steam iron",
-          badge: stat.value > 0 ? "In Production" : "Machines Idle",
-          badgeColor: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30",
-          bg: "bg-gradient-to-br from-sky-500/10 via-sky-500/3 to-transparent border-sky-200/90 dark:border-sky-900/40 hover:border-sky-500/60",
-          iconColor: "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/25",
+          badge: stat.value > 0 ? "In Production" : "Idle",
         };
       case "ready":
         return {
           title: "Ready for Delivery",
           sub: "Packed & verified for Captain",
           badge: stat.value > 0 ? "Awaiting Rider" : "Zero Queued",
-          badgeColor: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
-          bg: "bg-gradient-to-br from-indigo-500/10 via-indigo-500/3 to-transparent border-indigo-200/90 dark:border-indigo-900/40 hover:border-indigo-500/60",
-          iconColor: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/25",
         };
       case "completed":
         return {
           title: "Completed Today",
           sub: "Delivered & revenue credited",
-          badge: "100% SLA On-Time",
-          badgeColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-          bg: "bg-gradient-to-br from-emerald-500/10 via-emerald-500/3 to-transparent border-emerald-200/90 dark:border-emerald-900/40 hover:border-emerald-500/60",
-          iconColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
+          badge: "100% SLA",
         };
       default:
         return {
           title: stat.label,
           sub: "Store operational metric",
           badge: "Active",
-          badgeColor: "bg-slate-100 text-slate-600 border-slate-200",
-          bg: "bg-white border-slate-200 hover:border-slate-400",
-          iconColor: "bg-slate-100 text-slate-700 border-slate-200",
         };
     }
   }, [stat.id, stat.value, stat.label]);
@@ -237,32 +219,27 @@ function QuickStatCard({
   return (
     <div
       onClick={onNavigate}
-      className={`group relative overflow-hidden rounded-3xl border p-5 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md cursor-pointer ${cardConfig.bg}`}
+      className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:border-zinc-400 hover:shadow-xs cursor-pointer"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-center justify-between">
-        <span
-          className={`flex size-11 items-center justify-center rounded-2xl border shadow-xs transition-transform duration-300 group-hover:scale-105 ${cardConfig.iconColor}`}
-        >
-          <Icon className="size-5" strokeWidth={2.3} />
+        <span className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 border border-zinc-200/80 text-zinc-800 transition-colors group-hover:bg-zinc-200">
+          <Icon className="size-5 stroke-[2.2]" />
         </span>
 
-        <div className="flex items-center gap-1.5">
-          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${cardConfig.badgeColor}`}>
-            {cardConfig.badge}
-          </span>
-          <ArrowUpRight className="size-3.5 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-        </div>
+        <span className="rounded-full bg-zinc-50 border border-zinc-200 px-2.5 py-0.5 text-[10px] font-bold text-zinc-600">
+          {cardConfig.badge}
+        </span>
       </div>
 
-      <div className="mt-4">
-        <p className="text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+      <div className="mt-3.5">
+        <p className="text-3xl font-black tracking-tight text-zinc-950">
           {value}
         </p>
-        <p className="mt-0.5 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+        <p className="mt-1 text-xs font-black uppercase tracking-wider text-zinc-800">
           {cardConfig.title}
         </p>
-        <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+        <p className="mt-0.5 text-[11px] font-medium text-zinc-500 truncate">
           {cardConfig.sub}
         </p>
       </div>
@@ -356,22 +333,22 @@ export function RevenueCard({
   const netPayoutRate = Math.max(0, Math.round(100 - commissionRate - 1)); // -1% TCS
 
   return (
-    <section className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 md:p-6 shadow-xs h-full">
+    <section className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 md:p-6 shadow-2xs h-full">
       <div>
         {/* Header */}
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <span className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-200/60 shadow-2xs">
-              <IndianRupee className="size-5" strokeWidth={2.4} />
+            <span className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200/80">
+              <IndianRupee className="size-5 stroke-[2.2]" />
             </span>
             <div>
-              <h3 className="text-sm font-black tracking-tight text-slate-950">Today's Sale</h3>
-              <p className="text-[11px] font-semibold text-slate-500">Aaj Ki Kul Bikri (Today's Total Sale)</p>
+              <h3 className="text-sm font-black tracking-tight text-zinc-950">Today's Sale</h3>
+              <p className="text-[11px] font-semibold text-zinc-500">Today's Total Settled &amp; Billed Sale</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
-            <span className="size-1.5 rounded-full bg-blue-600 animate-pulse" />
+          <div className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-bold text-zinc-600">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>Auto-Payout Daily 06:00 AM</span>
           </div>
         </div>
@@ -379,47 +356,47 @@ export function RevenueCard({
         {/* Main Metric */}
         <div className="relative mt-5">
           <div className="flex items-baseline gap-3">
-            <p className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950">
+            <p className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-950">
               {isLoading ? "..." : inr(amount)}
             </p>
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 text-xs font-black">
+            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 text-zinc-800 border border-zinc-200 px-2.5 py-0.5 text-xs font-black">
               <ArrowUpRight className="size-3.5" /> Today's Sale
             </span>
           </div>
-          <p className="mt-1 text-xs font-medium text-slate-500">
-            Aaj ke sabhi orders ki kul sale (Total sales from today's orders)
+          <p className="mt-1 text-xs font-medium text-zinc-500">
+            Total sales credited from today's completed &amp; billed orders
           </p>
         </div>
 
         {/* Live Active Pipeline Strip */}
         {pipelineGross > 0 ? (
-          <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-xs">
-            <div className="flex items-center gap-2 font-bold text-slate-900">
-              <span className="size-2 rounded-full bg-blue-600 animate-pulse" />
+          <div className="mt-4 flex items-center justify-between rounded-xl bg-zinc-50 border border-zinc-200 px-3.5 py-2.5 text-xs">
+            <div className="flex items-center gap-2 font-bold text-zinc-900">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>In-Flight Pipeline:</span>
-              <span className="font-extrabold text-blue-700">{inr(pipelineAmount)}</span>
+              <span className="font-extrabold text-zinc-950">{inr(pipelineAmount)}</span>
             </div>
-            <span className="text-[11px] font-bold text-slate-600">
+            <span className="text-[11px] font-bold text-zinc-600">
               {activeOrders.length} bookings active
             </span>
           </div>
         ) : null}
 
         {/* 3 Key Operational Stat Tiles with 100% Real Data */}
-        <div className="relative mt-4 grid grid-cols-3 gap-2.5 pt-3 border-t border-slate-100">
-          <div className="rounded-2xl bg-slate-50/70 p-2.5 border border-slate-200/80">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Completed</p>
-            <p className="mt-0.5 text-sm font-black text-slate-950">{completedCount} Orders</p>
+        <div className="relative mt-4 grid grid-cols-3 gap-2.5 pt-3 border-t border-zinc-100">
+          <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-200/80">
+            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Completed</p>
+            <p className="mt-0.5 text-sm font-black text-zinc-950">{completedCount} Orders</p>
           </div>
-          <div className="rounded-2xl bg-slate-50/70 p-2.5 border border-slate-200/80">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Avg Value</p>
-            <p className="mt-0.5 text-sm font-black text-slate-950">
+          <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-200/80">
+            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Avg Value</p>
+            <p className="mt-0.5 text-sm font-black text-zinc-950">
               {completedCount > 0 ? inr(avgOrderValue) : "₹0"}
             </p>
           </div>
-          <div className="rounded-2xl bg-blue-50/50 p-2.5 border border-blue-200/60">
-            <p className="text-[10px] font-black uppercase tracking-wider text-blue-600">Commission</p>
-            <p className="mt-0.5 text-sm font-black text-blue-700">
+          <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-200/80">
+            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Commission</p>
+            <p className="mt-0.5 text-sm font-black text-zinc-900">
               Net {netPayoutRate}% Pay
             </p>
           </div>
@@ -427,13 +404,13 @@ export function RevenueCard({
       </div>
 
       {/* Bottom Action Footer */}
-      <div className="mt-5 pt-3 flex items-center justify-between border-t border-slate-100">
+      <div className="mt-5 pt-3 flex items-center justify-between border-t border-zinc-100">
         <button
           type="button"
           onClick={() => navigate({ to: partnerRoutes.earnings })}
-          className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
+          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
         >
-          View Detailed Statement & Ledger <ArrowRight className="size-3.5" />
+          View Detailed Statement &amp; Ledger <ArrowRight className="size-3.5" />
         </button>
       </div>
     </section>

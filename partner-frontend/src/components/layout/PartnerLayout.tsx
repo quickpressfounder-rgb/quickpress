@@ -145,43 +145,42 @@ export function PartnerLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-white text-black">
-      {/* Desktop Left Sidebar (>= md) */}
-      <PartnerSidebar
+    <div className="min-h-screen bg-white text-black flex flex-col">
+      {/* Full-Width Desktop Top Bar (>= md) matching Zomato layout */}
+      <PartnerDesktopTopBar
+        title={title}
+        subtitle={subtitle}
         shopName={shopName}
         shopLogo={shopLogo}
         isOnline={isOnline}
         onToggleStatus={handleToggleStatus}
         onLogout={handleLogout}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
       />
 
-      {/* Main Content Area */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
-        {/* Desktop Top Bar (>= md) */}
-        <PartnerDesktopTopBar
-          title={title}
-          subtitle={subtitle}
+      <div className="flex flex-1 min-h-0">
+        {/* Desktop Left Sidebar (>= md) */}
+        <PartnerSidebar
           shopName={shopName}
           shopLogo={shopLogo}
           isOnline={isOnline}
           onToggleStatus={handleToggleStatus}
           onLogout={handleLogout}
-          searchQuery={searchQuery}
-          onSearchChange={onSearchChange}
         />
 
         {/* Page Content */}
-        <main className="flex-1 w-full pb-24 md:pb-8">
+        <main className="flex-1 min-w-0 overflow-y-auto bg-white pb-24 md:pb-8">
           {children}
         </main>
-
-        {/* Customer-Panel Style Glass Pill Bottom Navigation Bar (< md) */}
-        {activeTab && !hideBottomNav ? (
-          <div className="md:hidden">
-            <PartnerBottomNav active={activeTab} />
-          </div>
-        ) : null}
       </div>
+
+      {/* Customer-Panel Style Glass Pill Bottom Navigation Bar (< md) */}
+      {activeTab && !hideBottomNav ? (
+        <div className="md:hidden">
+          <PartnerBottomNav active={activeTab} />
+        </div>
+      ) : null}
     </div>
   );
 }

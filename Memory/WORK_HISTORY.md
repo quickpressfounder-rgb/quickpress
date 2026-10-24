@@ -33,6 +33,26 @@
 
 ## Detailed Log of Work Done Today (24 October 2026)
 
+### 3. Zomato Partner Console Exact UI Match & Classic Monochrome Theme
+- **Objective:** Replaced cartoonish multicolor cards and heavy banners with the **exact Zomato Restaurant Partner Panel layout** (`zomato.com/partners/onlineordering/orders/`):
+  - **Full-Width Top Bar (`PartnerDesktopTopBar.tsx`):**
+    - Left: `quickpress` clean bold lowercase brand wordmark matching `zomato` in Image 1.
+    - Right: Blue AI assistance circle button, notification bell with red badge counter (`1`), settings gear icon `⚙️`, "Share feedback" text link, Store Status pill (`Offline ▾` with red indicator / `Online ▾` with green indicator), and Profile pill with avatar and user name (`Himanshu... ▾`).
+  - **Sidebar (`PartnerSidebar.tsx`):**
+    - Flush minimalist sidebar below top bar with floating collapse circle button (`‹` / `›`).
+    - Clean menu items with outline icons: `Orders` (selected with subtle grey rounded rectangle `bg-zinc-100 font-bold text-zinc-950`), `Menu`, `Order history`, `Reporting`, `Offers`, `Ads`, `Finance ▾`, `Outlet info`, `Customer complaints`, `Reviews`, `Help centre`, `Learning centre`, `Expansion hub`.
+    - Zero cartoon cards or badges inside sidebar.
+  - **Offline View (`PartnerDashboardScreen.tsx` - `ZomatoOfflineView`):**
+    - Exactly reproduced the hanging "CLOSED" signboard illustration from Image 1 with red mounting pin, ropes, and tilted board with "CLOSED" typography.
+    - Centered "You are offline" heading and "Visit help centre for more details" subtitle with dotted underline.
+    - "Go Online & Accept Orders" 1-click CTA button.
+  - **Eliminated Multicolor Cards (`DashboardCards.tsx`):**
+    - Removed cartoon yellow, cyan, purple, lime cards.
+    - Converted all 4 Operational Overview cards to classic pure white cards with thin zinc borders (`border-zinc-200/90 bg-white`), neutral zinc icons, and bold black numbers.
+    - Converted Revenue and Order Status Flow cards to clean neutral zinc styling.
+  - **Layout Architecture (`PartnerLayout.tsx`):**
+    - Top Bar now spans full-width across top; sidebar and main content sit cleanly below it.
+
 ### 2. Partner Console Desktop Redesign: Pure White Theme & Zomato Merchant UI/UX
 - **Objective:** Upgrade the entire **Partner Panel Desktop View** (`https://quickpress.online`) to a **Pure White Theme** inspired by the **Zomato Merchant Partner Panel**, featuring smooth micro-animations, pure white backgrounds (`#ffffff`/`#fafafa`), soft emerald indicators (`emerald-600`/`emerald-50`), zero dark/black containers or buttons, and crisp typography (`text-zinc-950`).
 - **1. Sidebar Navigation (`partner-frontend/src/components/layout/PartnerSidebar.tsx`):**
