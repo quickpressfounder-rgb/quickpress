@@ -192,6 +192,7 @@
 | `4ff4116` | `feat(partner): exact Zomato merchant panel layout, classic monochrome cards, and closed sign offline view` | Converted Partner desktop console to exact Zomato restaurant partner panel aesthetics: pure white sidebar, classic header with sound/bell/settings/profile, hanging CLOSED signboard offline view, and removed all cartoon multicolor cards. |
 | `dcdac7a` | `fix(build): use npx vite build in package.json for ec2 compatibility` | Resolved `sh: 1: vite: not found` on Linux EC2 by wrapping subshell vite build commands with `npx`. |
 | `38f5b2b` | `fix(partner): configure node-server nitro preset and explicit cwd to prevent 502 bad gateway` | Fixed 502 Bad Gateway by ensuring Nitro builds as `node-server` (not Cloudflare worker) and adding `cwd: __dirname` in `ecosystem.config.cjs`. |
+| Pending | `feat(partner): exact Zomato online order station layout with canonical stage tabs, search and clean order cards` | Converted Online dashboard into dedicated Zomato Order Station: removed all cartoon operational cards and multi-column widgets; added canonical Zomato status tabs, search filter, order card grid / table layout, loud alert sound tester, and pure white empty state. |
 
 ---
 

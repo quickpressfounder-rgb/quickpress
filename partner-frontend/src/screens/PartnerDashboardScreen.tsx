@@ -17,12 +17,14 @@ import {
   Plus,
   Radio,
   RotateCcw,
+  Search,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
   Store,
   Table,
   TrendingUp,
+  Volume2,
   Wallet,
   X,
   Zap,
@@ -41,7 +43,8 @@ import {
   PartnerIncomingOrderAlertModal,
   type PartnerIncomingOrder,
 } from "../components/alerts/PartnerIncomingOrderAlertModal";
-import { stopPartnerOrderAlertRing } from "../lib/partner-order-alert-sound";
+import { playPartnerOrderChime, stopPartnerOrderAlertRing } from "../lib/partner-order-alert-sound";
+import { OrderCard } from "../components/orders/OrderCard";
 import {
   OrderStatusChips,
   OrderStatusFlowCard,
@@ -255,7 +258,7 @@ export function PartnerDashboardScreen() {
   const navigate = useNavigate();
   const { session, isOnline, toggleOnline } = usePartnerContext();
   const { orders, isLoading: ordersLoading, refresh: refreshOrders } = usePartnerOrders();
-  const { handleAction, sheetNode, overlay } = useOrderActionHandler();
+  const { handleAction, sheetNode, overlay, busy } = useOrderActionHandler();
   const { t, language } = useLanguage();
 
   const [shop, setShop] = useState<DashboardShop | null>(null);
@@ -266,6 +269,8 @@ export function PartnerDashboardScreen() {
   const [error, setError] = useState<string | null>(null);
   const [trackingOrder, setTrackingOrder] = useState<LiveOrder | null>(null);
   const [orderViewMode, setOrderViewMode] = useState<"cards" | "table">("cards");
+  const [selectedTab, setSelectedTab] = useState<"new" | "processing" | "ready" | "dispatched" | "completed" | "all">("new");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Restore cached dashboard data strictly after hydration to prevent React error #418
   useEffect(() => {
@@ -512,6 +517,118 @@ export function PartnerDashboardScreen() {
     return counts;
   }, [orders]);
 
+  const zomatoStageCounts = useMemo(() => {
+    let newOrders = 0;
+    let processing = 0;
+    let ready = 0;
+    let dispatched = 0;
+    let completed = 0;
+
+    for (const o of orders) {
+      const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
+      if (s === "new" || s === "placed" || s === "pending" || s === "pending_partner_acceptance") {
+        newOrders++;
+      } else if (
+        s === "washing" ||
+        s === "ironing" ||
+        s === "dry_cleaning" ||
+        s === "processing" ||
+        s === "at_partner" ||
+        s === "accepted" ||
+        s === "partner_accepted" ||
+        s === "picked" ||
+        s === "picked_up" ||
+        s === "store_received" ||
+        s === "pickup_pending" ||
+        s === "pickup_rider_assigned"
+      ) {
+        processing++;
+      } else if (s === "ready" || s === "ready_for_delivery") {
+        ready++;
+      } else if (
+        s === "out_for_delivery" ||
+        s === "dispatch_otp_pending" ||
+        s === "delivery_rider_assigned" ||
+        s === "delivery_rider_accepted" ||
+        s === "dispatch"
+      ) {
+        dispatched++;
+      } else if (s === "delivered" || s === "completed") {
+        completed++;
+      }
+    }
+
+    return {
+      all: orders.length,
+      new: newOrders,
+      processing,
+      ready,
+      dispatched,
+      completed,
+    };
+  }, [orders]);
+
+  const displayedOrders = useMemo(() => {
+    let list = orders;
+    if (selectedTab === "new") {
+      list = orders.filter((o) => {
+        const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
+        return s === "new" || s === "placed" || s === "pending" || s === "pending_partner_acceptance";
+      });
+    } else if (selectedTab === "processing") {
+      list = orders.filter((o) => {
+        const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
+        return (
+          s === "washing" ||
+          s === "ironing" ||
+          s === "dry_cleaning" ||
+          s === "processing" ||
+          s === "at_partner" ||
+          s === "accepted" ||
+          s === "partner_accepted" ||
+          s === "picked" ||
+          s === "picked_up" ||
+          s === "store_received" ||
+          s === "pickup_pending" ||
+          s === "pickup_rider_assigned"
+        );
+      });
+    } else if (selectedTab === "ready") {
+      list = orders.filter((o) => {
+        const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
+        return s === "ready" || s === "ready_for_delivery";
+      });
+    } else if (selectedTab === "dispatched") {
+      list = orders.filter((o) => {
+        const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
+        return (
+          s === "out_for_delivery" ||
+          s === "dispatch_otp_pending" ||
+          s === "delivery_rider_assigned" ||
+          s === "delivery_rider_accepted" ||
+          s === "dispatch"
+        );
+      });
+    } else if (selectedTab === "completed") {
+      list = orders.filter((o) => {
+        const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
+        return s === "delivered" || s === "completed";
+      });
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (o) =>
+          o.code?.toLowerCase().includes(q) ||
+          o.customerName?.toLowerCase().includes(q) ||
+          o.customerPhone?.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [orders, selectedTab, searchQuery]);
+
   // Real-time reactive KPI calculation merging live Supabase orders with backend metrics
   const liveStats: QuickStat[] = useMemo(() => {
     return [
@@ -611,10 +728,11 @@ export function PartnerDashboardScreen() {
             <ZomatoOfflineView onGoOnline={() => setShowStatusConfirmModal(true)} />
           ) : (
             <div className="animate-soft-fade space-y-6">
-              {/* 1. Sleek Store Operational Status Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-200/90 bg-white p-4 sm:px-6 sm:py-3.5 shadow-2xs">
+              {/* ZOMATO RESTAURANT PARTNER LIVE ORDER STATION */}
+              {/* 1. Sleek Store Operational Ribbon */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 rounded-2xl border border-zinc-200/90 bg-white p-4 sm:px-6 sm:py-3.5 shadow-2xs">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-900 font-black text-xs">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-xs">
                     {(shop?.shopName || session?.businessName || "QP").slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -624,31 +742,47 @@ export function PartnerDashboardScreen() {
                       </h2>
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
                         <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Online
+                        Online &amp; Accepting Orders
                       </span>
                     </div>
                     <p className="text-[11px] font-medium text-zinc-500">
-                      ID: #PRT-{(session as any)?.partnerId || (session as any)?.account?.linkedId || "186660"} · {session?.city || "Active Operations"}
+                      Outlet #{session?.partnerId || (session as any)?.account?.linkedId || "186660"} · {session?.city || "Kasganj"} · Realtime Live Queue
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-1.5 text-xs font-bold text-zinc-700">
+                    <IndianRupee className="size-3.5 text-zinc-500" />
+                    <span>Today:</span>
+                    <span className="font-black text-zinc-950">₹{(earnings?.todayEarnings || 0).toLocaleString("en-IN")}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-1.5 text-xs font-bold text-zinc-700">
+                    <Package className="size-3.5 text-zinc-500" />
+                    <span>Total Orders:</span>
+                    <span className="font-black text-zinc-950">{orders.length}</span>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                    onClick={() => {
+                      playPartnerOrderChime();
+                      toast.success("🔔 Playing order notification alert tone test");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                    title="Test Loud Order Alert"
                   >
-                    <ListOrdered className="size-3.5" />
-                    <span>Live Queue ({orders.length})</span>
+                    <Volume2 className="size-3.5 text-blue-600" />
+                    <span>Test Sound</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => navigate({ to: partnerRoutes.services })}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
                   >
-                    <Sparkles className="size-3.5 text-zinc-500" />
+                    <Sparkles className="size-3.5 text-amber-500" />
                     <span>Rate Card</span>
                   </button>
 
@@ -664,238 +798,301 @@ export function PartnerDashboardScreen() {
                 </div>
               </div>
 
-              {/* 2. Operational Overview (4 Balanced Columns) */}
-              <section>
-                <div className="flex items-center justify-between">
-                  <SectionHeading title={t("Operational Overview", "Operational Overview")} />
-                  <button
-                    type="button"
-                    onClick={() => navigate({ to: partnerRoutes.orders })}
-                    className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
-                  >
-                    <span>{t("View Queue", "View Full Queue")}</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
+              {/* 2. Canonical Zomato Stage Navigation Tabs & Search */}
+              <div className="flex flex-col gap-3.5 border-b border-zinc-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {[
+                    { id: "new", label: "New Orders", count: zomatoStageCounts.new, alert: zomatoStageCounts.new > 0 },
+                    { id: "processing", label: "In Processing", count: zomatoStageCounts.processing },
+                    { id: "ready", label: "Ready for Delivery", count: zomatoStageCounts.ready },
+                    { id: "dispatched", label: "Dispatched", count: zomatoStageCounts.dispatched },
+                    { id: "completed", label: "Completed", count: zomatoStageCounts.completed },
+                    { id: "all", label: "All Orders", count: zomatoStageCounts.all },
+                  ].map((tab) => {
+                    const isActive = selectedTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setSelectedTab(tab.id as any)}
+                        className={`shrink-0 flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                          isActive
+                            ? "bg-zinc-950 text-white font-black shadow-xs"
+                            : "bg-white text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 border border-zinc-200/80"
+                        }`}
+                      >
+                        {tab.alert ? <span className="size-2 rounded-full bg-rose-500 animate-pulse" /> : null}
+                        <span>{tab.label}</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                            isActive
+                              ? "bg-zinc-800 text-white"
+                              : tab.alert
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-zinc-100 text-zinc-700"
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="mt-3.5">
-                  <QuickStatsGrid stats={liveStats} />
-                </div>
-              </section>
 
-              {/* 3. Desktop Multi-column Grid: Revenue & Order Status */}
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.25fr)] items-stretch">
-                <section className="min-w-0 flex flex-col">
-                  <SectionHeading title={t("dashboard.revenueSummary", "Revenue Summary")} />
-                  <div className="mt-3.5 flex-1">
-                    <RevenueCard earnings={earnings} isLoading={isLoading} orders={orders} />
-                  </div>
-                </section>
-
-                <section className="min-w-0 flex flex-col">
-                  <SectionHeading title={t("dashboard.orderStatusFlow", "Order Status Flow")} />
-                  <div className="mt-3.5 flex-1">
-                    <OrderStatusFlowCard orders={orders} stageCounts={stageCounts} />
-                  </div>
-                </section>
-              </div>
-
-              {/* 4. Live Orders Section with Table / Cards View Mode Toggle */}
-              <section className="space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <SectionHeading title={t("dashboard.liveOrders", "Active Orders")} />
-                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-black text-emerald-800 shadow-2xs">
-                      {liveOrders.length} Live
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* View Switcher: Zomato Cards vs Table Layout */}
-                    <div className="flex items-center rounded-xl border border-zinc-200 bg-zinc-50/80 p-0.5 shadow-2xs">
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="relative min-w-[200px] sm:min-w-[240px]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search order #, customer, phone..."
+                      className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8.5 pr-7 text-xs font-medium text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-hidden shadow-2xs"
+                    />
+                    {searchQuery ? (
                       <button
                         type="button"
-                        onClick={() => setOrderViewMode("cards")}
-                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                          orderViewMode === "cards"
-                            ? "bg-white text-zinc-950 font-black shadow-xs"
-                            : "text-zinc-500 hover:text-zinc-900"
-                        }`}
-                        title="Zomato Card Grid"
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
                       >
-                        <LayoutGrid className="size-3.5" />
-                        <span>Cards</span>
+                        <X className="size-3.5" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setOrderViewMode("table")}
-                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                          orderViewMode === "table"
-                            ? "bg-white text-zinc-950 font-black shadow-xs"
-                            : "text-zinc-500 hover:text-zinc-900"
-                        }`}
-                        title="Compact Order Table"
-                      >
-                        <LayoutList className="size-3.5" />
-                        <span>Table Layout</span>
-                      </button>
-                    </div>
+                    ) : null}
+                  </div>
 
+                  <div className="flex items-center rounded-xl border border-zinc-200 bg-zinc-50 p-0.5 shadow-2xs">
                     <button
                       type="button"
-                      onClick={() => navigate({ to: partnerRoutes.orders })}
-                      className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer pl-2"
+                      onClick={() => setOrderViewMode("cards")}
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                        orderViewMode === "cards"
+                          ? "bg-white text-zinc-950 font-black shadow-xs border border-zinc-200/80"
+                          : "text-zinc-500 hover:text-zinc-900"
+                      }`}
+                      title="Card Grid"
                     >
-                      <span>{t("View all", "View all")} ({orders.length})</span>
-                      <ArrowRight className="size-3.5" />
+                      <LayoutGrid className="size-3.5" />
+                      <span className="hidden sm:inline">Cards</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderViewMode("table")}
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                        orderViewMode === "table"
+                          ? "bg-white text-zinc-950 font-black shadow-xs border border-zinc-200/80"
+                          : "text-zinc-500 hover:text-zinc-900"
+                      }`}
+                      title="Table Layout"
+                    >
+                      <LayoutList className="size-3.5" />
+                      <span className="hidden sm:inline">Table</span>
                     </button>
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  {!isOnline ? (
-                    <OfflineEmptyState onGoOnline={() => setShowStatusConfirmModal(true)} />
-                  ) : liveOrders.length === 0 ? (
-                    <NoOrdersEmptyState />
-                  ) : orderViewMode === "cards" ? (
-                    /* Zomato Order Cards Grid */
-                    <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-                      {liveOrders.map((order, index) => (
-                        <LiveOrderCard
-                          key={order.id}
-                          order={order}
-                          delay={index * 40}
-                          onAccept={handleAccept}
-                          onReject={handleReject}
-                          onView={handleView}
-                          onTrackMap={(o) => setTrackingOrder(o)}
-                        />
-                      ))}
+              {/* 3. Main Order Management Workspace */}
+              <div>
+                {displayedOrders.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-3xl border border-zinc-200/90 bg-white px-6 py-20 text-center shadow-2xs">
+                    <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100 text-zinc-400 mb-4">
+                      <ShoppingBag className="size-8 stroke-[1.5]" />
                     </div>
-                  ) : (
-                    /* High-Density Pure White Zomato Table Layout */
-                    <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead>
-                            <tr className="border-b border-zinc-200 bg-zinc-50/80 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-                              <th className="px-4 py-3">Order ID</th>
-                              <th className="px-4 py-3">Customer</th>
-                              <th className="px-4 py-3">Services / Items</th>
-                              <th className="px-4 py-3">Pickup Time</th>
-                              <th className="px-4 py-3">Amount</th>
-                              <th className="px-4 py-3">Status</th>
-                              <th className="px-4 py-3 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-100 font-medium">
-                            {liveOrders.map((order) => {
-                              const isPending = order.status === "pending";
-                              return (
-                                <tr
-                                  key={order.id}
-                                  className="transition-colors hover:bg-zinc-50/80"
-                                >
-                                  <td className="px-4 py-3 font-mono font-black text-zinc-950">
-                                    #{order.code}
-                                  </td>
-                                  <td className="px-4 py-3 font-bold text-zinc-900">
-                                    {order.customerName}
-                                  </td>
-                                  <td className="px-4 py-3 text-zinc-600">
-                                    <div className="flex items-center gap-1 flex-wrap max-w-xs">
-                                      {order.services.map((svc, sIdx) => (
-                                        <span
-                                          key={sIdx}
-                                          className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
-                                        >
-                                          {svc}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3 text-zinc-700 font-semibold whitespace-nowrap">
-                                    <div className="flex items-center gap-1.5">
-                                      <Clock className="size-3.5 text-zinc-400" />
-                                      <span>{order.pickupTime}</span>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3 font-black text-zinc-950 whitespace-nowrap">
-                                    ₹{order.amount.toLocaleString("en-IN")}
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
-                                      {order.status}
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900">
+                      {searchQuery
+                        ? "No orders match your search"
+                        : selectedTab === "new"
+                          ? "Waiting for new orders"
+                          : `No orders in this stage`}
+                    </h3>
+                    <p className="mt-1.5 max-w-sm text-xs text-zinc-500 leading-relaxed">
+                      {searchQuery
+                        ? "Try searching with a different order code, customer name or phone number."
+                        : "Your outlet is online and ready. New orders from nearby customers will appear here automatically with a loud audio ring."}
+                    </p>
+                    <div className="mt-6 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playPartnerOrderChime();
+                          toast.success("🔔 Playing order ringtone test");
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                      >
+                        <Volume2 className="size-3.5 text-blue-600" />
+                        <span>Test Order Sound</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={refresh}
+                        className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2 text-xs font-bold text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-xs cursor-pointer"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        <span>Refresh Queue</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : orderViewMode === "cards" ? (
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {displayedOrders.map((order, index) => (
+                      <OrderCard
+                        key={order.id}
+                        order={order}
+                        index={index}
+                        onAction={handleAction}
+                        busyAction={busy?.orderId === order.id ? busy.actionId : null}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-zinc-200 bg-zinc-50/80 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                            <th className="px-4 py-3.5">Order ID</th>
+                            <th className="px-4 py-3.5">Customer</th>
+                            <th className="px-4 py-3.5">Items &amp; Services</th>
+                            <th className="px-4 py-3.5">Pickup Time</th>
+                            <th className="px-4 py-3.5">Amount</th>
+                            <th className="px-4 py-3.5">Stage</th>
+                            <th className="px-4 py-3.5 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-medium">
+                          {displayedOrders.map((order) => {
+                            const isNew =
+                              order.stage === "new" ||
+                              (order as any).status === "new" ||
+                              order.stage === "pending" ||
+                              (order as any).status === "placed";
+                            const amount =
+                              (order as any).totalPrice ||
+                              (order as any).amount ||
+                              (order as any).totalAmount ||
+                              0;
+                            return (
+                              <tr
+                                key={order.id}
+                                onClick={() =>
+                                  navigate({
+                                    to: partnerRoutes.orderDetails,
+                                    params: { orderId: order.id },
+                                  })
+                                }
+                                className="transition-colors hover:bg-zinc-50/80 cursor-pointer"
+                              >
+                                <td className="px-4 py-3.5 font-mono font-black text-zinc-950">
+                                  #{order.code}
+                                </td>
+                                <td className="px-4 py-3.5 font-bold text-zinc-900">
+                                  {order.customerName}
+                                  {order.customerPhone ? (
+                                    <p className="text-[11px] font-normal text-zinc-500">
+                                      {order.customerPhone}
+                                    </p>
+                                  ) : null}
+                                </td>
+                                <td className="px-4 py-3.5 text-zinc-600">
+                                  <div className="flex items-center gap-1 flex-wrap max-w-xs">
+                                    <span className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700">
+                                      {order.itemCount || 1} items
                                     </span>
-                                  </td>
-                                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                                    <div className="flex items-center justify-end gap-1.5">
-                                      {isPending ? (
-                                        <>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleReject(order)}
-                                            className="rounded-lg bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer"
-                                          >
-                                            Reject
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleAccept(order)}
-                                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
-                                          >
-                                            Accept
-                                          </button>
-                                        </>
-                                      ) : (
+                                    {(order.services || []).slice(0, 2).map((svc, sIdx) => (
+                                      <span
+                                        key={sIdx}
+                                        className="rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700"
+                                      >
+                                        {svc}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3.5 text-zinc-700 font-semibold whitespace-nowrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="size-3.5 text-zinc-400" />
+                                    <span>{(order as any).pickupTime || "Today"}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3.5 font-black text-zinc-950 whitespace-nowrap">
+                                  ₹{Number(amount).toLocaleString("en-IN")}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
+                                    {order.stage}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                                  <div
+                                    className="flex items-center justify-end gap-1.5"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {isNew ? (
+                                      <>
                                         <button
                                           type="button"
-                                          onClick={() => handleView(order)}
-                                          className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
+                                          onClick={() => handleAction(order, "reject")}
+                                          className="rounded-lg bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer"
                                         >
-                                          View Details
+                                          Reject
                                         </button>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAction(order, "accept")}
+                                          className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                                        >
+                                          Accept
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          navigate({
+                                            to: partnerRoutes.orderDetails,
+                                            params: { orderId: order.id },
+                                          })
+                                        }
+                                        className="rounded-lg bg-zinc-100 border border-zinc-200 px-3 py-1 text-xs font-bold text-zinc-800 hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer"
+                                      >
+                                        View Details
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
-                  )}
-                </div>
-              </section>
+                  </div>
+                )}
+              </div>
 
-              {/* 5. Quick Shortcuts Grid */}
-              <section>
-                <div className="flex items-center justify-between">
-                  <SectionHeading title={t("dashboard.quickShortcuts", "Quick Shortcuts")} />
-                  <LayoutGrid className="size-4 text-muted-foreground" />
+              {/* 4. Subtle Bottom Financial Settlement Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white px-5 py-3 text-xs text-zinc-600 shadow-2xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-zinc-950">Daily Settlement Status:</span>
+                  <span>Auto-payout scheduled tomorrow at 06:00 AM</span>
+                  <span className="text-zinc-300">|</span>
+                  <span>
+                    Commission: <strong className="text-zinc-950">Net 84% Pay</strong>
+                  </span>
+                  <span className="text-zinc-300">|</span>
+                  <span>
+                    Total Orders: <strong className="text-zinc-950">{orders.length}</strong>
+                  </span>
                 </div>
-                <div className="mt-3.5">
-                  <QuickActionsGrid />
-                </div>
-              </section>
-
-              {/* 6. Daily Analysis & Performance Graph */}
-              <section>
-                <div className="flex items-center justify-between">
-                  <SectionHeading title={t("dashboard.dailyAnalytics", "Daily Analysis & Performance Graph")} />
-                  <button
-                    type="button"
-                    onClick={() => navigate({ to: partnerRoutes.analytics })}
-                    className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
-                  >
-                    <span>{t("Detailed Analytics", "Detailed Analytics & Reports")}</span>
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                </div>
-                <div className="mt-3.5">
-                  <DailyAnalyticsSection orders={orders} earnings={earnings} />
-                </div>
-              </section>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: partnerRoutes.earnings })}
+                  className="inline-flex items-center gap-1 font-bold text-zinc-900 hover:text-black hover:underline cursor-pointer"
+                >
+                  <span>View Financial Ledger &amp; Payouts</span>
+                  <ArrowRight className="size-3.5" />
+                </button>
+              </div>
             </div>
           )}
         </PullToRefresh>
