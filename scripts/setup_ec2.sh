@@ -29,6 +29,7 @@ if ! command -v node &> /dev/null || [[ $(node -v | cut -d'.' -f1 | tr -d 'v') -
     curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
     sudo apt-get install -y nodejs
 fi
+sudo npm install -g pm2
 echo "Node version: $(node -v)"
 echo "NPM version: $(npm -v)"
 
@@ -70,13 +71,14 @@ npm run build
 sudo rm -rf /var/www/quickpress/customer/*
 sudo cp -r dist/* /var/www/quickpress/customer/
 
-# C. Partner Frontend
-echo "  -> Building Partner Frontend..."
+# C. Partner Frontend (TanStack Start Node Server)
+echo "  -> Building Partner Frontend (Node Server on Port 8082)..."
 cd "$REPO_ROOT/partner-frontend"
 npm ci
-npm run build
-sudo rm -rf /var/www/quickpress/partner/*
-sudo cp -r dist/* /var/www/quickpress/partner/
+NITRO_PRESET=node-server npm run build
+pm2 delete quickpress-partner 2>/dev/null || true
+PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner
+pm2 save || true
 
 # D. Rider Frontend
 echo "  -> Building Rider Frontend..."
