@@ -989,6 +989,14 @@ class PartnerReviewRepository:
             REVIEWS, {"partnerId": partner_id}, sort=[("date", -1)]
         )
 
+    async def add_reply(self, review_id: str, reply: str, partner_id: str) -> Optional[Dict[str, Any]]:
+        now_str = datetime.now(timezone.utc).isoformat()
+        await database.collection(REVIEWS).update_one(
+            {"id": review_id, "partnerId": partner_id},
+            {"$set": {"reply": reply, "repliedAt": now_str}}
+        )
+        return await database.find_one(REVIEWS, {"id": review_id, "partnerId": partner_id})
+
 
 class PartnerCustomerRepository:
     async def list(self, partner_id: str) -> List[Dict[str, Any]]:

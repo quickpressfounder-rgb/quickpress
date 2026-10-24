@@ -15,12 +15,14 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EarningsRouteImport } from './routes/earnings'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OtpRouteImport } from './routes/otp'
 import { Route as PermissionsRouteImport } from './routes/permissions'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegistrationRouteImport } from './routes/registration'
 import { Route as RegistrationSubmittedRouteImport } from './routes/registration-submitted'
+import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShopRouteImport } from './routes/shop'
@@ -63,6 +65,11 @@ const EarningsRoute = EarningsRouteImport.update({
   path: '/earnings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -91,6 +98,11 @@ const RegistrationRoute = RegistrationRouteImport.update({
 const RegistrationSubmittedRoute = RegistrationSubmittedRouteImport.update({
   id: '/registration-submitted',
   path: '/registration-submitted',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServicesRoute = ServicesRouteImport.update({
@@ -156,12 +168,14 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/earnings': typeof EarningsRoute
+  '/help': typeof HelpRoute
   '/notifications': typeof NotificationsRoute
   '/otp': typeof OtpRoute
   '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/registration-submitted': typeof RegistrationSubmittedRoute
+  '/reviews': typeof ReviewsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
@@ -181,12 +195,14 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/earnings': typeof EarningsRoute
+  '/help': typeof HelpRoute
   '/notifications': typeof NotificationsRoute
   '/otp': typeof OtpRoute
   '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/registration-submitted': typeof RegistrationSubmittedRoute
+  '/reviews': typeof ReviewsRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
   '/suspended': typeof SuspendedRoute
@@ -206,12 +222,14 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/earnings': typeof EarningsRoute
+  '/help': typeof HelpRoute
   '/notifications': typeof NotificationsRoute
   '/otp': typeof OtpRoute
   '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
   '/registration': typeof RegistrationRoute
   '/registration-submitted': typeof RegistrationSubmittedRoute
+  '/reviews': typeof ReviewsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
@@ -233,12 +251,14 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/earnings'
+    | '/help'
     | '/notifications'
     | '/otp'
     | '/permissions'
     | '/profile'
     | '/registration'
     | '/registration-submitted'
+    | '/reviews'
     | '/services'
     | '/settings'
     | '/shop'
@@ -258,12 +278,14 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/earnings'
+    | '/help'
     | '/notifications'
     | '/otp'
     | '/permissions'
     | '/profile'
     | '/registration'
     | '/registration-submitted'
+    | '/reviews'
     | '/settings'
     | '/shop'
     | '/suspended'
@@ -282,12 +304,14 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/earnings'
+    | '/help'
     | '/notifications'
     | '/otp'
     | '/permissions'
     | '/profile'
     | '/registration'
     | '/registration-submitted'
+    | '/reviews'
     | '/services'
     | '/settings'
     | '/shop'
@@ -308,12 +332,14 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRoute
   DashboardRoute: typeof DashboardRoute
   EarningsRoute: typeof EarningsRoute
+  HelpRoute: typeof HelpRoute
   NotificationsRoute: typeof NotificationsRoute
   OtpRoute: typeof OtpRoute
   PermissionsRoute: typeof PermissionsRoute
   ProfileRoute: typeof ProfileRoute
   RegistrationRoute: typeof RegistrationRoute
   RegistrationSubmittedRoute: typeof RegistrationSubmittedRoute
+  ReviewsRoute: typeof ReviewsRoute
   ServicesRoute: typeof ServicesRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   ShopRoute: typeof ShopRoute
@@ -368,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EarningsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -408,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/registration-submitted'
       fullPath: '/registration-submitted'
       preLoaderRoute: typeof RegistrationSubmittedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/services': {
@@ -513,12 +553,14 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRoute,
   DashboardRoute: DashboardRoute,
   EarningsRoute: EarningsRoute,
+  HelpRoute: HelpRoute,
   NotificationsRoute: NotificationsRoute,
   OtpRoute: OtpRoute,
   PermissionsRoute: PermissionsRoute,
   ProfileRoute: ProfileRoute,
   RegistrationRoute: RegistrationRoute,
   RegistrationSubmittedRoute: RegistrationSubmittedRoute,
+  ReviewsRoute: ReviewsRoute,
   ServicesRoute: ServicesRouteWithChildren,
   SettingsRoute: SettingsRoute,
   ShopRoute: ShopRoute,

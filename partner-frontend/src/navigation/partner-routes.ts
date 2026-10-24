@@ -44,6 +44,8 @@ export const partnerRoutes = {
   settings: "/settings",
   permissions: "/permissions",
   notifications: "/notifications",
+  reviews: "/reviews",
+  help: "/help",
 } as const;
 
 /**

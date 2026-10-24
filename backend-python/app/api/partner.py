@@ -1433,6 +1433,46 @@ async def reviews(partner_id: str = Depends(_partner_id)) -> List[PartnerReviewR
     return [PartnerReviewResponse(**{k: v for k, v in doc.items() if k in PartnerReviewResponse.model_fields}) for doc in docs]
 
 
+@router.post("/reviews/{review_id}/reply")
+async def reply_to_review(
+    review_id: str,
+    body: dict,
+    partner_id: str = Depends(_partner_id),
+) -> dict:
+    reply_text = str(body.get("reply", "")).strip()
+    if not reply_text:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reply cannot be empty")
+    doc = await partner_review_repository.add_reply(review_id, reply_text, partner_id)
+    return {"ok": True, "message": "Reply saved successfully", "review": doc}
+
+
+@router.get("/tickets")
+async def list_support_tickets(partner_id: str = Depends(_partner_id)) -> List[dict]:
+    return await database.find_sorted("partner_support_tickets", {"partnerId": partner_id}, sort=[("createdAt", -1)])
+
+
+@router.post("/tickets")
+async def create_support_ticket(body: dict, partner_id: str = Depends(_partner_id)) -> dict:
+    now = datetime.now(timezone.utc).isoformat()
+    ticket_doc = {
+        "id": body.get("id") or f"TKT-{int(datetime.now(timezone.utc).timestamp()) % 10000:04d}",
+        "partnerId": partner_id,
+        "category": body.get("category", "other"),
+        "categoryLabel": body.get("categoryLabel", "General Help"),
+        "orderCode": body.get("orderCode"),
+        "subject": body.get("subject", "").strip(),
+        "description": body.get("description", "").strip(),
+        "priority": body.get("priority", "normal"),
+        "status": "open",
+        "createdAt": now,
+        "updatedAt": now,
+        "supportReply": "Ticket received. Fleet Ops & Merchant Support team will contact you within 5 minutes.",
+        "supportRepliedAt": now,
+    }
+    await database.collection("partner_support_tickets").insert_one(ticket_doc)
+    return {"ok": True, "ticket": ticket_doc}
+
+
 @router.post("/orders/{order_id}/review")
 async def submit_partner_order_review(
     order_id: str,

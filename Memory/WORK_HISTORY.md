@@ -33,6 +33,38 @@
 
 ## Detailed Log of Work Done Today (24 October 2026)
 
+### 5. Full Real Help Centre, Review & Store Reply System, and Earnings Box Cleanup
+- **User Requests & Visual Alignment:**
+  1. **Removed Partner Net Earnings Box ("YE HATANA HAI"):** Completely removed the green `Partner Net Earnings (Net 84%): ₹249` container from the financial settlement breakdown in `partner-frontend/src/screens/OrderDetailsScreen.tsx`.
+  2. **Full Real Help Centre in Classic Pure White Theme (`PartnerHelpScreen.tsx` & `/help`):**
+     - **Header Helpline Strip:** Direct clickable calling to toll-free partner helpline (`1800-889-QUICK`), WhatsApp Merchant desk (`+91 98765 43210`), and official operations email (`official.quickpress@gmail.com`).
+     - **Order-Wise Assistance ("Order wise helping"):** Order picker to select active/recent orders (`#PRT-XXXX`), order summary preview, and 5 instant SOP resolution tiles:
+       - Customer Not Reachable at Doorstep (10-min wait SOP, secure call relay)
+       - Delivery Captain Delayed / No-Show (SLA breach & priority reassignment)
+       - Garment Count / Item Discrepancy (halt washing & bag verification)
+       - Pre-existing Fabric Stain / Damage Warning (customer consent logging)
+       - Order Settlement Discrepancy (ledger reconciliation)
+     - **General Store & Operational Help ("Other help etc etc"):**
+       - Payouts & Finance (daily 06:00 AM auto-settlement, updating bank IFSC, GST invoices)
+       - Delivery Fleet & Logistics (4-digit Dispatch OTP verification SOP, standby captains)
+       - Garment Care & Quality SOPs (standard finishing, ordering official QuickPress packaging bags)
+       - Store Operations & Capacity (rush capacity pause, holiday & off-day schedules)
+     - **Support Ticket System ("Full Real Help System"):**
+       - Modal form to raise formal support tickets with Category, Order code, Priority (Normal, High, Urgent), Subject, and Description.
+       - Ticket feed with status badges (`Open`, `In Review`, `Resolved`), Ticket reference `#TKT-XXXX`, and official support team resolutions.
+       - Backend API endpoints `GET /api/partner/tickets` and `POST /api/partner/tickets`.
+     - **Merchant FAQs & Guidelines:** Interactive accordion knowledge base with search filtering.
+  3. **Complete Customer Review & Store Reply System (`PartnerReviewsScreen.tsx`, `/reviews` & Customer Profile):**
+     - **Reviews Analytics:** Overall store rating (e.g. `4.9 ★`), 5-star to 1-star breakdown progress bars, response rate %, and customer sentiment badges (`Crisp Creases`, `Sealed Packaging`, `On-Time Delivery`).
+     - **Filters:** By star rating (All, 5★, 4★, 3★, 2★, 1★) and reply status ("All", "Needs Reply", "Replied").
+     - **Customer Reviews Feed:** Customer name, rating, linked order code `#PRT-XXXX` (with direct link to order), service category, customer review comment, and customer tags.
+     - **Store Reply Feature ("reply de sake"):**
+       - Inline reply composer with 1-click smart reply templates ("Thank you for trusting QuickPress!...", etc.).
+       - Instant optimistic UI update, localStorage persistence, and backend sync via `POST /api/partner/reviews/{review_id}/reply`.
+     - **Customer Profile Integration ("bo customer penal me partner profile me review show kare"):**
+       - In `customer-frontend/src/routes/partner.$partnerId.tsx`, customer reviews now render the store response bubble (`Response from store: ...`) with store icon and formatted timestamp.
+- **Verification:** Verified with `npm run build:partner` (exit code 0) and `npm run build:customer` (exit code 0).
+
 ### 4. Partner Console Streamlining, Transparent Logo & Zomato Order Ticket Redesign
 - **User Requests & Visual Alignment:**
   1. **Menu Cleanup:** Removed non-essential promotional and peripheral menu options (`Ads`, `Offers`, `Customer complaints`, `Learning centre`, `Expansion hub`) from `PartnerSidebar.tsx` to keep partner focus strictly on core store operations (`Orders`, `Menu`, `Order history`, `Reporting`, `Finance`, `Outlet info`, `Reviews`, `Help centre`).

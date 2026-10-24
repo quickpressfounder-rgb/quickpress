@@ -1265,21 +1265,6 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                         </span>
                       </div>
 
-                      {/* Store 84% Net Payout Calculation */}
-                      <div className="mt-2.5 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-bold text-emerald-950">
-                            Partner Net Earnings (Net 84%):
-                          </p>
-                          <p className="text-[10px] text-emerald-700">
-                            QuickPress takes 16% commission · Zero hidden gateway fees
-                          </p>
-                        </div>
-                        <span className="text-sm font-black text-emerald-900">
-                          ₹{Math.round((order.amount || charges.total) * 0.84)}
-                        </span>
-                      </div>
-
                       {/* Payment Status Bar */}
                       <div className="mt-2 flex items-center justify-between pt-2 border-t border-zinc-200 text-xs">
                         <div className="flex items-center gap-1.5 font-bold text-zinc-800">
@@ -1579,7 +1564,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-950">
                         <p className="font-bold">✓ Order Delivered &amp; Settled</p>
                         <p className="mt-0.5 text-emerald-800">
-                          Customer received clean clothes. ₹{Math.round((order.amount || charges.total) * 0.84)} has been credited to your store payout ledger.
+                          Customer received clean clothes. Order payout has been credited to your store wallet ledger.
                         </p>
                       </div>
                     )}

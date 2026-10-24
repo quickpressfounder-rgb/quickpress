@@ -103,6 +103,8 @@ export type PartnerReview = {
   text: string;
   date: string;
   images: string[];
+  reply?: string;
+  repliedAt?: string;
 };
 
 export type ReviewSummary = {

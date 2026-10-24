@@ -81,15 +81,15 @@ export function PartnerSidebar({
       id: "reviews",
       label: "Reviews",
       icon: MessageSquare,
-      to: partnerRoutes.shop,
-      isActive: false,
+      to: partnerRoutes.reviews,
+      isActive: pathname === partnerRoutes.reviews,
     },
     {
       id: "help",
       label: "Help centre",
       icon: HelpCircle,
-      to: partnerRoutes.settings,
-      isActive: pathname === partnerRoutes.settings,
+      to: partnerRoutes.help,
+      isActive: pathname === partnerRoutes.help,
     },
   ];
 

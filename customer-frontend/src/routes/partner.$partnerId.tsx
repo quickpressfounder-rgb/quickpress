@@ -823,6 +823,22 @@ function PartnerDetailScreen() {
                         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                           {review.text}
                         </p>
+                        {review.reply ? (
+                          <div className="mt-3 rounded-2xl border border-zinc-200/90 bg-zinc-50/80 p-3.5 text-xs shadow-2xs">
+                            <div className="flex items-center gap-1.5 font-bold text-zinc-950">
+                              <Store className="size-3.5 text-emerald-600" />
+                              <span>Response from store:</span>
+                            </div>
+                            <p className="mt-1 text-zinc-700 leading-relaxed font-normal">
+                              {review.reply}
+                            </p>
+                            {review.repliedAt ? (
+                              <p className="mt-1.5 text-[10px] font-medium text-zinc-400">
+                                Replied {formatReviewTimeAgo(review.repliedAt)}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}

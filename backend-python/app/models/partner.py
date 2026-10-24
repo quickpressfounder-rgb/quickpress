@@ -285,6 +285,11 @@ class PartnerReviewResponse(BaseModel):
     rating: float
     comment: str
     date: str
+    reply: Optional[str] = None
+    repliedAt: Optional[str] = None
+    orderCode: Optional[str] = None
+    serviceName: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 class PartnerNotificationResponse(BaseModel):
