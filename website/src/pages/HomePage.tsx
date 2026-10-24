@@ -151,9 +151,9 @@ function getDistanceFromKasganjKm(lat: number, lon: number): number {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(KASGANJ_LAT * (Math.PI / 180)) *
-      Math.cos(lat * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(lat * (Math.PI / 180)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -331,11 +331,11 @@ export function HomePage({
   // Filter available services based on search query
   const filteredServices = searchQuery.trim()
     ? AVAILABLE_SERVICES.filter(
-        (s) =>
-          s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.tagline.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      (s) =>
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.tagline.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : AVAILABLE_SERVICES;
 
   // Handler: Real GPS Live Location Detection
@@ -491,8 +491,8 @@ export function HomePage({
 
   return (
     <div className="min-h-screen bg-white text-gray-900 selection:bg-emerald-200 selection:text-emerald-950 font-sans">
-      {/* ─── 1. Clean Hero Header (Top Brand Banner Removed) ─────────────────────────── */}
-      <section className="relative pt-16 sm:pt-24 pb-16 sm:pb-24 bg-gradient-to-b from-emerald-50/50 via-white to-white overflow-hidden border-b border-gray-100">
+      {/* ─── 1. Clean Hero Header (Full Viewport Landing Screen) ─────────────────────────── */}
+      <section className="relative min-h-[100dvh] flex flex-col justify-between pt-12 sm:pt-16 pb-8 sm:pb-12 bg-gradient-to-b from-emerald-50/50 via-white to-white overflow-hidden border-b border-gray-100">
         {/* Subtle Ambient Mesh Pattern */}
         <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
         <div
@@ -500,7 +500,7 @@ export function HomePage({
           style={{ background: `radial-gradient(circle, ${GREEN} 0%, rgba(34,197,94,0) 70%)` }}
         />
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center flex-1 flex flex-col justify-center my-auto">
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-gray-950 tracking-tight leading-[1.08] mb-4 animate-spring-up">
             Fresh Clothes. <br />
             Delivered In{" "}
@@ -532,23 +532,20 @@ export function HomePage({
                     className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
                   >
                     <IconMapPin
-                      className={`w-5 h-5 shrink-0 ${
-                        isServiceAvailable ? "text-emerald-700" : "text-amber-600 animate-pulse"
-                      }`}
+                      className={`w-5 h-5 shrink-0 ${isServiceAvailable ? "text-emerald-700" : "text-amber-600 animate-pulse"
+                        }`}
                     />
                     <div className="min-w-0">
                       <span className="text-xs sm:text-sm font-bold text-gray-900 truncate block">
                         {selectedLocation}
                       </span>
                       <span
-                        className={`text-[10px] font-semibold flex items-center gap-1 ${
-                          isServiceAvailable ? "text-emerald-700" : "text-amber-700 font-bold"
-                        }`}
+                        className={`text-[10px] font-semibold flex items-center gap-1 ${isServiceAvailable ? "text-emerald-700" : "text-amber-700 font-bold"
+                          }`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            isServiceAvailable ? "bg-emerald-500 animate-live-dot" : "bg-amber-500"
-                          }`}
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${isServiceAvailable ? "bg-emerald-500 animate-live-dot" : "bg-amber-500"
+                            }`}
                         />
                         {isServiceAvailable ? "45-min pickup active" : "Unavailable area"}
                       </span>
@@ -577,9 +574,8 @@ export function HomePage({
                       className="p-1 text-gray-400 hover:text-gray-700 cursor-pointer"
                     >
                       <IconChevronDown
-                        className={`w-4 h-4 transition-transform duration-200 ${
-                          isLocationDropdownOpen ? "rotate-180" : ""
-                        }`}
+                        className={`w-4 h-4 transition-transform duration-200 ${isLocationDropdownOpen ? "rotate-180" : ""
+                          }`}
                       />
                     </button>
                   </div>
@@ -625,11 +621,10 @@ export function HomePage({
                         key={loc.name}
                         type="button"
                         onClick={() => handleSelectLocality(loc)}
-                        className={`w-full px-4 py-2 text-xs flex items-center justify-between text-left cursor-pointer transition-colors ${
-                          selectedLocation === loc.name
+                        className={`w-full px-4 py-2 text-xs flex items-center justify-between text-left cursor-pointer transition-colors ${selectedLocation === loc.name
                             ? "bg-emerald-50 text-emerald-950 font-bold"
                             : "text-gray-700 hover:bg-gray-50 hover:text-emerald-900"
-                        }`}
+                          }`}
                       >
                         <div className="truncate">
                           <span className="truncate block font-semibold">{loc.name}</span>
@@ -647,11 +642,10 @@ export function HomePage({
                         key={loc.name}
                         type="button"
                         onClick={() => handleSelectLocality(loc)}
-                        className={`w-full px-4 py-2 text-xs flex items-center justify-between text-left cursor-pointer transition-colors ${
-                          selectedLocation === loc.name
+                        className={`w-full px-4 py-2 text-xs flex items-center justify-between text-left cursor-pointer transition-colors ${selectedLocation === loc.name
                             ? "bg-amber-50 text-amber-950 font-bold"
                             : "text-gray-600 hover:bg-amber-50/50 hover:text-amber-900"
-                        }`}
+                          }`}
                       >
                         <span className="truncate">{loc.name}</span>
                         <span className="text-[10px] text-amber-700 font-bold bg-amber-100/70 px-1.5 py-0.5 rounded shrink-0">
@@ -791,41 +785,41 @@ export function HomePage({
 
             {/* ─── Zomato-Style App Download Strip (Transparent & Sleek) ─── */}
             <div className="mt-8 sm:mt-10 animate-spring-up flex flex-col items-center justify-center space-y-4">
-              <p className="text-xs sm:text-sm font-semibold text-gray-700 tracking-wide">
+              <p className="text-xs sm:text-sm font-semibold text-gray-600 tracking-wide">
                 Experience fast & easy doorstep garment care on the QuickPress app
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-3.5">
-                {/* Google Play Button */}
+                {/* Google Play Button (Transparent Frosted Glass) */}
                 <a
                   href="/apks/QuickPress-Customer.apk"
                   download="QuickPress-Customer.apk"
                   onClick={() => onShowToast("Downloading QuickPress Customer APK...")}
-                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-black/90 hover:bg-black text-white border border-black/80 hover:border-black backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group cursor-pointer"
+                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/75 hover:bg-white text-gray-900 border border-gray-300 hover:border-gray-900 shadow-sm hover:shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
                 >
-                  <IconGooglePlay className="w-6 h-6 text-white shrink-0 group-hover:scale-110 transition-transform" />
+                  <IconGooglePlay className="w-6 h-6 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
-                    <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider leading-none">
+                    <span className="text-[9px] uppercase font-bold text-gray-500 block tracking-wider leading-none">
                       GET IT ON
                     </span>
-                    <span className="text-sm font-black text-white block tracking-tight leading-tight mt-0.5">
+                    <span className="text-sm font-black text-gray-900 block tracking-tight leading-tight mt-0.5">
                       Google Play
                     </span>
                   </div>
                 </a>
 
-                {/* Apple App Store Button */}
+                {/* Apple App Store Button (Transparent Frosted Glass) */}
                 <button
                   type="button"
                   onClick={() => onOpenModal("download_app")}
-                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-black/90 hover:bg-black text-white border border-black/80 hover:border-black backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group cursor-pointer"
+                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/75 hover:bg-white text-gray-900 border border-gray-300 hover:border-gray-900 shadow-sm hover:shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
                 >
-                  <IconApple className="w-6 h-6 text-white shrink-0 group-hover:scale-110 transition-transform" />
+                  <IconApple className="w-6 h-6 text-gray-900 shrink-0 group-hover:scale-110 transition-transform" />
                   <div className="text-left">
-                    <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider leading-none">
+                    <span className="text-[9px] uppercase font-bold text-gray-500 block tracking-wider leading-none">
                       Download on the
                     </span>
-                    <span className="text-sm font-black text-white block tracking-tight leading-tight mt-0.5">
+                    <span className="text-sm font-black text-gray-900 block tracking-tight leading-tight mt-0.5">
                       App Store
                     </span>
                   </div>
@@ -839,18 +833,22 @@ export function HomePage({
                   const el = document.getElementById("the-three-cards");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="pt-2 inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-emerald-800 transition-colors cursor-pointer group"
+                className="pt-2 inline-flex flex-col items-center gap-1 text-xs font-bold text-gray-500 hover:text-emerald-700 transition-colors cursor-pointer group"
               >
-                <span>Scroll down</span>
-                <span className="animate-bounce inline-block text-emerald-700 font-black text-sm">⌵</span>
+                <span className="text-[11px] tracking-wider uppercase font-semibold text-gray-400 group-hover:text-emerald-700">
+                  Scroll down to explore
+                </span>
+                <span className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center animate-bounce shadow-xs border border-emerald-100 group-hover:bg-emerald-100 font-black">
+                  ⌵
+                </span>
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── 2. The 3 Big Cards With Real Logos & Generous UI (Zomato-Style Bada Bada UI) ── */}
-      <section id="the-three-cards" className="py-16 sm:py-24 bg-white reveal-on-scroll">
+      {/* ─── 2. The 3 Big Cards With Real Logos & Generous UI (Reveals strictly on scroll) ── */}
+      <section id="the-three-cards" className="pt-24 sm:pt-32 pb-20 sm:pb-28 bg-white reveal-on-scroll">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
             {/* Card 1: quickpress (Customer App) - Real Yellow Customer Logo */}
@@ -980,9 +978,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("ro-water")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "ro-water" ? "ring-2 ring-blue-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "ro-water" ? "ring-2 ring-blue-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
                   <span className="text-2xl">💧</span>
@@ -997,9 +994,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("eco-mode")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center justify-between gap-3 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "eco-mode" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center justify-between gap-3 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "eco-mode" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
@@ -1012,14 +1008,12 @@ export function HomePage({
                 </div>
                 <div
                   onClick={() => setEcoModeActive(!ecoModeActive)}
-                  className={`w-11 h-6 rounded-full flex items-center p-1 cursor-pointer transition-colors ${
-                    ecoModeActive ? "bg-emerald-600" : "bg-gray-300"
-                  }`}
+                  className={`w-11 h-6 rounded-full flex items-center p-1 cursor-pointer transition-colors ${ecoModeActive ? "bg-emerald-600" : "bg-gray-300"
+                    }`}
                 >
                   <div
-                    className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform ${
-                      ecoModeActive ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform ${ecoModeActive ? "translate-x-5" : "translate-x-0"
+                      }`}
                   />
                 </div>
               </div>
@@ -1028,9 +1022,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("sneaker-spa")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "sneaker-spa" ? "ring-2 ring-purple-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "sneaker-spa" ? "ring-2 ring-purple-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs">
                   <IconFootprints className="w-6 h-6 text-purple-600" />
@@ -1045,9 +1038,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("zero-loss")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "zero-loss" ? "ring-2 ring-amber-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "zero-loss" ? "ring-2 ring-amber-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
                   <span className="text-2xl">🛡️</span>
@@ -1073,9 +1065,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("steam-press")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "steam-press" ? "ring-2 ring-amber-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "steam-press" ? "ring-2 ring-amber-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
                   <IconIron className="w-6 h-6 text-amber-600" />
@@ -1090,9 +1081,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("offers")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "offers" ? "ring-2 ring-blue-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "offers" ? "ring-2 ring-blue-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
                   <span className="text-2xl">🏷️</span>
@@ -1107,9 +1097,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("gps-route")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "gps-route" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "gps-route" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
                   <IconVan className="w-6 h-6 text-emerald-600" />
@@ -1124,9 +1113,8 @@ export function HomePage({
               <div
                 onMouseEnter={() => setActiveFeatureHover("express")}
                 onMouseLeave={() => setActiveFeatureHover(null)}
-                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${
-                  activeFeatureHover === "express" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
-                }`}
+                className={`bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center gap-3.5 hover:scale-115 hover:shadow-2xl transition-all duration-300 cursor-pointer ${activeFeatureHover === "express" ? "ring-2 ring-emerald-500 scale-110 shadow-xl" : ""
+                  }`}
               >
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
                   <IconBolt className="w-6 h-6 text-emerald-600" />
@@ -1365,9 +1353,8 @@ export function HomePage({
                 >
                   <span>{faq.q}</span>
                   <span
-                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-gray-100 transition-transform duration-200 ${
-                      openFaq === idx ? "rotate-180 bg-emerald-100 text-emerald-900" : "text-gray-600"
-                    }`}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-gray-100 transition-transform duration-200 ${openFaq === idx ? "rotate-180 bg-emerald-100 text-emerald-900" : "text-gray-600"
+                      }`}
                   >
                     <IconChevronDown className="w-4 h-4" />
                   </span>
