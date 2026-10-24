@@ -789,16 +789,68 @@ export function HomePage({
               ))}
             </div>
 
-            {/* ─── DPIIT & Startup India Recognition Badge (Prominently in Center) ─── */}
-            <div className="mt-8 sm:mt-10 animate-spring-up">
-              <DPIITRecognitionBadge />
+            {/* ─── Zomato-Style App Download Strip (Transparent & Sleek) ─── */}
+            <div className="mt-8 sm:mt-10 animate-spring-up flex flex-col items-center justify-center space-y-4">
+              <p className="text-xs sm:text-sm font-semibold text-gray-700 tracking-wide">
+                Experience fast & easy doorstep garment care on the QuickPress app
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-3.5">
+                {/* Google Play Button */}
+                <a
+                  href="/apks/QuickPress-Customer.apk"
+                  download="QuickPress-Customer.apk"
+                  onClick={() => onShowToast("Downloading QuickPress Customer APK...")}
+                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-black/90 hover:bg-black text-white border border-black/80 hover:border-black backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group cursor-pointer"
+                >
+                  <IconGooglePlay className="w-6 h-6 text-white shrink-0 group-hover:scale-110 transition-transform" />
+                  <div className="text-left">
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider leading-none">
+                      GET IT ON
+                    </span>
+                    <span className="text-sm font-black text-white block tracking-tight leading-tight mt-0.5">
+                      Google Play
+                    </span>
+                  </div>
+                </a>
+
+                {/* Apple App Store Button */}
+                <button
+                  type="button"
+                  onClick={() => onOpenModal("download_app")}
+                  className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-black/90 hover:bg-black text-white border border-black/80 hover:border-black backdrop-blur-md shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group cursor-pointer"
+                >
+                  <IconApple className="w-6 h-6 text-white shrink-0 group-hover:scale-110 transition-transform" />
+                  <div className="text-left">
+                    <span className="text-[9px] uppercase font-bold text-gray-400 block tracking-wider leading-none">
+                      Download on the
+                    </span>
+                    <span className="text-sm font-black text-white block tracking-tight leading-tight mt-0.5">
+                      App Store
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Animated "Scroll down ⌵" */}
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("the-three-cards");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="pt-2 inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-emerald-800 transition-colors cursor-pointer group"
+              >
+                <span>Scroll down</span>
+                <span className="animate-bounce inline-block text-emerald-700 font-black text-sm">⌵</span>
+              </button>
             </div>
           </div>
         </div>
       </section>
 
       {/* ─── 2. The 3 Big Cards With Real Logos & Generous UI (Zomato-Style Bada Bada UI) ── */}
-      <section className="py-16 sm:py-24 bg-white reveal-on-scroll">
+      <section id="the-three-cards" className="py-16 sm:py-24 bg-white reveal-on-scroll">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
             {/* Card 1: quickpress (Customer App) - Real Yellow Customer Logo */}
@@ -893,6 +945,13 @@ export function HomePage({
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ─── Govt of India DPIIT & Startup India Recognition (Scroll Reveal) ─── */}
+      <section className="py-8 sm:py-12 bg-gradient-to-b from-white via-emerald-50/25 to-white border-t border-gray-100 reveal-on-scroll">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <DPIITRecognitionBadge />
         </div>
       </section>
 
