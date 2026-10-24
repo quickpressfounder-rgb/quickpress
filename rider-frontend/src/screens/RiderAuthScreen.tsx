@@ -276,21 +276,23 @@ export function RiderAuthScreen() {
 
         <p className="text-[11.5px] text-neutral-500 text-center font-medium leading-relaxed px-2">
           By continuing, you acknowledge our{" "}
-          <Link
-            to="/legal/$docSlug"
-            params={{ docSlug: "privacy-policy" }}
-            className="font-bold text-neutral-800 underline hover:text-[#00C853] transition-colors"
+          <a
+            href="https://withquickpress.com/#privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-neutral-800 underline hover:text-[#00C853] transition-colors cursor-pointer"
           >
             Privacy Policy
-          </Link>{" "}
+          </a>{" "}
           and agree to the{" "}
-          <Link
-            to="/legal/$docSlug"
-            params={{ docSlug: "terms-of-service" }}
-            className="font-bold text-neutral-800 underline hover:text-[#00C853] transition-colors"
+          <a
+            href="https://withquickpress.com/#terms"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-neutral-800 underline hover:text-[#00C853] transition-colors cursor-pointer"
           >
             Terms & Conditions
-          </Link>.
+          </a>.
         </p>
       </div>
     </div>

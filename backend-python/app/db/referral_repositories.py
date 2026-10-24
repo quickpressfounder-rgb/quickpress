@@ -36,7 +36,7 @@ REWARDS = "referral_rewards"
 ORDERS = "customer_orders"
 PROGRAM_SETTINGS = "referral_program_settings"
 
-SHARE_BASE = "https://quickpress.app/invite"
+SHARE_BASE = "https://withquickpress.com/invite"
 COMPLETED_ORDER_STATUSES = ("delivered", "completed")
 GLOBAL_CONFIG_ID = "global_referral_config"
 

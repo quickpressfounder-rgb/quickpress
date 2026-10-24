@@ -3094,7 +3094,7 @@ export function RiderRegistrationScreen() {
               <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-xl space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-neutral-500 font-medium text-[11px]">Platform:</span>
-                  <span className="font-bold text-neutral-900">QuickPress Technologies Pvt. Ltd.</span>
+                  <span className="font-bold text-neutral-900">QuickPress</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-neutral-500 font-medium text-[11px]">Authorized Captain:</span>
@@ -3243,7 +3243,7 @@ export function RiderRegistrationScreen() {
                   <p className="text-[10px] text-neutral-500 mt-0.5">
                     I declare that all information is truthful, and I accept the terms of the{" "}
                     <a
-                      href="/legal/rider-agreement"
+                      href="https://withquickpress.com/#terms"
                       target="_blank"
                       rel="noreferrer"
                       className="font-bold text-emerald-700 underline hover:text-emerald-800"
@@ -3252,7 +3252,7 @@ export function RiderRegistrationScreen() {
                     </a>{" "}
                     and{" "}
                     <a
-                      href="/legal/privacy-policy"
+                      href="https://withquickpress.com/#privacy"
                       target="_blank"
                       rel="noreferrer"
                       className="font-bold text-emerald-700 underline hover:text-emerald-800"

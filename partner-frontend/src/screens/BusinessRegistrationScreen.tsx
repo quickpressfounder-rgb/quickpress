@@ -2822,7 +2822,7 @@ export function BusinessRegistrationScreen() {
                       <span>Execute Agreement via Email OTP *</span>
                     </h4>
                     <p className="text-[11px] font-semibold text-neutral-500">
-                      Legally seal bilateral contract with <strong>QUICKPRESS TECHNOLOGIES PVT LTD</strong>
+                      Legally seal bilateral contract with <strong>QuickPress</strong>
                     </p>
                   </div>
                   {isAgreementOtpVerified ? (

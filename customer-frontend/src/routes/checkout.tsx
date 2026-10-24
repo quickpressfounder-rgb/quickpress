@@ -1134,21 +1134,23 @@ export function CheckoutPage() {
         {/* Pre-order Legal Disclosure */}
         <p className="pb-2.5 text-center text-[10.5px] leading-relaxed text-zinc-500">
           By placing this order, you agree to the QuickPress{" "}
-          <Link
-            to="/legal/$docSlug"
-            params={{ docSlug: "terms-of-service" }}
-            className="font-bold text-zinc-800 underline hover:text-[#0c831f]"
+          <a
+            href="https://withquickpress.com/#terms"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-zinc-800 underline hover:text-[#0c831f] cursor-pointer"
           >
             Terms &amp; Conditions
-          </Link>{" "}
+          </a>{" "}
           and{" "}
-          <Link
-            to="/legal/$docSlug"
-            params={{ docSlug: "privacy-policy" }}
-            className="font-bold text-zinc-800 underline hover:text-[#0c831f]"
+          <a
+            href="https://withquickpress.com/#privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-zinc-800 underline hover:text-[#0c831f] cursor-pointer"
           >
             Privacy Policy
-          </Link>.
+          </a>.
         </p>
 
         <div className="mx-auto max-w-md flex items-center justify-between gap-4">

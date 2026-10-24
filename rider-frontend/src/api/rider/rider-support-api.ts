@@ -1,7 +1,7 @@
 import { apiGetJson, apiPostJson } from "../core/transport";
 
 export const CAPTAIN_HELPLINE_PHONE = "1800 012 3456";
-export const CAPTAIN_SUPPORT_EMAIL = "support@quickpress.app";
+export const CAPTAIN_SUPPORT_EMAIL = "official.quickpress@gmail.com";
 export const CAPTAIN_SUPPORT_EMAIL_OFFICIAL = "official.quickpress@gmail.com";
 export const CAPTAIN_EMERGENCY_SOS = "112";
 

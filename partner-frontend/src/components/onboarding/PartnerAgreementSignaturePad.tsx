@@ -526,7 +526,7 @@ export function PartnerAgreementSignaturePad({
                   First Party (Platform)
                 </span>
                 <div className="text-xs font-black text-zinc-900 truncate">
-                  QUICKPRESS TECHNOLOGIES PVT LTD
+                  QUICKPRESS
                 </div>
                 <div className="text-[11px] font-bold text-zinc-700">
                   Signatory: Dhani Ram

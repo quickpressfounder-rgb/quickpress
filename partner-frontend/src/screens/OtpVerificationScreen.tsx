@@ -375,7 +375,7 @@ export function OtpVerificationScreen() {
         </main>
 
         <footer className="flex items-center justify-between border-t border-zinc-200/80 pt-6 text-xs text-zinc-500">
-          <span>© 2026 QuickPress Technologies Inc.</span>
+          <span>© 2026 QuickPress. All rights reserved.</span>
           <span className="flex items-center gap-1 text-primary font-semibold">
             <CheckCircle2 className="size-3.5" /> Encrypted 256-Bit Authentication
           </span>

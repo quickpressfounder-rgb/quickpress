@@ -70,11 +70,14 @@ export default function App() {
     setActiveModal(modal);
   };
 
-  // Synchronize hash with current page
+  // Synchronize hash / pathname with current page
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleRouteSync = () => {
       const hash = window.location.hash.replace("#", "").toLowerCase();
-      if (hash === "b2b" || hash === "b2b-partner") {
+      const path = window.location.pathname.replace(/^\//, "").toLowerCase();
+      const target = hash || path;
+
+      if (target === "b2b" || target === "b2b-partner") {
         setCurrentPage("b2b-partner");
         setIsMobileRedirectActive(false);
         return;
@@ -87,14 +90,21 @@ export default function App() {
         "terms",
         "b2b-partner",
       ];
-      if (validPages.includes(hash as PageType)) {
-        setCurrentPage(hash as PageType);
+      if (validPages.includes(target as PageType)) {
+        setCurrentPage(target as PageType);
+        if (target !== "home") {
+          setIsMobileRedirectActive(false);
+        }
       }
     };
 
-    handleHashChange();
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
+    handleRouteSync();
+    window.addEventListener("hashchange", handleRouteSync);
+    window.addEventListener("popstate", handleRouteSync);
+    return () => {
+      window.removeEventListener("hashchange", handleRouteSync);
+      window.removeEventListener("popstate", handleRouteSync);
+    };
   }, []);
 
   // Global Zomato-Style Scroll-Driven Reveal Observer across all pages

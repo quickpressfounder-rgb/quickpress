@@ -608,7 +608,7 @@ export function BusinessSettingsScreen() {
 
                 <div className="rounded-2xl border border-zinc-200/90 bg-white overflow-hidden shadow-xs divide-y divide-zinc-100">
                   <a
-                    href="https://with.quickpress.com/#privacy"
+                    href="https://withquickpress.com/#privacy"
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
@@ -624,7 +624,7 @@ export function BusinessSettingsScreen() {
                   </a>
 
                   <a
-                    href="https://with.quickpress.com/#terms"
+                    href="https://withquickpress.com/#terms"
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
@@ -1032,7 +1032,7 @@ export function BusinessSettingsScreen() {
 
               <div className="grid gap-3 md:grid-cols-3">
                 <a
-                  href="https://with.quickpress.com/#privacy"
+                  href="https://withquickpress.com/#privacy"
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer"
@@ -1048,7 +1048,7 @@ export function BusinessSettingsScreen() {
                 </a>
 
                 <a
-                  href="https://with.quickpress.com/#terms"
+                  href="https://withquickpress.com/#terms"
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer"

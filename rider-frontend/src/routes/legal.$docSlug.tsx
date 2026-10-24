@@ -83,21 +83,30 @@ function CaptainLegalDocScreen() {
   const handleOpenWebsite = () => {
     triggerHaptic(20);
     const targetMap: Record<string, string> = {
-      "privacy-policy": "privacy-policy",
-      "terms-of-service": "terms",
-      "terms": "terms",
-      "rider-agreement": "terms",
-      "cancellation-refund-policy": "refund",
-      "grievance-redressal": "contact",
+      "privacy-policy": "#privacy",
+      "terms-of-service": "#terms",
+      "terms": "#terms",
+      "rider-agreement": "#terms",
+      "cancellation-refund-policy": "#terms",
+      "grievance-redressal": "#contact",
     };
-    const targetPath = targetMap[docSlug] || "privacy-policy";
-    const webUrl = `https://quickpress.app/${targetPath}`;
+    const targetHash = targetMap[docSlug] || "#terms";
+    const webUrl = `https://withquickpress.com/${targetHash}`;
     window.open(webUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleShare = async () => {
     triggerHaptic(20);
-    const webUrl = `https://quickpress.app/privacy-policy`;
+    const targetMap: Record<string, string> = {
+      "privacy-policy": "#privacy",
+      "terms-of-service": "#terms",
+      "terms": "#terms",
+      "rider-agreement": "#terms",
+      "cancellation-refund-policy": "#terms",
+      "grievance-redressal": "#contact",
+    };
+    const targetHash = targetMap[docSlug] || "#terms";
+    const webUrl = `https://withquickpress.com/${targetHash}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -233,7 +242,7 @@ function CaptainLegalDocScreen() {
                 onClick={handleOpenWebsite}
                 className="px-4 py-2 rounded-xl bg-slate-100 text-slate-800 font-black text-xs hover:bg-slate-200"
               >
-                Open on quickpress.app
+                Open on withquickpress.com
               </button>
             </div>
           </div>
@@ -302,7 +311,7 @@ function CaptainLegalDocScreen() {
                   className="flex items-center gap-1.5 text-emerald-400 hover:underline font-bold cursor-pointer"
                 >
                   <Globe className="size-3.5" />
-                  <span>quickpress.app/legal</span>
+                  <span>withquickpress.com</span>
                 </button>
               </div>
             </div>

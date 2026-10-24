@@ -299,7 +299,7 @@ export const CaptainGuidelinesScreen: React.FC<CaptainGuidelinesScreenProps> = (
                   <span>Read Full Legal Document</span>
                 </a>
                 <a
-                  href="https://quickpress.app/privacy-policy"
+                  href="https://withquickpress.com/#privacy"
                   target="_blank"
                   rel="noreferrer"
                   className="py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold text-center border border-zinc-300 flex items-center gap-1.5 transition active:scale-98 cursor-pointer"

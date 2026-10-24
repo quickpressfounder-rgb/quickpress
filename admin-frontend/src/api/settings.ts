@@ -171,7 +171,7 @@ const DEFAULTS: AdminSettings = {
   platform: {
     platformName: "QuickPress Laundry & Dry Clean",
     tagline: "Ultra-Fast On-Demand Laundry & Express Dry Cleaning",
-    supportEmail: "support@quickpress.app",
+    supportEmail: "official.quickpress@gmail.com",
     supportPhone: "+91 98719 62596",
     defaultCity: "",
     currency: "INR (₹)",

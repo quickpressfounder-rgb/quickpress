@@ -53,10 +53,11 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
               Statutory & Legal Documents
             </h3>
             <div className="card-soft overflow-hidden border border-border divide-y divide-border rounded-2xl bg-card">
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "privacy-policy" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
+              <a
+                href="https://withquickpress.com/#privacy"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -67,13 +68,14 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                     <p className="text-[11px] text-muted-foreground">How your personal & location data is protected</p>
                   </div>
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
+                <ExternalLink className="size-4 text-muted-foreground" />
+              </a>
 
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "terms-of-service" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
+              <a
+                href="https://withquickpress.com/#terms"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
@@ -84,13 +86,14 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                     <p className="text-[11px] text-muted-foreground">Garment care, service SLAs & terms</p>
                   </div>
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
+                <ExternalLink className="size-4 text-muted-foreground" />
+              </a>
 
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "cancellation-refund-policy" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
+              <a
+                href="https://withquickpress.com/#terms"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -101,13 +104,14 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                     <p className="text-[11px] text-muted-foreground">Instant UPI / Bank refund timelines</p>
                   </div>
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
+                <ExternalLink className="size-4 text-muted-foreground" />
+              </a>
 
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "grievance-redressal" }}
-                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
+              <a
+                href="https://withquickpress.com/#contact"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -118,8 +122,8 @@ export function AboutPage({ onBack, onRequestDelete }: AboutPageProps) {
                     <p className="text-[11px] text-muted-foreground">Statutory consumer dispute escalation desk</p>
                   </div>
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
+                <ExternalLink className="size-4 text-muted-foreground" />
+              </a>
             </div>
           </div>
 

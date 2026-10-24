@@ -63,6 +63,20 @@ function LegalDocScreen() {
     }
   };
 
+  const getWebsiteLegalUrl = (slug: string) => {
+    const targetMap: Record<string, string> = {
+      "privacy-policy": "#privacy",
+      "terms-of-service": "#terms",
+      "terms": "#terms",
+      "cancellation-refund-policy": "#terms",
+      "partner-agreement": "#terms",
+      "rider-agreement": "#terms",
+      "grievance-redressal": "#contact",
+    };
+    const targetHash = targetMap[slug] || "#terms";
+    return `https://withquickpress.com/${targetHash}`;
+  };
+
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-900 pb-20">
       {/* Top sticky brand bar */}
@@ -92,14 +106,14 @@ function LegalDocScreen() {
               <Printer className="size-3.5" /> Print Policy
             </button>
             <a
-              href={`https://quickpress.app/${docSlug === "privacy-policy" ? "privacy-policy" : docSlug === "terms-of-service" ? "terms" : docSlug === "cancellation-refund-policy" ? "refund" : "terms"}`}
+              href={getWebsiteLegalUrl(docSlug)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 transition cursor-pointer"
               title="View on Official Website"
             >
               <Globe className="size-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">quickpress.app</span>
+              <span>withquickpress.com</span>
               <ExternalLink className="size-3 text-emerald-600" />
             </a>
             <Link

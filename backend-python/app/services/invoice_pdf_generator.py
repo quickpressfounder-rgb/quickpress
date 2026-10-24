@@ -449,7 +449,7 @@ QuickPress CIN : {company_cin}<br/>
 QuickPress GST : {company_gst}<br/>
 QuickPress Support : {COMPANY_EMAIL}"""
 
-    sig_markup = """<font size="14" color="#059669"><i>QuickPress Tech</i></font><br/>
+    sig_markup = """<font size="14" color="#059669"><i>QuickPress</i></font><br/>
 <font size="8" color="#0f172a"><b>Authorised Signatory</b></font>"""
 
     p1_footer_table = Table(
@@ -679,7 +679,7 @@ QuickPress Support : {COMPANY_EMAIL}"""
 
     # Page 2 Footer Signatory
     p2_sig_block = f"""<b>For {company_legal}</b><br/><br/>
-<font size="14" color="#059669"><i>QuickPress Tech</i></font><br/>
+<font size="14" color="#059669"><i>QuickPress</i></font><br/>
 <b>Authorised Signatory</b>"""
     story.append(Paragraph(p2_sig_block, ParagraphStyle("P2Sig", parent=text_reg, alignment=2)))
     story.append(Spacer(1, 20))
@@ -687,7 +687,7 @@ QuickPress Support : {COMPANY_EMAIL}"""
     # Bottom Legal communication address & terms URL
     comm_addr_text = (
         f"Communication Address: {COMPANY_ADDRESS}<br/>"
-        "Please refer to https://quickpress.online/terms for current version of full terms & conditions "
+        "Please refer to https://withquickpress.com/#terms for current version of full terms & conditions "
         "which are incorporated in this invoice by reference."
     )
     story.append(Paragraph(comm_addr_text, text_small))

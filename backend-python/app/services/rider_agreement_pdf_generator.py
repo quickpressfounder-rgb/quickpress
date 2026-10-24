@@ -206,7 +206,7 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
 
     story.append(Paragraph("MASTER DELIVERY CAPTAIN SERVICE LEVEL & ONBOARDING AGREEMENT", title_style))
     story.append(Spacer(1, 2))
-    story.append(Paragraph("OFFICIAL BILATERAL LOGISTICS PARTNER CONTRACT · QUICKPRESS TECHNOLOGIES", subtitle_style))
+    story.append(Paragraph("OFFICIAL BILATERAL LOGISTICS PARTNER CONTRACT · QUICKPRESS", subtitle_style))
     story.append(Spacer(1, 8))
 
     preamble = (

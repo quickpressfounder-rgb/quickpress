@@ -320,7 +320,7 @@ export function AboutPage({
                       <img src={logoLight} alt="QuickPress Logo" className="w-full h-auto object-contain" />
                     </div>
                     <div>
-                      <h4 className="font-black text-sm text-black font-mono">QuickPress Technologies</h4>
+                      <h4 className="font-black text-sm text-black font-mono">QuickPress</h4>
                       <span className="text-[11px] text-zinc-600 font-mono font-semibold">Kasganj Headquarters</span>
                     </div>
                   </div>
@@ -346,8 +346,8 @@ export function AboutPage({
                     <span className="font-black text-black text-right">2024 (Kasganj, UP)</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-zinc-100">
-                    <span className="text-zinc-600 font-semibold">Corporate Entity:</span>
-                    <span className="font-black text-black text-right">QuickPress Tech Pvt Ltd</span>
+                    <span className="text-zinc-600 font-semibold">Corporate Brand:</span>
+                    <span className="font-black text-black text-right">QuickPress</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-zinc-100">
                     <span className="text-zinc-600 font-semibold">CIN:</span>

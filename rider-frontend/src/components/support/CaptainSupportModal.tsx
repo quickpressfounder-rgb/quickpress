@@ -14,7 +14,7 @@ export const CaptainSupportModal: React.FC<CaptainSupportModalProps> = ({ isOpen
   const [data, setData] = useState<CaptainSupportResponse>({
     ok: true,
     helplinePhone: "",
-    supportEmail: "support@quickpress.app",
+    supportEmail: "official.quickpress@gmail.com",
     whatsappUrl: "",
     emergencySosNumber: "112",
     workingHours: "24 Hours · 7 Days a Week (24/7)",
@@ -116,7 +116,7 @@ export const CaptainSupportModal: React.FC<CaptainSupportModalProps> = ({ isOpen
           >
             <Mail className="w-5 h-5 text-emerald-600" />
             <span className="text-xs font-black">Email Desk</span>
-            <span className="text-[10px] text-emerald-700 font-medium">support@quickpress.app</span>
+            <span className="text-[10px] text-emerald-700 font-medium">official.quickpress@gmail.com</span>
           </a>
 
           <a

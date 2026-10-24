@@ -831,21 +831,23 @@ export function PartnerAuthScreen() {
                 {/* Statutory Clickwrap Legal Notice */}
                 <p className="mt-4 text-center text-[11.5px] leading-relaxed text-zinc-500">
                   By continuing, you acknowledge our{" "}
-                  <Link
-                    to="/legal/$docSlug"
-                    params={{ docSlug: "privacy-policy" }}
+                  <a
+                    href="https://withquickpress.com/#privacy"
+                    target="_blank"
+                    rel="noreferrer"
                     className="font-bold text-zinc-800 underline hover:text-primary transition-colors cursor-pointer"
                   >
                     Privacy Policy
-                  </Link>{" "}
+                  </a>{" "}
                   and agree to the{" "}
-                  <Link
-                    to="/legal/$docSlug"
-                    params={{ docSlug: "partner-agreement" }}
+                  <a
+                    href="https://withquickpress.com/#terms"
+                    target="_blank"
+                    rel="noreferrer"
                     className="font-bold text-zinc-800 underline hover:text-primary transition-colors cursor-pointer"
                   >
                     Partner Terms & SLA
-                  </Link>.
+                  </a>.
                 </p>
               </form>
 
@@ -903,29 +905,32 @@ export function PartnerAuthScreen() {
 
         {/* Desktop Footer */}
         <footer className="flex items-center justify-between border-t border-zinc-200/80 pt-6 text-xs text-zinc-500">
-          <span>© 2026 QuickPress Technologies Inc. All rights reserved.</span>
+          <span>© 2026 QuickPress. All rights reserved.</span>
           <div className="flex items-center gap-6">
-            <Link
-              to="/legal/$docSlug"
-              params={{ docSlug: "partner-agreement" }}
+            <a
+              href="https://withquickpress.com/#terms"
+              target="_blank"
+              rel="noreferrer"
               className="hover:underline cursor-pointer"
             >
               Partner Terms
-            </Link>
-            <Link
-              to="/legal/$docSlug"
-              params={{ docSlug: "privacy-policy" }}
+            </a>
+            <a
+              href="https://withquickpress.com/#privacy"
+              target="_blank"
+              rel="noreferrer"
               className="hover:underline cursor-pointer"
             >
               Privacy Policy
-            </Link>
-            <Link
-              to="/legal/$docSlug"
-              params={{ docSlug: "grievance-redressal" }}
+            </a>
+            <a
+              href="https://withquickpress.com/#contact"
+              target="_blank"
+              rel="noreferrer"
               className="hover:underline cursor-pointer"
             >
               Grievance Desk
-            </Link>
+            </a>
           </div>
         </footer>
       </div>

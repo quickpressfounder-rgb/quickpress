@@ -1005,7 +1005,7 @@ export function exportCrmProfilePdf(entityType: string, profileData: any) {
         </div>
 
         <div class="footer-bar">
-          <div>QuickPress Technologies Private Limited · Master Operations & Fleet Console</div>
+          <div>QuickPress · Master Operations & Fleet Console</div>
           <div>Strictly Confidential Internal Document · Generated for Legal & Audit Purposes</div>
         </div>
       </div>

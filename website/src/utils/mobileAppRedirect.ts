@@ -104,9 +104,22 @@ export function shouldBypassRedirect(): boolean {
     // ignore storage access errors
   }
 
-  // Route hash bypass for B2B partner registration
+  // Route hash or pathname bypass for legal policies and informational pages
   const hash = (window.location.hash || "").toLowerCase();
-  if (hash === "#b2b" || hash === "#b2b-partner") {
+  const path = (window.location.pathname || "").toLowerCase();
+  const isLegalOrInfo =
+    hash === "#privacy" ||
+    hash === "#terms" ||
+    hash === "#about" ||
+    hash === "#contact" ||
+    hash === "#b2b" ||
+    hash === "#b2b-partner" ||
+    path.includes("privacy") ||
+    path.includes("terms") ||
+    path.includes("about") ||
+    path.includes("contact");
+
+  if (isLegalOrInfo) {
     return true;
   }
 

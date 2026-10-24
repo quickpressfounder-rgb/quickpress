@@ -85,15 +85,15 @@ function PartnerLegalDocScreen() {
 
   const handleOpenWebsite = () => {
     const targetMap: Record<string, string> = {
-      "privacy-policy": "privacy-policy",
-      "partner-agreement": "terms",
-      "terms-of-service": "terms",
-      "terms": "terms",
-      "cancellation-refund-policy": "refund",
-      "grievance-redressal": "contact",
+      "privacy-policy": "#privacy",
+      "partner-agreement": "#terms",
+      "terms-of-service": "#terms",
+      "terms": "#terms",
+      "cancellation-refund-policy": "#terms",
+      "grievance-redressal": "#contact",
     };
-    const targetPath = targetMap[docSlug] || "privacy-policy";
-    const webUrl = `https://quickpress.app/${targetPath}`;
+    const targetHash = targetMap[docSlug] || "#terms";
+    const webUrl = `https://withquickpress.com/${targetHash}`;
     window.open(webUrl, "_blank", "noopener,noreferrer");
   };
 
@@ -108,7 +108,7 @@ function PartnerLegalDocScreen() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 font-sans">
       {/* Sticky Top Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <button
@@ -151,10 +151,11 @@ function PartnerLegalDocScreen() {
             <button
               type="button"
               onClick={handleOpenWebsite}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs hover:bg-emerald-100 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs hover:bg-emerald-100 transition cursor-pointer"
+              title="View on Official Website"
             >
               <Globe className="size-3.5 text-emerald-600" />
-              <span>quickpress.app</span>
+              <span>withquickpress.com</span>
               <ExternalLink className="size-3" />
             </button>
           </div>

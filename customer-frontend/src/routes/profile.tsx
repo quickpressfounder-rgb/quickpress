@@ -1303,13 +1303,14 @@ function ProfileScreen() {
               <div className="mt-3 p-2.5 rounded-xl bg-muted/60 border border-border text-[11px] text-muted-foreground text-left leading-relaxed">
                 ⚖️ <strong>Statutory Notice:</strong> Deleting your account may not immediately remove information that QuickPress is required or permitted to retain for legal, security, transaction, fraud-prevention or dispute-resolution purposes.
               </div>
-              <Link
-                to="/legal/$docSlug"
-                params={{ docSlug: "privacy-policy" }}
-                className="mt-2 text-[11px] font-bold text-primary underline block"
+              <a
+                href="https://withquickpress.com/#privacy"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 text-[11px] font-bold text-primary underline block cursor-pointer"
               >
                 Read Privacy Policy →
-              </Link>
+              </a>
             </div>
             <div className="mt-6 flex gap-3">
               <button

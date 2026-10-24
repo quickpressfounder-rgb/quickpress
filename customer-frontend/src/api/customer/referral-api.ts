@@ -139,7 +139,7 @@ export function formatReferralDate(value: string | null | undefined): string {
 }
 
 function linkFor(code: string): string {
-  return `https://quickpress.app/invite/${code}`;
+  return `https://withquickpress.com/invite/${code}`;
 }
 
 function qrFor(code: string): string {

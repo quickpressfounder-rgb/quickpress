@@ -86,7 +86,7 @@ export function AppInfoSection({
           earnings and stay in touch with customers — all from one app.
         </p>
         <p className="mt-3 text-sm font-medium leading-relaxed text-muted-foreground">
-          Built for laundry partners across India. © 2026 QuickPress Technologies.
+          Built for laundry partners across India. © 2026 QuickPress. All rights reserved.
         </p>
       </SettingsSheet>
     </SettingsSection>
