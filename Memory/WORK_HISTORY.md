@@ -291,19 +291,15 @@
 
 ## How to Pull Updates on the Live EC2 Server
 
-Run this command in the terminal on the server (`ubuntu@ip-172-31-2-28:~/quickpress`):
+Run this single command in the EC2 terminal (`ubuntu@ip-172-31-2-28:~/quickpress`):
 
 ```bash
-cd ~/quickpress && git pull origin main && bash scripts/start_partner.sh
+cd ~/quickpress && git pull origin main && bash scripts/update_server.sh
 ```
 
-If website files changed, run:
-```bash
-(cd website && npm run build && sudo cp -r dist/* /var/www/quickpress/website/)
-```
-
-If backend files changed, run:
-```bash
-sudo docker restart quickpress-backend
-```
+This single command will automatically:
+1. Pull the latest code from GitHub `main`.
+2. Rebuild `partner-frontend` with the new white theme & restart PM2 on port 8082.
+3. Rebuild the FastAPI Docker image & restart the `quickpress-backend` container on port 8000 (fixing the `/partner/tickets` route).
+4. Test and reload Nginx.
 
