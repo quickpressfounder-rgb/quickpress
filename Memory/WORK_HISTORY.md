@@ -189,22 +189,26 @@
 | `98c7866` | `feat(nginx): configure withquickpress.com for website and quickpress.online for partner portal` | Multi-domain Nginx virtual host configurations. |
 | `001d0de` | `feat(deploy): add turnkey automated EC2 deployment script and nginx configuration` | Created `scripts/deploy_production.sh`. |
 
+| `4ff4116` | `feat(partner): exact Zomato merchant panel layout, classic monochrome cards, and closed sign offline view` | Converted Partner desktop console to exact Zomato restaurant partner panel aesthetics: pure white sidebar, classic header with sound/bell/settings/profile, hanging CLOSED signboard offline view, and removed all cartoon multicolor cards. |
+| Pending | `fix(build): use npx vite build in package.json for ec2 compatibility` | Resolved `sh: 1: vite: not found` on Linux EC2 by wrapping subshell vite build commands with `npx`. |
+
 ---
 
 ## How to Pull Updates on the Live EC2 Server
 
-Run this command in the terminal on the server:
+Run this command in the terminal on the server (`ubuntu@ip-172-31-2-28:~/quickpress`):
 
 ```bash
-cd ~/quickpress && git pull origin main && (cd website && npm run build && sudo cp -r dist/* /var/www/quickpress/website/)
+cd ~/quickpress && git pull origin main && npm run build:partner && pm2 restart quickpress-partner
 ```
 
-If partner portal or backend files changed, run:
+If website files changed, run:
 ```bash
-# Restart partner portal SSR server:
-pm2 restart quickpress-partner
+(cd website && npm run build && sudo cp -r dist/* /var/www/quickpress/website/)
+```
 
-# Restart backend Docker container:
+If backend files changed, run:
+```bash
 sudo docker restart quickpress-backend
 ```
 
