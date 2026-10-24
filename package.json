@@ -17,7 +17,7 @@
     "preview:customer": "cd customer-frontend && QUICKPRESS_APP=customer npx vite preview",
     "dev:partner": "QUICKPRESS_APP=partner vite dev --port 8082",
     "typecheck:partner": "cd partner-frontend && tsc --noEmit -p tsconfig.typecheck.json",
-    "build:partner": "cd partner-frontend && QUICKPRESS_APP=partner npx vite build",
+    "build:partner": "cd partner-frontend && NITRO_PRESET=node-server QUICKPRESS_APP=partner npx vite build",
     "dev:rider": "QUICKPRESS_APP=rider vite dev --port 8083",
     "typecheck:rider": "cd rider-frontend && tsc --noEmit -p tsconfig.typecheck.json",
     "build:rider": "cd rider-frontend && QUICKPRESS_APP=rider npx vite build",

@@ -191,6 +191,7 @@
 
 | `4ff4116` | `feat(partner): exact Zomato merchant panel layout, classic monochrome cards, and closed sign offline view` | Converted Partner desktop console to exact Zomato restaurant partner panel aesthetics: pure white sidebar, classic header with sound/bell/settings/profile, hanging CLOSED signboard offline view, and removed all cartoon multicolor cards. |
 | `dcdac7a` | `fix(build): use npx vite build in package.json for ec2 compatibility` | Resolved `sh: 1: vite: not found` on Linux EC2 by wrapping subshell vite build commands with `npx`. |
+| Pending | `fix(partner): configure node-server nitro preset and explicit cwd to prevent 502 bad gateway` | Fixed 502 Bad Gateway by ensuring Nitro builds as `node-server` (not Cloudflare worker) and adding `cwd: __dirname` in `ecosystem.config.cjs`. |
 
 ---
 
@@ -199,7 +200,7 @@
 Run this command in the terminal on the server (`ubuntu@ip-172-31-2-28:~/quickpress`):
 
 ```bash
-cd ~/quickpress && git pull origin main && npm run build:partner && pm2 restart quickpress-partner
+cd ~/quickpress && git pull origin main && bash scripts/start_partner.sh
 ```
 
 If website files changed, run:

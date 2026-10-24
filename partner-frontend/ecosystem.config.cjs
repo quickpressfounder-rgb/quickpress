@@ -2,6 +2,7 @@ module.exports = {
   apps: [
     {
       name: "quickpress-partner",
+      cwd: __dirname,
       script: ".output/server/index.mjs",
       instances: 1,
       autorestart: true,

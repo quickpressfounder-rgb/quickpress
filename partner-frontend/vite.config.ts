@@ -11,8 +11,8 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 const resolvePath = (relative: string) =>
   fileURLToPath(new URL(relative, import.meta.url));
 
-// Production deploy target: set NITRO_PRESET=node-server to emit a Node.js server build.
-const nitroPreset = process.env["NITRO_PRESET"];
+// Production deploy target: default to node-server for EC2 SSR unless on Vercel
+const nitroPreset = process.env["NITRO_PRESET"] || (process.env["VERCEL"] ? undefined : "node-server");
 
 export default defineConfig({
   ...(nitroPreset ? { nitro: { preset: nitroPreset } } : {}),
