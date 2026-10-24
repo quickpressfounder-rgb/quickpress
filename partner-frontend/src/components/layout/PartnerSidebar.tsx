@@ -1,21 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  AlertCircle,
   BarChart3,
-  BookOpen,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Compass,
   HelpCircle,
   MessageSquare,
-  Percent,
   ShoppingBag,
-  Sparkles,
   Store,
-  TrendingUp,
   UtensilsCrossed,
   Wallet,
 } from "lucide-react";
@@ -38,7 +32,7 @@ export function PartnerSidebar({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [collapsed, setCollapsed] = useState(false);
 
-  // Exact Zomato Merchant Menu Navigation (Image 1)
+  // Essential Partner Store Operations Menu
   const navItems = [
     {
       id: "orders",
@@ -69,20 +63,6 @@ export function PartnerSidebar({
       isActive: pathname === partnerRoutes.analytics,
     },
     {
-      id: "offers",
-      label: "Offers",
-      icon: Percent,
-      to: partnerRoutes.services,
-      isActive: false,
-    },
-    {
-      id: "ads",
-      label: "Ads",
-      icon: TrendingUp,
-      to: partnerRoutes.analytics,
-      isActive: false,
-    },
-    {
       id: "finance",
       label: "Finance",
       icon: Wallet,
@@ -98,13 +78,6 @@ export function PartnerSidebar({
       isActive: pathname === partnerRoutes.shop,
     },
     {
-      id: "complaints",
-      label: "Customer complaints",
-      icon: AlertCircle,
-      to: partnerRoutes.orders,
-      isActive: false,
-    },
-    {
       id: "reviews",
       label: "Reviews",
       icon: MessageSquare,
@@ -117,20 +90,6 @@ export function PartnerSidebar({
       icon: HelpCircle,
       to: partnerRoutes.settings,
       isActive: pathname === partnerRoutes.settings,
-    },
-    {
-      id: "learning",
-      label: "Learning centre",
-      icon: BookOpen,
-      to: partnerRoutes.settings,
-      isActive: false,
-    },
-    {
-      id: "expansion",
-      label: "Expansion hub",
-      icon: Compass,
-      to: partnerRoutes.analytics,
-      isActive: false,
     },
   ];
 

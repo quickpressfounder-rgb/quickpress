@@ -109,30 +109,22 @@ export function PartnerDesktopTopBar({
 
   return (
     <header className="sticky top-0 z-30 hidden h-14 w-full items-center justify-between border-b border-zinc-200/80 bg-white px-5 md:flex select-none">
-      {/* Left: Classic Zomato-style brand wordmark */}
+      {/* Left: QuickPress Partner Brand Logo */}
       <div className="flex items-center gap-3">
         <Link
           to={partnerRoutes.dashboard}
           className="flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
         >
-          <span className="text-[22px] font-black tracking-tight text-zinc-950 font-sans lowercase">
-            quickpress
-          </span>
+          <img
+            src="/quickpress-partner-transparent-logo.png"
+            alt="QuickPress Partner"
+            className="h-7 sm:h-8 w-auto object-contain"
+          />
         </Link>
       </div>
 
       {/* Right: Controls matching Zomato Merchant top bar */}
       <div className="flex items-center gap-3">
-        {/* Assistant / Buzzer Test AI Circular Button */}
-        <button
-          type="button"
-          onClick={handleTestChime}
-          title="Test Order Alert Sound (🔊)"
-          className="flex size-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-2xs hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
-        >
-          <Sparkles className="size-4 fill-white text-white" />
-        </button>
-
         {/* Notifications Bell with Red Badge */}
         <Link
           to={partnerRoutes.notifications}
@@ -153,17 +145,6 @@ export function PartnerDesktopTopBar({
         >
           <Settings2 className="size-4.5 stroke-[2.2]" />
         </Link>
-
-        {/* Share Feedback text link */}
-        <button
-          type="button"
-          onClick={() => {
-            toast.info("Share feedback: email official.quickpress@gmail.com");
-          }}
-          className="text-xs font-semibold text-zinc-600 hover:text-zinc-950 underline decoration-zinc-300 hover:decoration-zinc-800 transition-colors cursor-pointer px-1"
-        >
-          Share feedback
-        </button>
 
         {/* Store Status Dropdown Pill (Offline ▾ / Online ▾) */}
         <div className="relative" ref={statusRef}>

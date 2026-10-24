@@ -33,6 +33,29 @@
 
 ## Detailed Log of Work Done Today (24 October 2026)
 
+### 4. Partner Console Streamlining, Transparent Logo & Zomato Order Ticket Redesign
+- **User Requests & Visual Alignment:**
+  1. **Menu Cleanup:** Removed non-essential promotional and peripheral menu options (`Ads`, `Offers`, `Customer complaints`, `Learning centre`, `Expansion hub`) from `PartnerSidebar.tsx` to keep partner focus strictly on core store operations (`Orders`, `Menu`, `Order history`, `Reporting`, `Finance`, `Outlet info`, `Reviews`, `Help centre`).
+  2. **Top Bar Header Logo:** Processed the uploaded onboarding logo (`media_1792855994880.png`) using Pillow RGBA alpha-masking to completely remove the solid white background and tightly crop it (`quickpress-partner-transparent-logo.png`). Positioned the transparent image logo in `PartnerDesktopTopBar.tsx`.
+  3. **Order Sound Buttons Removal:** Removed test sound buttons from `PartnerDesktopTopBar.tsx` (top circular spark/buzzer), `PartnerDashboardScreen.tsx` top ribbon (`Test Sound`), and empty queue state (`Test Order Sound`).
+  4. **Unwanted Lines & Links Removed:**
+     - Removed the bottom `Daily Settlement Status...` strip from `PartnerDashboardScreen.tsx`.
+     - Removed the `Share feedback` text link from `PartnerDesktopTopBar.tsx`.
+  5. **Order Details Screen Desktop Redesign (`OrderDetailsScreen.tsx`):**
+     - Transformed the desktop order details view into a high-density, pure-white Zomato Merchant order ticket.
+     - **Top Order Header:** Back to Orders button, large `#PRT-XXXX` order code with copy button, clean status badge, placed time, total bill amount, direct `Call Customer` button, and `Print Slip / Bill` button.
+     - **Left Column (Primary Business Data - Immediate Visibility):**
+       - **Booked Garments & Services Table:** Top-of-page tabular breakdown with garment name, SKU #, service chip, quantity, unit rate, and total line amount.
+       - **Customer Special Instructions:** Clean highlighted quote block for partner garment handling instructions.
+       - **Financial Settlement Slip:** Transparent subtotal, logistics fee, taxes, discount, total customer bill, and net 84% store payout calculation.
+       - **Customer & Doorstep Address Card:** Clean customer card with rating, phone, verified customer badge, doorstep pickup address, and scheduled pickup slot.
+       - **Logistics Delivery Captain Card:** Clean neutral styling showing assigned captain name, photo/avatar, rating, vehicle number, direct `Call Captain` button, and `Track Live GPS` button. Embedded inline physical Handshake Dispatch OTP verification input.
+     - **Right Column (Operations & Progression):**
+       - **Order Action Panel:** Clear plain-English stage summary, solid merchant action buttons (`size="compact"`), print bill CTA, and customer review button.
+       - **Order Progression Stepper:** Clean vertical milestone audit trail.
+     - **Modal Fix:** Moved `showRiderLocationModal` to root level so live GPS tracking works on both desktop and mobile.
+- **Verification:** Verified with `npm run build:partner` (exit code 0, Nitro SSR build generated).
+
 ### 3. Zomato Partner Console Exact UI Match & Classic Monochrome Theme
 - **Objective:** Replaced cartoonish multicolor cards and heavy banners with the **exact Zomato Restaurant Partner Panel layout** (`zomato.com/partners/onlineordering/orders/`):
   - **Full-Width Top Bar (`PartnerDesktopTopBar.tsx`):**

@@ -766,19 +766,6 @@ export function PartnerDashboardScreen() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      playPartnerOrderChime();
-                      toast.success("🔔 Playing order notification alert tone test");
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
-                    title="Test Loud Order Alert"
-                  >
-                    <Volume2 className="size-3.5 text-blue-600" />
-                    <span>Test Sound</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => navigate({ to: partnerRoutes.services })}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
                   >
@@ -910,22 +897,11 @@ export function PartnerDashboardScreen() {
                         ? "Try searching with a different order code, customer name or phone number."
                         : "Your outlet is online and ready. New orders from nearby customers will appear here automatically with a loud audio ring."}
                     </p>
-                    <div className="mt-6 flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          playPartnerOrderChime();
-                          toast.success("🔔 Playing order ringtone test");
-                        }}
-                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                      >
-                        <Volume2 className="size-3.5 text-blue-600" />
-                        <span>Test Order Sound</span>
-                      </button>
+                    <div className="mt-6 flex items-center justify-center">
                       <button
                         type="button"
                         onClick={refresh}
-                        className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2 text-xs font-bold text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-xs cursor-pointer"
+                        className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-6 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-xs cursor-pointer"
                       >
                         <RotateCcw className="size-3.5" />
                         <span>Refresh Queue</span>
@@ -1068,30 +1044,6 @@ export function PartnerDashboardScreen() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* 4. Subtle Bottom Financial Settlement Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white px-5 py-3 text-xs text-zinc-600 shadow-2xs">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-zinc-950">Daily Settlement Status:</span>
-                  <span>Auto-payout scheduled tomorrow at 06:00 AM</span>
-                  <span className="text-zinc-300">|</span>
-                  <span>
-                    Commission: <strong className="text-zinc-950">Net 84% Pay</strong>
-                  </span>
-                  <span className="text-zinc-300">|</span>
-                  <span>
-                    Total Orders: <strong className="text-zinc-950">{orders.length}</strong>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: partnerRoutes.earnings })}
-                  className="inline-flex items-center gap-1 font-bold text-zinc-900 hover:text-black hover:underline cursor-pointer"
-                >
-                  <span>View Financial Ledger &amp; Payouts</span>
-                  <ArrowRight className="size-3.5" />
-                </button>
               </div>
             </div>
           )}

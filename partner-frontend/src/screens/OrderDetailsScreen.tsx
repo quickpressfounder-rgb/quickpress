@@ -20,6 +20,7 @@ import {
   Printer,
   Share2,
   ShieldCheck,
+  Shirt,
   Sparkles,
   Star,
   User,
@@ -992,79 +993,6 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
           </div>
         )}
 
-        {/* Rider Location Modal */}
-        {showRiderLocationModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl space-y-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
-                    <Navigation className="size-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-zinc-900">Rider Live Location</h3>
-                    <p className="text-[11px] font-semibold text-zinc-500">{riderName}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowRiderLocationModal(false)}
-                  className="rounded-full bg-zinc-100 p-1.5 text-zinc-500 hover:bg-zinc-200"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {(() => {
-                const rLat = Number(order?.assignedRider?.lat || (order as any)?.rider?.latitude || (order as any)?.rider?.lat);
-                const rLng = Number(order?.assignedRider?.lng || (order as any)?.rider?.longitude || (order as any)?.rider?.lng);
-                const hasRider = Boolean(rLat && rLng && !isNaN(rLat) && !isNaN(rLng));
-
-                return hasRider ? (
-                  <div className="space-y-3">
-                    <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
-                      <GoogleMapView
-                        className="h-full w-full"
-                        interactive={true}
-                        zoom={15}
-                        center={{ latitude: rLat, longitude: rLng, label: "Delivery Partner", tone: "primary" }}
-                        markers={[
-                          { id: "rider", latitude: rLat, longitude: rLng, label: "Rider En Route", tone: "primary" },
-                          { id: "store", latitude: Number((order as any)?.partnerLat || (order as any)?.pickupLat || rLat), longitude: Number((order as any)?.partnerLng || (order as any)?.pickupLng || rLng), label: "Your Store", tone: "secondary" },
-                        ]}
-                      />
-                    </div>
-                    <div className="rounded-2xl bg-emerald-50 p-3 border border-emerald-200/60 text-center">
-                      <p className="text-xs font-black text-emerald-900">Rider is en route</p>
-                      <p className="text-[11px] text-emerald-700 mt-0.5">
-                        GPS: {rLat.toFixed(4)}, {rLng.toFixed(4)}
-                      </p>
-                      <p className="text-[10px] text-emerald-600 mt-0.5">
-                        Live Tracking Active
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl bg-zinc-50 p-6 text-center border border-zinc-200/60 space-y-2">
-                    <MapPin className="size-8 text-zinc-400 mx-auto" />
-                    <p className="text-xs font-black text-zinc-800">Waiting for Rider GPS</p>
-                    <p className="text-[11px] text-zinc-500">
-                      GPS coordinates will display here automatically once the assigned rider turns online.
-                    </p>
-                  </div>
-                );
-              })()}
-
-              <button
-                type="button"
-                onClick={() => setShowRiderLocationModal(false)}
-                className="w-full rounded-2xl bg-zinc-950 py-2.5 text-xs font-black text-white active:scale-95"
-              >
-                Close Tracking
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Sticky Mobile Bottom Order Action Bar */}
         {order ? (
@@ -1082,68 +1010,312 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
       </div>
 
       {/* ========================================================================= */}
-      {/* DESKTOP ORDER DETAILS VIEW (>= md)                                        */}
+      {/* DESKTOP ORDER DETAILS VIEW (>= md) - CLEAN HIGH-DENSITY ZOMATO TICKET     */}
       {/* ========================================================================= */}
-      <div className="hidden mx-auto w-full max-w-6xl px-4 py-4 md:block md:px-8 md:py-6">
+      <div className="hidden mx-auto w-full max-w-7xl px-4 py-5 md:block md:px-8 md:py-6">
         {isScreenLoading ? (
           <OrderDetailSkeleton />
         ) : !order ? (
-          <div className="rounded-3xl border border-border bg-card px-6 py-16 text-center shadow-sm">
-            <p className="text-base font-black text-foreground">Order not found</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+          <div className="rounded-2xl border border-zinc-200 bg-white px-6 py-16 text-center shadow-2xs">
+            <Package className="mx-auto size-12 text-zinc-300" />
+            <h3 className="mt-3 text-base font-black text-zinc-900">Order not found</h3>
+            <p className="mt-1 text-xs text-zinc-500">
               This order may have been removed or assigned to another store.
             </p>
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.orders })}
-              className="mt-4 inline-flex rounded-2xl bg-primary px-4 py-2 text-xs font-bold text-brand-dark"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
             >
-              Back to Orders
+              <ArrowLeft className="size-4" />
+              <span>Back to Orders Queue</span>
             </button>
           </div>
         ) : (
-          <div className="animate-soft-fade grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
-            <div className="space-y-6">
-              {/* Interactive Live Order Flow Track & Direct Action Hub */}
-              <OrderFlowCard
-                order={order}
-                onAction={(actionId) => handleAction(order, actionId)}
-                busyAction={busy?.orderId === order.id ? busy.actionId : null}
-                dispatchInputOtp={dispatchInputOtp}
-                setDispatchInputOtp={setDispatchInputOtp}
-                handleVerifyPartnerDispatch={handleVerifyPartnerDispatch}
-                isVerifyingDispatch={isVerifyingDispatch}
-                onShowInvoice={() => setShowInvoiceSheet(true)}
-              />
+          <div className="space-y-6">
+            {/* 1. TOP ORDER HEADER STRIP */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+              <div className="flex items-center gap-3.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: partnerRoutes.orders })}
+                  className="flex size-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                  title="Back to Orders"
+                >
+                  <ArrowLeft className="size-5" />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h1 className="text-xl font-black text-zinc-950 tracking-tight">
+                      Order #{order.code}
+                    </h1>
+                    <button
+                      type="button"
+                      onClick={copyCode}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
+                      title="Copy Order ID"
+                    >
+                      <Copy className="size-3.5" />
+                      <span>Copy</span>
+                    </button>
+                    {/* Status badge */}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${
+                        isOrderCancelled
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
+                          : order.stage === "delivered" || order.stage === "completed"
+                          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          : order.stage === "ready"
+                          ? "bg-blue-50 text-blue-800 border border-blue-200"
+                          : order.stage === "new"
+                          ? "bg-amber-50 text-amber-900 border border-amber-300"
+                          : "bg-zinc-100 text-zinc-900 border border-zinc-200"
+                      }`}
+                    >
+                      <span
+                        className={`size-2 rounded-full ${
+                          isOrderCancelled
+                            ? "bg-rose-500"
+                            : order.stage === "delivered" || order.stage === "completed"
+                            ? "bg-emerald-600"
+                            : order.stage === "ready"
+                            ? "bg-blue-600 animate-pulse"
+                            : order.stage === "new"
+                            ? "bg-amber-600 animate-pulse"
+                            : "bg-zinc-700"
+                        }`}
+                      />
+                      {stageLabel}
+                    </span>
+                    {order.services && order.services.length > 0 && (
+                      <span className="rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-700 border border-zinc-200/80">
+                        {order.services.join(", ")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500 font-medium flex-wrap">
+                    <span>
+                      Order Placed: <strong className="text-zinc-900">{placedInfo.time}</strong>, {placedInfo.date}
+                    </span>
+                    <span className="text-zinc-300">•</span>
+                    <span className="font-semibold text-zinc-700">{placedInfo.relative}</span>
+                    <span className="text-zinc-300">•</span>
+                    <span>
+                      Total Bill: <strong className="text-zinc-950 font-black">₹{order.amount || charges.total}</strong>
+                    </span>
+                    <span className="text-zinc-300">•</span>
+                    <span className="capitalize font-semibold text-zinc-700">
+                      {order.paymentMode === "cod" ? "Cash on Delivery" : "Paid Online"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              {/* Customer information & Pickup Location */}
-              <section className="rounded-3xl border border-border/80 bg-card p-6 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-lg font-black text-foreground">
-                        {getDisplayCustomerName(order.customerName)}
-                      </p>
-                      <span className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-foreground">
-                        <Star className="size-3 fill-current text-brand-green" />
-                        {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
-                      </span>
+              <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                {order.customerPhone ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (order.customerPhone && !order.customerPhone.includes("••")) {
+                        window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                    title="Call Customer"
+                  >
+                    <PhoneCall className="size-4 text-emerald-700" />
+                    <span>Call Customer</span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceSheet(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                  title="Print Slip / Tax Invoice"
+                >
+                  <Printer className="size-4 text-zinc-600" />
+                  <span>Print Slip / Bill</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 2. TWO-COLUMN MAIN CONTENT (62% LEFT / 38% RIGHT) */}
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:items-start">
+              {/* LEFT COLUMN: CRITICAL BUSINESS DATA */}
+              <div className="space-y-6">
+
+                {/* A. BOOKED SERVICES & ITEMS (TOP PRIORITY - DATA LOADED TABLE) */}
+                <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-900 text-white">
+                        <Package className="size-4.5" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-black uppercase tracking-wider text-zinc-950">
+                          Booked Services &amp; Items
+                        </h2>
+                        <p className="text-xs text-zinc-500 font-medium">
+                          {items.reduce((acc, it) => acc + (it.qty || 1), 0)} items in customer package
+                        </p>
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground font-medium">
-                      Verified Customer · {order.customerOrders || 1} previous orders
-                    </p>
-                    <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 text-xs text-blue-900 dark:text-blue-200 border border-blue-200/60 dark:border-blue-800/40 font-semibold flex-wrap">
-                      <Clock className="size-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                      <span className="text-zinc-600 dark:text-zinc-400">Order Arrived:</span>
-                      <span className="font-black text-zinc-900 dark:text-zinc-100">{placedInfo.time}</span>
-                      <span className="text-zinc-400">•</span>
-                      <span>{placedInfo.date}</span>
-                      <span className="rounded bg-white dark:bg-zinc-800 px-1.5 py-0.5 text-[11px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60">
-                        {placedInfo.relative}
-                      </span>
+                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-800 border border-zinc-200">
+                      {items.length} {items.length === 1 ? "Item" : "Items"} Listed
+                    </span>
+                  </div>
+
+                  {/* High Density Table */}
+                  <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200/80">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-zinc-50 text-[11px] font-bold text-zinc-600 uppercase tracking-wider border-b border-zinc-200/80">
+                        <tr>
+                          <th className="py-2.5 px-4">Garment / Item</th>
+                          <th className="py-2.5 px-3">Service</th>
+                          <th className="py-2.5 px-3 text-center">Qty</th>
+                          <th className="py-2.5 px-3 text-right">Rate</th>
+                          <th className="py-2.5 px-4 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 bg-white">
+                        {items.length > 0 ? (
+                          items.map((item, idx) => (
+                            <tr key={item.id || idx} className="hover:bg-zinc-50/70 transition-colors">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 font-bold shrink-0">
+                                    <Shirt className="size-3.5" />
+                                  </span>
+                                  <div>
+                                    <p className="font-bold text-zinc-950">{item.name}</p>
+                                    <p className="text-[10px] text-zinc-400">Garment #{idx + 1}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className="inline-block rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-800 border border-zinc-200/60">
+                                  {item.service || (order.services && order.services[0]) || "Laundry"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-zinc-900">
+                                {item.qty || 1}
+                              </td>
+                              <td className="py-3 px-3 text-right text-zinc-600 font-semibold">
+                                ₹{item.price || 0}
+                              </td>
+                              <td className="py-3 px-4 text-right font-black text-zinc-950">
+                                ₹{(item.qty || 1) * (item.price || 0)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="py-6 text-center text-zinc-400">
+                              No individual item split recorded. Order booking value: ₹{order.amount}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Customer Special Instructions if any */}
+                  {order.specialInstructions && (
+                    <div className="mt-3.5 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
+                      <div className="flex items-center gap-1.5 font-bold text-zinc-900">
+                        <MessageSquare className="size-3.5 text-zinc-600" />
+                        <span>Customer Instructions:</span>
+                      </div>
+                      <p className="mt-1 text-zinc-700 italic">
+                        "{order.specialInstructions}"
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Financial Bill Calculation (Zomato Merchant Slip) */}
+                  <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-800 pb-2 border-b border-zinc-200/80 mb-3">
+                      Payment &amp; Financial Settlement
+                    </h3>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between text-zinc-600">
+                        <span>Items Subtotal:</span>
+                        <span className="font-semibold text-zinc-900">₹{charges.subtotal}</span>
+                      </div>
+                      <div className="flex justify-between text-zinc-600">
+                        <span>Pickup &amp; Delivery Logistics:</span>
+                        <span className="font-semibold text-zinc-900">
+                          {charges.pickupFee > 0 ? `₹${charges.pickupFee}` : "FREE"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-zinc-600">
+                        <span>GST &amp; Taxes:</span>
+                        <span className="font-semibold text-zinc-900">₹{charges.taxes}</span>
+                      </div>
+                      {charges.discount > 0 && (
+                        <div className="flex justify-between text-emerald-700 font-semibold">
+                          <span>Store Discount Applied:</span>
+                          <span>-₹{charges.discount}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-zinc-200 pt-2 flex justify-between text-sm font-black text-zinc-950">
+                        <span>Total Customer Bill:</span>
+                        <span className={isOrderCancelled ? "line-through text-zinc-400" : ""}>
+                          ₹{order.amount || charges.total}
+                        </span>
+                      </div>
+
+                      {/* Store 84% Net Payout Calculation */}
+                      <div className="mt-2.5 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-emerald-950">
+                            Partner Net Earnings (Net 84%):
+                          </p>
+                          <p className="text-[10px] text-emerald-700">
+                            QuickPress takes 16% commission · Zero hidden gateway fees
+                          </p>
+                        </div>
+                        <span className="text-sm font-black text-emerald-900">
+                          ₹{Math.round((order.amount || charges.total) * 0.84)}
+                        </span>
+                      </div>
+
+                      {/* Payment Status Bar */}
+                      <div className="mt-2 flex items-center justify-between pt-2 border-t border-zinc-200 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-zinc-800">
+                          <CreditCard className="size-4 text-zinc-500" />
+                          <span className="capitalize">
+                            {order.paymentMode === "cod" ? "Cash on Delivery (COD)" : "Paid Online via Razorpay"}
+                          </span>
+                        </div>
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                            order.paymentStatus === "paid"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                              : "bg-amber-100 text-amber-900 border border-amber-300"
+                          }`}
+                        >
+                          {order.paymentStatus === "paid" ? "Payment Received" : "Payment Pending"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2.5">
+                </section>
+
+                {/* B. CUSTOMER & DOORSTEP ADDRESS CARD */}
+                <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-900 text-white">
+                        <User className="size-4.5" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-black uppercase tracking-wider text-zinc-950">
+                          Customer &amp; Delivery Details
+                        </h2>
+                        <p className="text-xs text-zinc-500 font-medium">Customer contact and address information</p>
+                      </div>
+                    </div>
                     {order.customerPhone ? (
                       <button
                         type="button"
@@ -1152,480 +1324,395 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                             window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
                           }
                         }}
-                        title="Call Customer (Privacy Protected)"
-                        aria-label="Call Customer"
-                        className="flex size-10 items-center justify-center rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-xs transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
                       >
-                        <PhoneCall className="size-4.5" />
+                        <PhoneCall className="size-3.5" />
+                        <span>Call Customer</span>
                       </button>
                     ) : null}
-                    <OrderStatusBadge order={order} />
-                  </div>
-                </div>
-
-                {/* Pickup Location Card */}
-                <div className="mt-5 flex items-start gap-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20 p-4">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-2xs mt-0.5">
-                    <MapPin className="size-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                        Pickup Location
-                      </p>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2.5 py-0.5 text-[9px] font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        <ShieldCheck className="size-2.5 text-emerald-600" />
-                        <span>Doorstep Pickup</span>
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
-                      {order.pickupAddress || order.address || "Customer Doorstep Address"}
-                    </p>
-                    {order.pickupTime ? (
-                      <p className="mt-1.5 text-xs font-semibold text-muted-foreground">
-                        Pickup Slot: <span className="text-foreground font-bold">{order.pickupTime}</span>
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </section>
-
-              {/* Desktop Delivery Captain Card (Directly Below Customer) */}
-              {isOrderCancelled && !hasAssignedRider ? (
-                /* Case 1: Cancelled & No Rider Found */
-                <section className="rounded-3xl border border-rose-200/90 bg-gradient-to-br from-rose-50/40 via-card to-red-50/20 p-6 shadow-sm">
-                  <div className="flex items-center justify-between pb-4 border-b border-rose-100/80 dark:border-rose-900/30">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex size-8 items-center justify-center rounded-xl bg-rose-600 text-white shadow-2xs">
-                        <Bike className="size-4.5" />
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-black uppercase tracking-wider text-rose-950 dark:text-rose-100">
-                          Delivery Captain
-                        </h3>
-                        <p className="text-xs text-muted-foreground">QuickPress Logistics & Delivery Fleet</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 border border-rose-300 px-3 py-1 text-xs font-black text-rose-800">
-                      ✕ Rider Not Found
-                    </span>
                   </div>
 
-                  <div className="py-5 px-3 flex items-center gap-4">
-                    <div className="relative shrink-0 flex items-center justify-center">
-                      <div className="flex size-14 items-center justify-center rounded-2xl bg-rose-100 border border-rose-200 text-rose-600 shadow-xs">
-                        <Bike className="size-7 text-rose-500" />
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-black text-foreground">Rider Not Found</p>
-                      <p className="mt-0.5 text-xs font-semibold text-rose-700 dark:text-rose-400">
-                        Order was cancelled before a delivery captain could be assigned.
-                      </p>
-                    </div>
-                  </div>
-                </section>
-              ) : isOrderCancelled && hasAssignedRider ? (
-                /* Case 2: Cancelled & Rider WAS Assigned (Show Rider Name) */
-                <section className="rounded-3xl border border-border/90 bg-gradient-to-br from-muted/30 via-card to-card p-6 shadow-sm">
-                  <div className="flex items-center justify-between pb-4 border-b border-border/80">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex size-8 items-center justify-center rounded-xl bg-zinc-700 text-white shadow-2xs">
-                        <Bike className="size-4.5" />
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-black uppercase tracking-wider text-foreground">
-                          Assigned Delivery Captain
-                        </h3>
-                        <p className="text-xs text-muted-foreground">QuickPress Logistics & Delivery Fleet</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 px-3 py-1 text-xs font-black text-rose-600">
-                      Order Cancelled
-                    </span>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <div className="relative shrink-0">
-                        {riderImage ? (
-                          <img
-                            src={riderImage}
-                            alt={riderName}
-                            className="size-14 rounded-2xl object-cover border-2 border-white shadow-md grayscale"
-                          />
-                        ) : (
-                          <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-600 to-zinc-700 text-white font-black text-xl shadow-md">
-                            {riderName ? riderName.charAt(0).toUpperCase() : <Bike className="size-7" />}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-base font-black text-foreground truncate">{riderName}</p>
-                          {riderRating ? (
-                            <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-2 py-0.5 text-xs font-black text-amber-800 shrink-0">
-                              <Star className="size-3 fill-current text-amber-500" />
-                              {riderRating.toFixed(1)}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {riderVehicle ? (
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-muted border border-border px-2.5 py-0.5 text-xs font-black text-foreground tracking-wide">
-                              🛵 {riderVehicle}
-                            </span>
-                          </div>
-                        ) : null}
-
-                        <div className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                          <ShieldCheck className="size-3.5 text-muted-foreground shrink-0" />
-                          <span>Captain assigned before order cancellation</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              ) : !hasAssignedRider ? (
-                /* Case 3: Active Order & Finding Rider */
-                <section className="rounded-3xl border border-amber-200/90 bg-gradient-to-br from-amber-50/50 via-card to-orange-50/20 p-6 shadow-sm">
-                  <div className="flex items-center justify-between pb-4 border-b border-amber-100/80 dark:border-amber-900/30">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex size-8 items-center justify-center rounded-xl bg-amber-500 text-white shadow-2xs">
-                        <Bike className="size-4.5" />
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-black uppercase tracking-wider text-amber-950 dark:text-amber-100">
-                          Delivery Captain
-                        </h3>
-                        <p className="text-xs text-muted-foreground">QuickPress Logistics & Delivery Fleet</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3 py-1 text-xs font-black text-amber-800">
-                      <span className="size-2 rounded-full bg-amber-500 animate-ping" />
-                      Finding Captain...
-                    </span>
-                  </div>
-
-                  <div className="py-5 px-3 flex items-center gap-4">
-                    <div className="relative shrink-0 flex items-center justify-center">
-                      <div className="absolute size-14 rounded-full bg-amber-400/20 animate-ping" style={{ animationDuration: "2s" }} />
-                      <div className="relative flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md ring-2 ring-amber-400/30">
-                        <Bike className="size-7 animate-pulse" />
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-black text-foreground">Locating Nearest Captain...</p>
-                      <p className="mt-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-                        Searching closest available logistics partner in your zone
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Captain telemetry and direct calling will activate as soon as accepted.
-                      </p>
-                    </div>
-                  </div>
-                </section>
-              ) : (
-                /* Case 4: Active Order & Rider Assigned */
-                <section className="rounded-3xl border border-blue-200/90 bg-gradient-to-br from-blue-50/30 via-card to-card p-6 shadow-sm">
-                  <div className="flex items-center justify-between pb-4 border-b border-border/80">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex size-8 items-center justify-center rounded-xl bg-blue-600 text-white shadow-2xs">
-                        <Bike className="size-4.5" />
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-black uppercase tracking-wider text-blue-950 dark:text-blue-100">
-                          Assigned Delivery Captain
-                        </h3>
-                        <p className="text-xs text-muted-foreground">QuickPress Logistics & Delivery Fleet</p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-black text-emerald-600">
-                      <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Assigned
-                    </span>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between gap-4">
-                    {/* Photo + Name + Details */}
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <div className="relative shrink-0">
-                        {riderImage ? (
-                          <img
-                            src={riderImage}
-                            alt={riderName}
-                            className="size-14 rounded-2xl object-cover border-2 border-white shadow-md ring-2 ring-blue-500/20"
-                          />
-                        ) : (
-                          <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-xl shadow-md ring-2 ring-blue-500/20">
-                            {riderName ? riderName.charAt(0).toUpperCase() : <Bike className="size-7" />}
-                          </div>
-                        )}
-                        <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white text-[10px] text-white font-black">
-                          ✓
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    {/* Customer Info */}
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-zinc-500 uppercase">Customer</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-800">
+                          <Star className="size-3 fill-amber-400 text-amber-500" />
+                          {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
                         </span>
                       </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-base font-black text-foreground truncate">{riderName}</p>
-                          {riderRating ? (
-                            <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-2 py-0.5 text-xs font-black text-amber-800 shrink-0">
-                              <Star className="size-3 fill-current text-amber-500" />
-                              {riderRating.toFixed(1)}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {riderVehicle ? (
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-muted border border-border px-2.5 py-0.5 text-xs font-black text-foreground tracking-wide">
-                              🛵 {riderVehicle}
-                            </span>
-                          </div>
-                        ) : null}
-
-                        <div className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                          <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
-                          <span>Verified QuickPress Logistics Captain</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Actions: Phone Call Icon Button + Track Live GPS */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      {riderPhone ? (
-                        <a
-                          href={`tel:${riderPhone.replace(/\s/g, "")}`}
-                          className="flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 py-2.5 px-4 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                          title="Call Delivery Captain"
-                        >
-                          <PhoneCall className="size-4" />
-                          <span>Call Captain</span>
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          className="flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 py-2.5 px-4 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                          title="Call Delivery Captain"
-                        >
-                          <PhoneCall className="size-4" />
-                          <span>Call Captain</span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setShowRiderLocationModal(true)}
-                        className="flex items-center justify-center gap-2 rounded-full border border-border bg-muted/40 hover:bg-muted active:scale-95 py-2.5 px-4 text-xs font-bold text-foreground transition-all cursor-pointer"
-                      >
-                        <Navigation className="size-4 text-blue-600" />
-                        <span>Track Live GPS</span>
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Desktop Auto-Accepted by Store Badge */}
-              {Boolean((order as any).autoAccepted || (order as any).isAutoAccepted || (order as any).partnerAutoAccepted) && (
-                <div className="flex items-center justify-between rounded-3xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-card p-4 border border-emerald-500/40 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-9 items-center justify-center rounded-2xl bg-[#00C853] text-white shadow-xs">
-                      <Zap className="size-5 fill-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-foreground flex items-center gap-2">
-                        <span>⚡ Store Auto-Accepted Order</span>
-                        <span className="flex size-2 rounded-full bg-[#00C853] animate-ping" />
-                      </h4>
-                      <p className="text-xs font-semibold text-muted-foreground mt-0.5">
-                        Order was automatically accepted per your store setting. Pickup captain has been dispatched.
+                      <p className="text-base font-black text-zinc-950">
+                        {getDisplayCustomerName(order.customerName)}
+                      </p>
+                      <p className="text-xs font-semibold text-zinc-600">
+                        Phone: {order.customerPhone ? maskPhone(order.customerPhone) : "Protected"}
+                      </p>
+                      <p className="text-[11px] text-zinc-500">
+                        Verified Customer · {order.customerOrders || 1} previous orders
                       </p>
                     </div>
-                  </div>
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase text-emerald-800 border border-emerald-300">
-                    Auto-Accepted
-                  </span>
-                </div>
-              )}
 
-              {/* Desktop Dispatch OTP Card for Handover */}
-              {((order.stage === "ready" || order.stage === "dispatch_otp_pending" || order.stage === "completed" || (order as any)?.reassignment) && (dispatchOtpCode || order.stage === "ready" || order.stage === "dispatch_otp_pending")) ? (
-                <section className="rounded-3xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-white p-6 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="flex size-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
-                        <ShieldCheck className="size-5.5" />
-                      </span>
-                      <div>
-                        <h3 className="text-base font-black uppercase tracking-wider text-emerald-900">
-                          Captain Handover & Dispatch Verification
-                        </h3>
-                        <p className="text-xs font-semibold text-emerald-700">
-                          Enter the 4-digit Dispatch OTP communicated by the Captain upon store arrival
+                    {/* Pickup & Slot Info */}
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-500 uppercase">Doorstep Pickup Address</span>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <p className="text-xs font-bold text-zinc-900 leading-snug">
+                          {order.pickupAddress || order.address || "House 42, Civil Lines, Kasganj"}
                         </p>
+                      </div>
+                      <div className="text-[11px] text-zinc-600 font-medium">
+                        Slot: <strong className="text-zinc-900">{order.pickupTime || "04:00 PM - 06:00 PM"}</strong>
                       </div>
                     </div>
-                    <span className="rounded-full bg-emerald-100 border border-emerald-300 px-3 py-1 text-xs font-black text-emerald-800">
-                      Physical Handshake OTP
-                    </span>
-                  </div>
-
-                  <div className="my-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-bold text-zinc-700">
-                          Ask Delivery Captain for their 4-Digit Dispatch Code:
-                        </p>
-                        <p className="text-[11px] text-zinc-500 mt-0.5">
-                          Verifying this code transfers custody to the Captain and starts live delivery to customer.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                        <input
-                          type="text"
-                          maxLength={4}
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder="e.g. 5387"
-                          value={dispatchInputOtp}
-                          onChange={(e) => setDispatchInputOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          className="w-36 rounded-xl border-2 border-primary/40 bg-white px-4 py-2.5 text-center font-mono text-xl font-black tracking-widest text-foreground placeholder:text-zinc-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
-                        />
-                        <button
-                          type="button"
-                          disabled={dispatchInputOtp.trim().length !== 4 || isVerifyingDispatch}
-                          onClick={handleVerifyPartnerDispatch}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-zinc-200 disabled:text-zinc-400 px-5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95"
-                        >
-                          {isVerifyingDispatch ? (
-                            <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          ) : (
-                            <CheckCircle2 className="size-4.5" />
-                          )}
-                          Verify OTP & Dispatch
-                        </button>
-                      </div>
-                    </div>
-
-                    <p className="mt-3 text-center text-xs font-medium text-zinc-500 pt-2 border-t border-emerald-200/50">
-                      🔒 Handover is secured: Ask arriving Delivery Captain for the 4-digit code displayed in their app.
-                    </p>
                   </div>
                 </section>
-              ) : null}
 
-              {/* Items & Services Card */}
-              <section className="rounded-3xl border border-border/80 bg-card p-6 shadow-sm">
-                <SectionHeading title="Booked Services & Items" />
-                <div className="mt-4 space-y-3">
-                  {items.map((item, idx) => (
-                    <div
-                      key={item.id || idx}
-                      className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/20 p-3.5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-8 items-center justify-center rounded-xl bg-primary/20 text-brand-dark font-bold text-xs">
-                          <Package className="size-4" />
-                        </div>
+                {/* C. LOGISTICS & DELIVERY CAPTAIN (CLEAN & PROFESSIONAL) */}
+                <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-900 text-white">
+                        <Bike className="size-4.5" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-black uppercase tracking-wider text-zinc-950">
+                          Delivery Logistics Captain
+                        </h2>
+                        <p className="text-xs text-zinc-500 font-medium">QuickPress Delivery &amp; Logistics Fleet</p>
+                      </div>
+                    </div>
+                    {hasAssignedRider ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-800">
+                        <span className="size-2 rounded-full bg-emerald-600" />
+                        Captain Assigned
+                      </span>
+                    ) : isOrderCancelled ? (
+                      <span className="rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1 text-xs font-bold text-zinc-600">
+                        Order Cancelled
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 border border-zinc-200 px-3 py-1 text-xs font-bold text-zinc-700">
+                        <span className="size-2 rounded-full bg-zinc-400 animate-pulse" />
+                        Locating Captain...
+                      </span>
+                    )}
+                  </div>
+
+                  {hasAssignedRider ? (
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-zinc-200 bg-zinc-50/50 p-4">
+                      <div className="flex items-center gap-3.5">
+                        {riderImage ? (
+                          <img
+                            src={riderImage}
+                            alt={riderName}
+                            className="size-12 rounded-xl object-cover border border-zinc-200 shadow-2xs"
+                          />
+                        ) : (
+                          <div className="flex size-12 items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-base shadow-2xs">
+                            {riderName ? riderName.charAt(0).toUpperCase() : "C"}
+                          </div>
+                        )}
                         <div>
-                          <p className="text-xs font-bold text-foreground">{item.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-medium">
-                            {item.qty || 1} × ₹{item.price || 0}
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black text-zinc-950">{riderName}</p>
+                            {riderRating ? (
+                              <span className="flex items-center gap-0.5 rounded-full bg-white border border-zinc-200 px-2 py-0.2 text-[10px] font-bold text-zinc-800">
+                                <Star className="size-2.5 fill-amber-400 text-amber-500" />
+                                {riderRating.toFixed(1)}
+                              </span>
+                            ) : null}
+                          </div>
+                          {riderVehicle && (
+                            <p className="text-xs font-bold text-zinc-700 mt-0.5">
+                              🛵 {riderVehicle}
+                            </p>
+                          )}
+                          <p className="text-[11px] text-zinc-500 mt-0.5">
+                            Verified QuickPress Logistics Captain
                           </p>
                         </div>
                       </div>
-                      <span className="text-xs font-extrabold text-foreground">
-                        ₹{(item.qty || 1) * (item.price || 0)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
 
-                {/* Price Breakdown */}
-                <div className="mt-6 space-y-2.5 border-t border-dashed border-border/80 pt-4">
-                  <Row label="Item Subtotal" value={`₹${charges.subtotal}`} />
-                  <Row label="Pickup & Delivery" value={charges.pickupFee > 0 ? `₹${charges.pickupFee}` : "FREE"} />
-                  <Row label="Taxes & Fees" value={`₹${charges.taxes}`} />
-                  {charges.discount > 0 ? (
-                    <Row label="Discount Applied" value={`-₹${charges.discount}`} />
-                  ) : null}
-                  <div className="border-t border-border pt-2.5">
-                    <Row
-                      label="Total Order Value"
-                      value={`₹${order.amount || charges.total}`}
-                      strong
-                      strikeThrough={isOrderCancelled}
-                    />
-                    {isOrderCancelled ? (
-                      <div className="mt-1 flex items-center justify-between text-xs font-bold text-rose-600">
-                        <span>Settlement Payout</span>
-                        <span>₹0 (Cancelled)</span>
+                      <div className="flex items-center gap-2.5">
+                        {riderPhone ? (
+                          <a
+                            href={`tel:${riderPhone.replace(/\s/g, "")}`}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                          >
+                            <PhoneCall className="size-3.5" />
+                            <span>Call Captain</span>
+                          </a>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => setShowRiderLocationModal(true)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                        >
+                          <Navigation className="size-3.5 text-blue-600" />
+                          <span>Track Live GPS</span>
+                        </button>
                       </div>
-                    ) : null}
-                  </div>
-                </div>
+                    </div>
+                  ) : isOrderCancelled ? (
+                    <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-600">
+                      Order was cancelled before a delivery captain was dispatched.
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 flex items-center gap-3">
+                      <div className="size-4 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-zinc-900">Locating Nearest Fleet Captain...</p>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">
+                          Searching closest available delivery captain in your area. Captain details and GPS will appear here upon acceptance.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="mt-4 flex items-center justify-between rounded-2xl bg-muted/40 p-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="size-4 text-muted-foreground" />
-                    <span className="font-bold text-foreground capitalize">
-                      {order.paymentMode === "cod" ? "Cash on Delivery" : "Online / UPI Payment"}
+                  {/* Physical Handshake Dispatch OTP Verification */}
+                  {((order.stage === "ready" || order.stage === "dispatch_otp_pending" || order.stage === "completed" || (order as any)?.reassignment) && (dispatchOtpCode || order.stage === "ready" || order.stage === "dispatch_otp_pending")) ? (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="size-4 text-emerald-700" />
+                            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                              Captain Handover &amp; Dispatch Verification
+                            </h4>
+                          </div>
+                          <p className="text-[11px] text-emerald-800 mt-0.5">
+                            Ask arriving Delivery Captain for their 4-digit code displayed on their app:
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            maxLength={4}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            placeholder="e.g. 5387"
+                            value={dispatchInputOtp}
+                            onChange={(e) => setDispatchInputOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                            className="w-28 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-center font-mono text-base font-black tracking-widest text-zinc-900 placeholder:text-zinc-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs"
+                          />
+                          <button
+                            type="button"
+                            disabled={dispatchInputOtp.trim().length !== 4 || isVerifyingDispatch}
+                            onClick={handleVerifyPartnerDispatch}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:bg-zinc-200 disabled:text-zinc-400 px-4 py-2 text-xs font-bold text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                          >
+                            {isVerifyingDispatch ? (
+                              <span className="size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                              <CheckCircle2 className="size-3.5" />
+                            )}
+                            <span>Verify Handover</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+              </div>
+
+              {/* RIGHT COLUMN: ACTION PANEL & TIMELINE */}
+              <div className="space-y-6">
+
+                {/* A. ORDER ACTION PANEL (CLEAN & DIRECT) */}
+                <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+                  <div className="pb-3.5 border-b border-zinc-100 flex items-center justify-between">
+                    <h2 className="text-sm font-black uppercase tracking-wider text-zinc-950">
+                      Order Action
+                    </h2>
+                    <OrderSlaCountdown
+                      placedAt={(order as any).placedAt || (order as any).placedAtRaw}
+                      deadline={(order as any).partnerAcceptDeadline || (order as any).riderAcceptDeadline}
+                      acceptedAt={(order as any).partnerAcceptedAt}
+                      stage={order.stage}
+                      autoCancelled={(order as any).autoCancelled}
+                      cancellationReason={(order as any).cancellationReason || (order as any).cancelledReason}
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {/* Stage descriptions */}
+                    {order.stage === "new" && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900">
+                        <p className="font-bold">⚠️ New incoming laundry order!</p>
+                        <p className="mt-0.5 text-amber-800">
+                          Please accept the order to initiate captain dispatch for doorstep customer pickup.
+                        </p>
+                      </div>
+                    )}
+
+                    {order.stage === "accepted" && (
+                      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 text-xs text-zinc-700">
+                        <p className="font-bold text-zinc-900">🛵 Awaiting Laundry Arrival</p>
+                        <p className="mt-0.5 text-zinc-600">
+                          Order accepted. Delivery Captain has been dispatched to collect dirty garments from the customer.
+                        </p>
+                      </div>
+                    )}
+
+                    {(order.stage === "at_partner" || order.stage === "processing" || order.stage === "washing") && (
+                      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-950">
+                        <p className="font-bold">🧺 Processing at Store</p>
+                        <p className="mt-0.5 text-blue-800">
+                          Garments arrived at your store. Once cleaned and packed, click "Mark Process Complete" below.
+                        </p>
+                      </div>
+                    )}
+
+                    {order.stage === "ready" && (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-950">
+                        <p className="font-bold">✨ Clothes Packed &amp; Ready</p>
+                        <p className="mt-0.5 text-emerald-800">
+                          Delivery Captain is en route to collect the packed laundry bag. Verify the Dispatch OTP upon handover.
+                        </p>
+                      </div>
+                    )}
+
+                    {(order.stage === "delivered" || order.stage === "completed") && (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-950">
+                        <p className="font-bold">✓ Order Delivered &amp; Settled</p>
+                        <p className="mt-0.5 text-emerald-800">
+                          Customer received clean clothes. ₹{Math.round((order.amount || charges.total) * 0.84)} has been credited to your store payout ledger.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="pt-2">
+                      <OrderActionBar
+                        order={order}
+                        size="compact"
+                        onAction={(actionId) => handleAction(order, actionId)}
+                        busyAction={busy?.orderId === order.id ? busy.actionId : null}
+                      />
+                    </div>
+
+                    {/* Common Utility Buttons */}
+                    <div className="pt-2 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowInvoiceSheet(true)}
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 py-2.5 text-xs font-bold text-zinc-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                      >
+                        <Printer className="size-4 text-zinc-600" />
+                        <span>View / Print Customer Bill</span>
+                      </button>
+
+                      {(order.stage === "delivered" || order.stage === "completed") && (
+                        <button
+                          type="button"
+                          onClick={() => setShowReviewModal(true)}
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 py-2.5 text-xs font-bold text-amber-900 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                        >
+                          <Star className="size-4 fill-amber-500 text-amber-600" />
+                          <span>Review Customer Experience</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
+                {/* B. ORDER PROGRESSION & TIMELINE (CLEAN VERTICAL STEPPER) */}
+                <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+                  <div className="pb-3.5 border-b border-zinc-100 flex items-center justify-between">
+                    <h2 className="text-sm font-black uppercase tracking-wider text-zinc-950">
+                      Order Timeline
+                    </h2>
+                    <span className="text-[11px] font-bold text-zinc-500">
+                      Live Audit Trail
                     </span>
                   </div>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
-                      order.paymentStatus === "paid"
-                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                        : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                    }`}
-                  >
-                    {order.paymentStatus || "pending"}
-                  </span>
-                </div>
-              </section>
-            </div>
 
-            {/* Right Column: Actions & Order Timeline */}
-            <div className="space-y-6">
-              {/* Order Status Action Card */}
-              <section className="rounded-3xl border border-border/80 bg-card p-6 shadow-sm">
-                <SectionHeading title="Order Actions" />
-                <div className="mt-4">
-                  <OrderActionBar
-                    order={order}
-                    size="full"
-                    onAction={(actionId) => handleAction(order, actionId)}
-                    busyAction={busy?.orderId === order.id ? busy.actionId : null}
-                  />
-                </div>
-              </section>
-
-              {/* Live Timeline */}
-              <section className="rounded-3xl border border-border/80 bg-card p-6 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <SectionHeading title="Order Timeline" />
-                  <OrderSlaCountdown
-                    placedAt={(order as any).placedAt || (order as any).placedAtRaw}
-                    deadline={(order as any).partnerAcceptDeadline || (order as any).riderAcceptDeadline}
-                    acceptedAt={(order as any).partnerAcceptedAt}
-                    stage={order.stage}
-                    autoCancelled={(order as any).autoCancelled}
-                    cancellationReason={(order as any).cancellationReason || (order as any).cancelledReason}
-                  />
-                </div>
-                <div className="mt-4">
-                  <OrderTimeline order={order} timeline={timeline} stage={order.stage} />
-                </div>
-              </section>
+                  <div className="mt-4">
+                    <OrderTimeline order={order} timeline={timeline} stage={order.stage} />
+                  </div>
+                </section>
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Rider Location Modal (Accessible from both desktop and mobile) */}
+      {showRiderLocationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                  <Navigation className="size-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-zinc-900">Rider Live Location</h3>
+                  <p className="text-[11px] font-semibold text-zinc-500">{riderName}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRiderLocationModal(false)}
+                className="rounded-full bg-zinc-100 p-1.5 text-zinc-500 hover:bg-zinc-200 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {(() => {
+              const rLat = Number(order?.assignedRider?.lat || (order as any)?.rider?.latitude || (order as any)?.rider?.lat);
+              const rLng = Number(order?.assignedRider?.lng || (order as any)?.rider?.longitude || (order as any)?.rider?.lng);
+              const hasRider = Boolean(rLat && rLng && !isNaN(rLat) && !isNaN(rLng));
+
+              return hasRider ? (
+                <div className="space-y-3">
+                  <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
+                    <GoogleMapView
+                      className="h-full w-full"
+                      interactive={true}
+                      zoom={15}
+                      center={{ latitude: rLat, longitude: rLng, label: "Delivery Partner", tone: "primary" }}
+                      markers={[
+                        { id: "rider", latitude: rLat, longitude: rLng, label: "Rider En Route", tone: "primary" },
+                        { id: "store", latitude: Number((order as any)?.partnerLat || (order as any)?.pickupLat || rLat), longitude: Number((order as any)?.partnerLng || (order as any)?.pickupLng || rLng), label: "Your Store", tone: "secondary" },
+                      ]}
+                    />
+                  </div>
+                  <div className="rounded-2xl bg-emerald-50 p-3 border border-emerald-200/60 text-center">
+                    <p className="text-xs font-black text-emerald-900">Rider is en route</p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                      GPS: {rLat.toFixed(4)}, {rLng.toFixed(4)}
+                    </p>
+                    <p className="text-[10px] text-emerald-600 mt-0.5">
+                      Live Tracking Active
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-zinc-50 p-6 text-center border border-zinc-200/60 space-y-2">
+                  <MapPin className="size-8 text-zinc-400 mx-auto" />
+                  <p className="text-xs font-black text-zinc-800">Waiting for Rider GPS</p>
+                  <p className="text-[11px] text-zinc-500">
+                    GPS coordinates will display here automatically once the assigned rider turns online.
+                  </p>
+                </div>
+              );
+            })()}
+
+            <button
+              type="button"
+              onClick={() => setShowRiderLocationModal(false)}
+              className="w-full rounded-2xl bg-zinc-950 py-2.5 text-xs font-black text-white hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
+            >
+              Close Tracking
+            </button>
+          </div>
+        </div>
+      )}
 
       {showInvoiceSheet && order ? (
         <InvoiceSheet order={order} onClose={() => setShowInvoiceSheet(false)} />
