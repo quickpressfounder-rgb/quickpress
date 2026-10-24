@@ -1,4 +1,4 @@
-# QuickPress Development Memory & Historical Work Log
+¬# QuickPress Development Memory & Historical Work Log
 
 > **MANDATORY FOR ALL AGENTS & DEVELOPERS:**
 > After completing any task, feature, bug fix, or deployment, you **MUST** update this file (`Memory/WORK_HISTORY.md`).
@@ -121,13 +121,6 @@
   - Launched live container `quickpress-backend` on port `8000` with automated restart policy (`--restart always`).
 
 ---
-
-### 7. Partner Portal Logo, Input Outline & Live API Connection Fixes
-- **Transparent Logo:** Removed solid white background from user's official logo, tightly cropped to bounding box (884x214), and updated `PartnerAuthHeader.tsx` to render `quickpress-partner-onboarding-transparent.png` cleanly with zero box shadows or backgrounds.
-- **Zero Input Outlines:** Eliminated inner rectangular focus outlines on mobile phone input and 6-digit OTP verification boxes across `PartnerAuthScreen.tsx` and `OtpVerificationScreen.tsx`, backed by global CSS outline reset in `styles.css`.
-- **Live AWS API Connection:** Replaced dead Railway URL (`quickpress-api-production.up.railway.app`) with live AWS API (`https://api.withquickpress.com`) in `partner-frontend`, `customer-frontend`, `rider-frontend`, and `admin-frontend`, eliminating CORS and 404 connection errors.
-- **Nginx Local Reverse Proxy:** Added `/api/` proxy block in `quickpress.online` server configuration in `scripts/quickpress_nginx.conf`.
-- **AudioContext Console Guard:** Guarded `audioCtx.resume()` behind user gesture listener to silence browser console warning.
 
 ## Git Commit History for Today (24 Oct 2026)
 

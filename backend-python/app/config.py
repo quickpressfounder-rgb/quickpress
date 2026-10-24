@@ -2,8 +2,9 @@
 
 import logging
 from functools import lru_cache
-from typing import List
+from typing import Any, List
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _log = logging.getLogger(__name__)
@@ -11,6 +12,22 @@ _log = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=("backend-python/.env", ".env"), extra="ignore")
+
+    @model_validator(mode="before")
+    @classmethod
+    def strip_quotes_from_env(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            cleaned = {}
+            for k, v in data.items():
+                if isinstance(v, str):
+                    s = v.strip()
+                    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+                        s = s[1:-1].strip()
+                    cleaned[k] = s
+                else:
+                    cleaned[k] = v
+            return cleaned
+        return data
 
     # --- environment -------------------------------------------------
     app_env: str = "development"  # development | staging | production
