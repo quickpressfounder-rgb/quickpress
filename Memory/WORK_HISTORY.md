@@ -12,7 +12,7 @@
 | :--- | :--- | :--- |
 | **Website (Official)** | `https://withquickpress.com` | Static Vite build served by Nginx (`/var/www/quickpress/website/`) |
 | **Partner Console** | `https://quickpress.online` | TanStack Start SSR Node server on port `8082` (managed via PM2) |
-| **Backend API** | `https://api.withquickpress.com` | Python 3.12 + FastAPI on port `8000` (Uvicorn / Systemd) |
+| **Backend API** | `https://api.withquickpress.com` | Docker Container (`quickpress-backend`) / FastAPI on port `8000` |
 | **Customer App** | APK / AAB / Web | React 19 + TanStack Router (`customer-frontend`) |
 | **Captain App (Rider)** | APK / AAB / Web | React 19 + TanStack Router (`rider-frontend`) |
 | **Admin Console** | Internal / Web | React + Vite (`admin-frontend`) |
@@ -112,10 +112,21 @@
 
 ---
 
+### 6. Production Secrets Security & Docker Backend Launch (EC2: 65.0.127.43)
+- **Secrets Inventory:** Documented all 24 production secrets across Database, Auth, Payments (Razorpay/Cashfree), SMS/WhatsApp (Fast2SMS/MSG91/Twilio), Media (Cloudinary), Email (SMTP/Resend), Push Notifications (OneSignal), and Maps.
+- **Server `.env` Configuration:** Set up secure environment credentials in `~/quickpress/backend-python/.env` and mirrored to root `.env`.
+- **Docker Containerization:**
+  - Resolved invalid `.env` whitespace error in Docker caused by accidental bash command inside `.env`.
+  - Built fresh production Docker image `quickpress-api:latest` from `Dockerfile`.
+  - Launched live container `quickpress-backend` on port `8000` with automated restart policy (`--restart always`).
+
+---
+
 ## Git Commit History for Today (24 Oct 2026)
 
 | Commit Hash | Commit Message | Key Changes |
 | :--- | :--- | :--- |
+| `b553a6c` | `docs(memory): add workspace Memory/WORK_HISTORY.md and rule to update after every task` | Created permanent workspace Memory folder and added Rule 5 to AGENTS.md. |
 | `f858450` | `feat(legal): connect all 3 apps legal documents to website and standardize brand to QuickPress` | Connected legal routes in all 3 apps to `withquickpress.com`, standardized brand to QuickPress, updated support emails. |
 | `be70c6e` | `feat(website): permanently remove DPIIT recognition badge from website` | Removed DPIIT Startup India badge from HomePage. |
 | `aefbdc0` | `feat(website): make hero full viewport so cards only reveal on scroll with transparent download strip` | Made hero 100vh full viewport so cards show only after scrolling down. |
@@ -143,6 +154,7 @@ If partner portal or backend files changed, run:
 # Restart partner portal SSR server:
 pm2 restart quickpress-partner
 
-# Restart backend API:
-sudo systemctl restart quickpress-backend
+# Restart backend Docker container:
+sudo docker restart quickpress-backend
 ```
+
