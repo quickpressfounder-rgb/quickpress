@@ -15,3 +15,4 @@ QuickPress is a hyper-local on-demand laundry and garment care marketplace conne
 2. **Real Data Integration:** Zero mock or fake seed data; all metrics must aggregate directly from live Supabase collections.
 3. **Clean Code & Git History:** Maintain documentation integrity, run build verifications before pushing, and maintain linear git history.
 4. **Automatic Git Push:** Always commit and push changes directly to GitHub `main` immediately after completing verified changes.
+5. **Persistent Memory Maintenance:** Always log and update completed work in `Memory/WORK_HISTORY.md` after completing tasks, recording modified files, architectural decisions, and commit hashes so context is never lost across sessions.
