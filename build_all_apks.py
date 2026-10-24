@@ -58,7 +58,7 @@ def copy_to_artifacts(src_apk, apk_name, apks_dir):
 
 def build_customer(apks_dir):
     print("\n--- [Customer App] Building Customer App ---")
-    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:customer", ROOT_DIR)
+    run_cmd("VITE_API_BASE_URL=https://api.withquickpress.com npm run build:customer", ROOT_DIR)
     cust_web_dist = os.path.join(ROOT_DIR, "customer-frontend", ".output", "public")
     cust_android_assets = os.path.join(ROOT_DIR, "customer-frontend", "android", "app", "src", "main", "assets", "public")
     sync_assets(cust_web_dist, cust_android_assets)
@@ -89,7 +89,7 @@ def build_customer(apks_dir):
 
 def build_partner(apks_dir):
     print("\n--- [Partner App] Building Partner App ---")
-    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:partner", ROOT_DIR)
+    run_cmd("VITE_API_BASE_URL=https://api.withquickpress.com npm run build:partner", ROOT_DIR)
     part_web_dist = os.path.join(ROOT_DIR, "partner-frontend", ".output", "public")
     part_android_assets = os.path.join(ROOT_DIR, "partner-frontend", "android", "app", "src", "main", "assets", "public")
     sync_assets(part_web_dist, part_android_assets)
@@ -112,7 +112,7 @@ def build_partner(apks_dir):
 
 def build_rider(apks_dir):
     print("\n--- [Rider App] Building Rider / Captain App (APK + Play Store AAB) ---")
-    run_cmd("VITE_API_BASE_URL=https://quickpress-api-production.up.railway.app npm run build:rider", ROOT_DIR)
+    run_cmd("VITE_API_BASE_URL=https://api.withquickpress.com npm run build:rider", ROOT_DIR)
     rdr_web_dist = os.path.join(ROOT_DIR, "rider-frontend", ".output", "public")
     rdr_android_assets = os.path.join(ROOT_DIR, "rider-frontend", "android", "app", "src", "main", "assets", "public")
     sync_assets(rdr_web_dist, rdr_android_assets)
