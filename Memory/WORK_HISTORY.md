@@ -190,7 +190,7 @@
 | `001d0de` | `feat(deploy): add turnkey automated EC2 deployment script and nginx configuration` | Created `scripts/deploy_production.sh`. |
 
 | `4ff4116` | `feat(partner): exact Zomato merchant panel layout, classic monochrome cards, and closed sign offline view` | Converted Partner desktop console to exact Zomato restaurant partner panel aesthetics: pure white sidebar, classic header with sound/bell/settings/profile, hanging CLOSED signboard offline view, and removed all cartoon multicolor cards. |
-| Pending | `fix(build): use npx vite build in package.json for ec2 compatibility` | Resolved `sh: 1: vite: not found` on Linux EC2 by wrapping subshell vite build commands with `npx`. |
+| `dcdac7a` | `fix(build): use npx vite build in package.json for ec2 compatibility` | Resolved `sh: 1: vite: not found` on Linux EC2 by wrapping subshell vite build commands with `npx`. |
 
 ---
 
