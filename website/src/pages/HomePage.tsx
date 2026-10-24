@@ -19,7 +19,6 @@ import {
 } from "@/components/Icons";
 import { IPhone15OrderTracking } from "@/components/IPhone15OrderTracking";
 import { AreaUnavailableModal } from "@/components/AreaUnavailableModal";
-import { DPIITRecognitionBadge } from "@/components/DPIITRecognitionBadge";
 import { handleGetStartedRedirect } from "@/utils/storeRedirect";
 import customerLogo from "@/assets/quickpress-customer-logo.jpg";
 import partnerLogo from "@/assets/quickpress-partner-blue.png";
@@ -946,12 +945,6 @@ export function HomePage({
         </div>
       </section>
 
-      {/* ─── Govt of India DPIIT & Startup India Recognition (Scroll Reveal) ─── */}
-      <section className="py-8 sm:py-12 bg-gradient-to-b from-white via-emerald-50/25 to-white border-t border-gray-100 reveal-on-scroll">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <DPIITRecognitionBadge />
-        </div>
-      </section>
 
       {/* ─── 3. "What's waiting for you on the app?" (Green Theme + Attractive Zoom Animation) ── */}
       <section className="py-20 sm:py-28 bg-gradient-to-b from-emerald-50/40 via-white to-gray-50/60 border-t border-gray-100 relative overflow-hidden reveal-on-scroll">
