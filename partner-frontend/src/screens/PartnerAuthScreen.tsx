@@ -369,7 +369,8 @@ export function PartnerAuthScreen() {
                       }
                     }}
                     placeholder={lang === "hi" ? "10 अंकों का मोबाइल नंबर दर्ज करें" : "Enter mobile number"}
-                    className="w-full bg-transparent pl-3 text-base font-black tracking-wider text-[#111827] placeholder:text-zinc-400 placeholder:font-medium placeholder:text-xs focus:outline-none"
+                    className="w-full bg-transparent pl-3 text-base font-black tracking-wider text-[#111827] placeholder:text-zinc-400 placeholder:font-medium placeholder:text-xs outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border-none shadow-none"
+                    style={{ outline: "none", boxShadow: "none" }}
                     autoFocus
                   />
                   {value.length > 0 && (
@@ -718,7 +719,8 @@ export function PartnerAuthScreen() {
                         }
                       }}
                       placeholder={lang === "hi" ? "10 अंकों का मोबाइल नंबर दर्ज करें" : "Enter mobile number"}
-                      className="w-full bg-transparent pl-3.5 text-base font-black tracking-wider text-[#111827] placeholder:text-zinc-400 placeholder:font-medium placeholder:text-xs focus:outline-none"
+                      className="w-full bg-transparent pl-3.5 text-base font-black tracking-wider text-[#111827] placeholder:text-zinc-400 placeholder:font-medium placeholder:text-xs outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border-none shadow-none"
+                      style={{ outline: "none", boxShadow: "none" }}
                     />
                     {value.length > 0 && (
                       <button

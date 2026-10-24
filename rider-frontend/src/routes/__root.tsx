@@ -165,19 +165,19 @@ function RootShell({ children }: { children: ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: 'https://quickpress-api-production.up.railway.app' };
+              window.__QUICKPRESS_CONFIG__ = { API_BASE_URL: 'https://api.withquickpress.com' };
               (function() {
                 if (window.__qp_fetch_patched) return;
                 window.__qp_fetch_patched = true;
                 var _origFetch = window.fetch;
                 window.fetch = function(input, init) {
                   if (typeof input === 'string') {
-                    input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                    if (input.startsWith('/api/')) { input = 'https://quickpress-api-production.up.railway.app' + input; }
+                    input = input.replace(/quickpress-api-production(-3292)?\\.up\\.railway\\.app/g, 'api.withquickpress.com');
+                    if (input.startsWith('/api/')) { input = 'https://api.withquickpress.com' + input; }
                   } else if (input && input.url) {
                     try {
-                      var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
-                      if (newUrl.startsWith('/api/')) { newUrl = 'https://quickpress-api-production.up.railway.app' + newUrl; }
+                      var newUrl = input.url.replace(/quickpress-api-production(-3292)?\\.up\\.railway\\.app/g, 'api.withquickpress.com');
+                      if (newUrl.startsWith('/api/')) { newUrl = 'https://api.withquickpress.com' + newUrl; }
                       input = new Request(newUrl, input);
                     } catch(e) {}
                   }

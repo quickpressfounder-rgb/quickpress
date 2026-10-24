@@ -13,7 +13,7 @@ const orderListeners = new Set<(order: any) => void>();
 const statusListeners = new Set<(status: any) => void>();
 const notificationListeners = new Set<(notification: any) => void>();
 
-const PRODUCTION_SOCKET_URL = "https://quickpress-api-production.up.railway.app";
+const PRODUCTION_SOCKET_URL = "https://api.withquickpress.com";
 
 function getSocketUrl(): string {
   if (typeof window === "undefined") return PRODUCTION_SOCKET_URL;

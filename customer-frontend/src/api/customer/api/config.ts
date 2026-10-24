@@ -34,7 +34,7 @@ function readString(key: string): string {
 const DEFAULT_FALLBACK_URL =
   readString("VITE_API_BASE_URL") ||
   readString("VITE_API_URL") ||
-  "https://quickpress-api-production.up.railway.app";
+  "https://api.withquickpress.com";
 
 export function isCapacitorNative(): boolean {
   if (typeof window === "undefined") return false;

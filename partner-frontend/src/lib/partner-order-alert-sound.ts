@@ -46,6 +46,19 @@ function safeVibrate(pattern: number | number[]): void {
   }
 }
 
+let userInteracted = false;
+if (typeof window !== "undefined") {
+  const onUserGesture = () => {
+    userInteracted = true;
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+  };
+  window.addEventListener("click", onUserGesture, { once: true, passive: true });
+  window.addEventListener("touchstart", onUserGesture, { once: true, passive: true });
+  window.addEventListener("keydown", onUserGesture, { once: true, passive: true });
+}
+
 function getAudioContext(): AudioContext | null {
   try {
     if (typeof window === "undefined") return null;
@@ -64,7 +77,7 @@ function getAudioContext(): AudioContext | null {
       masterGain.connect(audioCtx.destination);
     }
 
-    if (audioCtx.state === "suspended") {
+    if (audioCtx.state === "suspended" && userInteracted) {
       void audioCtx.resume().catch(() => {});
     }
     return audioCtx;

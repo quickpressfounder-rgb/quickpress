@@ -180,7 +180,8 @@ export function OtpVerificationScreen() {
                   maxLength={6}
                   value={digits}
                   onChange={(e) => setDigits(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="absolute inset-0 z-10 size-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none"
+                  className="absolute inset-0 z-10 size-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border-none shadow-none"
+                  style={{ outline: "none", boxShadow: "none" }}
                 />
                 <div className="flex items-center justify-between gap-1.5 sm:gap-2">
                   {Array.from({ length: 6 }).map((_, i) => {
@@ -312,7 +313,8 @@ export function OtpVerificationScreen() {
                     maxLength={6}
                     value={digits}
                     onChange={(e) => setDigits(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    className="absolute inset-0 z-10 size-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none"
+                    className="absolute inset-0 z-10 size-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border-none shadow-none"
+                    style={{ outline: "none", boxShadow: "none" }}
                   />
                   <div className="flex items-center justify-between gap-2.5">
                     {Array.from({ length: 6 }).map((_, i) => {

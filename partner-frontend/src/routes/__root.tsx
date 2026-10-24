@@ -127,7 +127,7 @@ function RootShell({ children }: { children: ReactNode }) {
   const envApiBase =
     (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
     (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
-    "https://quickpress-api-production.up.railway.app";
+    "https://api.withquickpress.com";
 
   return (
     <html lang="en" className="bg-background text-foreground" suppressHydrationWarning>
@@ -143,11 +143,11 @@ function RootShell({ children }: { children: ReactNode }) {
                 var _base = '${envApiBase}';
                 window.fetch = function(input, init) {
                   if (typeof input === 'string') {
-                    input = input.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
+                    input = input.replace(/quickpress-api-production(-3292)?\\.up\\.railway\\.app/g, 'api.withquickpress.com');
                     if (input.startsWith('/api/')) { input = _base + input; }
                   } else if (input && input.url) {
                     try {
-                      var newUrl = input.url.replace(/quickpress-api-production-3292\\.up\\.railway\\.app/g, 'quickpress-api-production.up.railway.app');
+                      var newUrl = input.url.replace(/quickpress-api-production(-3292)?\\.up\\.railway\\.app/g, 'api.withquickpress.com');
                       if (newUrl.startsWith('/api/')) { newUrl = _base + newUrl; }
                       input = new Request(newUrl, input);
                     } catch(e) {}

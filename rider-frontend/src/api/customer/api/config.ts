@@ -31,7 +31,7 @@ function readString(key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-const PRODUCTION_API_URL = "https://quickpress-api-production.up.railway.app";
+const PRODUCTION_API_URL = "https://api.withquickpress.com";
 
 export function isCapacitorNative(): boolean {
   if (typeof window === "undefined") return false;
