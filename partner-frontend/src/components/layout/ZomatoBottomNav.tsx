@@ -77,11 +77,11 @@ export function ZomatoBottomNav({
             </Link>
 
             <Link
-              to={partnerRoutes.customers}
+              to={partnerRoutes.reviews}
               className="flex h-10 items-center gap-1.5 rounded-full px-3 text-xs font-black text-zinc-400 hover:text-zinc-200 transition-all"
             >
               <MessageSquare className="size-3.5" />
-              <span>Feedback</span>
+              <span>Reviews</span>
             </Link>
 
             <Link

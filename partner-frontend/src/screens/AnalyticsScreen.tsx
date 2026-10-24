@@ -578,66 +578,65 @@ export function AnalyticsScreen() {
         {/* ========================================================================= */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
 
-          {/* Card 1: Store Net Payout (Hero Blue Gradient Card) */}
-          <div className="col-span-2 sm:col-span-1 xl:col-span-1 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#2563EB] via-[#1D4ED8] to-[#1E40AF] p-4 sm:p-4.5 text-white shadow-sm relative overflow-hidden transition-transform hover:-translate-y-0.5">
-            <Wallet className="absolute -right-3 -bottom-3 size-24 text-white/10 pointer-events-none" />
+          {/* Card 1: Store Net Payout (Pure White Card) */}
+          <div className="col-span-2 sm:col-span-1 xl:col-span-1 rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 text-zinc-950 shadow-2xs relative overflow-hidden transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between relative z-10">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
                 <Wallet className="size-4.5" />
               </span>
-              <span className="text-[10px] font-black text-white bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-xs">
+              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2.5 py-0.5 rounded-full border border-zinc-200">
                 Net 84%
               </span>
             </div>
-            <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-blue-100">
+            <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
               Store Net Payout
             </p>
-            <p className="mt-0.5 text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <p className="mt-0.5 text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
               {inr(animatedEarnings)}
             </p>
-            <p className="mt-1 text-[10px] font-medium text-blue-100/90 leading-tight">
+            <p className="mt-1 text-[10px] font-medium text-zinc-500 leading-tight">
               Bank credit after 15% fee & 1% TCS
             </p>
           </div>
 
           {/* Card 2: Total Gross Sales */}
-          <div className="rounded-2xl sm:rounded-3xl border border-blue-100/90 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
+          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB] border border-blue-100">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
                 <IndianRupee className="size-4.5" />
               </span>
-              <span className="text-[10px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
                 Gross Sales
               </span>
             </div>
             <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
               Total Revenue
             </p>
-            <p className="mt-0.5 text-2xl font-black text-zinc-900 tracking-tight">
+            <p className="mt-0.5 text-2xl font-black text-zinc-950 tracking-tight">
               {inr(animatedRevenue)}
             </p>
-            <p className="mt-1 text-[10px] font-medium text-zinc-400">
+            <p className="mt-1 text-[10px] font-medium text-zinc-500">
               Customer billed amount
             </p>
           </div>
 
           {/* Card 3: Completed Orders */}
-          <div className="rounded-2xl sm:rounded-3xl border border-blue-100/90 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
+          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
                 <CheckCircle2 className="size-4.5" />
               </span>
-              <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+              <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 Delivered
               </span>
             </div>
             <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
               Completed Orders
             </p>
-            <p className="mt-0.5 text-2xl font-black text-zinc-900 tracking-tight">
+            <p className="mt-0.5 text-2xl font-black text-zinc-950 tracking-tight">
               {animatedCompleted}
             </p>
-            <p className="mt-1 text-[10px] font-medium text-zinc-400">
+            <p className="mt-1 text-[10px] font-medium text-zinc-500">
               {clientAggregated.activeOrders > 0
                 ? `+${clientAggregated.activeOrders} active in-flight`
                 : "All orders fulfilled"}
@@ -645,54 +644,54 @@ export function AnalyticsScreen() {
           </div>
 
           {/* Card 4: Average Order Value (AOV) */}
-          <div className="rounded-2xl sm:rounded-3xl border border-blue-100/90 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
+          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
                 <TrendingUp className="size-4.5" />
               </span>
-              <span className="text-[10px] font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
+              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
                 Basket Size
               </span>
             </div>
             <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
               Avg Order Value
             </p>
-            <p className="mt-0.5 text-2xl font-black text-zinc-900 tracking-tight">
+            <p className="mt-0.5 text-2xl font-black text-zinc-950 tracking-tight">
               {inr(animatedAOV)}
             </p>
-            <p className="mt-1 text-[10px] font-medium text-zinc-400">
+            <p className="mt-1 text-[10px] font-medium text-zinc-500">
               Average per booking
             </p>
           </div>
 
           {/* Card 5: Garments Processed */}
-          <div className="rounded-2xl sm:rounded-3xl border border-blue-100/90 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
+          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
                 <Shirt className="size-4.5" />
               </span>
-              <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
                 Garments
               </span>
             </div>
             <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
               Total Pieces Care
             </p>
-            <p className="mt-0.5 text-2xl font-black text-zinc-900 tracking-tight">
+            <p className="mt-0.5 text-2xl font-black text-zinc-950 tracking-tight">
               {animatedGarments} pcs
             </p>
-            <p className="mt-1 text-[10px] font-medium text-zinc-400">
+            <p className="mt-1 text-[10px] font-medium text-zinc-500">
               Washed, ironed & packed
             </p>
           </div>
 
           {/* Card 6: Repeat Customers */}
-          <div className="rounded-2xl sm:rounded-3xl border border-blue-100/90 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
+          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
                 <Users className="size-4.5" />
               </span>
-              <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
                 {repeatRate}% Repeat
               </span>
             </div>

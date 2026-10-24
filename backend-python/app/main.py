@@ -244,6 +244,9 @@ def create_app() -> FastAPI:
     # Sprint 5.2: partner domain — dashboard, profile, orders, services, wallet.
     app.include_router(partner_public_router, prefix=settings.api_prefix)
     app.include_router(partner_router, prefix=settings.api_prefix)
+    # Also support direct /partner/* paths without /api prefix
+    app.include_router(partner_public_router)
+    app.include_router(partner_router)
     # Sprint 5.2: rider domain (dashboard, orders, wallet, notifications).
     app.include_router(rider_public_router, prefix=settings.api_prefix)
     app.include_router(rider_router, prefix=settings.api_prefix)

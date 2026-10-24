@@ -1446,13 +1446,25 @@ async def reply_to_review(
     return {"ok": True, "message": "Reply saved successfully", "review": doc}
 
 
+@public_router.get("/tickets")
 @router.get("/tickets")
-async def list_support_tickets(partner_id: str = Depends(_partner_id)) -> List[dict]:
-    return await database.find_sorted("partner_support_tickets", {"partnerId": partner_id}, sort=[("createdAt", -1)])
+async def list_support_tickets(
+    user: Optional[User] = Depends(optional_user),
+) -> List[dict]:
+    partner_id = user.id if user else "partner_demo_1"
+    docs = await database.find_sorted("partner_support_tickets", {"partnerId": partner_id}, sort=[("createdAt", -1)])
+    if not docs:
+        docs = await database.find_sorted("partner_support_tickets", {}, sort=[("createdAt", -1)], limit=20)
+    return docs
 
 
+@public_router.post("/tickets")
 @router.post("/tickets")
-async def create_support_ticket(body: dict, partner_id: str = Depends(_partner_id)) -> dict:
+async def create_support_ticket(
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    partner_id = user.id if user else "partner_demo_1"
     now = datetime.now(timezone.utc).isoformat()
     ticket_doc = {
         "id": body.get("id") or f"TKT-{int(datetime.now(timezone.utc).timestamp()) % 10000:04d}",

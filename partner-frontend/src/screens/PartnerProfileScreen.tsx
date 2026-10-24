@@ -28,6 +28,7 @@ import {
   FileSpreadsheet,
   FileText,
   Headphones,
+  HelpCircle,
   History,
   Hourglass,
   Scale,
@@ -942,6 +943,52 @@ export function PartnerProfileScreen() {
               >
                 <QrCode className="size-3.5" />
                 <span>QR &amp; Share</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Customer Reviews & Store Ratings */}
+          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
+                  <Star className="size-5 fill-amber-400 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-zinc-950">Customer Reviews &amp; Ratings</p>
+                  <p className="text-[10px] font-medium text-zinc-500">View customer feedback, store rating &amp; reply</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.reviews })}
+                className="flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-black text-zinc-900 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+              >
+                <span>View Reviews</span>
+                <ChevronRight className="size-3.5 text-zinc-500" />
+              </button>
+            </div>
+          </div>
+
+          {/* Help Centre & Support Tickets */}
+          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
+                  <HelpCircle className="size-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-zinc-950">Help Centre &amp; Support Tickets</p>
+                  <p className="text-[10px] font-medium text-zinc-500">Order assistance, fleet dispute &amp; ticket tracking</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.help })}
+                className="flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-black text-zinc-900 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+              >
+                <span>Help Centre</span>
+                <ChevronRight className="size-3.5 text-zinc-500" />
               </button>
             </div>
           </div>

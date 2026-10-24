@@ -9,6 +9,7 @@ import {
   Search,
   Settings2,
   Sparkles,
+  Star,
   Store,
   TrendingUp,
   UserRound,
@@ -275,6 +276,24 @@ export function PartnerDesktopTopBar({
                 >
                   <Settings2 className="size-4 text-zinc-500" />
                   <span>Store Settings</span>
+                </Link>
+
+                <Link
+                  to={partnerRoutes.reviews}
+                  onClick={() => setDropdownOpen(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-colors"
+                >
+                  <Star className="size-4 fill-amber-400 text-amber-500" />
+                  <span>Customer Reviews</span>
+                </Link>
+
+                <Link
+                  to={partnerRoutes.help}
+                  onClick={() => setDropdownOpen(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 transition-colors"
+                >
+                  <HelpCircle className="size-4 text-zinc-500" />
+                  <span>Help Centre &amp; Tickets</span>
                 </Link>
 
                 <button

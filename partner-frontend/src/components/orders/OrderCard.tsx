@@ -111,8 +111,8 @@ export const OrderCard = React.memo(function OrderCard({
 
           {/* Order Received Time badge */}
           <div className="mt-1.5 flex items-center gap-1.5 text-[0.68rem] text-muted-foreground font-semibold flex-wrap">
-            <span className="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 px-1.5 py-0.5 text-blue-700 dark:text-blue-300 font-bold">
-              <Clock className="size-3" />
+            <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 text-zinc-800 font-bold">
+              <Clock className="size-3 text-zinc-500" />
               <span>Arrived: {placedInfo.time} ({placedInfo.relative})</span>
             </span>
             <span className="text-muted-foreground/60">•</span>

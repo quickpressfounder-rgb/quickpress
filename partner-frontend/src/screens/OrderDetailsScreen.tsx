@@ -359,33 +359,46 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
       {/* ========================================================================= */}
       {/* MOBILE ORDER DETAILS VIEW (< md)                                          */}
       {/* ========================================================================= */}
-      <div className="min-h-screen bg-[#F6F7F9] pb-36 text-zinc-900 md:hidden">
+      <div className="min-h-screen bg-zinc-50/50 pb-28 text-zinc-900 md:hidden">
         {/* Sticky Mobile Header */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-b border-zinc-100">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-white px-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border-b border-zinc-200">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.orders })}
-              className="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 active:scale-95 transition-all"
+              className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white border border-zinc-200 text-zinc-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
+              title="Back to Orders Queue"
             >
               <ArrowLeft className="size-4" />
             </button>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-sm font-black tracking-tight text-zinc-900">
+                <h1 className="text-sm font-black tracking-tight text-zinc-950 truncate">
                   {order ? `#${order.code}` : "Order Details"}
                 </h1>
-                <button type="button" onClick={copyCode} className="text-zinc-400 hover:text-zinc-700">
+                <button type="button" onClick={copyCode} className="text-zinc-400 hover:text-zinc-800 shrink-0 cursor-pointer">
                   <Copy className="size-3.5" />
                 </button>
               </div>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider truncate">
                 {stageLabel || "Loading..."}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Quick Order Help Button */}
+            {order ? (
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.help, search: { orderCode: order.code, orderId: order.id } as any })}
+                title="Help with this Order"
+                className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 active:scale-95 border border-zinc-200 shadow-2xs hover:bg-zinc-200 transition-colors cursor-pointer"
+              >
+                <HelpCircle className="size-4 text-zinc-700" />
+              </button>
+            ) : null}
+
             {order?.customerPhone ? (
               <button
                 type="button"
@@ -394,19 +407,20 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
                   }
                 }}
-                title="Call Customer Securely (Privacy Shield Protected)"
-                className="flex size-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 active:scale-95 shadow-xs hover:bg-emerald-100 transition-colors"
+                title="Call Customer"
+                className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 active:scale-95 shadow-2xs hover:bg-emerald-100 transition-colors cursor-pointer"
               >
-                <PhoneCall className="size-4" />
+                <PhoneCall className="size-4 text-emerald-700" />
               </button>
             ) : null}
+
             <button
               type="button"
               onClick={() => setShowInvoiceSheet(true)}
               title="View & Download Tax Invoice"
-              className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 active:scale-95 border border-zinc-200 shadow-xs hover:bg-zinc-200 transition-colors"
+              className="flex size-9 items-center justify-center rounded-xl bg-white text-zinc-800 active:scale-95 border border-zinc-200 shadow-2xs hover:bg-zinc-100 transition-colors cursor-pointer"
             >
-              <Printer className="size-4" />
+              <Printer className="size-4 text-zinc-700" />
             </button>
           </div>
         </header>
@@ -416,51 +430,71 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
             <OrderDetailSkeleton />
           </div>
         ) : !order ? (
-          <div className="p-6 text-center my-8 rounded-2xl bg-white mx-4 border border-zinc-200 shadow-sm">
+          <div className="p-6 text-center my-8 rounded-2xl bg-white mx-4 border border-zinc-200 shadow-2xs">
             <Package className="mx-auto size-12 text-zinc-300" />
-            <h3 className="mt-3 text-sm font-black text-zinc-900">Order not found</h3>
+            <h3 className="mt-3 text-sm font-black text-zinc-950">Order not found</h3>
             <p className="mt-1 text-xs text-zinc-500">This order may have been archived or removed.</p>
             <button
               type="button"
               onClick={() => navigate({ to: partnerRoutes.orders })}
-              className="mt-4 rounded-full bg-zinc-950 px-5 py-2 text-xs font-black text-white"
+              className="mt-4 rounded-xl bg-zinc-950 px-5 py-2.5 text-xs font-black text-white hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer"
             >
               Back to Orders
             </button>
           </div>
         ) : (
           <div className="space-y-3.5 p-4">
-            {/* Status & Placed Time Banner */}
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
+            {/* Status & Placed Info Card (Pure White) */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 font-black border border-amber-100">
-                    <Sparkles className="size-5" />
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 border border-emerald-200/50">
-                        {stageLabel}
-                      </span>
-                      <OrderSlaCountdown
-                        placedAt={(order as any).placedAt || (order as any).placedAtRaw}
-                        deadline={(order as any).partnerAcceptDeadline || (order as any).riderAcceptDeadline}
-                        acceptedAt={(order as any).partnerAcceptedAt}
-                        stage={order.stage}
-                        autoCancelled={(order as any).autoCancelled}
-                        cancellationReason={(order as any).cancellationReason || (order as any).cancelledReason}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                        isOrderCancelled
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
+                          : order.stage === "delivered" || order.stage === "completed"
+                          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          : order.stage === "ready"
+                          ? "bg-blue-50 text-blue-800 border border-blue-200"
+                          : order.stage === "new"
+                          ? "bg-amber-50 text-amber-900 border border-amber-300"
+                          : "bg-zinc-100 text-zinc-900 border border-zinc-200"
+                      }`}
+                    >
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          isOrderCancelled
+                            ? "bg-rose-500"
+                            : order.stage === "delivered" || order.stage === "completed"
+                            ? "bg-emerald-600"
+                            : order.stage === "ready"
+                            ? "bg-blue-600 animate-pulse"
+                            : order.stage === "new"
+                            ? "bg-amber-600 animate-pulse"
+                            : "bg-zinc-700"
+                        }`}
                       />
-                    </div>
-                    <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 px-2 py-1 text-[11px] text-blue-900 dark:text-blue-200 border border-blue-200/60 dark:border-blue-800/40 font-semibold flex-wrap">
-                      <Clock className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />
-                      <span className="text-zinc-600 dark:text-zinc-400">Order Arrived:</span>
-                      <span className="font-black text-zinc-900 dark:text-zinc-100">{placedInfo.time}</span>
-                      <span className="text-zinc-400">•</span>
-                      <span>{placedInfo.date}</span>
-                      <span className="rounded bg-white dark:bg-zinc-800 px-1.5 py-0.2 text-[10px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60">
-                        {placedInfo.relative}
-                      </span>
-                    </div>
+                      {stageLabel}
+                    </span>
+                    <OrderSlaCountdown
+                      placedAt={(order as any).placedAt || (order as any).placedAtRaw}
+                      deadline={(order as any).partnerAcceptDeadline || (order as any).riderAcceptDeadline}
+                      acceptedAt={(order as any).partnerAcceptedAt}
+                      stage={order.stage}
+                      autoCancelled={(order as any).autoCancelled}
+                      cancellationReason={(order as any).cancellationReason || (order as any).cancelledReason}
+                    />
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
+                    <Clock className="size-3.5 text-zinc-500 shrink-0" />
+                    <span>Placing:</span>
+                    <strong className="text-zinc-950 font-black">{placedInfo.time}</strong>
+                    <span>•</span>
+                    <span>{placedInfo.date}</span>
+                    <span>•</span>
+                    <span className="font-semibold text-zinc-700">{placedInfo.relative}</span>
                   </div>
                 </div>
 
@@ -468,14 +502,14 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   {isOrderCancelled ? (
                     <div>
                       <span className="text-xl font-black tracking-tight text-zinc-400 line-through">₹{order.amount || charges.total}</span>
-                      <p className="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded-md mt-0.5 inline-block uppercase">
+                      <p className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md mt-0.5 inline-block uppercase border border-rose-200/60">
                         Cancelled (₹0)
                       </p>
                     </div>
                   ) : (
                     <div>
-                      <span className="text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">₹{order.amount || charges.total}</span>
-                      <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md mt-0.5 inline-block uppercase">
+                      <span className="text-xl font-black tracking-tight text-zinc-950">₹{order.amount || charges.total}</span>
+                      <p className="text-[10px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md mt-0.5 inline-block uppercase border border-zinc-200">
                         {order.paymentMode === "cod" ? "Cash on Delivery" : "Paid Online"}
                       </p>
                     </div>
@@ -484,95 +518,314 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               </div>
             </div>
 
-            {/* Interactive Live Order Flow Track & Direct Action Hub */}
-            <OrderFlowCard
-              order={order}
-              onAction={(actionId) => handleAction(order, actionId)}
-              busyAction={busy?.orderId === order.id ? busy.actionId : null}
-              dispatchInputOtp={dispatchInputOtp}
-              setDispatchInputOtp={setDispatchInputOtp}
-              handleVerifyPartnerDispatch={handleVerifyPartnerDispatch}
-              isVerifyingDispatch={isVerifyingDispatch}
-              onShowInvoice={() => setShowInvoiceSheet(true)}
-            />
-
-            {/* Auto-Accepted by Store Badge */}
-            {Boolean((order as any).autoAccepted || (order as any).isAutoAccepted || (order as any).partnerAutoAccepted) && (
-              <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-white p-3 border border-emerald-500/40 shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex size-7 items-center justify-center rounded-xl bg-[#00C853] text-white shadow-xs">
-                    <Zap className="size-4 fill-white" />
+            {/* Cancelled Banner (if applicable) */}
+            {isOrderCancelled && (
+              <div className="rounded-2xl border border-rose-200 bg-white p-4 shadow-2xs">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
+                    <AlertCircle className="size-4.5" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
-                      <span>⚡ Store Auto-Accepted Order</span>
-                      <span className="flex size-2 rounded-full bg-[#00C853] animate-ping" />
-                    </h4>
-                    <p className="text-[10px] font-semibold text-emerald-800">
-                      Auto-accepted per store setting. Pickup captain dispatched.
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs font-black text-rose-950 uppercase tracking-wide">
+                      Order Cancelled & Closed
+                    </h3>
+                    <p className="mt-1 text-xs text-rose-800 font-medium leading-relaxed">
+                      {(order as any).cancellationReason || (order as any).cancelledReason || "Auto-cancelled: Store did not accept order within SLA window."}
+                    </p>
+                    <p className="mt-1 text-[11px] text-zinc-500">
+                      No penalties or cancellation fees applied to your account.
                     </p>
                   </div>
                 </div>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-800 border border-emerald-300">
-                  Auto
-                </span>
               </div>
             )}
 
-            {/* Mutual Ratings Card for Partner to Rate Captain & Customer */}
-            <div className="rounded-2xl border border-emerald-500/30 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-500 border border-amber-200">
-                    <Star className="size-4.5 fill-amber-400 text-amber-400" />
+            {/* 1. BOOKED ITEMS & GARMENTS CHECKLIST (TOP PRIORITY - PURE WHITE) */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 border border-zinc-200">
+                    <Shirt className="size-4" />
                   </span>
-                  <div>
-                    <h4 className="text-xs font-black text-black uppercase tracking-wide">
-                      Mutual Ratings & Reputation
-                    </h4>
-                    <p className="text-[11px] font-semibold text-neutral-600">
-                      {(order as any)?.partnerReviewed ? "✓ You rated Captain & Customer" : "Rate Captain & Customer for this order"}
-                    </p>
-                  </div>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-zinc-950">
+                    Booked Garments & Services ({items.length})
+                  </h2>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowReviewModal(true)}
-                  className={`text-xs font-black px-3.5 py-1.5 rounded-xl active:scale-95 transition-all ${
-                    (order as any)?.partnerReviewed
-                      ? "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                      : "bg-[#00C853] hover:bg-[#00B248] text-white shadow-xs"
-                  }`}
-                >
-                  {(order as any)?.partnerReviewed ? "View Rating" : "⭐ Rate Now"}
-                </button>
+                <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[10px] font-bold text-zinc-800 border border-zinc-200">
+                  {totalGarmentPieces} pieces
+                </span>
+              </div>
+
+              <div className="mt-3 divide-y divide-zinc-100">
+                {items.length === 0 ? (
+                  <p className="py-2 text-xs text-zinc-500">Standard Garment Care Package</p>
+                ) : (
+                  items.map((item, idx) => (
+                    <div key={item.id || idx} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-xs font-black text-zinc-900 border border-zinc-200">
+                          {item.qty || 1}×
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-zinc-950 truncate">{item.name || "Laundry Service"}</p>
+                          <p className="text-[10px] text-zinc-500 font-medium">
+                            {item.service && item.service !== item.name ? `${item.service} · ` : ""}₹{item.price || 0} per {item.unit || "item"}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black text-zinc-950 shrink-0">
+                        ₹{(item.qty || 1) * (item.price || 0)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Price Breakdown */}
+              <div className="mt-4 space-y-2 border-t border-dashed border-zinc-200 pt-3 text-xs">
+                <div className="flex items-center justify-between text-zinc-600">
+                  <span>Item Subtotal</span>
+                  <span className="font-bold text-zinc-900">₹{charges.subtotal}</span>
+                </div>
+                <div className="flex items-center justify-between text-zinc-600">
+                  <span>Pickup & Delivery Fee</span>
+                  <span className="font-bold text-zinc-900">{charges.pickupFee > 0 ? `₹${charges.pickupFee}` : "FREE"}</span>
+                </div>
+                <div className="flex items-center justify-between text-zinc-600">
+                  <span>Taxes & Platform Fees</span>
+                  <span className="font-bold text-zinc-900">₹{charges.taxes}</span>
+                </div>
+                {charges.discount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-700">
+                    <span>Discount Applied</span>
+                    <span className="font-bold">-₹{charges.discount}</span>
+                  </div>
+                )}
+                <div className="border-t border-zinc-200 pt-2.5 flex items-center justify-between text-sm font-black text-zinc-950">
+                  <span>Total Bill Value</span>
+                  <span className={isOrderCancelled ? "line-through text-zinc-400" : ""}>₹{order.amount || charges.total}</span>
+                </div>
+
+                {/* Tax Invoice View & Download Row */}
+                <div className="mt-3 pt-3 border-t border-dashed border-zinc-200 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-zinc-600 font-medium">
+                    <FileText className="size-3.5 text-zinc-700" />
+                    <span>Official Tax Invoice</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowInvoiceSheet(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 text-white px-3 py-1.5 text-xs font-black active:scale-95 transition-all shadow-2xs hover:bg-zinc-800 cursor-pointer"
+                  >
+                    <FileText className="size-3.5" />
+                    <span>View Bill</span>
+                  </button>
+                </div>
               </div>
             </div>
 
+            {/* Special Instructions (if any) */}
+            {order.specialInstructions && (
+              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
+                <div className="flex items-center gap-2 text-zinc-900">
+                  <MessageSquareQuote className="size-4 text-zinc-700" />
+                  <h2 className="text-xs font-black uppercase tracking-wider text-zinc-950">
+                    Customer Care Notes
+                  </h2>
+                </div>
+                <p className="mt-2 text-xs font-semibold text-zinc-800 bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
+                  “{order.specialInstructions}”
+                </p>
+              </div>
+            )}
 
-            {/* Dispatch OTP Card for Handover to Rider */}
-            {((order.stage === "ready" || order.stage === "dispatch_otp_pending" || order.stage === "completed" || (order as any)?.reassignment) && (dispatchOtpCode || order.stage === "ready" || order.stage === "dispatch_otp_pending")) ? (
-              <div className="rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
-                      <ShieldCheck className="size-4.5" />
-                    </span>
-                    <div>
-                      <span className="text-xs font-black uppercase tracking-wider text-emerald-800 block">
-                        Captain Handover Verification
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-700">
-                        Enter 4-digit Dispatch OTP told by Captain
-                      </span>
+            {/* 2. CUSTOMER DETAILS CARD (PURE WHITE) */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 border border-zinc-200">
+                    <UserCheck className="size-4" />
+                  </span>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-zinc-950">
+                    Customer Information
+                  </h2>
+                </div>
+                <span className="flex items-center gap-0.5 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-800">
+                  <Star className="size-2.5 fill-amber-400 text-amber-500" />
+                  {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
+                </span>
+              </div>
+
+              <div className="mt-3.5 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-zinc-950 truncate">
+                    {getDisplayCustomerName(order.customerName)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-zinc-500 font-medium">
+                    Verified Customer · {order.customerOrders || 1} orders placed
+                  </p>
+                </div>
+                {order.customerPhone ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (order.customerPhone && !order.customerPhone.includes("••")) {
+                        window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
+                      }
+                    }}
+                    title="Call Customer"
+                    aria-label="Call Customer"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 active:scale-95 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <PhoneCall className="size-4 text-emerald-700" />
+                  </button>
+                ) : null}
+              </div>
+
+              {/* Pickup Address Box */}
+              <div className="mt-3 flex items-start gap-2.5 rounded-xl bg-zinc-50 border border-zinc-200 p-2.5">
+                <MapPin className="size-4 shrink-0 text-zinc-600 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Doorstep Pickup Address</p>
+                  <p className="text-xs font-bold text-zinc-900 leading-snug mt-0.5">
+                    {order.pickupAddress || order.address || "Customer Doorstep Address"}
+                  </p>
+                  {order.pickupTime ? (
+                    <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
+                      Slot: <strong className="text-zinc-800">{order.pickupTime}</strong>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. DELIVERY FLEET CAPTAIN CARD (PURE WHITE) */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 border border-zinc-200">
+                    <Bike className="size-4" />
+                  </span>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-zinc-950">
+                    Delivery Fleet Captain
+                  </h2>
+                </div>
+                {hasAssignedRider ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-black text-emerald-800">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    Assigned
+                  </span>
+                ) : isOrderCancelled ? (
+                  <span className="inline-flex items-center rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-600">
+                    Not Assigned
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-300 px-2 py-0.5 text-[10px] font-black text-amber-800">
+                    <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Assigning...
+                  </span>
+                )}
+              </div>
+
+              {hasAssignedRider ? (
+                <div className="mt-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="relative shrink-0">
+                      {riderImage ? (
+                        <img
+                          src={riderImage}
+                          alt={riderName}
+                          className="size-11 rounded-xl object-cover border border-zinc-200"
+                        />
+                      ) : (
+                        <div className="flex size-11 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 font-black text-sm border border-zinc-200">
+                          {riderName ? riderName.charAt(0).toUpperCase() : <Bike className="size-5" />}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-black text-zinc-950 truncate">{riderName}</p>
+                        {riderRating ? (
+                          <span className="flex items-center gap-0.5 rounded-full bg-zinc-100 border border-zinc-200 px-1.5 py-0.2 text-[10px] font-black text-zinc-800">
+                            <Star className="size-2.5 fill-amber-400 text-amber-500" />
+                            {riderRating.toFixed(1)}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {riderVehicle ? (
+                        <p className="text-[10px] font-bold text-zinc-600 mt-0.5">
+                          🛵 {riderVehicle}
+                        </p>
+                      ) : null}
+
+                      <div className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-emerald-800">
+                        <ShieldCheck className="size-3 text-emerald-600 shrink-0" />
+                        <span>Verified QuickPress Captain</span>
+                      </div>
                     </div>
                   </div>
-                  <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
-                    Handshake OTP
-                  </span>
-                </div>
 
-                <div className="mt-3.5 space-y-2.5">
+                  {/* Actions: Call & GPS Track */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {riderPhone ? (
+                      <a
+                        href={`tel:${riderPhone.replace(/\s/g, "")}`}
+                        className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 active:scale-95 shadow-2xs transition-all cursor-pointer"
+                        title="Call Captain"
+                      >
+                        <PhoneCall className="size-4 text-emerald-700" />
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setShowRiderLocationModal(true)}
+                      className="flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 active:scale-95 text-zinc-800 shadow-2xs transition-all cursor-pointer"
+                      title="Track Live GPS"
+                    >
+                      <Navigation className="size-4 text-zinc-700" />
+                    </button>
+                  </div>
+                </div>
+              ) : isOrderCancelled ? (
+                <div className="py-3 flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-500 shrink-0">
+                    <Bike className="size-5 text-zinc-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-zinc-950">Rider Not Assigned</p>
+                    <p className="text-[11px] text-zinc-500">
+                      Order was closed before a delivery captain was dispatched to store.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-3 flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-800 shrink-0">
+                    <Bike className="size-5 text-zinc-600 animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-zinc-950">Locating Nearest Captain...</p>
+                    <p className="text-[11px] text-zinc-500">
+                      Auto-assigning closest delivery captain in your store zone.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Handover OTP Verification (if ready/dispatch pending) */}
+              {((order.stage === "ready" || order.stage === "dispatch_otp_pending" || order.stage === "completed") && (dispatchOtpCode || order.stage === "ready" || order.stage === "dispatch_otp_pending")) ? (
+                <div className="mt-3.5 pt-3 border-t border-zinc-100 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                      Captain Handover Verification
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[9px] font-bold text-zinc-800 border border-zinc-200">
+                      Dispatch OTP
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -582,13 +835,13 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       placeholder="e.g. 5387"
                       value={dispatchInputOtp}
                       onChange={(e) => setDispatchInputOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      className="w-32 rounded-xl border-2 border-primary/40 bg-white px-3 py-2 text-center font-mono text-lg font-black tracking-widest text-foreground placeholder:text-zinc-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
+                      className="w-28 rounded-xl border-2 border-zinc-950 bg-white px-3 py-2 text-center font-mono text-base font-black tracking-widest text-zinc-950 placeholder:text-zinc-300 focus:outline-none"
                     />
                     <button
                       type="button"
                       disabled={dispatchInputOtp.trim().length !== 4 || isVerifyingDispatch}
                       onClick={handleVerifyPartnerDispatch}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-xs transition-all active:scale-95"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 disabled:bg-zinc-200 disabled:text-zinc-400 px-3.5 py-2.5 text-xs font-black text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
                     >
                       {isVerifyingDispatch ? (
                         <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -598,392 +851,46 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       Verify & Release
                     </button>
                   </div>
-
-                    <p className="text-center text-[10px] font-medium text-zinc-500 pt-1 border-t border-emerald-500/10">
-                      🔒 Captain reads out the 4-digit Dispatch OTP shown on their screen upon arriving at the store.
-                    </p>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
 
-            {/* Customer Details Card */}
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 font-black">
-                  <UserCheck className="size-5" />
+            {/* 4. ORDER HELP & REVIEWS STRIP (PURE WHITE) */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => navigate({ to: partnerRoutes.help, search: { orderCode: order.code, orderId: order.id } as any })}
+                className="flex items-center gap-2.5 rounded-2xl border border-zinc-200/90 bg-white p-3 text-left shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
+              >
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
+                  <HelpCircle className="size-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <p className="text-sm font-black text-zinc-900 truncate">{getDisplayCustomerName(order.customerName)}</p>
-                      <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/50 px-2 py-0.5 text-[10px] font-black text-amber-800 shrink-0">
-                        <Star className="size-2.5 fill-current text-amber-500" />
-                        {order.customerRating && order.customerRating > 0 ? order.customerRating.toFixed(1) : "5.0"}
-                      </span>
-                    </div>
-                    {order.customerPhone ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (order.customerPhone && !order.customerPhone.includes("••")) {
-                            window.open(`tel:${order.customerPhone.replace(/\s/g, "")}`);
-                          }
-                        }}
-                        title="Call Customer (Privacy Protected)"
-                        aria-label="Call Customer"
-                        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-xs transition-transform cursor-pointer"
-                      >
-                        <PhoneCall className="size-3.5" />
-                      </button>
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 text-xs text-zinc-600 font-semibold">
-                    Verified Customer · {order.customerOrders || 1} orders placed
+                  <p className="text-xs font-black text-zinc-950 leading-tight">Order Help</p>
+                  <p className="text-[10px] text-zinc-500 font-medium">Issue or dispute</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(true)}
+                className="flex items-center gap-2.5 rounded-2xl border border-zinc-200/90 bg-white p-3 text-left shadow-2xs hover:bg-zinc-50 active:scale-95 transition-all cursor-pointer"
+              >
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
+                  <Star className="size-4.5 fill-amber-400 text-amber-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-black text-zinc-950 leading-tight">
+                    {(order as any)?.partnerReviewed ? "View Rating" : "Rate Order"}
                   </p>
-                  <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-zinc-50 border border-zinc-200/70 p-2.5">
-                    <MapPin className="size-4 shrink-0 text-emerald-600 mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Pickup Location</p>
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.2 text-[8px] font-bold text-emerald-800 border border-emerald-200">
-                          <ShieldCheck className="size-2 text-emerald-600" />
-                          <span>Protected</span>
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-zinc-900 leading-snug mt-0.5">
-                        {order.pickupAddress || order.address || "Customer Doorstep Address"}
-                      </p>
-                      {order.pickupTime ? (
-                        <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
-                          Slot: <span className="font-bold text-zinc-800">{order.pickupTime}</span>
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
+                  <p className="text-[10px] text-zinc-500 font-medium">Captain & Customer</p>
                 </div>
-              </div>
+              </button>
             </div>
 
-            {/* Delivery Captain Card (Directly Below Customer) */}
-            {isOrderCancelled && !hasAssignedRider ? (
-              /* Case 1: Cancelled & No Rider Found */
-              <div className="rounded-2xl border border-rose-200/90 bg-gradient-to-br from-rose-50/40 via-white to-red-50/20 p-4 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-rose-100/80">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-lg bg-rose-600 text-white shadow-2xs">
-                      <Bike className="size-3.5" />
-                    </span>
-                    <h2 className="text-[11px] font-black uppercase tracking-wider text-rose-950">
-                      Delivery Captain
-                    </h2>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-black text-rose-700">
-                    ✕ Rider Not Found
-                  </span>
-                </div>
-
-                <div className="py-4 px-2 flex items-center gap-3.5">
-                  <div className="relative shrink-0 flex items-center justify-center">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-rose-100 border border-rose-200 text-rose-600 shadow-2xs">
-                      <Bike className="size-6 text-rose-500" />
-                    </div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-zinc-900">Rider Not Found</p>
-                    <p className="mt-0.5 text-[11px] font-semibold text-rose-700">
-                      Order was cancelled before a delivery captain could be assigned.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : isOrderCancelled && hasAssignedRider ? (
-              /* Case 2: Cancelled & Rider WAS Assigned (Show Rider Name) */
-              <div className="rounded-2xl border border-zinc-200/90 bg-gradient-to-br from-zinc-50/50 via-white to-white p-4 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-lg bg-zinc-700 text-white shadow-2xs">
-                      <Bike className="size-3.5" />
-                    </span>
-                    <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
-                      Assigned Delivery Captain
-                    </h2>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-black text-rose-700">
-                    Order Cancelled
-                  </span>
-                </div>
-
-                <div className="mt-3.5 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="relative shrink-0">
-                      {riderImage ? (
-                        <img
-                          src={riderImage}
-                          alt={riderName}
-                          className="size-12 rounded-2xl object-cover border-2 border-white shadow-md grayscale"
-                        />
-                      ) : (
-                        <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-600 to-zinc-700 text-white font-black text-base shadow-md">
-                          {riderName ? riderName.charAt(0).toUpperCase() : <Bike className="size-6" />}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-sm font-black text-zinc-900 truncate">{riderName}</p>
-                        {riderRating ? (
-                          <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-1.5 py-0.2 text-[10px] font-black text-amber-800 shrink-0">
-                            <Star className="size-2.5 fill-current text-amber-500" />
-                            {riderRating.toFixed(1)}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {riderVehicle ? (
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 border border-zinc-200/90 px-1.5 py-0.5 text-[10px] font-bold text-zinc-800 tracking-wide">
-                            🛵 {riderVehicle}
-                          </span>
-                        </div>
-                      ) : null}
-
-                      <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-zinc-500">
-                        <ShieldCheck className="size-3 text-zinc-400 shrink-0" />
-                        <span>Captain assigned before cancellation</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : !hasAssignedRider ? (
-              /* Case 3: Active Order & Finding Rider */
-              <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/50 via-white to-orange-50/20 p-4 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-amber-100/80">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-white shadow-2xs">
-                      <Bike className="size-3.5" />
-                    </span>
-                    <h2 className="text-[11px] font-black uppercase tracking-wider text-amber-950">
-                      Delivery Captain
-                    </h2>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[10px] font-black text-amber-800">
-                    <span className="size-1.5 rounded-full bg-amber-500 animate-ping" />
-                    Finding Captain...
-                  </span>
-                </div>
-
-                <div className="py-4 px-2 flex items-center gap-3.5">
-                  <div className="relative shrink-0 flex items-center justify-center">
-                    <div className="absolute size-12 rounded-full bg-amber-400/20 animate-ping" style={{ animationDuration: "2s" }} />
-                    <div className="relative flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md ring-2 ring-amber-400/30">
-                      <Bike className="size-6 animate-pulse" />
-                    </div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-zinc-900">Locating Nearest Captain...</p>
-                    <p className="mt-0.5 text-[11px] font-semibold text-amber-700">
-                      Auto-assigning closest partner in your zone
-                    </p>
-                    <p className="mt-1 text-[10px] text-zinc-500">
-                      Captain telemetry and direct calling will activate as soon as accepted.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Case 4: Active Order & Rider Assigned */
-              <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/30 via-white to-white p-4 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-blue-100/80">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-lg bg-blue-600 text-white shadow-2xs">
-                      <Bike className="size-3.5" />
-                    </span>
-                    <h2 className="text-[11px] font-black uppercase tracking-wider text-blue-950">
-                      Assigned Delivery Captain
-                    </h2>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Assigned
-                  </span>
-                </div>
-
-                <div className="mt-3.5 flex items-center justify-between gap-3">
-                  {/* Photo & Name & Details */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="relative shrink-0">
-                      {riderImage ? (
-                        <img
-                          src={riderImage}
-                          alt={riderName}
-                          className="size-12 rounded-2xl object-cover border-2 border-white shadow-md ring-2 ring-blue-500/20"
-                        />
-                      ) : (
-                        <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-base shadow-md ring-2 ring-blue-500/20">
-                          {riderName ? riderName.charAt(0).toUpperCase() : <Bike className="size-6" />}
-                        </div>
-                      )}
-                      <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white text-[9px] text-white font-black">
-                        ✓
-                      </span>
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-sm font-black text-zinc-900 truncate">{riderName}</p>
-                        {riderRating ? (
-                          <span className="flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/60 px-1.5 py-0.2 text-[10px] font-black text-amber-800 shrink-0">
-                            <Star className="size-2.5 fill-current text-amber-500" />
-                            {riderRating.toFixed(1)}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {riderVehicle ? (
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 border border-zinc-200/90 px-1.5 py-0.5 text-[10px] font-bold text-zinc-800 tracking-wide">
-                            🛵 {riderVehicle}
-                          </span>
-                        </div>
-                      ) : null}
-
-                      <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
-                        <ShieldCheck className="size-3 text-emerald-600 shrink-0" />
-                        <span>Verified QuickPress Captain</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Actions: Only Phone Icon (No mobile digits text) + Track GPS */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {riderPhone ? (
-                      <a
-                        href={`tel:${riderPhone.replace(/\s/g, "")}`}
-                        className="flex size-10 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                        title="Call Delivery Captain"
-                        aria-label="Call Delivery Captain"
-                      >
-                        <PhoneCall className="size-4 text-white" />
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        className="flex size-10 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                        title="Call Delivery Captain"
-                        aria-label="Call Delivery Captain"
-                      >
-                        <PhoneCall className="size-4 text-white" />
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setShowRiderLocationModal(true)}
-                      className="flex size-10 items-center justify-center rounded-full border border-blue-200 bg-white hover:bg-blue-50 active:scale-95 text-blue-700 shadow-2xs transition-all cursor-pointer"
-                      title="Track Live GPS"
-                      aria-label="Track Live GPS"
-                    >
-                      <Navigation className="size-4 text-blue-600" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Customer Special Care Instructions / Notes */}
-            {order.specialInstructions ? (
-              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 shadow-sm">
-                <div className="flex items-center gap-2 text-amber-900">
-                  <MessageSquareQuote className="size-4 text-amber-700" />
-                  <h2 className="text-[11px] font-black uppercase tracking-wider text-amber-800">
-                    Customer Instructions
-                  </h2>
-                </div>
-                <p className="mt-2 text-xs font-semibold text-zinc-800 bg-white/80 p-2.5 rounded-xl border border-amber-200/50">
-                  “{order.specialInstructions}”
-                </p>
-              </div>
-            ) : null}
-
-            {/* Booked Services & Items */}
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
-                Items & Services ({items.length})
-              </h2>
-
-              <div className="mt-3 divide-y divide-zinc-100">
-                {items.length === 0 ? (
-                  <p className="py-2 text-xs text-zinc-500">Standard Laundry Service Package</p>
-                ) : (
-                  items.map((item, idx) => (
-                    <div key={item.id || idx} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex size-7 items-center justify-center rounded-xl bg-zinc-100 text-xs font-black text-zinc-800 border border-zinc-200">
-                          {item.qty || 1}×
-                        </span>
-                        <div>
-                          <p className="text-xs font-black text-zinc-900">{item.name || "Laundry Service"}</p>
-                          <p className="text-[10px] text-zinc-400 font-medium">
-                            {item.service && item.service !== item.name ? `${item.service} · ` : ""}₹{item.price || 0} per {item.unit || "item"}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-black text-zinc-900">
-                        ₹{(item.qty || 1) * (item.price || 0)}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Price Breakdown */}
-              <div className="mt-4 space-y-2 border-t border-dashed border-zinc-200 pt-3">
-                <Row label="Item Subtotal" value={`₹${charges.subtotal}`} />
-                <Row label="Pickup & Delivery Fee" value={charges.pickupFee > 0 ? `₹${charges.pickupFee}` : "FREE"} />
-                <Row label="Taxes & Platform Fees" value={`₹${charges.taxes}`} />
-                {charges.discount > 0 ? (
-                  <Row label="Discount Applied" value={`-₹${charges.discount}`} />
-                ) : null}
-                <div className="border-t border-zinc-200 pt-2.5">
-                  <Row
-                    label="Total Bill Value"
-                    value={`₹${order.amount || charges.total}`}
-                    strong
-                    strikeThrough={isOrderCancelled}
-                  />
-                  {isOrderCancelled ? (
-                    <div className="mt-1 flex items-center justify-between text-xs font-bold text-rose-600">
-                      <span>Order Net Payout</span>
-                      <span>₹0 (Cancelled)</span>
-                    </div>
-                  ) : null}
-                </div>
-
-                {/* Tax Invoice View & Download Row */}
-                <div className="mt-3 pt-3 border-t border-dashed border-zinc-200 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-semibold">
-                    <FileText className="size-3.5 text-primary" />
-                    <span>Official Tax Invoice</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowInvoiceSheet(true)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-3 py-1.5 text-xs font-black active:scale-95 transition-all shadow-xs hover:opacity-90"
-                  >
-                    <FileText className="size-3.5" />
-                    <span>View Invoice</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-
-
-            {/* Live Order Timeline */}
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-              <h2 className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            {/* 5. ORDER PROGRESSION TIMELINE */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
+              <h2 className="text-xs font-black uppercase tracking-wider text-zinc-950 pb-3 border-b border-zinc-100">
                 Order Timeline
               </h2>
               <div className="mt-3">
@@ -993,14 +900,13 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
           </div>
         )}
 
-
-        {/* Sticky Mobile Bottom Order Action Bar */}
-        {order ? (
-          <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md px-4 py-3 border-t border-zinc-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        {/* Sticky Mobile Bottom Order Action Bar (Only for Active Orders) */}
+        {order && !isOrderCancelled ? (
+          <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md px-4 py-3 border-t border-zinc-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
             <div className="mx-auto max-w-lg">
               <OrderActionBar
                 order={order}
-                size="full"
+                size="compact"
                 onAction={(actionId) => handleAction(order, actionId)}
                 busyAction={busy?.orderId === order.id ? busy.actionId : null}
               />
@@ -1135,6 +1041,15 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                 >
                   <Printer className="size-4 text-zinc-600" />
                   <span>Print Slip / Bill</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: partnerRoutes.help, search: { orderCode: order.code, orderId: order.id } as any })}
+                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                  title="Need Help with this Order?"
+                >
+                  <HelpCircle className="size-4 text-zinc-600" />
+                  <span>Need Help?</span>
                 </button>
               </div>
             </div>
