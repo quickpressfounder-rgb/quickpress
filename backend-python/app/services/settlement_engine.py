@@ -572,6 +572,44 @@ class SettlementEngine:
                 "monthKey": curr_dt.strftime("%Y-%m"),
             })
 
+        # Compute 7-day daily trend for current weekly cycle (Mon-Sun)
+        now_utc = datetime.now(timezone.utc)
+        start_of_week = (now_utc - timedelta(days=now_utc.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        daily_trend = []
+        days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        cycle_orders_all = current_data.get("orders") or []
+
+        partner_comm = profile.get("commissionRate") or profile.get("commission_rate")
+        if partner_comm is not None:
+            try:
+                p_rate = float(partner_comm)
+                comm_rate = (p_rate / 100.0) if p_rate > 1.0 else p_rate
+                if comm_rate > 0.50 or comm_rate < 0:
+                    comm_rate = 0.15
+            except Exception:
+                comm_rate = 0.15
+        else:
+            comm_rate = 0.15
+
+        for d_idx in range(7):
+            d_dt = start_of_week + timedelta(days=d_idx)
+            d_str = d_dt.strftime("%Y-%m-%d")
+            matching_ords = [
+                mo for mo in cycle_orders_all
+                if str(mo.get("date", ""))[:10] == d_str
+            ]
+            d_gross = sum(float(mo.get("grossValue", 0)) for mo in matching_ords)
+            d_net = sum(float(mo.get("netEarning", 0)) for mo in matching_ords)
+            daily_trend.append({
+                "day": days_names[d_idx],
+                "date": d_str,
+                "label": d_dt.strftime("%d %b"),
+                "orderCount": len(matching_ords),
+                "grossAmount": round(d_gross, 2),
+                "netPayout": round(d_net, 2),
+                "isToday": d_str == now_utc.strftime("%Y-%m-%d"),
+            })
+
         overview_data = {
             "currentCycle": {
                 "cycleId": "current",
@@ -584,6 +622,11 @@ class SettlementEngine:
             "pastCycles": past_summaries,
             "filterOptions": [c["period"] for c in past_summaries],
             "months": months_list,
+            "dailyTrend": daily_trend,
+            "currentOrders": cycle_orders_all,
+            "commissionRatePct": round(comm_rate * 100, 1),
+            "storeName": profile.get("businessName") or profile.get("storeName") or "QuickPress Partner Store",
+            "gstin": profile.get("gstin") or "—",
         }
 
         # Cache valid overview response

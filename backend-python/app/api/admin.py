@@ -595,6 +595,15 @@ async def update_partner(partner_id: str, payload: AdminPartnerUpdatePayload, us
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
     if data:
         await database.update("partner_profiles", {"_id": target_id}, data)
+        try:
+            from app.services.settlement_engine import _FINANCE_OVERVIEW_CACHE, _partner_cands
+            _FINANCE_OVERVIEW_CACHE.pop(target_id, None)
+            for c in _partner_cands(target_id):
+                _FINANCE_OVERVIEW_CACHE.pop(c, None)
+            for c in _partner_cands(partner_id):
+                _FINANCE_OVERVIEW_CACHE.pop(c, None)
+        except Exception:
+            pass
 
     await audit_repository.log(await _actor(user), "partner.update", target_id, data)
     return await database.find_one("partner_profiles", {"_id": target_id})

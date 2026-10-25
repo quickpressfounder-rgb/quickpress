@@ -108,310 +108,334 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
     }
   };
 
-  // Enforce standard QuickPress platform fee display (15%, bounded 10-18%)
   const commissionPct = data?.orderLevelDeductionsC?.commissionRatePct
-    ? Math.min(Math.max(data.orderLevelDeductionsC.commissionRatePct, 10), 18)
+    ? Math.min(Math.max(data.orderLevelDeductionsC.commissionRatePct, 5), 50)
     : 15;
 
   const partnerIdDisplay = data?.partnerId ? formatPartnerId(data.partnerId) : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative min-h-screen w-full max-w-lg bg-[#F8FAFC] text-black pb-20 shadow-2xl border-x border-zinc-200">
+    <div className="w-full bg-white text-zinc-950 pb-28">
+      <div className="mx-auto max-w-4xl px-4 py-4 md:py-6 space-y-6">
         
-        {/* Top Header */}
-        <header className="sticky top-0 z-20 bg-white px-4 pt-3.5 pb-3 shadow-[0_1px_3px_rgba(0,0,0,0.06)] border-b border-zinc-100">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex size-9 items-center justify-center rounded-full hover:bg-zinc-100 active:scale-95 transition-transform cursor-pointer shrink-0"
-                title="Back"
-              >
-                <ArrowLeft className="size-5 text-black" />
-              </button>
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-base font-black tracking-tight text-black">
-                  {data?.businessName || "Store Settlements"}
-                </h1>
-                <p className="truncate text-[11px] font-semibold text-zinc-500">
-                  {partnerIdDisplay ? `ID: ${partnerIdDisplay} • ` : ""}
-                  {data?.city ? `${data.city} Operations Hub` : "Store Operations Hub"}
-                </p>
-              </div>
-            </div>
-
+        {/* Top Navigation & Breadcrumb Header */}
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 pb-4">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex size-8 items-center justify-center rounded-full text-zinc-400 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer"
-              title="Close"
+              className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 hover:bg-zinc-200 active:scale-95 transition-transform cursor-pointer shrink-0"
+              title="Back to Overview"
             >
-              <X className="size-4" />
+              <ArrowLeft className="size-4 text-black" />
             </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg md:text-xl font-black tracking-tight text-black truncate">
+                  Settlement Breakdown — {data?.cycle.period || "Weekly Cycle"}
+                </h1>
+                <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-800">
+                  {data?.cycle.status || "PROCESSING"}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 font-medium">
+                {partnerIdDisplay ? `ID: ${partnerIdDisplay} • ` : ""}
+                {data?.businessName || "Store Partner"} • Double-Entry Ledger Reconciled
+              </p>
+            </div>
           </div>
 
-          {/* Subtabs: Summary | Orders | Expenses (Royal Blue Theme) */}
-          <div className="mt-3.5 flex gap-2">
-            {(["summary", "orders", "expenses"] as const).map((tab) => {
-              const label =
-                tab === "summary"
-                  ? "Summary"
-                  : tab === "orders"
-                  ? `Orders ${data?.orders?.length ? `(${data.orders.length})` : ""}`
-                  : `Expenses ${data?.expenses?.length ? `(${data.expenses.length})` : ""}`;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveSubTab(tab)}
-                  className={`rounded-full px-4.5 py-1.5 text-xs font-black capitalize transition-all cursor-pointer active:scale-95 ${
-                    activeSubTab === tab
-                      ? "bg-black text-white shadow-xs"
-                      : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 text-xs font-bold text-red-700 hover:bg-red-100 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Download PDF Statement"
+            >
+              <FileText className="size-3.5 text-red-600" />
+              <span>{downloadingPdf ? "Exporting..." : "PDF"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              disabled={downloadingExcel}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-xs font-bold text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Download Excel Statement"
+            >
+              <FileSpreadsheet className="size-3.5 text-emerald-600" />
+              <span>{downloadingExcel ? "Exporting..." : "Excel"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleEmail}
+              disabled={emailing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-700 hover:bg-zinc-100 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Email Statement"
+            >
+              <Mail className="size-3.5 text-zinc-600" />
+              <span>{emailing ? "Sending..." : "Email"}</span>
+            </button>
           </div>
         </header>
+
+        {/* Subtabs: Summary | Orders | Expenses */}
+        <div className="flex gap-2">
+          {(["summary", "orders", "expenses"] as const).map((tab) => {
+            const label =
+              tab === "summary"
+                ? "Financial Summary"
+                : tab === "orders"
+                ? `Delivered Orders ${data?.orders?.length ? `(${data.orders.length})` : ""}`
+                : `Deductions & Expenses ${data?.expenses?.length ? `(${data.expenses.length})` : ""}`;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveSubTab(tab)}
+                className={`rounded-full px-5 py-2 text-xs font-black capitalize transition-all cursor-pointer active:scale-95 ${
+                  activeSubTab === tab
+                    ? "bg-black text-white shadow-xs"
+                    : "border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-100 shadow-2xs"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
         {loading ? (
           <div className="flex h-96 flex-col items-center justify-center gap-3">
             <div className="size-8 animate-spin rounded-full border-2 border-black border-t-transparent" />
-            <p className="text-xs font-bold text-zinc-500">Calculating settlement breakdown...</p>
+            <p className="text-xs font-bold text-zinc-500">Calculating settlement breakdown from live database...</p>
           </div>
         ) : (
-          <div className="space-y-4 p-4">
+          <div className="space-y-4">
             
             {/* ========================================================================= */}
             {/* TAB 1: SUMMARY (A + B + C + D + E + F Breakdown)                          */}
             {/* ========================================================================= */}
             {activeSubTab === "summary" && data && (
-              <>
+              <div className="space-y-4">
                 {/* Hero Payout Headline Card */}
-                <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
+                <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 md:p-6 shadow-xs">
                   <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
 
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="size-3.5 text-black" />
-                        <p className="text-[11px] font-black uppercase tracking-wider text-black">
-                          Settlement Disbursal
+                        <Calendar className="size-4 text-black" />
+                        <p className="text-xs font-black uppercase tracking-wider text-black">
+                          Settlement Net Disbursal
                         </p>
                       </div>
-                      <p className="mt-1 text-3xl font-black text-black tracking-tight">
+                      <p className="mt-1 text-3xl md:text-4xl font-black text-black tracking-tight">
                         ₹{data.estNetPayout.toFixed(2)}
                       </p>
-                      <p className="mt-0.5 text-[11px] font-semibold text-zinc-500">
-                        Cycle: {data.cycle.period}
+                      <p className="mt-1 text-xs font-semibold text-zinc-500">
+                        Cycle Period: {data.cycle.period} • {data.totalOrders} Delivered Orders
                       </p>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-[11px] font-bold text-zinc-500">Payout Credit Date</p>
-                      <p className="mt-0.5 text-xs font-black text-black">
-                        {data.cycle.payoutDate !== "-" ? data.cycle.payoutDate : "Auto 7-Day Cycle"}
+                    <div className="sm:text-right">
+                      <p className="text-xs font-bold text-zinc-500">Scheduled Payout Date</p>
+                      <p className="mt-0.5 text-sm font-black text-black">
+                        {data.cycle.payoutDate !== "-" ? data.cycle.payoutDate : "Automatic 7-Day Cycle"}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold text-emerald-600">
-                        Double-Entry Verified ✓
+                      <p className="mt-1 text-[11px] font-bold text-emerald-600">
+                        Direct Bank Disbursal ✓
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Settlement Summary Accordion Section */}
-                <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                    <div>
-                      <h2 className="text-sm font-black text-black">Settlement summary</h2>
-                      <p className="text-[11px] font-medium text-zinc-500">Itemized financial ledger</p>
+                <div className="rounded-3xl border border-zinc-200 bg-white p-5 md:p-6 shadow-xs">
+                  <div className="pb-3 border-b border-zinc-100">
+                    <h2 className="text-sm md:text-base font-black text-black">Settlement Ledger & Tax Breakdown</h2>
+                    <p className="text-xs font-medium text-zinc-500">
+                      Standard double-entry accounting reconciliation for GST and e-commerce compliance
+                    </p>
+                  </div>
+
+                  <div className="mt-4 divide-y divide-zinc-100">
+                    {/* (A) Net Order Value */}
+                    <div className="py-3.5">
+                      <div
+                        onClick={() => setOpenA(!openA)}
+                        className="flex items-center justify-between cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-black">Net order value (A)</span>
+                          {openA ? (
+                            <ChevronUp className="size-4 text-zinc-400" />
+                          ) : (
+                            <ChevronDown className="size-4 text-zinc-400" />
+                          )}
+                        </div>
+                        <span className="text-sm font-black text-black">
+                          ₹{data.netOrderValueA.total.toFixed(2)}
+                        </span>
+                      </div>
+                      {openA && (
+                        <div className="mt-3 pl-4 space-y-2 text-xs border-l-2 border-zinc-200">
+                          <div className="flex justify-between text-zinc-600">
+                            <span>Item subtotal (Gross customer booking)</span>
+                            <span className="font-bold text-black">
+                              ₹{data.netOrderValueA.itemSubtotal.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-zinc-600">
+                            <span>Customer GST collected (Laundry 5%)</span>
+                            <span className="font-bold text-black">
+                              ₹{data.netOrderValueA.totalGstCollected.toFixed(2)}
+                            </span>
+                          </div>
+                          {data.netOrderValueA.restaurantDiscountPromos > 0 && (
+                            <div className="flex justify-between text-zinc-600">
+                              <span>Partner discounts / promos absorbed</span>
+                              <span className="font-bold text-rose-600">
+                                -₹{data.netOrderValueA.restaurantDiscountPromos.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Statement Export Buttons */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleDownloadPdf}
-                        disabled={downloadingPdf}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 text-[11px] font-black text-red-700 hover:bg-red-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                        title="Download Statement (PDF)"
+                    {/* (B) Additions & Credits */}
+                    <div className="py-3.5">
+                      <div
+                        onClick={() => setOpenB(!openB)}
+                        className="flex items-center justify-between cursor-pointer group"
                       >
-                        <FileText className="size-3 text-red-600" />
-                        <span>{downloadingPdf ? "..." : "PDF"}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDownloadExcel}
-                        disabled={downloadingExcel}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-[11px] font-black text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                        title="Download Statement (Excel)"
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-black">Additions & Credits (B)</span>
+                          {openB ? (
+                            <ChevronUp className="size-4 text-zinc-400" />
+                          ) : (
+                            <ChevronDown className="size-4 text-zinc-400" />
+                          )}
+                        </div>
+                        <span className="text-sm font-black text-emerald-600">
+                          +₹{data.additionsB.total.toFixed(2)}
+                        </span>
+                      </div>
+                      {openB && (
+                        <div className="mt-3 pl-4 space-y-2 text-xs border-l-2 border-emerald-200">
+                          <div className="flex justify-between text-zinc-600">
+                            <span>Volume target milestone incentive</span>
+                            <span className="font-bold text-black">
+                              ₹{data.additionsB.targetIncentiveBonus.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-zinc-600">
+                            <span>Store 5-star quality rating bonus</span>
+                            <span className="font-bold text-black">
+                              ₹{data.additionsB.qualityRatingBonus.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* (C) Platform Deductions */}
+                    <div className="py-3.5">
+                      <div
+                        onClick={() => setOpenC(!openC)}
+                        className="flex items-center justify-between cursor-pointer group"
                       >
-                        <FileSpreadsheet className="size-3 text-emerald-600" />
-                        <span>{downloadingExcel ? "..." : "Excel"}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleEmail}
-                        disabled={emailing}
-                        className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-black hover:bg-zinc-100 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                        title="Email Statement"
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-black">Platform Deductions (C)</span>
+                          {openC ? (
+                            <ChevronUp className="size-4 text-zinc-400" />
+                          ) : (
+                            <ChevronDown className="size-4 text-zinc-400" />
+                          )}
+                        </div>
+                        <span className="text-sm font-black text-rose-600">
+                          -₹{data.orderLevelDeductionsC.total.toFixed(2)}
+                        </span>
+                      </div>
+                      {openC && (
+                        <div className="mt-3 pl-4 space-y-2 text-xs border-l-2 border-rose-200">
+                          <div className="flex justify-between text-zinc-600">
+                            <span>Platform Service Fee ({commissionPct}%)</span>
+                            <span className="font-bold text-rose-600">
+                              -₹{data.orderLevelDeductionsC.platformCommission.toFixed(2)}
+                            </span>
+                          </div>
+                          {data.orderLevelDeductionsC.damagePenalty > 0 && (
+                            <div className="flex justify-between text-zinc-600">
+                              <span>Customer damage claim settlement</span>
+                              <span className="font-bold text-rose-600">
+                                -₹{data.orderLevelDeductionsC.damagePenalty.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                          {data.orderLevelDeductionsC.cancellationFee > 0 && (
+                            <div className="flex justify-between text-zinc-600">
+                              <span>Order cancellation fee</span>
+                              <span className="font-bold text-rose-600">
+                                -₹{data.orderLevelDeductionsC.cancellationFee.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* (D) Tax Deductions */}
+                    <div className="py-3.5">
+                      <div
+                        onClick={() => setOpenD(!openD)}
+                        className="flex items-center justify-between cursor-pointer group"
                       >
-                        <Mail className="size-3.5" />
-                      </button>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-black">Tax Deductions (D)</span>
+                          {openD ? (
+                            <ChevronUp className="size-4 text-zinc-400" />
+                          ) : (
+                            <ChevronDown className="size-4 text-zinc-400" />
+                          )}
+                        </div>
+                        <span className="text-sm font-black text-rose-600">
+                          -₹{data.taxDeductionsD.total.toFixed(2)}
+                        </span>
+                      </div>
+                      {openD && (
+                        <div className="mt-3 pl-4 space-y-2 text-xs border-l-2 border-zinc-300">
+                          <div className="flex justify-between text-zinc-600">
+                            <span>GST on service fee @18% (ITC Claimable)</span>
+                            <span className="font-bold text-rose-600">
+                              -₹{data.taxDeductionsD.gstOnServiceFees18.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-zinc-600">
+                            <span>TDS u/s 194-O (1% Income Tax Credit)</span>
+                            <span className="font-bold text-rose-600">
+                              -₹{data.taxDeductionsD.tds194o.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-zinc-600">
+                            <span>TCS collected u/s 9(5) (1% GST TCS Credit)</span>
+                            <span className="font-bold text-black">
+                              ₹{data.taxDeductionsD.tcsGst.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Total Orders Row */}
-                  <div className="flex items-center justify-between py-3 border-b border-zinc-100 text-xs font-black text-black">
-                    <span>Delivered Orders</span>
-                    <span>{data.totalOrders}</span>
-                  </div>
-
-                  {/* --- (A) Net Order Value --- */}
-                  <div className="border-b border-zinc-100 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setOpenA(!openA)}
-                      className="flex w-full items-center justify-between text-left text-xs font-black text-black cursor-pointer"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span>Net order value (A)</span>
-                        {openA ? <ChevronUp className="size-3.5 text-zinc-400" /> : <ChevronDown className="size-3.5 text-zinc-400" />}
-                      </div>
-                      <span className="font-black text-black">₹{data.netOrderValueA.total.toFixed(2)}</span>
-                    </button>
-                    {openA && (
-                      <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-600 font-medium">
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1">Item subtotal</span>
-                          <span className="font-semibold text-black">₹{data.netOrderValueA.itemSubtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1">Customer GST collected</span>
-                          <span className="font-semibold text-black">₹{data.netOrderValueA.totalGstCollected.toFixed(2)}</span>
-                        </div>
-                        {data.netOrderValueA.restaurantDiscountPromos > 0 ? (
-                          <div className="flex justify-between text-rose-600">
-                            <span>Promotional Discounts & Coupons</span>
-                            <span className="font-semibold">-₹{data.netOrderValueA.restaurantDiscountPromos.toFixed(2)}</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* --- (B) Additions --- */}
-                  <div className="border-b border-zinc-100 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setOpenB(!openB)}
-                      className="flex w-full items-center justify-between text-left text-xs font-black text-black cursor-pointer"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span>Additions & Credits (B)</span>
-                        {openB ? <ChevronUp className="size-3.5 text-zinc-400" /> : <ChevronDown className="size-3.5 text-zinc-400" />}
-                      </div>
-                      <span className="font-black text-emerald-600">+₹{data.additionsB.total.toFixed(2)}</span>
-                    </button>
-                    {openB && (
-                      <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-600 font-medium">
-                        <div className="flex justify-between">
-                          <span>TDS 194H Credit</span>
-                          <span className="font-semibold text-black">₹{data.additionsB.tds194h.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>TDS 194C Credit</span>
-                          <span className="font-semibold text-black">₹{data.additionsB.tds194c.toFixed(2)}</span>
-                        </div>
-                        {data.additionsB.targetIncentiveBonus > 0 && (
-                          <div className="flex justify-between text-emerald-600 font-bold">
-                            <span>Target Milestone Bonus</span>
-                            <span>+₹{data.additionsB.targetIncentiveBonus.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {data.additionsB.qualityRatingBonus > 0 && (
-                          <div className="flex justify-between text-emerald-600 font-bold">
-                            <span>Quality Rating Bonus</span>
-                            <span>+₹{data.additionsB.qualityRatingBonus.toFixed(2)}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* --- (C) Order Level Deductions --- */}
-                  <div className="border-b border-zinc-100 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setOpenC(!openC)}
-                      className="flex w-full items-center justify-between text-left text-xs font-black text-black cursor-pointer"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span>Platform Deductions (C)</span>
-                        {openC ? <ChevronUp className="size-3.5 text-zinc-400" /> : <ChevronDown className="size-3.5 text-zinc-400" />}
-                      </div>
-                      <span className="font-black text-rose-600">-₹{data.orderLevelDeductionsC.total.toFixed(2)}</span>
-                    </button>
-                    {openC && (
-                      <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-600 font-medium">
-                        <div className="flex justify-between">
-                          <span className="flex items-center gap-1">
-                            Platform Service Fee ({commissionPct}%)
-                          </span>
-                          <span className="font-semibold text-rose-600">
-                            -₹{data.orderLevelDeductionsC.platformCommission.toFixed(2)}
-                          </span>
-                        </div>
-                        {data.orderLevelDeductionsC.damagePenalty > 0 && (
-                          <div className="flex justify-between text-rose-600">
-                            <span>Garment Care Claim Compensation</span>
-                            <span className="font-semibold">-₹{data.orderLevelDeductionsC.damagePenalty.toFixed(2)}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* --- (D) Tax Deductions --- */}
-                  <div className="border-b border-zinc-100 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setOpenD(!openD)}
-                      className="flex w-full items-center justify-between text-left text-xs font-black text-black cursor-pointer"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span>Tax Deductions (D)</span>
-                        {openD ? <ChevronUp className="size-3.5 text-zinc-400" /> : <ChevronDown className="size-3.5 text-zinc-400" />}
-                      </div>
-                      <span className="font-black text-rose-600">-₹{data.taxDeductionsD.total.toFixed(2)}</span>
-                    </button>
-                    {openD && (
-                      <div className="mt-2.5 space-y-2 pl-2 text-[11px] text-zinc-600 font-medium">
-                        <div className="flex justify-between">
-                          <span>GST on service fee @18%</span>
-                          <span className="font-semibold text-rose-600">-₹{data.taxDeductionsD.gstOnServiceFees18.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>TDS u/s 194-O (1%)</span>
-                          <span className="font-semibold text-rose-600">-₹{data.taxDeductionsD.tds194o.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>TCS collected u/s 9(5)</span>
-                          <span className="font-semibold text-black">₹{data.taxDeductionsD.tcsGst.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* --- Est. Payout Result Row --- */}
-                  <div className="mt-4 flex items-center justify-between rounded-2xl border-2 border-zinc-900 bg-zinc-950 p-4 text-white shadow-xs">
+                  {/* Net Disbursal Footer Box */}
+                  <div className="mt-5 rounded-2xl bg-black p-4.5 text-white flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-black">Est. Net Disbursal</p>
+                      <p className="text-xs font-black uppercase tracking-wider text-zinc-300">
+                        Total Net Disbursal
+                      </p>
                       <p className="text-[10px] text-zinc-400 font-medium">(A + B - C - D)</p>
                     </div>
                     <p className="text-2xl font-black tracking-tight text-white">
@@ -419,38 +443,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                     </p>
                   </div>
                 </div>
-
-                {/* Beneficiary Bank Details Card */}
-                <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-black">
-                      <Wallet className="size-3.5" />
-                    </div>
-                    <h3 className="text-sm font-black text-black">Beneficiary Bank Account</h3>
-                  </div>
-
-                  <div className="mt-3 space-y-2 text-xs">
-                    <div className="flex justify-between text-zinc-600">
-                      <span className="font-medium">Bank Name</span>
-                      <span className="font-black text-black">{data.bankDetails.bankName || "HDFC Bank"}</span>
-                    </div>
-                    <div className="flex justify-between text-zinc-600">
-                      <span className="font-medium">Account Number</span>
-                      <span className="font-black text-black">{data.bankDetails.accountNumberMasked || "•••• •••• 8842"}</span>
-                    </div>
-                    <div className="flex justify-between text-zinc-600">
-                      <span className="font-medium">Transfer Method</span>
-                      <span className="font-black text-emerald-600">IMPS / NEFT Direct Disbursal ✓</span>
-                    </div>
-                    {data.bankDetails.utr ? (
-                      <div className="flex justify-between text-zinc-600">
-                        <span className="font-medium">UTR Reference</span>
-                        <span className="font-mono font-black text-black">{data.bankDetails.utr}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </>
+              </div>
             )}
 
             {/* ========================================================================= */}
@@ -460,8 +453,9 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <h2 className="text-xs font-black uppercase tracking-wider text-zinc-500">
-                    Orders in this Cycle ({data.orders.length})
+                    Delivered Orders in this Cycle ({data.orders.length})
                   </h2>
+                  <p className="text-[11px] text-zinc-400">Click any order for full ledger breakdown</p>
                 </div>
 
                 {data.orders.length === 0 ? (
@@ -473,7 +467,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                     const isExpanded = expandedOrderId === ord.orderId;
                     const gstOnComm = ord.gstOnCommission ?? Math.round(ord.commission * 0.18 * 100) / 100;
                     const tcsTax = ord.tcsGst ?? Math.round(ord.grossValue * 0.01 * 100) / 100;
-                    const commRate = ord.commissionRatePct ?? 15;
+                    const commRate = ord.commissionRatePct ?? commissionPct;
 
                     return (
                       <div
@@ -522,7 +516,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                           <div className="rounded-xl bg-zinc-50 p-2.5 text-[11px] text-zinc-600 flex justify-between items-center border border-zinc-100">
                             <span className="truncate pr-2 font-medium">{ord.itemsSummary}</span>
                             <span className="text-rose-600 font-bold shrink-0">
-                              Platform Fee: -₹{ord.commission.toFixed(2)}
+                              Platform Fee ({commRate}%): -₹{ord.commission.toFixed(2)}
                             </span>
                           </div>
                         </div>

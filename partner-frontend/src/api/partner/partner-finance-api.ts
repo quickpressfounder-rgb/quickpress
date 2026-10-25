@@ -17,6 +17,16 @@ export type SettlementCycle = {
   isCurrent?: boolean;
 };
 
+export type FinanceDailyTrend = {
+  day: string;
+  date: string;
+  label: string;
+  orderCount: number;
+  grossAmount: number;
+  netPayout: number;
+  isToday: boolean;
+};
+
 export type FinanceOverviewResponse = {
   currentCycle: {
     cycleId: string;
@@ -40,6 +50,11 @@ export type FinanceOverviewResponse = {
     period: string;
     monthKey: string;
   }[];
+  dailyTrend?: FinanceDailyTrend[];
+  currentOrders?: SettlementOrder[];
+  commissionRatePct?: number;
+  storeName?: string;
+  gstin?: string;
 };
 
 export type SettlementOrder = {
