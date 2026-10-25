@@ -39,7 +39,7 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.deps import bearer_scheme, current_user, optional_user

@@ -143,7 +143,7 @@ class PartnerAutoScheduleEngine:
         async with self._lock:
             try:
                 # Find all partners with settings
-                settings_list = await database.find_all(SETTINGS, {})
+                settings_list = await database.find_many(SETTINGS, {})
             except Exception as err:
                 logger.error("Failed to query partner_settings: %s", err)
                 return 0

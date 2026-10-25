@@ -97,7 +97,14 @@ if command -v docker &> /dev/null; then
         --env-file .env \
         -p 127.0.0.1:8000:8000 \
         quickpress-api
-    echo "✅ Backend container running on port 8000."
+    echo "  -> Verifying backend container health..."
+    sleep 3
+    if sudo docker ps | grep -q "quickpress-backend"; then
+        echo "✅ Backend container running healthy on port 8000."
+    else
+        echo "⚠️ Warning: Backend container exited. Dumping last logs:"
+        sudo docker logs --tail 30 quickpress-backend || true
+    fi
 fi
 
 # 6. Reload Nginx

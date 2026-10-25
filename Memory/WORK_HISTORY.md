@@ -33,6 +33,26 @@
 
 ## Detailed Log of Work Done Today (25 October 2026)
 
+### 21. Fix: Resolved FastAPI Backend Startup Crash (`NameError: Body in partner.py`) & 502 Bad Gateway
+- **Root Cause Analysis:**
+  - When accessing `https://api.withquickpress.com/api/...`, the browser received `502 Bad Gateway` and `CORS policy: No 'Access-Control-Allow-Origin' header is present`.
+  - Inspection of Python container startup logs revealed:
+    `File "app/api/partner.py", line 1129, in <module>: payload: PartnerBagIntakePayload = Body(...), NameError: name 'Body' is not defined`.
+  - Because `Body` was not in `from fastapi import ...` in `partner.py`, the Python container crashed immediately on startup. Nginx had no backend listening on port 8000, returning `502 Bad Gateway` (and Nginx's default 502 error page does not emit CORS headers).
+- **Resolution:**
+  - Added `Body` to `from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status` in `backend-python/app/api/partner.py`.
+  - Replaced `database.find_all` with `database.find_many` in `backend-python/app/services/partner_auto_schedule_engine.py`.
+  - Verified local Uvicorn startup (`app.main:app` successfully starts up and serves traffic on port 8000).
+  - Enhanced `scripts/update_server.sh` with automatic container health checking and error log dumping.
+- **Modified Files:**
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/services/partner_auto_schedule_engine.py`
+  - `scripts/update_server.sh`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Test Verifications:**
+  - `python3 -m py_compile`: PASSED (Zero errors).
+  - FastAPI `app.main:app` startup: PASSED (Uvicorn running on 0.0.0.0:8000).
+
 ### 20. Option 4 & 5 (Phase 4): Partner Store Bag Intake Handshake & Admin 360 Chain-of-Custody Audit
 - **Architecture & Implementation:**
   - Adhered strictly to the user aesthetic rule: **"THEAM SIMPLE RAKHANA HAI"** (clean, high-contrast, pure white/slate minimalist theme; clean zinc borders, zero cartoonish gradients).
