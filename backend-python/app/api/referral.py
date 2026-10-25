@@ -11,21 +11,26 @@ Every route requires a bearer token and is scoped to `current_user`.
 """
 
 from __future__ import annotations
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.deps import current_user
 from app.db.referral_repositories import ReferralConflict, referral_repository
 from app.models.referral import (
     ApplyReferralPayload,
     ApplyReferralResponse,
+    ClaimReferralRewardPayload,
+    ClaimReferralRewardResponse,
     InviteReferralPayload,
     InviteReferralResponse,
     ReferralHistoryResponse,
     ReferralProgramSettings,
     ReferralResponse,
     ReferralRewardsResponse,
+    ReferralRuleItem,
     ReferralStatsResponse,
+    UserReferralHubResponse,
     WelcomeReferralOffer,
 )
 from app.models.user import User
@@ -80,3 +85,53 @@ async def invite_referral(
     payload: InviteReferralPayload, user: User = Depends(current_user)
 ) -> InviteReferralResponse:
     return await referral_repository.invite(user, payload.channel, payload.contact)
+
+
+# ==============================================================================
+# Multi-Role Referral Endpoints (Partner, Rider & Customer)
+# ==============================================================================
+
+@router.get("/referral/rules", response_model=List[ReferralRuleItem])
+async def list_referral_rules(
+    role: Optional[str] = Query(default=None), city: Optional[str] = Query(default=None)
+) -> List[ReferralRuleItem]:
+    """Fetch active referral rules filtered by role and city."""
+    if role:
+        rule = await referral_repository.get_active_rule(role, city)
+        return [rule]
+    return await referral_repository.get_multi_role_rules()
+
+
+@router.get("/referral/hub", response_model=UserReferralHubResponse)
+async def get_user_referral_hub(
+    role: str = Query(default="partner"),
+    city: Optional[str] = Query(default=None),
+    user: User = Depends(current_user),
+) -> UserReferralHubResponse:
+    """Returns role-specific referral hub: code, dynamic rules, milestone progress, and balance."""
+    return await referral_repository.get_user_referral_hub(user, role=role, city=city)
+
+
+@router.post("/referral/claim", response_model=ClaimReferralRewardResponse)
+async def claim_referral_reward(
+    payload: ClaimReferralRewardPayload,
+    role: str = Query(default="partner"),
+    user: User = Depends(current_user),
+) -> ClaimReferralRewardResponse:
+    """Claims unlocked referral rewards into weekly settlement cycle (partner) or wallet (rider)."""
+    return await referral_repository.claim_referral_rewards(user, role=role, reward_id=payload.rewardId)
+
+
+@router.post("/referral/apply-partner-rider")
+async def apply_partner_rider_referral(
+    payload: dict,
+    user: User = Depends(current_user),
+) -> dict:
+    code = str(payload.get("code") or "").strip()
+    role = str(payload.get("role") or "partner").strip()
+    city = str(payload.get("city") or "All Cities").strip()
+    try:
+        return await referral_repository.apply_partner_or_rider_referral(code, user, referee_role=role, city=city)
+    except ReferralConflict as error:
+        raise HTTPException(status_code=error.status_code, detail=error.message) from error
+

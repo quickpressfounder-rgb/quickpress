@@ -13,19 +13,29 @@ from app.models.referral import (
     DEFAULT_REFEREE_MAX_DISCOUNT,
     DEFAULT_REFEREE_MIN_ORDER,
     DEFAULT_REFERRER_REWARD,
+    AdminMultiRoleReferralOverview,
+    AdminMultiRoleReferralStats,
     AdminReferralItem,
     AdminReferralListResponse,
     AdminReferralStats,
     ApplyReferralResponse,
+    ClaimReferralRewardPayload,
+    ClaimReferralRewardResponse,
     InviteReferralResponse,
     ReferralHistoryItem,
     ReferralHistoryResponse,
+    ReferralLedgerItem,
+    ReferralMilestoneStatus,
     ReferralProgramSettings,
     ReferralResponse,
     ReferralRewardItem,
     ReferralRewardsResponse,
+    ReferralRuleItem,
     ReferralStatsResponse,
+    RoleType,
+    UpdateReferralRulePayload,
     UpdateReferralSettingsPayload,
+    UserReferralHubResponse,
     WelcomeReferralOffer,
 )
 from app.models.user import User, utcnow
@@ -33,6 +43,8 @@ from app.models.user import User, utcnow
 REFERRALS = "referrals"
 TRANSACTIONS = "referral_transactions"
 REWARDS = "referral_rewards"
+MULTI_ROLE_RULES = "multi_role_referral_rules"
+MULTI_ROLE_LEDGER = "multi_role_referral_ledger"
 ORDERS = "customer_orders"
 PROGRAM_SETTINGS = "referral_program_settings"
 
@@ -792,6 +804,485 @@ class ReferralRepository:
             )
 
         return AdminReferralListResponse(items=items, total=len(items), stats=stats)
+
+    # ------------------------------------------------------------------
+    # Multi-Role Referral Engine (Partner, Rider & Customer)
+    # ------------------------------------------------------------------
+    async def get_multi_role_rules(self) -> List[ReferralRuleItem]:
+        """Fetch all configured rules across roles & cities, seeding defaults if empty."""
+        docs = await database.find_many(MULTI_ROLE_RULES)
+        if not docs:
+            # Seed 3 standard rules
+            defaults = [
+                ReferralRuleItem(
+                    id="rule_partner_all",
+                    role="partner",
+                    city="All Cities",
+                    referrerReward=500.0,
+                    targetOrdersCount=10,
+                    headline="Refer a Partner & Earn ₹500",
+                    subheadline="Reward credited to your weekly payout after referred laundromat completes 10 orders.",
+                    terms=[
+                        "Referrer earns ₹500 per successfully onboarded Laundromat.",
+                        "Reward unlocks automatically after the referred store completes 10 orders.",
+                        "Claimed reward is disbursed directly in the weekly bank settlement cycle.",
+                    ],
+                    enabled=True,
+                    createdAt=utcnow().isoformat(),
+                    updatedAt=utcnow().isoformat(),
+                ),
+                ReferralRuleItem(
+                    id="rule_rider_all",
+                    role="rider",
+                    city="All Cities",
+                    referrerReward=300.0,
+                    targetOrdersCount=20,
+                    headline="Refer a Delivery Captain & Earn ₹300",
+                    subheadline="Reward credited to your wallet float after referred rider completes 20 deliveries.",
+                    terms=[
+                        "Referrer earns ₹300 per onboarded Delivery Captain.",
+                        "Reward unlocks automatically after the referred captain completes 20 deliveries.",
+                        "Claimed reward is credited directly to rider wallet float.",
+                    ],
+                    enabled=True,
+                    createdAt=utcnow().isoformat(),
+                    updatedAt=utcnow().isoformat(),
+                ),
+                ReferralRuleItem(
+                    id="rule_customer_all",
+                    role="customer",
+                    city="All Cities",
+                    referrerReward=150.0,
+                    targetOrdersCount=1,
+                    refereeDiscountPercent=50.0,
+                    refereeMaxDiscount=150.0,
+                    headline="Invite Friends & Earn ₹150",
+                    subheadline="Friends get 50% OFF on 1st order. You get ₹150 wallet cash.",
+                    terms=[
+                        "Friends get 50% discount automatically on their first laundry order (up to ₹150).",
+                        "Referrer gets ₹150 in QuickPress wallet immediately after 1st order is delivered.",
+                    ],
+                    enabled=True,
+                    createdAt=utcnow().isoformat(),
+                    updatedAt=utcnow().isoformat(),
+                ),
+            ]
+            for d in defaults:
+                dump = d.model_dump()
+                dump["_id"] = d.id
+                await database.collection(MULTI_ROLE_RULES).insert_one(dump)
+            return defaults
+
+        return [
+            ReferralRuleItem(
+                id=str(d.get("_id") or d.get("id")),
+                role=d.get("role", "partner"),
+                city=d.get("city", "All Cities"),
+                referrerReward=float(d.get("referrerReward") or 0.0),
+                targetOrdersCount=int(d.get("targetOrdersCount") or 1),
+                minOrderValue=float(d.get("minOrderValue") or 199.0),
+                refereeJoiningBonus=float(d.get("refereeJoiningBonus") or 0.0),
+                refereeDiscountPercent=float(d.get("refereeDiscountPercent") or 0.0),
+                refereeMaxDiscount=float(d.get("refereeMaxDiscount") or 0.0),
+                headline=d.get("headline") or "Refer & Earn",
+                subheadline=d.get("subheadline") or "",
+                terms=d.get("terms") or [],
+                enabled=bool(d.get("enabled", True)),
+                createdAt=d.get("createdAt"),
+                updatedAt=d.get("updatedAt"),
+            )
+            for d in docs
+        ]
+
+    async def get_active_rule(self, role: str, city: Optional[str] = None) -> ReferralRuleItem:
+        """Find matching rule for role & city (falls back to All Cities)."""
+        rules = await self.get_multi_role_rules()
+        role_clean = role.lower().strip()
+        city_clean = (city or "").strip().lower()
+
+        # 1. Look for city-specific override
+        if city_clean and city_clean != "all cities":
+            for r in rules:
+                if r.role.lower() == role_clean and r.city.strip().lower() == city_clean and r.enabled:
+                    return r
+
+        # 2. Look for "All Cities" default
+        for r in rules:
+            if r.role.lower() == role_clean and r.city.strip().lower() in ("all cities", "all", "") and r.enabled:
+                return r
+
+        # 3. Fallback to any rule for role
+        for r in rules:
+            if r.role.lower() == role_clean:
+                return r
+
+        # 4. Ultimate fallback
+        return ReferralRuleItem(id="fallback", role="partner", city="All Cities")
+
+    async def upsert_multi_role_rule(self, payload: UpdateReferralRulePayload) -> ReferralRuleItem:
+        """Create or update a rule for specific role and city."""
+        role = payload.role.lower().strip()
+        city = (payload.city or "All Cities").strip()
+        rule_id = f"rule_{role}_{re.sub(r'[^a-zA-Z0-9]', '_', city.lower())}"
+
+        existing = await database.collection(MULTI_ROLE_RULES).find_one({"_id": rule_id})
+        now = utcnow().isoformat()
+
+        doc: Dict[str, Any] = {
+            "_id": rule_id,
+            "id": rule_id,
+            "role": role,
+            "city": city,
+            "updatedAt": now,
+        }
+
+        if existing:
+            doc = {**existing, **doc}
+
+        if payload.referrerReward is not None: doc["referrerReward"] = payload.referrerReward
+        if payload.targetOrdersCount is not None: doc["targetOrdersCount"] = payload.targetOrdersCount
+        if payload.minOrderValue is not None: doc["minOrderValue"] = payload.minOrderValue
+        if payload.refereeJoiningBonus is not None: doc["refereeJoiningBonus"] = payload.refereeJoiningBonus
+        if payload.refereeDiscountPercent is not None: doc["refereeDiscountPercent"] = payload.refereeDiscountPercent
+        if payload.refereeMaxDiscount is not None: doc["refereeMaxDiscount"] = payload.refereeMaxDiscount
+        if payload.headline is not None: doc["headline"] = payload.headline
+        if payload.subheadline is not None: doc["subheadline"] = payload.subheadline
+        if payload.terms is not None: doc["terms"] = payload.terms
+        if payload.enabled is not None: doc["enabled"] = payload.enabled
+        if not existing: doc["createdAt"] = now
+
+        await database.collection(MULTI_ROLE_RULES).update_one({"_id": rule_id}, {"$set": doc}, upsert=True)
+        return await self.get_active_rule(role, city)
+
+    async def delete_multi_role_rule(self, rule_id: str) -> bool:
+        await database.collection(MULTI_ROLE_RULES).delete_one({"_id": rule_id})
+        return True
+
+    async def get_user_referral_hub(
+        self, user: User, role: str, city: Optional[str] = None
+    ) -> UserReferralHubResponse:
+        """Dashboard for Partner, Rider or Customer Referral Hub."""
+        role_clean = role.lower().strip()
+        # Generate clean role-based code if not set
+        uid_clean = re.sub(r"[^A-Za-z0-9]", "", str(user.id))[-4:].upper() or "1001"
+        code_prefix = "QP-PRT" if role_clean == "partner" else ("QP-RDR" if role_clean == "rider" else "QP-CST")
+        code = str(getattr(user, "referral_code", None) or f"{code_prefix}-{uid_clean}")
+
+        # Resolve partner / store city if applicable
+        user_city = city or "All Cities"
+        if role_clean == "partner":
+            p_doc = await database.collection("partner_stores").find_one({"$or": [{"_id": user.id}, {"userId": user.id}, {"partnerId": user.id}]})
+            if p_doc and p_doc.get("city"):
+                user_city = p_doc.get("city")
+
+        active_rule = await self.get_active_rule(role_clean, user_city)
+
+        # Share message & link
+        if role_clean == "partner":
+            share_link = f"https://withquickpress.com/partner-onboarding?ref={code}"
+            share_msg = f"QuickPress Partner banein aur apna Laundry/Dry Clean business grow karein! Join using my referral code: {code} 👉 {share_link}"
+        elif role_clean == "rider":
+            share_link = f"https://withquickpress.com/rider-onboarding?ref={code}"
+            share_msg = f"QuickPress Delivery Captain banein aur daily payouts payein! Join using my referral code: {code} 👉 {share_link}"
+        else:
+            share_link = f"https://withquickpress.com/invite/{code}"
+            share_msg = f"Use my QuickPress code {code} to get 50% OFF on your first laundry order! 👉 {share_link}"
+
+        qr_code = _qr_for(code)
+
+        # Query Multi-Role Ledger for referrals made by this user
+        cands = [user.id, getattr(user, "id", None)]
+        if hasattr(user, "id"):
+            cands.append(f"PRT-{user.id}")
+        docs = await database.find_many(MULTI_ROLE_LEDGER, {"referrerId": {"$in": cands}})
+        docs.sort(key=lambda d: _iso(d.get("createdAt")), reverse=True)
+
+        ledger_items: List[ReferralLedgerItem] = []
+        for d in docs:
+            ledger_items.append(
+                ReferralLedgerItem(
+                    id=str(d.get("_id") or d.get("id")),
+                    referrerId=str(d.get("referrerId")),
+                    referrerName=str(d.get("referrerName") or user.display_name),
+                    referrerPhone=str(d.get("referrerPhone") or user.phone or "—"),
+                    referrerRole=d.get("referrerRole", role_clean),
+                    refereeId=str(d.get("refereeId")),
+                    refereeName=str(d.get("refereeName") or "Partner Store"),
+                    refereePhone=str(d.get("refereePhone") or "—"),
+                    refereeRole=d.get("refereeRole", role_clean),
+                    city=str(d.get("city") or "All Cities"),
+                    code=str(d.get("code") or code),
+                    targetOrders=int(d.get("targetOrders") or active_rule.targetOrdersCount),
+                    completedOrders=int(d.get("completedOrders") or 0),
+                    rewardAmount=float(d.get("rewardAmount") or active_rule.referrerReward),
+                    status=d.get("status", "pending_milestone"),
+                    createdAt=_iso(d.get("createdAt")),
+                    unlockedAt=_iso(d.get("unlockedAt")) if d.get("unlockedAt") else None,
+                    claimedAt=_iso(d.get("claimedAt")) if d.get("claimedAt") else None,
+                    settlementCycleId=d.get("settlementCycleId"),
+                )
+            )
+
+        total_referred = len(ledger_items)
+        pending_count = sum(1 for l in ledger_items if l.status == "pending_milestone")
+        unlocked_count = sum(1 for l in ledger_items if l.status == "unlocked")
+        claimable_balance = sum(l.rewardAmount for l in ledger_items if l.status == "unlocked")
+        claimed_balance = sum(l.rewardAmount for l in ledger_items if l.status in ("claimed_to_cycle", "settled"))
+
+        return UserReferralHubResponse(
+            role=role_clean,
+            code=code,
+            shareLink=share_link,
+            qrCodeUrl=qr_code,
+            shareMessage=share_msg,
+            activeRule=active_rule,
+            totalReferred=total_referred,
+            pendingMilestoneCount=pending_count,
+            unlockedMilestoneCount=unlocked_count,
+            claimableBalance=claimable_balance,
+            totalClaimedBalance=claimed_balance,
+            ledger=ledger_items,
+        )
+
+    async def claim_referral_rewards(
+        self, user: User, role: str, reward_id: Optional[str] = None
+    ) -> ClaimReferralRewardResponse:
+        """Transfers unlocked referral rewards into weekly settlement cycle (partner) or wallet (rider)."""
+        role_clean = role.lower().strip()
+        cands = [user.id, getattr(user, "id", None)]
+        if hasattr(user, "id"):
+            cands.append(f"PRT-{user.id}")
+
+        query: Dict[str, Any] = {"referrerId": {"$in": cands}, "status": "unlocked"}
+        if reward_id:
+            query["$or"] = [{"_id": reward_id}, {"id": reward_id}]
+
+        unlocked_docs = await database.find_many(MULTI_ROLE_LEDGER, query)
+        if not unlocked_docs:
+            return ClaimReferralRewardResponse(
+                ok=False,
+                claimedAmount=0.0,
+                cycleId="current",
+                message="No unlocked referral rewards found to claim.",
+            )
+
+        total_amount = sum(float(d.get("rewardAmount") or 0.0) for d in unlocked_docs)
+        now_str = utcnow().isoformat()
+
+        # Update status in ledger
+        for d in unlocked_docs:
+            d_id = str(d.get("_id") or d.get("id"))
+            await database.collection(MULTI_ROLE_LEDGER).update_one(
+                {"$or": [{"_id": d_id}, {"id": d_id}]},
+                {"$set": {"status": "claimed_to_cycle", "claimedAt": now_str, "settlementCycleId": "current"}},
+            )
+
+        # Partner settlement credit
+        if role_clean == "partner":
+            await database.collection("partner_settlement_additions").insert_one({
+                "partnerId": user.id,
+                "type": "referral_incentive",
+                "amount": total_amount,
+                "cycleId": "current",
+                "description": f"Referral Reward ({len(unlocked_docs)} stores milestone reached)",
+                "createdAt": now_str,
+            })
+            msg = f"₹{int(total_amount)} referral bonus credited to your Current Weekly Settlement Cycle! Will be paid out in your weekly bank transfer."
+        elif role_clean == "rider":
+            await database.collection("rider_wallets").update_one(
+                {"riderId": user.id},
+                {"$inc": {"balance": total_amount}},
+                upsert=True,
+            )
+            msg = f"₹{int(total_amount)} referral reward credited to your Rider Wallet Float!"
+        else:
+            await database.collection("customer_wallets").update_one(
+                {"userId": user.id},
+                {"$inc": {"balance": total_amount}},
+                upsert=True,
+            )
+            msg = f"₹{int(total_amount)} referral credit added to your QuickPress Wallet!"
+
+        return ClaimReferralRewardResponse(
+            ok=True,
+            claimedAmount=total_amount,
+            cycleId="current",
+            message=msg,
+        )
+
+    async def process_order_milestones(self, order: Dict[str, Any]) -> None:
+        """Triggered when an order is completed. Advances referral milestone counters for referred partner/rider."""
+        try:
+            partner_id = str(order.get("partnerId") or order.get("storeId") or "")
+            rider_id = str(order.get("deliveryRiderId") or order.get("riderId") or "")
+
+            # 1. Check partner milestone
+            if partner_id:
+                p_cands = [partner_id]
+                if partner_id.startswith("PRT-"):
+                    p_cands.append(partner_id[4:])
+                else:
+                    p_cands.append(f"PRT-{partner_id}")
+
+                entry = await database.collection(MULTI_ROLE_LEDGER).find_one({
+                    "refereeId": {"$in": p_cands},
+                    "refereeRole": "partner",
+                    "status": "pending_milestone",
+                })
+                if entry:
+                    curr_completed = int(entry.get("completedOrders") or 0) + 1
+                    target = int(entry.get("targetOrders") or 10)
+                    up_doc: Dict[str, Any] = {"completedOrders": curr_completed}
+                    if curr_completed >= target:
+                        up_doc["status"] = "unlocked"
+                        up_doc["unlockedAt"] = utcnow().isoformat()
+                    await database.collection(MULTI_ROLE_LEDGER).update_one(
+                        {"_id": entry["_id"]},
+                        {"$set": up_doc},
+                    )
+
+            # 2. Check rider milestone
+            if rider_id:
+                r_entry = await database.collection(MULTI_ROLE_LEDGER).find_one({
+                    "refereeId": rider_id,
+                    "refereeRole": "rider",
+                    "status": "pending_milestone",
+                })
+                if r_entry:
+                    curr_completed = int(r_entry.get("completedOrders") or 0) + 1
+                    target = int(r_entry.get("targetOrders") or 20)
+                    up_doc = {"completedOrders": curr_completed}
+                    if curr_completed >= target:
+                        up_doc["status"] = "unlocked"
+                        up_doc["unlockedAt"] = utcnow().isoformat()
+                    await database.collection(MULTI_ROLE_LEDGER).update_one(
+                        {"_id": r_entry["_id"]},
+                        {"$set": up_doc},
+                    )
+        except Exception as e:
+            logger.warning(f"Error processing referral order milestone: {e}")
+
+    async def apply_partner_or_rider_referral(
+        self, referrer_code: str, referee_user: User, referee_role: str, city: str = "All Cities"
+    ) -> dict:
+        """Links newly registered partner or rider with their referrer."""
+        clean_code = str(referrer_code or "").upper().strip()
+        referee_role_clean = referee_role.lower().strip()
+
+        # Find referrer by referral code
+        referrer_doc = await database.collection("users").find_one({
+            "referral_code": clean_code
+        })
+        if not referrer_doc:
+            # Also search in multi_role_ledger
+            existing_ref = await database.collection(MULTI_ROLE_LEDGER).find_one({"code": clean_code})
+            if existing_ref:
+                referrer_id = existing_ref.get("referrerId")
+                referrer_doc = await database.collection("users").find_one({"_id": referrer_id})
+
+        if not referrer_doc:
+            raise ReferralConflict("Invalid referral code.", status_code=404)
+
+        referrer_id = str(referrer_doc.get("_id"))
+        if referrer_id == referee_user.id:
+            raise ReferralConflict("You cannot use your own referral code.", status_code=400)
+
+        # Check if referee already applied
+        existing_applied = await database.collection(MULTI_ROLE_LEDGER).find_one({
+            "refereeId": referee_user.id
+        })
+        if existing_applied:
+            raise ReferralConflict("Referral already applied for this account.", status_code=409)
+
+        active_rule = await self.get_active_rule(referee_role_clean, city)
+
+        ledger_entry = {
+            "_id": f"ref_{uuid.uuid4().hex[:12]}",
+            "referrerId": referrer_id,
+            "referrerName": referrer_doc.get("display_name") or referrer_doc.get("displayName") or "Referrer",
+            "referrerPhone": referrer_doc.get("phone") or "—",
+            "referrerRole": referrer_doc.get("role") or referee_role_clean,
+            "refereeId": referee_user.id,
+            "refereeName": referee_user.display_name or "New Registered Partner",
+            "refereePhone": referee_user.phone or "—",
+            "refereeRole": referee_role_clean,
+            "city": city or "All Cities",
+            "code": clean_code,
+            "targetOrders": active_rule.targetOrdersCount,
+            "completedOrders": 0,
+            "rewardAmount": active_rule.referrerReward,
+            "status": "pending_milestone",
+            "createdAt": utcnow().isoformat(),
+        }
+
+        await database.collection(MULTI_ROLE_LEDGER).insert_one(ledger_entry)
+        return {"ok": True, "code": clean_code, "targetOrders": active_rule.targetOrdersCount, "reward": active_rule.referrerReward}
+
+    async def get_admin_multi_role_overview(
+        self, role: Optional[str] = None, city: Optional[str] = None, status: Optional[str] = None
+    ) -> AdminMultiRoleReferralOverview:
+        """Admin panel comprehensive overview across Partner, Rider, and Customer referrals."""
+        rules = await self.get_multi_role_rules()
+
+        filter_q: Dict[str, Any] = {}
+        if role and role.lower() != "all":
+            filter_q["refereeRole"] = role.lower()
+        if city and city.lower() != "all cities":
+            filter_q["city"] = city
+        if status and status.lower() != "all":
+            filter_q["status"] = status.lower()
+
+        docs = await database.find_many(MULTI_ROLE_LEDGER, filter_q)
+        docs.sort(key=lambda d: _iso(d.get("createdAt")), reverse=True)
+
+        ledger_items: List[ReferralLedgerItem] = []
+        for d in docs:
+            ledger_items.append(
+                ReferralLedgerItem(
+                    id=str(d.get("_id") or d.get("id")),
+                    referrerId=str(d.get("referrerId")),
+                    referrerName=str(d.get("referrerName") or "Referrer"),
+                    referrerPhone=str(d.get("referrerPhone") or "—"),
+                    referrerRole=d.get("referrerRole", "partner"),
+                    refereeId=str(d.get("refereeId")),
+                    refereeName=str(d.get("refereeName") or "Referee"),
+                    refereePhone=str(d.get("refereePhone") or "—"),
+                    refereeRole=d.get("refereeRole", "partner"),
+                    city=str(d.get("city") or "All Cities"),
+                    code=str(d.get("code") or "QP-100"),
+                    targetOrders=int(d.get("targetOrders") or 10),
+                    completedOrders=int(d.get("completedOrders") or 0),
+                    rewardAmount=float(d.get("rewardAmount") or 500.0),
+                    status=d.get("status", "pending_milestone"),
+                    createdAt=_iso(d.get("createdAt")),
+                    unlockedAt=_iso(d.get("unlockedAt")) if d.get("unlockedAt") else None,
+                    claimedAt=_iso(d.get("claimedAt")) if d.get("claimedAt") else None,
+                    settlementCycleId=d.get("settlementCycleId"),
+                )
+            )
+
+        # Calculate high-level metrics
+        all_docs = await database.find_many(MULTI_ROLE_LEDGER)
+        p_inv = sum(1 for d in all_docs if d.get("refereeRole") == "partner")
+        p_unlocked = sum(1 for d in all_docs if d.get("refereeRole") == "partner" and d.get("status") in ("unlocked", "claimed_to_cycle", "settled"))
+        r_inv = sum(1 for d in all_docs if d.get("refereeRole") == "rider")
+        r_unlocked = sum(1 for d in all_docs if d.get("refereeRole") == "rider" and d.get("status") in ("unlocked", "claimed_to_cycle", "settled"))
+        c_inv = sum(1 for d in all_docs if d.get("refereeRole") == "customer")
+        c_unlocked = sum(1 for d in all_docs if d.get("refereeRole") == "customer" and d.get("status") in ("unlocked", "claimed_to_cycle", "settled"))
+        disbursed = sum(float(d.get("rewardAmount") or 0.0) for d in all_docs if d.get("status") in ("claimed_to_cycle", "settled"))
+
+        stats = AdminMultiRoleReferralStats(
+            totalPartnerInvites=p_inv,
+            unlockedPartnerRewards=p_unlocked,
+            totalRiderInvites=r_inv,
+            unlockedRiderRewards=r_unlocked,
+            totalCustomerInvites=c_inv,
+            unlockedCustomerRewards=c_unlocked,
+            totalDisbursedToSettlements=disbursed,
+            activeRulesCount=len([r for r in rules if r.enabled]),
+        )
+
+        return AdminMultiRoleReferralOverview(stats=stats, rules=rules, ledger=ledger_items)
 
 
 referral_repository = ReferralRepository()

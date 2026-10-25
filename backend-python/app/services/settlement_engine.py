@@ -228,6 +228,21 @@ class SettlementEngine:
         else:
             comm_rate = 0.15
 
+        # Query custom additions like referral bonuses claimed to cycle
+        referral_additions = await database.find_many(
+            "partner_settlement_additions",
+            {
+                "partnerId": {"$in": _partner_cands(partner_id)},
+                "type": "referral_incentive",
+            }
+        )
+        matched_cycle_id = matched_cycle.get("id") or "current"
+        referral_bonus = sum(
+            float(a.get("amount") or 0.0)
+            for a in referral_additions
+            if a.get("cycleId") in (matched_cycle_id, "current")
+        )
+
         if order_count == 0:
             gross_items = 0.0
             customer_gst = 0.0
@@ -238,7 +253,7 @@ class SettlementEngine:
             quality_bonus = 0.0
             tds_194h_credit = 0.0
             tds_194c_credit = 0.0
-            additions_total = 0.0
+            additions_total = round(referral_bonus, 2)
             platform_commission = 0.0
             damage_penalty = 0.0
             cancellation_fee = 0.0
@@ -251,7 +266,7 @@ class SettlementEngine:
             growth_investments_total = 0.0
             packaging_supplies_spend = 0.0
             supplies_spend_total = 0.0
-            est_net_payout = 0.0
+            est_net_payout = round(referral_bonus, 2)
         else:
             gross_items = sum(
                 float(
@@ -284,7 +299,7 @@ class SettlementEngine:
             quality_bonus = 50.0 if float(profile.get("rating") or 0.0) >= 4.5 and order_count > 0 else 0.0
             tds_194h_credit = 0.0
             tds_194c_credit = 0.0
-            additions_total = round(target_incentive + quality_bonus + tds_194h_credit + tds_194c_credit, 2)
+            additions_total = round(target_incentive + quality_bonus + tds_194h_credit + tds_194c_credit + referral_bonus, 2)
 
             # --- (C) Order Level Deductions ---
             platform_commission = round(net_order_value * comm_rate, 2)
@@ -412,6 +427,7 @@ class SettlementEngine:
                 "tds194c": tds_194c_credit,
                 "targetIncentiveBonus": target_incentive,
                 "qualityRatingBonus": quality_bonus,
+                "referralBonus": referral_bonus,
             },
             "orderLevelDeductionsC": {
                 "total": order_level_deductions,
@@ -902,6 +918,13 @@ class SettlementEngine:
             await commission_engine.record_order_commission(canonical_id)
         except Exception as e:
             logger.warning(f"Error persisting commission ledger for {canonical_id}: {e}")
+
+        # 12. Advance referral milestone progression for referred partner and rider
+        try:
+            from app.db.referral_repositories import referral_repository
+            await referral_repository.process_order_milestones(order)
+        except Exception as ref_err:
+            logger.warning(f"Failed to process referral milestone for order {canonical_id}: {ref_err}")
 
         return settlement_doc
 

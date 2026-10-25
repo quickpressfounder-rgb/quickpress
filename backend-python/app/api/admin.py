@@ -2114,9 +2114,12 @@ async def broadcast_notification(payload: BroadcastPayload, user: User = Depends
 # -------------------------------------------------------------- referrals & loyalty
 from app.db.referral_repositories import referral_repository
 from app.models.referral import (
+    AdminMultiRoleReferralOverview,
     AdminReferralListResponse,
     AdminReferralStats,
     ReferralProgramSettings,
+    ReferralRuleItem,
+    UpdateReferralRulePayload,
     UpdateReferralSettingsPayload,
 )
 
@@ -2152,6 +2155,57 @@ async def get_referral_stats(user: User = Depends(current_user)) -> AdminReferra
 async def get_referrals_list(user: User = Depends(current_user)) -> AdminReferralListResponse:
     """GET /api/admin/referrals/list — full table of referral conversions and rewards."""
     return await referral_repository.admin_list()
+
+
+# -----------------------------------------------------------------------------
+# Multi-Role Referral System Endpoints (Partner, Rider & Customer)
+# -----------------------------------------------------------------------------
+
+@router.get("/referrals/multi-role/overview", response_model=AdminMultiRoleReferralOverview)
+async def get_multi_role_referral_overview(
+    role: Optional[str] = Query(default=None),
+    city: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    user: User = Depends(current_user),
+) -> AdminMultiRoleReferralOverview:
+    """Unified Multi-Role (Partner, Rider, Customer) referral overview with rules & live ledger."""
+    return await referral_repository.get_admin_multi_role_overview(role=role, city=city, status=status)
+
+
+@router.get("/referrals/multi-role/rules", response_model=List[ReferralRuleItem])
+async def get_admin_multi_role_rules(user: User = Depends(current_user)) -> List[ReferralRuleItem]:
+    """Fetch all referral rules across roles and cities."""
+    return await referral_repository.get_multi_role_rules()
+
+
+@router.post("/referrals/multi-role/rules", response_model=ReferralRuleItem)
+async def upsert_admin_multi_role_rule(
+    payload: UpdateReferralRulePayload, user: User = Depends(current_user)
+) -> ReferralRuleItem:
+    """Create or update referral rule for specific role and city."""
+    rule = await referral_repository.upsert_multi_role_rule(payload)
+    await audit_repository.log(
+        await _actor(user),
+        "referral.rule.upsert",
+        rule.id,
+        payload.model_dump(exclude_unset=True),
+    )
+    return rule
+
+
+@router.delete("/referrals/multi-role/rules/{rule_id}")
+async def delete_admin_multi_role_rule(
+    rule_id: str, user: User = Depends(current_user)
+) -> dict:
+    """Deletes or deactivates a city/role referral rule."""
+    ok = await referral_repository.delete_multi_role_rule(rule_id)
+    await audit_repository.log(
+        await _actor(user),
+        "referral.rule.delete",
+        rule_id,
+        {"deleted": ok},
+    )
+    return {"ok": ok, "deletedId": rule_id}
 
 
 # -----------------------------------------------------------------------------

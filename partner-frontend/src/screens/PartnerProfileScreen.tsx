@@ -27,6 +27,7 @@ import {
   FileCheck2,
   FileSpreadsheet,
   FileText,
+  Gift,
   Headphones,
   HelpCircle,
   History,
@@ -107,6 +108,11 @@ import {
   type PartnerGstReport,
   type PartnerOffer,
 } from "../api/partner/partner-operations-api";
+import {
+  fetchPartnerReferralHub,
+  claimPartnerReferralReward,
+  type PartnerReferralHubResponse,
+} from "@/api/partner/partner-referral-api";
 
 function normalizeDisplayPhone(p?: string): string {
   if (!p) return "";
@@ -138,12 +144,46 @@ export function PartnerProfileScreen() {
   const [showOffersModal, setShowOffersModal] = useState(false);
   const [showQrStandeeModal, setShowQrStandeeModal] = useState(false);
   const [copiedStoreLink, setCopiedStoreLink] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralHub, setReferralHub] = useState<PartnerReferralHubResponse | null>(null);
+  const [loadingReferral, setLoadingReferral] = useState(false);
+  const [claimingReferral, setClaimingReferral] = useState(false);
+  const [copiedReferralCode, setCopiedReferralCode] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showApprovalsModal, setShowApprovalsModal] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [showPanNumber, setShowPanNumber] = useState(false);
   const [approvalRequests, setApprovalRequests] = useState<PartnerApprovalRequest[]>([]);
   const [loadingApprovals, setLoadingApprovals] = useState(false);
+
+  const loadReferralHub = async () => {
+    try {
+      setLoadingReferral(true);
+      const res = await fetchPartnerReferralHub();
+      setReferralHub(res);
+    } catch (err) {
+      console.error("Failed to load partner referral hub:", err);
+    } finally {
+      setLoadingReferral(false);
+    }
+  };
+
+  const handleClaimReferral = async (rewardId?: string) => {
+    try {
+      setClaimingReferral(true);
+      const res = await claimPartnerReferralReward(rewardId);
+      toast.success(res.message || "Referral reward credited to current weekly cycle!");
+      await loadReferralHub();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to claim referral reward");
+    } finally {
+      setClaimingReferral(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadReferralHub();
+  }, []);
 
   // KYC & Change Request State
   const [showKycEditModal, setShowKycEditModal] = useState(false);
@@ -943,6 +983,43 @@ export function PartnerProfileScreen() {
               >
                 <QrCode className="size-3.5" />
                 <span>QR &amp; Share</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 6b. Section: Refer & Earn (Partner to Partner) - SIMPLE & MINIMAL THEME */}
+          <div className="rounded-3xl border border-zinc-200/80 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
+                  <Gift className="size-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-black text-zinc-950">
+                      Refer &amp; Earn ₹{referralHub?.activeRule?.referrerReward ?? 500}
+                    </p>
+                    {referralHub?.claimableBalance && referralHub.claimableBalance > 0 ? (
+                      <span className="rounded-md bg-zinc-900 text-[10px] font-bold text-white px-1.5 py-0.5">
+                        ₹{referralHub.claimableBalance} Ready
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-[10px] font-medium text-zinc-500">
+                    Invite a laundromat &amp; get ₹{referralHub?.activeRule?.referrerReward ?? 500} directly in your weekly bank payout
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReferralModal(true);
+                  void loadReferralHub();
+                }}
+                className="flex items-center gap-1.5 rounded-full border-2 border-black bg-black px-3.5 py-1.5 text-xs font-black text-white active:scale-95 hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
+              >
+                <Gift className="size-3.5" />
+                <span>Refer &amp; Earn</span>
               </button>
             </div>
           </div>
@@ -2019,6 +2096,219 @@ export function PartnerProfileScreen() {
                 <Printer className="size-4" />
                 <span>Print Standee Document</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* MODAL 7b: Refer & Earn (Partner to Partner Hub) - MINIMAL THEME */}
+        {/* ------------------------------------------------------------- */}
+        {showReferralModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              onClick={() => setShowReferralModal(false)}
+              className="absolute inset-0 bg-zinc-950/60 backdrop-blur-xs"
+            />
+            <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl border border-zinc-200 space-y-4 text-left animate-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center rounded-md bg-zinc-900 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
+                      Partner Referral
+                    </span>
+                    <span className="text-[10px] font-semibold text-zinc-500">
+                      {referralHub?.activeRule?.city || "All Cities"}
+                    </span>
+                  </div>
+                  <h3 className="mt-1 text-base font-black text-zinc-950">
+                    {referralHub?.activeRule?.headline || `Refer a Partner & Earn ₹${referralHub?.activeRule?.referrerReward ?? 500}`}
+                  </h3>
+                  <p className="text-[11px] font-medium text-zinc-500">
+                    {referralHub?.activeRule?.subheadline || "Disbursed directly into your weekly bank settlement cycle."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowReferralModal(false)}
+                  className="rounded-full bg-zinc-100 p-1.5 text-zinc-500 hover:bg-zinc-200"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Claimable Balance Card (if balance is available) */}
+              {referralHub && referralHub.claimableBalance > 0 && (
+                <div className="rounded-2xl bg-zinc-950 p-4 text-white shadow-md space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Claimable Referral Reward</p>
+                      <p className="text-2xl font-black text-white">₹{referralHub.claimableBalance.toLocaleString("en-IN")}</p>
+                    </div>
+                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
+                      {referralHub.unlockedMilestoneCount} Unlocked
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300">
+                    Target order milestone reached! Transfer this reward into your current weekly bank payout cycle.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={claimingReferral}
+                    onClick={() => handleClaimReferral()}
+                    className="w-full rounded-xl bg-white py-2.5 text-xs font-black text-zinc-950 hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer shadow-xs"
+                  >
+                    {claimingReferral ? "Transferring to Cycle..." : "Claim to Weekly Settlement Cycle"}
+                  </button>
+                </div>
+              )}
+
+              {/* Referral Code & Share Card */}
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-zinc-700">Your Store Referral Code</span>
+                  <span className="text-[10px] text-zinc-400">Share with fellow laundromat owners</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 rounded-xl bg-white px-3.5 py-2.5 font-mono text-sm font-black text-zinc-900 border border-zinc-200 text-center tracking-wider">
+                    {referralHub?.code || "QP-PRT-..."}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!referralHub?.code) return;
+                      navigator.clipboard.writeText(referralHub.code);
+                      setCopiedReferralCode(true);
+                      toast.success("Referral code copied!");
+                      setTimeout(() => setCopiedReferralCode(false), 2000);
+                    }}
+                    className="flex items-center gap-1 rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-xs font-bold text-zinc-800 hover:bg-zinc-100 active:scale-95 transition"
+                  >
+                    {copiedReferralCode ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+                    <span>{copiedReferralCode ? "Copied" : "Copy"}</span>
+                  </button>
+                </div>
+
+                {/* WhatsApp Share Button */}
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                    referralHub?.shareMessage ||
+                      `Register your laundromat on QuickPress with my code ${referralHub?.code} and start receiving orders: https://quickpress.online/partner-register?ref=${referralHub?.code}`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 active:scale-95 transition"
+                >
+                  <Share2 className="size-4" />
+                  <span>Share via WhatsApp</span>
+                </a>
+              </div>
+
+              {/* Milestone Progress for Referred Stores */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-zinc-900">
+                    Referred Laundromats ({referralHub?.ledger?.length ?? 0})
+                  </h4>
+                  <span className="text-[10px] text-zinc-400">
+                    Total Earned: ₹{(referralHub?.totalClaimedBalance ?? 0).toLocaleString("en-IN")}
+                  </span>
+                </div>
+
+                {loadingReferral ? (
+                  <div className="py-6 text-center text-xs text-zinc-400">Loading referral progress...</div>
+                ) : !referralHub?.ledger?.length ? (
+                  <div className="rounded-2xl border border-dashed border-zinc-200 p-4 text-center">
+                    <p className="text-xs font-semibold text-zinc-700">No referred stores yet</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                      Share your code with any laundry store owner. When they complete {referralHub?.activeRule?.targetOrdersCount ?? 10} orders, you get ₹{referralHub?.activeRule?.referrerReward ?? 500}!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {referralHub.ledger.map((item) => {
+                      const pct = Math.min(100, Math.round((item.completedOrders / (item.targetOrders || 1)) * 100));
+
+                      return (
+                        <div key={item.id} className="rounded-xl border border-zinc-200 bg-white p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-bold text-zinc-900">{item.refereeName}</p>
+                              <p className="text-[10px] text-zinc-400">{item.city || "All Cities"}</p>
+                            </div>
+                            <span className="text-xs font-black text-zinc-900">₹{item.rewardAmount}</span>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-[10px] font-medium text-zinc-600">
+                              <span>{item.completedOrders} of {item.targetOrders} orders completed</span>
+                              <span>{pct}%</span>
+                            </div>
+                            <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${pct === 100 ? "bg-zinc-900" : "bg-zinc-400"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1">
+                            {item.status === "unlocked" ? (
+                              <button
+                                type="button"
+                                disabled={claimingReferral}
+                                onClick={() => handleClaimReferral(item.id)}
+                                className="rounded-lg bg-zinc-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-zinc-800"
+                              >
+                                Claim ₹{item.rewardAmount}
+                              </button>
+                            ) : item.status === "claimed_to_cycle" ? (
+                              <span className="text-[10px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded">
+                                Added to Weekly Bank Cycle
+                              </span>
+                            ) : item.status === "settled" ? (
+                              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded">
+                                Settled in Bank
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium text-zinc-400">
+                                Milestone In Progress ({item.completedOrders}/{item.targetOrders})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* How it Works Guide */}
+              <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3.5 space-y-2">
+                <p className="text-[11px] font-bold text-zinc-800 uppercase tracking-wider">How Partner Referral Works</p>
+                <div className="space-y-1.5 text-[11px] text-zinc-600">
+                  <div className="flex items-start gap-2">
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-800">
+                      1
+                    </span>
+                    <span>Share your store code with any laundromat or dry cleaner owner.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-800">
+                      2
+                    </span>
+                    <span>They register their store and complete verification on QuickPress.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-800">
+                      3
+                    </span>
+                    <span>
+                      Once they complete {referralHub?.activeRule?.targetOrdersCount ?? 10} orders, ₹{referralHub?.activeRule?.referrerReward ?? 500} is credited directly to your weekly bank payout!
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

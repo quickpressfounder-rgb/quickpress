@@ -59,7 +59,7 @@ export const adminNavItems = [
   { id: "finance-engine", label: "Finance & Accounting", icon: Landmark, to: adminRoutes.financeEngine },
   { id: "wallet", label: "Wallet", icon: Wallet, to: adminRoutes.wallet },
   { id: "coupons", label: "Coupons", icon: TicketPercent, to: adminRoutes.coupons },
-  { id: "referrals", label: "Referrals & Rewards", icon: Gift, to: adminRoutes.referrals },
+  { id: "referrals", label: "Referral System", icon: Gift, to: adminRoutes.referrals },
   { id: "memberships", label: "Memberships", icon: Crown, to: adminRoutes.memberships },
   { id: "notifications", label: "Notifications", icon: Bell, to: adminRoutes.notifications },
   { id: "emails", label: "Email Hub", icon: Mail, to: adminRoutes.emails },

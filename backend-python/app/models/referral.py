@@ -183,3 +183,114 @@ class InviteReferralResponse(BaseModel):
     totalInvites: int = 0
     link: str = ""
     shareMessage: str = ""
+
+
+# ==============================================================================
+# Multi-Role Referral Engine (Partner, Rider & Customer) — Unified Architecture
+# ==============================================================================
+
+RoleType = Literal["customer", "partner", "rider"]
+ReferralMilestoneStatus = Literal["pending_milestone", "unlocked", "claimed_to_cycle", "settled"]
+
+
+class ReferralRuleItem(BaseModel):
+    id: str
+    role: RoleType = "partner"
+    city: str = "All Cities"
+    referrerReward: float = 500.0
+    targetOrdersCount: int = 10
+    minOrderValue: float = 199.0
+    refereeJoiningBonus: float = 0.0
+    refereeDiscountPercent: float = 0.0
+    refereeMaxDiscount: float = 0.0
+    headline: str = "Refer a Partner & Earn ₹500"
+    subheadline: str = "Reward unlocks after your referred partner completes 10 orders."
+    terms: List[str] = Field(default_factory=lambda: [
+        "Referrer gets reward directly in their weekly payout after referred partner completes target orders.",
+        "Valid for newly registered verified laundromats only.",
+        "Payout is disbursed via weekly bank settlement cycle without deductions.",
+    ])
+    enabled: bool = True
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+
+
+class UpdateReferralRulePayload(BaseModel):
+    role: RoleType = "partner"
+    city: str = "All Cities"
+    referrerReward: Optional[float] = Field(default=None, ge=0)
+    targetOrdersCount: Optional[int] = Field(default=None, ge=1)
+    minOrderValue: Optional[float] = Field(default=None, ge=0)
+    refereeJoiningBonus: Optional[float] = Field(default=None, ge=0)
+    refereeDiscountPercent: Optional[float] = Field(default=None, ge=0, le=100)
+    refereeMaxDiscount: Optional[float] = Field(default=None, ge=0)
+    headline: Optional[str] = None
+    subheadline: Optional[str] = None
+    terms: Optional[List[str]] = None
+    enabled: Optional[bool] = None
+
+
+class ReferralLedgerItem(BaseModel):
+    id: str
+    referrerId: str
+    referrerName: str
+    referrerPhone: str
+    referrerRole: RoleType = "partner"
+    refereeId: str
+    refereeName: str
+    refereePhone: str
+    refereeRole: RoleType = "partner"
+    city: str = "All Cities"
+    code: str
+    targetOrders: int = 10
+    completedOrders: int = 0
+    rewardAmount: float = 500.0
+    status: ReferralMilestoneStatus = "pending_milestone"
+    createdAt: str
+    unlockedAt: Optional[str] = None
+    claimedAt: Optional[str] = None
+    settlementCycleId: Optional[str] = None
+
+
+class UserReferralHubResponse(BaseModel):
+    role: RoleType = "partner"
+    code: str
+    shareLink: str
+    qrCodeUrl: str
+    shareMessage: str
+    activeRule: ReferralRuleItem
+    totalReferred: int = 0
+    pendingMilestoneCount: int = 0
+    unlockedMilestoneCount: int = 0
+    claimableBalance: float = 0.0
+    totalClaimedBalance: float = 0.0
+    ledger: List[ReferralLedgerItem] = Field(default_factory=list)
+
+
+class ClaimReferralRewardPayload(BaseModel):
+    rewardId: Optional[str] = None  # None = claim all unlocked balance
+
+
+class ClaimReferralRewardResponse(BaseModel):
+    ok: bool = True
+    claimedAmount: float = 0.0
+    cycleId: str = "current"
+    message: str = "Referral reward credited to current weekly settlement cycle."
+
+
+class AdminMultiRoleReferralStats(BaseModel):
+    totalPartnerInvites: int = 0
+    unlockedPartnerRewards: int = 0
+    totalRiderInvites: int = 0
+    unlockedRiderRewards: int = 0
+    totalCustomerInvites: int = 0
+    unlockedCustomerRewards: int = 0
+    totalDisbursedToSettlements: float = 0.0
+    activeRulesCount: int = 0
+
+
+class AdminMultiRoleReferralOverview(BaseModel):
+    stats: AdminMultiRoleReferralStats = Field(default_factory=AdminMultiRoleReferralStats)
+    rules: List[ReferralRuleItem] = Field(default_factory=list)
+    ledger: List[ReferralLedgerItem] = Field(default_factory=list)
+

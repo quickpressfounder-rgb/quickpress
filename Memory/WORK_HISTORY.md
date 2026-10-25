@@ -31,6 +31,41 @@
 
 ---
 
+## Detailed Log of Work Done Today (25 October 2026)
+
+### 7. Multi-Role Referral System (Partner, Rider & Customer) with Minimal Theme & Settlement Cycle Integration
+- **User Requests & Visual Alignment:**
+  1. *Admin Panel*: Add a "Referral System" menu item to manage and configure referral rules for Laundromat Partners, Delivery Captains, and Customers with city-specific overrides, target order milestones (e.g. ₹500 for 10 orders), and live audit ledger.
+  2. *Settlement Cycle Integration*: When a partner unlocks and claims their referral reward, transfer it directly into their current weekly settlement cycle (`(B) Additions`) without deductions, disbursed in their weekly bank transfer.
+  3. *Order Milestone Advancement*: When an order completes, automatically advance the completed order counter towards the referral milestone for the referred partner and rider.
+  4. *Partner Console*: Add clean monochrome "Refer & Earn" card right below the Store Counter QR Standee card in `PartnerProfileScreen.tsx`. Clicking opens a clean modal with code copy, WhatsApp share, claim button to current cycle, and live milestone list.
+  5. *Rider Console*: Add "Refer & Earn" option into `CaptainSidebarDrawer.tsx` menu and `riderMenuLinks`. Clicking opens a clean modal showing captain code, WhatsApp share, and wallet claim.
+  6. *Minimal Theme Constraint*: Strictly maintained pure white cards, dark slate typography, subtle borders, high contrast, and zero cartoonish gradients ("THEAM SIMPLE RAKHANA HAI").
+
+- **Modified Files:**
+  - `backend-python/app/models/referral.py`: Multi-role rules, payloads, ledger items, hub response, and admin stats.
+  - `backend-python/app/db/referral_repositories.py`: Rules persistence, active city rule resolution, hub generation, milestone processor on order completion, and reward claiming to weekly cycle / wallet.
+  - `backend-python/app/api/referral.py`: Added endpoints `GET /api/referral/rules`, `GET /api/referral/hub`, `POST /api/referral/claim`, `POST /api/referral/apply-partner-rider`.
+  - `backend-python/app/api/admin.py`: Added endpoints for admin multi-role overview, rules upsert, and rule deletion.
+  - `backend-python/app/services/settlement_engine.py`: Tied claimed referral rewards into `compute_cycle_breakdown` under `(B) Additions` and hooked `process_order_milestones` into `settle_order_on_completion`.
+  - `admin-frontend/src/navigation/admin-routes.ts`: Renamed navigation label to `"Referral System"`.
+  - `admin-frontend/src/api/coupons.ts`: Added multi-role referral types and API client functions (`fetchMultiRoleReferralOverview`, `upsertMultiRoleReferralRule`, `deleteMultiRoleReferralRule`).
+  - `admin-frontend/src/routes/referrals.tsx`: Rebuilt with clean monochrome theme, role tabs (Partner, Rider, Customer), city filter, rule editor modal, and live milestone ledger table.
+  - `partner-frontend/src/api/partner/partner-referral-api.ts`: API client for partner referral hub and weekly cycle claim.
+  - `partner-frontend/src/screens/PartnerProfileScreen.tsx`: Added "Refer & Earn" card right below Standee QR and built minimal Refer & Earn modal.
+  - `rider-frontend/src/api/rider/rider-referral-api.ts`: API client for rider referral hub and float claim.
+  - `rider-frontend/src/components/layout/CaptainReferralModal.tsx`: Minimal Captain referral modal with WhatsApp share and milestone progress.
+  - `rider-frontend/src/components/layout/CaptainSidebarDrawer.tsx`: Added "Refer & Earn (₹300)" to drawer menu.
+  - `rider-frontend/src/navigation/rider-routes.ts`: Added Refer & Earn link into `riderMenuLinks`.
+
+- **Build Verifications:**
+  - `python3 -m py_compile` across all backend python files: PASSED (Zero errors).
+  - `admin-frontend npm run build`: PASSED (Exit code 0).
+  - `partner-frontend npm run build`: PASSED (Exit code 0).
+  - `rider-frontend npm run build`: PASSED (Exit code 0).
+
+---
+
 ## Detailed Log of Work Done Today (24 October 2026)
 
 ### 6. Mobile Responsiveness, Pure White Classic UI Theme, & Help / Review Access Everywhere

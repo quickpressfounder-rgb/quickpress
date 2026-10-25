@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useRiderContext } from "../../context/RiderContext";
 import { triggerHaptic, testCaptainAlertSound } from "../../lib/captain-audio";
 import { CaptainGuidelinesModal } from "../support/CaptainGuidelinesModal";
+import { CaptainReferralModal } from "./CaptainReferralModal";
 
 import { formatCaptainId } from "../../lib/format-ids";
 
@@ -55,6 +56,7 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
   const { t, selectedLanguageObj } = useLanguage();
 
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
 
   const effectivePhoto =
     captainPhoto ||
@@ -223,6 +225,16 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
                     navigate({ to: "/incentives" });
                   },
                 },
+                {
+                  icon: Gift,
+                  iconBg: "bg-zinc-100 text-zinc-900 border-zinc-200",
+                  title: "Refer & Earn (₹300)",
+                  sub: "Invite delivery captains & earn on completed trips",
+                  onClick: () => {
+                    triggerHaptic(15);
+                    setShowReferralModal(true);
+                  },
+                },
               ].map((item, idx) => {
                 const Icon = item.icon;
                 return (
@@ -368,7 +380,11 @@ export const CaptainSidebarDrawer: React.FC<CaptainSidebarDrawerProps> = ({
         onClose={() => setShowGuidelinesModal(false)}
       />
 
-
+      {/* Captain Refer & Earn Modal */}
+      <CaptainReferralModal
+        isOpen={showReferralModal}
+        onClose={() => setShowReferralModal(false)}
+      />
     </>
   );
 };

@@ -279,3 +279,93 @@ export async function fetchReferralsList(): Promise<AdminReferralListResponse> {
     };
   }
 }
+
+// ==============================================================================
+// Multi-Role Referral Engine (Partner, Rider & Customer) — Unified Types & API
+// ==============================================================================
+
+export type MultiRoleType = "partner" | "rider" | "customer";
+export type MultiRoleMilestoneStatus = "pending_milestone" | "unlocked" | "claimed_to_cycle" | "settled";
+
+export interface MultiRoleReferralRule {
+  id: string;
+  role: MultiRoleType;
+  city: string;
+  referrerReward: number;
+  targetOrdersCount: number;
+  minOrderValue: number;
+  refereeJoiningBonus?: number;
+  refereeDiscountPercent?: number;
+  refereeMaxDiscount?: number;
+  headline?: string;
+  subheadline?: string;
+  terms?: string[];
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MultiRoleReferralLedgerItem {
+  id: string;
+  referrerId: string;
+  referrerName: string;
+  referrerPhone: string;
+  referrerRole: MultiRoleType;
+  refereeId: string;
+  refereeName: string;
+  refereePhone: string;
+  refereeRole: MultiRoleType;
+  city: string;
+  code: string;
+  targetOrders: number;
+  completedOrders: number;
+  rewardAmount: number;
+  status: MultiRoleMilestoneStatus;
+  createdAt: string;
+  unlockedAt?: string | null;
+  claimedAt?: string | null;
+  settlementCycleId?: string | null;
+}
+
+export interface MultiRoleReferralStats {
+  totalPartnerInvites: number;
+  unlockedPartnerRewards: number;
+  totalRiderInvites: number;
+  unlockedRiderRewards: number;
+  totalCustomerInvites: number;
+  unlockedCustomerRewards: number;
+  totalDisbursedToSettlements: number;
+  activeRulesCount: number;
+}
+
+export interface MultiRoleReferralOverview {
+  stats: MultiRoleReferralStats;
+  rules: MultiRoleReferralRule[];
+  ledger: MultiRoleReferralLedgerItem[];
+}
+
+export async function fetchMultiRoleReferralOverview(filters?: {
+  role?: string;
+  city?: string;
+  status?: string;
+}): Promise<MultiRoleReferralOverview> {
+  const params = new URLSearchParams();
+  if (filters?.role) params.set("role", filters.role);
+  if (filters?.city) params.set("city", filters.city);
+  if (filters?.status) params.set("status", filters.status);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return apiGetJson<MultiRoleReferralOverview>(`/api/admin/referrals/multi-role/overview${q}`);
+}
+
+export async function upsertMultiRoleReferralRule(
+  payload: Partial<MultiRoleReferralRule>
+): Promise<MultiRoleReferralRule> {
+  return apiPostJson<MultiRoleReferralRule>("/api/admin/referrals/multi-role/rules", payload);
+}
+
+export async function deleteMultiRoleReferralRule(
+  ruleId: string
+): Promise<{ ok: boolean; deletedId: string }> {
+  return apiDeleteJson<{ ok: boolean; deletedId: string }>(`/api/admin/referrals/multi-role/rules/${ruleId}`);
+}
+
