@@ -86,6 +86,36 @@ export type PartnerOrderItem = {
   price: number;
 };
 
+export type DefectType =
+  | "stain"
+  | "torn_or_cut"
+  | "broken_button"
+  | "color_bleed_risk"
+  | "burn_mark"
+  | "missing_accessory"
+  | "other";
+
+export type CustomerDefectStatus = "pending" | "proceed_wash" | "return_unwashed";
+
+export type GarmentDefect = {
+  defect_id: string;
+  order_id: string;
+  order_code?: string;
+  item_name: string;
+  defect_type: DefectType;
+  photo_url: string;
+  description?: string;
+  reported_by_id: string;
+  reported_by_role?: string;
+  reported_by_name?: string;
+  reported_at: string;
+  customer_status: CustomerDefectStatus;
+  customer_note?: string;
+  customer_responded_at?: string | null;
+  admin_override_status?: string | null;
+  admin_override_notes?: string | null;
+};
+
 export type PartnerOrder = {
   id: string;
   code: string;
@@ -101,6 +131,8 @@ export type PartnerOrder = {
   serviceLabel: string;
   items: PartnerOrderItem[];
   timeline: { id: string; label: string; time: string; done: boolean }[];
+  garmentDefects?: GarmentDefect[];
+  hasDefectsReported?: boolean;
 };
 
 export type PartnerServiceRate = {

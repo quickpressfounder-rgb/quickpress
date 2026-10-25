@@ -266,6 +266,31 @@
   - `python3 -m py_compile` across all modified backend files: PASSED (Zero errors).
   - `pytest tests/test_defect_inspection_engine.py`: PASSED (100% pass, 1 passed in 2.50s).
 
+### 17. Pre-Wash Garment Defect Inspection & Tagging UI (Phase 2 Partner Console)
+- **Architecture & Implementation:**
+  - Adhered strictly to the user aesthetic rule: **"THEAM SIMPLE RAKHANA HAI"** (clean, high-contrast, pure white/slate minimalist theme; zero cartoonish gradients).
+  - Extended TypeScript types in `partner-frontend/src/shared/types/partner.ts` and `src/data/partner-orders-mock.ts` with `GarmentDefect`, `DefectType`, `CustomerDefectStatus`, `garmentDefects`, and `hasDefectsReported`.
+  - Built `partner-frontend/src/api/partner/partner-defects-api.ts` for reporting pre-wash defects with photos and fetching defect histories.
+  - Implemented `PrewashDefectModal.tsx` in `partner-frontend/src/components/orders/PrewashDefectModal.tsx`:
+    - Dropdown with booked items in the order + manual custom item entry.
+    - Category pills: Stain, Torn/Cut, Broken Button, Color Bleed Risk, Burn Mark, Missing Accessory, Other.
+    - Native camera capture `<input type="file" accept="image/*" capture="environment" />` + gallery picker.
+    - Built-in HTML5 Canvas client-side image compression (max 1200px, 0.82 quality) for sub-second uploads.
+    - Notes input and transparency warning stating customer digital consent requirement.
+  - Integrated into `partner-frontend/src/screens/OrderDetailsScreen.tsx`:
+    - Added high-contrast minimal `[📷 Tag Defect]` button to both Mobile and Desktop "Booked Garments & Services" headers.
+    - Added clean "Pre-Wash Inspection & Defect Proofs" section displaying photo thumbnails, defect pill, notes, and live customer status (`Awaiting Decision`, `Wash Approved`, `Return Item As-Is`).
+    - Added full-screen image zoom modal on clicking defect thumbnail.
+- **Modified & Added Files:**
+  - `partner-frontend/src/shared/types/partner.ts`
+  - `partner-frontend/src/data/partner-orders-mock.ts`
+  - `partner-frontend/src/api/partner/partner-defects-api.ts`
+  - `partner-frontend/src/components/orders/PrewashDefectModal.tsx`
+  - `partner-frontend/src/screens/OrderDetailsScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `npm run build` in `partner-frontend`: PASSED (Zero errors, 0 warnings).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

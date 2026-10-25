@@ -27,6 +27,8 @@ import {
   User,
   UserCheck,
   Zap,
+  Camera,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +53,8 @@ import { useEffect, useState } from "react";
 import { fetchPartnerOrder, verifyPartnerDispatchOtp } from "@/api/partner/partner-orders-api";
 import { subscribePartnerOrders } from "@/lib/partner-socket";
 import { PartnerReviewModal } from "../components/orders/PartnerReviewModal";
+import { PrewashDefectModal } from "../components/orders/PrewashDefectModal";
+import type { GarmentDefect } from "@/shared/types/partner";
 
 
 function getDisplayCustomerName(name?: string): string {
@@ -136,6 +140,8 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
   const [fetchLoading, setFetchLoading] = useState(false);
   const [showRiderLocationModal, setShowRiderLocationModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
+  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
 
   const matchedOrder = orders.find(
     (item) =>
@@ -221,6 +227,16 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               invoiceNo: null,
               cancelReason: (remote.status === "cancelled" || (remote as any).canonicalStatus === "cancelled" || (remote as any).canonicalStatus === "refunded") ? (cancelledEntry?.label ?? (remote as any).cancelledReason ?? "Cancelled") : null,
               assignedRider: (remote as any).riderName || null,
+              garmentDefects: Array.isArray((remote as any).garmentDefects)
+                ? (remote as any).garmentDefects
+                : Array.isArray((remote as any).garment_defects)
+                ? (remote as any).garment_defects
+                : [],
+              hasDefectsReported: Boolean(
+                (remote as any).hasDefectsReported ||
+                ((remote as any).garmentDefects && (remote as any).garmentDefects.length > 0) ||
+                ((remote as any).garment_defects && (remote as any).garment_defects.length > 0)
+              ),
             });
           }
         })
@@ -553,9 +569,19 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     Booked Garments & Services ({items.length})
                   </h2>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[10px] font-bold text-zinc-800 border border-zinc-200">
-                  {totalGarmentPieces} pieces
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDefectModalOpen(true)}
+                    className="flex items-center gap-1 rounded-lg bg-zinc-950 px-2.5 py-1 text-[11px] font-black text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+                  >
+                    <Camera className="size-3" />
+                    <span>Tag Defect</span>
+                  </button>
+                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-800 border border-zinc-200">
+                    {totalGarmentPieces} pieces
+                  </span>
+                </div>
               </div>
 
               <div className="mt-3 divide-y divide-zinc-100">
@@ -582,6 +608,77 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                   ))
                 )}
               </div>
+
+              {/* Pre-Wash Defect Inspection Proofs (Mobile View) */}
+              {order.garmentDefects && order.garmentDefects.length > 0 && (
+                <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/50 p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                      <AlertCircle className="size-3.5 text-amber-600" />
+                      Pre-Wash Inspection Proofs ({order.garmentDefects.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsDefectModalOpen(true)}
+                      className="text-[10px] font-bold text-amber-900 underline hover:text-amber-950"
+                    >
+                      + Add Photo
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {order.garmentDefects.map((def) => {
+                      const isApproved = def.customer_status === "proceed_wash";
+                      const isReturn = def.customer_status === "return_unwashed";
+                      return (
+                        <div
+                          key={def.defect_id}
+                          className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-white p-2.5 shadow-2xs"
+                        >
+                          <img
+                            src={def.photo_url}
+                            alt={def.item_name}
+                            onClick={() => setViewingPhotoUrl(def.photo_url)}
+                            className="size-14 rounded-lg object-cover border border-zinc-200 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-xs font-bold text-zinc-950 truncate">{def.item_name}</p>
+                              <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-800 border border-zinc-200">
+                                {def.defect_type.replace(/_/g, " ")}
+                              </span>
+                            </div>
+                            {def.description && (
+                              <p className="text-[10px] text-zinc-600 mt-0.5 line-clamp-2">
+                                Note: {def.description}
+                              </p>
+                            )}
+                            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                              {isApproved ? (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                  <CheckCircle2 className="size-2.5" /> Wash Approved
+                                </span>
+                              ) : isReturn ? (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                                  <AlertCircle className="size-2.5" /> Return Item As-Is
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-black text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-300/80">
+                                  <Clock className="size-2.5" /> Awaiting Customer
+                                </span>
+                              )}
+                              {def.customer_note && (
+                                <span className="text-[9px] text-zinc-500 italic truncate max-w-[150px]">
+                                  "{def.customer_note}"
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Price Breakdown */}
               <div className="mt-4 space-y-2 border-t border-dashed border-zinc-200 pt-3 text-xs">
@@ -1077,9 +1174,19 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                         </p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-800 border border-zinc-200">
-                      {items.length} {items.length === 1 ? "Item" : "Items"} Listed
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsDefectModalOpen(true)}
+                        className="flex items-center gap-1.5 rounded-xl bg-zinc-950 px-3 py-1.5 text-xs font-black text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+                      >
+                        <Camera className="size-3.5" />
+                        <span>Tag Defect / Stain</span>
+                      </button>
+                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-800 border border-zinc-200">
+                        {items.length} {items.length === 1 ? "Item" : "Items"} Listed
+                      </span>
+                    </div>
                   </div>
 
                   {/* High Density Table */}
@@ -1135,6 +1242,77 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Pre-Wash Defect Inspection Proofs (Desktop View) */}
+                  {order.garmentDefects && order.garmentDefects.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-wider text-amber-950 flex items-center gap-2">
+                          <AlertCircle className="size-4 text-amber-600" />
+                          Pre-Wash Inspection & Defect Proofs ({order.garmentDefects.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsDefectModalOpen(true)}
+                          className="text-xs font-bold text-amber-900 underline hover:text-amber-950"
+                        >
+                          + Tag Another Garment
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {order.garmentDefects.map((def) => {
+                          const isApproved = def.customer_status === "proceed_wash";
+                          const isReturn = def.customer_status === "return_unwashed";
+                          return (
+                            <div
+                              key={def.defect_id}
+                              className="flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-3 shadow-2xs"
+                            >
+                              <img
+                                src={def.photo_url}
+                                alt={def.item_name}
+                                onClick={() => setViewingPhotoUrl(def.photo_url)}
+                                className="size-16 rounded-lg object-cover border border-zinc-200 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <p className="text-xs font-bold text-zinc-950 truncate">{def.item_name}</p>
+                                  <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-800 border border-zinc-200">
+                                    {def.defect_type.replace(/_/g, " ")}
+                                  </span>
+                                </div>
+                                {def.description && (
+                                  <p className="text-[11px] text-zinc-600 mt-0.5 line-clamp-2">
+                                    {def.description}
+                                  </p>
+                                )}
+                                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                  {isApproved ? (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                      <CheckCircle2 className="size-3" /> Customer Approved Wash With Care
+                                    </span>
+                                  ) : isReturn ? (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                                      <AlertCircle className="size-3" /> Return Item As-Is (Do Not Wash)
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-700 bg-amber-100/70 px-2.5 py-0.5 rounded border border-amber-300/80">
+                                      <Clock className="size-3" /> Awaiting Customer Decision
+                                    </span>
+                                  )}
+                                  {def.customer_note && (
+                                    <span className="text-[10px] text-zinc-500 italic">
+                                      "{def.customer_note}"
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Customer Special Instructions if any */}
                   {order.specialInstructions && (
@@ -1641,6 +1819,52 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
           }}
         />
       ) : null}
+
+      {order && isDefectModalOpen && (
+        <PrewashDefectModal
+          isOpen={isDefectModalOpen}
+          onClose={() => setIsDefectModalOpen(false)}
+          orderId={order.id}
+          orderCode={order.code}
+          availableItems={items.map((it) => ({ id: it.id, name: it.name }))}
+          onDefectReported={(newDefect) => {
+            setFetchedOrder((prev) => {
+              if (!prev) return prev;
+              const existing = prev.garmentDefects || [];
+              return {
+                ...prev,
+                hasDefectsReported: true,
+                garmentDefects: [...existing, newDefect],
+              };
+            });
+          }}
+        />
+      )}
+
+      {/* Full Screen Photo Zoom Modal */}
+      {viewingPhotoUrl && (
+        <div
+          onClick={() => setViewingPhotoUrl(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-zinc-900 border border-zinc-700 shadow-2xl p-2"
+          >
+            <button
+              onClick={() => setViewingPhotoUrl(null)}
+              className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black transition-colors"
+            >
+              <X className="size-5" />
+            </button>
+            <img
+              src={viewingPhotoUrl}
+              alt="Defect Full View"
+              className="max-h-[82vh] w-auto object-contain mx-auto rounded-xl"
+            />
+          </div>
+        </div>
+      )}
 
       <Toaster />
     </PartnerLayout>

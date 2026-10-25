@@ -9,6 +9,8 @@
  * plus a numeric `placedMinutesAgo` used for sorting.
  */
 
+import type { GarmentDefect } from "@/shared/types/partner";
+
 export type OrderStage =
   | "new"
   | "accepted"
@@ -86,6 +88,8 @@ export type ManagedOrder = {
   cancelledBy?: string | null;
   slaBreached?: string | null;
   autoCancelled?: boolean;
+  garmentDefects?: GarmentDefect[];
+  hasDefectsReported?: boolean;
 };
 
 /* ------------------------------------------------------------------ */
