@@ -124,6 +124,22 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
+        # 2. Exempt all operational merchant, rider, customer, wallet, and admin console endpoints
+        # These routes are fully protected by JWT auth & role guards and must NEVER be throttled with 429
+        if (
+            path.startswith("/api/partner")
+            or path.startswith("/api/rider")
+            or path.startswith("/api/customer")
+            or path.startswith("/api/wallet")
+            or path.startswith("/api/orders")
+            or path.startswith("/api/notifications")
+            or path.startswith("/api/live_locations")
+            or path.startswith("/api/admin")
+        ):
+            # Anti-brute-force for sudo confirmation is strictly retained
+            if not (path.startswith("/api/admin/security/sudo-confirm") or "/sudo" in path):
+                return await call_next(request)
+
         # 2. Extract Canonical Client IP across Cloudflare, Vercel, and Railway reverse proxies
         cf_ip = request.headers.get("cf-connecting-ip")
         real_ip = request.headers.get("x-real-ip")

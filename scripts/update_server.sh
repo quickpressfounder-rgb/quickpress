@@ -22,8 +22,20 @@ fi
 NITRO_PRESET=node-server npm run build
 pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
 
-# 2. Docker Backend
-echo "🐳 [2/3] Rebuilding & restarting Python FastAPI Backend Container..."
+# 2. Website (withquickpress.com)
+echo "🌐 [2/4] Building Website & updating static files..."
+cd "$REPO_ROOT/website"
+if [ ! -d "node_modules" ]; then
+    npm install
+fi
+npm run build
+sudo mkdir -p /var/www/quickpress/website
+sudo rm -rf /var/www/quickpress/website/*
+sudo cp -r dist/* /var/www/quickpress/website/
+sudo chown -R www-data:www-data /var/www/quickpress/website
+
+# 3. Docker Backend
+echo "🐳 [3/4] Rebuilding & restarting Python FastAPI Backend Container..."
 cd "$REPO_ROOT"
 if command -v docker &> /dev/null; then
     sudo docker build -t quickpress-api .
@@ -38,8 +50,8 @@ if command -v docker &> /dev/null; then
     echo "✅ Backend container running on port 8000."
 fi
 
-# 3. Reload Nginx
-echo "🌐 [3/3] Testing & reloading Nginx..."
+# 4. Reload Nginx
+echo "🌐 [4/4] Testing & reloading Nginx..."
 sudo nginx -t && sudo systemctl reload nginx
 
 echo "========================================================"
