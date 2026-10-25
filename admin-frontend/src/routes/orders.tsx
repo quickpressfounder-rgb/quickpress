@@ -80,6 +80,7 @@ import {
   type OrderStatus,
   type OrderDetail,
 } from "../api/orders";
+import { AdminDefectInspectionSection } from "../components/orders/AdminDefectInspectionSection";
 import { fetchRiders, type AdminRider } from "../api/riders";
 import { fetchPartners, type AdminPartner } from "../api/partners";
 import { adminHead } from "../lib/head";
@@ -1673,6 +1674,11 @@ export function OrdersPage() {
                               2-Way
                             </span>
                           )}
+                          {r.hasDefectsReported && (
+                            <span className="inline-flex items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-black text-rose-700 border border-rose-300">
+                              ⚠️ Defect
+                            </span>
+                          )}
                         </div>
                         <p className="text-[10px] text-zinc-400 font-medium">{r.placedAt}</p>
                       </div>
@@ -2149,6 +2155,18 @@ function Order360FullPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* LEFT COLUMN: ORDER PARTICULARS & PRICING (7 COLS) */}
         <div className="lg:col-span-7 space-y-5">
+          {/* Pre-Wash Garment QC Inspection & Defect Proofs */}
+          {data?.garmentDefects && data.garmentDefects.length > 0 ? (
+            <AdminDefectInspectionSection
+              orderId={order.id}
+              orderCode={order.id}
+              defects={data.garmentDefects}
+              onDefectUpdated={() => {
+                queryClient.invalidateQueries({ queryKey: ["admin", "orders", order.id] });
+              }}
+            />
+          ) : null}
+
           {/* Garments Breakdown */}
           <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">

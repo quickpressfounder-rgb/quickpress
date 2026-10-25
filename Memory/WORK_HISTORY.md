@@ -320,6 +320,33 @@
 - **Build Verifications:**
   - `npm run build` in `customer-frontend`: PASSED (Zero errors, 0 warnings).
 
+### 19. Admin QC Inspection & Pre-Wash Dispute Override Console (Phase 4 Admin Panel)
+- **Architecture & Implementation:**
+  - Adhered strictly to the user aesthetic rule: **"THEAM SIMPLE RAKHANA HAI"** (clean, high-contrast, pure white/slate minimalist theme; clean borders, zero cartoonish gradients).
+  - Extended Admin types and contracts in `admin-frontend/src/api/orders.ts` with `GarmentDefect`, `DefectType`, `CustomerDefectStatus`, `garmentDefects`, and `hasDefectsReported`.
+  - Added Admin QC dispute resolution functions:
+    - `overrideGarmentDefect(orderId, defectId, payload)`: Enforces admin dispute override decision (`proceed_wash` or `return_unwashed`) with mandatory QC audit notes.
+    - `fetchOrderDefects(orderId)`: Fetches full defect proofs for any order.
+  - Implemented `AdminDefectInspectionSection.tsx` in `admin-frontend/src/components/orders/AdminDefectInspectionSection.tsx`:
+    - Summary counter showing tagged garments and review states.
+    - Garment item name, defect category pill, and store partner notes with timestamp.
+    - Clickable high-resolution defect photo thumbnail with full-screen zoom preview.
+    - Live customer consent status pill (`Wash Approved With Care`, `Return Item As-Is`, or `Awaiting Customer Decision`).
+    - Dispute Override Modal:
+      - Allows admin to enforce resolution: `[Approve Wash]` or `[Return Unwashed]`.
+      - Mandatory QC remarks textarea for audit trail.
+    - Audit banner displaying enforced decision and administrator's explanation notes.
+  - Integrated into `admin-frontend/src/routes/orders.tsx`:
+    - Added `⚠️ Defect` indicator pill in the main Orders Management table when defects are reported.
+    - Rendered `AdminDefectInspectionSection` inside `Order360FullPage` prominent section.
+- **Modified & Added Files:**
+  - `admin-frontend/src/api/orders.ts`
+  - `admin-frontend/src/components/orders/AdminDefectInspectionSection.tsx`
+  - `admin-frontend/src/routes/orders.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `npm run build` in `admin-frontend`: PASSED (Zero errors, 0 warnings).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

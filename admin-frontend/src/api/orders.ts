@@ -42,10 +42,40 @@ export type AdminOrder = {
   autoCancelled?: boolean;
   refundStatus?: string;
   refundAmount?: number;
-  refundDate?: string;
   isReassigned?: boolean;
   reassignment?: any;
   custody?: string;
+  hasDefectsReported?: boolean;
+};
+
+export type DefectType =
+  | "stain"
+  | "torn_or_cut"
+  | "broken_button"
+  | "color_bleed_risk"
+  | "burn_mark"
+  | "missing_accessory"
+  | "other";
+
+export type CustomerDefectStatus = "pending" | "proceed_wash" | "return_unwashed";
+
+export type GarmentDefect = {
+  defect_id: string;
+  order_id: string;
+  order_code?: string;
+  item_name: string;
+  defect_type: DefectType;
+  photo_url: string;
+  description?: string;
+  reported_by_id: string;
+  reported_by_role?: string;
+  reported_by_name?: string;
+  reported_at: string;
+  customer_status: CustomerDefectStatus;
+  customer_note?: string;
+  customer_responded_at?: string | null;
+  admin_override_status?: string | null;
+  admin_override_notes?: string | null;
 };
 
 type AdminOrderRow = {
@@ -70,6 +100,7 @@ type AdminOrderRow = {
   isReassigned?: boolean;
   reassignment?: any;
   custody?: string;
+  hasDefectsReported?: boolean;
 };
 
 const money = (value: number) => `₹${value.toLocaleString("en-IN")}`;
@@ -133,6 +164,7 @@ function toAdminOrder(row: AdminOrderRow): AdminOrder {
     isReassigned: row.isReassigned,
     reassignment: row.reassignment,
     custody: row.custody,
+    hasDefectsReported: Boolean(row.hasDefectsReported || (row as any).garmentDefects?.length > 0 || (row as any).garment_defects?.length > 0),
   };
 }
 
@@ -214,6 +246,8 @@ export type OrderDetail = AdminOrder & {
   };
   auditTrail?: any[];
   reviews360?: any;
+  garmentDefects?: GarmentDefect[];
+  hasDefectsReported?: boolean;
 };
 
 export const STATUS_RANK: Record<string, number> = {
@@ -507,6 +541,16 @@ export async function fetchOrder(id: string): Promise<OrderDetail> {
     },
     auditTrail: order.auditTrail || order.events || [],
     reviews360: order.reviews360 || null,
+    garmentDefects: Array.isArray(order.garmentDefects)
+      ? order.garmentDefects
+      : Array.isArray(order.garment_defects)
+      ? order.garment_defects
+      : [],
+    hasDefectsReported: Boolean(
+      order.hasDefectsReported ||
+      (order.garmentDefects && order.garmentDefects.length > 0) ||
+      (order.garment_defects && order.garment_defects.length > 0)
+    ),
   };
 }
 
@@ -612,4 +656,30 @@ export async function downloadInvoice(orderId?: string, orderCode?: string): Pro
 /** No admin order-refund endpoint exists on the backend yet. */
 export async function refundOrder(): Promise<never> {
   throw new Error("Refunding an order from here is not available yet.");
+}
+
+/**
+ * POST /api/admin/orders/{id}/defects/{defectId}/override
+ * Admin QC dispute resolution override.
+ */
+export async function overrideGarmentDefect(
+  orderId: string,
+  defectId: string,
+  payload: { override_status: "proceed_wash" | "return_unwashed"; override_notes: string }
+): Promise<GarmentDefect> {
+  return await apiPostJson<GarmentDefect>(
+    `/api/admin/orders/${orderId}/defects/${defectId}/override`,
+    payload
+  );
+}
+
+/**
+ * GET /api/orders/{id}/defects
+ */
+export async function fetchOrderDefects(orderId: string): Promise<GarmentDefect[]> {
+  try {
+    return await apiGetJson<GarmentDefect[]>(`/api/orders/${orderId}/defects`);
+  } catch {
+    return [];
+  }
 }
