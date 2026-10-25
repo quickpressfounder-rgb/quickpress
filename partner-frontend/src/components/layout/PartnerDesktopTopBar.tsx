@@ -117,8 +117,8 @@ export function PartnerDesktopTopBar({
           className="flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
         >
           <img
-            src="/quickpress-partner-transparent-logo.png"
-            alt="QuickPress Partner"
+            src="/quickpress-brand-logo-transparent.png"
+            alt="QuickPress"
             className="h-7 sm:h-8 w-auto object-contain"
           />
         </Link>

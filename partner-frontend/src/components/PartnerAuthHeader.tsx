@@ -11,9 +11,9 @@ export function PartnerAuthHeader({
   return (
     <div className="flex flex-col items-center select-none pt-1">
       <img
-        src="/quickpress-partner-onboarding-transparent.png"
-        alt="QuickPress Partner Onboarding"
-        className="h-12 sm:h-14 w-auto max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-none"
+        src="/quickpress-brand-logo-transparent.png"
+        alt="QuickPress"
+        className="h-10 sm:h-12 w-auto max-w-[220px] sm:max-w-[260px] object-contain drop-shadow-none"
       />
       {/* Clean Tagline */}
       {withTagline ? (

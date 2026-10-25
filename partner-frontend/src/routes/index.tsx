@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { readSession } from "../api/core/session-store";
 import { restorePartnerSession } from "../api/partner/partner-auth-api";
 import { partnerRoutes } from "../navigation/partner-routes";
-import partnerLogo from "../assets/quickpress-partner-onboarding-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -14,7 +13,7 @@ export const Route = createFileRoute("/")({
         name: "description",
         content: "QuickPress Partner — Laundry & Garment Care Business Console",
       },
-      { name: "theme-color", content: "#0178d4" },
+      { name: "theme-color", content: "#0055ff" },
     ],
   }),
   component: PartnerSplashScreen,
@@ -95,21 +94,21 @@ function PartnerSplashScreen() {
   }, [navigate, router]);
 
   return (
-    <main className="fixed inset-0 flex flex-col items-center justify-center bg-[#0178d4] select-none overflow-hidden z-50">
+    <main className="fixed inset-0 flex flex-col items-center justify-center bg-[#0055ff] select-none overflow-hidden z-50">
       <div
-        className="flex items-center justify-center transition-all duration-300 ease-out"
+        className="flex flex-col items-center justify-center transition-all duration-300 ease-out"
         style={{
           opacity: mounted ? 1 : 0,
           transform: mounted ? "scale(1)" : "scale(0.96)",
         }}
       >
-        <img
-          src={partnerLogo}
-          alt="QuickPress Partner Onboarding"
-          className="w-64 sm:w-80 max-w-[80vw] h-auto object-contain select-none pointer-events-none drop-shadow-sm"
-          loading="eager"
-          decoding="async"
-        />
+        {/* Zomato-style signature bold wordmark in pure white */}
+        <div className="flex items-baseline gap-1 select-none">
+          <span className="text-5xl sm:text-6xl md:text-7xl font-black italic tracking-tighter text-white drop-shadow-sm font-sans">
+            quickpress
+          </span>
+          <span className="size-3 sm:size-3.5 rounded-full bg-emerald-400 ring-2 ring-white/40" />
+        </div>
       </div>
     </main>
   );

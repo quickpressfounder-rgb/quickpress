@@ -75,59 +75,30 @@ export const ORDER_HELP_TOPICS: OrderHelpTopic[] = [
   },
 ];
 
-const STORAGE_KEY = "qp_partner_support_tickets_v1";
-
-const DEFAULT_TICKETS: SupportTicket[] = [
-  {
-    id: "TKT-8412",
-    category: "order_issue",
-    categoryLabel: "Order Issue",
-    orderId: "ord-4040",
-    orderCode: "PRT-4040",
-    subject: "Customer requested evening delivery slot rescheduling",
-    description: "Customer Himanshu Pal requested delivery between 6-7 PM instead of afternoon slot.",
-    status: "resolved",
-    priority: "normal",
-    createdAt: "2026-10-23T15:10:00Z",
-    updatedAt: "2026-10-23T15:35:00Z",
-    supportReply: "Updated delivery slot window in Captain routing. Captain will deliver at 06:15 PM.",
-    supportRepliedAt: "2026-10-23T15:35:00Z",
-  },
-  {
-    id: "TKT-8290",
-    category: "payout_finance",
-    categoryLabel: "Payout & Finance",
-    orderCode: "PRT-3788",
-    subject: "Bank IFSC verification for daily auto-settlement",
-    description: "Updated HDFC current account details for automated daily morning payouts.",
-    status: "resolved",
-    priority: "normal",
-    createdAt: "2026-10-20T11:00:00Z",
-    updatedAt: "2026-10-20T13:20:00Z",
-    supportReply: "Bank penny-drop verification succeeded. Tomorrow's auto-payout is routed to new account.",
-    supportRepliedAt: "2026-10-20T13:20:00Z",
-  },
-];
+const STORAGE_KEY = "qp_partner_support_tickets_v2";
 
 function loadLocalTickets(): SupportTicket[] {
-  if (typeof window === "undefined") return DEFAULT_TICKETS;
+  if (typeof window === "undefined") return [];
   try {
+    // Purge legacy mock data
+    localStorage.removeItem("qp_partner_support_tickets_v1");
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_TICKETS));
-      return DEFAULT_TICKETS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TICKETS;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((t) => t.id !== "TKT-8412" && t.id !== "TKT-8290");
+    }
+    return [];
   } catch {
-    return DEFAULT_TICKETS;
+    return [];
   }
 }
 
 function saveLocalTickets(tickets: SupportTicket[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
+    const clean = (tickets || []).filter((t) => t.id !== "TKT-8412" && t.id !== "TKT-8290");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
   } catch (err) {
     console.error("Failed to save local support tickets", err);
   }
@@ -136,9 +107,10 @@ function saveLocalTickets(tickets: SupportTicket[]): void {
 export async function fetchPartnerTickets(): Promise<SupportTicket[]> {
   try {
     const remote = await apiGetJson<SupportTicket[]>("/api/partner/tickets");
-    if (Array.isArray(remote) && remote.length > 0) {
-      saveLocalTickets(remote);
-      return remote;
+    if (Array.isArray(remote)) {
+      const clean = remote.filter((t) => t.id !== "TKT-8412" && t.id !== "TKT-8290");
+      saveLocalTickets(clean);
+      return clean;
     }
   } catch {
     // Fallback to local tickets
@@ -159,7 +131,7 @@ export async function createPartnerTicket(payload: {
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const now = new Date().toISOString();
 
-  const newTicket: SupportTicket = {
+  let ticketToSave: SupportTicket = {
     id: `TKT-${randomSuffix}`,
     category: payload.category,
     categoryLabel: payload.categoryLabel,
@@ -171,18 +143,21 @@ export async function createPartnerTicket(payload: {
     priority: payload.priority,
     createdAt: now,
     updatedAt: now,
-    supportReply: "Ticket received. Fleet Ops & Merchant Support team will contact you within 5 minutes.",
+    supportReply: "Ticket registered. QuickPress Partner Support team is reviewing your query.",
     supportRepliedAt: now,
   };
 
-  const nextList = [newTicket, ...current];
-  saveLocalTickets(nextList);
-
   try {
-    await apiPostJson("/api/partner/tickets", newTicket);
-  } catch {
-    // Local ticket is active
+    const res = await apiPostJson<{ ok: boolean; ticket: SupportTicket }>("/api/partner/tickets", ticketToSave);
+    if (res?.ticket && res.ticket.id) {
+      ticketToSave = res.ticket;
+    }
+  } catch (err) {
+    console.warn("Backend ticket sync warning (saved locally):", err);
   }
 
-  return newTicket;
+  const nextList = [ticketToSave, ...current.filter((t) => t.id !== ticketToSave.id)];
+  saveLocalTickets(nextList);
+
+  return ticketToSave;
 }

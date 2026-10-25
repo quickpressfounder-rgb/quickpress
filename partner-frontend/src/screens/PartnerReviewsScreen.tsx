@@ -265,16 +265,20 @@ export function PartnerReviewsScreen() {
               </span>
               <p className="text-xs text-zinc-500 mt-0.5">Top garment care attributes praised by customers</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {stats.highlights.map((h) => (
-                  <span
-                    key={h.tag}
-                    className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-xs font-bold text-zinc-800"
-                  >
-                    <Sparkles className="size-3 text-amber-500" />
-                    <span>{h.tag}</span>
-                    <span className="text-zinc-400 text-[10px]">({h.count})</span>
-                  </span>
-                ))}
+                {stats.highlights.length === 0 ? (
+                  <p className="text-xs text-zinc-400 font-medium py-1">No customer tags earned yet.</p>
+                ) : (
+                  stats.highlights.map((h) => (
+                    <span
+                      key={h.tag}
+                      className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-xs font-bold text-zinc-800"
+                    >
+                      <Sparkles className="size-3 text-amber-500" />
+                      <span>{h.tag}</span>
+                      <span className="text-zinc-400 text-[10px]">({h.count})</span>
+                    </span>
+                  ))
+                )}
               </div>
             </div>
 
@@ -379,9 +383,13 @@ export function PartnerReviewsScreen() {
         ) : filteredReviews.length === 0 ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-2xs space-y-2">
             <MessageSquare className="size-10 text-zinc-300 mx-auto" />
-            <h3 className="text-sm font-black text-zinc-900">No matching reviews found</h3>
-            <p className="text-xs text-zinc-500">
-              Try adjusting your rating or status filter to see other customer reviews.
+            <h3 className="text-sm font-black text-zinc-900">
+              {reviews.length === 0 ? "No Customer Reviews Yet" : "No matching reviews found"}
+            </h3>
+            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              {reviews.length === 0
+                ? "Ratings, tags, and feedback posted by verified customers for completed orders will appear here automatically."
+                : "Try adjusting your rating or status filter to see other customer reviews."}
             </p>
           </div>
         ) : (

@@ -22,6 +22,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Send,
   ShieldAlert,
   ShieldCheck,
   Shirt,
@@ -48,8 +49,8 @@ import {
 
 const FAQ_ITEMS = [
   {
-    q: "How does the daily store payout settlement work?",
-    a: "All completed orders delivered to customers are settled automatically into your registered bank account every morning at 06:00 AM via IMPS/NEFT with zero gateway charges. QuickPress retains 16% commission, and you receive the net 84% payout.",
+    q: "How does the store payout settlement work?",
+    a: "All completed orders delivered to customers are aggregated and settled automatically in 7-day weekly automated cycles into your registered bank account via direct IMPS/NEFT bank transfer with itemized GST, commission, and statutory tax reconciliation.",
   },
   {
     q: "What should I do if a customer is unreachable during doorstep delivery?",
@@ -435,64 +436,98 @@ export function PartnerHelpScreen() {
               ) : null}
             </div>
 
-            {/* Troubleshooting Topics for the Selected Order */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-600">
-                Common Resolution Scenarios for Order #{selectedOrderCode || "Selected Order"}
-              </h3>
+            {/* Real Order Action & Resolution Pathways */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-zinc-950">
+                    Order Assistance &amp; Direct Resolution
+                  </h3>
+                  <p className="text-xs text-zinc-500 font-medium">
+                    Immediate escalation pathways for active or delivered bookings
+                  </p>
+                </div>
+                {selectedOrder && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenTicketForOrder()}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-2xs cursor-pointer self-start sm:self-auto"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Raise Ticket for #{selectedOrder.code}</span>
+                  </button>
+                )}
+              </div>
 
-              <div className="grid gap-3.5 md:grid-cols-2">
-                {ORDER_HELP_TOPICS.map((topic) => {
-                  const isSelected = selectedTopic?.id === topic.id;
-                  return (
-                    <div
-                      key={topic.id}
-                      className={`rounded-2xl border p-5 shadow-2xs transition-all ${
-                        isSelected
-                          ? "border-zinc-950 bg-zinc-50/50 ring-1 ring-zinc-950"
-                          : "border-zinc-200/90 bg-white hover:border-zinc-300"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-sm font-black text-zinc-950">{topic.title}</h4>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                            topic.defaultPriority === "urgent"
-                              ? "bg-rose-100 text-rose-800"
-                              : topic.defaultPriority === "high"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-zinc-100 text-zinc-700"
-                          }`}
-                        >
-                          {topic.defaultPriority}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-xs text-zinc-600 leading-relaxed font-medium">
-                        {topic.shortDesc}
-                      </p>
+              <div className="grid gap-3.5 sm:grid-cols-3">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Bike className="size-4 text-blue-600" />
+                    <span className="text-xs font-bold text-zinc-900">Captain Coordination</span>
+                  </div>
+                  <p className="text-xs text-zinc-600 leading-relaxed">
+                    Check captain ETA or report doorstep handoff delays directly to fleet dispatch.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTicketCategory("delivery_captain");
+                      setTicketOrderCode(selectedOrder?.code || "");
+                      setTicketSubject(`Delivery Captain Query · Order #${selectedOrder?.code || ""}`);
+                      setTicketDescription("Captain coordination inquiry:");
+                      setShowTicketModal(true);
+                    }}
+                    className="text-xs font-bold text-blue-700 hover:underline inline-flex items-center gap-1 pt-1 cursor-pointer"
+                  >
+                    <span>Contact Logistics →</span>
+                  </button>
+                </div>
 
-                      <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 text-xs space-y-1">
-                        <span className="font-bold text-zinc-900 flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5 text-emerald-600" />
-                          <span>Standard Resolution SOP:</span>
-                        </span>
-                        <p className="text-zinc-600 leading-snug">{topic.suggestedAction}</p>
-                      </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Shirt className="size-4 text-emerald-600" />
+                    <span className="text-xs font-bold text-zinc-900">Garment &amp; Quality Query</span>
+                  </div>
+                  <p className="text-xs text-zinc-600 leading-relaxed">
+                    Flag pre-existing fabric stains, count discrepancies, or special laundry instructions.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTicketCategory("garment_damage");
+                      setTicketOrderCode(selectedOrder?.code || "");
+                      setTicketSubject(`Garment Care Query · Order #${selectedOrder?.code || ""}`);
+                      setTicketDescription("Garment inspection / stain warning details:");
+                      setShowTicketModal(true);
+                    }}
+                    className="text-xs font-bold text-emerald-700 hover:underline inline-flex items-center gap-1 pt-1 cursor-pointer"
+                  >
+                    <span>Report Discrepancy →</span>
+                  </button>
+                </div>
 
-                      <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
-                        <span className="text-[11px] text-zinc-400">Order #{selectedOrderCode || "N/A"}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTicketForOrder(topic)}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-950 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                        >
-                          <span>Escalate to Fleet Ops</span>
-                          <ArrowRight className="size-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="size-4 text-zinc-900" />
+                    <span className="text-xs font-bold text-zinc-900">Billing &amp; Settlement</span>
+                  </div>
+                  <p className="text-xs text-zinc-600 leading-relaxed">
+                    Audit order gross value, platform commission deduction, and GST credit invoice.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTicketCategory("payout_finance");
+                      setTicketOrderCode(selectedOrder?.code || "");
+                      setTicketSubject(`Settlement Ledger Query · Order #${selectedOrder?.code || ""}`);
+                      setTicketDescription("Audit net payout breakdown:");
+                      setShowTicketModal(true);
+                    }}
+                    className="text-xs font-bold text-zinc-900 hover:underline inline-flex items-center gap-1 pt-1 cursor-pointer"
+                  >
+                    <span>Verify Settlement →</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -513,21 +548,21 @@ export function PartnerHelpScreen() {
                   <h3 className="text-sm font-black text-zinc-950 uppercase tracking-wider">
                     Payouts, Bank &amp; Finances
                   </h3>
-                  <p className="text-xs text-zinc-500 font-medium">Automated daily ledger settlements &amp; taxes</p>
+                  <p className="text-xs text-zinc-500 font-medium">Automated weekly 7-day cycles &amp; tax reconciliation</p>
                 </div>
               </div>
 
               <div className="space-y-2 text-xs text-zinc-700">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">⏰ Daily Settlement Window</p>
+                  <p className="font-bold text-zinc-950">📅 Automated 7-Day Weekly Cycle</p>
                   <p className="mt-0.5 text-zinc-600">
-                    All completed orders are aggregated and transferred into your verified bank account automatically every morning at 06:00 AM via IMPS.
+                    All completed orders are settled weekly into your verified bank account via direct IMPS bank transfer every Monday.
                   </p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="font-bold text-zinc-950">🏦 Updating Bank Account Details</p>
+                  <p className="font-bold text-zinc-950">📑 Itemized GST &amp; Tax Reconciliations</p>
                   <p className="mt-0.5 text-zinc-600">
-                    To modify your current account number or IFSC code, raise a ticket with a cancelled cheque or bank passbook copy. Verified within 4 hours.
+                    Download official double-entry settlement statements (PDF &amp; Excel) and Monthly SAC 998311 GST Invoices for Input Tax Credit (ITC).
                   </p>
                 </div>
               </div>

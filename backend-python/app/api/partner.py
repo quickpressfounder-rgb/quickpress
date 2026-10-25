@@ -1451,11 +1451,20 @@ async def reply_to_review(
 async def list_support_tickets(
     user: Optional[User] = Depends(optional_user),
 ) -> List[dict]:
-    partner_id = user.id if user else "partner_demo_1"
+    partner_id = "partner_demo_1"
+    if user:
+        try:
+            partner_id = await partner_repository.resolve_partner_id(user)
+        except Exception:
+            partner_id = user.id
     docs = await database.find_sorted("partner_support_tickets", {"partnerId": partner_id}, sort=[("createdAt", -1)])
-    if not docs:
-        docs = await database.find_sorted("partner_support_tickets", {}, sort=[("createdAt", -1)], limit=20)
-    return docs
+    clean_docs = []
+    for d in (docs or []):
+        item = dict(d)
+        if "_id" in item:
+            item["_id"] = str(item["_id"])
+        clean_docs.append(item)
+    return clean_docs
 
 
 @public_router.post("/tickets")
@@ -1464,10 +1473,16 @@ async def create_support_ticket(
     body: dict,
     user: Optional[User] = Depends(optional_user),
 ) -> dict:
-    partner_id = user.id if user else "partner_demo_1"
+    partner_id = "partner_demo_1"
+    if user:
+        try:
+            partner_id = await partner_repository.resolve_partner_id(user)
+        except Exception:
+            partner_id = user.id
     now = datetime.now(timezone.utc).isoformat()
+    ticket_id = body.get("id") or f"TKT-{int(datetime.now(timezone.utc).timestamp()) % 10000:04d}"
     ticket_doc = {
-        "id": body.get("id") or f"TKT-{int(datetime.now(timezone.utc).timestamp()) % 10000:04d}",
+        "id": ticket_id,
         "partnerId": partner_id,
         "category": body.get("category", "other"),
         "categoryLabel": body.get("categoryLabel", "General Help"),
@@ -1482,6 +1497,8 @@ async def create_support_ticket(
         "supportRepliedAt": now,
     }
     await database.collection("partner_support_tickets").insert_one(ticket_doc)
+    if "_id" in ticket_doc:
+        ticket_doc["_id"] = str(ticket_doc["_id"])
     return {"ok": True, "ticket": ticket_doc}
 
 
