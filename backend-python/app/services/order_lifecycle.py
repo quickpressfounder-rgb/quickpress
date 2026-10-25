@@ -1175,6 +1175,8 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
             for item in items
         ],
         "timeline": _timeline(order, _PARTNER_STAGES),
+        "garmentDefects": order.get("garment_defects") or order.get("garmentDefects") or [],
+        "hasDefectsReported": bool(order.get("hasDefectsReported") or order.get("garment_defects") or order.get("garmentDefects")),
     }
 
 
@@ -1323,5 +1325,7 @@ def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:
         "estimatedReadyAt": order.get("estimatedReadyAt"),
         "processingStartedAt": order.get("processingStartedAt"),
         "timeline": _timeline(order, _RIDER_STAGES),
+        "garmentDefects": order.get("garment_defects") or order.get("garmentDefects") or [],
+        "hasDefectsReported": bool(order.get("hasDefectsReported") or order.get("garment_defects") or order.get("garmentDefects")),
     }
 

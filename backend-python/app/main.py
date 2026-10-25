@@ -42,6 +42,7 @@ from app.api.membership import router as membership_router
 from app.api.loyalty import router as loyalty_router
 from app.api.notifications import router as notifications_router
 from app.api.orders import router as orders_router
+from app.api.defects import router as defects_router
 # Sprint 5.2: partner domain (orders, profile, services, wallet, reviews).
 from app.api.partner import public_router as partner_public_router
 from app.api.partner import router as partner_router
@@ -221,6 +222,8 @@ def create_app() -> FastAPI:
     app.include_router(checkout_router, prefix=settings.api_prefix)
     app.include_router(addresses_router, prefix=settings.api_prefix)
     app.include_router(orders_router, prefix=settings.api_prefix)
+    # Pre-wash garment defect inspection & customer digital consent engine
+    app.include_router(defects_router, prefix=settings.api_prefix)
     # Sprint 2.12: availability engine, service areas and smart reorder history.
     app.include_router(availability_router, prefix=settings.api_prefix)
     # Sprint 2.7: notification engine.

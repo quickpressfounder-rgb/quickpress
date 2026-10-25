@@ -204,6 +204,8 @@ class OrderRepository:
         # Enrich SLA deadlines and remaining seconds
         deadlines = lifecycle.compute_order_deadlines(data)
         data.update(deadlines)
+        data["garmentDefects"] = data.get("garment_defects") or data.get("garmentDefects") or []
+        data["hasDefectsReported"] = bool(data.get("hasDefectsReported") or data.get("garment_defects") or data.get("garmentDefects"))
 
         return OrderResponse(
             **{

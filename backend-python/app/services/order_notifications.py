@@ -644,3 +644,26 @@ async def dispatch_order_transition_notifications(
             )
     except Exception as e:
         print(f"[Notifications] Error dispatching order transition ({target}): {e}")
+
+
+async def push_defect_alert_to_customer(order: Dict[str, Any], defect: Dict[str, Any]) -> None:
+    """Sends notification to customer when a pre-wash defect/stain is tagged by store."""
+    try:
+        user_id = str(order.get("userId") or (order.get("customer") or {}).get("id") or "")
+        code = order.get("code") or order.get("orderCode") or order.get("_id")
+        order_id = str(order.get("_id") or order.get("id"))
+        item_name = defect.get("item_name") or "garment"
+        defect_type = (defect.get("defect_type") or "stain").replace("_", " ").title()
+
+        if user_id:
+            await send_customer_notification(
+                user_id,
+                kind="defect-tagged",
+                title=f"⚠️ Pre-wash Notice: Order #{code}",
+                description=f"Store noticed a pre-existing {defect_type} on your {item_name}. Please review photo in app.",
+                order_id=order_id,
+                order_code=code,
+                data={"defect_id": defect.get("defect_id"), "type": "defect_tagged"},
+            )
+    except Exception as e:
+        print(f"[Notifications] Error sending defect alert: {e}")

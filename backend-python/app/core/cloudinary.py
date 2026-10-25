@@ -24,6 +24,7 @@ FOLDERS = {
     "partner_banner": "quickpress/partners/banner",
     "rider_photo": "quickpress/riders/profile",
     "rider_document": "quickpress/riders/documents",
+    "defect_photo": "quickpress/orders/defects",
 }
 
 

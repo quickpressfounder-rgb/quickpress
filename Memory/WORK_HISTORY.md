@@ -235,6 +235,37 @@
 - **Build Verifications:**
   - `python3 -m py_compile` across modified backend files: PASSED (Zero errors).
 
+### 16. Garment Defect & Pre-Wash Photo Tagging Engine (Phase 1 Backend Integration)
+- **Architecture & Implementation:**
+  - Designed and created `backend-python/app/models/defect.py` with `DefectType`, `CustomerDefectStatus`, `GarmentDefect`, `LogDefectPayload`, `CustomerDefectDecisionPayload`, and `AdminDefectOverridePayload`.
+  - Added `"defect_photo": "quickpress/orders/defects"` folder mapping in `app/core/cloudinary.py` for Cloudinary asset isolation.
+  - Implemented `backend-python/app/services/defect_service.py` to handle:
+    - Pre-wash defect photo uploads to Cloudinary.
+    - Appending defect records into the canonical `customer_orders` collection with `hasDefectsReported: True`.
+    - Real-time socket event broadcasts (`order:defect_tagged` & `order:defect_responded`).
+    - Customer notification push queue via `push_defect_alert_to_customer` in `order_notifications.py`.
+    - Customer digital consent recording (`proceed_wash` or `return_unwashed`) with timestamp and notes.
+    - Admin QC dispute resolution overrides.
+  - Updated `order_lifecycle.py` (`to_partner_order` and `to_rider_delivery`) to include `garmentDefects` and `hasDefectsReported` envelopes.
+  - Updated `OrderResponse` in `app/models/order.py` and `_to_order_response` in `order_repositories.py` for customer view hydration.
+  - Created REST API router in `backend-python/app/api/defects.py` and mounted it in `main.py`.
+  - Added comprehensive automated pytest test suite in `tests/test_defect_inspection_engine.py`.
+- **Modified & Added Files:**
+  - `backend-python/app/models/defect.py`
+  - `backend-python/app/services/defect_service.py`
+  - `backend-python/app/api/defects.py`
+  - `backend-python/app/core/cloudinary.py`
+  - `backend-python/app/models/order.py`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `backend-python/app/services/order_notifications.py`
+  - `backend-python/app/db/order_repositories.py`
+  - `backend-python/app/main.py`
+  - `backend-python/tests/test_defect_inspection_engine.py`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Test Verifications:**
+  - `python3 -m py_compile` across all modified backend files: PASSED (Zero errors).
+  - `pytest tests/test_defect_inspection_engine.py`: PASSED (100% pass, 1 passed in 2.50s).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

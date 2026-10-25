@@ -172,6 +172,8 @@ class OrderResponse(BaseModel):
     expressPartnerSharePercent: Optional[float] = 20.0
     expressRiderSharePercent: Optional[float] = 80.0
     riderLocation: Optional[Dict[str, Any]] = None
+    garmentDefects: List[Dict[str, Any]] = []
+    hasDefectsReported: Optional[bool] = False
 
 
 class PlaceOrderResponse(BaseModel):
