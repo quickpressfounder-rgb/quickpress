@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 PartnerOrderStatus = Literal[
     "new", "accepted", "picked", "processing", "ready", "delivered", "cancelled"
@@ -33,6 +33,8 @@ class PartnerOrderTimelineStage(BaseModel):
 
 
 class PartnerOrderResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     id: str
     code: str = ""
     customerName: str = "Customer"
@@ -51,6 +53,20 @@ class PartnerOrderResponse(BaseModel):
     dispatchOtpRequired: bool = False
     items: List[PartnerOrderItem] = []
     timeline: List[PartnerOrderTimelineStage] = []
+    bagTag: Optional[str] = None
+    garmentVerification: Optional[Dict[str, Any]] = None
+    doorstepPiecesVerified: Optional[bool] = False
+    garmentDefects: Optional[List[Dict[str, Any]]] = None
+    hasDefectsReported: Optional[bool] = False
+
+
+class PartnerBagIntakePayload(BaseModel):
+    bagTag: Optional[str] = None
+    piecesReceived: Optional[int] = None
+    hasDiscrepancy: bool = False
+    discrepancyType: Optional[str] = None
+    notes: Optional[str] = None
+    intakeStatus: str = "verified"
 
 
 class RejectOrderPayload(BaseModel):

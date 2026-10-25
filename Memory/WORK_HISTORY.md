@@ -33,6 +33,59 @@
 
 ## Detailed Log of Work Done Today (25 October 2026)
 
+### 20. Option 4 & 5 (Phase 4): Partner Store Bag Intake Handshake & Admin 360 Chain-of-Custody Audit
+- **Architecture & Implementation:**
+  - Adhered strictly to the user aesthetic rule: **"THEAM SIMPLE RAKHANA HAI"** (clean, high-contrast, pure white/slate minimalist theme; clean zinc borders, zero cartoonish gradients).
+  - **1. Backend Verification & Handover Engine:**
+    - Defined `PartnerBagIntakePayload` and updated `PartnerOrderResponse` with `ConfigDict(extra="allow")` in `backend-python/app/models/partner.py`.
+    - Implemented `verify_bag_intake` in `backend-python/app/db/partner_repositories.py`:
+      - Resolves doorstep seal tag and piece count recorded by the pickup captain.
+      - Matches partner's received tag and piece count, automatically detecting mismatches or broken seal flags.
+      - Sets `garmentVerification.partnerIntake` record with verified timestamp, custody status `"at_store"`, and audit notes.
+      - Transitions order state to `STORE_DROP_CONFIRMED` / `AT_PARTNER` allowing immediate store processing.
+      - Logs live partner activity via `log_partner_activity` ("BAG_INTAKE_VERIFIED").
+    - Exposed REST API route `POST /api/partner/orders/{order_id}/verify-bag-intake` in `backend-python/app/api/partner.py`.
+    - Enhanced `to_partner_order` in `order_lifecycle.py` and `to_admin_order_row` in `admin_repositories.py` to serialize `bagTag`, `garmentVerification`, and `doorstepPiecesVerified`.
+  - **2. Partner Console Intake UI (`partner-frontend`):**
+    - Extended domain types in `partner-frontend/src/shared/types/partner.ts` with `DoorstepPickupRecord`, `PartnerIntakeRecord`, `GarmentVerification`.
+    - Added `verifyPartnerBagIntake` client function in `partner-frontend/src/api/partner/partner-orders-api.ts`.
+    - Built `PartnerBagIntakeCard.tsx` in `partner-frontend/src/components/orders/PartnerBagIntakeCard.tsx`:
+      - Pure white card with subtle zinc border, uppercase micro-labels, and high contrast typography.
+      - Displays doorstep tag (e.g. `QP-BAG-8821`) and expected garment pieces counted by captain.
+      - Interactive intake inputs: tag confirmation with instant "Seal Matches ✓" indicator, piece count stepper `[-] [X] [+]`, discrepancy toggle with note composer, and 1-tap `[✓ Accept Garment Custody]` CTA.
+      - Clean verified summary state once custody is confirmed.
+    - Integrated `PartnerBagIntakeCard` into `partner-frontend/src/screens/OrderDetailsScreen.tsx` in both Mobile and Desktop views.
+  - **3. Admin Console Custody 360 & Orders Table Indicator (`admin-frontend`):**
+    - Extended `AdminOrder` type in `admin-frontend/src/api/orders.ts` with `bagTag`, `garmentVerification`, and `doorstepPiecesVerified`.
+    - Built `AdminBagCustodySection.tsx` in `admin-frontend/src/components/orders/AdminBagCustodySection.tsx`:
+      - 2-step audit trail comparing Customer Doorstep Handover (Captain ID, Seal Tag, Count, Photo Proof) with Store Hub Intake (Store Name, Seal Check, Pieces Received, Custody Status).
+      - Prominent high-contrast alert banner when any discrepancy is logged between captain and partner.
+      - Full-screen photo zoom modal for inspecting doorstep bag seal pictures.
+    - Integrated into `admin-frontend/src/routes/orders.tsx`:
+      - Rendered `AdminBagCustodySection` in `Order360FullPage`.
+      - Added monochrome `🏷️ Bag Tag` badge in the main Orders Management table.
+- **Modified & Added Files:**
+  - `backend-python/app/models/partner.py`
+  - `backend-python/app/db/partner_repositories.py`
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `backend-python/app/db/admin_repositories.py`
+  - `partner-frontend/src/shared/types/partner.ts`
+  - `partner-frontend/src/api/partner/partner-orders-api.ts`
+  - `partner-frontend/src/components/orders/PartnerBagIntakeCard.tsx`
+  - `partner-frontend/src/screens/OrderDetailsScreen.tsx`
+  - `admin-frontend/src/api/orders.ts`
+  - `admin-frontend/src/components/orders/AdminBagCustodySection.tsx`
+  - `admin-frontend/src/routes/orders.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Test Verifications:**
+  - `python3 -m py_compile` on backend files: PASSED (Zero errors).
+  - `pytest tests/test_defect_inspection_engine.py`: PASSED (100% pass).
+  - `npm run build` in `partner-frontend`: PASSED (Exit code 0).
+  - `npm run build` in `admin-frontend`: PASSED (Exit code 0).
+  - `npm run build` in `customer-frontend`: PASSED (Exit code 0).
+  - `npm run build` in `rider-frontend`: PASSED (Exit code 0).
+
 ### 8. Rider Smart Route Batching & Doorstep Garment Intake with Bag Seal Verification & Milestone Advancement
 - **Feature Additions:**
   1. *Doorstep Garment Intake & Bag Seal Tag*: Added `RiderDoorstepPickupCard` to `GoToPickupHUD.tsx` during customer pickup. Enables captains to verify garment piece counts, flag discrepancies, assign a tamper-proof bag seal tag (`QP-BAG-xxxx`), upload photo proof, and record notes before customer OTP verification.

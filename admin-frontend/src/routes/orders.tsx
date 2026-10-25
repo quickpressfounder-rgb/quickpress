@@ -81,6 +81,7 @@ import {
   type OrderDetail,
 } from "../api/orders";
 import { AdminDefectInspectionSection } from "../components/orders/AdminDefectInspectionSection";
+import { AdminBagCustodySection } from "../components/orders/AdminBagCustodySection";
 import { fetchRiders, type AdminRider } from "../api/riders";
 import { fetchPartners, type AdminPartner } from "../api/partners";
 import { adminHead } from "../lib/head";
@@ -1679,6 +1680,14 @@ export function OrdersPage() {
                               ⚠️ Defect
                             </span>
                           )}
+                          {r.bagTag && (
+                            <span
+                              className="inline-flex items-center rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-mono font-bold text-zinc-700 border border-zinc-200"
+                              title={`Bag Seal Tag: ${r.bagTag}`}
+                            >
+                              🏷️ {r.bagTag}
+                            </span>
+                          )}
                         </div>
                         <p className="text-[10px] text-zinc-400 font-medium">{r.placedAt}</p>
                       </div>
@@ -2166,6 +2175,9 @@ function Order360FullPage({
               }}
             />
           ) : null}
+
+          {/* Chain of Custody & Bag Seal Audit */}
+          <AdminBagCustodySection order={data || order} />
 
           {/* Garments Breakdown */}
           <div className="bg-white border border-zinc-200/80 rounded-2xl p-5 shadow-xs space-y-4">

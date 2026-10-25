@@ -116,6 +116,39 @@ export type GarmentDefect = {
   admin_override_notes?: string | null;
 };
 
+export type DoorstepPickupRecord = {
+  verified: boolean;
+  verifiedAt: string;
+  verifiedBy: string;
+  bagTag?: string;
+  piecesPickedUp: number;
+  expectedPieces: number;
+  hasDiscrepancy: boolean;
+  notes?: string;
+  bagPhotoUrl?: string;
+  customerConfirmed: boolean;
+};
+
+export type PartnerIntakeRecord = {
+  verified: boolean;
+  verifiedAt: string;
+  verifiedBy: string;
+  bagTagReceived?: string;
+  piecesReceived: number;
+  doorstepPieces?: number;
+  hasDiscrepancy: boolean;
+  discrepancyType?: string;
+  notes?: string;
+  custodyAccepted: boolean;
+  intakeStatus: "verified" | "discrepancy";
+};
+
+export type GarmentVerification = {
+  doorstepPickup?: DoorstepPickupRecord;
+  partnerIntake?: PartnerIntakeRecord;
+  custodyStatus?: "with_customer" | "with_rider" | "at_store" | "out_for_delivery" | "delivered";
+};
+
 export type PartnerOrder = {
   id: string;
   code: string;
@@ -133,6 +166,9 @@ export type PartnerOrder = {
   timeline: { id: string; label: string; time: string; done: boolean }[];
   garmentDefects?: GarmentDefect[];
   hasDefectsReported?: boolean;
+  bagTag?: string;
+  garmentVerification?: GarmentVerification;
+  doorstepPiecesVerified?: boolean;
 };
 
 export type PartnerServiceRate = {

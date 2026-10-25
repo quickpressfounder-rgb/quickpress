@@ -134,6 +134,11 @@ def to_admin_order_row(order: Dict[str, Any]) -> Dict[str, Any]:
         "custody": order.get("custody", "customer"),
         "dispatchOtp": (order.get("otp") or {}).get("dispatch", {}).get("code") if isinstance((order.get("otp") or {}).get("dispatch"), dict) else (order.get("dispatchOtp") or (order.get("reassignment") or {}).get("dispatchOtp")),
         "deliveryRider": order.get("deliveryRider"),
+        "bagTag": order.get("bagTag") or ((order.get("garmentVerification") or {}).get("doorstepPickup") or {}).get("bagTag"),
+        "garmentVerification": order.get("garmentVerification") or {},
+        "doorstepPiecesVerified": bool(order.get("doorstepPiecesVerified") or ((order.get("garmentVerification") or {}).get("doorstepPickup") or {}).get("verified")),
+        "garmentDefects": order.get("garment_defects") or order.get("garmentDefects") or [],
+        "hasDefectsReported": bool(order.get("hasDefectsReported") or order.get("garment_defects") or order.get("garmentDefects")),
     }
 
 

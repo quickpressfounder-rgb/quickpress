@@ -1177,6 +1177,9 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
         "timeline": _timeline(order, _PARTNER_STAGES),
         "garmentDefects": order.get("garment_defects") or order.get("garmentDefects") or [],
         "hasDefectsReported": bool(order.get("hasDefectsReported") or order.get("garment_defects") or order.get("garmentDefects")),
+        "bagTag": order.get("bagTag") or ((order.get("garmentVerification") or {}).get("doorstepPickup") or {}).get("bagTag"),
+        "garmentVerification": order.get("garmentVerification") or {},
+        "doorstepPiecesVerified": bool(order.get("doorstepPiecesVerified") or ((order.get("garmentVerification") or {}).get("doorstepPickup") or {}).get("verified")),
     }
 
 

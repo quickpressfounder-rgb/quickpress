@@ -71,6 +71,7 @@ from app.models.partner import (
     BusinessSettingsUpdate,
     OnboardingPayload,
     OnboardingResponse,
+    PartnerBagIntakePayload,
     PartnerDashboardResponse,
     PartnerEarningsResponse,
     PartnerNotificationResponse,
@@ -1112,6 +1113,45 @@ async def receive_laundry(order_id: str, partner_id: str = Depends(_verified_par
             order_id=order_id,
             order_code=doc.get("code"),
             tone="info",
+        ))
+    except PartnerAccessError as error:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))
+    except PartnerNotFoundError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    except InvalidTransitionError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+    return _order_response(doc)
+
+
+@router.post("/orders/{order_id}/verify-bag-intake", response_model=PartnerOrderResponse)
+async def verify_bag_intake(
+    order_id: str,
+    payload: PartnerBagIntakePayload = Body(...),
+    partner_id: str = Depends(_verified_partner_id),
+) -> PartnerOrderResponse:
+    try:
+        doc = await partner_order_repository.verify_bag_intake(
+            partner_id=partner_id,
+            order_id=order_id,
+            bag_tag=payload.bagTag,
+            pieces_received=payload.piecesReceived,
+            has_discrepancy=payload.hasDiscrepancy,
+            discrepancy_type=payload.discrepancyType,
+            notes=payload.notes,
+            intake_status=payload.intakeStatus,
+        )
+        from app.services.partner_activity_logger import log_partner_activity
+        import asyncio
+        asyncio.create_task(log_partner_activity(
+            partner_id=partner_id,
+            category="orders",
+            event="BAG_INTAKE_VERIFIED",
+            title=f"Bag Seal Verified #{doc.get('code', order_id[:8])}",
+            description=f"Store verified bag seal tag {payload.bagTag or doc.get('bagTag', 'N/A')} ({payload.piecesReceived or doc.get('itemCount', 1)} pcs)",
+            actor="Partner",
+            order_id=order_id,
+            order_code=doc.get("code"),
+            tone="positive" if not payload.hasDiscrepancy else "warning",
         ))
     except PartnerAccessError as error:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error))

@@ -192,3 +192,23 @@ export async function submitPartnerOrderReview(
 export async function fetchPartnerOrderReview(orderId: string): Promise<any> {
   return apiGetJson<any>(`/api/partner/orders/${encodeURIComponent(orderId)}/review`);
 }
+
+export interface PartnerBagIntakePayload {
+  bagTag?: string;
+  piecesReceived?: number;
+  hasDiscrepancy?: boolean;
+  discrepancyType?: "piece_mismatch" | "broken_seal" | "damaged_bag" | "other" | string;
+  notes?: string;
+  intakeStatus?: "verified" | "discrepancy";
+}
+
+/** POST /api/partner/orders/{id}/verify-bag-intake — partner verifies incoming bag tag & pieces */
+export async function verifyPartnerBagIntake(
+  orderId: string,
+  payload: PartnerBagIntakePayload
+): Promise<PartnerOrder> {
+  return apiPostJson<PartnerOrder>(
+    `/api/partner/orders/${encodeURIComponent(orderId)}/verify-bag-intake`,
+    payload
+  );
+}

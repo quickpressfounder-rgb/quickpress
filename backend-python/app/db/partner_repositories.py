@@ -768,6 +768,78 @@ class PartnerOrderRepository:
         )
         return lifecycle.to_partner_order(updated)
 
+    async def verify_bag_intake(
+        self,
+        partner_id: str,
+        order_id: str,
+        bag_tag: Optional[str] = None,
+        pieces_received: Optional[int] = None,
+        has_discrepancy: bool = False,
+        discrepancy_type: Optional[str] = None,
+        notes: Optional[str] = None,
+        intake_status: str = "verified",
+    ) -> Dict[str, Any]:
+        """Partner store verifies bag seal tag & piece count upon rider delivery handover."""
+        order = await lifecycle.find_order(order_id)
+        if not order:
+            raise PartnerNotFoundError("Order not found")
+        try:
+            lifecycle.assert_partner(order, partner_id)
+        except lifecycle.OrderAuthorizationError as error:
+            raise PartnerAccessError(str(error)) from error
+
+        now = lifecycle.now_iso()
+        doorstep_record = (order.get("garmentVerification") or {}).get("doorstepPickup") or {}
+        doorstep_pieces = doorstep_record.get("piecesPickedUp")
+        if doorstep_pieces is None:
+            doorstep_pieces = sum(int(it.get("quantity") or it.get("qty") or 1) for it in order.get("items") or []) or 1
+
+        final_pieces = int(pieces_received) if pieces_received is not None else doorstep_pieces
+        incoming_tag = bag_tag or order.get("bagTag") or doorstep_record.get("bagTag") or ""
+
+        piece_mismatch = bool(pieces_received is not None and pieces_received != doorstep_pieces)
+        final_discrepancy = bool(has_discrepancy or piece_mismatch or notes)
+
+        partner_intake_record = {
+            "verified": True,
+            "verifiedAt": now,
+            "verifiedBy": partner_id,
+            "bagTagReceived": incoming_tag,
+            "piecesReceived": final_pieces,
+            "doorstepPieces": doorstep_pieces,
+            "hasDiscrepancy": final_discrepancy,
+            "discrepancyType": discrepancy_type or ("piece_mismatch" if piece_mismatch else None),
+            "notes": notes or "",
+            "custodyAccepted": True,
+            "intakeStatus": "discrepancy" if final_discrepancy else "verified",
+        }
+
+        current_status = lifecycle.order_status(order)
+        changes = {
+            "garmentVerification.partnerIntake": partner_intake_record,
+            "garmentVerification.custodyStatus": "at_store",
+            "custody": "partner",
+            "receivedAtStoreAt": now,
+            "droppedAtPartnerAt": now,
+            "updatedAt": now,
+        }
+        if incoming_tag:
+            changes["bagTag"] = incoming_tag
+
+        target_status = lifecycle.AT_PARTNER if current_status in (
+            lifecycle.PICKED_UP, lifecycle.RIDER_ACCEPTED, lifecycle.RIDER_ASSIGNED, lifecycle.STORE_DROP_CONFIRMED
+        ) else current_status
+
+        updated = await lifecycle.transition(
+            order_id,
+            target_status,
+            actor_id=partner_id,
+            actor_role="partner",
+            metadata={"bagIntake": partner_intake_record},
+            changes=changes,
+        )
+        return lifecycle.to_partner_order(updated)
+
     async def start_processing(self, partner_id: str, order_id: str) -> Dict[str, Any]:
         order = await lifecycle.find_order(order_id)
         if not order:

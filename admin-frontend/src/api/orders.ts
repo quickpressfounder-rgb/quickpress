@@ -46,6 +46,36 @@ export type AdminOrder = {
   reassignment?: any;
   custody?: string;
   hasDefectsReported?: boolean;
+  bagTag?: string;
+  garmentVerification?: {
+    doorstepPickup?: {
+      verified: boolean;
+      verifiedAt: string;
+      verifiedBy: string;
+      bagTag?: string;
+      piecesPickedUp: number;
+      expectedPieces: number;
+      hasDiscrepancy: boolean;
+      notes?: string;
+      bagPhotoUrl?: string;
+      customerConfirmed: boolean;
+    };
+    partnerIntake?: {
+      verified: boolean;
+      verifiedAt: string;
+      verifiedBy: string;
+      bagTagReceived?: string;
+      piecesReceived: number;
+      doorstepPieces?: number;
+      hasDiscrepancy: boolean;
+      discrepancyType?: string;
+      notes?: string;
+      custodyAccepted: boolean;
+      intakeStatus: "verified" | "discrepancy";
+    };
+    custodyStatus?: string;
+  };
+  doorstepPiecesVerified?: boolean;
 };
 
 export type DefectType =

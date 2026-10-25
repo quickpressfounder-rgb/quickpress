@@ -54,6 +54,7 @@ import { fetchPartnerOrder, verifyPartnerDispatchOtp } from "@/api/partner/partn
 import { subscribePartnerOrders } from "@/lib/partner-socket";
 import { PartnerReviewModal } from "../components/orders/PartnerReviewModal";
 import { PrewashDefectModal } from "../components/orders/PrewashDefectModal";
+import { PartnerBagIntakeCard } from "../components/orders/PartnerBagIntakeCard";
 import type { GarmentDefect } from "@/shared/types/partner";
 
 
@@ -798,7 +799,15 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
               </div>
             </div>
 
-            {/* 3. DELIVERY FLEET CAPTAIN CARD (PURE WHITE) */}
+            {/* 3. STORE INTAKE & BAG SEAL TAG VERIFICATION */}
+            <PartnerBagIntakeCard
+              order={order}
+              onIntakeVerified={(updated) => {
+                setOrder((prev) => ({ ...prev, ...updated }));
+              }}
+            />
+
+            {/* 4. DELIVERY FLEET CAPTAIN CARD (PURE WHITE) */}
             <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
                 <div className="flex items-center gap-2">
@@ -1448,6 +1457,14 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
                     </div>
                   </div>
                 </section>
+
+                {/* STORE INTAKE & BAG SEAL TAG VERIFICATION (DESKTOP) */}
+                <PartnerBagIntakeCard
+                  order={order}
+                  onIntakeVerified={(updated) => {
+                    setOrder((prev) => ({ ...prev, ...updated }));
+                  }}
+                />
 
                 {/* C. LOGISTICS & DELIVERY CAPTAIN (CLEAN & PROFESSIONAL) */}
                 <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
