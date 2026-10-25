@@ -168,6 +168,37 @@
   - `partner-frontend npm run build`: PASSED (Exit code 0).
   - Local SSR test on port 8089: PASSED (HTTP 200 OK).
 
+### 12. Fix: Infinite API Request Loop on Partner Dashboard (`PartnerDashboardScreen.tsx`)
+- **Root Cause:**
+  - In `partner-frontend/src/screens/PartnerDashboardScreen.tsx`, the `load()` function was declared with `[navigate, shop, summary]` in its dependency array.
+  - Inside `load()`, it was calling `setShop(newShop)` and `setSummary(newSummary)`, which updated the state and triggered `useCallback` to recreate `load` with a brand new function reference.
+  - The downstream `useEffect(() => { void load(); }, [load])` immediately executed the new `load()`, causing an endless loop that sent 500+ requests (`/api/partner/profile`, `/api/partner/dashboard`, `/api/partner/settings`, `/api/partner/earnings`, `/api/partner/wallet/transactions`) in under a minute.
+- **Resolution:**
+  - Introduced `shopRef` and `summaryRef` using `useRef` to track store state without altering `load`'s identity.
+  - Reduced `load`'s dependency list strictly to `[navigate]`. The function now executes once on mount or explicitly on manual refresh, completely stopping the 500+ request loop.
+
+### 13. High-Performance Database Indexing Integration (Supabase PostgreSQL)
+- **Scope & Performance Optimizations:**
+  1. **Schema Indexes in `backend-python/app/db/supabase_client.py`:**
+     - Added targeted B-Tree and GIN indexes across all high-traffic access patterns:
+       - **Geographic & Role Search:** `idx_qp_docs_city`, `idx_qp_docs_pincode`, `idx_qp_docs_role`, `idx_qp_docs_role_city`.
+       - **Referral Program (Multi-role):** `idx_qp_docs_referrer_id`, `idx_qp_docs_referee_id`, `idx_qp_docs_referral_code`.
+       - **Customer & Order Lookup:** `idx_qp_docs_order_code`, `idx_qp_docs_cust_phone`.
+       - **Settlements & Finance Ledger:** `idx_qp_docs_cycle_id`, `idx_qp_docs_is_settled`, `idx_qp_docs_kind`.
+  2. **Standalone Migration Script (`scripts/apply_database_indexes.sql`):**
+     - Contains all production PostgreSQL DDL statements + `ANALYZE quickpress_documents` for immediate query planner optimization.
+  3. **Automated Migration Runner (`backend-python/scripts/apply_indexes.py`):**
+     - Python runner to verify and apply indexes directly to Supabase PostgreSQL asynchronously.
+- **Modified / Created Files:**
+  - `partner-frontend/src/screens/PartnerDashboardScreen.tsx`
+  - `backend-python/app/db/supabase_client.py`
+  - `backend-python/scripts/apply_indexes.py`
+  - `scripts/apply_database_indexes.sql`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `python3 -m py_compile` on backend files: PASSED (Zero errors).
+  - `partner-frontend npm run build`: PASSED (Exit code 0).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

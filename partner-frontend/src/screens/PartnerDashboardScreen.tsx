@@ -29,7 +29,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Toaster } from "@/shared/ui/sonner";
@@ -294,12 +294,23 @@ export function PartnerDashboardScreen() {
     }
   }, [session]);
 
+  const shopRef = useRef<DashboardShop | null>(null);
+  const summaryRef = useRef<DashboardSummaryCard | null>(null);
+
+  useEffect(() => {
+    shopRef.current = shop;
+  }, [shop]);
+
+  useEffect(() => {
+    summaryRef.current = summary;
+  }, [summary]);
+
   const load = useCallback(async () => {
     if (!hasActiveSessionToken("partner")) {
       navigate({ to: partnerRoutes.auth });
       return;
     }
-    if (!shop && !summary) setIsLoading(true);
+    if (!shopRef.current && !summaryRef.current) setIsLoading(true);
     setError(null);
     try {
       const [profile, dashboard, earningsSummary] = await Promise.all([
@@ -381,13 +392,13 @@ export function PartnerDashboardScreen() {
         navigate({ to: partnerRoutes.registration });
         return;
       }
-      if (!shop) {
+      if (!shopRef.current) {
         setError(err instanceof Error ? err.message : "Failed to load dashboard");
       }
     } finally {
       setIsLoading(false);
     }
-  }, [navigate, shop, summary]);
+  }, [navigate]);
 
   useEffect(() => {
     if (hasActiveSessionToken("partner")) {

@@ -878,6 +878,18 @@ class SupabaseDatabase:
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_rider_rides ON quickpress_documents (collection, (data->>'riderId'), (data->>'status'));
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_gin_full ON quickpress_documents USING gin (data);
                 CREATE INDEX IF NOT EXISTS idx_qp_docs_updated_at ON quickpress_documents (collection, updated_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_city ON quickpress_documents (collection, (data->>'city'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_pincode ON quickpress_documents (collection, (data->>'pincode'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_role ON quickpress_documents (collection, (data->>'role'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_role_city ON quickpress_documents (collection, (data->>'role'), (data->>'city'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_referrer_id ON quickpress_documents (collection, (data->>'referrer_id'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_referee_id ON quickpress_documents (collection, (data->>'referee_id'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_referral_code ON quickpress_documents (collection, (data->>'referral_code'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_order_code ON quickpress_documents (collection, (data->>'orderCode'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_cust_phone ON quickpress_documents (collection, (data->>'customerPhone'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_cycle_id ON quickpress_documents (collection, (data->>'cycleId'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_is_settled ON quickpress_documents (collection, (data->>'isSettled'));
+                CREATE INDEX IF NOT EXISTS idx_qp_docs_kind ON quickpress_documents (collection, (data->>'kind'));
             """)
         logger.info("Connected to Supabase PostgreSQL and initialized optimized schema + JSONB indexes.")
         asyncio.create_task(self._safe_preload_cache())
