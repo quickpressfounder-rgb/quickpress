@@ -117,15 +117,41 @@ export function NotificationsScreen() {
   const { data: items, setData } = usePartnerResource(fetchPartnerNotifications);
   const [selectedFilter, setSelectedFilter] = useState<FilterKind>("all");
 
+  // Clear corrupted cached non-array data from localStorage if any
+  useEffect(() => {
+    try {
+      const cacheKey = "qp_resource_fetchPartnerNotifications";
+      const raw = window.localStorage.getItem(cacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+          window.localStorage.removeItem(cacheKey);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Guarantee that items is always a safe array
+  const safeItems = useMemo<PartnerNotification[]>(() => {
+    if (Array.isArray(items)) return items;
+    if (items && typeof items === "object") {
+      const anyItems = items as any;
+      if (Array.isArray(anyItems.items)) return anyItems.items;
+      if (Array.isArray(anyItems.notifications)) return anyItems.notifications;
+      if (Array.isArray(anyItems.data)) return anyItems.data;
+    }
+    return [];
+  }, [items]);
+
   // Realtime notification event subscription
   useEffect(() => {
     const unsub = subscribePartnerNotifications((incoming) => {
       try {
         const parsed = toPartnerNotification(incoming);
         setData((prev) => {
-          if (!prev) return [parsed];
-          if (prev.some((n) => n.id === parsed.id)) return prev;
-          return [parsed, ...prev];
+          const currentList = Array.isArray(prev) ? prev : [];
+          if (currentList.some((n) => n.id === parsed.id)) return currentList;
+          return [parsed, ...currentList];
         });
       } catch (err) {
         console.warn("[NotificationsScreen] Error handling incoming notification:", err);
@@ -135,21 +161,20 @@ export function NotificationsScreen() {
   }, [setData]);
 
   const unreadCount = useMemo(() => {
-    return items ? items.filter((i) => !i.read).length : 0;
-  }, [items]);
+    return safeItems.filter((i) => !i.read).length;
+  }, [safeItems]);
 
   const filteredItems = useMemo(() => {
-    if (!items) return [];
-    if (selectedFilter === "all") return items;
-    return items.filter((i) => i.kind === selectedFilter);
-  }, [items, selectedFilter]);
+    if (selectedFilter === "all") return safeItems;
+    return safeItems.filter((i) => i.kind === selectedFilter);
+  }, [safeItems, selectedFilter]);
 
   const handleReadAll = async () => {
-    if (!items || unreadCount === 0) {
+    if (unreadCount === 0 || safeItems.length === 0) {
       toast.info("All notifications are already marked as read");
       return;
     }
-    setData(items.map((item) => ({ ...item, read: true })));
+    setData(safeItems.map((item) => ({ ...item, read: true })));
     try {
       await markNotificationsRead();
       toast.success("All notifications marked as read");
@@ -160,9 +185,8 @@ export function NotificationsScreen() {
 
   const handleMarkItemRead = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!items) return;
     setData(
-      items.map((item) => (item.id === id ? { ...item, read: true } : item))
+      safeItems.map((item) => (item.id === id ? { ...item, read: true } : item))
     );
   };
 
@@ -256,8 +280,8 @@ export function NotificationsScreen() {
             const isActive = selectedFilter === tab.id;
             const count =
               tab.id === "all"
-                ? items?.length || 0
-                : items?.filter((i) => i.kind === tab.id).length || 0;
+                ? safeItems.length
+                : safeItems.filter((i) => i.kind === tab.id).length;
 
             return (
               <button

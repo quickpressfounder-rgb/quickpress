@@ -742,6 +742,10 @@
 
 ---
 
+| `42ba37b` | `feat(partner): clean All Logged-in Devices & Legal/Privacy modals, fix notifications crash, and update splash logo` | (1) Updated splash screen in `routes/index.tsx` to display official QuickPress Partner Onboarding branding in crisp white with emerald accents, replacing plain lowercase text; (2) Fixed notifications crash (`TypeError: t.filter is not a function`) by validating array structures across `NotificationsScreen.tsx` and `partner-profile-api.ts`, safeguarding against non-array payloads and clearing invalid local storage caches; (3) Added try/except error shielding to `/api/partner/notifications` in FastAPI backend; (4) Revamped Partner Business Settings: removed Store Counter Auto-Lock and inline session card ("SMART COUNTER HATA DO"); replaced cartoon emojis (`🛡️`, `📜`, `💳`, `⚖️`) with real Lucide vector icons (`ShieldCheck`, `FileText`, `CreditCard`, `Scale`, `Smartphone`); (5) Created dedicated "All Logged-in Devices" modal showing current session, active terminals, and remote logout button; (6) Created dedicated "Legal & Privacy" modal consolidating Privacy Policy, Terms & Conditions, Payment & Settlement, and Grievance Desk; verified with successful build and pytest. |
+
+---
+
 ## How to Pull Updates on the Live EC2 Server
 
 Run this single command in the EC2 terminal (`ubuntu@ip-172-31-2-28:~/quickpress`):
@@ -753,6 +757,7 @@ cd ~/quickpress && git pull origin main && bash scripts/update_server.sh
 This single command will automatically:
 1. Pull the latest code from GitHub `main`.
 2. Rebuild `partner-frontend` with the new white theme & restart PM2 on port 8082.
-3. Rebuild the FastAPI Docker image & restart the `quickpress-backend` container on port 8000 (fixing the `/partner/tickets` route).
+3. Rebuild the FastAPI Docker image & restart the `quickpress-backend` container on port 8000.
 4. Test and reload Nginx.
+
 

@@ -17,6 +17,7 @@ import {
   MapPin,
   Pencil,
   Power,
+  Scale,
   ShieldAlert,
   ShieldCheck,
   Sliders,
@@ -24,6 +25,7 @@ import {
   Timer,
   Trash2,
   Volume2,
+  X,
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -41,8 +43,6 @@ import {
   closePartnerAccount,
   fetchPartnerSecuritySessions,
   revokeOtherPartnerSessions,
-  fetchPartnerLockSettings,
-  updatePartnerLockSettings,
   type PartnerSessionItem,
 } from "@/api/partner/partner-profile-api";
 import type { BusinessSettings } from "@/shared/types/partner";
@@ -112,33 +112,27 @@ export function BusinessSettingsScreen() {
   const [confirmCheck, setConfirmCheck] = useState(false);
   const [closureError, setClosureError] = useState<string | null>(null);
 
-  // Point 3: Terminal & Login Security State
+  // All Logged-in Devices & Legal/Privacy Modals
+  const [devicesModalOpen, setDevicesModalOpen] = useState(false);
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [sessions, setSessions] = useState<PartnerSessionItem[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [revokingOthers, setRevokingOthers] = useState(false);
-  const [counterLockMinutes, setCounterLockMinutes] = useState(15);
-  const [updatingLock, setUpdatingLock] = useState(false);
 
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
   const [coverageModalOpen, setCoverageModalOpen] = useState(false);
   const [capacityModalOpen, setCapacityModalOpen] = useState(false);
 
-  // Load active sessions and counter lock settings
+  // Load active sessions
   useEffect(() => {
     let mounted = true;
     const loadSecurityData = async () => {
       try {
         setSessionsLoading(true);
-        const [sessResp, lockResp] = await Promise.all([
-          fetchPartnerSecuritySessions().catch(() => null),
-          fetchPartnerLockSettings().catch(() => null),
-        ]);
+        const sessResp = await fetchPartnerSecuritySessions().catch(() => null);
         if (!mounted) return;
         if (sessResp?.sessions) {
           setSessions(sessResp.sessions);
-        }
-        if (typeof lockResp?.counterLockMinutes === "number") {
-          setCounterLockMinutes(lockResp.counterLockMinutes);
         }
       } finally {
         if (mounted) setSessionsLoading(false);
@@ -161,19 +155,6 @@ export function BusinessSettingsScreen() {
       toast.error(err?.message || "Failed to log out other devices.");
     } finally {
       setRevokingOthers(false);
-    }
-  };
-
-  const handleSetCounterLock = async (minutes: number) => {
-    setUpdatingLock(true);
-    setCounterLockMinutes(minutes);
-    try {
-      const res = await updatePartnerLockSettings(minutes);
-      toast.success(res?.message || `Counter auto-lock set to ${minutes} mins.`);
-    } catch {
-      toast.error("Failed to update auto-lock setting.");
-    } finally {
-      setUpdatingLock(false);
     }
   };
 
@@ -734,134 +715,54 @@ export function BusinessSettingsScreen() {
                 </div>
               </div>
 
-              {/* Card 4: Policies & Grievance Desk */}
+              {/* Card 4: Security & Legal Governance */}
               <div className="space-y-2">
                 <p className="text-xs font-black uppercase tracking-wider text-zinc-400 px-1">
-                  Policies & Legal
+                  Security & Policies
                 </p>
 
                 <div className="rounded-2xl border border-zinc-200/90 bg-white overflow-hidden shadow-xs divide-y divide-zinc-100">
-                  <a
-                    href="https://withquickpress.com/#privacy"
-                    target="_blank"
-                    rel="noreferrer"
+                  {/* All Logged-in Devices */}
+                  <div
+                    onClick={() => setDevicesModalOpen(true)}
                     className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="text-lg">🛡️</span>
+                      <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800">
+                        <Smartphone className="size-5" strokeWidth={2.2} />
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Privacy Policy</p>
-                        <p className="text-xs font-medium text-zinc-500 truncate">Partner data & KYC protection</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="size-4.5 text-zinc-400 shrink-0" />
-                  </a>
-
-                  <a
-                    href="https://withquickpress.com/#terms"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="text-lg">📜</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Terms & Conditions</p>
-                        <p className="text-xs font-medium text-zinc-500 truncate">Merchant SLA & Quality Codes</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="size-4.5 text-zinc-400 shrink-0" />
-                  </a>
-
-                  <div className="flex items-center justify-between p-4 gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="text-lg">💳</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Payment & Settlement</p>
-                        <p className="text-xs font-medium text-zinc-500 truncate">Automated bank payouts</p>
-                      </div>
-                    </div>
-                    <span className="shrink-0 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
-                      Active
-                    </span>
-                  </div>
-
-                  <a
-                    href="mailto:official.quickpress@gmail.com?subject=Partner%20Grievance%20Redressal"
-                    className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="text-lg">⚖️</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-zinc-900">Grievance Desk</p>
-                        <p className="text-xs font-medium text-zinc-500 truncate">Disputes & merchant support</p>
-                      </div>
-                    </div>
-                    <ExternalLink className="size-4 text-zinc-400 shrink-0" />
-                  </a>
-                </div>
-              </div>
-
-              {/* Card 4.5: Login & Terminal Security (Point 3) */}
-              <div className="space-y-2">
-                <p className="text-xs font-black uppercase tracking-wider text-zinc-500 px-1">
-                  Terminal & Session Security
-                </p>
-
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs space-y-3.5">
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-200">
-                        <Laptop className="size-5" />
-                        <span className="absolute -top-1 -right-1 flex size-3">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex size-3 rounded-full bg-emerald-500"></span>
-                        </span>
-                      </div>
-                      <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-xs font-black text-zinc-900">This Device (Current Session)</p>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md">
-                            Active Now
+                          <p className="text-sm font-black text-zinc-900">All Logged-in Devices</p>
+                          <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.2 text-[9px] font-black uppercase text-emerald-700">
+                            {sessions.length || 1} Active
                           </span>
                         </div>
-                        <p className="text-[11px] font-medium text-zinc-500">
-                          {sessions[0]?.deviceName || "Main Counter Terminal"} · {sessions[0]?.browser || "Chrome / Web"}
+                        <p className="text-xs font-medium text-zinc-500 truncate">
+                          Manage active sessions &amp; remote logout
                         </p>
                       </div>
                     </div>
+                    <ChevronRight className="size-4.5 text-zinc-400 shrink-0" />
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-zinc-700">Other Active Devices ({Math.max(0, sessions.length - 1)})</span>
-                      <button
-                        type="button"
-                        onClick={handleRevokeOtherSessions}
-                        disabled={revokingOthers}
-                        className="text-xs font-bold text-red-600 hover:text-red-700 underline disabled:opacity-50 cursor-pointer"
-                      >
-                        {revokingOthers ? "Logging out..." : "Log Out All Other Devices"}
-                      </button>
-                    </div>
-
-                    <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-bold text-zinc-900">Store Counter Auto-Lock</p>
-                        <p className="text-[10px] text-zinc-500">Locks terminal if unattended at counter</p>
+                  {/* Legal & Privacy */}
+                  <div
+                    onClick={() => setLegalModalOpen(true)}
+                    className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800">
+                        <Scale className="size-5" strokeWidth={2.2} />
                       </div>
-                      <select
-                        value={counterLockMinutes}
-                        onChange={(e) => handleSetCounterLock(Number(e.target.value))}
-                        disabled={updatingLock}
-                        className="h-8 rounded-lg border border-zinc-200 bg-zinc-50 px-2 text-xs font-bold text-zinc-800 cursor-pointer focus:border-zinc-400"
-                      >
-                        <option value={5}>5 Minutes</option>
-                        <option value={15}>15 Minutes</option>
-                        <option value={30}>30 Minutes</option>
-                        <option value={0}>Disabled</option>
-                      </select>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-zinc-900">Legal &amp; Privacy</p>
+                        <p className="text-xs font-medium text-zinc-500 truncate">
+                          Terms, privacy policy, merchant SLA &amp; grievance desk
+                        </p>
+                      </div>
                     </div>
+                    <ChevronRight className="size-4.5 text-zinc-400 shrink-0" />
                   </div>
                 </div>
               </div>
@@ -1239,129 +1140,72 @@ export function BusinessSettingsScreen() {
               </section>
             </div>
 
-            {/* Point 3: Terminal & Login Security on Desktop */}
-            <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
-                    <Lock className="size-4" strokeWidth={2.3} />
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-black text-zinc-900">Login & Terminal Security</h3>
-                    <p className="text-[10px] text-zinc-500">
-                      Monitor active store sessions and configure unattended laundry counter auto-lock
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRevokeOtherSessions}
-                  disabled={revokingOthers}
-                  className="rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-100/60 px-3.5 py-1.5 text-xs font-bold text-red-600 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {revokingOthers ? "Logging Out..." : "Log Out All Other Devices"}
-                </button>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {/* Active Session Info */}
-                <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-zinc-500 uppercase">Current Terminal Session</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Active Now
-                    </span>
-                  </div>
-                  <p className="text-sm font-black text-zinc-900">
-                    {sessions[0]?.deviceName || "Main Store Counter Terminal"}
-                  </p>
-                  <p className="text-xs text-zinc-600 font-medium">
-                    {sessions[0]?.browser || "Chrome / Web"} · IP: {sessions[0]?.ipAddress || "127.0.0.1"}
-                  </p>
-                </div>
-
-                {/* Counter Auto-Lock */}
-                <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-4 space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-500 uppercase">Store Counter Auto-Lock</span>
-                  <p className="text-xs text-zinc-600 leading-snug">
-                    Automatically lock the partner console when the store counter is unattended.
-                  </p>
-                  <div className="flex items-center gap-2 pt-1">
-                    {[5, 15, 30, 0].map((mins) => (
-                      <button
-                        key={mins}
-                        type="button"
-                        onClick={() => handleSetCounterLock(mins)}
-                        disabled={updatingLock}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                          counterLockMinutes === mins
-                            ? "bg-zinc-900 text-white border-zinc-900 shadow-2xs"
-                            : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-100"
-                        }`}
-                      >
-                        {mins === 0 ? "Off" : `${mins}m`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Compliance & Closure on Desktop */}
+            {/* Security, Devices & Compliance on Desktop */}
             <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2.5 pb-2 border-b border-zinc-100">
                 <span className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
                   <ShieldCheck className="size-4" strokeWidth={2.3} />
                 </span>
                 <div>
-                  <h3 className="text-sm font-black text-zinc-900">Compliance & Partner Policies</h3>
+                  <h3 className="text-sm font-black text-zinc-900">Security, Devices &amp; Compliance</h3>
                   <p className="text-[10px] text-zinc-500">
-                    QuickPress Merchant Agreement, Grievance Redressal & Account Management
+                    Device sessions, legal agreements, merchant SLA &amp; store account management
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                <a
-                  href="https://withquickpress.com/#privacy"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer"
+                {/* All Logged-in Devices Card */}
+                <button
+                  type="button"
+                  onClick={() => setDevicesModalOpen(true)}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 hover:border-zinc-300 hover:bg-zinc-50/50 transition-all text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">🛡️</span>
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-200">
+                      <Smartphone className="size-4.5" />
+                    </span>
                     <div>
-                      <p className="text-xs font-bold text-zinc-900">Privacy Policy</p>
-                      <p className="text-[10px] text-zinc-500">Partner data safety</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-bold text-zinc-900">All Logged-in Devices</p>
+                        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 text-[9px] font-black uppercase text-emerald-700">
+                          {sessions.length || 1}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500">Active sessions &amp; logout</p>
                     </div>
                   </div>
-                  <ExternalLink className="size-3.5 text-zinc-400" />
-                </a>
+                  <ChevronRight className="size-4 text-zinc-400" />
+                </button>
 
-                <a
-                  href="https://withquickpress.com/#terms"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer"
+                {/* Legal & Privacy Card */}
+                <button
+                  type="button"
+                  onClick={() => setLegalModalOpen(true)}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/80 hover:border-zinc-300 hover:bg-zinc-50/50 transition-all text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">📜</span>
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-200">
+                      <Scale className="size-4.5" />
+                    </span>
                     <div>
-                      <p className="text-xs font-bold text-zinc-900">Terms & Conditions</p>
-                      <p className="text-[10px] text-zinc-500">Merchant SLA</p>
+                      <p className="text-xs font-bold text-zinc-900">Legal &amp; Privacy</p>
+                      <p className="text-[10px] text-zinc-500">Terms, SLA &amp; Grievance</p>
                     </div>
                   </div>
-                  <ExternalLink className="size-3.5 text-zinc-400" />
-                </a>
+                  <ChevronRight className="size-4 text-zinc-400" />
+                </button>
 
+                {/* Account Closure Card */}
                 <button
                   type="button"
                   onClick={() => setCloseAccountOpen(true)}
                   className="flex items-center justify-between p-3.5 rounded-2xl border border-red-200 bg-red-50/50 hover:bg-red-50 transition-all text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <Trash2 className="size-4.5 text-red-600" />
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                      <Trash2 className="size-4.5" />
+                    </span>
                     <div>
                       <p className="text-xs font-black text-red-700">Account Closure</p>
                       <p className="text-[10px] text-red-500">De-list store request</p>
@@ -1502,6 +1346,230 @@ export function BusinessSettingsScreen() {
               >
                 {closing ? "Verifying & Closing..." : "Verify & Close Store"}
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 4. All Logged-in Devices Modal */}
+      {devicesModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-zinc-200 text-left space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-800 border border-zinc-200">
+                  <Smartphone className="size-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-zinc-950">All Logged-in Devices</h3>
+                  <p className="text-xs text-zinc-500">
+                    Active sessions across terminals, tablets &amp; mobile devices
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDevicesModalOpen(false)}
+                className="flex size-8 items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Current Device Card */}
+            <div className="space-y-2">
+              <p className="text-xs font-black uppercase tracking-wider text-zinc-400">
+                This Device (Current Session)
+              </p>
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-emerald-200 bg-emerald-50/40 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-800 border border-emerald-200 shadow-2xs">
+                    <Laptop className="size-5" />
+                    <span className="absolute -top-1 -right-1 flex size-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500"></span>
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-black text-zinc-900">
+                        {sessions[0]?.deviceName || "Main Store Counter Terminal"}
+                      </p>
+                      <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-300 px-1.5 py-0.2 rounded-md">
+                        Active Now
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-600 font-medium">
+                      {sessions[0]?.browser || "Chrome / Web"} · IP: {sessions[0]?.ipAddress || "Active"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Other Active Sessions */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-black uppercase tracking-wider text-zinc-400">
+                  Other Active Devices ({Math.max(0, sessions.length - 1)})
+                </p>
+              </div>
+
+              {sessions.length > 1 ? (
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {sessions.slice(1).map((s, idx) => (
+                    <div
+                      key={s.id || idx}
+                      className="flex items-center justify-between p-3.5 rounded-2xl border border-zinc-200/90 bg-zinc-50/60"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-zinc-700 border border-zinc-200">
+                          <Smartphone className="size-4.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-zinc-900 truncate">
+                            {s.deviceName || "Merchant Terminal"}
+                          </p>
+                          <p className="text-[11px] text-zinc-500 truncate">
+                            {s.browser || "Web Browser"} · IP: {s.ipAddress || "Active"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/50 p-4 text-center">
+                  <p className="text-xs font-bold text-zinc-700">No other active devices</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Your account is securely logged in only on this current terminal.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Logout Action */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleRevokeOtherSessions}
+                disabled={revokingOthers || sessions.length <= 1}
+                className="w-full h-11 rounded-2xl border border-red-200 bg-red-50 text-xs font-black text-red-600 hover:bg-red-100/80 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+              >
+                {revokingOthers ? "Logging out all other devices..." : "Log Out All Other Devices"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 5. Legal & Privacy Modal with Real Vector Icons */}
+      {legalModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-zinc-200 text-left space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-800 border border-zinc-200">
+                  <Scale className="size-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-zinc-950">Legal &amp; Privacy</h3>
+                  <p className="text-xs text-zinc-500">
+                    Merchant governance, partner protection &amp; statutory compliance
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLegalModalOpen(false)}
+                className="flex size-8 items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Real Vector Lucide Icon Links (Zero Cartoon Emojis) */}
+            <div className="rounded-2xl border border-zinc-200/90 bg-white overflow-hidden shadow-xs divide-y divide-zinc-100">
+              {/* Privacy Policy */}
+              <a
+                href="https://withquickpress.com/#privacy"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <ShieldCheck className="size-5" strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-zinc-900">Privacy Policy</p>
+                    <p className="text-xs font-medium text-zinc-500 truncate">
+                      Partner data protection &amp; DPDP compliance
+                    </p>
+                  </div>
+                </div>
+                <ExternalLink className="size-4 text-zinc-400 shrink-0" />
+              </a>
+
+              {/* Terms & Conditions */}
+              <a
+                href="https://withquickpress.com/#terms"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <FileText className="size-5" strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-zinc-900">Terms &amp; Conditions</p>
+                    <p className="text-xs font-medium text-zinc-500 truncate">
+                      Merchant SLA &amp; Quality Codes
+                    </p>
+                  </div>
+                </div>
+                <ExternalLink className="size-4 text-zinc-400 shrink-0" />
+              </a>
+
+              {/* Payment & Settlement */}
+              <div className="flex items-center justify-between p-4 gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                    <CreditCard className="size-5" strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-zinc-900">Payment &amp; Settlement</p>
+                    <p className="text-xs font-medium text-zinc-500 truncate">
+                      Automated bank payouts &amp; double-entry settlement
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-800">
+                  Active
+                </span>
+              </div>
+
+              {/* Grievance Desk */}
+              <a
+                href="mailto:official.quickpress@gmail.com?subject=Partner%20Grievance%20Redressal"
+                className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                    <Scale className="size-5" strokeWidth={2.2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-zinc-900">Grievance Desk</p>
+                    <p className="text-xs font-medium text-zinc-500 truncate">
+                      Disputes &amp; dedicated merchant support
+                    </p>
+                  </div>
+                </div>
+                <ExternalLink className="size-4 text-zinc-400 shrink-0" />
+              </a>
             </div>
           </div>
         </div>

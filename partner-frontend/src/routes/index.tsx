@@ -96,18 +96,29 @@ function PartnerSplashScreen() {
   return (
     <main className="fixed inset-0 flex flex-col items-center justify-center bg-[#0055ff] select-none overflow-hidden z-50">
       <div
-        className="flex flex-col items-center justify-center transition-all duration-300 ease-out"
+        className="flex flex-col items-center justify-center transition-all duration-300 ease-out px-4 text-center"
         style={{
           opacity: mounted ? 1 : 0,
           transform: mounted ? "scale(1)" : "scale(0.96)",
         }}
       >
-        {/* Zomato-style signature bold wordmark in pure white */}
-        <div className="flex items-baseline gap-1 select-none">
-          <span className="text-5xl sm:text-6xl md:text-7xl font-black italic tracking-tighter text-white drop-shadow-sm font-sans">
-            quickpress
+        {/* QuickPress Wordmark in White and Emerald */}
+        <div className="flex items-baseline tracking-tight select-none">
+          <span className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-white drop-shadow-sm font-sans">
+            Quick
           </span>
-          <span className="size-3 sm:size-3.5 rounded-full bg-emerald-400 ring-2 ring-white/40" />
+          <span className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-emerald-400 drop-shadow-sm font-sans">
+            Press
+          </span>
+        </div>
+
+        {/* Partner Onboarding Subtitle matching official logo */}
+        <div className="mt-3 sm:mt-4 flex items-center justify-center gap-2.5 sm:gap-3.5 select-none">
+          <span className="h-[2px] w-6 sm:w-10 bg-emerald-400 rounded-full" />
+          <span className="text-xs sm:text-sm font-black uppercase tracking-[0.25em] text-white">
+            PARTNER ONBOARDING
+          </span>
+          <span className="h-[2px] w-6 sm:w-10 bg-emerald-400 rounded-full" />
         </div>
       </div>
     </main>

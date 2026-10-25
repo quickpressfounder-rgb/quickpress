@@ -196,13 +196,31 @@ export async function updateBusinessSettings(patch: Partial<BusinessSettings>) {
 
 export async function fetchPartnerNotifications(): Promise<PartnerNotification[]> {
   try {
-    const items = await apiGetJson<RawNotification[]>("/api/partner/notifications");
-    return (items || []).map(toPartnerNotification);
+    const raw = await apiGetJson<any>("/api/partner/notifications");
+    let arr: any[] = [];
+    if (Array.isArray(raw)) {
+      arr = raw;
+    } else if (raw && Array.isArray(raw.items)) {
+      arr = raw.items;
+    } else if (raw && Array.isArray(raw.notifications)) {
+      arr = raw.notifications;
+    } else if (raw && Array.isArray(raw.data)) {
+      arr = raw.data;
+    }
+    return arr.map(toPartnerNotification);
   } catch (err) {
     console.warn("Failed to fetch partner notifications from /api/partner/notifications, falling back to /api/notifications:", err);
     try {
-      const resp = await apiGetJson<{ items: RawNotification[] }>("/api/notifications");
-      return (resp?.items || []).map(toPartnerNotification);
+      const resp = await apiGetJson<any>("/api/notifications");
+      let arr: any[] = [];
+      if (Array.isArray(resp)) {
+        arr = resp;
+      } else if (resp && Array.isArray(resp.items)) {
+        arr = resp.items;
+      } else if (resp && Array.isArray(resp.notifications)) {
+        arr = resp.notifications;
+      }
+      return arr.map(toPartnerNotification);
     } catch {
       return [];
     }

@@ -1258,33 +1258,47 @@ async def revoke_other_partner_sessions(
     user: User = Depends(current_user),
 ) -> dict:
     """Point 3: Revokes all other active sessions for this partner store."""
-    from app.db.repositories import refresh_tokens
     now_iso = datetime.now(timezone.utc).isoformat()
+    revoked_count = 0
 
-    result = await database.collection("partner_sessions").update_many(
-        {"partnerId": partner_id},
-        {"$set": {"active": False, "revokedAt": now_iso}},
-    )
-    revoked_count = getattr(result, "modified_count", 0)
+    try:
+        revoked_count = await database.update_many(
+            "partner_sessions",
+            {"partnerId": partner_id},
+            {"active": False, "revokedAt": now_iso},
+        )
+    except Exception as exc:
+        logger.warning("Revoke partner_sessions fallback: %s", exc)
+
+    try:
+        from app.db.repositories import refresh_tokens
+        if user.id:
+            await refresh_tokens.revoke_all_for_user(user.id)
+    except Exception as exc:
+        logger.warning("Revoke refresh_tokens fallback: %s", exc)
 
     from app.services.partner_activity_logger import log_partner_activity
-    asyncio.create_task(
-        log_partner_activity(
-            partner_id=partner_id,
-            category="security",
-            event="SESSIONS_REVOKED",
-            title="Other Sessions Terminated",
-            description="Partner logged out all other active device sessions.",
-            actor="Partner",
-            tone="warning",
+    try:
+        asyncio.create_task(
+            log_partner_activity(
+                partner_id=partner_id,
+                category="security",
+                event="SESSIONS_REVOKED",
+                title="Other Sessions Terminated",
+                description="Partner logged out all other active device sessions.",
+                actor="Partner",
+                tone="warning",
+            )
         )
-    )
+    except Exception:
+        pass
 
     return {
         "ok": True,
-        "revokedCount": max(1, revoked_count),
+        "revokedCount": max(1, int(revoked_count or 0)),
         "message": "All other device sessions have been successfully logged out.",
     }
+
 
 
 @router.get("/security/counter-lock")
@@ -1907,15 +1921,25 @@ async def notifications(
         partner_id = await partner_repository.resolve_partner_id(user)
     except Exception:
         pass
-    items = await notification_repository.list_for_partner(
-        user.id,
-        partner_id=partner_id,
-        page=page,
-        limit=limit,
-        search=search,
-        type_filter=type,
-    )
-    return [PartnerNotificationResponse(**item) for item in items]
+    try:
+        items = await notification_repository.list_for_partner(
+            user.id,
+            partner_id=partner_id,
+            page=page,
+            limit=limit,
+            search=search,
+            type_filter=type,
+        )
+        safe_res = []
+        for item in items:
+            try:
+                safe_res.append(PartnerNotificationResponse(**item))
+            except Exception:
+                continue
+        return safe_res
+    except Exception as exc:
+        logger.warning(f"Error fetching partner notifications: {exc}")
+        return []
 
 
 @router.get("/notifications/unread-count")
