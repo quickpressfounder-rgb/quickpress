@@ -150,9 +150,40 @@ export function PartnerReviewsScreen() {
       title="Customer Reviews & Ratings"
       subtitle="Public feedback, star ratings, and store responses"
     >
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-8 md:py-6 space-y-6">
-        {/* Top Header Card */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+      {/* Mobile Top App Bar (< md) */}
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 md:hidden">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => navigate({ to: partnerRoutes.shop })}
+            className="flex size-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-800 active:scale-95 transition"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <div>
+            <h1 className="text-base font-black text-black">Reviews &amp; Ratings</h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+            <Star className="size-3 fill-emerald-600 text-emerald-600" />
+            <span>{stats.averageRating}</span>
+          </span>
+          <button
+            type="button"
+            onClick={loadData}
+            className="flex size-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-700 active:scale-95 transition"
+            title="Refresh"
+          >
+            <RotateCcw className="size-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-7xl px-4 py-3.5 md:px-8 md:py-6 space-y-4 md:space-y-6">
+        {/* Desktop Header Card (>= md) */}
+        <div className="hidden md:flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs">
           <div className="flex items-center gap-3.5">
             <button
               type="button"
@@ -190,10 +221,75 @@ export function PartnerReviewsScreen() {
           </div>
         </div>
 
-        {/* 1. Rating Analytics Summary (Zomato Merchant Layout) */}
-        <div className="grid gap-5 md:grid-cols-3">
+        {/* 1. Mobile Compact Combined Scorecard (< md) */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs space-y-3 md:hidden">
+          <div className="flex items-center justify-between gap-4">
+            {/* Score & Stars */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                Store Rating
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-black">{stats.averageRating}</span>
+                <div className="flex items-center gap-0.5 text-amber-500">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className={`size-3.5 ${
+                        s <= Math.round(stats.averageRating)
+                          ? "fill-amber-400 text-amber-500"
+                          : "fill-zinc-100 text-zinc-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="text-[11px] font-semibold text-zinc-500">
+                {stats.totalReviews} verified reviews · <span className="text-emerald-700 font-bold">{stats.responseRate}% replied</span>
+              </p>
+            </div>
+
+            {/* Compact Distribution Bars */}
+            <div className="w-36 space-y-1">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = (stats.breakdown as any)[star] || 0;
+                const percent = stats.totalReviews > 0 ? Math.round((count / stats.totalReviews) * 100) : 0;
+                return (
+                  <div key={star} className="flex items-center gap-1.5 text-[10px]">
+                    <span className="w-3 font-bold text-zinc-600">{star}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-400"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <span className="w-5 text-right font-medium text-zinc-400">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {stats.highlights.length > 0 && (
+            <div className="pt-2 border-t border-zinc-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {stats.highlights.map((h) => (
+                <span
+                  key={h.tag}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-800"
+                >
+                  <Sparkles className="size-2.5 text-amber-500" />
+                  <span>{h.tag}</span>
+                  <span className="text-zinc-400 text-[9px]">({h.count})</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 1. Desktop Rating Analytics Summary (>= md) */}
+        <div className="hidden md:grid gap-5 md:grid-cols-3">
           {/* Average Rating Card */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                 Overall Store Rating
@@ -229,7 +325,7 @@ export function PartnerReviewsScreen() {
           </div>
 
           {/* Star Breakdown Progress Bars */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs space-y-2">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs space-y-2">
             <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
               Rating Distribution
             </span>
@@ -258,7 +354,7 @@ export function PartnerReviewsScreen() {
           </div>
 
           {/* Customer Sentiment Highlights */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                 Customer Sentiments &amp; Badges
@@ -288,27 +384,27 @@ export function PartnerReviewsScreen() {
           </div>
         </div>
 
-        {/* 2. Filter Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs">
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* 2. Filter Bar (Responsive Ribbon & Search) */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-2xs space-y-2.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             {/* Status Tabs */}
             <button
               type="button"
               onClick={() => setReplyFilter("all")}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+              className={`rounded-full px-3 py-1.5 text-xs font-black transition-all cursor-pointer shrink-0 ${
                 replyFilter === "all"
-                  ? "bg-zinc-950 text-white shadow-2xs"
+                  ? "bg-black text-white shadow-xs"
                   : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
               }`}
             >
-              All Reviews ({reviews.length})
+              All ({reviews.length})
             </button>
             <button
               type="button"
               onClick={() => setReplyFilter("pending")}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black transition-all cursor-pointer shrink-0 ${
                 replyFilter === "pending"
-                  ? "bg-amber-600 text-white shadow-2xs"
+                  ? "bg-amber-600 text-white shadow-xs"
                   : "bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
               }`}
             >
@@ -322,54 +418,53 @@ export function PartnerReviewsScreen() {
             <button
               type="button"
               onClick={() => setReplyFilter("replied")}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+              className={`rounded-full px-3 py-1.5 text-xs font-black transition-all cursor-pointer shrink-0 ${
                 replyFilter === "replied"
-                  ? "bg-emerald-600 text-white shadow-2xs"
+                  ? "bg-emerald-600 text-white shadow-xs"
                   : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
               }`}
             >
               Replied ({reviews.length - pendingReplyCount})
             </button>
 
-            <span className="text-zinc-300 hidden sm:inline">|</span>
+            <span className="text-zinc-200">|</span>
 
             {/* Star Filters */}
-            <div className="flex items-center gap-1 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setSelectedRating("all")}
+              className={`rounded-full px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                selectedRating === "all" ? "bg-zinc-800 text-white" : "text-zinc-600 hover:bg-zinc-100"
+              }`}
+            >
+              All Stars
+            </button>
+            {[5, 4, 3, 2, 1].map((st) => (
               <button
+                key={st}
                 type="button"
-                onClick={() => setSelectedRating("all")}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                  selectedRating === "all" ? "bg-zinc-800 text-white" : "text-zinc-600 hover:bg-zinc-100"
+                onClick={() => setSelectedRating(st)}
+                className={`inline-flex items-center gap-0.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                  selectedRating === st
+                    ? "bg-amber-500 text-white"
+                    : "text-zinc-600 hover:bg-zinc-100 border border-zinc-200"
                 }`}
               >
-                All Stars
+                <span>{st}</span>
+                <Star className="size-2.5 fill-current" />
               </button>
-              {[5, 4, 3, 2, 1].map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setSelectedRating(st)}
-                  className={`inline-flex items-center gap-0.5 rounded-lg px-2 py-1 text-xs font-bold transition-all cursor-pointer ${
-                    selectedRating === st
-                      ? "bg-amber-500 text-white"
-                      : "text-zinc-600 hover:bg-zinc-100"
-                  }`}
-                >
-                  <span>{st}</span>
-                  <Star className="size-3 fill-current" />
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
           {/* Search box */}
-          <div className="w-full sm:w-64">
+          <div className="relative w-full">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
-              placeholder="Search by customer, order #..."
+              placeholder="Search reviews by customer name, order #..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none"
+              className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-black focus:bg-white focus:outline-none"
             />
           </div>
         </div>

@@ -27,6 +27,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Custom URL Scheme Deep Links (e.g. com.quickpress.customer://partner/PRT-186660 or quickpress://partner/PRT-186660) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.quickpress.customer" />
+                <data android:scheme="quickpress" />
+            </intent-filter>
+
+            <!-- Universal App Links for Official Domains -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="withquickpress.com" android:pathPrefix="/store" />
+                <data android:scheme="https" android:host="withquickpress.com" android:pathPrefix="/partner" />
+                <data android:scheme="https" android:host="quickpress.online" android:pathPrefix="/store" />
+                <data android:scheme="https" android:host="quickpress.online" android:pathPrefix="/partner" />
+            </intent-filter>
+
         </activity>
 
         <provider

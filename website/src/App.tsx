@@ -18,6 +18,7 @@ import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { ContactPage } from "@/pages/ContactPage";
 import { B2BPartnerPage } from "@/pages/B2BPartnerPage";
+import { StorePage } from "@/pages/StorePage";
 
 // Mobile App Redirection Utility & Assets
 import customerLogo from "@/assets/quickpress-customer-logo.jpg";
@@ -39,6 +40,7 @@ interface ToastState {
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>("home");
+  const [partnerStoreId, setPartnerStoreId] = useState<string>("");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedService, setSelectedService] = useState<ServiceInfo | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: "" });
@@ -51,9 +53,9 @@ export default function App() {
 
   useEffect(() => {
     if (isMobileRedirectActive) {
-      triggerSmartAppRedirect();
+      triggerSmartAppRedirect(partnerStoreId ? `partner/${partnerStoreId}` : undefined);
     }
-  }, [isMobileRedirectActive]);
+  }, [isMobileRedirectActive, partnerStoreId]);
 
   const showToast = (message: string) => {
     setToast({ show: true, message });
@@ -77,6 +79,30 @@ export default function App() {
       const path = window.location.pathname.replace(/^\//, "").toLowerCase();
       const target = hash || path;
 
+      // 1. Detect Direct Store / Partner URLs: e.g. /store/PRT-186660 or /partner/PRT-186660
+      const rawPath = window.location.pathname.replace(/^\/+/, "");
+      const rawHash = window.location.hash.replace(/^#\/?/, "");
+      const storeMatch =
+        rawPath.match(/^(?:store|partner)\/([a-zA-Z0-9_-]+)/i) ||
+        rawHash.match(/^(?:store|partner)\/([a-zA-Z0-9_-]+)/i) ||
+        window.location.search.match(/[?&]partner(?:Id)?=([a-zA-Z0-9_-]+)/i) ||
+        window.location.search.match(/[?&]store(?:Id)?=([a-zA-Z0-9_-]+)/i);
+
+      if (storeMatch && storeMatch[1]) {
+        const id = decodeURIComponent(storeMatch[1]);
+        setPartnerStoreId(id);
+        setCurrentPage("store");
+
+        // Device Check: If opened on mobile phone/tablet, trigger smart deep link into Customer APK!
+        if (isMobileOrTabletDevice() && !shouldBypassRedirect()) {
+          setIsMobileRedirectActive(true);
+          triggerSmartAppRedirect(`partner/${id}`);
+        } else {
+          setIsMobileRedirectActive(false);
+        }
+        return;
+      }
+
       if (target === "b2b" || target === "b2b-partner") {
         setCurrentPage("b2b-partner");
         setIsMobileRedirectActive(false);
@@ -89,6 +115,7 @@ export default function App() {
         "privacy",
         "terms",
         "b2b-partner",
+        "store",
       ];
       if (validPages.includes(target as PageType)) {
         setCurrentPage(target as PageType);
@@ -177,13 +204,15 @@ export default function App() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-emerald-400 text-xs font-mono font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>Opening QuickPress Customer App...</span>
+              <span>{partnerStoreId ? `Opening Store #${partnerStoreId}...` : "Opening QuickPress Customer App..."}</span>
             </div>
             <h2 className="text-2xl font-black text-white tracking-tight">
-              Hyper-local Laundry on Mobile
+              {partnerStoreId ? `Partner Store Hub: ${partnerStoreId}` : "Hyper-local Laundry on Mobile"}
             </h2>
             <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto">
-              If the app is already installed on your device, it will launch automatically. Otherwise, please download QuickPress from the app store.
+              {partnerStoreId
+                ? `Opening store #${partnerStoreId} directly in your QuickPress App. If not installed, please download the app or continue to the web store.`
+                : "If the app is already installed on your device, it will launch automatically. Otherwise, please download QuickPress from the app store."}
             </p>
           </div>
 
@@ -291,6 +320,15 @@ export default function App() {
             <B2BPartnerPage
               onNavigate={navigateTo}
               onOpenModal={handleOpenModal}
+            />
+          )}
+
+          {currentPage === "store" && (
+            <StorePage
+              partnerId={partnerStoreId || "PRT-QUICK"}
+              onOpenModal={handleOpenModal}
+              onShowToast={showToast}
+              onNavigateHome={() => navigateTo("home")}
             />
           )}
         </div>

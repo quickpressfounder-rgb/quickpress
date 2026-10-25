@@ -320,11 +320,11 @@ export function PartnerProfileScreen() {
     }
     return (
       (import.meta.env.VITE_CUSTOMER_URL as string | undefined) ||
-      "https://quickpress-customer.vercel.app"
+      "https://withquickpress.com"
     );
   })();
 
-  const storeCustomerUrl = `${customerBaseUrl}/partner/${encodeURIComponent(partnerId)}`;
+  const storeCustomerUrl = `${customerBaseUrl}/store/${encodeURIComponent(partnerId)}`;
 
   const handleCopyStoreLink = async () => {
     try {

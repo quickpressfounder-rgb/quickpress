@@ -197,9 +197,43 @@ export function PartnerHelpScreen() {
       title="Partner Support & Help Centre"
       subtitle="Order troubleshooting, dedicated helpline, payouts, and ticket management"
     >
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 md:px-8 md:py-6 space-y-6">
-        {/* Top Header Card */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
+      <div className="mx-auto w-full max-w-7xl px-4 py-4 md:px-8 md:py-6 space-y-4 md:space-y-6">
+        {/* Mobile Sticky Top Bar */}
+        <div className="sticky top-0 z-30 -mx-4 -mt-4 mb-3 flex items-center justify-between border-b border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur-md md:hidden">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate({ to: partnerRoutes.orders })}
+              className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 active:scale-95"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+            <div>
+              <h1 className="text-sm font-black text-zinc-950">Help &amp; Support</h1>
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                <span className="text-[10px] font-bold text-emerald-800">24x7 Active Desk</span>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setTicketCategory("other");
+              setTicketOrderCode("");
+              setTicketSubject("");
+              setTicketDescription("");
+              setShowTicketModal(true);
+            }}
+            className="flex items-center gap-1 rounded-xl bg-zinc-950 px-2.5 py-1.5 text-[11px] font-bold text-white shadow-2xs active:scale-95 cursor-pointer"
+          >
+            <Plus className="size-3.5" />
+            <span>Ticket</span>
+          </button>
+        </div>
+
+        {/* Desktop Top Header Card */}
+        <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
           <div className="flex items-center gap-3.5">
             <button
               type="button"
@@ -241,8 +275,46 @@ export function PartnerHelpScreen() {
           </button>
         </div>
 
-        {/* Priority Helpline Quick Strip */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        {/* Mobile Contact Quick Actions (Compact 3-Column Strip) */}
+        <div className="grid grid-cols-3 gap-2 md:hidden">
+          <a
+            href="tel:18008897842"
+            className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white py-2.5 px-1 shadow-2xs active:scale-95 text-center group"
+          >
+            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1">
+              <PhoneCall className="size-4" />
+            </div>
+            <p className="text-[11px] font-black text-zinc-950">Call 1800</p>
+            <p className="text-[9px] text-emerald-700 font-semibold">Toll-Free</p>
+          </a>
+
+          <a
+            href="https://wa.me/919876543210?text=Hi%20QuickPress%20Support,%20I%20need%20help%20with%20my%20partner%20store."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white py-2.5 px-1 shadow-2xs active:scale-95 text-center group"
+          >
+            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1">
+              <MessageSquare className="size-4" />
+            </div>
+            <p className="text-[11px] font-black text-zinc-950">WhatsApp</p>
+            <p className="text-[9px] text-zinc-500 font-semibold">Chat Ops</p>
+          </a>
+
+          <a
+            href="mailto:official.quickpress@gmail.com?subject=Partner%20Support%20Request"
+            className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white py-2.5 px-1 shadow-2xs active:scale-95 text-center group"
+          >
+            <div className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-700 border border-blue-200 mb-1">
+              <Mail className="size-4" />
+            </div>
+            <p className="text-[11px] font-black text-zinc-950">Email</p>
+            <p className="text-[9px] text-zinc-500 font-semibold">Desk</p>
+          </a>
+        </div>
+
+        {/* Priority Helpline Quick Strip (Desktop) */}
+        <div className="hidden md:grid gap-3 sm:grid-cols-3">
           <a
             href="tel:18008897842"
             className="flex items-center gap-3.5 rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs hover:border-zinc-300 transition-all cursor-pointer group"
@@ -293,53 +365,53 @@ export function PartnerHelpScreen() {
           <button
             type="button"
             onClick={() => setActiveTab("order_help")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "order_help"
                 ? "bg-zinc-950 text-white shadow-2xs"
                 : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
             }`}
           >
-            <Package className="size-4" />
-            <span>1. Order-Wise Help</span>
+            <Package className="size-4 shrink-0" />
+            <span>Order Issues</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("general_help")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "general_help"
                 ? "bg-zinc-950 text-white shadow-2xs"
                 : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
             }`}
           >
-            <Store className="size-4" />
-            <span>2. Store &amp; Operational Help</span>
+            <Store className="size-4 shrink-0" />
+            <span>Store Operations</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("tickets")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "tickets"
                 ? "bg-zinc-950 text-white shadow-2xs"
                 : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
             }`}
           >
-            <LifeBuoy className="size-4" />
-            <span>3. Support Tickets ({tickets.length})</span>
+            <LifeBuoy className="size-4 shrink-0" />
+            <span>Tickets ({tickets.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("faqs")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "faqs"
                 ? "bg-zinc-950 text-white shadow-2xs"
                 : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
             }`}
           >
-            <HelpCircle className="size-4" />
-            <span>4. Merchant FAQs &amp; Guidelines</span>
+            <HelpCircle className="size-4 shrink-0" />
+            <span>FAQs &amp; Guides</span>
           </button>
         </div>
 
@@ -347,15 +419,15 @@ export function PartnerHelpScreen() {
         {/* TAB 1: ORDER-WISE HELP                                                    */}
         {/* ========================================================================= */}
         {activeTab === "order_help" && (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Order Selector Card */}
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-zinc-100">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 md:p-5 shadow-2xs space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-100">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-wider text-zinc-950">
+                  <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-zinc-950">
                     Select Order for Instant Resolution
                   </h2>
-                  <p className="text-xs text-zinc-500 font-medium">
+                  <p className="text-[11px] sm:text-xs text-zinc-500 font-medium">
                     Pick an active or past order to troubleshoot customer, delivery, or payout issues directly.
                   </p>
                 </div>
@@ -363,7 +435,7 @@ export function PartnerHelpScreen() {
                   <Link
                     to={partnerRoutes.orderDetails}
                     params={{ orderId: selectedOrder.id }}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-900 hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-900 hover:underline cursor-pointer self-start sm:self-auto"
                   >
                     <span>View Order Details</span>
                     <ArrowRight className="size-3.5" />
@@ -371,62 +443,66 @@ export function PartnerHelpScreen() {
                 )}
               </div>
 
-              {/* Order Selection Pill Row */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-zinc-500">Recent Orders:</span>
-                {orders.slice(0, 6).map((o) => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedOrderCode(o.code);
-                      setSelectedTopic(null);
-                    }}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                      selectedOrderCode === o.code
-                        ? "bg-zinc-950 text-white shadow-2xs"
-                        : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
-                    }`}
-                  >
-                    #{o.code}
-                  </button>
-                ))}
+              {/* Order Selection Pill Row (Horizontal Scroll on Mobile) */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                <span className="text-xs font-bold text-zinc-500 shrink-0">Orders:</span>
+                {orders.length === 0 ? (
+                  <span className="text-xs text-zinc-400 italic">No active orders found</span>
+                ) : (
+                  orders.slice(0, 10).map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrderCode(o.code);
+                        setSelectedTopic(null);
+                      }}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                        selectedOrderCode === o.code
+                          ? "bg-zinc-950 text-white shadow-2xs"
+                          : "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
+                      }`}
+                    >
+                      #{o.code}
+                    </button>
+                  ))
+                )}
               </div>
 
               {/* Selected Order Summary Banner */}
               {selectedOrder ? (
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-sm">
-                      <Package className="size-5" />
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-sm">
+                      <Package className="size-4 sm:size-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-black text-zinc-950">Order #{selectedOrder.code}</span>
-                        <span className="rounded-md bg-white border border-zinc-200 px-2 py-0.2 text-[10px] font-bold text-zinc-700 capitalize">
+                        <span className="rounded-md bg-white border border-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-700 capitalize">
                           {selectedOrder.stage}
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-zinc-500 font-medium mt-0.5">
                         Customer: <strong className="text-zinc-800">{selectedOrder.customerName}</strong> · Bill: <strong className="text-zinc-950">₹{selectedOrder.amount}</strong> · {selectedOrder.services.join(", ")}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t border-zinc-200/60 sm:border-0">
                     {selectedOrder.customerPhone && (
                       <a
                         href={`tel:${selectedOrder.customerPhone.replace(/\s/g, "")}`}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer active:scale-95"
                       >
                         <PhoneCall className="size-3.5 text-emerald-700" />
-                        <span>Call Customer</span>
+                        <span>Call</span>
                       </a>
                     )}
                     <button
                       type="button"
                       onClick={() => handleOpenTicketForOrder()}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-100 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-100 cursor-pointer active:scale-95"
                     >
                       <Plus className="size-3.5" />
                       <span>Raise Ticket</span>

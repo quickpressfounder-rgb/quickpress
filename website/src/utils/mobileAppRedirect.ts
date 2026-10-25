@@ -127,6 +127,28 @@ export function shouldBypassRedirect(): boolean {
 }
 
 /**
+ * Constructs an Android Intent URL for deep linking into the QuickPress Customer app.
+ */
+export function buildAndroidIntentUrl(subpath: string = "home"): string {
+  const cleanPath = subpath.replace(/^\/+/, "");
+  // Web fallback with ?view=web bypass flag
+  const fallbackTarget =
+    cleanPath && cleanPath !== "home"
+      ? `https://withquickpress.com/${cleanPath}?view=web`
+      : `https://play.google.com/store/apps/details?id=com.quickpress.customer`;
+  const encodedFallback = encodeURIComponent(fallbackTarget);
+  return `intent://${cleanPath}#Intent;scheme=com.quickpress.customer;package=com.quickpress.customer;S.browser_fallback_url=${encodedFallback};end`;
+}
+
+/**
+ * Constructs an iOS custom scheme URL for deep linking into the QuickPress Customer app.
+ */
+export function buildIosCustomSchemeUrl(subpath: string = "open"): string {
+  const cleanPath = subpath.replace(/^\/+/, "");
+  return `com.quickpress.customer://${cleanPath}`;
+}
+
+/**
  * Sets session bypass when user explicitly opts to view the desktop website on mobile.
  */
 export function setWebBypass() {
@@ -139,8 +161,9 @@ export function setWebBypass() {
 
 /**
  * Dispatches the smart redirection to the installed app or relevant app store.
+ * @param targetSubpath Optional target deep link (e.g. "partner/PRT-186660" or "store/PRT-186660")
  */
-export function triggerSmartAppRedirect() {
+export function triggerSmartAppRedirect(targetSubpath?: string) {
   if (typeof window === "undefined") return;
   if (shouldBypassRedirect()) return;
 
@@ -149,7 +172,7 @@ export function triggerSmartAppRedirect() {
   if (isApple) {
     // iOS: Try custom scheme, fallback to App Store after delay
     const start = Date.now();
-    window.location.href = IOS_CUSTOM_SCHEME_URL;
+    window.location.href = buildIosCustomSchemeUrl(targetSubpath || "open");
 
     setTimeout(() => {
       // If user is still in the browser after 1500ms, the app wasn't opened
@@ -158,7 +181,7 @@ export function triggerSmartAppRedirect() {
       }
     }, 1500);
   } else {
-    // Android: Use official Android Intent with built-in Play Store fallback
-    window.location.href = ANDROID_INTENT_CUSTOMER_URL;
+    // Android: Use official Android Intent with built-in fallback
+    window.location.href = buildAndroidIntentUrl(targetSubpath || "home");
   }
 }

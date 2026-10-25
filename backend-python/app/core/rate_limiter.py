@@ -99,12 +99,12 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
     """
 
     # Quotas: (max_requests, window_seconds)
-    SUDO_ADMIN_LIMIT = (20, 60)   # 20 requests / minute (Sudo re-auth & sensitive security)
-    AUTH_LIMIT = (100, 60)        # 100 requests / minute (OTP dispatch & login mutations)
-    PAYMENT_LIMIT = (40, 60)      # 40 requests / minute (Payment init, verification, wallet debit)
-    POLLING_LIMIT = (150, 60)     # 150 requests / minute (Rider/Partner live heartbeat)
-    MUTATION_LIMIT = (80, 60)     # 80 requests / minute (General mutating APIs)
-    GLOBAL_LIMIT = (300, 60)      # 300 requests / minute (General read APIs)
+    SUDO_ADMIN_LIMIT = (40, 60)   # 40 requests / minute (Sudo re-auth & sensitive security)
+    AUTH_LIMIT = (120, 60)        # 120 requests / minute (OTP dispatch & login mutations)
+    PAYMENT_LIMIT = (60, 60)      # 60 requests / minute (Payment init, verification, wallet debit)
+    POLLING_LIMIT = (300, 60)     # 300 requests / minute (Rider/Partner live heartbeat)
+    MUTATION_LIMIT = (150, 60)    # 150 requests / minute (General mutating APIs)
+    GLOBAL_LIMIT = (600, 60)      # 600 requests / minute (General read APIs)
 
     async def dispatch(self, request: Request, call_next):
         # 1. Skip preflights, static assets, health probes, and API documentation
@@ -196,7 +196,13 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
             tier_name = "api"
             max_req, win_sec = self.GLOBAL_LIMIT
 
-        rate_key = f"{tier_name}:{client_ip}"
+        auth_hdr = request.headers.get("authorization")
+        if auth_hdr and auth_hdr.startswith("Bearer ") and len(auth_hdr) > 15:
+            # Key authenticated users by their unique token tail to prevent shared reverse-proxy IP throttling
+            token_fingerprint = auth_hdr.strip()[-20:]
+            rate_key = f"{tier_name}:u_{token_fingerprint}"
+        else:
+            rate_key = f"{tier_name}:{client_ip}"
         allowed, remaining, reset_sec = rate_limiter.check_limit_with_info(rate_key, max_req, win_sec)
 
         if not allowed:

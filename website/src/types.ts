@@ -4,7 +4,8 @@ export type PageType =
   | "contact"
   | "privacy"
   | "terms"
-  | "b2b-partner";
+  | "b2b-partner"
+  | "store";
 
 export interface B2BPartnerLead {
   id?: string;

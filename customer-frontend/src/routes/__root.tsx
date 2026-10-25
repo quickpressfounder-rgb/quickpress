@@ -231,6 +231,46 @@ function RootComponent() {
     return startCustomerAutoRefresh();
   }, []);
 
+  // Native Deep Linking Listener (e.g. from Standee QR scan, WhatsApp share link, or Universal link)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let removeListener: (() => void) | undefined;
+
+    import("@capacitor/app")
+      .then(({ App }) => {
+        return App.addListener("appUrlOpen", (event) => {
+          if (!event?.url) return;
+          try {
+            const rawUrl = event.url;
+            const match =
+              rawUrl.match(/(?:store|partner)\/([a-zA-Z0-9_-]+)/i) ||
+              rawUrl.match(/[?&]partner(?:Id)?=([a-zA-Z0-9_-]+)/i);
+            if (match && match[1]) {
+              const partnerId = decodeURIComponent(match[1]);
+              void router.navigate({
+                to: "/partner/$partnerId",
+                params: { partnerId },
+              });
+            }
+          } catch (e) {
+            console.warn("Deep link parse error:", e);
+          }
+        });
+      })
+      .then((handle) => {
+        if (handle) {
+          removeListener = () => {
+            void handle.remove();
+          };
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      if (removeListener) removeListener();
+    };
+  }, [router]);
+
   // Applies the stored Light / Dark / System choice and follows the OS live.
   useEffect(() => initTheme(), []);
 
