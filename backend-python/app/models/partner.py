@@ -58,6 +58,8 @@ class PartnerOrderResponse(BaseModel):
     doorstepPiecesVerified: Optional[bool] = False
     garmentDefects: Optional[List[Dict[str, Any]]] = None
     hasDefectsReported: Optional[bool] = False
+    custodyAudit: Optional[Dict[str, Any]] = None
+    isAddressMasked: Optional[bool] = False
 
 
 class PartnerBagIntakePayload(BaseModel):
@@ -69,8 +71,30 @@ class PartnerBagIntakePayload(BaseModel):
     intakeStatus: str = "verified"
 
 
+class ClosePartnerAccountPayload(BaseModel):
+    pan: str = Field(..., description="10-character registered Business PAN number")
+    dob: str = Field(..., description="Registered Owner Date of Birth (YYYY-MM-DD or DD-MM-YYYY)")
+    reason: Optional[str] = "Store business discontinued"
+    confirmAcknowledge: bool = True
+
+
+class PartnerDeviceSession(BaseModel):
+    id: str
+    deviceName: str = "Store Terminal"
+    browser: str = "Chrome / Web"
+    os: str = "Desktop"
+    ipAddress: str = "127.0.0.1"
+    lastActive: str = ""
+    isCurrent: bool = False
+
+
+class LockSettingsPayload(BaseModel):
+    counterLockMinutes: int = 15
+
+
 class RejectOrderPayload(BaseModel):
     reason: str = ""
+
 
 
 class PartnerProfileResponse(BaseModel):

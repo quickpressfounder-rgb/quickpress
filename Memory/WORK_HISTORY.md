@@ -33,7 +33,41 @@
 
 ## Detailed Log of Work Done Today (25 October 2026)
 
-### 21. Fix: Resolved FastAPI Backend Startup Crash (`NameError: Body in partner.py`) & 502 Bad Gateway
+### 22. Partner Console Security Integration (Points 3, 4, 5) & Account Deletion with Registered PAN + DOB Verification
+- **Architecture & Implementation:**
+  - **Theme Aesthetic:** Strictly adhered to **"THEAM SIMPLE RAKHANA HAI"** (clean, high-contrast, pure white/slate minimalist theme; clean zinc borders, zero cartoonish gradients).
+  - **1. Account Deletion & Permanent Store Closure with PAN + DOB Database Verification:**
+    - **Active Order Guard:** Added strict backend validation querying `customer_orders` for partner. Rejects closure with HTTP 400 if any pending/in-progress orders exist (`placed`, `accepted`, `picked_up`, `at_partner`, `processing`, `ready`, `out_for_delivery`).
+    - **PAN Matching:** Normalizes and strictly matches 10-character uppercase PAN against registered records (`partner_profiles.pan`, `panNumber`, or `panCard`).
+    - **DOB Matching:** Built `normalize_dob` helper supporting `YYYY-MM-DD`, `DD-MM-YYYY`, and `DD/MM/YYYY`. Strictly compares against registered records (`partner_profiles.dob` or `user.dob`).
+    - **De-listing & Session Revocation:** Upon verified match, updates `partner_profiles` (`status: "closed"`, `isStoreOpen: False`, `isLive: False`, `isDeleted: True`, `closedAt`, `deletedAt`), deactivates `stores` record, revokes all user refresh tokens via `refresh_tokens.revoke_all_for_user`, and deactivates the user record.
+    - **Pure White UI Modal:** Replaced mock `setTimeout` dialog in `partner-frontend/src/screens/BusinessSettingsScreen.tsx` with a verified modal featuring uppercase PAN formatting, date picker, reason selector, statutory checkbox, and real-time backend error banner.
+  - **2. Point 3: Login & Device Security:**
+    - **Backend:** Added `@router.get("/security/sessions")`, `@router.post("/security/revoke-others")`, `@router.get("/security/counter-lock")`, and `@router.post("/security/counter-lock")` in `backend-python/app/api/partner.py`.
+    - **Frontend:** Added "Terminal & Session Security" cards to `BusinessSettingsScreen.tsx` (Mobile and Desktop) displaying current active terminal session (`Active Now` pulse, IP, Browser, OS), "Log Out All Other Devices" action, and counter auto-lock timeout selector (5m, 15m, 30m, Off).
+  - **3. Point 4: Physical Garment Custody Proximity & Dispatch Validation:**
+    - **Backend:** In `backend-python/app/services/smart_2ride_engine.py` (`verify_partner_dispatch_otp`), integrated Haversine proximity calculation between delivery captain's live GPS (`rider_locations` / `riders`) and partner store coordinates (`partner_profiles` / `stores`). Records `custodyAudit` (`proximityVerified`, `proximityMeters`, `handshakeType: "GEO_OTP_MUTUAL"`).
+    - **Frontend:** In `partner-frontend/src/screens/OrderDetailsScreen.tsx` (Mobile and Desktop), added the green "Captain Proximity Verified: Inside Store Zone (~XXm)" / double-handshake custody badge to the handover OTP verification box.
+  - **4. Point 5: Customer Privacy Protection (DPDP Compliance):**
+    - **Backend:** In `backend-python/app/core/privacy.py` and `backend-python/app/services/order_lifecycle.py`, implemented `mask_customer_address`. Customer phone masked as `+91 98••• ••210`. Once orders transition to `delivered` or `cancelled`, exact customer flat/doorstep details are masked from store screens while preserving locality, city, and pincode for auditing.
+    - **Frontend:** Added `🔒 DPDP Protected` badge on delivered customer address cards in `OrderDetailsScreen.tsx`.
+- **Modified Files:**
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/core/privacy.py`
+  - `backend-python/app/models/partner.py`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `backend-python/app/services/smart_2ride_engine.py`
+  - `backend-python/tests/test_partner_account_closure_and_security.py`
+  - `partner-frontend/src/api/partner/partner-profile-api.ts`
+  - `partner-frontend/src/screens/BusinessSettingsScreen.tsx`
+  - `partner-frontend/src/screens/OrderDetailsScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `python3 -m py_compile`: PASSED (0 errors).
+  - `pytest` suite (`test_partner_account_closure_and_security.py`, `test_customer_pii_masking.py`, `test_partner_dispatch_otp_enforcement.py`): 11/11 tests PASSED.
+  - `npm --prefix partner-frontend run build`: PASSED (Built cleanly in 3.26s, 0 errors).
+
+
 - **Root Cause Analysis:**
   - When accessing `https://api.withquickpress.com/api/...`, the browser received `502 Bad Gateway` and `CORS policy: No 'Access-Control-Allow-Origin' header is present`.
   - Inspection of Python container startup logs revealed:

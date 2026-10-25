@@ -1,12 +1,18 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
+  AlertCircle,
   ArrowLeft,
   Bike,
+  Calendar,
   ChevronRight,
   Clock3,
+  CreditCard,
   ExternalLink,
   FileText,
   Gauge,
+  KeyRound,
+  Laptop,
+  Lock,
   Mail,
   MapPin,
   Pencil,
@@ -14,12 +20,13 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sliders,
+  Smartphone,
   Timer,
   Trash2,
   Volume2,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { testPartnerSoundAndVibration } from "../lib/partner-order-alert-sound";
 
@@ -28,7 +35,16 @@ import { PartnerLayout } from "../components/layout/PartnerLayout";
 import { PartnerListSkeleton } from "../components/PartnerSkeletons";
 import { usePartnerResource } from "../hooks/use-partner-resource";
 import { partnerRoutes } from "../navigation/partner-routes";
-import { fetchBusinessSettings, updateBusinessSettings } from "@/api/partner/partner-profile-api";
+import {
+  fetchBusinessSettings,
+  updateBusinessSettings,
+  closePartnerAccount,
+  fetchPartnerSecuritySessions,
+  revokeOtherPartnerSessions,
+  fetchPartnerLockSettings,
+  updatePartnerLockSettings,
+  type PartnerSessionItem,
+} from "@/api/partner/partner-profile-api";
 import type { BusinessSettings } from "@/shared/types/partner";
 import { usePartnerContext } from "../context/PartnerContext";
 import { ShopHoursModal } from "../components/shop/ShopHoursModal";
@@ -90,9 +106,127 @@ export function BusinessSettingsScreen() {
   const { data: settings, setData } = usePartnerResource(fetchBusinessSettings);
   const [closeAccountOpen, setCloseAccountOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [panInput, setPanInput] = useState("");
+  const [dobInput, setDobInput] = useState("");
+  const [closureReason, setClosureReason] = useState("Relocating business / Moving store");
+  const [confirmCheck, setConfirmCheck] = useState(false);
+  const [closureError, setClosureError] = useState<string | null>(null);
+
+  // Point 3: Terminal & Login Security State
+  const [sessions, setSessions] = useState<PartnerSessionItem[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingOthers, setRevokingOthers] = useState(false);
+  const [counterLockMinutes, setCounterLockMinutes] = useState(15);
+  const [updatingLock, setUpdatingLock] = useState(false);
+
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
   const [coverageModalOpen, setCoverageModalOpen] = useState(false);
   const [capacityModalOpen, setCapacityModalOpen] = useState(false);
+
+  // Load active sessions and counter lock settings
+  useEffect(() => {
+    let mounted = true;
+    const loadSecurityData = async () => {
+      try {
+        setSessionsLoading(true);
+        const [sessResp, lockResp] = await Promise.all([
+          fetchPartnerSecuritySessions().catch(() => null),
+          fetchPartnerLockSettings().catch(() => null),
+        ]);
+        if (!mounted) return;
+        if (sessResp?.sessions) {
+          setSessions(sessResp.sessions);
+        }
+        if (typeof lockResp?.counterLockMinutes === "number") {
+          setCounterLockMinutes(lockResp.counterLockMinutes);
+        }
+      } finally {
+        if (mounted) setSessionsLoading(false);
+      }
+    };
+    loadSecurityData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleRevokeOtherSessions = async () => {
+    setRevokingOthers(true);
+    try {
+      const res = await revokeOtherPartnerSessions();
+      toast.success(res?.message || "All other active device sessions logged out.");
+      const refreshed = await fetchPartnerSecuritySessions().catch(() => null);
+      if (refreshed?.sessions) setSessions(refreshed.sessions);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to log out other devices.");
+    } finally {
+      setRevokingOthers(false);
+    }
+  };
+
+  const handleSetCounterLock = async (minutes: number) => {
+    setUpdatingLock(true);
+    setCounterLockMinutes(minutes);
+    try {
+      const res = await updatePartnerLockSettings(minutes);
+      toast.success(res?.message || `Counter auto-lock set to ${minutes} mins.`);
+    } catch {
+      toast.error("Failed to update auto-lock setting.");
+    } finally {
+      setUpdatingLock(false);
+    }
+  };
+
+  const handleExecuteAccountClosure = async () => {
+    setClosureError(null);
+    const cleanPan = panInput.replace(/[\s-]/g, "").trim().toUpperCase();
+    const cleanDob = dobInput.trim();
+
+    if (cleanPan.length !== 10) {
+      setClosureError("Please enter your valid 10-character registered Business PAN number.");
+      return;
+    }
+    if (!cleanDob) {
+      setClosureError("Please select/enter your registered Date of Birth (DOB).");
+      return;
+    }
+    if (!confirmCheck) {
+      setClosureError("Please check the confirmation box before proceeding.");
+      return;
+    }
+
+    setClosing(true);
+    try {
+      const res = await closePartnerAccount({
+        pan: cleanPan,
+        dob: cleanDob,
+        reason: closureReason,
+      });
+      toast.success(res?.message || "Store account permanently closed.");
+      setCloseAccountOpen(false);
+
+      // Clear sessions and redirect to auth
+      try {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("qp_token");
+        localStorage.removeItem("quickpress_partner_session");
+        sessionStorage.clear();
+      } catch {
+        // ignore
+      }
+
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 700);
+    } catch (err: any) {
+      const msg = err?.message || err?.detail || "Identity verification failed. PAN or Date of Birth does not match registered record.";
+      setClosureError(msg);
+      toast.error(msg);
+    } finally {
+      setClosing(false);
+    }
+  };
+
 
   // Synchronize effective store open state with global isOnline
   const isStoreEffectivelyOpen = settings !== null && typeof settings?.isStoreOpen === "boolean"
@@ -668,6 +802,70 @@ export function BusinessSettingsScreen() {
                 </div>
               </div>
 
+              {/* Card 4.5: Login & Terminal Security (Point 3) */}
+              <div className="space-y-2">
+                <p className="text-xs font-black uppercase tracking-wider text-zinc-500 px-1">
+                  Terminal & Session Security
+                </p>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs space-y-3.5">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800 border border-zinc-200">
+                        <Laptop className="size-5" />
+                        <span className="absolute -top-1 -right-1 flex size-3">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex size-3 rounded-full bg-emerald-500"></span>
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-black text-zinc-900">This Device (Current Session)</p>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md">
+                            Active Now
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-medium text-zinc-500">
+                          {sessions[0]?.deviceName || "Main Counter Terminal"} · {sessions[0]?.browser || "Chrome / Web"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-zinc-700">Other Active Devices ({Math.max(0, sessions.length - 1)})</span>
+                      <button
+                        type="button"
+                        onClick={handleRevokeOtherSessions}
+                        disabled={revokingOthers}
+                        className="text-xs font-bold text-red-600 hover:text-red-700 underline disabled:opacity-50 cursor-pointer"
+                      >
+                        {revokingOthers ? "Logging out..." : "Log Out All Other Devices"}
+                      </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-zinc-900">Store Counter Auto-Lock</p>
+                        <p className="text-[10px] text-zinc-500">Locks terminal if unattended at counter</p>
+                      </div>
+                      <select
+                        value={counterLockMinutes}
+                        onChange={(e) => handleSetCounterLock(Number(e.target.value))}
+                        disabled={updatingLock}
+                        className="h-8 rounded-lg border border-zinc-200 bg-zinc-50 px-2 text-xs font-bold text-zinc-800 cursor-pointer focus:border-zinc-400"
+                      >
+                        <option value={5}>5 Minutes</option>
+                        <option value={15}>15 Minutes</option>
+                        <option value={30}>30 Minutes</option>
+                        <option value={0}>Disabled</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Card 5: Danger Zone */}
               <div className="space-y-2">
                 <p className="text-xs font-black uppercase tracking-wider text-red-500 px-1">
@@ -1041,6 +1239,75 @@ export function BusinessSettingsScreen() {
               </section>
             </div>
 
+            {/* Point 3: Terminal & Login Security on Desktop */}
+            <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                    <Lock className="size-4" strokeWidth={2.3} />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-zinc-900">Login & Terminal Security</h3>
+                    <p className="text-[10px] text-zinc-500">
+                      Monitor active store sessions and configure unattended laundry counter auto-lock
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRevokeOtherSessions}
+                  disabled={revokingOthers}
+                  className="rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-100/60 px-3.5 py-1.5 text-xs font-bold text-red-600 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {revokingOthers ? "Logging Out..." : "Log Out All Other Devices"}
+                </button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Active Session Info */}
+                <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-zinc-500 uppercase">Current Terminal Session</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active Now
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-zinc-900">
+                    {sessions[0]?.deviceName || "Main Store Counter Terminal"}
+                  </p>
+                  <p className="text-xs text-zinc-600 font-medium">
+                    {sessions[0]?.browser || "Chrome / Web"} · IP: {sessions[0]?.ipAddress || "127.0.0.1"}
+                  </p>
+                </div>
+
+                {/* Counter Auto-Lock */}
+                <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-4 space-y-2">
+                  <span className="text-[11px] font-bold text-zinc-500 uppercase">Store Counter Auto-Lock</span>
+                  <p className="text-xs text-zinc-600 leading-snug">
+                    Automatically lock the partner console when the store counter is unattended.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    {[5, 15, 30, 0].map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => handleSetCounterLock(mins)}
+                        disabled={updatingLock}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                          counterLockMinutes === mins
+                            ? "bg-zinc-900 text-white border-zinc-900 shadow-2xs"
+                            : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-100"
+                        }`}
+                      >
+                        {mins === 0 ? "Off" : `${mins}m`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
             {/* Compliance & Closure on Desktop */}
             <section className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2.5 pb-2 border-b border-zinc-100">
@@ -1108,51 +1375,138 @@ export function BusinessSettingsScreen() {
         )}
       </div>
 
-      {/* Account Closure Confirmation Dialog */}
+      {/* Account Closure Confirmation Dialog with Strict PAN & DOB Matching */}
       {closeAccountOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-zinc-200 text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <span className="mx-auto flex size-14 items-center justify-center rounded-3xl bg-red-100 text-red-600 ring-8 ring-red-50">
-              <Trash2 className="size-6" />
-            </span>
-            <div className="space-y-1">
-              <h3 className="text-base font-black text-zinc-900">Request Store Account Closure?</h3>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                Closing your store account will pause all incoming laundry orders and initiate permanent partner merchant de-listing.
-              </p>
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-zinc-200 text-left space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600 ring-4 ring-red-50">
+                <Trash2 className="size-6" />
+              </span>
+              <div className="space-y-0.5">
+                <h3 className="text-base font-black text-zinc-950">Store Account Deletion &amp; De-listing</h3>
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Permanently close and remove your store from the QuickPress merchant network.
+                </p>
+              </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-600 text-left leading-relaxed">
-              ⚖️ <strong>Statutory Notice:</strong> Data retention policies apply for past completed tax transactions, compliance records, and active partner settlements.
+            {/* Statutory Compliance Notice */}
+            <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-600 leading-relaxed">
+              ⚠️ <strong>Mandatory Security Verification:</strong> Under QuickPress Partner Guidelines, account closure requires verifying your registered <strong>Business PAN Card</strong> and <strong>Owner Date of Birth (DOB)</strong> against database records. All active/pending orders must be delivered or settled first.
             </div>
 
+            {/* Error Banner */}
+            {closureError ? (
+              <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 animate-in fade-in">
+                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                <div className="flex-1 leading-snug">{closureError}</div>
+              </div>
+            ) : null}
+
+            {/* Form Fields */}
+            <div className="space-y-4">
+              {/* PAN Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-zinc-700">
+                  Registered Business PAN Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    maxLength={10}
+                    value={panInput}
+                    onChange={(e) => {
+                      setPanInput(e.target.value.toUpperCase());
+                      if (closureError) setClosureError(null);
+                    }}
+                    placeholder="e.g. ABCDE1234F"
+                    className="w-full h-11 pl-10 pr-3.5 rounded-2xl border border-zinc-200 bg-white text-xs font-mono font-bold tracking-wider text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none uppercase"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500">10-character Income Tax PAN registered during store onboarding</p>
+              </div>
+
+              {/* DOB Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-zinc-700">
+                  Registered Owner Date of Birth (DOB) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                  <input
+                    type="date"
+                    value={dobInput}
+                    onChange={(e) => {
+                      setDobInput(e.target.value);
+                      if (closureError) setClosureError(null);
+                    }}
+                    className="w-full h-11 pl-10 pr-3.5 rounded-2xl border border-zinc-200 bg-white text-xs font-bold text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none cursor-pointer"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500">Must match registered merchant Aadhaar / KYC record</p>
+              </div>
+
+              {/* Reason Selection */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-zinc-700">
+                  Reason for Account Closure
+                </label>
+                <select
+                  value={closureReason}
+                  onChange={(e) => setClosureReason(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-2xl border border-zinc-200 bg-white text-xs font-bold text-zinc-900 focus:border-zinc-900 focus:outline-none cursor-pointer"
+                >
+                  <option value="Relocating business / Moving store">Relocating business / Moving store</option>
+                  <option value="Operational hiatus / Taking a break">Operational hiatus / Taking a break</option>
+                  <option value="Switching business model">Switching business model</option>
+                  <option value="Personal reasons">Personal reasons</option>
+                  <option value="Other reasons">Other reasons</option>
+                </select>
+              </div>
+
+              {/* Statutory Confirmation Checkbox */}
+              <label className="flex items-start gap-3 p-3 rounded-2xl border border-zinc-200 bg-zinc-50/50 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={confirmCheck}
+                  onChange={(e) => setConfirmCheck(e.target.checked)}
+                  className="size-4 mt-0.5 rounded border-zinc-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                />
+                <span className="text-xs font-medium text-zinc-700 leading-relaxed">
+                  I verify that I am the registered store owner. I understand that once verified, this store will be permanently de-listed, all login sessions will be purged, and outstanding customer orders must be 0.
+                </span>
+              </label>
+            </div>
+
+            {/* Modal Actions */}
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setCloseAccountOpen(false)}
-                className="flex-1 h-11 rounded-2xl border border-zinc-200 bg-white text-xs font-bold text-zinc-700 hover:bg-zinc-100 active:scale-[0.97] transition-all cursor-pointer"
+                onClick={() => {
+                  setCloseAccountOpen(false);
+                  setClosureError(null);
+                }}
+                disabled={closing}
+                className="flex-1 h-11 rounded-2xl border border-zinc-200 bg-white text-xs font-bold text-zinc-700 hover:bg-zinc-100 active:scale-[0.98] transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setClosing(true);
-                  setTimeout(() => {
-                    setClosing(false);
-                    setCloseAccountOpen(false);
-                    toast.success("Account closure request submitted to partner operations.");
-                  }, 1200);
-                }}
-                disabled={closing}
-                className="flex-1 h-11 rounded-2xl bg-red-600 text-xs font-black text-white hover:bg-red-700 active:scale-[0.97] transition-all cursor-pointer disabled:opacity-50"
+                onClick={handleExecuteAccountClosure}
+                disabled={closing || !panInput || !dobInput || !confirmCheck}
+                className="flex-1 h-11 rounded-2xl bg-red-600 text-xs font-black text-white hover:bg-red-700 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
               >
-                {closing ? "Submitting..." : "Submit Request"}
+                {closing ? "Verifying & Closing..." : "Verify & Close Store"}
               </button>
             </div>
           </div>
         </div>
       ) : null}
+
 
       {/* 1. Operating Hours & Weekly Off Modal */}
       {settings && hoursModalOpen ? (

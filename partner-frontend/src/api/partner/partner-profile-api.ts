@@ -269,3 +269,47 @@ export async function toggleStoreStatus(isOnline: boolean, signal?: AbortSignal)
 export async function requestPartnerWithdraw(amount: number): Promise<{ balance: number }> {
   return apiPostJson<{ balance: number }>("/api/partner/withdraw", { amount });
 }
+
+export interface PartnerSessionItem {
+  id: string;
+  deviceName: string;
+  browser: string;
+  os: string;
+  ipAddress: string;
+  lastActive: string;
+  isCurrent: boolean;
+}
+
+export interface PartnerSessionsResponse {
+  ok: boolean;
+  currentSession: PartnerSessionItem;
+  sessions: PartnerSessionItem[];
+  totalDevices: number;
+}
+
+export interface ClosePartnerAccountPayload {
+  pan: string;
+  dob: string;
+  reason?: string;
+}
+
+export async function closePartnerAccount(data: ClosePartnerAccountPayload): Promise<{ ok: boolean; message: string }> {
+  return apiPostJson<{ ok: boolean; message: string }>("/api/partner/account/close", data);
+}
+
+export async function fetchPartnerSecuritySessions(): Promise<PartnerSessionsResponse> {
+  return apiGetJson<PartnerSessionsResponse>("/api/partner/security/sessions");
+}
+
+export async function revokeOtherPartnerSessions(): Promise<{ ok: boolean; revokedCount: number; message: string }> {
+  return apiPostJson<{ ok: boolean; revokedCount: number; message: string }>("/api/partner/security/revoke-others");
+}
+
+export async function fetchPartnerLockSettings(): Promise<{ ok: boolean; counterLockMinutes: number }> {
+  return apiGetJson<{ ok: boolean; counterLockMinutes: number }>("/api/partner/security/counter-lock");
+}
+
+export async function updatePartnerLockSettings(counterLockMinutes: number): Promise<{ ok: boolean; counterLockMinutes: number; message: string }> {
+  return apiPostJson<{ ok: boolean; counterLockMinutes: number; message: string }>("/api/partner/security/counter-lock", { counterLockMinutes });
+}
+

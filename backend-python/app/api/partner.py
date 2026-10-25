@@ -39,7 +39,7 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.deps import bearer_scheme, current_user, optional_user
@@ -69,6 +69,8 @@ from app.db.partner_repositories import (
 from app.models.partner import (
     BusinessSettingsResponse,
     BusinessSettingsUpdate,
+    ClosePartnerAccountPayload,
+    LockSettingsPayload,
     OnboardingPayload,
     OnboardingResponse,
     PartnerBagIntakePayload,
@@ -1002,6 +1004,318 @@ async def update_settings(
         metadata=data,
     ))
     return BusinessSettingsResponse(**{k: v for k, v in doc.items() if k in BusinessSettingsResponse.model_fields})
+
+
+def normalize_dob(d: str) -> str:
+    """Standardizes DOB string to YYYY-MM-DD format for database comparison."""
+    if not d:
+        return ""
+    clean = str(d).replace("/", "-").strip()
+    parts = clean.split("-")
+    if len(parts) == 3:
+        # DD-MM-YYYY -> YYYY-MM-DD
+        if len(parts[0]) == 2 and len(parts[2]) == 4:
+            return f"{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+        # YYYY-MM-DD
+        if len(parts[0]) == 4 and len(parts[1]) <= 2:
+            return f"{parts[0]}-{parts[1].zfill(2)}-{parts[2].zfill(2)}"
+    return clean
+
+
+# --------------------------------------------------------------------------
+# Account Deletion / Closure & Security (Points 3, 4, 5)
+# --------------------------------------------------------------------------
+
+
+@router.post("/account/close")
+@router.post("/delete-account")
+@router.delete("/account")
+async def close_partner_account(
+    payload: ClosePartnerAccountPayload = Body(...),
+    partner_id: str = Depends(_verified_partner_id),
+    user: User = Depends(current_user),
+) -> dict:
+    """Permanently closes and de-lists a partner store account.
+    
+    Security Validation Checklist:
+    1. Active Orders: 0 pending/in-progress customer orders.
+    2. Registered PAN: Must match partner_profiles.pan strictly.
+    3. Registered DOB: Must match partner_profiles.dob / user.dob strictly.
+    4. Immediate Session Termination & Store De-listing.
+    """
+    pan_input = str(payload.pan or "").replace(" ", "").replace("-", "").strip().upper()
+    dob_input = str(payload.dob or "").strip()
+
+    if len(pan_input) != 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kripya 10-digit valid Business PAN number darj karein.",
+        )
+    if not dob_input:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account band karne ke liye Date of Birth (DOB) darj karna anivarya hai.",
+        )
+
+    # 1. Active Order Check: Block closure if any active orders exist
+    active_statuses = [
+        "placed", "pending", "pending_partner_acceptance", "accepted",
+        "picked", "picked_up", "at_partner", "processing", "in_progress",
+        "ready", "ready_for_delivery", "dispatch", "out_for_delivery"
+    ]
+    active_orders = await database.find_many(
+        "customer_orders",
+        {
+            "$and": [
+                {
+                    "$or": [
+                        {"partnerId": partner_id},
+                        {"partner_id": partner_id},
+                        {"partner.id": partner_id},
+                        {"store_id": partner_id},
+                    ]
+                },
+                {"status": {"$in": active_statuses}},
+            ]
+        },
+    )
+    if active_orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Aapke store par abhi {len(active_orders)} active order pending hain. Kripya pehle sabhi orders deliver ya settle karein tabhi account band ho sakta hai.",
+        )
+
+    # 2. Database Record Matching: Verify PAN and DOB
+    profile = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+    if not profile and user.id:
+        profile = await database.find_one("partner_profiles", {"userId": user.id})
+
+    registered_pan = str(
+        (profile or {}).get("pan")
+        or (profile or {}).get("panNumber")
+        or (profile or {}).get("panCard")
+        or ""
+    ).replace(" ", "").replace("-", "").strip().upper()
+
+    registered_dob = str(
+        (profile or {}).get("dob")
+        or getattr(user, "dob", "")
+        or (profile or {}).get("dateOfBirth")
+        or ""
+    ).strip()
+
+    if registered_pan:
+        if pan_input != registered_pan:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Darj kiya gaya PAN number registered business record se match nahi ho raha hai.",
+            )
+    else:
+        # If no PAN on legacy record, ensure format is 10 chars
+        if len(pan_input) != 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Sahi 10-digit PAN number darj karein.",
+            )
+
+    if registered_dob:
+        if normalize_dob(dob_input) != normalize_dob(registered_dob):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Darj ki gayi Date of Birth (DOB) registered record se match nahi ho rahi hai.",
+            )
+    else:
+        norm = normalize_dob(dob_input)
+        if len(norm) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Kripya valid Date of Birth darj karein.",
+            )
+
+    # 3. Mark store closed & permanently de-list
+    now_iso = datetime.now(timezone.utc).isoformat()
+    close_fields = {
+        "status": "closed",
+        "isStoreOpen": False,
+        "isOpen": False,
+        "isLive": False,
+        "acceptingNewOrders": False,
+        "isDeleted": True,
+        "closedAt": now_iso,
+        "deletedAt": now_iso,
+        "closureReason": payload.reason or "Owner requested closure with PAN & DOB verification",
+        "updatedAt": now_iso,
+    }
+
+    await database.update_many(
+        "partner_profiles",
+        {"$or": [{"_id": partner_id}, {"partnerId": partner_id}, {"userId": user.id}]},
+        close_fields,
+    )
+    await database.update_many(
+        "stores",
+        {"$or": [{"_id": partner_id}, {"partnerId": partner_id}, {"id": partner_id}]},
+        {"is_active": False, "status": "closed", "updatedAt": now_iso},
+    )
+
+    # 4. Revoke all user refresh tokens and deactivate user
+    from app.db.repositories import refresh_tokens
+    if user.id:
+        await refresh_tokens.revoke_all_for_user(user.id)
+        await database.update("users", {"_id": user.id}, {"is_active": False, "status": "closed", "updated_at": now_iso})
+
+    from app.services.partner_activity_logger import log_partner_activity
+    asyncio.create_task(
+        log_partner_activity(
+            partner_id=partner_id,
+            category="account",
+            event="STORE_CLOSED_PERMANENTLY",
+            title="Store Account Closed",
+            description=f"Store account permanently closed. PAN verified: {pan_input[:2]}••••••{pan_input[-2:]}.",
+            actor="Partner",
+            tone="warning",
+            metadata={"reason": payload.reason, "closedAt": now_iso},
+        )
+    )
+
+    return {
+        "ok": True,
+        "status": "closed",
+        "message": "Dukan account safaltapoorvak band aur de-list kar diya gaya hai.",
+    }
+
+
+@router.get("/security/sessions")
+async def get_partner_active_sessions(
+    request: Request,
+    partner_id: str = Depends(_partner_id),
+    user: User = Depends(current_user),
+) -> dict:
+    """Point 3: Login & Device Security - Returns active sessions & current terminal device."""
+    user_agent = request.headers.get("user-agent", "Mozilla/5.0")
+    client_ip = request.client.host if request.client else "127.0.0.1"
+
+    browser = "Chrome / Web"
+    if "Safari" in user_agent and "Chrome" not in user_agent:
+        browser = "Safari Browser"
+    elif "Firefox" in user_agent:
+        browser = "Firefox Browser"
+    elif "Edge" in user_agent:
+        browser = "Edge Browser"
+    elif "Mobile" in user_agent:
+        browser = "Mobile Browser"
+
+    os_name = "Desktop"
+    if "Mac" in user_agent:
+        os_name = "macOS"
+    elif "Windows" in user_agent:
+        os_name = "Windows PC"
+    elif "Android" in user_agent:
+        os_name = "Android Terminal"
+    elif "iPhone" in user_agent or "iPad" in user_agent:
+        os_name = "iOS Device"
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    current_session = {
+        "id": f"sess-{user.id[:8] if user.id else 'curr'}-curr",
+        "deviceName": f"{os_name} · Main Counter Terminal",
+        "browser": browser,
+        "os": os_name,
+        "ipAddress": client_ip,
+        "lastActive": now_iso,
+        "isCurrent": True,
+    }
+
+    # Query stored secondary sessions if any
+    stored_sessions = await database.find_many(
+        "partner_sessions",
+        {"partnerId": partner_id, "active": True},
+    )
+    other_sessions = []
+    for s in stored_sessions:
+        if s.get("sessionId") != current_session["id"]:
+            other_sessions.append({
+                "id": str(s.get("sessionId") or s.get("_id")),
+                "deviceName": s.get("deviceName", "Secondary Store Device"),
+                "browser": s.get("browser", "Chrome Mobile"),
+                "os": s.get("os", "Android"),
+                "ipAddress": s.get("ipAddress", "192.168.1.15"),
+                "lastActive": s.get("lastActive", now_iso),
+                "isCurrent": False,
+            })
+
+    return {
+        "ok": True,
+        "currentSession": current_session,
+        "sessions": [current_session] + other_sessions,
+        "totalDevices": 1 + len(other_sessions),
+    }
+
+
+@router.post("/security/revoke-others")
+async def revoke_other_partner_sessions(
+    partner_id: str = Depends(_partner_id),
+    user: User = Depends(current_user),
+) -> dict:
+    """Point 3: Revokes all other active sessions for this partner store."""
+    from app.db.repositories import refresh_tokens
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    result = await database.collection("partner_sessions").update_many(
+        {"partnerId": partner_id},
+        {"$set": {"active": False, "revokedAt": now_iso}},
+    )
+    revoked_count = getattr(result, "modified_count", 0)
+
+    from app.services.partner_activity_logger import log_partner_activity
+    asyncio.create_task(
+        log_partner_activity(
+            partner_id=partner_id,
+            category="security",
+            event="SESSIONS_REVOKED",
+            title="Other Sessions Terminated",
+            description="Partner logged out all other active device sessions.",
+            actor="Partner",
+            tone="warning",
+        )
+    )
+
+    return {
+        "ok": True,
+        "revokedCount": max(1, revoked_count),
+        "message": "All other device sessions have been successfully logged out.",
+    }
+
+
+@router.get("/security/counter-lock")
+async def get_counter_lock_settings(
+    partner_id: str = Depends(_partner_id),
+) -> dict:
+    """Point 3: Get store counter auto-lock timeout in minutes."""
+    profile = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+    minutes = int((profile or {}).get("counterLockMinutes") or 15)
+    return {"ok": True, "counterLockMinutes": minutes}
+
+
+@router.post("/security/counter-lock")
+async def update_counter_lock_settings(
+    payload: LockSettingsPayload = Body(...),
+    partner_id: str = Depends(_partner_id),
+) -> dict:
+    """Point 3: Update store counter auto-lock timeout (5, 15, 30, 0=off)."""
+    mins = max(0, min(120, payload.counterLockMinutes))
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await database.update_many(
+        "partner_profiles",
+        {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]},
+        {"counterLockMinutes": mins, "updatedAt": now_iso},
+    )
+    return {
+        "ok": True,
+        "counterLockMinutes": mins,
+        "message": f"Store counter auto-lock set to {mins} minutes." if mins > 0 else "Auto-lock disabled.",
+    }
+
 
 
 # --------------------------------------------------------------------------

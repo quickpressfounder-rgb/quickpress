@@ -38,7 +38,8 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 from app.db.client import database
-from app.core.privacy import mask_phone
+from app.core.privacy import mask_phone, mask_customer_address
+
 
 ORDERS = "customer_orders"
 EVENTS = "order_events"
@@ -1089,9 +1090,12 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
     if grand_total is None or grand_total == 0:
         grand_total = order.get("pricing", {}).get("finalTotal") or order.get("total_amount") or order.get("amount") or 0
     
+    is_completed_or_cancelled = status in (DELIVERED, CANCELLED, "delivered", "cancelled")
     address_str = _address_line(addr) if isinstance(addr, dict) else str(addr or order.get("pickup_address") or "")
     if not address_str and isinstance(addr, dict):
         address_str = addr.get("line") or addr.get("city") or "Doorstep Address"
+    if is_completed_or_cancelled:
+        address_str = mask_customer_address(addr if isinstance(addr, dict) and addr else address_str, is_delivered=True)
 
     # Partner is shown Dispatch OTP only when order is ready / dispatch pending
     dispatch_otp_val = (order.get("otp") or {}).get("dispatch")
@@ -1180,7 +1184,10 @@ def to_partner_order(order: Dict[str, Any]) -> Dict[str, Any]:
         "bagTag": order.get("bagTag") or ((order.get("garmentVerification") or {}).get("doorstepPickup") or {}).get("bagTag"),
         "garmentVerification": order.get("garmentVerification") or {},
         "doorstepPiecesVerified": bool(order.get("doorstepPiecesVerified") or ((order.get("garmentVerification") or {}).get("doorstepPickup") or {}).get("verified")),
+        "custodyAudit": order.get("custodyAudit"),
+        "isAddressMasked": is_completed_or_cancelled,
     }
+
 
 
 def to_rider_delivery(order: Dict[str, Any]) -> Dict[str, Any]:

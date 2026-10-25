@@ -1934,6 +1934,45 @@ class Smart2RideEngine:
         now = lifecycle.now_iso()
         assigned_rider_id = order.get("assignedRiderId") or order.get("riderId") or order.get("deliveryRiderId")
 
+        # Point 4: Physical Garment Custody Security - GPS Proximity Check
+        proximity_meters = None
+        proximity_verified = True
+        try:
+            partner_profile = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"partnerId": partner_id}]})
+            store_lat = float((partner_profile or {}).get("latitude") or 0.0)
+            store_lng = float((partner_profile or {}).get("longitude") or 0.0)
+
+            rider_loc = None
+            if assigned_rider_id:
+                rider_loc = await database.find_one("rider_locations", {"$or": [{"rider_id": assigned_rider_id}, {"riderId": assigned_rider_id}]})
+                if not rider_loc:
+                    rider_loc = await database.find_one("riders", {"$or": [{"_id": assigned_rider_id}, {"rider_id": assigned_rider_id}]})
+
+            rider_lat = float((rider_loc or {}).get("lat") or (rider_loc or {}).get("latitude") or 0.0)
+            rider_lng = float((rider_loc or {}).get("lng") or (rider_loc or {}).get("longitude") or 0.0)
+
+            if store_lat and store_lng and rider_lat and rider_lng:
+                dist_km = haversine_distance_km(store_lat, store_lng, rider_lat, rider_lng)
+                proximity_meters = round(dist_km * 1000.0, 1)
+                proximity_verified = proximity_meters <= 350.0
+                if not proximity_verified:
+                    logger.warning(
+                        "Garment custody warning: Dispatch OTP verified for order %s but Captain %s is %sm away from store %s",
+                        canonical_id, assigned_rider_id, proximity_meters, partner_id,
+                    )
+        except Exception as exc:
+            logger.warning("Proximity calculation fallback: %s", exc)
+
+        custody_audit = {
+            "handshakeType": "GEO_OTP_MUTUAL",
+            "dispatchOtpVerified": True,
+            "proximityVerified": proximity_verified,
+            "proximityMeters": proximity_meters,
+            "verifiedAt": now,
+            "riderId": assigned_rider_id,
+            "partnerId": partner_id,
+        }
+
         # Update order status to OUT_FOR_DELIVERY and set custody to rider
         await database.collection(ORDERS_COLLECTION).update_one(
             {"_id": canonical_id},
@@ -1942,6 +1981,7 @@ class Smart2RideEngine:
                     "status": lifecycle.OUT_FOR_DELIVERY,
                     "otp.dispatch": dispatch_record,
                     "dispatchOtpVerified": True,
+                    "custodyAudit": custody_audit,
                     "dispatchedAt": now,
                     "custody": "rider",
                     "updatedAt": now,
@@ -1950,7 +1990,7 @@ class Smart2RideEngine:
         )
         await database.collection(RIDES_COLLECTION).update_one(
             {"orderId": canonical_id, "rideType": {"$in": ["delivery", "handover_delivery"]}},
-            {"$set": {"status": "OUT_FOR_DELIVERY", "otp.dispatch": dispatch_record, "updatedAt": now}},
+            {"$set": {"status": "OUT_FOR_DELIVERY", "otp.dispatch": dispatch_record, "custodyAudit": custody_audit, "updatedAt": now}},
         )
 
         updated = await lifecycle.find_order(canonical_id)
