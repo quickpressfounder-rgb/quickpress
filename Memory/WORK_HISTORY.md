@@ -33,6 +33,26 @@
 
 ## Detailed Log of Work Done Today (25 October 2026)
 
+### 8. Rider Smart Route Batching & Doorstep Garment Intake with Bag Seal Verification & Milestone Advancement
+- **Feature Additions:**
+  1. *Doorstep Garment Intake & Bag Seal Tag*: Added `RiderDoorstepPickupCard` to `GoToPickupHUD.tsx` during customer pickup. Enables captains to verify garment piece counts, flag discrepancies, assign a tamper-proof bag seal tag (`QP-BAG-xxxx`), upload photo proof, and record notes before customer OTP verification.
+  2. *OTP Hook Integration*: Updated `smart_2ride_engine.py` and `/api/rider/orders/{order_id}/confirm-doorstep-pickup` to store `garmentVerification.doorstepPickup` and `bagTag` in both `customer_orders` and `rides` collections.
+  3. *Smart Route Batching & Bike Inventory*: Implemented `smart_batch_route_service.py` and `SmartRouteBatchModal.tsx`, providing riders a single-tap overview of their active pickup and dropoff chain sequenced optimally by road distance, alongside a live on-bike cargo/bag seal manifest.
+  4. *Multi-Role Referral Milestone Advancement*: Hardened `referral_repositories.py` to auto-detect both prefixed `RDR-` and un-prefixed rider IDs on order completion, reliably advancing referral milestones for referred riders and partners.
+  5. *Minimal Theme Constraint*: Maintained pure white, subtle zinc border, high-contrast, minimalist UI without cartoonish gradients.
+
+- **Modified Files:**
+  - `backend-python/app/api/rider.py`: Added `/route-batch` endpoint, doorstep pickup intake endpoint, and expanded `pickup_order` payload handling.
+  - `backend-python/app/services/smart_2ride_engine.py`: Enhanced `verify_pickup_otp` with bag tag and doorstep piece intake recording.
+  - `backend-python/app/services/smart_batch_route_service.py`: Service computing sequenced stops and active cargo manifest.
+  - `backend-python/app/db/referral_repositories.py`: Robust rider ID candidate resolution in `process_order_milestones`.
+  - `rider-frontend/src/shared/types/rider.ts`: Added `bagTag`, `doorstepPiecesVerified`, and `garmentVerification`.
+  - `rider-frontend/src/api/rider/rider-orders-api.ts`: Added `fetchRouteBatch`, `confirmDoorstepPickup`, and expanded `confirmPickup`.
+  - `rider-frontend/src/components/trips/RiderDoorstepPickupCard.tsx`: Minimal doorstep garment intake card with camera proof and auto bag tag generator.
+  - `rider-frontend/src/components/trips/SmartRouteBatchModal.tsx`: Minimal route batch modal displaying stop order, ETA, distance, and cargo manifest.
+  - `rider-frontend/src/components/dashboard/GoToPickupHUD.tsx`: Integrated doorstep verification card and Route Batch pill.
+  - `rider-frontend/src/screens/RiderOrdersScreen.tsx`: Added "Route Batch & Bags" action pill and modal.
+
 ### 7. Multi-Role Referral System (Partner, Rider & Customer) with Minimal Theme & Settlement Cycle Integration
 - **User Requests & Visual Alignment:**
   1. *Admin Panel*: Add a "Referral System" menu item to manage and configure referral rules for Laundromat Partners, Delivery Captains, and Customers with city-specific overrides, target order milestones (e.g. ₹500 for 10 orders), and live audit ledger.

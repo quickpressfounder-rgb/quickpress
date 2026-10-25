@@ -75,6 +75,10 @@ export type RiderOrder = {
   placedAt: string;
   paymentMode: "online" | "cod";
   timeline: { id: string; label: string; time: string; done: boolean }[];
+  bagTag?: string;
+  bag_tag?: string;
+  doorstepPiecesVerified?: boolean;
+  garmentVerification?: any;
 };
 
 export type RiderWalletSummary = {

@@ -79,6 +79,8 @@ import { SwipeActionButton } from "../common/SwipeActionButton";
 import { RiderCustomerOtpInput, RiderStoreDispatchDisplay } from "./RiderOtpCard";
 import { RiderTripDetailModal } from "../trips/RiderTripDetailModal";
 import { RiderOrderTimelineModal } from "../trips/RiderOrderTimelineModal";
+import { SmartRouteBatchModal } from "../trips/SmartRouteBatchModal";
+import { RiderDoorstepPickupCard } from "../trips/RiderDoorstepPickupCard";
 
 import {
   verifyHandoverOtp,
@@ -133,6 +135,9 @@ export interface ActiveOrderData {
   processingEstimateMinutes?: number;
   estimatedReadyAt?: string;
   processingStartedAt?: string;
+  bagTag?: string;
+  bag_tag?: string;
+  doorstepPiecesVerified?: boolean;
 }
 
 interface GoToPickupHUDProps {
@@ -204,6 +209,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [doorstepPieces, setDoorstepPieces] = useState<number>(initialDoorstepPieces);
   const [isGarmentVerified, setIsGarmentVerified] = useState<boolean>(true);
   const [doorstepNotes, setDoorstepNotes] = useState<string>("");
+  const [bagPhotoUrl, setBagPhotoUrl] = useState<string>("");
   const [showDiscrepancyInput, setShowDiscrepancyInput] = useState<boolean>(false);
   const [showUnableModal, setShowUnableModal] = useState(false);
   const [showRiderCancelModal, setShowRiderCancelModal] = useState(false);
@@ -297,6 +303,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [selectedRatingTags, setSelectedRatingTags] = useState<string[]>(["Polite", "Timely"]);
   const [isQrGenerated, setIsQrGenerated] = useState(false);
   const [quickMessageText, setQuickMessageText] = useState("I am on my way to your pickup location");
+
+  // Option 4: Doorstep Garment Intake & Security Bag Tagging
+  const [bagTagCode, setBagTagCode] = useState<string>(
+    order.bagTag || order.bag_tag || `QP-BAG-${Math.floor(1000 + Math.random() * 9000)}`
+  );
+  const [showRouteBatchModal, setShowRouteBatchModal] = useState<boolean>(false);
 
   const handleRatingChange = (stars: number) => {
     setCustomerRating(stars);
@@ -1217,7 +1229,23 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     // Call Real Backend verification first (skip for simulated test orders)
     if (order.orderId && !order.orderId.startsWith("TEST-")) {
       try {
-        await confirmPickup(order.orderId, otpToVerify);
+        await confirmPickup(order.orderId, otpToVerify, {
+          bagTag: bagTagCode.trim(),
+          verifiedPieces: doorstepPieces,
+          notes: doorstepNotes.trim(),
+          bagPhotoUrl: bagPhotoUrl || undefined,
+        });
+        order.bagTag = bagTagCode;
+        order.doorstepPiecesVerified = true;
+        try {
+          const cur = localStorage.getItem("qp_active_rider_order");
+          if (cur) {
+            const parsed = JSON.parse(cur);
+            parsed.bagTag = bagTagCode;
+            parsed.doorstepPiecesVerified = true;
+            localStorage.setItem("qp_active_rider_order", JSON.stringify(parsed));
+          }
+        } catch {}
       } catch (err: any) {
         const msg = (err?.message || "").toLowerCase();
         if (msg.includes("already") || msg.includes("picked") || msg.includes("completed")) {
@@ -1932,6 +1960,15 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <span>Timeline</span>
                   <ChevronRight className="w-2.5 h-2.5" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRouteBatchModal(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-black text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-300 active:scale-95 transition-all cursor-pointer"
+                  title="View Route Batch & Bike Inventory"
+                >
+                  <Package className="w-3 h-3 text-blue-600" />
+                  <span>Batch & Bags</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2185,6 +2222,19 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   </span>
                 </div>
 
+                {/* Doorstep Garment Intake & Security Bag Tag Card with Photo Proof */}
+                <RiderDoorstepPickupCard
+                  initialPiecesCount={initialPiecesCount}
+                  doorstepPieces={doorstepPieces}
+                  setDoorstepPieces={setDoorstepPieces}
+                  bagTagCode={bagTagCode}
+                  setBagTagCode={setBagTagCode}
+                  doorstepNotes={doorstepNotes}
+                  setDoorstepNotes={setDoorstepNotes}
+                  bagPhotoUrl={bagPhotoUrl}
+                  setBagPhotoUrl={setBagPhotoUrl}
+                />
+
                 {/* 4-Digit Customer Start OTP Input Card with Instant Auto-Accept */}
                 <RiderCustomerOtpInput
                   otpDigits={otpDigits}
@@ -2239,6 +2289,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                       </span>
                       <p className="text-xs font-black text-zinc-950 truncate max-w-[200px]">
                         {partnerStoreName}
+                      </p>
+                      <p className="text-[10px] font-mono text-zinc-600 mt-0.5">
+                        🏷️ Seal: <span className="font-bold text-zinc-900">{bagTagCode}</span> • {doorstepPieces} pcs
                       </p>
                     </div>
                   </div>
@@ -3584,6 +3637,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         </div>
       )}
+
+      {/* Option 5: Sequenced Multi-Stop Batch & Bike Inventory Modal */}
+      <SmartRouteBatchModal
+        isOpen={showRouteBatchModal}
+        onClose={() => setShowRouteBatchModal(false)}
+        currentCoords={captainCoords}
+      />
     </div>
   );
 };

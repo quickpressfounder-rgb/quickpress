@@ -1403,16 +1403,21 @@ async def submit_registration(body: dict) -> dict:
         pass
 
     # Link referral code if provided
-    ref_code = payload.get("referral_code") or payload.get("referralCode") or payload.get("ref")
+    ref_code = str(payload.get("referral_code") or payload.get("referralCode") or payload.get("ref") or "").strip()
     if ref_code:
         try:
-            from app.repositories.referral_repository import referral_repository
+            from app.db.referral_repositories import referral_repository
+            referee_user_obj = User(
+                id=rider_id,
+                phone=phone,
+                full_name=full_name,
+                role=Role.rider,
+            )
             await referral_repository.apply_partner_or_rider_referral(
-                role="rider",
-                referee_id=rider_id,
-                referral_code=str(ref_code).strip(),
-                referee_name=full_name,
-                referee_phone=phone,
+                referrer_code=ref_code,
+                referee_user=referee_user_obj,
+                referee_role="rider",
+                city=str(payload.get("city") or "All Cities"),
             )
         except Exception as ref_err:
             logger.warning("[RiderRegistration] Referral attribution error: %s", ref_err)
@@ -3123,6 +3128,29 @@ async def get_active_offers(user: Optional[User] = Depends(optional_user)) -> li
 
     return valid_offers
 
+@router.get("/route-batch")
+async def get_route_batch(
+    latitude: Optional[float] = Query(default=None, alias="lat"),
+    longitude: Optional[float] = Query(default=None, alias="lng"),
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Option 5: Fetches all active orders assigned to the rider, sequenced optimally with stop coordinates and on-bike cargo inventory."""
+    resolved_id = None
+    if user:
+        try:
+            resolved_id = await _rider_id(user)
+        except Exception:
+            pass
+    if not resolved_id:
+        resolved_id = "rider_demo_001"
+
+    from app.services.smart_batch_route_service import smart_batch_route_service
+    return await smart_batch_route_service.get_rider_active_batch(
+        rider_id=resolved_id,
+        rider_lat=latitude,
+        rider_lng=longitude,
+    )
+
 
 @router.get("/orders")
 async def list_orders(
@@ -3333,10 +3361,23 @@ async def pickup_order(
     otp = payload.get("otp") or payload.get("code")
     r_lat = payload.get("latitude") or payload.get("lat")
     r_lng = payload.get("longitude") or payload.get("lng")
+    bag_tag = payload.get("bagTag") or payload.get("bag_tag")
+    verified_pieces = payload.get("verifiedPieces") or payload.get("verified_pieces")
+    notes = payload.get("notes")
+    bag_photo_url = payload.get("bagPhotoUrl") or payload.get("bag_photo_url")
+
     from app.services.smart_2ride_engine import smart_2ride_engine
     try:
         return await smart_2ride_engine.verify_pickup_otp(
-            order_id, str(otp or ""), rider_id, rider_lat=r_lat, rider_lng=r_lng
+            order_id,
+            str(otp or ""),
+            rider_id,
+            rider_lat=r_lat,
+            rider_lng=r_lng,
+            bag_tag=bag_tag,
+            verified_pieces=verified_pieces,
+            notes=notes,
+            bag_photo_url=bag_photo_url,
         )
     except (PermissionError, ValueError) as err:
         logger.error("verify_pickup_otp failed with error: %s", err)
@@ -3344,6 +3385,62 @@ async def pickup_order(
     except LookupError as err:
         logger.error("verify_pickup_otp LookupError: %s", err)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
+
+
+@router.post("/orders/{order_id}/confirm-doorstep-pickup")
+async def confirm_doorstep_pickup(
+    order_id: str, body: dict | None = None, user: User = Depends(current_user)
+) -> dict:
+    """Option 4 Checkpoint: Rider confirms garment piece count and tags security seal bag with customer at doorstep."""
+    rider_id = await _rider_id(user)
+    payload = body or {}
+    bag_tag = (payload.get("bagTag") or payload.get("bag_tag") or "").strip().upper()
+    verified_pieces = payload.get("verifiedPieces") or payload.get("verified_pieces")
+    notes = payload.get("notes") or ""
+    bag_photo_url = payload.get("bagPhotoUrl") or payload.get("bag_photo_url") or ""
+
+    order = await lifecycle.find_order(order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Order {order_id} not found")
+
+    canonical_id = lifecycle.order_id_of(order)
+    now = lifecycle.now_iso()
+    items = order.get("items") or []
+    expected_pieces = sum(int(it.get("quantity") or it.get("qty") or 1) for it in items) or 1
+    final_pieces = int(verified_pieces) if verified_pieces is not None else expected_pieces
+
+    doorstep_record = {
+        "verified": True,
+        "verifiedAt": now,
+        "verifiedBy": rider_id,
+        "bagTag": bag_tag,
+        "piecesPickedUp": final_pieces,
+        "expectedPieces": expected_pieces,
+        "hasDiscrepancy": bool(final_pieces != expected_pieces or notes),
+        "notes": notes,
+        "bagPhotoUrl": bag_photo_url,
+        "customerConfirmed": True,
+    }
+
+    set_fields = {
+        "garmentVerification.doorstepPickup": doorstep_record,
+        "doorstepPiecesVerified": True,
+        "updatedAt": now,
+    }
+    if bag_tag:
+        set_fields["bagTag"] = bag_tag
+
+    await database.collection("customer_orders").update_one(
+        {"_id": canonical_id},
+        {"$set": set_fields},
+    )
+    if bag_tag:
+        await database.collection("rides").update_one(
+            {"orderId": canonical_id},
+            {"$set": {"bagTag": bag_tag, "updatedAt": now}},
+        )
+
+    return {"ok": True, "doorstepPickup": doorstep_record, "bagTag": bag_tag}
 
 
 @router.post("/orders/{order_id}/drop-at-partner")

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { RiderBottomNav } from "../components/RiderBottomNav";
 import { RiderTripDetailModal } from "../components/trips/RiderTripDetailModal";
+import { SmartRouteBatchModal } from "../components/trips/SmartRouteBatchModal";
 import {
   acceptRiderOrder,
   fetchRiderOffers,
@@ -95,6 +96,7 @@ export function RiderOrdersScreen() {
   const [isHudMinimized, setIsHudMinimized] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedOfferForDetail, setSelectedOfferForDetail] = useState<OrderOfferItem | null>(null);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
   // Restore saved active order on client mount safely and listen for instant active order updates
   useEffect(() => {
@@ -689,8 +691,8 @@ export function RiderOrdersScreen() {
         </div>
       </div>
 
-      {/* 2. Top "Go To" Pill Button (Screenshot 3 & 4 Match) */}
-      <div className="px-5 pt-3 pb-1">
+      {/* 2. Top Action Pills (Go To + Route Batch & Bags) */}
+      <div className="px-5 pt-3 pb-1 flex items-center gap-2">
         <button
           type="button"
           onClick={() => {
@@ -701,6 +703,18 @@ export function RiderOrdersScreen() {
         >
           <MapPin className="size-3.5 fill-zinc-900 text-zinc-900" />
           <span>Go To</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(20);
+            setIsBatchModalOpen(true);
+          }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-50 border border-zinc-200/90 shadow-2xs text-xs font-bold text-zinc-800 active:scale-95 transition-all cursor-pointer"
+        >
+          <Bike className="size-3.5 text-zinc-900" />
+          <span>Route Batch & Bags</span>
         </button>
       </div>
 
@@ -913,6 +927,12 @@ export function RiderOrdersScreen() {
           }}
         />
       )}
+
+      {/* Option 5: Sequenced Route Batch & On-Bike Manifest Modal */}
+      <SmartRouteBatchModal
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+      />
     </div>
   );
 }

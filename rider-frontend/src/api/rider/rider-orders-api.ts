@@ -89,15 +89,111 @@ export async function rejectRiderOrder(orderId: string) {
   }
 }
 
-/** POST /api/rider/orders/{id}/pickup — laundry collected from the customer. */
-export async function confirmPickup(orderId: string, otp: string) {
+/** POST /api/rider/orders/{id}/pickup — laundry collected from the customer with optional bag tag and garment piece count */
+export async function confirmPickup(
+  orderId: string,
+  otp: string,
+  options?: {
+    bagTag?: string;
+    verifiedPieces?: number;
+    notes?: string;
+    bagPhotoUrl?: string;
+    lat?: number;
+    lng?: number;
+  }
+) {
+  const payload = {
+    otp,
+    bagTag: options?.bagTag,
+    verifiedPieces: options?.verifiedPieces,
+    notes: options?.notes,
+    bagPhotoUrl: options?.bagPhotoUrl,
+    latitude: options?.lat,
+    longitude: options?.lng,
+  };
   try {
-    const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/pickup`, { otp });
+    const order = await apiPostJson<RiderOrder>(`/api/rider/orders/${orderId}/pickup`, payload);
     return { ok: true as const, orderId, order };
   } catch (err) {
-    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/pickup`, { otp }, `Pickup order ${orderId}`);
+    offlineSyncQueue.enqueue(`/api/rider/orders/${orderId}/pickup`, payload, `Pickup order ${orderId}`);
     const cached = readCachedRiderOrders().find((o) => o.orderId === orderId || (o as any).id === orderId);
     return { ok: true as const, orderId, order: (cached ? { ...cached, status: "picked_up" as any } : null) as any };
+  }
+}
+
+/** POST /api/rider/orders/{id}/confirm-doorstep-pickup — Option 4: tag QR/Bag and verify piece count */
+export async function confirmDoorstepPickup(
+  orderId: string,
+  payload: {
+    bagTag: string;
+    verifiedPieces: number;
+    notes?: string;
+    bagPhotoUrl?: string;
+  }
+) {
+  try {
+    const res = await apiPostJson<{ ok: boolean; doorstepPickup: any; bagTag: string }>(
+      `/api/rider/orders/${orderId}/confirm-doorstep-pickup`,
+      payload
+    );
+    return res;
+  } catch (err) {
+    offlineSyncQueue.enqueue(
+      `/api/rider/orders/${orderId}/confirm-doorstep-pickup`,
+      payload,
+      `Doorstep pickup verify ${orderId}`
+    );
+    return { ok: true, doorstepPickup: { ...payload, verified: true }, bagTag: payload.bagTag };
+  }
+}
+
+export interface RouteBatchSummary {
+  riderId: string;
+  totalActiveOrders: number;
+  totalPickups: number;
+  totalDeliveries: number;
+  totalPiecesCarried: number;
+  stops: Array<{
+    sequence: number;
+    orderId: string;
+    type: "pickup" | "drop_partner" | "pickup_partner" | "delivery";
+    title: string;
+    targetName: string;
+    address: string;
+    phone: string;
+    lat: number;
+    lng: number;
+    distanceKm: number;
+    bagTag: string;
+    piecesCount: number;
+    status: string;
+    isNextStop: boolean;
+  }>;
+  inventoryBags: Array<{
+    orderId: string;
+    bagTag: string;
+    piecesCount: number;
+    customerName: string;
+    deliveryAddress: string;
+    status: string;
+  }>;
+}
+
+/** GET /api/rider/route-batch — Option 5: Fetch sequenced multi-order batch and on-bike cargo manifest */
+export async function fetchRouteBatch(lat?: number, lng?: number): Promise<RouteBatchSummary> {
+  try {
+    const query = lat && lng ? `?lat=${lat}&lng=${lng}` : "";
+    return await apiGetJson<RouteBatchSummary>(`/api/rider/route-batch${query}`);
+  } catch {
+    return {
+      riderId: "",
+      totalActiveOrders: 0,
+      totalPickups: 0,
+      totalDeliveries: 0,
+      totalPiecesCarried: 0,
+      stops: [],
+      inventoryBags: [],
+    };
   }
 }
 

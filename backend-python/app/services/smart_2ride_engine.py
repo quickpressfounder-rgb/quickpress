@@ -1558,6 +1558,10 @@ class Smart2RideEngine:
         rider_id: str,
         rider_lat: Optional[float] = None,
         rider_lng: Optional[float] = None,
+        bag_tag: Optional[str] = None,
+        verified_pieces: Optional[int] = None,
+        notes: Optional[str] = None,
+        bag_photo_url: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Phase 1.5 OTP: Customer gives Pickup OTP to Rider upon clothes pickup."""
         order = await lifecycle.find_order(order_id)
@@ -1622,22 +1626,48 @@ class Smart2RideEngine:
         self._verify_otp_record(pickup_record, otp, "Customer Pickup OTP")
 
         now = lifecycle.now_iso()
+        order_set_updates: Dict[str, Any] = {
+            "status": lifecycle.PICKED_UP,
+            "pickupOtpVerified": True,
+            "otp.pickup": pickup_record,
+            "geofence.pickup": geofence_status,
+            "pickedAt": now,
+            "updatedAt": now,
+        }
+
+        # Option 4: Record Doorstep Item Count and Bag Seal Tag
+        clean_tag = (bag_tag or "").strip().upper()
+        if clean_tag or verified_pieces is not None:
+            items = order.get("items") or []
+            expected_pieces = sum(int(it.get("quantity") or it.get("qty") or 1) for it in items)
+            final_pieces = int(verified_pieces) if verified_pieces is not None else expected_pieces
+            doorstep_record = {
+                "verified": True,
+                "verifiedAt": now,
+                "verifiedBy": rider_id,
+                "bagTag": clean_tag,
+                "piecesPickedUp": final_pieces,
+                "expectedPieces": expected_pieces,
+                "hasDiscrepancy": bool(final_pieces != expected_pieces or notes),
+                "notes": notes or "",
+                "bagPhotoUrl": bag_photo_url or "",
+                "customerConfirmed": True,
+            }
+            order_set_updates["garmentVerification.doorstepPickup"] = doorstep_record
+            order_set_updates["doorstepPiecesVerified"] = True
+            if clean_tag:
+                order_set_updates["bagTag"] = clean_tag
+
         await database.collection(ORDERS_COLLECTION).update_one(
             {"_id": canonical_id},
-            {
-                "$set": {
-                    "status": lifecycle.PICKED_UP,
-                    "pickupOtpVerified": True,
-                    "otp.pickup": pickup_record,
-                    "geofence.pickup": geofence_status,
-                    "pickedAt": now,
-                    "updatedAt": now,
-                }
-            },
+            {"$set": order_set_updates},
         )
+        ride_updates: Dict[str, Any] = {"status": "PICKED_UP", "otp.pickup": pickup_record, "updatedAt": now}
+        if clean_tag:
+            ride_updates["bagTag"] = clean_tag
         await database.collection(RIDES_COLLECTION).update_one(
             {"orderId": canonical_id, "rideType": "pickup"},
-            {"$set": {"status": "PICKED_UP", "otp.pickup": pickup_record, "updatedAt": now}},
+            {"$set": ride_updates},
         )
 
         updated = await lifecycle.find_order(canonical_id)

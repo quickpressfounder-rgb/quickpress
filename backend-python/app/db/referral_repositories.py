@@ -265,6 +265,12 @@ class ReferralRepository:
 
     async def on_order_delivered(self, order: Dict[str, Any]) -> None:
         """Hook called when order transition reaches DELIVERED / COMPLETED."""
+        # 0. Advance multi-role referral milestones (Partner, Rider, Customer)
+        try:
+            await self.process_order_milestones(order)
+        except Exception as p_err:
+            logger.warning(f"Failed to advance multi-role referral milestone: {p_err}")
+
         referee_id = str(order.get("userId") or "")
         if not referee_id:
             return
@@ -1149,7 +1155,15 @@ class ReferralRepository:
         """Triggered when an order is completed. Advances referral milestone counters for referred partner/rider/customer."""
         try:
             partner_id = str(order.get("partnerId") or order.get("storeId") or "")
-            rider_id = str(order.get("deliveryRiderId") or order.get("riderId") or "")
+            rider_info = order.get("rider") or order.get("deliveryRider") or order.get("pickupRider") or {}
+            rider_id = str(
+                order.get("deliveryRiderId")
+                or order.get("riderId")
+                or order.get("assignedRiderId")
+                or rider_info.get("id")
+                or rider_info.get("riderId")
+                or ""
+            )
             cust = order.get("customer") or {}
             customer_id = str(order.get("userId") or order.get("customerId") or cust.get("id") or cust.get("userId") or "")
 
@@ -1198,8 +1212,14 @@ class ReferralRepository:
 
             # 2. Check rider milestone
             if rider_id:
+                r_cands = [rider_id]
+                if rider_id.startswith("RDR-"):
+                    r_cands.append(rider_id[4:])
+                else:
+                    r_cands.append(f"RDR-{rider_id}")
+
                 r_entry = await database.collection(MULTI_ROLE_LEDGER).find_one({
-                    "refereeId": rider_id,
+                    "refereeId": {"$in": r_cands},
                     "refereeRole": "rider",
                     "status": "pending_milestone",
                 })
