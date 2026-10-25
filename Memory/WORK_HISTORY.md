@@ -291,6 +291,35 @@
 - **Build Verifications:**
   - `npm run build` in `partner-frontend`: PASSED (Zero errors, 0 warnings).
 
+### 18. Customer Digital Consent & Pre-Wash Defect Inspection (Phase 3 Customer App)
+- **Architecture & Implementation:**
+  - Strict compliance with **"THEAM SIMPLE RAKHANA HAI"** (clean, high-contrast, pure white/slate minimalist theme; zero cartoonish gradients).
+  - Extended Customer TypeScript contracts in `customer-frontend/src/shared/types/order.ts` and `src/api/customer/order-api.ts` with `GarmentDefect`, `DefectType`, `CustomerDefectStatus`, `garmentDefects`, and `hasDefectsReported`.
+  - Built `customer-frontend/src/api/customer/defect-api.ts`:
+    - `fetchOrderDefects(orderId)`: fetches pre-wash defects tagged by partner.
+    - `respondToGarmentDefect(orderId, defectId, { action, note })`: sends customer digital consent (`proceed_wash` or `return_unwashed`) with optional notes.
+  - Implemented `CustomerDefectConsentCard.tsx` in `customer-frontend/src/components/orders/CustomerDefectConsentCard.tsx`:
+    - Clean alert header showing pending action counter.
+    - Defect photo thumbnail with hover/tap to open full-screen zoom preview.
+    - Garment title, defect type tag, and store partner note.
+    - Action buttons:
+      - `[Wash With Care]` (authorizes store treatment).
+      - `[Return Item As-Is]` (instructs store not to wash and return original garment).
+      - Optional instruction input for store staff.
+    - Live confirmation states when customer has submitted decision with timestamp and notes.
+  - Integrated into `customer-frontend/src/routes/track.$orderId.tsx`:
+    - Added automatic parallel defect fetch fallback during order polling.
+    - Rendered `CustomerDefectConsentCard` prominently above handover/OTP cards so customer never misses pre-wash alerts.
+- **Modified & Added Files:**
+  - `customer-frontend/src/shared/types/order.ts`
+  - `customer-frontend/src/api/customer/order-api.ts`
+  - `customer-frontend/src/api/customer/defect-api.ts`
+  - `customer-frontend/src/components/orders/CustomerDefectConsentCard.tsx`
+  - `customer-frontend/src/routes/track.$orderId.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `npm run build` in `customer-frontend`: PASSED (Zero errors, 0 warnings).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

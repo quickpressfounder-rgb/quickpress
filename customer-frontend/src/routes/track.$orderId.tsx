@@ -44,6 +44,8 @@ import {
   type OrderDetail,
   type TrackingData,
 } from "@/api/customer/order-api";
+import { CustomerDefectConsentCard } from "@/components/orders/CustomerDefectConsentCard";
+import { fetchOrderDefects } from "@/api/customer/defect-api";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { formatOrderTime } from "@/shared/utils/order-mappers";
 
@@ -258,6 +260,15 @@ function TrackOrderScreen() {
       try {
         const next = await fetchOrderDetail(orderId, { signal: controller.signal, forceRefresh: !initial });
         if (!alive) return;
+        if (!next.garmentDefects || next.garmentDefects.length === 0) {
+          try {
+            const defs = await fetchOrderDefects(orderId);
+            if (defs && defs.length > 0 && alive) {
+              next.garmentDefects = defs;
+              next.hasDefectsReported = true;
+            }
+          } catch {}
+        }
         setDetail(next);
         const live = toTracking(next as any);
         setTracking(live);
@@ -582,6 +593,27 @@ function TrackOrderScreen() {
 
             {/* Live Order SLA Guarantee Tracker */}
             <LiveOrderSlaTracker detail={detail} />
+
+            {/* Pre-Wash Garment Inspection & Customer Digital Consent */}
+            {detail?.garmentDefects && detail.garmentDefects.length > 0 ? (
+              <CustomerDefectConsentCard
+                orderId={detail.id}
+                orderCode={detail.code}
+                defects={detail.garmentDefects}
+                onDefectUpdated={(updated) => {
+                  setDetail((prev) => {
+                    if (!prev) return prev;
+                    const nextDefects = (prev.garmentDefects || []).map((d) =>
+                      d.defect_id === updated.defect_id ? updated : d,
+                    );
+                    return {
+                      ...prev,
+                      garmentDefects: nextDefects,
+                    };
+                  });
+                }}
+              />
+            ) : null}
 
             {/* Delivery Reassignment Notification Card */}
             {["delivery_reassignment_required", "handover_rider_assigned"].includes(

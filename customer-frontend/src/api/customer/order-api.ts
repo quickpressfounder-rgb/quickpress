@@ -11,7 +11,7 @@
  */
 
 import store1 from "@/shared/assets/store-1.jpg";
-import type { Order, OrderLifecycleStatus } from "@/shared/types";
+import type { Order, OrderLifecycleStatus, GarmentDefect } from "@/shared/types/order";
 
 import {
   CUSTOMER_STAGES,
@@ -497,6 +497,8 @@ export type OrderDetail = {
     pickup?: string;
     delivery?: string;
   };
+  garmentDefects?: GarmentDefect[];
+  hasDefectsReported?: boolean;
 };
 
 export function toOrderDetail(order: Order): OrderDetail {
@@ -556,6 +558,16 @@ export function toOrderDetail(order: Order): OrderDetail {
     cancelledReason: order?.cancelledReason ?? null,
     invoice: { available: false, label: "Invoice will be available after delivery" },
     otp: (order as any)?.otp ?? (order as any)?.verificationOtp ?? undefined,
+    garmentDefects: Array.isArray((order as any)?.garmentDefects)
+      ? (order as any).garmentDefects
+      : Array.isArray((order as any)?.garment_defects)
+      ? (order as any).garment_defects
+      : [],
+    hasDefectsReported: Boolean(
+      (order as any)?.hasDefectsReported ||
+      ((order as any)?.garmentDefects && (order as any).garmentDefects.length > 0) ||
+      ((order as any)?.garment_defects && (order as any).garment_defects.length > 0)
+    ),
     timeline: ORDER_TIMELINE.map((stage, index) => {
       const copy = TIMELINE_COPY[stage];
       const time = timeOfStatus(order, copy.status);
