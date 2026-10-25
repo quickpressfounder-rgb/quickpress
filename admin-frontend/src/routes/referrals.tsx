@@ -183,6 +183,58 @@ export function ReferralsPage() {
     );
   }, [ledger, searchQuery]);
 
+  const handleExportCsv = () => {
+    if (filteredLedger.length === 0) {
+      toast.error("No referral records to export");
+      return;
+    }
+    const headers = [
+      "Referral ID",
+      "Referrer Name",
+      "Referrer Phone",
+      "Referrer Role",
+      "Referee Name",
+      "Referee Phone",
+      "Referee Role",
+      "City",
+      "Referral Code",
+      "Target Orders",
+      "Completed Orders",
+      "Reward Amount (INR)",
+      "Settlement Status",
+      "Created Date",
+    ];
+
+    const rows = filteredLedger.map((item) => [
+      item.id,
+      `"${(item.referrerName || "").replace(/"/g, '""')}"`,
+      `"${item.referrerPhone || ""}"`,
+      item.referrerRole || "",
+      `"${(item.refereeName || "").replace(/"/g, '""')}"`,
+      `"${item.refereePhone || ""}"`,
+      item.refereeRole || "",
+      `"${item.city || ""}"`,
+      item.code || "",
+      item.targetOrders,
+      item.completedOrders,
+      item.rewardAmount,
+      item.status,
+      item.createdAt ? new Date(item.createdAt).toISOString().split("T")[0] : "",
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `quickpress_referrals_${selectedRole}_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Referral ledger CSV exported successfully!");
+  };
+
   // Find active rule for selected role and city
   const activeRuleForCurrentTab = useMemo(() => {
     if (selectedRole === "all") return null;
@@ -545,8 +597,8 @@ export function ReferralsPage() {
             </div>
           )}
 
-          {/* Search toolbar */}
-          <div className="flex items-center justify-between gap-4 pt-2">
+          {/* Search toolbar & Export */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
               <Input
@@ -557,8 +609,19 @@ export function ReferralsPage() {
                 className="pl-9 h-9 text-xs rounded-xl bg-white border-slate-200 focus:border-slate-900"
               />
             </div>
-            <div className="text-xs text-slate-500 font-medium">
-              Showing <span className="font-semibold text-slate-900">{filteredLedger.length}</span> referral records
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-slate-500 font-medium">
+                Showing <span className="font-semibold text-slate-900">{filteredLedger.length}</span> referral records
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExportCsv}
+                className="h-9 rounded-xl border-slate-200 bg-white text-xs font-semibold text-slate-800 hover:bg-slate-50 gap-1.5"
+              >
+                <Download className="size-3.5" />
+                Export CSV
+              </Button>
             </div>
           </div>
 

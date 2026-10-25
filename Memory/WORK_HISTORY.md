@@ -130,9 +130,26 @@
   - `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`
   - `rider-frontend/src/components/home/CaptainHomeOfflineScreen.tsx`
   - `rider-frontend/src/screens/RiderDashboardScreen.tsx`
+### 10. Phase 4: Production Turnkey Deployment Automation (EC2 Update) & Referral Audit CSV Export
+- **Objectives & Scope Completed:**
+  1. **Turnkey Production Server Update Script (`scripts/update_server.sh`):**
+     - Upgraded `scripts/update_server.sh` to a comprehensive 5-step turnkey build & deploy workflow on the live AWS EC2 instance (`ubuntu@ip-172-31-2-28`):
+       1. Partner Portal (`partner-frontend`): Builds TanStack Start Node Server and gracefully reloads PM2 (`quickpress-partner` on port 8082).
+       2. Super Admin Portal (`admin-frontend`): Builds admin console and deploys to `/var/www/quickpress/admin/`.
+       3. Rider Portal (`rider-frontend`): Builds rider console and deploys to `/var/www/quickpress/rider/`.
+       4. Main Website (`website`): Builds static pages and deploys to `/var/www/quickpress/website/`.
+       5. FastAPI Backend Container: Rebuilds Docker image `quickpress-api` and restarts container `quickpress-backend` on port 8000 with zero downtime.
+       6. Nginx test & reload (`sudo nginx -t && sudo systemctl reload nginx`).
+  2. **Admin Referral Audit CSV Export:**
+     - In `admin-frontend/src/routes/referrals.tsx`: added "Export CSV" feature enabling the Admin to download filtered referral audit trails (Referral ID, Referrer, Referee, Role, City, Code, Target vs Completed Orders, Reward Amount, Status, Timestamp) directly into an Excel/CSV file with proper escaping and formatting.
+  3. **Strict Clean Aesthetics ("THEAM SIMPLE RAKHANA HAI"):**
+     - Preserved clean monochrome design across all new buttons, cards, and export toolbars.
+- **Modified Files:**
+  - `scripts/update_server.sh`
+  - `admin-frontend/src/routes/referrals.tsx`
   - `Memory/WORK_HISTORY.md`
 - **Build Verifications:**
-  - `python3 -m py_compile` across modified backend files: PASSED (Zero errors).
+  - `python3 -m py_compile` across backend files: PASSED (Zero errors).
   - `admin-frontend npm run build`: PASSED (Exit code 0).
   - `partner-frontend npm run build`: PASSED (Exit code 0).
   - `rider-frontend npm run build`: PASSED (Exit code 0).

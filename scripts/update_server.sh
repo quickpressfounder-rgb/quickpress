@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # QuickPress One-Click Server Update Script
-# Updates Partner Portal (PM2) & Backend API (Docker)
+# Updates Partner Portal (PM2), Admin Portal, Rider Portal, Website & Backend API (Docker)
 # ==============================================================================
 
 set -e
@@ -14,7 +14,7 @@ echo "🚀 Updating QuickPress Production Services on EC2"
 echo "========================================================"
 
 # 1. Partner Frontend
-echo "🏬 [1/3] Building Partner Portal & restarting PM2..."
+echo "🏬 [1/5] Building Partner Portal & restarting PM2..."
 cd "$REPO_ROOT/partner-frontend"
 if [ ! -d "node_modules" ]; then
     npm install
@@ -22,8 +22,40 @@ fi
 NITRO_PRESET=node-server npm run build
 pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
 
-# 2. Website (withquickpress.com)
-echo "🌐 [2/4] Building Website & updating static files..."
+# 2. Admin Frontend
+echo "🛡️ [2/5] Building Admin Console & updating static files..."
+cd "$REPO_ROOT/admin-frontend"
+if [ ! -d "node_modules" ]; then
+    npm install
+fi
+npm run build
+sudo mkdir -p /var/www/quickpress/admin
+sudo rm -rf /var/www/quickpress/admin/*
+if [ -d "dist" ]; then
+    sudo cp -r dist/* /var/www/quickpress/admin/
+elif [ -d ".output/public" ]; then
+    sudo cp -r .output/public/* /var/www/quickpress/admin/
+fi
+sudo chown -R www-data:www-data /var/www/quickpress/admin
+
+# 3. Rider Frontend
+echo "🛵 [3/5] Building Rider Console & updating static files..."
+cd "$REPO_ROOT/rider-frontend"
+if [ ! -d "node_modules" ]; then
+    npm install
+fi
+npm run build
+sudo mkdir -p /var/www/quickpress/rider
+sudo rm -rf /var/www/quickpress/rider/*
+if [ -d "dist" ]; then
+    sudo cp -r dist/* /var/www/quickpress/rider/
+elif [ -d ".output/public" ]; then
+    sudo cp -r .output/public/* /var/www/quickpress/rider/
+fi
+sudo chown -R www-data:www-data /var/www/quickpress/rider
+
+# 4. Website (withquickpress.com)
+echo "🌐 [4/5] Building Website & updating static files..."
 cd "$REPO_ROOT/website"
 if [ ! -d "node_modules" ]; then
     npm install
@@ -34,8 +66,8 @@ sudo rm -rf /var/www/quickpress/website/*
 sudo cp -r dist/* /var/www/quickpress/website/
 sudo chown -R www-data:www-data /var/www/quickpress/website
 
-# 3. Docker Backend
-echo "🐳 [3/4] Rebuilding & restarting Python FastAPI Backend Container..."
+# 5. Docker Backend
+echo "🐳 [5/5] Rebuilding & restarting Python FastAPI Backend Container..."
 cd "$REPO_ROOT"
 if command -v docker &> /dev/null; then
     sudo docker build -t quickpress-api .
@@ -50,10 +82,10 @@ if command -v docker &> /dev/null; then
     echo "✅ Backend container running on port 8000."
 fi
 
-# 4. Reload Nginx
-echo "🌐 [4/4] Testing & reloading Nginx..."
+# 6. Reload Nginx
+echo "🌐 Testing & reloading Nginx..."
 sudo nginx -t && sudo systemctl reload nginx
 
 echo "========================================================"
-echo "✅ QuickPress Update Complete & Live!"
+echo "✅ QuickPress Full Platform Update Complete & Live on EC2!"
 echo "========================================================"
