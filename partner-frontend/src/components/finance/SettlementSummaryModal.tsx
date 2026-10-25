@@ -337,6 +337,14 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                               ₹{data.additionsB.qualityRatingBonus.toFixed(2)}
                             </span>
                           </div>
+                          {Boolean((data.additionsB as any)?.referralBonus) && (
+                            <div className="flex justify-between text-zinc-600">
+                              <span>Referral milestone reward (Partner Invites)</span>
+                              <span className="font-bold text-emerald-700">
+                                +₹{Number((data.additionsB as any).referralBonus || 0).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

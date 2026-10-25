@@ -2148,6 +2148,20 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
     except Exception as exc:
         logger.warning("Could not generate or email partner agreement PDF: %s", exc)
 
+    # Link referral code if provided during partner onboarding
+    ref_code = str(getattr(payload, "referral_code", None) or getattr(payload, "referralCode", None) or "").strip()
+    if ref_code:
+        try:
+            from app.db.referral_repositories import referral_repository
+            await referral_repository.apply_partner_or_rider_referral(
+                referrer_code=ref_code,
+                referee_user=user,
+                referee_role="partner",
+                city=str(payload.city or "All Cities"),
+            )
+        except Exception as ref_err:
+            logger.info(f"Partner referral linking skipped: {ref_err}")
+
     return OnboardingResponse(
         partnerId=store_id_str,
         phone=user.phone or "",

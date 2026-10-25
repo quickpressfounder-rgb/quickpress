@@ -73,6 +73,7 @@ export interface RiderCycleBreakdown {
     surgePay: number;
     questBonuses: number;
     customerTips: number;
+    referralBonus?: number;
     platformFee: number;
     tdsDeduction: number;
     netBankCredit: number;

@@ -1093,6 +1093,20 @@ async def rider_onboarding(body: dict, user: User = Depends(current_user)) -> di
     except Exception as dispatch_err:
         logger.warning("[RiderOnboarding] Background dispatch error: %s", dispatch_err)
 
+    # 7. Link referral code if provided during rider onboarding
+    ref_code = str(payload.get("referral_code") or payload.get("referralCode") or "").strip()
+    if ref_code:
+        try:
+            from app.db.referral_repositories import referral_repository
+            await referral_repository.apply_partner_or_rider_referral(
+                referrer_code=ref_code,
+                referee_user=user,
+                referee_role="rider",
+                city=str(city or "All Cities"),
+            )
+        except Exception as ref_err:
+            logger.info(f"Rider referral linking skipped: {ref_err}")
+
     return {
         "ok": True,
         "riderId": rider_id_str,
@@ -1387,6 +1401,21 @@ async def submit_registration(body: dict) -> dict:
         })
     except Exception:
         pass
+
+    # Link referral code if provided
+    ref_code = payload.get("referral_code") or payload.get("referralCode") or payload.get("ref")
+    if ref_code:
+        try:
+            from app.repositories.referral_repository import referral_repository
+            await referral_repository.apply_partner_or_rider_referral(
+                role="rider",
+                referee_id=rider_id,
+                referral_code=str(ref_code).strip(),
+                referee_name=full_name,
+                referee_phone=phone,
+            )
+        except Exception as ref_err:
+            logger.warning("[RiderRegistration] Referral attribution error: %s", ref_err)
 
     # Generate official Captain SLA Agreement PDF and dispatch via email in background
     try:

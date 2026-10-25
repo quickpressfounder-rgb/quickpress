@@ -66,6 +66,8 @@ export type BusinessRegistrationPayload = {
   signedAt?: string;
   signedByName?: string;
   agreementVersion?: string;
+  referral_code?: string;
+  referralCode?: string;
 };
 
 export type PartnerOrderStatus =

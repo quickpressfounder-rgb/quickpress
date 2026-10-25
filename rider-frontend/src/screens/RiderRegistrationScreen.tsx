@@ -445,6 +445,13 @@ export function RiderRegistrationScreen() {
   const [pincode, setPincode] = useState<string>("");
   const [customPincodeMode, setCustomPincodeMode] = useState<boolean>(false);
   const [emergencyPhone, setEmergencyPhone] = useState<string>("");
+  const [referralCode, setReferralCode] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get("ref") || "";
+    }
+    return "";
+  });
 
   const [rejectionNotice, setRejectionNotice] = useState<string | null>(null);
   const [isResubmissionFlow, setIsResubmissionFlow] = useState<boolean>(false);
@@ -1583,6 +1590,8 @@ export function RiderRegistrationScreen() {
         isOnboarded: true,
         riderId: (session as any)?.account?.linkedId || (session as any)?.account?.id || (session as any)?.riderId || (session as any)?.id || "",
         phone: targetPhone || session?.phone || phone,
+        referral_code: referralCode.trim() || undefined,
+        referralCode: referralCode.trim() || undefined,
       };
 
       const result = await submitRiderRegistration(payload);
@@ -2059,6 +2068,30 @@ export function RiderRegistrationScreen() {
                   onChange={(e) => setEmergencyPhone(e.target.value.replace(/\D/g, ""))}
                   className="w-full h-11 px-3.5 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:border-[#00C853] focus:outline-none transition-all"
                 />
+              </div>
+
+              {/* Captain Referral Code (Optional) */}
+              <div>
+                <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wide mb-1">
+                  Referral Code (Optional)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="e.g. QP-RDR-8821"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    className="w-full h-11 px-3.5 uppercase bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:border-[#00C853] focus:outline-none transition-all placeholder:normal-case placeholder:font-normal placeholder:text-neutral-400"
+                  />
+                  {referralCode.trim() && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-md">
+                      Invite Applied
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[10px] text-neutral-500">
+                  Enter your colleague captain's referral code to unlock milestone bonuses.
+                </p>
               </div>
 
               {/* Registered Phone Badge */}

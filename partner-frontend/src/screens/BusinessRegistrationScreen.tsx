@@ -452,6 +452,13 @@ export function BusinessRegistrationScreen() {
   const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
   const [dob, setDob] = useState("");
   const [alternatePhone, setAlternatePhone] = useState("");
+  const [referralCode, setReferralCode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      return (p.get("ref") || "").toUpperCase().trim();
+    }
+    return "";
+  });
 
   // STEP 2: KYC & Photo
   const [aadhaarNumber, setAadhaarNumber] = useState("");
@@ -1357,6 +1364,8 @@ export function BusinessRegistrationScreen() {
         signedAt: agreementSignature.signedAt || new Date().toISOString(),
         signedByName: ownerName.trim(),
         agreementVersion: agreementSignature.agreementVersion || "QP-SLA-2026-v4.2",
+        referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
+        referralCode: referralCode ? referralCode.trim().toUpperCase() : undefined,
       };
 
       const result = await registerBusiness(payload);
@@ -1825,6 +1834,25 @@ export function BusinessRegistrationScreen() {
                     className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-100"
                   />
                 </div>
+              </div>
+
+              {/* Partner Referral Code (Optional) */}
+              <div className="pt-2 border-t border-neutral-100">
+                <label className="block text-xs font-bold text-neutral-800 mb-1">
+                  Partner Referral Code <span className="text-[10px] text-neutral-400 font-normal">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase().trim())}
+                    placeholder="e.g. QP-PRT-ABCD"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-xs font-mono font-bold tracking-wider uppercase focus:outline-hidden focus:ring-2 focus:ring-emerald-100 bg-neutral-50/50"
+                  />
+                </div>
+                <p className="mt-1 text-[10px] text-neutral-500">
+                  Referred by another laundromat? Enter their code so they receive their weekly referral reward!
+                </p>
               </div>
             </div>
           </div>

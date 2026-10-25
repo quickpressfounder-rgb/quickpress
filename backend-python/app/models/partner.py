@@ -353,6 +353,8 @@ class OnboardingPayload(BaseModel):
     signedByName: Optional[str] = None
     agreementVersion: Optional[str] = "QP-SLA-2026.4"
     agreementSignature: Optional[Dict[str, Any]] = None
+    referral_code: Optional[str] = None
+    referralCode: Optional[str] = None
 
 
 class OnboardingResponse(BaseModel):

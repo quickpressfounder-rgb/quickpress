@@ -27,6 +27,8 @@ export type RiderRegistrationPayload = {
   accountNumber: string;
   ifsc: string;
   serviceCity: string;
+  referralCode?: string;
+  referral_code?: string;
 };
 
 export type RiderDashboard = {

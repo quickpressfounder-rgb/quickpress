@@ -275,6 +275,15 @@ export const RiderSettlementDetailModal: React.FC<RiderSettlementDetailModalProp
                     </div>
                   )}
 
+                  {((data.breakdown.referralBonus ?? 0) > 0) && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-600 font-medium">Captain Referral Milestones</span>
+                      <span className="font-black text-emerald-700">
+                        +₹{(data.breakdown.referralBonus ?? 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between pt-1 border-t border-zinc-100 text-emerald-700">
                     <span className="font-bold flex items-center gap-1">
                       <ShieldCheck className="size-3.5" />

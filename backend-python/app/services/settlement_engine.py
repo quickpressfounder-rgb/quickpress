@@ -1174,6 +1174,17 @@ class SettlementEngine:
             if t.get("kind") == "tip" or "tip" in str(t.get("title", "")).lower()
         )
 
+        referral_credits = await database.find_many(
+            "settlement_cycle_credits",
+            {"$or": [{"accountId": rider_id}, {"riderId": rider_id}]}
+        )
+        referral_bonuses = sum(
+            float(c.get("amount", 0.0))
+            for c in referral_credits
+            if (matched_cycle.get("isCurrent") and c.get("cyclePeriod") == "current")
+            or (cycle_start <= str(c.get("createdAt", ""))[:10] <= cycle_end)
+        )
+
         trip_fares = sum(
             float(r.get("estimatedEarning") or r.get("fare") or 45.0)
             for r in cycle_rides
@@ -1184,7 +1195,7 @@ class SettlementEngine:
 
         platform_fee = 0.0
         tds_deduction = 0.0
-        net_bank_payout = round(trip_fares + quest_bonuses + customer_tips - platform_fee - tds_deduction, 2)
+        net_bank_payout = round(trip_fares + quest_bonuses + customer_tips + referral_bonuses - platform_fee - tds_deduction, 2)
 
         trips_list = []
         for i, r in enumerate(cycle_rides):
@@ -1245,6 +1256,7 @@ class SettlementEngine:
                 "surgePay": round(surge_pay, 2),
                 "questBonuses": round(quest_bonuses, 2),
                 "customerTips": round(customer_tips, 2),
+                "referralBonus": round(referral_bonuses, 2),
                 "platformFee": 0.0,
                 "tdsDeduction": 0.0,
                 "netBankCredit": net_bank_payout,

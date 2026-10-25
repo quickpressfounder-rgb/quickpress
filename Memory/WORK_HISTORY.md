@@ -64,6 +64,41 @@
   - `partner-frontend npm run build`: PASSED (Exit code 0).
   - `rider-frontend npm run build`: PASSED (Exit code 0).
 
+### 8. Phase 2: End-to-End Referral Onboarding Handshake & Weekly Settlement Breakdown
+- **Objectives & Scope Completed:**
+  1. **Partner Registration Onboarding Hook:**
+     - Added `referral_code` and `referralCode` to `BusinessRegistrationPayload` and `OnboardingPayload`.
+     - In `partner-frontend/src/screens/BusinessRegistrationScreen.tsx`, auto-populated `referralCode` from URL `?ref=` and added a clean, monochrome referral code input in Step 1.
+     - Hooked `apply_partner_or_rider_referral` into `backend-python/app/api/partner.py` onboarding endpoint to record referees in `multi_role_referral_ledger` (`status: "pending_milestone"`).
+  2. **Rider Registration Onboarding Hook:**
+     - In `rider-frontend/src/routes/registration.tsx`, allowed `ref` search parameter in `validateSearch`.
+     - In `rider-frontend/src/screens/RiderRegistrationScreen.tsx`, auto-populated `referralCode` from `?ref=`, added a clean minimal input field in Step 1, and transmitted it in `submitRiderRegistration`.
+     - In `backend-python/app/api/rider.py`, hooked `apply_partner_or_rider_referral` into both `submit_registration` and `rider_onboarding` endpoints.
+  3. **Settlement Statements Breakdown Display:**
+     - Partner Console: Displayed referral milestone reward under `(B) Additions` in `partner-frontend/src/components/finance/SettlementSummaryModal.tsx` when `additionsB.referralBonus > 0`.
+     - Rider Console: Updated `compute_rider_cycle_breakdown` in `settlement_engine.py` to aggregate referral credits into net bank payout, and displayed `Captain Referral Milestones` row in `rider-frontend/src/components/wallet/RiderSettlementDetailModal.tsx`.
+  4. **Strict Theme Adherence:**
+     - All new inputs and badges designed in pure white backgrounds, neutral borders, dark typography, and zero cartoonish gradients.
+- **Modified Files:**
+  - `backend-python/app/models/partner.py`
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/api/rider.py`
+  - `backend-python/app/services/settlement_engine.py`
+  - `partner-frontend/src/shared/types/partner.ts`
+  - `partner-frontend/src/screens/BusinessRegistrationScreen.tsx`
+  - `partner-frontend/src/components/finance/SettlementSummaryModal.tsx`
+  - `rider-frontend/src/shared/types/rider.ts`
+  - `rider-frontend/src/routes/registration.tsx`
+  - `rider-frontend/src/screens/RiderRegistrationScreen.tsx`
+  - `rider-frontend/src/api/rider/rider-settlements-api.ts`
+  - `rider-frontend/src/components/wallet/RiderSettlementDetailModal.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `python3 -m py_compile` across modified backend files: PASSED (Zero errors).
+  - `partner-frontend npm run build`: PASSED (Exit code 0).
+  - `rider-frontend npm run build`: PASSED (Exit code 0).
+  - `admin-frontend npm run build`: PASSED (Exit code 0).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)
