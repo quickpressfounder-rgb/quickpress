@@ -219,6 +219,22 @@
   - `partner-frontend npm run build`: PASSED (Exit code 0).
   - Local server SSR curl tests on `/reviews` and `/orders/ord-QP10019`: PASSED (Zero errors, status 200).
 
+### 15. Native Standard Redis Integration (`REDIS_URL`) & Server Auto-Installer
+- **Architecture & Implementation:**
+  - Enhanced `backend-python/app/core/redis_limiter.py` to seamlessly detect and support standard `redis.asyncio` connections when `REDIS_URL` is configured (e.g. `redis://127.0.0.1:6379/0`).
+  - Added pipeline batching and command proxying to standard Redis with seamless fallback to in-memory cache if Redis is temporarily unreachable.
+  - Updated `backend-python/app/core/redis_cache.py` to share `_is_redis_active()`.
+  - Added `redis>=5.0.0` to `backend-python/requirements.txt`.
+  - Updated `scripts/update_server.sh` with Step 0: automatically checks for `redis-server`, installs and starts it via `systemctl`, and automatically appends `REDIS_URL=redis://127.0.0.1:6379/0` to `.env` if not already present.
+- **Modified Files:**
+  - `backend-python/app/core/redis_limiter.py`
+  - `backend-python/app/core/redis_cache.py`
+  - `backend-python/requirements.txt`
+  - `scripts/update_server.sh`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `python3 -m py_compile` across modified backend files: PASSED (Zero errors).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

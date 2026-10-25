@@ -22,7 +22,7 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple
 
 import httpx
 from app.config import get_settings
-from app.core.redis_limiter import _get_upstash_client, _upstash_command
+from app.core.redis_limiter import _is_redis_active, _upstash_command
 
 _log = logging.getLogger("quickpress.redis_cache")
 
@@ -57,8 +57,7 @@ class HybridCacheEngine:
             self._l1_store.pop(key, None)
 
         # 2. Check L2 Redis
-        client = _get_upstash_client()
-        if client is not None:
+        if _is_redis_active():
             full_k = self._full_key(key)
             try:
                 raw = await _upstash_command("GET", full_k)
@@ -84,8 +83,7 @@ class HybridCacheEngine:
         self._l1_store[key] = (expire_at, value)
 
         # 2. Store in L2 Redis
-        client = _get_upstash_client()
-        if client is not None:
+        if _is_redis_active():
             full_k = self._full_key(key)
             try:
                 serialized = json.dumps(value, default=str)
@@ -100,8 +98,7 @@ class HybridCacheEngine:
         """Invalidate single key from L1 and L2."""
         self._l1_store.pop(key, None)
 
-        client = _get_upstash_client()
-        if client is not None:
+        if _is_redis_active():
             try:
                 await _upstash_command("DEL", self._full_key(key))
             except Exception as exc:

@@ -26,6 +26,47 @@ _in_memory_limiter = SlidingWindowRateLimiter()
 _upstash_http_client: Optional[httpx.AsyncClient] = None
 _upstash_client_loop: Any = None
 
+# Standard Redis client (REDIS_URL)
+_standard_redis_client: Any = None
+_standard_redis_loop: Any = None
+
+
+def _get_standard_redis() -> Any:
+    """Returns or creates standard redis.asyncio client if REDIS_URL is configured."""
+    global _standard_redis_client, _standard_redis_loop
+    try:
+        settings = get_settings()
+    except Exception:
+        return None
+
+    url = (getattr(settings, "redis_url", "") or "").strip()
+    if not url:
+        return None
+
+    try:
+        import redis.asyncio as aioredis
+    except ImportError:
+        return None
+
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if _standard_redis_client is None or _standard_redis_loop != current_loop:
+        try:
+            _standard_redis_client = aioredis.from_url(
+                url,
+                decode_responses=True,
+                socket_timeout=2.0,
+                socket_connect_timeout=2.0,
+            )
+            _standard_redis_loop = current_loop
+        except Exception as exc:
+            _log.warning("Standard Redis connection init failed: %s", exc)
+            return None
+    return _standard_redis_client
+
 
 def _get_upstash_client() -> Optional[httpx.AsyncClient]:
     """Returns or creates persistent httpx client for Upstash REST API."""
@@ -57,8 +98,25 @@ def _get_upstash_client() -> Optional[httpx.AsyncClient]:
     return _upstash_http_client
 
 
+def _is_redis_active() -> bool:
+    """True if either standard Redis or Upstash Redis is configured."""
+    return _get_standard_redis() is not None or _get_upstash_client() is not None
+
+
 async def _upstash_pipeline(commands: List[List[Any]]) -> Optional[List[Any]]:
-    """Executes a pipeline batch of Redis commands over Upstash REST API."""
+    """Executes a pipeline batch of Redis commands over Standard Redis or Upstash REST API."""
+    std_redis = _get_standard_redis()
+    if std_redis is not None:
+        try:
+            pipe = std_redis.pipeline()
+            for cmd in commands:
+                if cmd:
+                    pipe.execute_command(str(cmd[0]).upper(), *cmd[1:])
+            results = await pipe.execute()
+            return list(results)
+        except Exception as exc:
+            _log.warning("Standard Redis pipeline failed (%s). Checking Upstash/in-memory.", exc)
+
     client = _get_upstash_client()
     if client is None:
         return None
@@ -76,7 +134,16 @@ async def _upstash_pipeline(commands: List[List[Any]]) -> Optional[List[Any]]:
 
 
 async def _upstash_command(*args: Any) -> Optional[Any]:
-    """Executes a single Redis command over Upstash REST API."""
+    """Executes a single Redis command over Standard Redis or Upstash REST API."""
+    std_redis = _get_standard_redis()
+    if std_redis is not None:
+        try:
+            cmd = str(args[0]).upper()
+            cmd_args = args[1:]
+            return await std_redis.execute_command(cmd, *cmd_args)
+        except Exception as exc:
+            _log.warning("Standard Redis command failed (%s). Checking Upstash/in-memory.", exc)
+
     client = _get_upstash_client()
     if client is None:
         return None

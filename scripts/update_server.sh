@@ -13,6 +13,24 @@ echo "========================================================"
 echo "🚀 Updating QuickPress Production Services on EC2"
 echo "========================================================"
 
+# 0. Redis Server Setup & Auto-configuration
+echo "⚡ [0/5] Verifying Redis in-memory cache server..."
+if ! command -v redis-server &> /dev/null; then
+    echo "  -> Installing Redis server on host..."
+    sudo apt-get update -y && sudo apt-get install -y redis-server
+fi
+sudo systemctl enable --now redis-server 2>/dev/null || sudo service redis-server start 2>/dev/null || true
+
+# Ensure REDIS_URL is in .env files
+for ENV_FILE in "$REPO_ROOT/.env" "$REPO_ROOT/backend-python/.env"; do
+    if [ -f "$ENV_FILE" ]; then
+        if ! grep -q "^REDIS_URL=" "$ENV_FILE"; then
+            echo "REDIS_URL=redis://127.0.0.1:6379/0" >> "$ENV_FILE"
+            echo "  -> Added REDIS_URL to $ENV_FILE"
+        fi
+    fi
+done
+
 # 1. Partner Frontend
 echo "🏬 [1/5] Building Partner Portal & restarting PM2..."
 cd "$REPO_ROOT/partner-frontend"
