@@ -12,7 +12,7 @@
 import type { RiderHistoryEntry, RiderOrder } from "@/shared/types/rider";
 
 import { ApiError } from "../core/errors";
-import { apiGetJson, apiPostJson } from "../core/transport";
+import { apiGetJson, apiPostJson, apiDeleteJson } from "../core/transport";
 import { offlineSyncQueue } from "@/lib/offline-sync-queue";
 import { safeStorage } from "@/lib/safe-storage";
 
@@ -155,12 +155,17 @@ export interface RouteBatchSummary {
   totalPiecesCarried: number;
   stops: Array<{
     sequence: number;
+    stopId?: string;
     orderId: string;
-    type: "pickup" | "drop_partner" | "pickup_partner" | "delivery";
+    orderCode?: string;
+    type: "pickup" | "drop_partner" | "pickup_partner" | "delivery" | "drop_store" | string;
+    stopType?: string;
     title: string;
     targetName: string;
+    contactName?: string;
     address: string;
     phone: string;
+    contactPhone?: string;
     lat: number;
     lng: number;
     distanceKm: number;
@@ -168,6 +173,8 @@ export interface RouteBatchSummary {
     piecesCount: number;
     status: string;
     isNextStop: boolean;
+    isNext?: boolean;
+    otpRequired?: string;
   }>;
   inventoryBags: Array<{
     orderId: string;
@@ -182,7 +189,7 @@ export interface RouteBatchSummary {
 /** GET /api/rider/route-batch — Option 5: Fetch sequenced multi-order batch and on-bike cargo manifest */
 export async function fetchRouteBatch(lat?: number, lng?: number): Promise<RouteBatchSummary> {
   try {
-    const query = lat && lng ? `?lat=${lat}&lng=${lng}` : "";
+    const query = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : "";
     return await apiGetJson<RouteBatchSummary>(`/api/rider/route-batch${query}`);
   } catch {
     return {
@@ -194,6 +201,26 @@ export async function fetchRouteBatch(lat?: number, lng?: number): Promise<Route
       stops: [],
       inventoryBags: [],
     };
+  }
+}
+
+/** POST /api/rider/route-batch/prioritize — Make this stop the top-priority next stop */
+export async function prioritizeRouteStop(orderId: string, stopType: string): Promise<any> {
+  try {
+    return await apiPostJson("/api/rider/route-batch/prioritize", { orderId, stopType });
+  } catch (err) {
+    console.warn("Failed to prioritize route stop:", err);
+    throw err;
+  }
+}
+
+/** DELETE /api/rider/route-batch/prioritize — Reset priority order to auto-geographical TSP */
+export async function clearRouteStopPriority(): Promise<any> {
+  try {
+    return await apiDeleteJson("/api/rider/route-batch/prioritize");
+  } catch (err) {
+    console.warn("Failed to clear route priority:", err);
+    throw err;
   }
 }
 

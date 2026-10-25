@@ -11,8 +11,17 @@ import {
   CheckCircle2,
   Clock,
   ChevronRight,
+  Phone,
+  KeyRound,
+  RotateCcw,
+  ArrowUpCircle,
 } from "lucide-react";
-import { fetchRouteBatch, type RouteBatchSummary } from "@/api/rider/rider-orders-api";
+import {
+  fetchRouteBatch,
+  prioritizeRouteStop,
+  clearRouteStopPriority,
+  type RouteBatchSummary,
+} from "@/api/rider/rider-orders-api";
 import { toast } from "sonner";
 
 interface SmartRouteBatchModalProps {
@@ -28,6 +37,7 @@ export function SmartRouteBatchModal({
 }: SmartRouteBatchModalProps) {
   const [activeTab, setActiveTab] = useState<"stops" | "inventory">("stops");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
   const [batchData, setBatchData] = useState<RouteBatchSummary | null>(null);
 
   const loadBatch = async () => {
@@ -39,6 +49,32 @@ export function SmartRouteBatchModal({
       toast.error("Could not load route batch. Using local active orders.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePrioritize = async (orderId: string, stopType: string) => {
+    setIsUpdatingPriority(true);
+    try {
+      await prioritizeRouteStop(orderId, stopType);
+      toast.success("Stop moved to next priority!");
+      await loadBatch();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to prioritize stop");
+    } finally {
+      setIsUpdatingPriority(false);
+    }
+  };
+
+  const handleResetPriority = async () => {
+    setIsUpdatingPriority(true);
+    try {
+      await clearRouteStopPriority();
+      toast.success("Route reset to optimal geographic order");
+      await loadBatch();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to reset route");
+    } finally {
+      setIsUpdatingPriority(false);
     }
   };
 
@@ -147,8 +183,28 @@ export function SmartRouteBatchModal({
               </div>
             ) : (
               <div className="space-y-3">
-                {stops.map((stop, idx) => {
+                {/* Manual Override Reset Notice */}
+                {(batchData?.hasPriorityOverride || stops.some((s) => s.priorityOverride)) && (
+                  <div className="flex items-center justify-between p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <ArrowUpCircle className="size-3.5 text-amber-700" />
+                      Manual stop priority applied
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isUpdatingPriority}
+                      onClick={handleResetPriority}
+                      className="px-2 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold text-[10px] flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <RotateCcw className="size-3" />
+                      Reset Optimal
+                    </button>
+                  </div>
+                )}
+
+                {stops.map((stop) => {
                   const isPickup = stop.type.includes("pickup");
+                  const phoneNum = stop.contactPhone || stop.phone;
                   return (
                     <div
                       key={`${stop.orderId}-${stop.sequence}`}
@@ -188,22 +244,39 @@ export function SmartRouteBatchModal({
                                   Next Stop
                                 </span>
                               )}
+                              {stop.priorityOverride && (
+                                <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200">
+                                  Prioritized
+                                </span>
+                              )}
+                              {stop.otpRequired && (
+                                <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-md flex items-center gap-1 border border-purple-200">
+                                  <KeyRound className="size-2.5" /> OTP Req
+                                </span>
+                              )}
                             </div>
 
                             <p className="text-xs font-bold text-zinc-900 truncate">
                               {stop.targetName || `Order #${stop.orderId.slice(-6)}`}
+                              {stop.orderCode && (
+                                <span className="ml-1.5 text-zinc-400 font-normal">
+                                  (#{stop.orderCode})
+                                </span>
+                              )}
                             </p>
                             <p className="text-[11px] text-zinc-500 line-clamp-2">
                               {stop.address}
                             </p>
 
-                            <div className="flex items-center gap-2 pt-1 text-[11px] text-zinc-600">
+                            <div className="flex items-center gap-2 pt-1 text-[11px] text-zinc-600 flex-wrap">
                               {stop.bagTag && (
                                 <span className="font-mono font-bold bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-800 border border-zinc-200">
                                   🏷️ {stop.bagTag}
                                 </span>
                               )}
-                              <span>• {stop.piecesCount} pcs</span>
+                              {stop.piecesCount > 0 && (
+                                <span>• {stop.piecesCount} pcs</span>
+                              )}
                               {stop.distanceKm > 0 && (
                                 <span>• ~{stop.distanceKm} km</span>
                               )}
@@ -211,15 +284,40 @@ export function SmartRouteBatchModal({
                           </div>
                         </div>
 
-                        {/* Navigation action button */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenNavigation(stop.lat, stop.lng, stop.address)}
-                          className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold active:scale-95 transition-all shadow-2xs"
-                        >
-                          <Navigation className="size-3.5" />
-                          <span>Nav</span>
-                        </button>
+                        {/* Stop Actions */}
+                        <div className="shrink-0 flex flex-col items-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenNavigation(stop.lat, stop.lng, stop.address)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold active:scale-95 transition-all shadow-2xs cursor-pointer"
+                          >
+                            <Navigation className="size-3.5" />
+                            <span>Nav</span>
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            {phoneNum && (
+                              <a
+                                href={`tel:${phoneNum}`}
+                                className="p-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg active:scale-95 transition-all"
+                                title="Call Contact"
+                              >
+                                <Phone className="size-3.5" />
+                              </a>
+                            )}
+                            {!stop.isNextStop && (
+                              <button
+                                type="button"
+                                disabled={isUpdatingPriority}
+                                onClick={() => handlePrioritize(stop.orderId, stop.type)}
+                                className="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[10px] font-bold rounded-lg active:scale-95 transition-all cursor-pointer"
+                                title="Set as next stop"
+                              >
+                                Do Next
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );

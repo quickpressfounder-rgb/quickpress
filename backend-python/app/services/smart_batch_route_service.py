@@ -39,17 +39,33 @@ ACTIVE_DELIVERY_STATUSES = {
 class SmartBatchRouteService:
     """Manages multi-order batch routes, task sequencing, and on-bike cargo tracking."""
 
+    def __init__(self):
+        self._rider_priority_preference: Dict[str, str] = {}
+
+    def prioritize_stop(self, rider_id: str, stop_id: str) -> bool:
+        """Sets a manual sequence priority preference for the rider's next stop."""
+        self._rider_priority_preference[rider_id] = stop_id
+        return True
+
+    def clear_priority(self, rider_id: str):
+        """Clears manual stop prioritization for the rider."""
+        self._rider_priority_preference.pop(rider_id, None)
+
     async def get_rider_active_batch(
         self,
         rider_id: str,
         rider_lat: Optional[float] = None,
         rider_lng: Optional[float] = None,
+        prioritized_stop_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Fetches all active orders assigned to the rider, sequences their pickup
         and drop stops optimally using nearest-neighbor routing, and summarizes
         on-bike cargo inventory.
         """
+        # Resolve active priority preference
+        active_priority = prioritized_stop_id or self._rider_priority_preference.get(rider_id)
+
         # 1. Resolve Rider Location
         cur_lat = rider_lat
         cur_lng = rider_lng
@@ -111,6 +127,15 @@ class SmartBatchRouteService:
                 "totalStops": 0,
                 "totalOrders": 0,
                 "totalDistanceKm": 0.0,
+                "ok": True,
+                "riderId": rider_id,
+                "totalStops": 0,
+                "totalOrders": 0,
+                "totalActiveOrders": 0,
+                "totalPickups": 0,
+                "totalDeliveries": 0,
+                "totalPiecesCarried": 0,
+                "totalDistanceKm": 0.0,
                 "totalFare": 0.0,
                 "cargoSummary": {
                     "bagsCount": 0,
@@ -118,12 +143,14 @@ class SmartBatchRouteService:
                     "activeBagTags": [],
                 },
                 "stops": [],
+                "inventoryBags": [],
             }
 
         # 3. Analyze cargo and pending stops
         cargo_bags: List[str] = []
         cargo_pieces: int = 0
         total_fare: float = 0.0
+        inventory_bags: List[Dict[str, Any]] = []
 
         raw_stops: List[Dict[str, Any]] = []
 
@@ -160,11 +187,23 @@ class SmartBatchRouteService:
             p_lat = float(p_data.get("latitude") or p_data.get("lat") or (c_lat + 0.015))
             p_lng = float(p_data.get("longitude") or p_data.get("lng") or (c_lng + 0.012))
 
-            # Cargo check: If clothes are picked up and not yet processed/delivered
+            # Cargo check: If clothes are picked up and currently on bike
             if st in IN_TRANSIT_STATUSES or (st == "picked_up"):
                 cargo_pieces += verified_pieces
-                if bag_tag:
-                    cargo_bags.append(bag_tag)
+                resolved_tag = bag_tag or f"QP-BAG-{ord_id[-4:].upper()}"
+                cargo_bags.append(resolved_tag)
+                inventory_bags.append({
+                    "orderId": ord_id,
+                    "orderCode": ord_code,
+                    "bagTag": resolved_tag,
+                    "piecesCount": verified_pieces,
+                    "customerName": c_name,
+                    "customerPhone": c_phone,
+                    "deliveryAddress": p_text,
+                    "targetDestination": p_name,
+                    "status": "in_transit",
+                    "sealedAt": doorstep.get("verifiedAt"),
+                })
                 # Next stop is to drop at partner hub
                 raw_stops.append({
                     "stopId": f"{ord_id}_drop_store",
@@ -178,9 +217,10 @@ class SmartBatchRouteService:
                     "lat": p_lat,
                     "lng": p_lng,
                     "pieces": verified_pieces,
-                    "bagTag": bag_tag,
+                    "bagTag": resolved_tag,
                     "otpRequired": "handover",
                     "requiresOrderPickup": None,  # already picked up
+                    "status": "pending",
                 })
             elif st in ACTIVE_PICKUP_STATUSES:
                 # 1. Pickup from customer
@@ -199,6 +239,7 @@ class SmartBatchRouteService:
                     "bagTag": bag_tag,
                     "otpRequired": "pickup",
                     "requiresOrderPickup": None,
+                    "status": "pending",
                 })
                 # 2. Then Drop at Store
                 raw_stops.append({
@@ -216,9 +257,25 @@ class SmartBatchRouteService:
                     "bagTag": bag_tag,
                     "otpRequired": "handover",
                     "requiresOrderPickup": f"{ord_id}_pickup",  # Prerequisite constraint
+                    "status": "pending",
                 })
             elif st in ACTIVE_DELIVERY_STATUSES:
                 # Delivery Leg: Delivery to customer
+                resolved_tag = bag_tag or f"QP-BAG-{ord_id[-4:].upper()}"
+                cargo_pieces += verified_pieces
+                cargo_bags.append(resolved_tag)
+                inventory_bags.append({
+                    "orderId": ord_id,
+                    "orderCode": ord_code,
+                    "bagTag": resolved_tag,
+                    "piecesCount": verified_pieces,
+                    "customerName": c_name,
+                    "customerPhone": c_phone,
+                    "deliveryAddress": c_text,
+                    "targetDestination": c_name,
+                    "status": "out_for_delivery",
+                    "sealedAt": doorstep.get("verifiedAt"),
+                })
                 raw_stops.append({
                     "stopId": f"{ord_id}_drop_customer",
                     "orderId": ord_id,
@@ -231,12 +288,13 @@ class SmartBatchRouteService:
                     "lat": c_lat,
                     "lng": c_lng,
                     "pieces": verified_pieces,
-                    "bagTag": bag_tag,
+                    "bagTag": resolved_tag,
                     "otpRequired": "delivery",
                     "requiresOrderPickup": None,
+                    "status": "pending",
                 })
 
-        # 4. Nearest-Neighbor Sequence Optimization with Topological Dependency
+        # 4. Nearest-Neighbor Sequence Optimization with Topological Dependency & Priority Support
         sequenced_stops: List[Dict[str, Any]] = []
         visited_ids = set()
         total_distance_km = 0.0
@@ -256,14 +314,23 @@ class SmartBatchRouteService:
                 # Fallback to any unvisited stop to avoid deadlock
                 candidates = [s for s in raw_stops if s["stopId"] not in visited_ids]
 
-            # Find nearest candidate stop from current position
             best_stop = None
-            best_dist = float("inf")
-            for c in candidates:
-                dist = haversine_km((current_lat, current_lng), (c["lat"], c["lng"]))
-                if dist < best_dist:
-                    best_dist = dist
-                    best_stop = c
+            # Check if active_priority matches any candidate (for making it Stop 1)
+            if len(sequenced_stops) == 0 and active_priority:
+                for c in candidates:
+                    if c["stopId"] == active_priority or c["orderId"] == active_priority:
+                        best_stop = c
+                        best_dist = haversine_km((current_lat, current_lng), (c["lat"], c["lng"]))
+                        break
+
+            if best_stop is None:
+                # Find nearest candidate stop from current position
+                best_dist = float("inf")
+                for c in candidates:
+                    dist = haversine_km((current_lat, current_lng), (c["lat"], c["lng"]))
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_stop = c
 
             if best_stop is None:
                 break
@@ -272,22 +339,34 @@ class SmartBatchRouteService:
             step_km = round(best_dist, 2)
             total_distance_km += step_km
 
+            seq_num = len(sequenced_stops) + 1
+            is_next = seq_num == 1
+
             stop_entry = {
-                "sequenceNumber": len(sequenced_stops) + 1,
-                "isNext": len(sequenced_stops) == 0,
+                "sequence": seq_num,
+                "sequenceNumber": seq_num,
+                "isNext": is_next,
+                "isNextStop": is_next,
                 "stopId": best_stop["stopId"],
                 "orderId": best_stop["orderId"],
                 "orderCode": best_stop["orderCode"],
+                "type": best_stop["stopType"],
                 "stopType": best_stop["stopType"],
                 "title": best_stop["title"],
+                "targetName": best_stop["contactName"],
                 "contactName": best_stop["contactName"],
                 "contactPhone": best_stop["contactPhone"],
+                "phone": best_stop["contactPhone"],
                 "address": best_stop["address"],
+                "lat": best_stop["lat"],
+                "lng": best_stop["lng"],
                 "coords": {"lat": best_stop["lat"], "lng": best_stop["lng"]},
                 "distanceKm": step_km,
+                "piecesCount": best_stop["pieces"],
                 "estimatedPieces": best_stop["pieces"],
                 "bagTag": best_stop["bagTag"],
                 "otpRequired": best_stop["otpRequired"],
+                "status": best_stop.get("status") or "pending",
             }
             sequenced_stops.append(stop_entry)
 
@@ -295,10 +374,18 @@ class SmartBatchRouteService:
             current_lat = best_stop["lat"]
             current_lng = best_stop["lng"]
 
+        total_pickups = sum(1 for s in sequenced_stops if "pickup" in s["stopType"])
+        total_deliveries = sum(1 for s in sequenced_stops if "drop" in s["stopType"] or "delivery" in s["stopType"])
+
         return {
             "ok": True,
+            "riderId": rider_id,
             "totalStops": len(sequenced_stops),
             "totalOrders": len(orders),
+            "totalActiveOrders": len(orders),
+            "totalPickups": total_pickups,
+            "totalDeliveries": total_deliveries,
+            "totalPiecesCarried": cargo_pieces,
             "totalDistanceKm": round(total_distance_km, 2),
             "totalFare": round(total_fare, 2),
             "cargoSummary": {
@@ -307,6 +394,7 @@ class SmartBatchRouteService:
                 "activeBagTags": cargo_bags,
             },
             "stops": sequenced_stops,
+            "inventoryBags": inventory_bags,
         }
 
 

@@ -3152,6 +3152,49 @@ async def get_route_batch(
     )
 
 
+@router.post("/route-batch/prioritize")
+async def prioritize_route_stop(
+    payload: dict = Body(default={}),
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Sets a specific stop as the rider's next priority stop in batch routing."""
+    resolved_id = None
+    if user:
+        try:
+            resolved_id = await _rider_id(user)
+        except Exception:
+            pass
+    if not resolved_id:
+        resolved_id = payload.get("riderId") or "rider_demo_001"
+
+    stop_id = payload.get("stopId") or payload.get("orderId")
+    if not stop_id:
+        return {"ok": False, "error": "stopId or orderId is required"}
+
+    from app.services.smart_batch_route_service import smart_batch_route_service
+    smart_batch_route_service.prioritize_stop(resolved_id, stop_id)
+    return {"ok": True, "prioritizedStopId": stop_id, "riderId": resolved_id}
+
+
+@router.delete("/route-batch/prioritize")
+async def clear_route_stop_priority(
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    """Clears manual stop prioritization for the rider."""
+    resolved_id = None
+    if user:
+        try:
+            resolved_id = await _rider_id(user)
+        except Exception:
+            pass
+    if not resolved_id:
+        resolved_id = "rider_demo_001"
+
+    from app.services.smart_batch_route_service import smart_batch_route_service
+    smart_batch_route_service.clear_priority(resolved_id)
+    return {"ok": True, "riderId": resolved_id}
+
+
 @router.get("/orders")
 async def list_orders(
     q: Optional[str] = None,
