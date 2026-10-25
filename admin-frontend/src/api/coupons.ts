@@ -369,3 +369,13 @@ export async function deleteMultiRoleReferralRule(
   return apiDeleteJson<{ ok: boolean; deletedId: string }>(`/api/admin/referrals/multi-role/rules/${ruleId}`);
 }
 
+export async function performReferralLedgerAction(
+  ledgerId: string,
+  action: "unlock" | "credit" | "cancel"
+): Promise<{ ok: boolean; status: string; message: string }> {
+  return apiPostJson<{ ok: boolean; status: string; message: string }>(
+    `/api/admin/referrals/multi-role/ledger/${encodeURIComponent(ledgerId)}/action`,
+    { action }
+  );
+}
+

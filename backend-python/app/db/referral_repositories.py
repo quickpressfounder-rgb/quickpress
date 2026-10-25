@@ -952,6 +952,22 @@ class ReferralRepository:
         if not existing: doc["createdAt"] = now
 
         await database.collection(MULTI_ROLE_RULES).update_one({"_id": rule_id}, {"$set": doc}, upsert=True)
+
+        # Two-way sync: If customer rule is updated by Admin, sync to legacy customer PROGRAM_SETTINGS
+        if role == "customer":
+            try:
+                sync_settings: Dict[str, Any] = {"updatedAt": now}
+                if payload.refereeDiscountPercent is not None: sync_settings["refereeDiscountPercent"] = payload.refereeDiscountPercent
+                if payload.refereeMaxDiscount is not None: sync_settings["refereeMaxDiscount"] = payload.refereeMaxDiscount
+                if payload.minOrderValue is not None: sync_settings["refereeMinOrderValue"] = payload.minOrderValue
+                if payload.referrerReward is not None: sync_settings["referrerRewardAmount"] = payload.referrerReward
+                if payload.headline is not None: sync_settings["headline"] = payload.headline
+                if payload.subheadline is not None: sync_settings["subheadline"] = payload.subheadline
+                if payload.terms is not None: sync_settings["terms"] = payload.terms
+                await database.collection(PROGRAM_SETTINGS).update_one({"_id": GLOBAL_CONFIG_ID}, {"$set": sync_settings}, upsert=True)
+            except Exception as sync_err:
+                logger.warning(f"Failed to sync customer referral settings: {sync_err}")
+
         return await self.get_active_rule(role, city)
 
     async def delete_multi_role_rule(self, rule_id: str) -> bool:
@@ -966,7 +982,26 @@ class ReferralRepository:
         # Generate clean role-based code if not set
         uid_clean = re.sub(r"[^A-Za-z0-9]", "", str(user.id))[-4:].upper() or "1001"
         code_prefix = "QP-PRT" if role_clean == "partner" else ("QP-RDR" if role_clean == "rider" else "QP-CST")
-        code = str(getattr(user, "referral_code", None) or f"{code_prefix}-{uid_clean}")
+        code = str(getattr(user, "referral_code", None) or getattr(user, "referralCode", None) or f"{code_prefix}-{uid_clean}")
+
+        # Persist referral code on user/partner/rider doc so referees can immediately match it
+        try:
+            await database.collection("users").update_one(
+                {"_id": user.id},
+                {"$set": {"referral_code": code, "referralCode": code}},
+            )
+            if role_clean == "partner":
+                await database.collection("partner_profiles").update_one(
+                    {"$or": [{"_id": user.id}, {"partnerId": user.id}, {"userId": user.id}]},
+                    {"$set": {"referralCode": code, "referral_code": code}},
+                )
+            elif role_clean == "rider":
+                await database.collection("rider_profiles").update_one(
+                    {"$or": [{"_id": user.id}, {"riderId": user.id}, {"phone": user.phone}]},
+                    {"$set": {"referralCode": code, "referral_code": code}},
+                )
+        except Exception:
+            pass
 
         # Resolve partner / store city if applicable
         user_city = city or "All Cities"
@@ -1111,10 +1146,12 @@ class ReferralRepository:
         )
 
     async def process_order_milestones(self, order: Dict[str, Any]) -> None:
-        """Triggered when an order is completed. Advances referral milestone counters for referred partner/rider."""
+        """Triggered when an order is completed. Advances referral milestone counters for referred partner/rider/customer."""
         try:
             partner_id = str(order.get("partnerId") or order.get("storeId") or "")
             rider_id = str(order.get("deliveryRiderId") or order.get("riderId") or "")
+            cust = order.get("customer") or {}
+            customer_id = str(order.get("userId") or order.get("customerId") or cust.get("id") or cust.get("userId") or "")
 
             # 1. Check partner milestone
             if partner_id:
@@ -1133,13 +1170,31 @@ class ReferralRepository:
                     curr_completed = int(entry.get("completedOrders") or 0) + 1
                     target = int(entry.get("targetOrders") or 10)
                     up_doc: Dict[str, Any] = {"completedOrders": curr_completed}
+                    just_unlocked = False
                     if curr_completed >= target:
                         up_doc["status"] = "unlocked"
                         up_doc["unlockedAt"] = utcnow().isoformat()
+                        just_unlocked = True
+
                     await database.collection(MULTI_ROLE_LEDGER).update_one(
                         {"_id": entry["_id"]},
                         {"$set": up_doc},
                     )
+
+                    if just_unlocked:
+                        try:
+                            from app.services.order_notifications import send_partner_notification
+                            ref_id = str(entry.get("referrerId"))
+                            ref_amt = float(entry.get("rewardAmount") or 500.0)
+                            p_name = entry.get("refereeName") or "Partner Store"
+                            await send_partner_notification(
+                                ref_id,
+                                title="🎁 Partner Referral Milestone Unlocked!",
+                                description=f"Great news! Your referred partner {p_name} completed {target} orders. ₹{int(ref_amt)} is now unlocked and ready to claim to your weekly cycle!",
+                                kind="referral",
+                            )
+                        except Exception as notif_err:
+                            logger.warning(f"Failed to dispatch partner referral unlock notification: {notif_err}")
 
             # 2. Check rider milestone
             if rider_id:
@@ -1152,11 +1207,47 @@ class ReferralRepository:
                     curr_completed = int(r_entry.get("completedOrders") or 0) + 1
                     target = int(r_entry.get("targetOrders") or 20)
                     up_doc = {"completedOrders": curr_completed}
+                    just_unlocked_rider = False
+                    if curr_completed >= target:
+                        up_doc["status"] = "unlocked"
+                        up_doc["unlockedAt"] = utcnow().isoformat()
+                        just_unlocked_rider = True
+
+                    await database.collection(MULTI_ROLE_LEDGER).update_one(
+                        {"_id": r_entry["_id"]},
+                        {"$set": up_doc},
+                    )
+
+                    if just_unlocked_rider:
+                        try:
+                            from app.services.order_notifications import send_rider_notification
+                            ref_id = str(r_entry.get("referrerId"))
+                            ref_amt = float(r_entry.get("rewardAmount") or 300.0)
+                            r_name = r_entry.get("refereeName") or "Captain"
+                            await send_rider_notification(
+                                ref_id,
+                                title="🎁 Captain Referral Reward Unlocked!",
+                                message=f"Captain! Your referred captain {r_name} completed {target} trips. ₹{int(ref_amt)} referral reward is now ready to claim!",
+                            )
+                        except Exception as r_notif_err:
+                            logger.warning(f"Failed to dispatch rider referral unlock notification: {r_notif_err}")
+
+            # 3. Check customer milestone
+            if customer_id:
+                c_entry = await database.collection(MULTI_ROLE_LEDGER).find_one({
+                    "refereeId": customer_id,
+                    "refereeRole": "customer",
+                    "status": "pending_milestone",
+                })
+                if c_entry:
+                    curr_completed = int(c_entry.get("completedOrders") or 0) + 1
+                    target = int(c_entry.get("targetOrders") or 1)
+                    up_doc = {"completedOrders": curr_completed}
                     if curr_completed >= target:
                         up_doc["status"] = "unlocked"
                         up_doc["unlockedAt"] = utcnow().isoformat()
                     await database.collection(MULTI_ROLE_LEDGER).update_one(
-                        {"_id": r_entry["_id"]},
+                        {"_id": c_entry["_id"]},
                         {"$set": up_doc},
                     )
         except Exception as e:
@@ -1165,20 +1256,89 @@ class ReferralRepository:
     async def apply_partner_or_rider_referral(
         self, referrer_code: str, referee_user: User, referee_role: str, city: str = "All Cities"
     ) -> dict:
-        """Links newly registered partner or rider with their referrer."""
+        """Links newly registered partner or rider with their referrer using multi-source matching."""
         clean_code = str(referrer_code or "").upper().strip()
         referee_role_clean = referee_role.lower().strip()
 
-        # Find referrer by referral code
+        referrer_doc = None
+
+        # 1. Look in users collection
         referrer_doc = await database.collection("users").find_one({
-            "referral_code": clean_code
+            "$or": [
+                {"referral_code": clean_code},
+                {"referralCode": clean_code},
+                {"code": clean_code},
+            ]
         })
+
+        # 2. Look in partner_profiles / admin_partners
+        if not referrer_doc and "PRT" in clean_code:
+            p_prof = (
+                await database.collection("partner_profiles").find_one({"$or": [{"referralCode": clean_code}, {"referral_code": clean_code}]})
+                or await database.collection("admin_partners").find_one({"$or": [{"referralCode": clean_code}, {"referral_code": clean_code}]})
+            )
+            if p_prof:
+                referrer_doc = {
+                    "_id": str(p_prof.get("_id") or p_prof.get("partnerId") or p_prof.get("userId")),
+                    "display_name": p_prof.get("businessName") or p_prof.get("ownerName") or "Partner",
+                    "phone": p_prof.get("phone") or "—",
+                    "role": "partner",
+                }
+
+        # 3. Look in rider_profiles / admin_riders
+        if not referrer_doc and "RDR" in clean_code:
+            r_prof = (
+                await database.collection("rider_profiles").find_one({"$or": [{"referralCode": clean_code}, {"referral_code": clean_code}]})
+                or await database.collection("admin_riders").find_one({"$or": [{"referralCode": clean_code}, {"referral_code": clean_code}]})
+            )
+            if r_prof:
+                referrer_doc = {
+                    "_id": str(r_prof.get("_id") or r_prof.get("riderId") or r_prof.get("userId")),
+                    "display_name": r_prof.get("fullName") or r_prof.get("name") or "Captain",
+                    "phone": r_prof.get("phone") or "—",
+                    "role": "rider",
+                }
+
+        # 4. Suffix match fallback (e.g. QP-PRT-ABCD or QP-RDR-ABCD where ABCD is last 4 characters of ID)
+        if not referrer_doc and "-" in clean_code:
+            suffix = clean_code.split("-")[-1].strip().upper()
+            if len(suffix) >= 3:
+                if "PRT" in clean_code:
+                    partners = await database.find_many("partner_profiles")
+                    for p in partners:
+                        pid = re.sub(r"[^A-Za-z0-9]", "", str(p.get("_id") or p.get("partnerId") or ""))[-4:].upper()
+                        if pid == suffix:
+                            referrer_doc = {
+                                "_id": str(p.get("_id") or p.get("partnerId")),
+                                "display_name": p.get("businessName") or p.get("ownerName") or "Partner",
+                                "phone": p.get("phone") or "—",
+                                "role": "partner",
+                            }
+                            break
+                elif "RDR" in clean_code:
+                    riders = await database.find_many("rider_profiles")
+                    for r in riders:
+                        rid = re.sub(r"[^A-Za-z0-9]", "", str(r.get("_id") or r.get("riderId") or ""))[-4:].upper()
+                        if rid == suffix:
+                            referrer_doc = {
+                                "_id": str(r.get("_id") or r.get("riderId")),
+                                "display_name": r.get("fullName") or r.get("name") or "Captain",
+                                "phone": r.get("phone") or "—",
+                                "role": "rider",
+                            }
+                            break
+
+        # 5. Look in existing multi_role_ledger entries
         if not referrer_doc:
-            # Also search in multi_role_ledger
             existing_ref = await database.collection(MULTI_ROLE_LEDGER).find_one({"code": clean_code})
             if existing_ref:
                 referrer_id = existing_ref.get("referrerId")
-                referrer_doc = await database.collection("users").find_one({"_id": referrer_id})
+                referrer_doc = await database.collection("users").find_one({"_id": referrer_id}) or {
+                    "_id": referrer_id,
+                    "display_name": existing_ref.get("referrerName") or "Referrer",
+                    "phone": existing_ref.get("referrerPhone") or "—",
+                    "role": existing_ref.get("referrerRole") or referee_role_clean,
+                }
 
         if not referrer_doc:
             raise ReferralConflict("Invalid referral code.", status_code=404)
@@ -1203,7 +1363,7 @@ class ReferralRepository:
             "referrerPhone": referrer_doc.get("phone") or "—",
             "referrerRole": referrer_doc.get("role") or referee_role_clean,
             "refereeId": referee_user.id,
-            "refereeName": referee_user.display_name or "New Registered Partner",
+            "refereeName": referee_user.display_name or ("New Registered Laundromat" if referee_role_clean == "partner" else "New Delivery Captain"),
             "refereePhone": referee_user.phone or "—",
             "refereeRole": referee_role_clean,
             "city": city or "All Cities",
@@ -1217,6 +1377,49 @@ class ReferralRepository:
 
         await database.collection(MULTI_ROLE_LEDGER).insert_one(ledger_entry)
         return {"ok": True, "code": clean_code, "targetOrders": active_rule.targetOrdersCount, "reward": active_rule.referrerReward}
+
+    async def admin_action_ledger_item(self, ledger_id: str, action: str) -> Dict[str, Any]:
+        """Admin manual override on referral ledger entry (force unlock, disburse, or cancel)."""
+        entry = await database.collection(MULTI_ROLE_LEDGER).find_one({"_id": ledger_id})
+        if not entry:
+            raise ReferralConflict("Referral ledger item not found.", status_code=404)
+
+        now = utcnow().isoformat()
+        if action == "unlock":
+            await database.collection(MULTI_ROLE_LEDGER).update_one(
+                {"_id": ledger_id},
+                {
+                    "$set": {
+                        "status": "unlocked",
+                        "unlockedAt": now,
+                        "completedOrders": entry.get("targetOrders", 10),
+                    }
+                },
+            )
+            return {"ok": True, "status": "unlocked", "message": "Referral milestone marked unlocked by admin."}
+
+        elif action == "credit":
+            referrer_id = str(entry.get("referrerId"))
+            role = str(entry.get("referrerRole", "partner"))
+            reward = float(entry.get("rewardAmount") or 500.0)
+
+            fake_user = User(
+                id=referrer_id,
+                email=f"{referrer_id}@quickpress.internal",
+                role=role,
+                display_name=str(entry.get("referrerName", "Partner")),
+            )
+            res = await self.claim_referral_rewards(fake_user, role=role, reward_id=ledger_id)
+            return {"ok": True, "status": "claimed_to_cycle", "message": f"₹{int(reward)} successfully credited to settlement cycle."}
+
+        elif action == "cancel":
+            await database.collection(MULTI_ROLE_LEDGER).update_one(
+                {"_id": ledger_id},
+                {"$set": {"status": "cancelled", "cancelledAt": now}},
+            )
+            return {"ok": True, "status": "cancelled", "message": "Referral record cancelled."}
+
+        raise ReferralConflict("Invalid action specified.", status_code=400)
 
     async def get_admin_multi_role_overview(
         self, role: Optional[str] = None, city: Optional[str] = None, status: Optional[str] = None

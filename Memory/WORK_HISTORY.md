@@ -99,6 +99,44 @@
   - `rider-frontend npm run build`: PASSED (Exit code 0).
   - `admin-frontend npm run build`: PASSED (Exit code 0).
 
+### 9. Phase 3: Live Milestone Notifications, Admin Overrides, Dashboard Claim Banners & Captain Quick Actions
+- **Objectives & Scope Completed:**
+  1. **Two-Way Customer Settings Sync & Multi-Collection Robust Code Resolution:**
+     - In `backend-python/app/db/referral_repositories.py`:
+       - `upsert_multi_role_rule` automatically propagates changes to `PROGRAM_SETTINGS` whenever Customer referral rules are edited in the Admin Panel, guaranteeing complete two-way synchronization.
+       - `get_user_referral_hub` ensures generated referral codes are persisted to `users`, `partner_profiles`, and `rider_profiles` collections.
+       - `apply_partner_or_rider_referral` upgraded with 4-way robust lookup (`users`, `partner_profiles`, `rider_profiles`, `multi_role_ledger`, and suffix matching like `QP-PRT-XXXX` / `QP-RDR-XXXX`).
+  2. **Automated Real-Time Push & In-App Milestone Notifications:**
+     - In `process_order_milestones`:
+       - When a referred partner finishes their order milestone, sends real-time in-app and push notification to the referrer via `send_partner_notification` ("🎁 Partner Referral Milestone Unlocked! ₹500 ready to claim to your current weekly cycle").
+       - When a referred rider finishes their order milestone, sends real-time in-app notification to the referrer via `send_rider_notification`.
+       - Integrated customer referral order milestone completion tracking in `MULTI_ROLE_LEDGER`.
+  3. **Admin Panel Manual Overrides & Ledger Action Controls:**
+     - In `backend-python/app/api/admin.py`: added `POST /api/admin/referrals/multi-role/ledger/{ledger_id}/action` supporting `unlock` (force complete target orders milestone) and `credit` (force disburse reward to weekly cycle / wallet).
+     - In `admin-frontend/src/api/coupons.ts`: added `performReferralLedgerAction`.
+     - In `admin-frontend/src/routes/referrals.tsx`: added dedicated "Actions" column in the ledger table with "Force Unlock" and "Disburse Now" buttons with live toast feedback.
+  4. **Partner Dashboard Direct Settlement Claim Banner:**
+     - In `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`: added an un-intrusive, high-contrast monochrome banner ("🎁 ₹500 Referral Reward Unlocked!") when `claimableBalance > 0` allowing partners to transfer their unlocked reward directly into their weekly bank settlement cycle without leaving the dashboard.
+  5. **Captain Home Screen Quick Action Card:**
+     - In `rider-frontend/src/components/home/CaptainHomeOfflineScreen.tsx`: added "Refer & Earn (Earn ₹300 per Captain)" quick action card right next to Language switcher.
+     - In `rider-frontend/src/screens/RiderDashboardScreen.tsx`: wired the card to directly launch `CaptainReferralModal`.
+  6. **Design Alignment:**
+     - Strictly maintained the user's constraint: "THEAM SIMPLE RAKHANA HAI" across all new UI elements, adhering to high contrast, neutral borders, pure white backgrounds, and dark typography.
+- **Modified Files:**
+  - `backend-python/app/db/referral_repositories.py`
+  - `backend-python/app/api/admin.py`
+  - `admin-frontend/src/api/coupons.ts`
+  - `admin-frontend/src/routes/referrals.tsx`
+  - `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`
+  - `rider-frontend/src/components/home/CaptainHomeOfflineScreen.tsx`
+  - `rider-frontend/src/screens/RiderDashboardScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `python3 -m py_compile` across modified backend files: PASSED (Zero errors).
+  - `admin-frontend npm run build`: PASSED (Exit code 0).
+  - `partner-frontend npm run build`: PASSED (Exit code 0).
+  - `rider-frontend npm run build`: PASSED (Exit code 0).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

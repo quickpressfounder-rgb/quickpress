@@ -40,6 +40,7 @@ import {
   fetchMultiRoleReferralOverview,
   upsertMultiRoleReferralRule,
   deleteMultiRoleReferralRule,
+  performReferralLedgerAction,
   type MultiRoleReferralRule,
   type MultiRoleReferralLedgerItem,
   type MultiRoleType,
@@ -152,6 +153,20 @@ export function ReferralsPage() {
       toast.error(err?.message || "Failed to delete referral rule");
     },
   });
+
+  // Mutation: Admin manual action on referral ledger item
+  const ledgerActionMutation = useMutation({
+    mutationFn: ({ ledgerId, action }: { ledgerId: string; action: "unlock" | "credit" | "cancel" }) =>
+      performReferralLedgerAction(ledgerId, action),
+    onSuccess: (res) => {
+      toast.success(res.message || "Referral updated successfully!");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "multi-role-referral-overview"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to update referral");
+    },
+  });
+
 
   // Filter ledger locally with instant search bar
   const filteredLedger = useMemo(() => {
@@ -562,19 +577,20 @@ export function ReferralsPage() {
                   <th className="py-3 px-4">Reward</th>
                   <th className="py-3 px-4">Settlement Status</th>
                   <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="py-10 text-center text-slate-400">
+                    <td colSpan={9} className="py-10 text-center text-slate-400">
                       <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-slate-500" />
                       Loading live referral records...
                     </td>
                   </tr>
                 ) : filteredLedger.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
                       <div className="size-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-500">
                         <Gift className="size-5" />
                       </div>
@@ -666,6 +682,33 @@ export function ReferralsPage() {
                         {/* Date */}
                         <td className="py-3 px-4 text-slate-500 text-[11px] whitespace-nowrap">
                           {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          {item.status === "pending_milestone" ? (
+                            <button
+                              type="button"
+                              onClick={() => ledgerActionMutation.mutate({ ledgerId: item.id, action: "unlock" })}
+                              disabled={ledgerActionMutation.isPending}
+                              className="px-2.5 py-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition cursor-pointer disabled:opacity-50"
+                              title="Force mark orders milestone completed"
+                            >
+                              Force Unlock
+                            </button>
+                          ) : item.status === "unlocked" ? (
+                            <button
+                              type="button"
+                              onClick={() => ledgerActionMutation.mutate({ ledgerId: item.id, action: "credit" })}
+                              disabled={ledgerActionMutation.isPending}
+                              className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-md transition cursor-pointer disabled:opacity-50"
+                              title="Disburse reward directly to weekly cycle"
+                            >
+                              Disburse Now
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-bold text-slate-400">Settled ✓</span>
+                          )}
                         </td>
                       </tr>
                     );

@@ -13,11 +13,13 @@ interface CaptainHomeOfflineScreenProps {
   captainName?: string;
   onGoOnline: () => void;
   onOpenWorkZoneInfo?: () => void;
+  onOpenReferralModal?: () => void;
 }
 
 export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> = ({
   captainName = "Captain",
   onGoOnline,
+  onOpenReferralModal,
 }) => {
   const navigate = useNavigate();
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
@@ -310,7 +312,7 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
         <div className="px-4 pb-2">
           <p className="text-[13.5px] font-semibold text-zinc-800 mb-2">Quick actions</p>
 
-          {/* Change Language Rounded Card (Matches Screenshot "आ A") */}
+          {/* Change Language Rounded Card & Refer & Earn Card */}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -323,6 +325,24 @@ export const CaptainHomeOfflineScreen: React.FC<CaptainHomeOfflineScreenProps> =
             >
               <span className="text-[17px] font-bold text-[#38BDF8]">आ</span>
               <span className="text-[19px] font-extrabold text-[#1D4ED8] -ml-0.5">A</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(20);
+                onOpenReferralModal?.();
+              }}
+              className="flex items-center gap-3 px-3.5 h-[52px] rounded-[18px] bg-[#F4F6F8] hover:bg-zinc-100 active:scale-95 transition-all cursor-pointer shadow-2xs border border-zinc-200/50 flex-1 min-w-0"
+              aria-label="Refer & Earn"
+            >
+              <div className="size-8 rounded-xl bg-neutral-900 text-white flex items-center justify-center text-sm font-black shrink-0">
+                🎁
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-xs font-black text-neutral-900 truncate">Refer & Earn</p>
+                <p className="text-[10px] text-neutral-500 font-medium truncate">Earn ₹300 per Captain</p>
+              </div>
             </button>
           </div>
 

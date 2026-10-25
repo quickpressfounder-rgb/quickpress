@@ -50,6 +50,7 @@ import { partnerRoutes } from "../../navigation/partner-routes";
 import { fetchDashboardSummary, getCachedDashboardSummary, setStoreOpen } from "../../api/partner/partner-dashboard-api";
 import { fetchEarnings } from "../../api/partner/partner-earnings-api";
 import { fetchPartnerProfile, fetchPartnerUnreadCount, getCachedPartnerProfile, getCleanPartnerName, isPhoneNumber } from "../../api/partner/partner-profile-api";
+import { fetchPartnerReferralHub, claimPartnerReferralReward } from "../../api/partner/partner-referral-api";
 import { subscribePartnerNotifications } from "../../lib/partner-socket";
 import { usePartnerContext } from "../../context/PartnerContext";
 import { usePartnerOrders } from "../../context/PartnerOrdersContext";
@@ -179,6 +180,35 @@ export function ZomatoHubView() {
   const [isVerifyingHubDispatch, setIsVerifyingHubDispatch] = useState(false);
   const [expandedItemsOrderIds, setExpandedItemsOrderIds] = useState<Record<string, boolean>>({});
   const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
+  const [claimableReferralBalance, setClaimableReferralBalance] = useState(0);
+  const [isClaimingReferral, setIsClaimingReferral] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchPartnerReferralHub()
+      .then((hub) => {
+        if (mounted && (hub?.claimableBalance ?? 0) > 0) {
+          setClaimableReferralBalance(hub.claimableBalance);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleClaimReferralToCycle = async () => {
+    try {
+      setIsClaimingReferral(true);
+      const res = await claimPartnerReferralReward();
+      toast.success(res.message || "Referral reward added to current settlement cycle!");
+      setClaimableReferralBalance(0);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to claim referral reward");
+    } finally {
+      setIsClaimingReferral(false);
+    }
+  };
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
 
@@ -539,6 +569,33 @@ export function ZomatoHubView() {
                 ✕
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Unlocked Referral Reward Settlement Banner */}
+        {claimableReferralBalance > 0 && (
+          <div className="rounded-2xl bg-white border border-neutral-900 p-4 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-neutral-900 text-white text-sm font-black shadow-xs">
+                🎁
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-black text-neutral-950 truncate">
+                  ₹{claimableReferralBalance.toLocaleString("en-IN")} Referral Reward Unlocked!
+                </p>
+                <p className="text-[11px] font-medium text-neutral-600 leading-tight">
+                  Your referred partner finished their order milestone. Transfer to current cycle now!
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleClaimReferralToCycle}
+              disabled={isClaimingReferral}
+              className="rounded-xl bg-neutral-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer hover:bg-neutral-800 shrink-0 disabled:opacity-50"
+            >
+              {isClaimingReferral ? "Transferring..." : "Claim to Cycle ✓"}
+            </button>
           </div>
         )}
 

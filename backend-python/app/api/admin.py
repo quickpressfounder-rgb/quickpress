@@ -2208,6 +2208,25 @@ async def delete_admin_multi_role_rule(
     return {"ok": ok, "deletedId": rule_id}
 
 
+@router.post("/referrals/multi-role/ledger/{ledger_id}/action")
+async def perform_referral_ledger_action(
+    ledger_id: str, payload: dict, user: User = Depends(current_user)
+) -> dict:
+    """Admin manual override on referral ledger entry (unlock, credit, cancel)."""
+    action = str(payload.get("action", "")).lower().strip()
+    try:
+        result = await referral_repository.admin_action_ledger_item(ledger_id, action)
+        await audit_repository.log(
+            await _actor(user),
+            f"referral.ledger.{action}",
+            ledger_id,
+            {"action": action, "result": result},
+        )
+        return result
+    except ReferralConflict as err:
+        raise HTTPException(status_code=err.status_code, detail=err.message) from err
+
+
 # -----------------------------------------------------------------------------
 # Memberships Management — Admin Control & Engine
 # -----------------------------------------------------------------------------

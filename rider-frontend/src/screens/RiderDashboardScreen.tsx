@@ -19,6 +19,7 @@ import { fetchUnreadCount } from "../api/rider/rider-notifications-api";
 import { CaptainHomeOfflineScreen } from "../components/home/CaptainHomeOfflineScreen";
 import { CaptainOnlineMapView } from "../components/map/CaptainOnlineMapView";
 import { CaptainRateCardModal } from "../components/home/CaptainRateCardModal";
+import { CaptainReferralModal } from "../components/layout/CaptainReferralModal";
 import { RiderBottomNav } from "../components/RiderBottomNav";
 import { formatCaptainId } from "../lib/format-ids";
 import { useLanguage } from "../lib/i18n";
@@ -65,6 +66,7 @@ export function RiderDashboardScreen() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [lastOrderEarnings, setLastOrderEarnings] = useState(0);
   const [isRateCardOpen, setIsRateCardOpen] = useState(false);
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [captainName, setCaptainName] = useState(() => {
     const name = session?.fullName;
     return name && name !== "Delivery Captain" && name !== "Delivery Partner" ? name : "Captain";
@@ -312,6 +314,7 @@ export function RiderDashboardScreen() {
           todayDeliveries={todayDeliveries}
           captainName={captainName}
           onGoOnline={() => handleToggleDuty(true)}
+          onOpenReferralModal={() => setIsReferralModalOpen(true)}
         />
       ) : (
         // Online Rapido Captain Full-Bleed Map View
@@ -380,6 +383,10 @@ export function RiderDashboardScreen() {
       <CaptainRateCardModal
         isOpen={isRateCardOpen}
         onClose={() => setIsRateCardOpen(false)}
+      />
+      <CaptainReferralModal
+        isOpen={isReferralModalOpen}
+        onClose={() => setIsReferralModalOpen(false)}
       />
     </div>
   );
