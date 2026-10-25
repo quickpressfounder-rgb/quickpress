@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Package,
   RotateCcw,
+  Search,
   Send,
   Sparkles,
   Star,

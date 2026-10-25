@@ -199,6 +199,26 @@
   - `python3 -m py_compile` on backend files: PASSED (Zero errors).
   - `partner-frontend npm run build`: PASSED (Exit code 0).
 
+### 14. Hotfix: Resolved "This page didn't load" Runtime Errors on `/reviews` and `/orders/$orderId`
+- **Root Cause Analysis:**
+  - On `/reviews` (`PartnerReviewsScreen.tsx`), `<Search className="..." />` was rendered on line 461 but `Search` was missing from `lucide-react` imports, throwing `ReferenceError: Search is not defined`.
+  - On `/orders/$orderId` (`OrderDetailsScreen.tsx`), `<AlertCircle className="..." />` was rendered on line 526 without being imported, and `{totalGarmentPieces}` was rendered on line 555 without being computed/defined, throwing `ReferenceError: AlertCircle is not defined` and `ReferenceError: totalGarmentPieces is not defined`.
+  - Both errors caused React rendering to abort and trigger the root TanStack Router `ErrorComponent` ("This page didn't load").
+- **Resolution:**
+  - Added `Search` to `PartnerReviewsScreen.tsx` imports from `lucide-react`.
+  - Added `AlertCircle` to `OrderDetailsScreen.tsx` imports from `lucide-react`.
+  - Computed `const totalGarmentPieces = items.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);` in `OrderDetailsScreen.tsx`.
+  - Enhanced `ErrorComponent` in `partner-frontend/src/routes/__root.tsx` to display `error.message` directly on screen for transparent diagnostics.
+  - Tested both routes on local SSR Node.js server: both render HTTP 200 OK with zero errors.
+- **Modified Files:**
+  - `partner-frontend/src/screens/PartnerReviewsScreen.tsx`
+  - `partner-frontend/src/screens/OrderDetailsScreen.tsx`
+  - `partner-frontend/src/routes/__root.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `partner-frontend npm run build`: PASSED (Exit code 0).
+  - Local server SSR curl tests on `/reviews` and `/orders/ord-QP10019`: PASSED (Zero errors, status 200).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

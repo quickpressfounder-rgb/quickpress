@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {
+  AlertCircle,
   ArrowLeft,
   Bike,
   CheckCircle2,
@@ -260,6 +261,7 @@ export function OrderDetailsScreen({ orderId: propOrderId }: { orderId?: string 
   const stageLabel = order ? (STAGE_LABEL[order.stage] || order.stage || "Active") : "";
   const placedInfo = formatOrderPlacedTime((order as any)?.placedAt || (order as any)?.placedAtRaw || order?.placedAt);
   const items = order?.items || [];
+  const totalGarmentPieces = items.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
   const charges = order?.charges || {
     subtotal: order?.amount || 0,
     pickupFee: 0,
