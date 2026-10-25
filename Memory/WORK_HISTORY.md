@@ -154,6 +154,20 @@
   - `partner-frontend npm run build`: PASSED (Exit code 0).
   - `rider-frontend npm run build`: PASSED (Exit code 0).
 
+### 11. Hotfix: Resolved SSR 500 Internal Server Error in Partner Portal (`setOnline` TDZ ReferenceError)
+- **Root Cause Analysis:**
+  - When loading `/earnings` (or refreshing any operational route on Node.js Nitro SSR), the server rendered the error page with HTTP 500: `ReferenceError: Cannot access 'setOnline' before initialization at PartnerProvider`.
+  - Inside `partner-frontend/src/context/PartnerContext.tsx`, an `useEffect` hook listening to system notification events had `[setOnline]` in its dependency array around line 183, while `const setOnline = useCallback(...)` was declared further down on line 197. In JavaScript, `const` variables reside in the Temporal Dead Zone (TDZ) prior to their declaration, causing Node.js SSR to crash during top-level component evaluation.
+- **Resolution:**
+  - Re-ordered declarations in `partner-frontend/src/context/PartnerContext.tsx`, placing `activeToggleAbortRef` and `setOnline = useCallback(...)` before the `useEffect` hooks that reference it.
+  - Verified with live Node.js SSR curl test (`http://localhost:8089/earnings`): HTTP 500 error eliminated; route now renders HTTP 200 OK with `ssr: true` and status `"success"`.
+- **Modified Files:**
+  - `partner-frontend/src/context/PartnerContext.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `partner-frontend npm run build`: PASSED (Exit code 0).
+  - Local SSR test on port 8089: PASSED (HTTP 200 OK).
+
 ---
 
 ## Detailed Log of Work Done Today (24 October 2026)

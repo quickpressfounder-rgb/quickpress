@@ -155,6 +155,33 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("qp:partner-status-updated", handleCustomStatus);
   }, []);
 
+  const activeToggleAbortRef = useRef<AbortController | null>(null);
+
+  const setOnline = useCallback((next: boolean) => {
+    // 1. Instant optimistic state update (< 1ms)
+    setIsOnlineState(next);
+    syncStoreStatusNotification(next);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(ONLINE_STORAGE_KEY, next ? "1" : "0");
+        window.dispatchEvent(new CustomEvent("qp:partner-status-updated", { detail: { isOnline: next } }));
+      } catch {}
+    }
+
+    // 2. Abort prior in-flight toggle if user clicked rapidly
+    if (activeToggleAbortRef.current) {
+      activeToggleAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    activeToggleAbortRef.current = controller;
+
+    // 3. Background server persistence with graceful catch
+    toggleStoreStatus(next, controller.signal).catch((err: any) => {
+      if (err?.name === "AbortError" || controller.signal.aborted) return;
+      console.warn("[PartnerContext] Background store status sync:", err?.message || err);
+    });
+  }, []);
+
   // Listen to system notification "Go Online" action clicks
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -191,33 +218,6 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
 
   // Token refresh: keeps the access token valid while the app stays open.
   useEffect(() => startPartnerAutoRefresh(), []);
-
-  const activeToggleAbortRef = useRef<AbortController | null>(null);
-
-  const setOnline = useCallback((next: boolean) => {
-    // 1. Instant optimistic state update (< 1ms)
-    setIsOnlineState(next);
-    syncStoreStatusNotification(next);
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem(ONLINE_STORAGE_KEY, next ? "1" : "0");
-        window.dispatchEvent(new CustomEvent("qp:partner-status-updated", { detail: { isOnline: next } }));
-      } catch {}
-    }
-
-    // 2. Abort prior in-flight toggle if user clicked rapidly
-    if (activeToggleAbortRef.current) {
-      activeToggleAbortRef.current.abort();
-    }
-    const controller = new AbortController();
-    activeToggleAbortRef.current = controller;
-
-    // 3. Background server persistence with graceful catch
-    toggleStoreStatus(next, controller.signal).catch((err: any) => {
-      if (err?.name === "AbortError" || controller.signal.aborted) return;
-      console.warn("[PartnerContext] Background store status sync:", err?.message || err);
-    });
-  }, []);
 
   const toggleOnline = useCallback(() => {
     setOnline(!isOnline);
