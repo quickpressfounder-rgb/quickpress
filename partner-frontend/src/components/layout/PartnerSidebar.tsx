@@ -7,10 +7,10 @@ import {
   ChevronRight,
   Clock,
   HelpCircle,
+  Layers,
   MessageSquare,
   ShoppingBag,
   Store,
-  UtensilsCrossed,
   Wallet,
 } from "lucide-react";
 
@@ -42,9 +42,9 @@ export function PartnerSidebar({
       isActive: pathname === partnerRoutes.dashboard || pathname === "/",
     },
     {
-      id: "menu",
-      label: "Menu",
-      icon: UtensilsCrossed,
+      id: "services",
+      label: "Services",
+      icon: Layers,
       to: partnerRoutes.services,
       isActive: pathname.startsWith("/services"),
     },

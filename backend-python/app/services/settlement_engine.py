@@ -343,7 +343,9 @@ class SettlementEngine:
 
             val = float((settle and settle.get("itemsSubtotal")) or snap.get("itemsSubtotal") or totals.get("itemsTotal") or o.get("total") or o.get("totalAmount") or 0.0)
             comm = float((settle and settle.get("platformCommission")) or snap.get("platformEstimatedCommission") or round(val * comm_rate, 2))
-            net_earn = float((settle and settle.get("partnerNetEarning")) or snap.get("partnerEstimatedEarnings") or round(val - comm - (val * tcs_rate), 2))
+            gst_on_comm = round(comm * platform_gst_rate, 2)
+            tcs_deduct = round(val * tcs_rate, 2) if val > 0 else 0.0
+            net_earn = float((settle and settle.get("partnerNetEarning")) or snap.get("partnerEstimatedEarnings") or round(val - comm - gst_on_comm - tcs_deduct, 2))
 
             dt_str = str(o.get("createdAt") or o.get("placedAt") or o.get("deliveredAt") or datetime.now(timezone.utc).isoformat())[:16].replace("T", " ")
 
@@ -355,8 +357,14 @@ class SettlementEngine:
                 "customerName": cust_name,
                 "grossValue": round(val, 2),
                 "commission": round(comm, 2),
+                "commissionRatePct": round(comm_rate * 100, 1),
+                "gstOnCommission": gst_on_comm,
+                "tcsGst": tcs_deduct,
                 "netEarning": round(net_earn, 2),
                 "status": str(o.get("status") or "delivered").upper(),
+                "utr": (settle and settle.get("utr")) or None,
+                "payoutDate": matched_cycle.get("payoutDate"),
+                "isSettled": bool(matched_cycle.get("status") == "PAID" or (settle and settle.get("status") == "SETTLED")),
             })
 
         # Bank transaction metadata

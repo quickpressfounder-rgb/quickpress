@@ -9,7 +9,6 @@ import {
   ShoppingBag,
   Sparkles,
   TrendingUp,
-  UtensilsCrossed,
 } from "lucide-react";
 
 import { partnerRoutes } from "../../navigation/partner-routes";
@@ -128,7 +127,7 @@ export function ZomatoBottomNav({
               }`}
             >
               <Layers className="size-3.5" />
-              <span>Menu</span>
+              <span>Services</span>
             </Link>
 
             <Link

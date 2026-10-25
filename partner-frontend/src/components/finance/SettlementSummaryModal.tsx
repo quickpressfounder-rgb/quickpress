@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  ExternalLink,
   FileSpreadsheet,
   FileText,
   HelpCircle,
@@ -40,6 +41,7 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
   const [data, setData] = useState<SettlementBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailing, setEmailing] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // Accordion open/close states
   const [openA, setOpenA] = useState(true);
@@ -467,33 +469,162 @@ export function SettlementSummaryModal({ cycleId, onClose }: SettlementSummaryMo
                     No delivered orders settled in this cycle yet.
                   </div>
                 ) : (
-                  data.orders.map((ord) => (
-                    <div
-                      key={ord.orderId}
-                      className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
+                  data.orders.map((ord) => {
+                    const isExpanded = expandedOrderId === ord.orderId;
+                    const gstOnComm = ord.gstOnCommission ?? Math.round(ord.commission * 0.18 * 100) / 100;
+                    const tcsTax = ord.tcsGst ?? Math.round(ord.grossValue * 0.01 * 100) / 100;
+                    const commRate = ord.commissionRatePct ?? 15;
+
+                    return (
+                      <div
+                        key={ord.orderId}
+                        className="rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-2xs transition-all"
+                      >
+                        {/* Order Header Row (Clickable Accordion) */}
+                        <div
+                          onClick={() => setExpandedOrderId(isExpanded ? null : ord.orderId)}
+                          className="flex items-start justify-between p-4 cursor-pointer hover:bg-zinc-50/70 transition-colors"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-xs text-black">#{ord.orderCode}</span>
+                              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-black text-emerald-700">
+                                {ord.status}
+                              </span>
+                              <span className="text-[10px] text-zinc-400 font-semibold">
+                                {isExpanded ? "Tap to collapse" : "Tap for full detail"}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] font-medium text-zinc-500">
+                              {ord.customerName} • {ord.date}
+                            </p>
+                          </div>
+
                           <div className="flex items-center gap-2">
-                            <span className="font-black text-xs text-black">#{ord.orderCode}</span>
-                            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-black text-emerald-700">
-                              {ord.status}
+                            <div className="text-right">
+                              <p className="text-xs font-black text-emerald-700">
+                                +₹{ord.netEarning.toFixed(2)}
+                              </p>
+                              <p className="text-[10px] text-zinc-400 font-semibold">
+                                Gross: ₹{ord.grossValue.toFixed(2)}
+                              </p>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="size-4 text-zinc-600 shrink-0" />
+                            ) : (
+                              <ChevronDown className="size-4 text-zinc-400 shrink-0" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Summary Pill */}
+                        <div className="px-4 pb-3">
+                          <div className="rounded-xl bg-zinc-50 p-2.5 text-[11px] text-zinc-600 flex justify-between items-center border border-zinc-100">
+                            <span className="truncate pr-2 font-medium">{ord.itemsSummary}</span>
+                            <span className="text-rose-600 font-bold shrink-0">
+                              Platform Fee: -₹{ord.commission.toFixed(2)}
                             </span>
                           </div>
-                          <p className="mt-1 text-[11px] font-medium text-zinc-500">{ord.customerName} • {ord.date}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs font-black text-emerald-700">+₹{ord.netEarning.toFixed(2)}</p>
-                          <p className="text-[10px] text-zinc-400">Gross: ₹{ord.grossValue.toFixed(2)}</p>
-                        </div>
-                      </div>
 
-                      <div className="mt-2.5 rounded-xl bg-zinc-50 p-2.5 text-[11px] text-zinc-600 flex justify-between items-center border border-zinc-100">
-                        <span className="truncate pr-2 font-medium">{ord.itemsSummary}</span>
-                        <span className="text-rose-600 font-bold shrink-0">Fee: -₹{ord.commission.toFixed(2)}</span>
+                        {/* Expanded Itemized Financial Breakdown */}
+                        {isExpanded && (
+                          <div className="border-t border-zinc-100 bg-zinc-50/50 p-4 space-y-3 animate-in fade-in duration-150">
+                            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                              <p className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
+                                Order Payout Breakdown (Double-Entry Ledger)
+                              </p>
+                              <span className="rounded-md bg-zinc-200 px-1.5 py-0.5 text-[9px] font-black text-zinc-700">
+                                Exact Reconciliation
+                              </span>
+                            </div>
+
+                            <div className="space-y-1.5 text-xs">
+                              {/* 1. Gross Order Amount */}
+                              <div className="flex justify-between items-center text-zinc-700">
+                                <span className="font-semibold">Gross Order Subtotal (Items)</span>
+                                <span className="font-black text-zinc-950">₹{ord.grossValue.toFixed(2)}</span>
+                              </div>
+
+                              {/* 2. Platform Commission */}
+                              <div className="flex justify-between items-center text-zinc-700">
+                                <span className="font-semibold">
+                                  QuickPress Commission ({commRate}%)
+                                </span>
+                                <span className="font-black text-rose-600">-₹{ord.commission.toFixed(2)}</span>
+                              </div>
+
+                              {/* 3. 18% GST on Commission */}
+                              <div className="flex justify-between items-center text-zinc-700">
+                                <div>
+                                  <span className="font-semibold">18% GST on Commission</span>
+                                  <p className="text-[10px] text-zinc-400">100% Input Tax Credit (ITC) claimable</p>
+                                </div>
+                                <span className="font-black text-rose-600">-₹{gstOnComm.toFixed(2)}</span>
+                              </div>
+
+                              {/* 4. Statutory 1% TCS / TDS */}
+                              <div className="flex justify-between items-center text-zinc-700">
+                                <div>
+                                  <span className="font-semibold">1% TCS / TDS (Sec 194-O)</span>
+                                  <p className="text-[10px] text-zinc-400">Govt tax credit against Store PAN</p>
+                                </div>
+                                <span className="font-black text-rose-600">-₹{tcsTax.toFixed(2)}</span>
+                              </div>
+
+                              {/* Net Store Payout */}
+                              <div className="flex justify-between items-center pt-2 border-t border-zinc-200 text-sm">
+                                <div>
+                                  <span className="font-black text-emerald-800">Net Store Payout</span>
+                                  <p className="text-[10px] font-semibold text-emerald-600">
+                                    Directly Credited to Store Bank A/C
+                                  </p>
+                                </div>
+                                <span className="text-base font-black text-emerald-700">
+                                  ₹{ord.netEarning.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Settlement Transfer Metadata */}
+                            <div className="rounded-xl border border-zinc-200 bg-white p-3 space-y-1.5 text-[11px]">
+                              <div className="flex justify-between">
+                                <span className="text-zinc-500 font-medium">Disbursal Schedule:</span>
+                                <span className="font-black text-zinc-900">Automatic 7-Day Weekly Cycle</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-zinc-500 font-medium">Transfer Method:</span>
+                                <span className="font-black text-emerald-600">IMPS / NEFT Direct Disbursal ✓</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-zinc-500 font-medium">Settlement Status:</span>
+                                <span className="font-black text-zinc-900">
+                                  {ord.isSettled ? "Settled to Bank A/C ✓" : "Cycle Accruing · Bank Transfer Scheduled"}
+                                </span>
+                              </div>
+                              {ord.utr && (
+                                <div className="flex justify-between">
+                                  <span className="text-zinc-500 font-medium">UTR Reference:</span>
+                                  <span className="font-mono font-black text-zinc-900">{ord.utr}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Link to Order Slip */}
+                            <div className="pt-1 flex justify-end">
+                              <a
+                                href={`/orders/${ord.orderId}`}
+                                className="inline-flex items-center gap-1 text-xs font-black text-black hover:underline"
+                              >
+                                <span>Open Full Order Slip</span>
+                                <ExternalLink className="size-3" />
+                              </a>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}

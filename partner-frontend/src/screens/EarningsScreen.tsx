@@ -718,10 +718,10 @@ export function EarningsScreen() {
                       </div>
                     </div>
 
-                    {/* Yellow/Amber Info Banner */}
-                    <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#FEF6E8] p-3 text-zinc-800">
-                      <HelpCircle className="size-4 shrink-0 text-amber-600 mt-0.5" />
-                      <p className="text-[11px] font-medium leading-relaxed text-zinc-700">
+                    {/* Clean Neutral Info Banner */}
+                    <div className="mt-3 flex items-start gap-2 rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-zinc-800">
+                      <HelpCircle className="size-4 shrink-0 text-zinc-500 mt-0.5" />
+                      <p className="text-[11px] font-medium leading-relaxed text-zinc-600">
                         Based on transactions for {selectedCycleObj?.period || selectedPastRange}. Detailed breakdown is verifiable below:
                       </p>
                     </div>

@@ -286,6 +286,8 @@
 | `dcdac7a` | `fix(build): use npx vite build in package.json for ec2 compatibility` | Resolved `sh: 1: vite: not found` on Linux EC2 by wrapping subshell vite build commands with `npx`. |
 | `38f5b2b` | `fix(partner): configure node-server nitro preset and explicit cwd to prevent 502 bad gateway` | Fixed 502 Bad Gateway by ensuring Nitro builds as `node-server` (not Cloudflare worker) and adding `cwd: __dirname` in `ecosystem.config.cjs`. |
 | `7ccb850` | `feat(partner): exact Zomato online order station layout with canonical stage tabs, search and clean order cards` | Converted Online dashboard into dedicated Zomato Order Station: removed all cartoon operational cards and multi-column widgets; added canonical Zomato status tabs, search filter, order card grid / table layout, loud alert sound tester, and pure white empty state. |
+| `a256336` | `feat(deploy): add turnkey update_server.sh for 1-click EC2 deploy` | One-command deployment script to pull code, build partner frontend, build docker backend, and reload Nginx. |
+| `pending` | `feat(partner): clean white permissions screen without 0/5 clutter, rename menu to services, and itemized weekly order payout breakdown` | Redesigned permissions screen to pure white theme with instant status updates and unblocked continuation; removed 0/5 count, setup progress, and aggressive boxes; changed Menu to Services with laundry/layers icon in sidebar and bottom nav; expanded weekly payout modal with itemized commission, GST, and TCS breakdown per order. |
 
 ---
 

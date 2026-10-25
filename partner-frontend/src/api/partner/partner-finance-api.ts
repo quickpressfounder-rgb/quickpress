@@ -50,8 +50,14 @@ export type SettlementOrder = {
   customerName: string;
   grossValue: number;
   commission: number;
+  commissionRatePct?: number;
+  gstOnCommission?: number;
+  tcsGst?: number;
   netEarning: number;
   status: string;
+  utr?: string | null;
+  payoutDate?: string;
+  isSettled?: boolean;
 };
 
 export type SettlementExpense = {
