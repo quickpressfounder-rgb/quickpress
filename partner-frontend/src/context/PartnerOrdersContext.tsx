@@ -429,7 +429,7 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
             seenOrderIdsRef.current.add(unacknowledgedNew.id);
             setSeenOrderIds((prev) => new Set([...prev, unacknowledgedNew.id]));
             setIncomingOrder(unacknowledgedNew);
-            startOrderAlarm(unacknowledgedNew.code);
+            startOrderAlarm(unacknowledgedNew.code, unacknowledgedNew.amount, unacknowledgedNew.customerName);
           }
         }
       } catch (err: any) {
@@ -508,14 +508,14 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
           if (orderId) seenOrderIdsRef.current.add(orderId);
           setSeenOrderIds((prev) => new Set([...prev, orderId || code]));
 
-          // ⚡ TRIGGER ORDER ALARM BELL INSTANTANEOUSLY (<0.010s)
-          startOrderAlarm(code);
-
           // Build ManagedOrder from payload immediately so modal and list update with 0ms delay
           const managed = toManagedOrder(rawOrder);
           if (orderId) managed.id = orderId;
           if (code) managed.code = code;
           managed.stage = "new";
+
+          // ⚡ TRIGGER ORDER ALARM BELL INSTANTANEOUSLY (<0.010s) + Native Android Background Siren
+          startOrderAlarm(managed.code, managed.amount, managed.customerName);
 
           setIncomingOrder(managed);
           setOrders((prev) => {
@@ -657,6 +657,62 @@ export function PartnerOrdersProvider({ children }: { children: ReactNode }) {
     },
     [load],
   );
+
+  // Listen to system notification action buttons: "ACCEPT ORDER" and "VIEW"
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleAcceptFromNotification = (e: any) => {
+      const targetCode = String(e?.detail?.code || "").trim();
+      if (!targetCode) return;
+      console.log("[PartnerOrdersContext] 🔔 Received qp:partner:accept_order from system notification:", targetCode);
+      stopOrderAlarm();
+
+      setOrders((prev) => {
+        const found = prev.find((o) => o.code === targetCode || o.id === targetCode);
+        if (found) {
+          void acceptOrder(found.id);
+        }
+        return prev;
+      });
+    };
+
+    const handleViewFromNotification = (e: any) => {
+      const targetCode = String(e?.detail?.code || "").trim();
+      if (!targetCode) return;
+      console.log("[PartnerOrdersContext] 🔔 Received qp:partner:view_order from system notification:", targetCode);
+
+      setOrders((prev) => {
+        const found = prev.find((o) => o.code === targetCode || o.id === targetCode);
+        if (found) {
+          setIncomingOrder(found);
+        }
+        return prev;
+      });
+    };
+
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "QP_ACCEPT_ORDER" && event.data?.orderId) {
+        console.log("[PartnerOrdersContext] 🔔 Received QP_ACCEPT_ORDER from ServiceWorker:", event.data.orderId);
+        stopOrderAlarm();
+        void acceptOrder(event.data.orderId);
+      }
+    };
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleSwMessage);
+    }
+
+    window.addEventListener("qp:partner:accept_order", handleAcceptFromNotification);
+    window.addEventListener("qp:partner:view_order", handleViewFromNotification);
+
+    return () => {
+      window.removeEventListener("qp:partner:accept_order", handleAcceptFromNotification);
+      window.removeEventListener("qp:partner:view_order", handleViewFromNotification);
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleSwMessage);
+      }
+    };
+  }, [acceptOrder]);
 
   const startProcessing = useCallback(
     async (orderId: string) => {

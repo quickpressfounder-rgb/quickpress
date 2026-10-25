@@ -26,6 +26,7 @@ import {
 } from "../data/partner-shop-mock";
 import { hasActiveSessionToken } from "@/api/core/session-store";
 import { isOperationalRoute } from "@/lib/auth-guard";
+import { syncStoreStatusNotification } from "@/lib/order-alarm";
 
 export type ShopEditableFields = Pick<
   ShopProfile,
@@ -316,6 +317,7 @@ export function PartnerShopProvider({ children }: { children: ReactNode }) {
   const setStatus = useCallback(async (next: ShopStatusId) => {
     const isStoreOpen = next !== "offline" && next !== "temporarily_closed" && next !== "vacation";
     const acceptingNewOrders = next === "online";
+    syncStoreStatusNotification(isStoreOpen);
     const updated = await updateBusinessSettings({ isStoreOpen, acceptingNewOrders });
     setStatusState(next);
     setSettings((current) => (current ? { ...current, ...updated.patch } : current));

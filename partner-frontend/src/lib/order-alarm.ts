@@ -106,25 +106,123 @@ import {
 
 /**
  * Plays continuous looping order alarm (Commercial Store Alert) until explicitly stopped.
+ * Triggers native Android background audio on STREAM_ALARM with wakeScreen and heads-up notification,
+ * plus Web Audio and HTML5 audio fallbacks.
  */
-export function startOrderAlarm(orderCode?: string) {
+export function startOrderAlarm(
+  orderCode?: string,
+  amount?: number | string,
+  customerName?: string
+) {
   if (isRinging) return;
   isRinging = true;
 
+  // 1. Android Native Background Ring (Plays loud on STREAM_ALARM + wake screen + heads-up notification)
+  if (typeof window !== "undefined" && (window as any).QuickPressNativeBridge?.startBackgroundOrderRing) {
+    try {
+      (window as any).QuickPressNativeBridge.startBackgroundOrderRing(
+        orderCode || "",
+        amount != null ? String(amount) : "",
+        customerName || ""
+      );
+    } catch (e) {
+      console.warn("[order-alarm] Native startBackgroundOrderRing error:", e);
+    }
+  }
+
+  // 2. High-Priority Web Audio & HTML5 fallback
   startPartnerOrderAlertRing();
-  triggerDesktopNotification(orderCode);
+
+  // 3. Desktop / Mobile Browser Notification
+  triggerDesktopNotification(orderCode, amount, customerName);
 }
 
 /**
- * Stops the ringing alarm immediately.
+ * Stops the ringing alarm immediately across native bridge and web audio.
  */
 export function stopOrderAlarm() {
   isRinging = false;
+
+  // 1. Stop Native Android Background Ring
+  if (typeof window !== "undefined" && (window as any).QuickPressNativeBridge?.stopBackgroundOrderRing) {
+    try {
+      (window as any).QuickPressNativeBridge.stopBackgroundOrderRing();
+    } catch (e) {
+      console.warn("[order-alarm] Native stopBackgroundOrderRing error:", e);
+    }
+  }
+
+  // 2. Stop Web Audio & HTML5 Audio
   stopPartnerOrderAlertRing();
 }
 
 export function isAlarmRinging(): boolean {
   return isRinging;
+}
+
+let activeStatusNotification: Notification | null = null;
+
+/**
+ * Synchronizes store online/offline status with native Android notification tray
+ * and Web Notifications (Exact Zomato Style: "🔴 Your store is temporarily offline").
+ */
+export function syncStoreStatusNotification(isOnline: boolean) {
+  if (typeof window === "undefined") return;
+
+  // 1. Native Android Bridge (Status Bar persistent notification with Go Online action button)
+  if ((window as any).QuickPressNativeBridge?.postStoreStatusNotification) {
+    try {
+      if (!isOnline) {
+        (window as any).QuickPressNativeBridge.postStoreStatusNotification(
+          "🔴 Your store is temporarily offline",
+          "Go online now to receive orders",
+          true
+        );
+      } else {
+        (window as any).QuickPressNativeBridge.clearStoreStatusNotification();
+      }
+    } catch (e) {
+      console.warn("[order-alarm] Native postStoreStatusNotification error:", e);
+    }
+  }
+
+  // 2. Web Browser Notification fallback
+  if ("Notification" in window) {
+    if (Notification.permission === "granted") {
+      try {
+        if (!isOnline) {
+          if (activeStatusNotification) {
+            try {
+              activeStatusNotification.close();
+            } catch {}
+          }
+          activeStatusNotification = new Notification("🔴 Your store is temporarily offline", {
+            body: "Go online now to receive orders",
+            icon: "/app-icon.png",
+            tag: "qp-store-offline-status",
+            requireInteraction: true,
+            silent: true,
+          });
+          activeStatusNotification.onclick = () => {
+            window.focus();
+            window.dispatchEvent(new CustomEvent("qp:partner:go_online"));
+            try {
+              activeStatusNotification?.close();
+            } catch {}
+          };
+        } else {
+          if (activeStatusNotification) {
+            try {
+              activeStatusNotification.close();
+            } catch {}
+            activeStatusNotification = null;
+          }
+        }
+      } catch {}
+    } else if (Notification.permission === "default" && !isOnline) {
+      void Notification.requestPermission();
+    }
+  }
 }
 
 /**
@@ -138,16 +236,23 @@ export function requestNotificationPermission(): void {
   }
 }
 
-function triggerDesktopNotification(orderCode?: string) {
+function triggerDesktopNotification(
+  orderCode?: string,
+  amount?: number | string,
+  customerName?: string
+) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
   if (Notification.permission === "granted") {
     try {
-      const title = `🚨 NEW ORDER RECEIVED #${orderCode || "QuickPress"}`;
+      const code = orderCode || "NEW";
+      const amtText = amount ? ` · ₹${amount}` : "";
+      const custText = customerName ? ` from ${customerName}` : "";
+      const title = `🚨 NEW ORDER #${code}${amtText}`;
       const options: NotificationOptions = {
-        body: "Tap to review items and accept incoming order now.",
-        icon: "/favicon.ico",
-        tag: `order-${orderCode || Date.now()}`,
+        body: `Tap to accept incoming order${custText} within 5 minutes.`,
+        icon: "/app-icon.png",
+        tag: `order-${code}-${Date.now()}`,
         requireInteraction: true,
       };
       const n = new Notification(title, options);

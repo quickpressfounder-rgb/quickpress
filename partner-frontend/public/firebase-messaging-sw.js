@@ -66,7 +66,12 @@ self.addEventListener("notificationclick", (event) => {
         for (const client of clientList) {
           if (client.url && "focus" in client) {
             client.focus();
-            if ("navigate" in client) {
+            if (event.action === "go_online") {
+              client.postMessage({ type: "QP_GO_ONLINE" });
+            } else if (event.action === "accept" && event.notification.data?.orderId) {
+              client.postMessage({ type: "QP_ACCEPT_ORDER", orderId: event.notification.data.orderId });
+            }
+            if ("navigate" in client && targetUrl) {
               return client.navigate(targetUrl);
             }
             return client;

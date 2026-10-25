@@ -20,6 +20,7 @@ import { toggleStoreStatus, fetchPartnerProfile } from "@/api/partner/partner-pr
 import { initPartnerSocket, subscribePartnerStatus } from "@/lib/partner-socket";
 import { hasActiveSessionToken, readSession, writeSession } from "@/api/core/session-store";
 import { isOperationalRoute } from "@/lib/auth-guard";
+import { syncStoreStatusNotification } from "@/lib/order-alarm";
 
 type PartnerContextValue = {
   session: PartnerSession | null;
@@ -154,6 +155,40 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("qp:partner-status-updated", handleCustomStatus);
   }, []);
 
+  // Listen to system notification "Go Online" action clicks
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleGoOnline = () => {
+      console.log("[PartnerContext] 🔔 Received qp:partner:go_online event from notification");
+      void setOnline(true);
+    };
+    window.addEventListener("qp:partner:go_online", handleGoOnline);
+
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "QP_GO_ONLINE") {
+        console.log("[PartnerContext] 🔔 Received QP_GO_ONLINE from ServiceWorker");
+        void setOnline(true);
+      }
+    };
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleSwMessage);
+    }
+
+    return () => {
+      window.removeEventListener("qp:partner:go_online", handleGoOnline);
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleSwMessage);
+      }
+    };
+  }, [setOnline]);
+
+  // Real-time synchronization of system status notification (Exact Zomato Style)
+  useEffect(() => {
+    if (!hydrating && session) {
+      syncStoreStatusNotification(isOnline);
+    }
+  }, [isOnline, hydrating, session]);
+
   // Token refresh: keeps the access token valid while the app stays open.
   useEffect(() => startPartnerAutoRefresh(), []);
 
@@ -162,6 +197,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   const setOnline = useCallback((next: boolean) => {
     // 1. Instant optimistic state update (< 1ms)
     setIsOnlineState(next);
+    syncStoreStatusNotification(next);
     if (typeof window !== "undefined") {
       try {
         window.localStorage.setItem(ONLINE_STORAGE_KEY, next ? "1" : "0");
@@ -212,6 +248,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   }, []);
   const signOut = useCallback(() => {
     setSession(null);
+    syncStoreStatusNotification(true);
     if (typeof window !== "undefined") {
       try {
         window.localStorage.removeItem("quickpress:partner:cached_orders");
