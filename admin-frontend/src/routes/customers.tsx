@@ -38,6 +38,12 @@ import {
   Layers,
   ArrowUpRight,
   ArrowDownRight,
+  Crown,
+  Table,
+  LayoutGrid,
+  IndianRupee,
+  UserPlus,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -111,6 +117,22 @@ function formatRelativeTime(ts?: string): string {
   }
 }
 
+function isDateToday(ts?: string): boolean {
+  if (!ts) return false;
+  try {
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    return (
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function CustomersPage() {
   const queryClient = useQueryClient();
   const statsQuery = useQuery({ queryKey: ["admin", "customers", "stats"], queryFn: fetchCustomerStats });
@@ -120,11 +142,39 @@ export function CustomersPage() {
   const [city, setCity] = useState("all");
   const [statusTab, setStatusTab] = useState("all");
   const [segment, setSegment] = useState("all");
-  const [sortBy, setSortBy] = useState<"newest" | "spend" | "orders" | "name" | "active">("newest");
+  const [sortBy, setSortBy] = useState<"newest" | "spend" | "wallet" | "orders" | "name" | "active">("newest");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [selected, setSelected] = useState<AdminCustomer | null>(null);
 
   const allCustomers = customers.data ?? [];
   const stats = statsQuery.data;
+
+  // Real Supabase Telemetry aggregations
+  const telemetry = useMemo(() => {
+    const total = stats?.totalCustomers ?? allCustomers.length;
+    const todaySignups = stats?.newCustomersToday ?? allCustomers.filter((c) => isDateToday(c.registrationTimestamp)).length;
+    const todaySignupsPercent = total > 0 ? ((todaySignups / total) * 100).toFixed(1) : "0.0";
+    const repeat = stats?.repeatCustomers ?? allCustomers.filter((c) => c.orders >= 2).length;
+    const repeatPercent = total > 0 ? ((repeat / total) * 100).toFixed(1) : "0.0";
+    const vip = stats?.vipCustomers ?? stats?.membershipCustomers ?? allCustomers.filter((c) => c.isVip || (c.membership && c.membership !== "Standard")).length;
+    const vipPercent = total > 0 ? ((vip / total) * 100).toFixed(1) : "0.0";
+    const totalGmv = stats?.totalRevenue ?? allCustomers.reduce((acc, c) => acc + (c.spendRaw || 0), 0);
+    const aov = stats?.averageOrderValue ?? (total > 0 ? Math.round(totalGmv / Math.max(1, total)) : 0);
+    const totalWalletFloat = allCustomers.reduce((acc, c) => acc + (c.walletRaw || 0), 0);
+
+    return {
+      total,
+      todaySignups,
+      todaySignupsPercent,
+      repeat,
+      repeatPercent,
+      vip,
+      vipPercent,
+      totalGmv,
+      aov,
+      totalWalletFloat,
+    };
+  }, [allCustomers, stats]);
 
   const blockMutation = useMutation({
     mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) => setCustomerBlocked(id, blocked),
@@ -164,9 +214,9 @@ export function CustomersPage() {
       const matchesCity = city === "all" || String(c.city || "").toLowerCase() === city.toLowerCase();
       const matchesSegment =
         segment === "all" ||
-        (segment === "vip" && c.isVip) ||
+        (segment === "today" && (isDateToday(c.registrationTimestamp) || isDateToday(c.lastLoginTimestamp))) ||
         (segment === "repeat" && c.orders >= 2) ||
-        (segment === "new" && c.orders === 1) ||
+        (segment === "vip_only" && (c.isVip || (c.membership && c.membership !== "Standard"))) ||
         (segment === "high_spend" && c.spendRaw >= 500) ||
         (segment === "inactive" && c.orders === 0);
       return matchesQuery && matchesTab && matchesCity && matchesSegment;
@@ -175,6 +225,7 @@ export function CustomersPage() {
     // Sorting
     return filtered.sort((a, b) => {
       if (sortBy === "spend") return b.spendRaw - a.spendRaw;
+      if (sortBy === "wallet") return b.walletRaw - a.walletRaw;
       if (sortBy === "orders") return b.orders - a.orders;
       if (sortBy === "name") return a.name.localeCompare(b.name);
       if (sortBy === "active") return String(b.lastLoginTimestamp).localeCompare(String(a.lastLoginTimestamp));
@@ -275,140 +326,207 @@ export function CustomersPage() {
     >
       <div className="space-y-6">
         {/* =========================================================================
-            1. TOP METRIC CARDS (REAL SUPABASE STATS)
+            SECTION 1: 6-TILE EXECUTIVE CUSTOMER TELEMETRY STRIP (CRM PURE-WHITE STANDARD)
         ========================================================================= */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* 1. TOTAL REGISTERED */}
           <div
             onClick={() => {
-              setStatusTab("all");
               setSegment("all");
+              setStatusTab("all");
             }}
-            className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-98"
+            className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
           >
-            <KpiCard
-              kpi={{
-                id: "tot-cust",
-                label: "Total Customers",
-                value: (stats?.totalCustomers ?? allCustomers.length).toLocaleString("en-IN"),
-                hint: "Click to show all accounts",
-                positive: true,
-              }}
-            />
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Total Accounts</span>
+              <Users className="size-4 text-zinc-400" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+              {telemetry.total.toLocaleString("en-IN")}
+            </div>
+            <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+              {allCustomers.filter((c) => c.status === "Active").length} active accounts
+            </p>
           </div>
+
+          {/* 2. TODAY'S SIGNUPS */}
           <div
-            onClick={() => setStatusTab("active")}
-            className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-98"
+            onClick={() => setSegment("today")}
+            className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
           >
-            <KpiCard
-              kpi={{
-                id: "act-cust",
-                label: "Active Accounts",
-                value: (stats?.activeCustomers ?? allCustomers.filter((c) => c.status === "Active").length).toLocaleString("en-IN"),
-                hint: "Click to filter Active accounts",
-                positive: true,
-              }}
-            />
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Today Signups</span>
+              <UserPlus className="size-4 text-zinc-400" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+              {telemetry.todaySignups.toLocaleString("en-IN")}
+            </div>
+            <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+              {telemetry.todaySignupsPercent}% of total base
+            </p>
           </div>
-          <div
-            onClick={() => setSegment("vip")}
-            className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-98"
-          >
-            <KpiCard
-              kpi={{
-                id: "vip-cust",
-                label: "VIP Members",
-                value: (stats?.vipCustomers ?? allCustomers.filter((c) => c.isVip).length).toLocaleString("en-IN"),
-                hint: "Click to filter VIP & High Spenders",
-                positive: true,
-              }}
-            />
-          </div>
+
+          {/* 3. REPEAT BUYERS (2+) */}
           <div
             onClick={() => setSegment("repeat")}
-            className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-98"
+            className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
           >
-            <KpiCard
-              kpi={{
-                id: "repeat-cust",
-                label: "Repeat Buyers",
-                value: (stats?.repeatCustomers ?? allCustomers.filter((c) => c.orders >= 2).length).toLocaleString("en-IN"),
-                hint: "Click to filter 2+ booked orders",
-                positive: true,
-              }}
-            />
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Repeat Buyers</span>
+              <ShoppingBag className="size-4 text-zinc-400" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+              {telemetry.repeat.toLocaleString("en-IN")}
+            </div>
+            <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+              {telemetry.repeatPercent}% repeat rate (2+ orders)
+            </p>
           </div>
+
+          {/* 4. VIP MEMBERS ONLY */}
+          <div
+            onClick={() => setSegment("vip_only")}
+            className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
+          >
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">VIP Members</span>
+              <Crown className="size-4 text-zinc-400" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+              {telemetry.vip.toLocaleString("en-IN")}
+            </div>
+            <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+              {telemetry.vipPercent}% membership share
+            </p>
+          </div>
+
+          {/* 5. RECONCILED SPEND GMV */}
           <div
             onClick={() => setSortBy("spend")}
-            className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-98"
+            className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
           >
-            <KpiCard
-              kpi={{
-                id: "tot-spend",
-                label: "Total Spend GMV",
-                value: `₹${(stats?.totalRevenue ?? 0).toLocaleString("en-IN")}`,
-                hint: `Click to sort by Spend (AOV: ₹${stats?.averageOrderValue ?? 0})`,
-                positive: true,
-              }}
-            />
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Total Spend GMV</span>
+              <IndianRupee className="size-4 text-zinc-400" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+              ₹{telemetry.totalGmv.toLocaleString("en-IN")}
+            </div>
+            <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+              AOV: ₹{telemetry.aov.toLocaleString("en-IN")}
+            </p>
           </div>
+
+          {/* 6. ACTIVE WALLET BALANCE FLOAT */}
           <div
-            onClick={() => setStatusTab("blocked")}
-            className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-98"
+            onClick={() => setSortBy("wallet")}
+            className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
           >
-            <KpiCard
-              kpi={{
-                id: "blocked-cust",
-                label: "Blocked Accounts",
-                value: (stats?.blockedCustomers ?? allCustomers.filter((c) => c.status === "Blocked").length).toLocaleString("en-IN"),
-                hint: "Click to filter Blocked accounts",
-                positive: false,
-              }}
-            />
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Active Wallet Float</span>
+              <Wallet className="size-4 text-zinc-400" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+              ₹{telemetry.totalWalletFloat.toLocaleString("en-IN")}
+            </div>
+            <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+              Customer stored credit float
+            </p>
           </div>
         </div>
 
         {/* =========================================================================
-            2. ADVANCED SEARCH, FILTERS & TABS
+            SECTION 2: COHORT PILLS, CONTROLS & FAST CUSTOMER SEARCH
         ========================================================================= */}
         <SectionCard>
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-zinc-100">
-            <Tabs value={statusTab} onValueChange={setStatusTab}>
-              <TabsList className="bg-zinc-100 p-1 rounded-xl">
-                <TabsTrigger value="all" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  All Accounts ({allCustomers.length})
-                </TabsTrigger>
-                <TabsTrigger value="active" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  Active ({allCustomers.filter((c) => c.status === "Active").length})
-                </TabsTrigger>
-                <TabsTrigger value="blocked" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  Blocked ({allCustomers.filter((c) => c.status === "Blocked").length})
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          {/* Cohort Tabs & Dual View Mode */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-100">
+            {/* Horizontal Scrollable Cohort Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              {[
+                { id: "all", label: "All Accounts", count: allCustomers.length },
+                { id: "today", label: "Today's Customers", count: telemetry.todaySignups },
+                { id: "repeat", label: "Repeat Buyers (2+)", count: telemetry.repeat },
+                { id: "vip_only", label: "VIP Members Only", count: telemetry.vip },
+                { id: "high_spend", label: "High Spend (≥₹500)", count: allCustomers.filter((c) => c.spendRaw >= 500).length },
+                { id: "inactive", label: "Dormant (0 Orders)", count: allCustomers.filter((c) => c.orders === 0).length },
+              ].map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setSegment(pill.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    segment === pill.id
+                      ? "bg-zinc-950 text-white font-black shadow-xs"
+                      : "bg-white text-zinc-600 hover:text-zinc-950 border border-zinc-200"
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                  <span
+                    className={`ml-1.5 px-1.5 py-0.2 rounded-md text-[10px] tabular-nums ${
+                      segment === pill.id ? "bg-zinc-800 text-white font-black" : "bg-zinc-100 text-zinc-600 font-bold"
+                    }`}
+                  >
+                    {pill.count}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-zinc-500">
-              <Users className="size-4 text-emerald-600" />
-              <span>Showing <strong className="text-zinc-900">{rows.length}</strong> of {allCustomers.length} Customers</span>
+            {/* Right: Dual View Switcher & Result Count */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-zinc-200 rounded-xl p-0.5 bg-zinc-50">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  title="High-Density Table View"
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-white shadow-xs text-zinc-950 font-black border border-zinc-200"
+                      : "text-zinc-500 hover:text-zinc-950"
+                  }`}
+                >
+                  <Table className="size-3.5" />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("cards")}
+                  title="Modern Grid Cards View"
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    viewMode === "cards"
+                      ? "bg-white shadow-xs text-zinc-950 font-black border border-zinc-200"
+                      : "text-zinc-500 hover:text-zinc-950"
+                  }`}
+                >
+                  <LayoutGrid className="size-3.5" />
+                  <span className="hidden sm:inline">Cards</span>
+                </button>
+              </div>
+              <span className="text-xs font-bold text-zinc-500 hidden md:inline">
+                <strong className="text-zinc-950 font-black">{rows.length}</strong> matching
+              </span>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Search Bar & Multi-Dimensional Dropdowns */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="relative lg:col-span-2">
               <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by customer name, phone, email, address or ID..."
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
+                placeholder="Search by customer name, phone, email, address, ID..."
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-950 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-950 font-medium"
               />
             </div>
 
             <Select value={city} onValueChange={setCity}>
               <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs font-medium">
-                <SelectValue placeholder="All Cities" />
+                <SelectValue placeholder="All Cities / Areas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Cities / Areas</SelectItem>
+                <SelectItem value="all">All Cities / Operational Areas</SelectItem>
                 {cities.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}
@@ -417,17 +535,14 @@ export function CustomersPage() {
               </SelectContent>
             </Select>
 
-            <Select value={segment} onValueChange={setSegment}>
+            <Select value={statusTab} onValueChange={setStatusTab}>
               <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs font-medium">
-                <SelectValue placeholder="Segment" />
+                <SelectValue placeholder="Account Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Segments</SelectItem>
-                <SelectItem value="vip">👑 VIP Club Members</SelectItem>
-                <SelectItem value="repeat">🔄 Repeat Buyers (2+)</SelectItem>
-                <SelectItem value="new">🆕 New Accounts (1 Order)</SelectItem>
-                <SelectItem value="high_spend">💰 High Value (&gt; ₹500)</SelectItem>
-                <SelectItem value="inactive">⏸️ Inactive (0 Orders)</SelectItem>
+                <SelectItem value="all">All Account Statuses</SelectItem>
+                <SelectItem value="active">Active Accounts</SelectItem>
+                <SelectItem value="blocked">Blocked / Suspended</SelectItem>
               </SelectContent>
             </Select>
 
@@ -438,6 +553,7 @@ export function CustomersPage() {
               <SelectContent>
                 <SelectItem value="newest">🕒 Newest Registered</SelectItem>
                 <SelectItem value="spend">💰 Highest Total Spend</SelectItem>
+                <SelectItem value="wallet">👛 Highest Wallet Balance</SelectItem>
                 <SelectItem value="orders">📦 Most Orders</SelectItem>
                 <SelectItem value="active">⚡ Recently Active / Logged In</SelectItem>
                 <SelectItem value="name">🔤 Name (A - Z)</SelectItem>
@@ -453,7 +569,8 @@ export function CustomersPage() {
           title="Customer Accounts Master Directory"
           description="Click or tap any row to open the complete Customer 360° Profile, Wallet Ledger, Loyalty Points, and Orders."
         >
-          <DataTable
+          {viewMode === "table" ? (
+            <DataTable
             loading={customers.isLoading}
             rows={rows}
             onRowClick={setSelected}
@@ -590,6 +707,141 @@ export function CustomersPage() {
               },
             ]}
           />
+          ) : (
+            <div className="p-4 sm:p-5">
+              {customers.isLoading ? (
+                <div className="flex h-56 flex-col items-center justify-center gap-2 text-xs font-bold text-zinc-500">
+                  <Loader2 className="size-6 animate-spin text-zinc-950" />
+                  <span>Synchronizing customer accounts from live database...</span>
+                </div>
+              ) : rows.length === 0 ? (
+                <div className="flex h-56 flex-col items-center justify-center text-center">
+                  <Users className="size-10 text-zinc-300 mb-2" />
+                  <p className="text-sm font-black text-zinc-900">No customer accounts match the selected filters</p>
+                  <p className="text-xs text-zinc-500 mt-1">Try selecting "All Accounts" or clearing your search query.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {rows.map((r) => (
+                    <div
+                      key={r.id}
+                      onClick={() => setSelected(r)}
+                      className="bg-white border border-zinc-200/90 hover:border-zinc-400 rounded-2xl p-4 shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col justify-between space-y-3 group"
+                    >
+                      {/* Header: Avatar, Name, VIP & Status */}
+                      <div className="flex items-start justify-between gap-2 border-b border-zinc-100 pb-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="relative flex size-10 items-center justify-center rounded-xl bg-zinc-950 text-white font-black text-xs shrink-0 shadow-xs">
+                            {r.name.slice(0, 2).toUpperCase()}
+                            {r.isVip && (
+                              <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-amber-950 text-[8px] font-black border border-white">
+                                ★
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-black text-sm text-zinc-950 group-hover:text-emerald-700 transition-colors truncate">
+                                {r.name}
+                              </p>
+                              {r.isVip && (
+                                <span className="inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.2 text-[9px] font-black text-amber-900 border border-amber-300">
+                                  VIP
+                                </span>
+                              )}
+                            </div>
+                            <p className="font-mono text-[10px] text-zinc-400 font-bold truncate">#{r.id}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <StatusPill value={r.status} />
+                          {r.membership && r.membership !== "Standard" && (
+                            <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-800 border border-zinc-200">
+                              {r.membership}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Contact & Location */}
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <a
+                            href={`tel:${r.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-mono font-bold text-zinc-800 hover:text-zinc-950 flex items-center gap-1 truncate"
+                          >
+                            <Phone className="size-3 text-zinc-400" />
+                            {r.phone || "—"}
+                          </a>
+                          <span className="text-[11px] text-zinc-500 font-mono truncate max-w-[140px]">
+                            {r.email}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
+                          <MapPin className="size-3 text-zinc-400 shrink-0" />
+                          <span className="font-bold text-zinc-700 mr-1">{r.city || "Area"}:</span>
+                          <span className="truncate">{r.primaryAddress}</span>
+                        </div>
+                      </div>
+
+                      {/* Financial Ledger & Metrics Bar */}
+                      <div className="grid grid-cols-3 gap-2 bg-zinc-50/80 rounded-xl p-2.5 border border-zinc-200/60 text-center">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Total Spend</p>
+                          <p className="font-black text-zinc-950 text-sm mt-0.5 tabular-nums">{r.spend}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Bookings</p>
+                          <p className="font-black text-zinc-950 text-sm mt-0.5 tabular-nums">{r.orders}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Wallet</p>
+                          <p className="font-black text-zinc-950 text-sm mt-0.5 tabular-nums">{r.wallet}</p>
+                        </div>
+                      </div>
+
+                      {/* Registration & Activity Timestamps */}
+                      <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400 pt-1 border-t border-zinc-100">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="size-3 text-zinc-400" />
+                          Reg: {r.joined}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="size-3 text-zinc-400" />
+                          Active: {formatRelativeTime(r.lastLoginTimestamp) || "Recent"}
+                        </span>
+                      </div>
+
+                      {/* Footer Action Buttons */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-zinc-100" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelected(r)}
+                          className="h-8 flex-1 text-xs font-bold rounded-xl border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-100"
+                        >
+                          <Eye className="size-3.5 mr-1 text-zinc-600" />
+                          <span>A to Z Profile</span>
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => blockMutation.mutate({ id: r.id, blocked: r.status === "Active" })}
+                          className={`h-8 px-3 rounded-xl text-xs font-bold transition-all border ${
+                            r.status === "Active"
+                              ? "text-rose-600 hover:bg-rose-50 border-rose-200"
+                              : "text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                          }`}
+                        >
+                          {r.status === "Active" ? "Block" : "Unblock"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </SectionCard>
       </div>
 
@@ -702,7 +954,7 @@ function Customer360Sheet({
         <SheetHeader className="border-b border-zinc-100 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="relative flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-sm">
+              <div className="relative flex size-12 items-center justify-center rounded-2xl bg-zinc-950 text-white font-black text-sm shadow-xs shrink-0">
                 {customer?.name.slice(0, 2).toUpperCase() || "CU"}
                 {customer?.isVip && (
                   <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-amber-400 text-amber-950 text-[10px] font-black border-2 border-white shadow-xs">
@@ -712,9 +964,9 @@ function Customer360Sheet({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <SheetTitle className="text-lg font-black text-zinc-900">{customer?.name}</SheetTitle>
+                  <SheetTitle className="text-lg font-black text-zinc-950">{customer?.name}</SheetTitle>
                   {customer?.isVip && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800 border border-amber-200">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-900 border border-amber-200">
                       <Sparkles className="size-3" /> VIP Member
                     </span>
                   )}
@@ -733,7 +985,7 @@ function Customer360Sheet({
                 className={`h-8 text-xs font-bold rounded-xl ${
                   customer?.status === "Active"
                     ? "border-rose-200 text-rose-700 hover:bg-rose-50"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                    : "bg-zinc-950 text-white hover:bg-zinc-800"
                 }`}
               >
                 {customer?.status === "Active" ? "Block" : "Unblock"}
@@ -746,21 +998,21 @@ function Customer360Sheet({
         <div className="space-y-6 px-4 py-6">
           {/* Quick Summary Cards Row */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-center">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-3 text-center shadow-2xs">
               <span className="text-[10px] font-black uppercase text-zinc-500">Total Spent</span>
-              <p className="text-sm font-black text-emerald-700 mt-0.5">{customer?.spend || "₹0"}</p>
+              <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{customer?.spend || "₹0"}</p>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-center">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-3 text-center shadow-2xs">
               <span className="text-[10px] font-black uppercase text-zinc-500">Bookings</span>
-              <p className="text-sm font-black text-zinc-900 mt-0.5">{customer?.orders || 0} Orders</p>
+              <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{customer?.orders || 0} Orders</p>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-center">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-3 text-center shadow-2xs">
               <span className="text-[10px] font-black uppercase text-zinc-500">Wallet</span>
-              <p className="text-sm font-black text-emerald-700 mt-0.5">₹{data?.wallet?.balance ?? customer?.walletRaw ?? 0}</p>
+              <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">₹{data?.wallet?.balance ?? customer?.walletRaw ?? 0}</p>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 text-center">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-3 text-center shadow-2xs">
               <span className="text-[10px] font-black uppercase text-zinc-500">Loyalty Pts</span>
-              <p className="text-sm font-black text-amber-700 mt-0.5">{data?.loyalty?.points ?? customer?.loyaltyPoints ?? 120} Pts</p>
+              <p className="text-base font-black text-zinc-950 mt-0.5 tabular-nums">{data?.loyalty?.points ?? customer?.loyaltyPoints ?? 120} Pts</p>
             </div>
           </div>
 
@@ -768,19 +1020,19 @@ function Customer360Sheet({
               360° FIRST REGISTERED & LAST ACTIVE SESSIONS HIGHLIGHT (User Focus)
           ========================================================================= */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-sky-200/90 bg-gradient-to-br from-sky-50/90 via-sky-50/40 to-white p-3.5 shadow-2xs">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
               <div className="flex items-start gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700 shadow-2xs shrink-0">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 shadow-2xs shrink-0 border border-zinc-200">
                   <Calendar className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-sky-800">First Registered / Login</span>
-                    <span className="inline-flex items-center rounded-md bg-sky-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-sky-800">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">First Registered / Login</span>
+                    <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-zinc-800 border border-zinc-200">
                       {formatRelativeTime(data?.overview?.firstLoginAt || customer?.registrationTimestamp || customer?.joined)}
                     </span>
                   </div>
-                  <p className="font-mono text-xs font-black text-zinc-900 mt-1">
+                  <p className="font-mono text-xs font-black text-zinc-950 mt-1">
                     {formatTimestamp(data?.overview?.firstLoginAt || customer?.registrationTimestamp || customer?.joined)}
                   </p>
                   <p className="text-[10px] text-zinc-500 mt-0.5 flex items-center gap-1 font-medium">
@@ -791,23 +1043,23 @@ function Customer360Sheet({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-emerald-50/40 to-white p-3.5 shadow-2xs">
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
               <div className="flex items-start gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 shadow-2xs shrink-0">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 shadow-2xs shrink-0 border border-zinc-200">
                   <Clock className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">Last Active / Login</span>
-                    <span className="inline-flex items-center rounded-md bg-emerald-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-800">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Last Active / Login</span>
+                    <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-zinc-800 border border-zinc-200">
                       {formatRelativeTime(data?.overview?.lastLoginAt || customer?.lastLoginTimestamp || customer?.lastActive)}
                     </span>
                   </div>
-                  <p className="font-mono text-xs font-black text-zinc-900 mt-1">
+                  <p className="font-mono text-xs font-black text-zinc-950 mt-1">
                     {formatTimestamp(data?.overview?.lastLoginAt || customer?.lastLoginTimestamp || customer?.lastActive)}
                   </p>
-                  <p className="text-[10px] text-emerald-700 mt-0.5 flex items-center gap-1 font-medium">
-                    <Activity className="size-3 text-emerald-600" />
+                  <p className="text-[10px] text-zinc-500 mt-0.5 flex items-center gap-1 font-medium">
+                    <Activity className="size-3 text-zinc-500" />
                     <span>Live Authenticated Device Activity</span>
                   </p>
                 </div>
@@ -957,16 +1209,16 @@ function Customer360Sheet({
 
             {/* TAB 3: WALLET LEDGER & ADJUSTMENT */}
             <TabsContent value="wallet" className="pt-4 space-y-4">
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4">
+              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
                 <div className="flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] font-black uppercase text-emerald-800">Live Wallet Balance</span>
-                    <p className="text-3xl font-black text-emerald-950">₹{data?.wallet?.balance ?? customer?.walletRaw ?? 0}</p>
-                    <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
-                      Cashback: ₹{data?.wallet?.totalCashback || 0} · Refunds: ₹{data?.wallet?.totalRefund || 0}
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Live Wallet Balance</span>
+                    <p className="text-3xl font-black text-zinc-950 mt-0.5 tabular-nums">₹{data?.wallet?.balance ?? customer?.walletRaw ?? 0}</p>
+                    <p className="text-[11px] text-zinc-500 font-bold mt-0.5">
+                      Cashback: <strong className="text-zinc-900">₹{data?.wallet?.totalCashback || 0}</strong> · Refunds: <strong className="text-zinc-900">₹{data?.wallet?.totalRefund || 0}</strong>
                     </p>
                   </div>
-                  <Wallet className="size-10 text-emerald-600" />
+                  <Wallet className="size-10 text-zinc-400" />
                 </div>
               </div>
 
@@ -1087,19 +1339,19 @@ function Customer360Sheet({
 
             {/* TAB 5: MEMBERSHIP */}
             <TabsContent value="membership" className="pt-4 space-y-3">
-              <div className="rounded-2xl border border-emerald-200 bg-white p-4 space-y-2">
+              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 space-y-2 shadow-2xs">
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-xs font-black text-emerald-900">ACTIVE SUBSCRIPTION PLAN</h4>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-500">ACTIVE SUBSCRIPTION PLAN</h4>
+                  <span className="text-xs font-bold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-lg border border-zinc-200 font-mono">
                     {data?.membership?.status || (customer?.isVip ? "Active" : "Not Subscribed")}
                   </span>
                 </div>
-                <DetailRow label="Current Plan" value={<span className="font-black text-zinc-900">{data?.membership?.plan || (customer?.isVip ? "Gold VIP Plan" : "Standard Free Plan")}</span>} />
+                <DetailRow label="Current Plan" value={<span className="font-black text-zinc-950">{data?.membership?.plan || (customer?.isVip ? "Gold VIP Plan" : "Standard Free Plan")}</span>} />
                 <DetailRow label="Valid From" value={data?.membership?.startDate || (customer?.isVip ? "2026-01-01" : "—")} />
                 <DetailRow label="Expires On" value={data?.membership?.expiryDate || (customer?.isVip ? "2026-12-31" : "—")} />
               </div>
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <h5 className="text-xs font-black uppercase text-zinc-600 mb-2">ACTIVE MEMBER PERKS</h5>
+              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs">
+                <h5 className="text-xs font-black uppercase tracking-wider text-zinc-500 mb-2">ACTIVE MEMBER PERKS</h5>
                 <ul className="space-y-1.5 text-xs font-medium text-zinc-700">
                   <li className="flex items-center gap-2">✓ 15% Instant Discount on all Laundry &amp; Processing orders</li>
                   <li className="flex items-center gap-2">✓ Free Priority Pickup &amp; Express Delivery</li>

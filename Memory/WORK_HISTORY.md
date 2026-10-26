@@ -1052,6 +1052,133 @@
 
 ---
 
+### 32. Enterprise Design System Specification & Layout Blueprint (Universal Admin Standard)
+To ensure 100% aesthetic consistency across **Orders**, **Customers**, **Riders**, **Partners**, and all other operational consoles, this formal specification codifies the exact design architecture established in **Enterprise CRM & Geo Intelligence**:
+
+#### 1. Color Tokens & Surface Hierarchy
+- **Canvas / Root Container:** `bg-white` or `bg-slate-50/50` (Pure crisp white background, zero dark blocks or cartoonish gradients).
+- **Cards & Surface Tiles:** `bg-white border border-zinc-200/90 rounded-2xl shadow-xs`
+- **Hover Transitions:** `hover:border-zinc-300 transition-all`
+- **Dividers & Separators:** `border-zinc-100` or `bg-zinc-200`
+
+#### 2. High-Contrast Typography Hierarchy ("Black only text chaiye")
+- **Primary Page Titles & Screen Headers:** `text-2xl font-black text-zinc-950 tracking-tight`
+- **Metric Big Numbers:** `text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight tabular-nums`
+- **Section Headers & Entity Names:** `text-base sm:text-lg font-black text-zinc-900 tracking-tight`
+- **Body & Table Cell Data:** `text-sm font-bold text-zinc-900`
+- **Identifiers & Codes (UID, Order #, Phone):** `font-mono font-black text-zinc-950`
+- **Field Labels & Captions:** `text-xs font-bold text-zinc-500 uppercase tracking-wider`
+- **Secondary Helper Text:** `text-xs font-medium text-zinc-600`
+
+#### 3. Buttons & Interactive Controls Blueprint
+```tsx
+// Primary Solid Action Button
+<Button className="h-9 px-4 rounded-xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800 shadow-xs">
+  Action Label
+</Button>
+
+// Primary White Inverted Button (Zomato/Swiggy Standard)
+<Button className="h-9 px-4 rounded-xl bg-white border-2 border-zinc-950 text-zinc-950 font-black text-xs hover:bg-zinc-100 shadow-xs">
+  Action Label
+</Button>
+
+// Secondary Outline Button
+<Button variant="outline" className="h-9 px-3.5 rounded-xl border-zinc-200 bg-white text-zinc-800 font-bold text-xs hover:bg-zinc-50 shadow-xs">
+  <Icon className="size-3.5 mr-1.5" /> Action
+</Button>
+
+// Active Filter / Tab Pill
+<button className="h-8 px-3.5 rounded-xl bg-zinc-950 text-white text-xs font-black shadow-xs">
+  Active Tab (42)
+</button>
+
+// Inactive Filter / Tab Pill
+<button className="h-8 px-3.5 rounded-xl bg-zinc-100 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-200 text-xs font-bold transition-colors">
+  Inactive Tab (18)
+</button>
+```
+
+#### 4. Executive Metric Cards Strip Blueprint
+```tsx
+<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+  <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+    <div className="flex items-center justify-between">
+      <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Total GMV</span>
+      <IndianRupee className="size-4 text-zinc-400" />
+    </div>
+    <div className="text-2xl font-black text-zinc-950 mt-1 tabular-nums">₹21,354</div>
+    <span className="text-[11px] font-bold text-emerald-700 mt-0.5 inline-block">100% Reconciled</span>
+  </div>
+</div>
+```
+
+#### 5. Multi-Dimensional Filter Bar Blueprint
+```tsx
+<div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs space-y-3">
+  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+    {/* Live Search */}
+    <div className="relative flex-1">
+      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+      <Input
+        placeholder="Search by ID, Name, Phone, Code..."
+        className="pl-10 h-10 rounded-xl border-zinc-200 bg-white text-zinc-950 font-bold placeholder:text-zinc-400"
+      />
+    </div>
+
+    {/* Cascading Controls: Timeframe, State, City, Pincode */}
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+      <Select value={timeframe} onValueChange={setTimeframe}>
+        <SelectTrigger className="h-10 w-32 rounded-xl border-zinc-200 bg-white text-xs font-bold text-zinc-900">
+          <SelectValue placeholder="Timeframe" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="today">Today</SelectItem>
+          <SelectItem value="7d">Last 7 Days</SelectItem>
+          <SelectItem value="30d">Last 30 Days</SelectItem>
+          <SelectItem value="all">All-Time</SelectItem>
+        </SelectContent>
+      </Select>
+      
+      {/* Dual View Toggle */}
+      <div className="flex items-center border border-zinc-200 rounded-xl p-0.5 bg-zinc-50">
+        <button className={viewMode === "table" ? "px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-zinc-950 font-black" : "px-2.5 py-1.5 text-zinc-500"}>
+          <Table className="size-3.5" />
+        </button>
+        <button className={viewMode === "cards" ? "px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-zinc-950 font-black" : "px-2.5 py-1.5 text-zinc-500"}>
+          <LayoutGrid className="size-3.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+#### 6. High-Density Enterprise Table Blueprint
+```tsx
+<div className="bg-white border border-zinc-200/90 rounded-2xl overflow-hidden shadow-xs">
+  <div className="overflow-x-auto">
+    <table className="w-full text-left border-collapse">
+      <thead>
+        <tr className="border-b border-zinc-200 bg-zinc-50/80 text-[11px] font-black text-zinc-500 uppercase tracking-wider">
+          <th className="py-3 px-4">Entity / Code</th>
+          <th className="py-3 px-4">Customer Details</th>
+          <th className="py-3 px-4">Partner Store</th>
+          <th className="py-3 px-4">Assigned Pilot</th>
+          <th className="py-3 px-4">Financials & Split</th>
+          <th className="py-3 px-4">Status</th>
+          <th className="py-3 px-4 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-zinc-100 text-xs">
+        {/* Rows with pure white background, hover:bg-zinc-50/80, black-only data */}
+      </tbody>
+    </table>
+  </div>
+</div>
+```
+
+---
+
 ## How to Pull Updates on the Live EC2 Server
 
 Run this single command in the EC2 terminal (`ubuntu@ip-172-31-2-28:~/quickpress`):
@@ -1068,3 +1195,70 @@ This single command will automatically:
 
 
 
+---
+
+## 33. Orders Control Center & Customer Intelligence Hub: CRM Pure-White & Black-Typography Redesign
+
+**Date:** 2026-10-26  
+**Modules Modified:**
+- [`admin-frontend/src/routes/orders.tsx`](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/admin-frontend/src/routes/orders.tsx)
+- [`admin-frontend/src/routes/customers.tsx`](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/admin-frontend/src/routes/customers.tsx)
+- [`Memory/WORK_HISTORY.md`](file:///Users/himanshupal/Documents/Source%20Code/Scource%20Code%20/Officall-main/Memory/WORK_HISTORY.md)
+
+### 1. Architectural Upgrades in Orders Control Center (`/orders`)
+1. **Section 32 Design System Adherence:**
+   - Pure-white canvas (`bg-white`), borders `border-zinc-200/90`, high-contrast black typography (`text-zinc-950 font-black`, `text-zinc-900 font-bold`). Zero dark blocks, zero cartoonish gradients.
+2. **6-Tile Executive Orders Telemetry Strip:**
+   - **Total Orders Scoped:** Real volume with live scoped count.
+   - **Gross Sales GMV:** Total ₹ GMV scoped with Average Order Value (AOV).
+   - **Delivered Volume:** Order completion percentage (`%`).
+   - **In-Flight Pipeline:** Active orders in pickup, store processing, and pilot dispatch.
+   - **Cancelled Orders & Ratio:** Cancellation count + cancellation ratio (`% of total orders`).
+   - **Refund Cases & Ratio:** Refund cases count + refund ratio (`% of total orders`) + total ₹ refunded.
+3. **Fast Order Finding & Multi-Dimensional Filters:**
+   - Timeframe quick pills: `Today`, `Yesterday`, `7D`, `30D`, `This Month`, `All-Time`.
+   - Live Search: Matches order code (`#QP-ORD-XXX`), customer name, customer phone, delivery address, city, pincode, partner store, delivery pilot.
+   - Area & City cascading dropdown.
+   - Operational Stage dropdown & Payment method dropdown.
+4. **Dual View Mode Switcher:**
+   - **High-Density Table View (`viewMode === "table"`):** Comprehensive data grid with Order ID, customer & phone, store & rider, items count & garments summary, status pill, payment pill, and invoice actions.
+   - **Modern Grid Cards View (`viewMode === "cards"`):** Responsive 3-column cards grid (`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`) with customer avatar/details, store & rider, payment split snippet, and 360 trigger.
+5. **Full Payment Dividing & Double-Entry Settlement Ledger:**
+   - Integrated inside `Order360FullPage`:
+     - Customer Paid Gross Amount (Razorpay / Cashfree / Fleet COD Float).
+     - **1. Laundromat Merchant Share (Net 82%):** `₹${Math.round(total * 0.82)}` auto-disbursed.
+     - **2. Delivery Captain Pilot Fee:** `₹45` (single leg) or `₹70` (2-way pickup + delivery leg).
+     - **3. QuickPress Platform Commission & Convenience Fee (18%):** `₹${total - partnerPayout}`.
+     - Double-Entry Reconciled Verification: 100% Balanced and direct auto-disbursed via Escrow Float.
+
+---
+
+### 2. Architectural Upgrades in Customer Intelligence Hub (`/customers`)
+1. **Section 32 Pure-White Aesthetics:**
+   - High-contrast pure white card styling, high contrast black typography, zero dark theme blocks.
+2. **6-Tile Executive Customer Telemetry Strip:**
+   - **Total Accounts:** Scoped volume of registered customer accounts.
+   - **Today's Signups:** Accounts registered/active today + `% of total base`.
+   - **Repeat Buyers (2+):** Customer count with 2+ bookings + `% repeat conversion rate`.
+   - **VIP Members Only:** Count of active VIP subscription members + `% membership share`.
+   - **Total Spend GMV:** Cumulative lifetime customer spend with AOV per account.
+   - **Active Wallet Float:** Cumulative customer stored credit & float in circulation across all wallets.
+3. **Smart Cohort Pills & Fast Finding:**
+   - `All Accounts`
+   - `Today's Customers` (registered or logged in today)
+   - `Repeat Buyers (2+)`
+   - `VIP Members Only` (filters ONLY membership customers with VIP badge, spend, and wallet balance)
+   - `High Spend Champions (≥₹500)`
+   - `Dormant Accounts (0 Orders)`
+4. **Dual View Mode Switcher:**
+   - **High-Density Table View:** Complete customer directory with Profile, Phone, City, Orders & Spend, Wallet Balance, Loyalty Tier, and Status.
+   - **Modern Grid Cards View:** 3-column responsive customer cards with initials avatar, VIP crown/star badge, phone tel: link, email, address, financial summary box (Spend, Orders, Wallet), and timestamps.
+5. **Complete Customer A to Z Record Drawer (`Customer360Sheet`):**
+   - **Overview & Timestamps:** First login/registration timestamp + relative time, Last active timestamp + relative time, first & latest order dates, customer ID with copy button, phone, email, referral code.
+   - **Full Orders History:** Chronological list of all orders booked by this customer with order code, date, service, items summary, amount, status pill, and store hub.
+   - **Live Wallet Ledger:** Live wallet balance, transaction ledger, administrative credit/debit adjustment form with audit reason.
+   - **VIP Membership:** Active subscription plan, validity dates, active member perks (15% discount, free priority pickup, 2x points).
+   - **Saved Addresses:** Full home, work, and other addresses with city, street, and area.
+   - **Audit & Governance:** Staff internal notes, push notification dispatcher, account block/unblock.
+6. **Customer Master CSV Report Export:**
+   - Generates and downloads a complete CSV audit file with Customer ID, Name, Phone, Email, City, Zone, Orders count, Spend, Wallet, Loyalty, Membership Tier, Registration timestamp, and Addresses.

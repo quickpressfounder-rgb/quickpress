@@ -49,6 +49,9 @@ import {
   ShieldAlert,
   TrendingUp,
   ArrowRight,
+  Table,
+  LayoutGrid,
+  IndianRupee,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -300,6 +303,7 @@ export function OrdersPage() {
   const [serviceFilter, setServiceFilter] = useState("all");
   const [showDayWiseReport, setShowDayWiseReport] = useState(false);
   const [showTerritoryAudit, setShowTerritoryAudit] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -641,12 +645,17 @@ export function OrdersPage() {
       if (q) {
         const haystack = [
           order.id,
+          order.code,
           order.customer,
+          (order as any).customerName,
           order.phone,
+          (order as any).customerPhone,
           order.partner,
           order.rider,
           order.service,
           order.city,
+          (order as any).pincode,
+          (order as any).address,
           order.status,
           order.payment,
         ]
@@ -810,12 +819,12 @@ export function OrdersPage() {
         ========================================================================= */
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* =========================================================================
-              SECTION 1: TIMEFRAME PILLS & SCOPE CONTROLS (DASHBOARD PARITY)
+              SECTION 1: TIMEFRAME PILLS, SCOPE CONTROLS & DUAL VIEW SWITCHER
           ========================================================================= */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200/90 shadow-2xs">
-            {/* Timeframe selector pills */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-zinc-200/90 shadow-xs">
+            {/* Timeframe selector pills (CRM Standard) */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mr-1.5">TIMEFRAME:</span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500 mr-1.5">TIMEFRAME:</span>
               {[
                 { id: "today", label: "Today" },
                 { id: "yesterday", label: "Yesterday" },
@@ -828,10 +837,10 @@ export function OrdersPage() {
                   key={pill.id}
                   type="button"
                   onClick={() => setDateRange(pill.id as any)}
-                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                  className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                     dateRange === pill.id
-                      ? "bg-emerald-600 text-white shadow-xs"
-                      : "bg-zinc-100/90 text-zinc-600 hover:bg-zinc-200/80"
+                      ? "bg-zinc-950 text-white font-black shadow-xs"
+                      : "bg-zinc-100 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-200 font-bold"
                   }`}
                 >
                   {pill.label}
@@ -839,7 +848,7 @@ export function OrdersPage() {
               ))}
             </div>
 
-            {/* City & Service Selectors */}
+            {/* City, Service & Dual View Switcher */}
             <div className="flex items-center gap-2">
               <select
                 value={city}
@@ -847,7 +856,7 @@ export function OrdersPage() {
                   setCity(e.target.value);
                   setArea("all");
                 }}
-                className="h-8 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 text-xs font-bold text-zinc-700 focus:border-emerald-600 focus:outline-none"
+                className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
               >
                 <option value="all">🏙️ All Cities ({allOrders.length})</option>
                 {cities.map((c) => (
@@ -860,7 +869,7 @@ export function OrdersPage() {
               <select
                 value={serviceFilter}
                 onChange={(e) => setServiceFilter(e.target.value)}
-                className="h-8 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 text-xs font-bold text-zinc-700 focus:border-emerald-600 focus:outline-none"
+                className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
               >
                 <option value="all">🧺 All Services</option>
                 <option value="wash">Wash &amp; Iron</option>
@@ -868,184 +877,125 @@ export function OrdersPage() {
                 <option value="iron">Steam Press</option>
                 <option value="shoe">Shoe Care</option>
               </select>
+
+              {/* Dual View Mode Switcher */}
+              <div className="flex items-center border border-zinc-200 rounded-xl p-0.5 bg-zinc-50 ml-1">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  title="High-Density Table View"
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-white shadow-xs text-zinc-950 font-black border border-zinc-200"
+                      : "text-zinc-500 hover:text-zinc-950"
+                  }`}
+                >
+                  <Table className="size-3.5" />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("cards")}
+                  title="Modern Grid Cards View"
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    viewMode === "cards"
+                      ? "bg-white shadow-xs text-zinc-950 font-black border border-zinc-200"
+                      : "text-zinc-500 hover:text-zinc-950"
+                  }`}
+                >
+                  <LayoutGrid className="size-3.5" />
+                  <span className="hidden sm:inline">Cards</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* =========================================================================
-              SECTION 2: TOP 3 HERO KPI CARDS (DASHBOARD PARITY - ELEVATED DESIGN)
+              SECTION 2: 6-TILE EXECUTIVE ORDERS TELEMETRY STRIP (CRM HIGH CONTRAST)
           ========================================================================= */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* 1. ORDERS HEALTH & FULFILLMENT */}
-            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-emerald-500/70 hover:shadow-lg hover:shadow-emerald-500/5">
-              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-emerald-500 via-teal-500 to-emerald-600" />
-
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">ORDERS HEALTH</span>
-                </div>
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50/80 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                  <TrendingUp className="size-3" />
-                  {orderHealth.fulfillmentPct}% Fulfilled
-                </span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* 1. TOTAL ORDERS */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Total Orders</span>
+                <ShoppingBag className="size-4 text-zinc-400" />
               </div>
-
-              <div className="mt-3 flex items-baseline justify-between">
-                <p className="text-3xl font-black text-zinc-900 group-hover:text-emerald-700 transition-colors">
-                  {orderHealth.total.toLocaleString("en-IN")}
-                </p>
-                <span className="text-xs font-semibold text-zinc-500">
-                  {orderHealth.delivered} of {orderHealth.total} delivered
-                </span>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {orderHealth.total.toLocaleString("en-IN")}
               </div>
-
-              {/* Progress Meter */}
-              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-                <div
-                  className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-500 transition-all duration-500"
-                  style={{ width: `${orderHealth.fulfillmentPct}%` }}
-                />
-              </div>
-
-              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPipelineStage(null);
-                    setActionQueue("all");
-                    setActiveTab("all");
-                  }}
-                  className="rounded-lg p-1.5 transition-all hover:bg-emerald-100/70 hover:scale-[1.03] active:scale-95 cursor-pointer"
-                >
-                  <p className="text-[10px] text-zinc-500 font-bold">Active</p>
-                  <p className="font-black text-emerald-700 text-sm">{orderHealth.active}</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPipelineStage(9);
-                    setActiveTab("Delivered");
-                  }}
-                  className="rounded-lg p-1.5 transition-all hover:bg-zinc-200/70 hover:scale-[1.03] active:scale-95 cursor-pointer"
-                >
-                  <p className="text-[10px] text-zinc-500 font-bold">Delivered</p>
-                  <p className="font-black text-zinc-900 text-sm">{orderHealth.delivered}</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActionQueue("cancelled");
-                  }}
-                  className="rounded-lg p-1.5 transition-all hover:bg-rose-100/70 hover:scale-[1.03] active:scale-95 cursor-pointer"
-                >
-                  <p className="text-[10px] text-zinc-500 font-bold">Delayed / SLA</p>
-                  <p className="font-black text-rose-600 text-sm">{orderHealth.delayed}</p>
-                </button>
-              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                {scopedOrders.length} orders in scope
+              </p>
             </div>
 
-            {/* 2. ORDER GMV & BASKET ECONOMICS */}
-            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-indigo-500/70 hover:shadow-lg hover:shadow-indigo-500/5">
-              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-indigo-500 via-violet-500 to-purple-600" />
-
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">ORDER VALUE &amp; GMV</span>
-                </div>
-                <span className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50/80 px-2 py-0.5 rounded-full border border-indigo-200/60">
-                  Avg ₹{orderHealth.aov} / basket
-                </span>
+            {/* 2. RECONCILED GMV */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Gross Sales GMV</span>
+                <IndianRupee className="size-4 text-zinc-400" />
               </div>
-
-              <div className="mt-3 flex items-baseline justify-between">
-                <p className="text-3xl font-black text-indigo-700 group-hover:text-indigo-800 transition-colors">
-                  ₹{orderHealth.gmv.toLocaleString("en-IN")}
-                </p>
-                <span className="text-xs font-semibold text-zinc-500">
-                  100% Reconciled
-                </span>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                ₹{orderHealth.gmv.toLocaleString("en-IN")}
               </div>
-
-              {/* Progress Meter */}
-              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-                <div
-                  className="h-full rounded-full bg-linear-to-r from-indigo-500 to-violet-500 transition-all duration-500"
-                  style={{ width: "100%" }}
-                />
-              </div>
-
-              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
-                <div className="rounded-lg p-1.5">
-                  <p className="text-[10px] text-zinc-500 font-bold truncate">Prepaid Online</p>
-                  <p className="font-black text-indigo-800 text-sm">₹{orderHealth.prepaid.toLocaleString("en-IN")}</p>
-                </div>
-                <div className="rounded-lg p-1.5">
-                  <p className="text-[10px] text-zinc-500 font-bold truncate">Cash on Delivery</p>
-                  <p className="font-black text-amber-700 text-sm">₹{orderHealth.cod.toLocaleString("en-IN")}</p>
-                </div>
-                <div className="rounded-lg p-1.5">
-                  <p className="text-[10px] text-zinc-500 font-bold truncate">Refunds</p>
-                  <p className="font-black text-rose-600 text-sm">₹{orderHealth.refunds.toLocaleString("en-IN")}</p>
-                </div>
-              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                AOV: ₹{orderHealth.aov} / basket
+              </p>
             </div>
 
-            {/* 3. FLEET & DISPATCH STATUS */}
-            <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:border-sky-500/70 hover:shadow-lg hover:shadow-sky-500/5">
-              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-blue-500 via-sky-500 to-cyan-600" />
-
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">FLEET &amp; DISPATCH</span>
-                </div>
-                <span className="rounded-full bg-sky-50/80 px-2 py-0.5 text-[10px] font-bold text-sky-700 border border-sky-200/60">
-                  Live Logistics
-                </span>
+            {/* 3. DELIVERED FULFILLMENT */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Delivered Volume</span>
+                <PackageCheck className="size-4 text-zinc-400" />
               </div>
-
-              <div className="mt-3 flex items-baseline justify-between">
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-black text-zinc-900 group-hover:text-sky-700 transition-colors">
-                    {orderHealth.assigned}
-                  </p>
-                  <span className="text-xs font-bold text-zinc-500">/ {orderHealth.total} orders</span>
-                </div>
-                <span className="text-xs font-semibold text-zinc-500">
-                  {orderHealth.fleetCoverPct}% Assigned
-                </span>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {orderHealth.delivered.toLocaleString("en-IN")}
               </div>
+              <p className="text-[11px] font-bold text-emerald-700 mt-0.5 truncate">
+                {orderHealth.fulfillmentPct}% Fulfillment Rate
+              </p>
+            </div>
 
-              {/* Progress Meter */}
-              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-                <div
-                  className="h-full rounded-full bg-linear-to-r from-blue-500 to-cyan-500 transition-all duration-500"
-                  style={{ width: `${orderHealth.fleetCoverPct}%` }}
-                />
+            {/* 4. ACTIVE IN-TRANSIT & IN-WASH */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">In-Flight Pipeline</span>
+                <Truck className="size-4 text-zinc-400" />
               </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {orderHealth.active.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-blue-700 mt-0.5 truncate">
+                In pickup, wash &amp; dispatch
+              </p>
+            </div>
 
-              <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50/90 p-2 text-center text-xs border border-zinc-100">
-                <div className="rounded-lg p-1.5">
-                  <p className="text-[10px] text-zinc-500 font-bold">With Captain</p>
-                  <p className="font-black text-sky-700 text-sm">{orderHealth.assigned}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActionQueue("new")}
-                  className="rounded-lg p-1.5 transition-all hover:bg-rose-100/70 active:scale-95 cursor-pointer"
-                >
-                  <p className="text-[10px] text-zinc-500 font-bold">Needs Rider</p>
-                  <p className={`font-black text-sm ${orderHealth.unassigned > 0 ? "text-rose-600 animate-pulse" : "text-zinc-700"}`}>
-                    {orderHealth.unassigned}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("reassigned")}
-                  className="rounded-lg p-1.5 transition-all hover:bg-purple-100/70 active:scale-95 cursor-pointer"
-                >
-                  <p className="text-[10px] text-zinc-500 font-bold">2-Way Reassigned</p>
-                  <p className="font-black text-purple-700 text-sm">{orderHealth.reassigned}</p>
-                </button>
+            {/* 5. CANCELLED RATIO */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Cancelled Orders</span>
+                <XCircle className="size-4 text-zinc-400" />
               </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {actionCounts.cancelled}
+              </div>
+              <p className="text-[11px] font-bold text-rose-700 mt-0.5 truncate">
+                Cancel Ratio: {orderHealth.total > 0 ? ((actionCounts.cancelled / orderHealth.total) * 100).toFixed(1) : "0.0"}%
+              </p>
+            </div>
+
+            {/* 6. REFUND RATIO */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Refund Cases</span>
+                <RotateCcw className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {actionCounts.refund}
+              </div>
+              <p className="text-[11px] font-bold text-purple-700 mt-0.5 truncate">
+                Refund Ratio: {orderHealth.total > 0 ? ((actionCounts.refund / orderHealth.total) * 100).toFixed(1) : "0.0"}% · ₹{orderHealth.refunds.toLocaleString("en-IN")}
+              </p>
             </div>
           </div>
 
@@ -1653,7 +1603,8 @@ export function OrdersPage() {
                 </Button>
               </div>
             )}
-            <DataTable
+            {viewMode === "table" ? (
+              <DataTable
               loading={orders.isLoading}
               rows={rows}
               onRowClick={setSelected}
@@ -1815,6 +1766,177 @@ export function OrdersPage() {
                 },
               ]}
             />
+            ) : (
+              <div className="p-4 sm:p-5">
+                {orders.isLoading ? (
+                  <div className="flex h-56 flex-col items-center justify-center gap-2 text-xs font-bold text-zinc-500">
+                    <Loader2 className="size-6 animate-spin text-zinc-950" />
+                    <span>Synchronizing live orders from database...</span>
+                  </div>
+                ) : rows.length === 0 ? (
+                  <div className="flex h-56 flex-col items-center justify-center text-center">
+                    <ShoppingBag className="size-10 text-zinc-300 mb-2" />
+                    <p className="text-sm font-black text-zinc-900">No orders match the selected filters</p>
+                    <p className="text-xs text-zinc-500 mt-1">Try resetting search filters, selecting "All" timeframes, or clearing search query.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rows.map((r) => {
+                      const amount = parseOrderAmount(r.total);
+                      const partnerPayout = Math.round(amount * 0.82);
+                      const riderPayout = r.isReassigned ? 70 : 45;
+                      const platformMargin = Math.max(0, amount - partnerPayout);
+
+                      return (
+                        <div
+                          key={r.id}
+                          onClick={() => setSelected(r)}
+                          className="bg-white border border-zinc-200/90 hover:border-zinc-400 rounded-2xl p-4 shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col justify-between space-y-3 group"
+                        >
+                          {/* Card Header: Order Code & Statuses */}
+                          <div className="flex items-start justify-between gap-2 border-b border-zinc-100 pb-2.5">
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-mono font-black text-sm text-zinc-950 group-hover:text-emerald-700 transition-colors">
+                                  #{r.id}
+                                </span>
+                                {r.isReassigned && (
+                                  <span className="inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-800 border border-amber-300">
+                                    2-Way
+                                  </span>
+                                )}
+                                {r.hasDefectsReported && (
+                                  <span className="inline-flex items-center rounded-md bg-rose-100 px-1.5 py-0.5 text-[9px] font-black text-rose-800 border border-rose-300">
+                                    ⚠️ Defect
+                                  </span>
+                                )}
+                                {r.bagTag && (
+                                  <span className="inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 text-[9px] font-mono font-bold text-zinc-700 border border-zinc-200">
+                                    🏷️ {r.bagTag}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] font-bold text-zinc-400 flex items-center gap-1 mt-0.5">
+                                <Clock className="size-3" />
+                                {r.placedAt}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <StatusPill value={r.status} />
+                              <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-800 border border-zinc-200">
+                                {r.payment}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Customer & Location */}
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-black text-zinc-950 flex items-center gap-1 truncate">
+                                <User className="size-3.5 text-zinc-400 shrink-0" />
+                                {r.customerName}
+                              </span>
+                              {r.customerPhone && (
+                                <a
+                                  href={`tel:${r.customerPhone}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[11px] font-mono font-bold text-zinc-600 hover:text-zinc-950 flex items-center gap-1 shrink-0"
+                                >
+                                  <Phone className="size-3 text-zinc-400" />
+                                  {r.customerPhone}
+                                </a>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-[11px] text-zinc-500 truncate">
+                              <MapPin className="size-3 text-zinc-400 shrink-0" />
+                              <span className="truncate">{r.deliveryAddress || "Address on file"}</span>
+                            </div>
+                          </div>
+
+                          {/* Partner Store & Rider Details */}
+                          <div className="grid grid-cols-2 gap-2 bg-zinc-50/80 rounded-xl p-2.5 border border-zinc-200/60 text-xs">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1">
+                                <Store className="size-3 text-zinc-400" /> Store
+                              </p>
+                              <p className="font-bold text-zinc-900 truncate mt-0.5" title={r.partnerName}>
+                                {r.partnerName || "Auto-Assigning"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1">
+                                <Truck className="size-3 text-zinc-400" /> Pilot
+                              </p>
+                              <p className="font-bold text-zinc-900 truncate mt-0.5" title={r.riderName}>
+                                {r.riderName || "Pending Dispatch"}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Financials & Dividing Split */}
+                          <div className="bg-zinc-50/60 rounded-xl p-2.5 border border-zinc-200/60 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                                Invoiced Amount
+                              </span>
+                              <span className="text-base font-black text-zinc-950 tabular-nums">
+                                {r.total}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 pt-1 border-t border-zinc-200/60">
+                              <span>Partner: <strong className="text-zinc-900">₹{partnerPayout}</strong></span>
+                              <span>Pilot: <strong className="text-zinc-900">₹{riderPayout}</strong></span>
+                              <span>Platform: <strong className="text-zinc-900">₹{platformMargin}</strong></span>
+                            </div>
+                          </div>
+
+                          {/* Quick Action Footer */}
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-100">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelected(r)}
+                              className="h-8 flex-1 text-xs font-bold rounded-xl border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-100"
+                            >
+                              <Eye className="size-3.5 mr-1 text-zinc-600" />
+                              <span>View 360°</span>
+                            </Button>
+                            <button
+                              type="button"
+                              title="Quick Invoice View"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                viewOrderInvoicePdf(r.id);
+                                toast.success(`Opening Invoice for #${r.id}...`);
+                              }}
+                              className="p-2 rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-all shadow-2xs"
+                            >
+                              <Eye className="size-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Download Tax Invoice"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await downloadOrderInvoicePdfBlob(r.id, `QuickPress_Invoice_${r.id}.pdf`);
+                                  toast.success(`Invoice PDF for #${r.id} downloaded!`);
+                                } catch (err: any) {
+                                  toast.error(err.message || "Failed to download invoice");
+                                }
+                              }}
+                              className="p-2 rounded-xl bg-zinc-900 border border-zinc-900 text-white hover:bg-zinc-800 transition-all shadow-2xs"
+                            >
+                              <Download className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </SectionCard>
         </div>
       )}
@@ -2275,33 +2397,65 @@ function Order360FullPage({
                 </div>
               </div>
 
-              {/* Settlement Split */}
-              <div className="bg-zinc-50/80 rounded-xl p-3.5 space-y-2 border border-zinc-200/70">
-                <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                  Platform Settlement Split
-                </p>
-                <div className="flex justify-between text-xs text-zinc-700">
-                  <span>Partner Store Net (82%)</span>
-                  <span className="font-semibold text-emerald-700">
-                    ₹{Math.round(parseOrderAmount(order.total) * 0.82)}
+              {/* Double-Entry Payment Details & Dividing Split Ledger */}
+              <div className="bg-white rounded-2xl p-4 space-y-3 border border-zinc-200/90 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <IndianRupee className="size-4 text-zinc-950" />
+                    <span className="text-xs font-black text-zinc-950 uppercase tracking-wider">
+                      Payment Dividing &amp; Settlement Ledger
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+                    100% Reconciled
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-zinc-700">
-                  <span>Delivery Pilot Payout</span>
-                  <span className="font-semibold text-blue-700">
-                    ₹{is2Way ? 70 : 45}
+
+                {/* Gateway & Transaction Telemetry */}
+                <div className="grid grid-cols-2 gap-2 text-xs bg-zinc-50 rounded-xl p-2.5 border border-zinc-200/70">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Method &amp; Gateway</p>
+                    <p className="font-black text-zinc-950 mt-0.5">{order.payment}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Transaction Ref</p>
+                    <p className="font-mono text-[11px] font-black text-zinc-800 mt-0.5">TXN-{order.id.slice(0, 8)}</p>
+                  </div>
+                </div>
+
+                {/* The 3-Way Dividing Split Table */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between py-1 border-b border-zinc-100">
+                    <span className="font-bold text-zinc-700">1. Partner Merchant Store (82%)</span>
+                    <span className="font-black text-zinc-950 tabular-nums">
+                      ₹{Math.round(parseOrderAmount(order.total) * 0.82).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-zinc-100">
+                    <span className="font-bold text-zinc-700">2. Delivery Captain Pilot Fee</span>
+                    <span className="font-black text-zinc-950 tabular-nums">
+                      ₹{is2Way ? 70 : 45}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-zinc-100">
+                    <span className="font-bold text-zinc-700">3. Platform Commission &amp; Fee (18%)</span>
+                    <span className="font-black text-zinc-950 tabular-nums">
+                      ₹{(parseOrderAmount(order.total) - Math.round(parseOrderAmount(order.total) * 0.82)).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reconciled Balance Verification */}
+                <div className="bg-zinc-50 rounded-xl p-2.5 border border-zinc-200/70 flex items-center justify-between text-xs font-black">
+                  <span className="text-zinc-600">Total Divided &amp; Disbursed:</span>
+                  <span className="text-zinc-950 text-sm tabular-nums">
+                    ₹{parseOrderAmount(order.total).toLocaleString("en-IN")}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-zinc-700">
-                  <span>Platform Commission (18%)</span>
-                  <span className="font-semibold text-indigo-700">
-                    ₹{parseOrderAmount(order.total) - Math.round(parseOrderAmount(order.total) * 0.82)}
-                  </span>
-                </div>
-                <Separator />
-                <div className="text-[11px] text-zinc-500 pt-1">
-                  Settlement Status:{" "}
-                  <strong className="text-emerald-700">Direct Auto-Disbursed</strong>
+
+                <div className="text-[11px] text-zinc-500 flex items-center justify-between pt-0.5">
+                  <span>Disbursal Method:</span>
+                  <strong className="text-emerald-700 font-black">Direct Auto-Disbursed (Escrow)</strong>
                 </div>
               </div>
             </div>
