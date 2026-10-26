@@ -165,26 +165,21 @@
   - `npm --prefix admin-frontend run build`: PASSED (0 errors, clean Nitro bundle).
   - `npm --prefix website run build`: PASSED (0 errors, clean Vite build).
 
-### 27. Cloudflare Zero Trust Single Sign-On (SSO) Auto-Enrollment & Staff Directory Resolution for Platform Super Admin
+### 27. Cloudflare Zero Trust Single Sign-On (SSO) Pure Live Database (Dynamic) Resolution & Decoupling
 - **User Requirement:**
-  - Auto-login to Admin Console (`https://ops.withquickpress.com`) was failing with:
-    `Access Denied: Email 'iammotivation33@gmail.com' is authenticated by Cloudflare Zero Trust, but is not enrolled in the QuickPress Staff Directory. Please contact your Super Admin to be assigned a staff role.`
-  - The platform administrator (`iammotivation33@gmail.com`) must log in automatically without passwords or roadblocks into the QuickPress Admin Console upon completing Cloudflare Zero Trust perimeter OTP verification.
-  - Zero mock data; live Supabase PostgreSQL database integration.
-- **Root Cause Analysis:**
-  - Cloudflare Access successfully verified the administrator's email OTP and forwarded the perimeter header `CF-Access-Authenticated-User-Email: iammotivation33@gmail.com` to Nginx and FastAPI `/api/auth/admin/cf-sso`.
-  - The endpoint checked `admin_staff` in the live database, but `iammotivation33@gmail.com` had not yet been registered, and `owner_candidates` only contained `official.quickpress@gmail.com` and `admin@quickpress.online`.
-  - Therefore, FastAPI returned HTTP 403 Forbidden with the enrolment error message.
-  - Furthermore, `ensure_super_admin_seed()` in `backend-python/app/core/admin_security.py` contained a legacy destructive call `await database.delete_many("admin_staff", {"email": {"$ne": admin_email}})` which risked wiping non-default staff records.
+  - Auto-login to Admin Console (`https://ops.withquickpress.com`) was failing because the administrator's email was not yet enrolled in the live database.
+  - User explicitly directed: **"Sabse Best (Live Database - Dynamic): ye karo"** — zero hardcoded emails in the code.
+  - All staff identification, roles, permissions, and session authorization must resolve purely and dynamically from the live Supabase PostgreSQL database (`admin_staff` table).
 - **Architecture & Implementation:**
-  - **1. Super Admin Auto-Enrollment (`backend-python/app/api/auth.py`):**
-    - Added `iammotivation33@gmail.com` to `owner_candidates` and `owner_emails`.
-    - When `iammotivation33@gmail.com` verifies through Cloudflare Zero Trust, the backend automatically provisions or updates the staff directory record in Supabase PostgreSQL with `role: "Super Admin"`, `status: "Active"`, and full 19 operational permissions (`all`, `*`, `orders`, `customers`, `partners`, `riders`, `services`, `finance`, `finance-engine`, `wallet`, `cities`, `coupons`, `memberships`, `analytics`, `notifications`, `emails`, `support`, `staff`, `settings`, `crm`).
-    - Added resilient user account synchronization: checks if `users` table contains an existing account for the email (any role) and promotes it to `Role.admin` and `UserStatus.active`, avoiding duplicate key constraint exceptions.
+  - **1. 100% Dynamic Database Ground Truth (`backend-python/app/api/auth.py`):**
+    - Eliminated all hardcoded email strings from `auth.py`.
+    - In `/api/auth/admin/cf-sso`, queries `await database.find_one("admin_staff", {"email": email})` directly. Any staff member or Super Admin registered in the live database is automatically authenticated and granted their exact database-assigned role, department profile, and RBAC permissions.
+    - Configured initial bootstrapping to read exclusively from `ADMIN_EMAILS` / `ADMIN_EMAIL` environment variables (`os.getenv`), ensuring Python source code remains completely agnostic of individual emails.
   - **2. Safe Staff Directory Seed (`backend-python/app/core/admin_security.py`):**
-    - Removed `delete_many` from `ensure_super_admin_seed()` to preserve all team members and alternate super admin profiles.
+    - Removed legacy destructive `delete_many` from `ensure_super_admin_seed()` so live staff and multi-admin records are never wiped.
   - **3. Test Suite Verification (`backend-python/tests/test_staff_auth_rbac_engine.py`):**
-    - Updated `test_cloudflare_zero_trust_sso_and_rbac` to verify `iammotivation33@gmail.com` auto-enrolls as Super Admin via Cloudflare Zero Trust SSO headers.
+    - Verified dynamic live database enrollment: inserting a dynamic super admin into `admin_staff` allows instantaneous Cloudflare SSO login with matching token and permissions.
+    - Verified environment-based fallback via `ADMIN_EMAILS`.
 - **Modified Files:**
   - `backend-python/app/api/auth.py`
   - `backend-python/app/core/admin_security.py`

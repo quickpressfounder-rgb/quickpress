@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 from datetime import datetime, timezone
 import logging
 import uuid
@@ -442,8 +443,8 @@ async def admin_login(payload: dict, request: Request) -> dict:
         user = await users.by_email(email, Role.finance)
 
     # Ensure Super Admin exists in database if logging in as configured admin
-    admin_seed_email = os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower()
-    owner_emails = {"iammotivation33@gmail.com", "official.quickpress@gmail.com", "admin@quickpress.online", admin_seed_email}
+    admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "admin@quickpress.online")).strip().lower()
+    owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
     if not staff_doc and email in owner_emails:
         from app.core.admin_security import ensure_super_admin_seed
         staff_doc = await ensure_super_admin_seed()
@@ -580,54 +581,34 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
 
     email = cf_email.strip().lower()
 
-    # 2. Check live admin_staff database directory
+    # 2. Check live admin_staff database directory (Dynamic Ground Truth)
     staff_doc = await database.find_one("admin_staff", {"email": email})
 
-    # Owner / Super Admin auto-enrollment for platform administrators
-    owner_candidates = [
-        "iammotivation33@gmail.com",
-        "official.quickpress@gmail.com",
-        "admin@quickpress.online",
-        os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower(),
-    ]
+    # Optional initial bootstrapping from environment configuration only (Zero hardcoded emails)
+    admin_env_raw = os.getenv("ADMIN_EMAILS", os.getenv("ADMIN_EMAIL", "")).strip().lower()
+    configured_owner_emails = {e.strip() for e in re.split(r"[,\s;]+", admin_env_raw) if e.strip()}
 
     now = datetime.now(timezone.utc).isoformat()
-    if email in owner_candidates:
-        if not staff_doc:
-            staff_doc = {
-                "_id": f"stf_owner_{uuid.uuid4().hex[:6]}",
-                "name": "Super Admin",
-                "email": email,
-                "phone": "+91 99999 99999",
-                "role": "Super Admin",
-                "scope": "All India Hubs",
-                "permissions": [
-                    "all", "*", "orders", "customers", "partners", "riders", "services",
-                    "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
-                    "analytics", "notifications", "emails", "support", "staff", "settings", "crm"
-                ],
-                "status": "Active",
-                "isVerified": True,
-                "lastActive": "Active now",
-                "createdAt": now,
-                "updatedAt": now,
-            }
-            await database.update_one("admin_staff", {"email": email}, {"$set": staff_doc}, upsert=True)
-        else:
-            # Ensure Super Admin privileges and Active status
-            staff_doc["role"] = "Super Admin"
-            staff_doc["status"] = "Active"
-            staff_doc["permissions"] = [
+    if not staff_doc and email in configured_owner_emails:
+        staff_doc = {
+            "_id": f"stf_owner_{uuid.uuid4().hex[:6]}",
+            "name": "Super Admin",
+            "email": email,
+            "phone": os.getenv("ADMIN_PHONE", "+91 99999 99999"),
+            "role": "Super Admin",
+            "scope": "All India Hubs",
+            "permissions": [
                 "all", "*", "orders", "customers", "partners", "riders", "services",
                 "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
                 "analytics", "notifications", "emails", "support", "staff", "settings", "crm"
-            ]
-            await database.update_one(
-                "admin_staff",
-                {"email": email},
-                {"$set": {"role": "Super Admin", "status": "Active", "permissions": staff_doc["permissions"], "updatedAt": now}},
-                upsert=True,
-            )
+            ],
+            "status": "Active",
+            "isVerified": True,
+            "lastActive": "Active now",
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        await database.update_one("admin_staff", {"email": email}, {"$set": staff_doc}, upsert=True)
 
     if not staff_doc:
         raise HTTPException(

@@ -1,5 +1,6 @@
 """Automated test suite for Enterprise Staff Auth, Business Email Verification, 2FA, RBAC & Audit Trail."""
 
+import os
 import uuid
 import pytest
 from httpx import AsyncClient, ASGITransport
@@ -251,25 +252,45 @@ async def test_cloudflare_zero_trust_sso_and_rbac():
         assert unregistered.status_code == 403
         assert "not enrolled in the QuickPress Staff Directory" in unregistered.json()["detail"]
 
-        # 2. Super Admin auto-enrollment via platform administrator email (iammotivation33@gmail.com)
+        # 2. Dynamic Live Database verification (Super Admin enrolled in admin_staff table)
+        admin_test_email = f"superadmin.{uuid.uuid4().hex[:6]}@quickpress.online"
+        await database.update_one(
+            "admin_staff",
+            {"email": admin_test_email},
+            {
+                "$set": {
+                    "_id": f"stf_{uuid.uuid4().hex[:6]}",
+                    "email": admin_test_email,
+                    "name": "Live Database Super Admin",
+                    "role": "Super Admin",
+                    "permissions": ["all", "*", "orders", "customers", "partners", "riders", "services", "finance", "staff", "settings"],
+                    "status": "Active",
+                    "isVerified": True,
+                }
+            },
+            upsert=True,
+        )
+
         admin_sso = await client.get(
             "/api/auth/admin/cf-sso",
-            headers={"cf-access-authenticated-user-email": "iammotivation33@gmail.com"},
+            headers={"cf-access-authenticated-user-email": admin_test_email},
         )
         assert admin_sso.status_code == 200
         admin_session = admin_sso.json()
-        assert admin_session["account"]["email"] == "iammotivation33@gmail.com"
+        assert admin_session["account"]["email"] == admin_test_email
         assert "Super Admin" in admin_session["account"]["departmentRole"]
         assert "token" in admin_session
 
-        # 2b. Auto-enrollment for official.quickpress@gmail.com
+        # 2b. Environment bootstrap verification via ADMIN_EMAILS
+        bootstrap_email = f"bootstrap.{uuid.uuid4().hex[:6]}@quickpress.online"
+        os.environ["ADMIN_EMAILS"] = bootstrap_email
         owner_sso = await client.get(
             "/api/auth/admin/cf-sso",
-            headers={"cf-access-authenticated-user-email": "official.quickpress@gmail.com"},
+            headers={"cf-access-authenticated-user-email": bootstrap_email},
         )
         assert owner_sso.status_code == 200
         owner_session = owner_sso.json()
-        assert owner_session["account"]["email"] == "official.quickpress@gmail.com"
+        assert owner_session["account"]["email"] == bootstrap_email
         assert "Super Admin" in owner_session["account"]["departmentRole"]
         assert "token" in owner_session
 
