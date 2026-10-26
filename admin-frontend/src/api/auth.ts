@@ -1,6 +1,6 @@
 /** Authentication API client for QuickPress Admin & Staff Console. */
 import type { AuthSession } from "@/shared/types";
-import { apiPostJson } from "@/api/core/transport";
+import { apiGetJson, apiPostJson } from "@/api/core/transport";
 import { clearSession, writeSession } from "@/api/core/session-store";
 
 import {
@@ -133,6 +133,16 @@ export async function requestPasswordReset(email: string): Promise<{ ok: boolean
   }
 }
 
+/**
+ * Cloudflare Zero Trust Single Sign-On (SSO) Auto-Authentication.
+ * Reads perimeter identity headers forwarded by Cloudflare Access and issues authenticated JWT session.
+ */
+export async function authenticateCloudflareZeroTrust(): Promise<AuthSession> {
+  const session = await apiGetJson<AuthSession>("/api/auth/admin/cf-sso", { anonymous: true });
+  writeSession(session, "admin");
+  return session;
+}
+
 export {
   adminLoginWithGoogle,
   rememberAdminLogin,
@@ -140,3 +150,4 @@ export {
   restoreAdminSession,
   startAdminAutoRefresh,
 };
+

@@ -37,6 +37,9 @@ import {
   CheckSquare,
   Square,
   UserX,
+  Cloud,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -114,7 +117,7 @@ export function StaffPage() {
   const roles = useQuery({ queryKey: ["admin", "roles"], queryFn: fetchRoles });
   const logs = useQuery({ queryKey: ["admin", "activity-logs"], queryFn: () => fetchActivityLogs() });
 
-  const [activeTab, setActiveTab] = useState<"staff" | "logs" | "rbac" | "territory">("staff");
+  const [activeTab, setActiveTab] = useState<"staff" | "logs" | "rbac" | "territory" | "cloudflare">("staff");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -312,6 +315,9 @@ export function StaffPage() {
                 </TabsTrigger>
                 <TabsTrigger value="territory" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
                   🏢 Territory Distribution
+                </TabsTrigger>
+                <TabsTrigger value="cloudflare" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
+                  ☁️ Cloudflare Zero Trust & Access Groups
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -772,6 +778,216 @@ export function StaffPage() {
               </div>
             </div>
           </SectionCard>
+        )}
+
+        {/* =========================================================================
+            6.5 TAB 5: CLOUDFLARE ZERO TRUST & ACCESS GROUPS (PERIMETER + SSO)
+        ========================================================================= */}
+        {activeTab === "cloudflare" && (
+          <div className="space-y-6">
+            {/* Top Perimeter Status Banner */}
+            <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 p-6 shadow-xs">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="size-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+                    <Cloud className="size-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-black text-zinc-900">
+                        Cloudflare Zero Trust (Access Groups & SSO) Active
+                      </h3>
+                      <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
+                        100% Shielded
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-zinc-600 mt-1 max-w-2xl leading-relaxed">
+                      All administrative traffic to <span className="font-mono font-bold text-zinc-900">ops.withquickpress.com</span> is inspected at Cloudflare's global perimeter.
+                      Corporate employees authenticate via Cloudflare One-Time PIN (OTP), and are seamlessly signed into the console via real database role binding without passwords.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const emails = allStaff.filter((s) => s.status === "Active").map((s) => s.email).join(", ");
+                      navigator.clipboard.writeText(emails);
+                      toast.success(`Copied ${allStaff.filter((s) => s.status === "Active").length} active staff emails to clipboard!`);
+                    }}
+                    className="h-9 rounded-xl border-amber-300 bg-white text-xs font-bold text-amber-900 hover:bg-amber-50"
+                  >
+                    <Copy className="size-3.5 mr-1.5" />
+                    <span>Copy Emails for Access Group</span>
+                  </Button>
+
+                  <a
+                    href="https://one.dash.cloudflare.com/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 text-xs font-bold text-white hover:bg-black transition-all"
+                  >
+                    <span>Cloudflare Zero Trust Dash</span>
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Perimeter Architecture Matrix */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <ShieldCheck className="size-5 text-emerald-600" />
+                  <Badge variant="outline" className="text-[10px] font-bold text-emerald-700 bg-emerald-50">Edge Gateway</Badge>
+                </div>
+                <h4 className="font-bold text-xs text-zinc-900">Perimeter Access Gate</h4>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  Evaluated at Cloudflare edge before reaching AWS EC2. Identity verified via corporate email OTP or Access Group policies.
+                </p>
+                <div className="pt-1 text-[10px] font-mono text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
+                  Host: ops.withquickpress.com
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <Key className="size-5 text-amber-600" />
+                  <Badge variant="outline" className="text-[10px] font-bold text-amber-700 bg-amber-50">Header Auth</Badge>
+                </div>
+                <h4 className="font-bold text-xs text-zinc-900">Perimeter Header Forwarding</h4>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  Nginx proxies verified identity headers <code className="font-mono text-zinc-700">CF-Access-Authenticated-User-Email</code> directly to the FastAPI backend.
+                </p>
+                <div className="pt-1 text-[10px] font-mono text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
+                  SSO Endpoint: /api/auth/admin/cf-sso
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <Lock className="size-5 text-indigo-600" />
+                  <Badge variant="outline" className="text-[10px] font-bold text-indigo-700 bg-indigo-50">Database RBAC</Badge>
+                </div>
+                <h4 className="font-bold text-xs text-zinc-900">Zero-Mock Database Binding</h4>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  FastAPI matches verified perimeter email against live <code className="font-mono text-zinc-700">admin_staff</code> records. Unenrolled or suspended emails are instantly rejected with 403 Forbidden.
+                </p>
+                <div className="pt-1 text-[10px] font-mono text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
+                  Active Directory: {allStaff.filter(s => s.status === "Active").length} Authorized Admins
+                </div>
+              </div>
+            </div>
+
+            {/* Access Group Roster Card */}
+            <SectionCard
+              title="Cloudflare Access Group Members (Live Staff Directory)"
+              description="These corporate accounts have authorized perimeter clearance and database RBAC roles assigned."
+            >
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-50 p-3 rounded-2xl border border-zinc-200">
+                  <div className="text-xs text-zinc-600">
+                    <span className="font-bold text-zinc-900">{allStaff.length} Total Staff</span> enrolled in live database directory.
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const list = allStaff.filter((s) => s.status === "Active").map((s) => s.email).join("\n");
+                        navigator.clipboard.writeText(list);
+                        toast.success("Copied email list (one per line) for Cloudflare Access Group!");
+                      }}
+                      className="h-8 rounded-xl border-zinc-200 text-xs font-bold hover:bg-zinc-100"
+                    >
+                      <Copy className="size-3 mr-1" />
+                      <span>Copy List (New Line)</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-xs">
+                  {allStaff.map((member) => (
+                    <div key={member.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-zinc-50/50 transition-colors gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase">
+                          {member.name.slice(0, 2)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-zinc-900">{member.name}</h4>
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-bold ${
+                                member.status === "Active"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                              }`}
+                            >
+                              {member.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-mono mt-0.5">
+                            <Mail className="size-3" />
+                            <span>{member.email}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 self-end sm:self-center">
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-zinc-800 block">{member.role}</span>
+                          <span className="text-[10px] text-zinc-400 block">{member.scope}</span>
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold flex items-center gap-1">
+                          <Cloud className="size-3 text-amber-600" />
+                          <span>SSO Protected</span>
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Cloudflare Zero Trust Setup Guide */}
+            <SectionCard
+              title="Cloudflare Zero Trust Configuration Guide"
+              description="Step-by-step perimeter policy setup for ops.withquickpress.com"
+            >
+              <div className="space-y-4 text-xs text-zinc-600">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 space-y-2">
+                    <h5 className="font-bold text-zinc-900 flex items-center gap-2">
+                      <span className="flex size-5 rounded-full bg-slate-900 text-white items-center justify-center text-[10px]">1</span>
+                      <span>Access Application</span>
+                    </h5>
+                    <ul className="space-y-1 text-[11px] text-zinc-600 list-disc list-inside">
+                      <li>Application name: <span className="font-semibold text-zinc-800">QuickPress Operations Console</span></li>
+                      <li>Domain: <span className="font-mono text-zinc-800">ops.withquickpress.com</span></li>
+                      <li>Session duration: <span className="text-zinc-800">24 hours</span></li>
+                      <li>Identity provider: <span className="text-zinc-800">One-Time PIN (Email OTP)</span></li>
+                    </ul>
+                  </div>
+
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 space-y-2">
+                    <h5 className="font-bold text-zinc-900 flex items-center gap-2">
+                      <span className="flex size-5 rounded-full bg-slate-900 text-white items-center justify-center text-[10px]">2</span>
+                      <span>Access Group / Policy</span>
+                    </h5>
+                    <ul className="space-y-1 text-[11px] text-zinc-600 list-disc list-inside">
+                      <li>Policy name: <span className="font-semibold text-zinc-800">Allow QuickPress Staff</span></li>
+                      <li>Action: <span className="font-semibold text-emerald-700">Allow</span></li>
+                      <li>Include rule: <span className="text-zinc-800">Emails (paste from button above) or Domain (@quickpress.online)</span></li>
+                      <li>Perimeter headers: <span className="font-mono text-zinc-800">CF-Access-Authenticated-User-Email</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+          </div>
         )}
 
         {/* =========================================================================

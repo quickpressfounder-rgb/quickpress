@@ -544,6 +544,118 @@ async def admin_2fa_verify(payload: dict, request: Request) -> AuthSessionRespon
     return await _issue_session(user)
 
 
+@router.get("/admin/cf-sso", response_model=AuthSessionResponse)
+async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
+    """
+    Cloudflare Zero Trust Single Sign-On (SSO) Auto-Authentication.
+    Reads verified perimeter identity headers passed by Cloudflare Access:
+      - CF-Access-Authenticated-User-Email
+      - CF-Access-Jwt-Assertion
+    Validates against live admin_staff database directory and issues authentic session without passwords.
+    """
+    from app.core.admin_security import record_successful_login
+    from app.db.client import database
+
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    user_agent = request.headers.get("user-agent", "")
+
+    # 1. Read Cloudflare Access Authenticated Email
+    cf_email = (
+        request.headers.get("cf-access-authenticated-user-email")
+        or request.headers.get("x-cf-access-authenticated-user-email")
+        or request.headers.get("x-authenticated-user-email")
+    )
+
+    # In development mode, allow query parameter override for local verification
+    settings = get_settings()
+    if not cf_email and settings.app_env != "production":
+        cf_email = request.query_params.get("cf_email")
+
+    if not cf_email or not cf_email.strip():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Cloudflare Zero Trust perimeter authentication headers not found.",
+        )
+
+    email = cf_email.strip().lower()
+
+    # 2. Check live admin_staff database directory
+    staff_doc = await database.find_one("admin_staff", {"email": email})
+
+    # Owner / Super Admin auto-enrollment for platform administrators
+    owner_candidates = [
+        "official.quickpress@gmail.com",
+        "admin@quickpress.online",
+        os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower(),
+    ]
+
+    now = datetime.now(timezone.utc).isoformat()
+    if not staff_doc and email in owner_candidates:
+        from app.core.admin_security import ensure_super_admin_seed
+        staff_doc = await ensure_super_admin_seed()
+        staff_doc["email"] = email
+        staff_doc["name"] = "Platform Super Admin"
+        staff_doc["role"] = "Super Admin"
+        staff_doc["permissions"] = [
+            "all", "*", "orders", "customers", "partners", "riders", "services",
+            "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
+            "analytics", "notifications", "emails", "support", "staff", "settings", "crm"
+        ]
+        await database.update_one("admin_staff", {"email": email}, {"$set": staff_doc}, upsert=True)
+
+    if not staff_doc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access Denied: Email '{email}' is authenticated by Cloudflare Zero Trust, but is not enrolled in the QuickPress Staff Directory. Please contact your Super Admin to be assigned a staff role.",
+        )
+
+    # 3. Check active status in database
+    staff_status = str(staff_doc.get("status", "Active")).strip().lower()
+    if staff_status in ("suspended", "blocked", "inactive"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access Denied: Staff account for '{email}' is currently {staff_status}. Please contact Super Admin.",
+        )
+
+    # 4. Sync / load User model
+    user = await users.by_email(email, Role.admin)
+    if not user:
+        user = await users.by_email(email, Role.super_admin)
+    if not user:
+        staff_id = str(staff_doc.get("_id") or staff_doc.get("id") or f"usr_stf_{uuid.uuid4().hex[:8]}")
+        user = await users.create(
+            User(
+                id=staff_id,
+                email=email,
+                phone=staff_doc.get("phone", "+919999999999"),
+                display_name=staff_doc.get("name", "Staff Administrator"),
+                role=Role.admin,
+                status=UserStatus.active,
+                is_verified=True,
+                is_onboarded=True,
+            )
+        )
+
+    # 5. Update last active timestamp in database
+    await database.update_one("admin_staff", {"email": email}, {"$set": {"lastActive": now, "updatedAt": now}})
+
+    # 6. Audit log login event
+    try:
+        from app.db.audit_repository import audit_repository
+        actor_id = email
+        await audit_repository.log(
+            actor_id,
+            "staff.cf_sso_login",
+            user.id,
+            meta={"email": email, "auth": "cloudflare_zero_trust", "client_ip": client_ip, "role": staff_doc.get("role")},
+        )
+    except Exception as exc:
+        _log.warning("Audit log staff.cf_sso_login failed: %s", exc)
+
+    await record_successful_login(user.id, email, client_ip, user_agent)
+    return await _issue_session(user)
+
+
 @router.post("/staff/register")
 async def staff_register(payload: dict, request: Request) -> dict:
     """

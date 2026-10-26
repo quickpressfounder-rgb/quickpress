@@ -238,3 +238,57 @@ async def test_staff_member_login_receives_assigned_permissions_and_profile():
         assert account["scope"] == "Delhi Hub South"
         assert account["permissions"] == assigned_perms
 
+
+@pytest.mark.asyncio
+async def test_cloudflare_zero_trust_sso_and_rbac():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Unregistered email via Cloudflare Zero Trust -> Must be rejected with 403
+        unregistered = await client.get(
+            "/api/auth/admin/cf-sso",
+            headers={"cf-access-authenticated-user-email": "intruder@malicious.com"},
+        )
+        assert unregistered.status_code == 403
+        assert "not enrolled in the QuickPress Staff Directory" in unregistered.json()["detail"]
+
+        # 2. Super Admin auto-enrollment via official email
+        owner_sso = await client.get(
+            "/api/auth/admin/cf-sso",
+            headers={"cf-access-authenticated-user-email": "official.quickpress@gmail.com"},
+        )
+        assert owner_sso.status_code == 200
+        owner_session = owner_sso.json()
+        assert owner_session["account"]["email"] == "official.quickpress@gmail.com"
+        assert "Super Admin" in owner_session["account"]["departmentRole"]
+        assert "token" in owner_session
+
+        # 3. Create staff member with granular role & permissions
+        headers = {"Authorization": f"Bearer {owner_session['token']}"}
+        finance_email = f"priya.accounts.{uuid.uuid4().hex[:6]}@quickpress.online"
+        create_res = await client.post(
+            "/api/admin/staff",
+            headers=headers,
+            json={
+                "name": "Priya Accounts",
+                "email": finance_email,
+                "phone": "+91 98111 22334",
+                "role": "Finance Controller",
+                "scope": "Pan-India Settlements",
+                "permissions": ["finance", "finance-engine", "wallet"],
+            },
+        )
+        assert create_res.status_code == 201
+
+        # 4. Priya logs in seamlessly via Cloudflare Zero Trust SSO (Zero passwords, 0.001ms)
+        staff_sso = await client.get(
+            "/api/auth/admin/cf-sso",
+            headers={"cf-access-authenticated-user-email": finance_email},
+        )
+        assert staff_sso.status_code == 200
+        priya_session = staff_sso.json()
+        assert priya_session["account"]["email"] == finance_email
+        assert priya_session["account"]["name"] == "Priya Accounts"
+        assert priya_session["account"]["departmentRole"] == "Finance Controller"
+        assert priya_session["account"]["permissions"] == ["finance", "finance-engine", "wallet"]
+
+

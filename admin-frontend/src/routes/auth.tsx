@@ -10,6 +10,10 @@ import {
   RefreshCw,
   Mail,
   ArrowLeft,
+  ShieldAlert,
+  CheckCircle2,
+  Cloud,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,6 +21,7 @@ import {
   adminEmailPasswordLogin,
   verifyAdminTwoFactor,
   restoreAdminSession,
+  authenticateCloudflareZeroTrust,
   type TwoFactorChallenge,
 } from "../api/auth";
 import { adminRoutes } from "../navigation/admin-routes";
@@ -30,8 +35,11 @@ export const Route = createFileRoute("/auth")({
 export function AdminAuthPage() {
   const navigate = useNavigate();
 
-  // Authentication Flow Steps: 'credentials' -> '2fa'
-  const [loginStep, setLoginStep] = useState<"credentials" | "2fa">("credentials");
+  // Authentication Flow Steps: 'sso_checking' | 'sso_forbidden' | 'credentials' | '2fa'
+  const [loginStep, setLoginStep] = useState<"sso_checking" | "sso_forbidden" | "credentials" | "2fa">("sso_checking");
+  const [ssoErrorMessage, setSsoErrorMessage] = useState<string | null>(null);
+  const [ssoAccountInfo, setSsoAccountInfo] = useState<{ email?: string; name?: string; role?: string } | null>(null);
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -48,16 +56,52 @@ export function AdminAuthPage() {
     useRef<HTMLInputElement>(null),
   ];
 
-  // Auto-login if valid admin session exists
+  // 1. Initial Auto-Authentication: Check active session or Cloudflare Zero Trust SSO
   useEffect(() => {
     let active = true;
-    void restoreAdminSession()
-      .then((session) => {
-        if (active && session) {
+
+    async function initAuth() {
+      // Step A: Check local existing token
+      try {
+        const localSession = await restoreAdminSession();
+        if (active && localSession) {
           navigate({ to: adminRoutes.dashboard });
+          return;
         }
-      })
-      .catch(() => undefined);
+      } catch {
+        // proceed to Cloudflare SSO check
+      }
+
+      // Step B: Check Cloudflare Zero Trust Perimeter SSO
+      try {
+        const cfSession = await authenticateCloudflareZeroTrust();
+        if (!active) return;
+        setSsoAccountInfo({
+          email: cfSession.account?.email,
+          name: cfSession.account?.name,
+          role: cfSession.account?.departmentRole || cfSession.account?.role,
+        });
+        toast.success(`Cloudflare SSO Verified: Welcome, ${cfSession.account?.name || "Administrator"}!`);
+        window.setTimeout(() => {
+          if (active) navigate({ to: adminRoutes.dashboard });
+        }, 400);
+      } catch (err: any) {
+        if (!active) return;
+        const status = err?.status;
+        const msg = err?.message || "";
+
+        // If 403 Forbidden: Cloudflare perimeter allowed them, but email not enrolled in admin_staff table
+        if (status === 403 || msg.includes("not enrolled in the QuickPress Staff Directory") || msg.includes("Access Denied")) {
+          setSsoErrorMessage(msg || "Your Cloudflare Zero Trust identity is verified, but this email is not registered in the QuickPress Staff Directory.");
+          setLoginStep("sso_forbidden");
+        } else {
+          // If 401 or network (e.g. dev environment without Cloudflare headers) -> Fall back to manual login
+          setLoginStep("credentials");
+        }
+      }
+    }
+
+    void initAuth();
     return () => {
       active = false;
     };
@@ -186,7 +230,103 @@ export function AdminAuthPage() {
 
         {/* Clean White Card */}
         <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xl shadow-slate-200/60 p-6 sm:p-9 transition-all">
-          {loginStep === "credentials" ? (
+          {loginStep === "sso_checking" ? (
+            /* =========================================================================
+                STATE 0: CLOUDFLARE ZERO TRUST SSO PERIMETER VERIFICATION
+            ========================================================================= */
+            <div className="py-6 text-center space-y-4">
+              <div className="relative inline-flex items-center justify-center">
+                <div className="size-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shadow-inner">
+                  <Cloud className="size-8 animate-pulse text-amber-500" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md">
+                  <ShieldCheck className="size-3.5" />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Cloudflare Zero Trust SSO</h3>
+                <p className="mt-1 text-xs text-slate-500 max-w-xs mx-auto">
+                  Verifying perimeter identity token & staff database permissions...
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 pt-2 text-xs font-semibold text-emerald-700">
+                <RefreshCw className="size-3.5 animate-spin text-emerald-600" />
+                <span>Authenticating Secure Session...</span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setLoginStep("credentials")}
+                  className="text-[11px] font-bold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                >
+                  Sign in with password instead →
+                </button>
+              </div>
+            </div>
+          ) : loginStep === "sso_forbidden" ? (
+            /* =========================================================================
+                STATE: PERIMETER IDENTITY OK BUT NOT IN STAFF DIRECTORY (403)
+            ========================================================================= */
+            <div className="py-3 space-y-4">
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 mb-1">
+                  <ShieldAlert className="size-7 text-rose-600" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">Perimeter Access Denied</h3>
+                <div className="rounded-xl bg-rose-50/80 border border-rose-200 p-3 text-left">
+                  <p className="text-xs font-medium text-rose-800 leading-relaxed">
+                    {ssoErrorMessage || "Your email was authenticated by Cloudflare Zero Trust, but is not enrolled in the QuickPress Staff Directory."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2 text-xs text-slate-600">
+                <div className="flex items-center gap-2 font-bold text-slate-800">
+                  <CheckCircle2 className="size-4 text-emerald-600" />
+                  <span>Cloudflare Zero Trust: Verified</span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  To access this console, your corporate email must be registered in the live Staff Directory by a Super Administrator.
+                </p>
+                <div className="pt-1 text-[11px] font-mono text-slate-700 bg-white p-2 rounded-lg border border-slate-200">
+                  Super Admin: <span className="font-bold text-emerald-700">official.quickpress@gmail.com</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginStep("sso_checking");
+                    void authenticateCloudflareZeroTrust()
+                      .then((s) => {
+                        toast.success(`Welcome back, ${s.account?.name}!`);
+                        navigate({ to: adminRoutes.dashboard });
+                      })
+                      .catch((err) => {
+                        setSsoErrorMessage(err?.message || "Verification failed.");
+                        setLoginStep("sso_forbidden");
+                      });
+                  }}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-xs font-bold text-white hover:bg-black transition-all cursor-pointer"
+                >
+                  <RefreshCw className="size-3.5" />
+                  <span>Retry Cloudflare SSO Verification</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLoginStep("credentials")}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  <span>Sign in with Password Credentials</span>
+                </button>
+              </div>
+            </div>
+          ) : loginStep === "credentials" ? (
             /* =========================================================================
                 STEP 1: EMAIL & PASSWORD LOGIN
             ========================================================================= */
@@ -197,6 +337,25 @@ export function AdminAuthPage() {
               }}
               className="space-y-4"
             >
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginStep("sso_checking");
+                  void authenticateCloudflareZeroTrust()
+                    .then((s) => {
+                      toast.success(`Welcome back, ${s.account?.name}!`);
+                      navigate({ to: adminRoutes.dashboard });
+                    })
+                    .catch((err) => {
+                      setSsoErrorMessage(err?.message || "Perimeter SSO check failed.");
+                      setLoginStep("sso_forbidden");
+                    });
+                }}
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50/80 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all cursor-pointer shadow-xs"
+              >
+                <Cloud className="size-4 text-amber-600" />
+                <span>Verify via Cloudflare Zero Trust SSO</span>
+              </button>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Work / Staff Email Address
