@@ -95,6 +95,7 @@ export type CityPerformanceItem = {
 export type BackendDashboardSummary = {
   totalOrders: number;
   todayOrders: number;
+  periodOrders?: number;
   liveOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
@@ -103,6 +104,7 @@ export type BackendDashboardSummary = {
 
   revenue: number;
   todayRevenue: number;
+  periodRevenue?: number;
   platformCommission: number;
   pendingPayoutAmount: number;
   totalCustomers: number;
@@ -188,14 +190,32 @@ export async function fetchDashboardKpis(): Promise<Kpi[]> {
 }
 
 /** GET /api/admin/dashboard/revenue-series */
-export async function fetchRevenueSeries(): Promise<SeriesPoint[]> {
-  const points = await apiGetJson<BackendSeriesPoint[]>("/api/admin/dashboard/revenue-series");
+export async function fetchRevenueSeries(filters?: {
+  period?: string;
+  city?: string;
+  service?: string;
+}): Promise<SeriesPoint[]> {
+  const params = new URLSearchParams();
+  if (filters?.period) params.set("period", filters.period);
+  if (filters?.city && filters.city !== "all") params.set("city", filters.city);
+  if (filters?.service && filters.service !== "all") params.set("service", filters.service);
+  const qs = params.toString();
+  const points = await apiGetJson<BackendSeriesPoint[]>(`/api/admin/dashboard/revenue-series${qs ? `?${qs}` : ""}`);
   return points.map((point) => (point.secondary === undefined ? { label: point.label, value: point.value } : { label: point.label, value: point.value, secondary: point.secondary }));
 }
 
 /** GET /api/admin/dashboard/orders-series */
-export async function fetchOrdersSeries(): Promise<SeriesPoint[]> {
-  const points = await apiGetJson<BackendSeriesPoint[]>("/api/admin/dashboard/orders-series");
+export async function fetchOrdersSeries(filters?: {
+  period?: string;
+  city?: string;
+  service?: string;
+}): Promise<SeriesPoint[]> {
+  const params = new URLSearchParams();
+  if (filters?.period) params.set("period", filters.period);
+  if (filters?.city && filters.city !== "all") params.set("city", filters.city);
+  if (filters?.service && filters.service !== "all") params.set("service", filters.service);
+  const qs = params.toString();
+  const points = await apiGetJson<BackendSeriesPoint[]>(`/api/admin/dashboard/orders-series${qs ? `?${qs}` : ""}`);
   return points.map((point) => (point.secondary === undefined ? { label: point.label, value: point.value } : { label: point.label, value: point.value, secondary: point.secondary }));
 }
 

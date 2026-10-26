@@ -127,13 +127,23 @@ async def dashboard_latest_orders(user: User = Depends(current_user)):
 
 
 @router.get("/dashboard/revenue-series")
-async def dashboard_revenue_series(user: User = Depends(current_user)):
-    return await admin_dashboard_repository.revenue_series()
+async def dashboard_revenue_series(
+    city: Optional[str] = Query(None),
+    service: Optional[str] = Query(None),
+    period: str = Query("7d"),
+    user: User = Depends(current_user),
+):
+    return await admin_dashboard_repository.revenue_series(city=city, service=service, period=period)
 
 
 @router.get("/dashboard/orders-series")
-async def dashboard_orders_series(user: User = Depends(current_user)):
-    return await admin_dashboard_repository.orders_series()
+async def dashboard_orders_series(
+    city: Optional[str] = Query(None),
+    service: Optional[str] = Query(None),
+    period: str = Query("7d"),
+    user: User = Depends(current_user),
+):
+    return await admin_dashboard_repository.orders_series(city=city, service=service, period=period)
 
 
 @router.get("/dashboard/system-health")

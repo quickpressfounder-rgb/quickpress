@@ -103,10 +103,10 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const [healthModalOpen, setHealthModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month">("today");
+  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month" | "all">("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
-  const [chartPeriod, setChartPeriod] = useState<"today" | "7d" | "30d">("7d");
+  const [chartPeriod, setChartPeriod] = useState<"today" | "7d" | "30d" | "all">("7d");
 
   const summary = useQuery({
     queryKey: ["admin", "dashboard", "summary", dateFilter, cityFilter, serviceFilter],
@@ -116,7 +116,11 @@ export function DashboardPage() {
   });
 
   const health = useQuery({ queryKey: ["admin", "dashboard", "health"], queryFn: fetchSystemHealth, staleTime: 60000 });
-  const revenue = useQuery({ queryKey: ["admin", "dashboard", "revenue", chartPeriod], queryFn: fetchRevenueSeries, staleTime: 45000 });
+  const revenue = useQuery({
+    queryKey: ["admin", "dashboard", "revenue", chartPeriod, cityFilter, serviceFilter],
+    queryFn: () => fetchRevenueSeries({ period: chartPeriod, city: cityFilter, service: serviceFilter }),
+    staleTime: 45000,
+  });
   const latest = useQuery({ queryKey: ["admin", "dashboard", "latest"], queryFn: fetchLatestOrders, staleTime: 20000 });
 
   const [automationFilter, setAutomationFilter] = useState<string>("all");
@@ -258,11 +262,12 @@ export function DashboardPage() {
     day: "numeric",
   });
 
-  const totalOrders = data?.totalOrders || 1;
+  const totalOrders = data?.totalOrders || 0;
+  const periodOrders = data?.periodOrders ?? (dateFilter === "all" ? data?.totalOrders : data?.todayOrders) ?? 0;
   const deliveredOrders = data?.deliveredOrders || 0;
-  const fulfillmentPercentage = Math.min(100, Math.round((deliveredOrders / totalOrders) * 100));
+  const fulfillmentPercentage = Math.min(100, Math.round((deliveredOrders / (totalOrders || 1)) * 100));
 
-  const totalRiders = data?.totalRiders || 1;
+  const totalRiders = data?.totalRiders || 0;
   const onlineRiders = data?.onlineRiders || 0;
   const availableRiders = data?.availableRiders || 0;
   const fleetReadinessPercentage = Math.min(
@@ -270,12 +275,34 @@ export function DashboardPage() {
     Math.round((availableRiders / (onlineRiders || 1)) * 100)
   );
 
-  const totalRevenue = data?.todayRevenue || data?.revenue || 0;
-  const averageOrderValue = Math.round(totalRevenue / (data?.totalOrders || 1));
+  const lifetimeRevenue = data?.revenue || 0;
+  const periodRevenue = data?.periodRevenue ?? (dateFilter === "all" ? data?.revenue : data?.todayRevenue) ?? 0;
+  const averageOrderValue = periodOrders > 0 ? Math.round(periodRevenue / periodOrders) : (totalOrders > 0 ? Math.round(lifetimeRevenue / totalOrders) : 0);
 
   const twoRide = data?.twoRideStatus || {
     ride1: { label: "RIDE 1 — PICKUP (Customer → Partner)", searching: 0, offerSent: 0, assigned: 0, timeout: 0, rejected: 0, noRider: 0 },
     ride2: { label: "RIDE 2 — DELIVERY (Partner → Customer)", searching: 0, offerSent: 0, assigned: 0, timeout: 0, rejected: 0, noRider: 0 },
+  };
+
+  const availableCities = useMemo(() => {
+    const list: string[] = [];
+    if (data?.cityBreakdown && data.cityBreakdown.length > 0) {
+      data.cityBreakdown.forEach((c) => {
+        if (c.city && !list.includes(c.city)) list.push(c.city);
+      });
+    }
+    ["Kasganj", "Aligarh", "Mathura"].forEach((c) => {
+      if (!list.includes(c)) list.push(c);
+    });
+    return list;
+  }, [data?.cityBreakdown]);
+
+  const isFiltered = dateFilter !== "all" || cityFilter !== "all" || serviceFilter !== "all";
+  const resetFilters = () => {
+    setDateFilter("all");
+    setCityFilter("all");
+    setServiceFilter("all");
+    toast.info("Dashboard filters reset to All Time & All Operating Hubs");
   };
 
   return (
@@ -335,6 +362,7 @@ export function DashboardPage() {
               <span>TIMEFRAME:</span>
             </span>
             {[
+              { id: "all", label: "All Time" },
               { id: "today", label: "Today" },
               { id: "yesterday", label: "Yesterday" },
               { id: "7d", label: "Last 7 Days" },
@@ -369,9 +397,11 @@ export function DashboardPage() {
                 className="bg-transparent text-xs font-black text-zinc-950 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Operating Cities</option>
-                <option value="Kasganj">Kasganj Hub</option>
-                <option value="Aligarh">Aligarh Hub</option>
-                <option value="Mathura">Mathura Hub</option>
+                {availableCities.map((city) => (
+                  <option key={city} value={city}>
+                    {city} Hub
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -391,6 +421,42 @@ export function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* ACTIVE FILTER STATUS BADGE ROW */}
+        {isFiltered && (
+          <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-white shadow-xs">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-extrabold text-zinc-400 flex items-center gap-1.5">
+                <SlidersHorizontal className="size-3 text-emerald-400" />
+                <span>Live Supabase Filters:</span>
+              </span>
+              <span className="rounded-lg bg-zinc-800 px-2.5 py-0.5 text-xs font-black text-white border border-zinc-700">
+                Period: {dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()}
+              </span>
+              {cityFilter !== "all" && (
+                <span className="rounded-lg bg-purple-900/80 text-purple-200 border border-purple-700 px-2.5 py-0.5 text-xs font-black">
+                  City: {cityFilter}
+                </span>
+              )}
+              {serviceFilter !== "all" && (
+                <span className="rounded-lg bg-sky-900/80 text-sky-200 border border-sky-700 px-2.5 py-0.5 text-xs font-black">
+                  Service: {serviceFilter.toUpperCase()}
+                </span>
+              )}
+              <span className="text-xs text-emerald-400 font-extrabold ml-1">
+                → {count(periodOrders)} orders found ({currency(periodRevenue)})
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 px-3 py-1 text-xs font-black text-white transition-all active:scale-95 border border-zinc-700"
+            >
+              <RotateCcw className="size-3" />
+              <span>Reset Filters</span>
+            </button>
+          </div>
+        )}
 
         {/* =========================================================================
             SECTION 1: ACTIVE OPERATIONAL INCIDENTS & TRIAGE (HIGH CONTRAST)
@@ -505,10 +571,10 @@ export function DashboardPage() {
             <div className="mt-3.5 flex items-baseline justify-between">
               <div>
                 <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                  {currency(totalRevenue)}
+                  {currency(periodRevenue)}
                 </p>
                 <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Avg Order: <span className="text-zinc-950 font-black">{currency(averageOrderValue)}</span>
+                  Avg Order: <span className="text-zinc-950 font-black">{currency(averageOrderValue)}</span> · <span className="text-emerald-800 font-extrabold">{dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()}</span>
                 </p>
               </div>
             </div>
@@ -519,7 +585,7 @@ export function DashboardPage() {
 
             <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
               <span>Lifetime Gross Reconciled</span>
-              <span className="text-emerald-800 font-black">{currency(data?.revenue)}</span>
+              <span className="text-emerald-800 font-black">{currency(lifetimeRevenue)}</span>
             </div>
           </div>
 
@@ -594,10 +660,10 @@ export function DashboardPage() {
             <div className="mt-3.5 flex items-baseline justify-between">
               <div>
                 <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                  {count(data?.totalOrders)}
+                  {count(periodOrders)}
                 </p>
                 <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  {count(data?.liveOrders)} Active in Flight
+                  {count(data?.liveOrders)} Active · {count(totalOrders)} Total Lifetime
                 </p>
               </div>
               <div className="text-right">
@@ -1102,7 +1168,7 @@ export function DashboardPage() {
               </p>
             </div>
             <div className="flex gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 p-1">
-              {(["today", "7d", "30d"] as const).map((p) => {
+              {(["today", "7d", "30d", "all"] as const).map((p) => {
                 const active = chartPeriod === p;
                 return (
                   <button
@@ -1115,7 +1181,7 @@ export function DashboardPage() {
                         : "text-zinc-800 hover:text-zinc-950 hover:bg-zinc-200"
                     }`}
                   >
-                    {p === "today" ? "Today" : p === "7d" ? "7 Days" : "30 Days"}
+                    {p === "today" ? "Today" : p === "7d" ? "7 Days" : p === "30d" ? "30 Days" : "All Time"}
                   </button>
                 );
               })}
