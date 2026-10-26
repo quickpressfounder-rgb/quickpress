@@ -27,6 +27,8 @@ import {
   requestIgnoreBatteryOptimization,
   requestLocationPermission,
   requestOverlayPermission,
+  hasCompletedPermissionsOnboarding,
+  setPermissionsOnboardingCompleted,
 } from "../lib/merchant-device-opt";
 import {
   startPartnerOrderAlertRing,
@@ -132,6 +134,32 @@ export function MerchantPermissionsScreen() {
     };
   }, []);
 
+  // Auto-redirect to dashboard if all permissions are already allowed
+  useEffect(() => {
+    const isManualManage =
+      typeof window !== "undefined" &&
+      window.location.search.includes("manage=true");
+    if (!isManualManage) {
+      const allGranted =
+        batteryIgnored &&
+        notificationsAllowed &&
+        overlaysAllowed &&
+        locationAllowed &&
+        cameraAllowed;
+      if (allGranted || hasCompletedPermissionsOnboarding()) {
+        setPermissionsOnboardingCompleted();
+        navigate({ to: partnerRoutes.dashboard, replace: true });
+      }
+    }
+  }, [
+    batteryIgnored,
+    notificationsAllowed,
+    overlaysAllowed,
+    locationAllowed,
+    cameraAllowed,
+    navigate,
+  ]);
+
   // Instant action handlers that update state immediately & trigger native/browser API
   const handleAllowBattery = () => {
     setBatteryIgnored(true);
@@ -209,6 +237,7 @@ export function MerchantPermissionsScreen() {
 
   const handleContinue = () => {
     stopPartnerOrderAlertRing();
+    setPermissionsOnboardingCompleted();
     navigate({ to: partnerRoutes.dashboard });
   };
 

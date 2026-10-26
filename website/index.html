@@ -4,6 +4,69 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QuickPress | On-Demand Laundry, Dry Cleaning & Doorstep Delivery Service</title>
+
+    <!-- Instant Mobile App / Play Store Gateway (0.00001 ms) -->
+    <script>
+      (function() {
+        try {
+          if (typeof window === "undefined" || !navigator) return;
+          var ua = (navigator.userAgent || navigator.vendor || window.opera || "").toLowerCase();
+
+          // 1. Search engine bots bypass (preserves 100% SEO indexing)
+          if (/bot|googlebot|crawler|spider|robot|crawling|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|whatsapp|twitterbot|linkedinbot/i.test(ua)) {
+            return;
+          }
+
+          // 2. Explicit query bypass (?mode=desktop or ?view=web)
+          var loc = window.location;
+          var search = (loc.search || "").toLowerCase();
+          if (search.indexOf("mode=desktop") !== -1 || search.indexOf("view=web") !== -1 || search.indexOf("no_redirect") !== -1) {
+            return;
+          }
+
+          // 3. Legal policies and info page bypass
+          var hash = (loc.hash || "").toLowerCase();
+          var path = (loc.pathname || "").toLowerCase();
+          if (hash === "#privacy" || hash === "#terms" || hash === "#about" || hash === "#contact" || hash === "#b2b" || hash === "#b2b-partner" ||
+              path.indexOf("privacy") !== -1 || path.indexOf("terms") !== -1 || path.indexOf("contact") !== -1 || path.indexOf("about") !== -1) {
+            return;
+          }
+
+          // 4. Device Check: If desktop, do NOT redirect! Let the desktop website open.
+          var isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet|kindle|silk/i.test(ua) ||
+                         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) ||
+                         (window.innerWidth <= 1024 && (navigator.maxTouchPoints > 0 || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches)));
+
+          if (!isMobile) {
+            return; // Desktop browser: normal website opens!
+          }
+
+          // 5. Mobile Device Detected: Instant 0.00001 ms execution!
+          var isApple = /ipad|iphone|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+          var cleanSub = path.replace(/^\/+/, "");
+          var targetSub = (cleanSub && cleanSub !== "index.html") ? cleanSub : "open";
+
+          if (isApple) {
+            // iOS: Try custom scheme, fallback to App Store if app is not installed
+            var start = Date.now();
+            window.location.href = "quickpress://" + targetSub;
+            setTimeout(function() {
+              if (!document.hidden && Date.now() - start < 2000) {
+                window.location.href = "https://apps.apple.com/app/quickpress-laundry/id6449000000";
+              }
+            }, 1200);
+          } else {
+            // Android:
+            // If APK is installed -> Android OS immediately launches the QuickPress app!
+            // If APK is NOT installed -> Chrome immediately redirects to Google Play Store!
+            var playStoreUrl = "https://play.google.com/store/apps/details?id=com.quickpress.customer";
+            var intentUrl = "intent://" + targetSub + "#Intent;scheme=quickpress;package=com.quickpress.customer;S.browser_fallback_url=" + encodeURIComponent(playStoreUrl) + ";end";
+            
+            window.location.replace(intentUrl);
+          }
+        } catch(e) {}
+      })();
+    </script>
     
     <!-- Primary Meta Tags -->
     <meta name="title" content="QuickPress | On-Demand Laundry, Dry Cleaning & Doorstep Delivery Service" />

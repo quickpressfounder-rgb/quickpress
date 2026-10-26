@@ -26,6 +26,10 @@ import { useOtpCountdown } from "../hooks/use-otp-countdown";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { checkPartnerVerificationStatus, requestOtp, verifyOtp } from "@/api/partner/partner-auth-api";
 import { PartnerAuthHeader } from "../components/PartnerAuthHeader";
+import {
+  areAllMerchantPermissionsGranted,
+  hasCompletedPermissionsOnboarding,
+} from "../lib/merchant-device-opt";
 
 export function OtpVerificationScreen() {
   const navigate = useNavigate();
@@ -106,11 +110,15 @@ export function OtpVerificationScreen() {
 
     window.setTimeout(() => {
       if (realIsOnboarded && realIsVerified) {
-        navigate({ to: partnerRoutes.permissions });
+        if (areAllMerchantPermissionsGranted() || hasCompletedPermissionsOnboarding()) {
+          navigate({ to: partnerRoutes.dashboard, replace: true });
+        } else {
+          navigate({ to: partnerRoutes.permissions, replace: true });
+        }
       } else if (!realIsOnboarded) {
-        navigate({ to: partnerRoutes.registration });
+        navigate({ to: partnerRoutes.registration, replace: true });
       } else {
-        navigate({ to: partnerRoutes.registrationSubmitted });
+        navigate({ to: partnerRoutes.registrationSubmitted, replace: true });
       }
     }, 400);
   };

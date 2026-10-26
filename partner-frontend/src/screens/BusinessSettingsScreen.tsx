@@ -507,7 +507,7 @@ export function BusinessSettingsScreen() {
 
                   {/* Device Permissions & Background Setup */}
                   <div
-                    onClick={() => navigate({ to: partnerRoutes.permissions })}
+                    onClick={() => navigate({ to: partnerRoutes.permissions, search: { manage: "true" } as any })}
                     className="flex items-center justify-between p-4 gap-3 transition-colors hover:bg-zinc-50/60 cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">

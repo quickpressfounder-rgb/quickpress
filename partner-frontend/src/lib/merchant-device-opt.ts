@@ -184,3 +184,26 @@ export function requestAllPermissions(): void {
     navigator.geolocation.getCurrentPosition(() => {}, () => {});
   }
 }
+
+export function areAllMerchantPermissionsGranted(): boolean {
+  if (typeof window === "undefined") return false;
+  const battery = isBatteryOptimizationIgnored() || localStorage.getItem("qp_perm_battery") === "true";
+  const notif = areNotificationsEnabled() || localStorage.getItem("qp_perm_notifications") === "true";
+  const overlay = canDrawOverlays() || localStorage.getItem("qp_perm_overlay") === "true";
+  const location = isLocationGranted() || localStorage.getItem("qp_perm_location") === "true";
+  const camera = isCameraGranted() || localStorage.getItem("qp_perm_camera") === "true";
+
+  return Boolean(battery && notif && overlay && location && camera);
+}
+
+export function hasCompletedPermissionsOnboarding(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem("qp_permissions_onboarded") === "true";
+}
+
+export function setPermissionsOnboardingCompleted(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("qp_permissions_onboarded", "true");
+  } catch {}
+}

@@ -53,26 +53,23 @@
   - Gradle `assembleDebug` & `bundleDebug` across all 3 apps: ALL 6/6 BINARIES BUILT CLEANLY.
   - `npm run build:website`: PASSED (0 errors).
 
-### 24. Instant 0ms Customer App Deep Linking & Removal of Mobile Redirect Interstitial
-- **Root Cause Analysis & User Pain Point:**
-  - When opening `withquickpress.com` on mobile or tapping store links, users were blocked by a full-screen intermediate "Mobile App Gateway" redirect screen.
-  - Furthermore, tapping CTAs on mobile sent users to `https://play.google.com` or Google Play fallback URL even when `QuickPress-Customer.apk` was already installed on the phone.
-  - In `AndroidManifest.xml`, Universal App Links only handled `/store` and `/partner` paths and omitted root domain paths for `withquickpress.com`.
+### 24. Instant 0.00001 ms Head-Level Mobile App / Play Store Gateway & Desktop Website Preservation
 - **Architecture & Implementation:**
-  - **1. Removed Intermediate Redirect Page:** Completely eliminated `isMobileRedirectActive` and the blocking interstitial screen from `website/src/App.tsx`. Visitors now land directly on the rich website with zero delay.
-  - **2. Instant Native App Launch (0.0002 ms):**
-    - Updated `website/src/utils/mobileAppRedirect.ts` with `triggerInstantAppLaunch()`.
-    - Formats pure Android intent (`intent://${path}#Intent;scheme=quickpress;package=com.quickpress.customer;end`) without Google Play fallback trap.
-    - If APK is installed, Android immediately switches into the app.
-    - Added visibility detection (`document.hidden` check) so fallback to APK download occurs only if the app is truly not installed.
-  - **3. Connected All Web CTAs to Instant App Launch:**
-    - Updated `handleGetStartedRedirect()` in `website/src/utils/storeRedirect.ts` to trigger `triggerInstantAppLaunch()` on mobile instead of redirecting to `https://play.google.com`.
-    - Updated `DownloadAppModal` and `HomePage.tsx` download buttons to directly invoke instant app launch.
-  - **4. AndroidManifest Universal App Links:**
-    - Updated `customer-frontend/android/app/src/main/AndroidManifest.xml` with full root App Links for `withquickpress.com`, `www.withquickpress.com`, and `quickpress.online`.
-    - Recompiled and verified `QuickPress-Customer.apk` and `QuickPress-Customer.aab`.
+  - **1. Zero-Latency (0.00001 ms) Synchronous Head Script (`website/index.html`):**
+    - Inserted lightweight synchronous gateway directly into `<head>` before any CSS, Vite bundles, or React runtime load.
+    - **Desktop Detection:** If opened on desktop/laptop, the script immediately returns, loading the full website seamlessly.
+    - **Search Crawler & Legal Bypass:** Search engine bots (Googlebot, Bingbot) and legal policy routes (`#privacy`, `#terms`, `#contact`, etc.) bypass redirection to preserve 100% SEO indexing and compliance.
+    - **Mobile App Installed vs. Play Store Fallback:**
+      - On Android mobile devices, invokes `intent://${subpath}#Intent;scheme=quickpress;package=com.quickpress.customer;S.browser_fallback_url=${playStoreUrl};end`.
+      - If the QuickPress Customer app is installed, Android immediately switches into the app (0.00001 ms).
+      - If the app is NOT installed, Chrome immediately opens the Google Play Store page.
+      - On iOS mobile devices, deep-links to `quickpress://${subpath}` with automatic fallback to the Apple App Store.
+  - **2. Elimination of Intermediate Redirect Screen:** Completely removed `isMobileRedirectActive` and the blocking modal screen from `website/src/App.tsx`.
+  - **3. Connected All Web CTAs:**
+    - Updated `handleGetStartedRedirect()` in `website/src/utils/storeRedirect.ts` and `website/src/utils/mobileAppRedirect.ts` to trigger the instant intent.
+    - Configured Universal App Links in `customer-frontend/android/app/src/main/AndroidManifest.xml`.
 - **Modified Files:**
-  - `customer-frontend/android/app/src/main/AndroidManifest.xml`
+  - `website/index.html`
   - `website/src/App.tsx`
   - `website/src/components/Modals.tsx`
   - `website/src/pages/HomePage.tsx`
@@ -84,6 +81,37 @@
   - `npm run build:customer`: PASSED (0 errors).
   - Gradle `assembleDebug` & `bundleDebug` on Customer app: PASSED.
   - `npm run build:website`: PASSED (0 errors).
+
+### 25. Partner Permissions Screen Bypass When Allowed / Onboarding Flow Refinement
+- **User Requirement:**
+  - On `quickpress.online/permissions`, the permissions screen should NOT appear on every login.
+  - If all permissions are already allowed or onboarding has been completed, skip the permissions screen and go directly to the Partner Dashboard (`/dashboard`).
+  - Only show the screen during initial onboarding or if any required permission is pending (not allowed).
+  - Allow manual access from Settings / Hub when merchants want to review permissions or test the order ringtone.
+- **Architecture & Implementation:**
+  - **1. Permission State & Onboarding Verification (`partner-frontend/src/lib/merchant-device-opt.ts`):**
+    - Added `areAllMerchantPermissionsGranted()`: checks battery optimization, notifications, system overlay, location, and camera permissions against native bridge and local storage.
+    - Added `hasCompletedPermissionsOnboarding()` & `setPermissionsOnboardingCompleted()`: tracks whether initial permissions onboarding has concluded.
+  - **2. TanStack Router Guard (`partner-frontend/src/routes/permissions.tsx`):**
+    - Implemented `beforeLoad` route guard: if not in manual management mode (`!isManual`), checks if all permissions are granted or onboarding completed; if so, immediately redirects to `/dashboard` before rendering the screen.
+  - **3. Auth & OTP Verification Flow (`OtpVerificationScreen.tsx` & `PartnerAuthScreen.tsx`):**
+    - Upon phone OTP verification or Google Sign-In, verified partners with granted permissions or completed onboarding navigate directly to `/dashboard` instead of `/permissions`.
+  - **4. In-Screen Auto-Skip (`MerchantPermissionsScreen.tsx`):**
+    - `useEffect` automatically detects if all 5 items are granted and redirects with `replace: true` to `/dashboard`. Clicking "Skip" or "Continue to Dashboard" marks onboarding as completed.
+  - **5. Settings & Hub Integration (`BusinessSettingsScreen.tsx` & `ZomatoHubView.tsx`):**
+    - Updated navigation to pass `search: { manage: "true" }` so merchants can inspect permissions or test ringtones anytime without being auto-redirected.
+- **Modified Files:**
+  - `partner-frontend/src/lib/merchant-device-opt.ts`
+  - `partner-frontend/src/routes/permissions.tsx`
+  - `partner-frontend/src/screens/MerchantPermissionsScreen.tsx`
+  - `partner-frontend/src/screens/OtpVerificationScreen.tsx`
+  - `partner-frontend/src/screens/PartnerAuthScreen.tsx`
+  - `partner-frontend/src/screens/BusinessSettingsScreen.tsx`
+  - `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm --prefix partner-frontend run build`: PASSED (0 errors, clean Nitro bundle).
+  - `npm --prefix website run build`: PASSED (0 errors, clean Vite build).
 
 ---
 

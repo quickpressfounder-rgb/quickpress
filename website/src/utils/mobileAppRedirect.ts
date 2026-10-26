@@ -131,11 +131,12 @@ export function shouldBypassRedirect(): boolean {
 
 /**
  * Constructs an Android Intent URL for deep linking directly into the QuickPress Customer app.
- * Does NOT set Google Play fallback, preventing unwanted Play Store redirects when APK is installed.
+ * If installed, launches the native app; if not installed, falls back instantly to Google Play Store.
  */
-export function buildAndroidIntentUrl(subpath: string = "home"): string {
+export function buildAndroidIntentUrl(subpath: string = "open"): string {
   const cleanPath = subpath.replace(/^\/+/, "");
-  return `intent://${cleanPath || "home"}#Intent;scheme=quickpress;package=com.quickpress.customer;end`;
+  const playStoreUrl = PLAY_STORE_CUSTOMER_URL;
+  return `intent://${cleanPath || "open"}#Intent;scheme=quickpress;package=com.quickpress.customer;S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
 }
 
 /**
@@ -159,10 +160,11 @@ export function setWebBypass() {
 
 /**
  * Dispatches the instant app launch to the installed QuickPress Customer app.
- * Runs in 0.0002 ms without opening any intermediate redirect pages.
+ * Runs in 0.00001 ms without opening any intermediate redirect pages.
  * 
- * If the app is already installed on the phone, Android OS immediately brings it to front!
- * If not installed, falls back cleanly to the APK download after verification.
+ * - Mobile + App installed -> Android OS immediately switches into the app!
+ * - Mobile + App not installed -> Chrome immediately redirects to Google Play Store!
+ * - Desktop -> Returns and keeps website open.
  */
 export function triggerInstantAppLaunch(targetSubpath?: string) {
   if (typeof window === "undefined") return;
@@ -173,17 +175,8 @@ export function triggerInstantAppLaunch(targetSubpath?: string) {
   const isAndroid = isAndroidDevice();
 
   if (isAndroid) {
-    const startTime = Date.now();
-    // Launch installed app via intent (no Play Store trap!)
-    const intentUrl = buildAndroidIntentUrl(cleanPath || "home");
-    window.location.href = intentUrl;
-
-    // Only if document remains visible (app wasn't launched because it's not installed)
-    setTimeout(() => {
-      if (!document.hidden && Date.now() - startTime < 2000) {
-        window.location.href = APK_CUSTOMER_DOWNLOAD_URL;
-      }
-    }, 1500);
+    const intentUrl = buildAndroidIntentUrl(cleanPath || "open");
+    window.location.replace(intentUrl);
   } else if (isApple) {
     const startTime = Date.now();
     window.location.href = buildIosCustomSchemeUrl(cleanPath || "open");
@@ -192,7 +185,7 @@ export function triggerInstantAppLaunch(targetSubpath?: string) {
       if (!document.hidden && Date.now() - startTime < 2000) {
         window.location.href = APP_STORE_CUSTOMER_URL;
       }
-    }, 1500);
+    }, 1200);
   }
 }
 

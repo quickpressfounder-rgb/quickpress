@@ -38,6 +38,10 @@ import { usePartnerContext } from "../context/PartnerContext";
 import { partnerRoutes } from "../navigation/partner-routes";
 import { validateMobile } from "../lib/partner-validation";
 import {
+  areAllMerchantPermissionsGranted,
+  hasCompletedPermissionsOnboarding,
+} from "../lib/merchant-device-opt";
+import {
   checkPartnerRegistered,
   checkPartnerVerificationStatus,
   loginWithGoogle,
@@ -219,6 +223,8 @@ export function PartnerAuthScreen() {
         navigate({ to: partnerRoutes.registration, replace: true });
       } else if (!realIsVerified) {
         navigate({ to: partnerRoutes.registrationSubmitted, replace: true });
+      } else if (hasCompletedPermissionsOnboarding() || areAllMerchantPermissionsGranted()) {
+        navigate({ to: partnerRoutes.dashboard, replace: true });
       } else {
         navigate({ to: partnerRoutes.permissions, replace: true });
       }
