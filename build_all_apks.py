@@ -6,8 +6,9 @@ import sys
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/bf9cca5c-94b7-4a2d-9ac5-b3a72ec05c29"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/77318238-9621-42dc-99c7-efff7401c879"
 OLD_ARTIFACT_DIRS = [
+    "/Users/himanshupal/.gemini/antigravity-ide/brain/bf9cca5c-94b7-4a2d-9ac5-b3a72ec05c29",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/4d042ff9-b5fb-466e-9fd8-619baf1d44e8",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/d9a17d27-557a-4305-95cf-5af07e62d93b",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/5704e1e6-724e-4d52-b79d-6a75a3604744",
@@ -43,6 +44,12 @@ def copy_to_artifacts(src_apk, apk_name, apks_dir):
     target = os.path.join(apks_dir, apk_name)
     shutil.copy2(src_apk, target)
     print(f"✓ Saved to {target} ({os.path.getsize(src_apk)} bytes)")
+
+    # Mirror APK to website public assets so withquickpress.com serves updated APKs
+    website_apk_dir = os.path.join(ROOT_DIR, "website", "public", "apks")
+    if os.path.exists(website_apk_dir) and apk_name.endswith(".apk"):
+        shutil.copy2(src_apk, os.path.join(website_apk_dir, apk_name))
+        print(f"✓ Mirrored to website public apks: {apk_name}")
 
     if os.path.exists(ARTIFACT_DIR):
         artifact_target = os.path.join(ARTIFACT_DIR, apk_name)
