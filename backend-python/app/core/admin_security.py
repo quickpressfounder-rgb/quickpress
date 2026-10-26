@@ -847,8 +847,8 @@ async def ensure_super_admin_seed() -> dict:
     pwd_hash = hash_password(admin_password)
     now = _now_iso()
 
-    # Clean legacy staff records
-    await database.delete_many("admin_staff", {"email": {"$ne": admin_email}})
+    # Retain active staff records without destructive wiping
+    pass
 
     # Check or create super admin in admin_staff collection
     existing_staff = await database.find_one("admin_staff", {"email": admin_email})

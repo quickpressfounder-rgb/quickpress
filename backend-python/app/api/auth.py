@@ -443,7 +443,8 @@ async def admin_login(payload: dict, request: Request) -> dict:
 
     # Ensure Super Admin exists in database if logging in as configured admin
     admin_seed_email = os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower()
-    if not staff_doc and email == admin_seed_email:
+    owner_emails = {"iammotivation33@gmail.com", "official.quickpress@gmail.com", "admin@quickpress.online", admin_seed_email}
+    if not staff_doc and email in owner_emails:
         from app.core.admin_security import ensure_super_admin_seed
         staff_doc = await ensure_super_admin_seed()
         user = await users.by_email(email, Role.admin)
@@ -584,24 +585,49 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
 
     # Owner / Super Admin auto-enrollment for platform administrators
     owner_candidates = [
+        "iammotivation33@gmail.com",
         "official.quickpress@gmail.com",
         "admin@quickpress.online",
         os.getenv("ADMIN_EMAIL", "admin@quickpress.online").strip().lower(),
     ]
 
     now = datetime.now(timezone.utc).isoformat()
-    if not staff_doc and email in owner_candidates:
-        from app.core.admin_security import ensure_super_admin_seed
-        staff_doc = await ensure_super_admin_seed()
-        staff_doc["email"] = email
-        staff_doc["name"] = "Platform Super Admin"
-        staff_doc["role"] = "Super Admin"
-        staff_doc["permissions"] = [
-            "all", "*", "orders", "customers", "partners", "riders", "services",
-            "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
-            "analytics", "notifications", "emails", "support", "staff", "settings", "crm"
-        ]
-        await database.update_one("admin_staff", {"email": email}, {"$set": staff_doc}, upsert=True)
+    if email in owner_candidates:
+        if not staff_doc:
+            staff_doc = {
+                "_id": f"stf_owner_{uuid.uuid4().hex[:6]}",
+                "name": "Super Admin",
+                "email": email,
+                "phone": "+91 99999 99999",
+                "role": "Super Admin",
+                "scope": "All India Hubs",
+                "permissions": [
+                    "all", "*", "orders", "customers", "partners", "riders", "services",
+                    "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
+                    "analytics", "notifications", "emails", "support", "staff", "settings", "crm"
+                ],
+                "status": "Active",
+                "isVerified": True,
+                "lastActive": "Active now",
+                "createdAt": now,
+                "updatedAt": now,
+            }
+            await database.update_one("admin_staff", {"email": email}, {"$set": staff_doc}, upsert=True)
+        else:
+            # Ensure Super Admin privileges and Active status
+            staff_doc["role"] = "Super Admin"
+            staff_doc["status"] = "Active"
+            staff_doc["permissions"] = [
+                "all", "*", "orders", "customers", "partners", "riders", "services",
+                "finance", "finance-engine", "wallet", "cities", "coupons", "memberships",
+                "analytics", "notifications", "emails", "support", "staff", "settings", "crm"
+            ]
+            await database.update_one(
+                "admin_staff",
+                {"email": email},
+                {"$set": {"role": "Super Admin", "status": "Active", "permissions": staff_doc["permissions"], "updatedAt": now}},
+                upsert=True,
+            )
 
     if not staff_doc:
         raise HTTPException(
@@ -622,19 +648,37 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
     if not user:
         user = await users.by_email(email, Role.super_admin)
     if not user:
-        staff_id = str(staff_doc.get("_id") or staff_doc.get("id") or f"usr_stf_{uuid.uuid4().hex[:8]}")
-        user = await users.create(
-            User(
-                id=staff_id,
-                email=email,
-                phone=staff_doc.get("phone", "+919999999999"),
-                display_name=staff_doc.get("name", "Staff Administrator"),
-                role=Role.admin,
-                status=UserStatus.active,
-                is_verified=True,
-                is_onboarded=True,
+        # Check if user already exists with any role by email
+        existing_any = await users.by_email(email)
+        if existing_any:
+            user = existing_any
+            user.role = Role.admin
+            user.status = UserStatus.active
+            user.is_verified = True
+            user.is_onboarded = True
+            await users.update(
+                user.id,
+                {
+                    "role": Role.admin.value,
+                    "status": UserStatus.active.value,
+                    "is_verified": True,
+                    "is_onboarded": True,
+                },
             )
-        )
+        else:
+            staff_id = str(staff_doc.get("_id") or staff_doc.get("id") or f"usr_stf_{uuid.uuid4().hex[:8]}")
+            user = await users.create(
+                User(
+                    id=staff_id,
+                    email=email,
+                    phone=staff_doc.get("phone", "+919999999999"),
+                    display_name=staff_doc.get("name", "Staff Administrator"),
+                    role=Role.admin,
+                    status=UserStatus.active,
+                    is_verified=True,
+                    is_onboarded=True,
+                )
+            )
 
     # 5. Update last active timestamp in database
     await database.update_one("admin_staff", {"email": email}, {"$set": {"lastActive": now, "updatedAt": now}})

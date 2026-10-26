@@ -251,7 +251,18 @@ async def test_cloudflare_zero_trust_sso_and_rbac():
         assert unregistered.status_code == 403
         assert "not enrolled in the QuickPress Staff Directory" in unregistered.json()["detail"]
 
-        # 2. Super Admin auto-enrollment via official email
+        # 2. Super Admin auto-enrollment via platform administrator email (iammotivation33@gmail.com)
+        admin_sso = await client.get(
+            "/api/auth/admin/cf-sso",
+            headers={"cf-access-authenticated-user-email": "iammotivation33@gmail.com"},
+        )
+        assert admin_sso.status_code == 200
+        admin_session = admin_sso.json()
+        assert admin_session["account"]["email"] == "iammotivation33@gmail.com"
+        assert "Super Admin" in admin_session["account"]["departmentRole"]
+        assert "token" in admin_session
+
+        # 2b. Auto-enrollment for official.quickpress@gmail.com
         owner_sso = await client.get(
             "/api/auth/admin/cf-sso",
             headers={"cf-access-authenticated-user-email": "official.quickpress@gmail.com"},
