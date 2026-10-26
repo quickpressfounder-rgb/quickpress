@@ -1220,7 +1220,7 @@ async def send_partner_welcome_email(
       </div>
 
       <div style="background: #f8fafc; border-radius: 8px; padding: 14px; text-align: center;">
-        <a href="https://quickpress-partner.vercel.app" class="btn">Open Partner Dashboard ➜</a>
+        <a href="https://quickpress.online" class="btn">Open Partner Dashboard ➜</a>
       </div>
     """
     html = _render_base_email(
@@ -1234,7 +1234,7 @@ async def send_partner_welcome_email(
         to=partner_email,
         subject=subject,
         html=html,
-        text=f"Welcome {business_name} to QuickPress! Log into your Partner Dashboard at https://quickpress-partner.vercel.app",
+        text=f"Welcome {business_name} to QuickPress! Log into your Partner Dashboard at https://quickpress.online",
         recipient_name=owner_name,
         audience="partner",
         category="onboarding",
@@ -1369,7 +1369,7 @@ async def send_partner_agreement_email(
       </p>
 
       <div style="text-align: center; margin-top: 25px;">
-        <a href="https://quickpress-partner.vercel.app" class="btn">Access Partner Dashboard ➜</a>
+        <a href="https://quickpress.online" class="btn">Access Partner Dashboard ➜</a>
       </div>
     """
 
@@ -1801,7 +1801,7 @@ async def send_rider_welcome_email(
       </div>
 
       <div style="text-align: center; margin: 20px 0;">
-        <a href="https://quickpress-rider.vercel.app" class="btn">Launch Captain App &amp; Go Online ➜</a>
+        <a href="https://quickpress.online" class="btn">Launch Captain App &amp; Go Online ➜</a>
       </div>
     """
     html = _render_base_email(
@@ -1966,7 +1966,7 @@ async def send_admin_sla_breach_alert_email(
       </div>
 
       <div style="text-align: center; margin: 20px 0;">
-        <a href="https://quickpress-admin.vercel.app/orders" class="btn" style="background: #dc2626;">Open Order in Admin Console ➜</a>
+        <a href="https://ops.withquickpress.com/orders" class="btn" style="background: #dc2626;">Open Order in Admin Console ➜</a>
       </div>
     """
     html = _render_base_email(
@@ -2026,7 +2026,7 @@ async def send_daily_business_digest_email(
       </div>
 
       <div style="text-align: center; margin: 20px 0;">
-        <a href="https://quickpress-admin.vercel.app/dashboard" class="btn">View Live Analytics Dashboard ➜</a>
+        <a href="https://ops.withquickpress.com/dashboard" class="btn">View Live Analytics Dashboard ➜</a>
       </div>
     """
     html = _render_base_email(

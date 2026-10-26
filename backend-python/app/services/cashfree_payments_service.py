@@ -204,7 +204,7 @@ async def create_cashfree_order(user: User, payload: Dict[str, Any]) -> Dict[str
     settings = get_settings()
     notify_url = None
     if settings.app_env.lower() == "production":
-        notify_url = "https://quickpress-api-production.up.railway.app/api/payments/cashfree/webhook"
+        notify_url = "https://api.withquickpress.com/api/payments/cashfree/webhook"
 
     cf_order_resp = await cashfree_client.create_order(
         order_id=cf_order_id,

@@ -7,13 +7,10 @@
         </trust-anchors>
     </base-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">quickpress-api-production.up.railway.app</domain>
-        <domain includeSubdomains="true">up.railway.app</domain>
-        <domain includeSubdomains="true">railway.app</domain>
-        <domain includeSubdomains="true">vercel.app</domain>
-        <domain includeSubdomains="true">quickpress-customer.vercel.app</domain>
-        <domain includeSubdomains="true">quickpress-partner.vercel.app</domain>
-        <domain includeSubdomains="true">quickpress-caption.vercel.app</domain>
+        <domain includeSubdomains="true">api.withquickpress.com</domain>
+        <domain includeSubdomains="true">withquickpress.com</domain>
+        <domain includeSubdomains="true">quickpress.online</domain>
+        <domain includeSubdomains="true">ops.withquickpress.com</domain>
         <domain includeSubdomains="true">supabase.co</domain>
         <domain includeSubdomains="true">acpxzppgjnqqhckzxcmk.supabase.co</domain>
         <domain includeSubdomains="true">localhost</domain>

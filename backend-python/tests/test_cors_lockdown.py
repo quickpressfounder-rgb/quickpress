@@ -23,16 +23,16 @@ def test_cors_production_lockdown(monkeypatch):
     assert res_valid.status_code == 200
     assert res_valid.headers.get("access-control-allow-origin") == "https://quickpress.online"
     
-    # 2. Allowed Vercel Frontend Origin
-    res_vercel = client.options(
+    # 2. Allowed Ops Admin Console Origin
+    res_ops = client.options(
         "/api/app-meta",
         headers={
-            "Origin": "https://appk-mu.vercel.app",
+            "Origin": "https://ops.withquickpress.com",
             "Access-Control-Request-Method": "GET",
         },
     )
-    assert res_vercel.status_code == 200
-    assert res_vercel.headers.get("access-control-allow-origin") == "https://appk-mu.vercel.app"
+    assert res_ops.status_code == 200
+    assert res_ops.headers.get("access-control-allow-origin") == "https://ops.withquickpress.com"
     
     # 3. Disallowed Malicious Origin (Should NOT get Access-Control-Allow-Origin header)
     res_evil = client.options(

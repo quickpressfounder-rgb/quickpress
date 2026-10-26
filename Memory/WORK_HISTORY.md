@@ -13,9 +13,9 @@
 | **Website (Official)** | `https://withquickpress.com` | Static Vite build served by Nginx (`/var/www/quickpress/website/`) |
 | **Partner Console** | `https://quickpress.online` | TanStack Start SSR Node server on port `8082` (managed via PM2) |
 | **Backend API** | `https://api.withquickpress.com` | Docker Container (`quickpress-backend`) / FastAPI on port `8000` |
-| **Customer App** | APK / AAB / Web | React 19 + TanStack Router (`customer-frontend`) |
-| **Captain App (Rider)** | APK / AAB / Web | React 19 + TanStack Router (`rider-frontend`) |
-| **Admin Console** | Internal / Web | React + Vite (`admin-frontend`) |
+| **Admin & Ops HQ** | `https://ops.withquickpress.com` | TanStack Start SSR Node server on port `8084` (PM2 `quickpress-admin`) + Cloudflare Zero Trust |
+| **Customer App** | APK / AAB / Web | React 19 + TanStack Router (`customer-frontend`) -> `api.withquickpress.com` |
+| **Captain App (Rider)** | APK / AAB / Web | React 19 + TanStack Router (`rider-frontend`) -> `api.withquickpress.com` |
 
 ### Official Statutory Legal URLs
 - **Privacy Policy:** `https://withquickpress.com/#privacy`
@@ -111,6 +111,58 @@
   - `Memory/WORK_HISTORY.md`
 - **Build & Verification Status:**
   - `npm --prefix partner-frontend run build`: PASSED (0 errors, clean Nitro bundle).
+  - `npm --prefix website run build`: PASSED (0 errors, clean Vite build).
+
+### 26. Complete Vercel & Railway Decoupling, AWS Production Realignment, and Cloudflare Zero Trust Architecture for Admin Console
+- **User Requirement:**
+  - Remove all Vercel and Railway dependencies across the entire project. All systems must live exclusively on AWS EC2 (`65.0.127.43`).
+  - Deploy and protect Admin & Operations Console directly on `https://ops.withquickpress.com`.
+  - Secure the Admin Console with Cloudflare Zero Trust (Access) perimeter to prevent hacker scans, bots, and unauthorized penetration.
+- **Architecture & Implementation:**
+  - **1. Native Android App Decoupling (Customer, Partner, Captain):**
+    - Updated `strings.xml` across all 3 apps (`customer-frontend`, `partner-frontend`, `rider-frontend`) to point `api_base_url` directly to `https://api.withquickpress.com` (eliminated legacy `railway.app` fallback).
+    - Updated `network_security_config.xml` across all 3 native apps to whitelist only official AWS production domains: `api.withquickpress.com`, `withquickpress.com`, `quickpress.online`, and `ops.withquickpress.com`.
+    - Updated `capacitor.config.ts` and `android/app/src/main/assets/capacitor.config.json` across all 3 frontends to remove remote `*.vercel.app` URLs in favor of `https://withquickpress.com` and `https://quickpress.online`.
+  - **2. Panel URL Resolution (`customer-frontend/src/lib/panel-urls.ts`):**
+    - Replaced all fallback production URLs with active AWS domains:
+      - Customer: `https://withquickpress.com`
+      - Partner: `https://quickpress.online`
+      - Rider: `https://quickpress.online`
+      - Admin: `https://ops.withquickpress.com`
+  - **3. Backend Services & Payment Webhooks (`backend-python`):**
+    - `cashfree_payments_service.py`: Updated payment gateway `notify_url` from `railway.app` to `https://api.withquickpress.com/api/payments/cashfree/webhook`.
+    - `email_service.py`: Replaced all outbound transactional email link targets with `https://quickpress.online` and `https://ops.withquickpress.com` (SLA breach escalation & executive daily digest).
+    - `config.py` & `main.py`: Updated production CORS origins and regex to include `ops.withquickpress.com` and `admin.withquickpress.com`, verified via automated test `test_cors_lockdown.py`.
+  - **4. Cloudflare Zero Trust & Nginx Hardening (`scripts/quickpress_nginx.conf`):**
+    - Integrated Cloudflare Real IP restoration CIDR blocks (`set_real_ip_from` + `real_ip_header CF-Connecting-IP`).
+    - Added Cloudflare Zero Trust identity forwarding (`CF-Connecting-IP`, `CF-Access-Authenticated-User-Email`, `CF-Ray`) for `ops.withquickpress.com`.
+    - Hardened HTTP headers: `X-Robots-Tag: noindex, nofollow, noarchive`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(), camera=(), microphone=()`.
+  - **5. EC2 Server Update Script (`scripts/update_server.sh`):**
+    - Aligned Admin Console deployment with PM2 Nitro SSR Node server (`PORT=8084 pm2 start .output/server/index.mjs --name quickpress-admin`).
+- **Modified Files:**
+  - `customer-frontend/android/app/src/main/res/values/strings.xml`
+  - `customer-frontend/android/app/src/main/res/xml/network_security_config.xml`
+  - `customer-frontend/capacitor.config.ts`
+  - `customer-frontend/android/app/src/main/assets/capacitor.config.json`
+  - `customer-frontend/src/lib/panel-urls.ts`
+  - `partner-frontend/android/app/src/main/res/values/strings.xml`
+  - `partner-frontend/android/app/src/main/res/xml/network_security_config.xml`
+  - `partner-frontend/capacitor.config.ts`
+  - `partner-frontend/android/app/src/main/assets/capacitor.config.json`
+  - `rider-frontend/android/app/src/main/res/values/strings.xml`
+  - `rider-frontend/android/app/src/main/res/xml/network_security_config.xml`
+  - `rider-frontend/capacitor.config.ts`
+  - `rider-frontend/android/app/src/main/assets/capacitor.config.json`
+  - `backend-python/app/config.py`
+  - `backend-python/app/core/email_service.py`
+  - `backend-python/app/services/cashfree_payments_service.py`
+  - `backend-python/tests/test_cors_lockdown.py`
+  - `scripts/quickpress_nginx.conf`
+  - `scripts/update_server.sh`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `pytest backend-python/tests/test_cors_lockdown.py`: PASSED (2 passed in 11.79s).
+  - `npm --prefix admin-frontend run build`: PASSED (0 errors, clean Nitro bundle).
   - `npm --prefix website run build`: PASSED (0 errors, clean Vite build).
 
 ---

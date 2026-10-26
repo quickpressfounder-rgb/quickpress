@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # --- environment -------------------------------------------------
     app_env: str = "development"  # development | staging | production
     api_prefix: str = "/api"
-    cors_origins: str = "https://with.quickpress.com,https://www.with.quickpress.com,https://withquickpress.com,https://www.withquickpress.com,https://appk-mu.vercel.app,https://quickpress-customer.vercel.app,https://quickpress-five.vercel.app,https://quickpress-partner.vercel.app,https://quickpress-partner-mu.vercel.app,https://quickpress-rider.vercel.app,https://quickpress-caption.vercel.app,https://quickpress-admin.vercel.app,https://quickpress-admin-kappa.vercel.app,https://quickpress-website.vercel.app,https://www.quickpress.online,https://quickpress.online,https://admin.quickpress.online,https://partner.quickpress.online,https://rider.quickpress.online,https://quickpress.in,https://www.quickpress.in"
+    cors_origins: str = "https://withquickpress.com,https://www.withquickpress.com,https://quickpress.online,https://www.quickpress.online,https://ops.withquickpress.com,https://admin.withquickpress.com,https://admin.quickpress.online,https://partner.withquickpress.com,https://partner.quickpress.online,https://rider.quickpress.online,https://api.withquickpress.com,https://api.quickpress.online,https://quickpress.in,https://www.quickpress.in"
 
     # --- Supabase / PostgreSQL Database ------------------------------
     supabase_url: str = ""

@@ -37,6 +37,7 @@ export default function App() {
   const [partnerStoreId, setPartnerStoreId] = useState<string>("");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedService, setSelectedService] = useState<ServiceInfo | null>(null);
+  const [toast, setToast] = useState<ToastState>({ show: false, message: "" });
   // On mobile devices, attempt instant app launch directly without showing any intermediate blocking screen
   useEffect(() => {
     if (typeof window !== "undefined" && isMobileOrTabletDevice() && !shouldBypassRedirect()) {

@@ -40,21 +40,14 @@ fi
 NITRO_PRESET=node-server npm run build
 pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
 
-# 2. Admin Frontend
-echo "🛡️ [2/5] Building Admin Console & updating static files..."
+# 2. Admin Frontend (Ops Console Node.js Service on Port 8084)
+echo "🛡️ [2/5] Building Ops / Admin Console & restarting PM2..."
 cd "$REPO_ROOT/admin-frontend"
 if [ ! -d "node_modules" ]; then
     npm install
 fi
-npm run build
-sudo mkdir -p /var/www/quickpress/admin
-sudo rm -rf /var/www/quickpress/admin/*
-if [ -d "dist" ]; then
-    sudo cp -r dist/* /var/www/quickpress/admin/
-elif [ -d ".output/public" ]; then
-    sudo cp -r .output/public/* /var/www/quickpress/admin/
-fi
-sudo chown -R www-data:www-data /var/www/quickpress/admin
+NITRO_PRESET=node-server npm run build
+pm2 restart quickpress-admin || (PORT=8084 pm2 start .output/server/index.mjs --name quickpress-admin && pm2 save)
 
 # 3. Rider Frontend
 echo "🛵 [3/5] Building Rider Console & updating static files..."
