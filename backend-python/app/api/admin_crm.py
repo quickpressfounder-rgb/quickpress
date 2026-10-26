@@ -751,9 +751,9 @@ async def get_crm_geo_pulse(
             "timeline": chart_timeline,
         },
         "location": {
-            "state": state or "All States",
-            "city": city or "All Cities",
-            "pincode": pincode or "All Pincodes",
+            "state": state_val or "All States",
+            "city": city_val or "All Cities",
+            "pincode": pin_val or "All Pincodes",
         },
     }
     await hybrid_cache.set(cache_key, res_pulse, ttl_seconds=60)
@@ -927,11 +927,11 @@ async def get_crm_leaderboard(
         "partners": top_partners[:15],
         "riders": top_riders[:15],
         "customers": top_customers[:15],
-        "timeframe": timeframe,
+        "timeframe": tf_val,
         "filters": {
-            "state": state or "All",
-            "city": city or "All",
-            "pincode": pincode or "All",
+            "state": state_val or "All",
+            "city": city_val or "All",
+            "pincode": pin_val or "All",
         },
     }
     await hybrid_cache.set(cache_key, res_lb, ttl_seconds=60)
