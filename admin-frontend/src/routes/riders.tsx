@@ -59,6 +59,9 @@ import {
   PlusCircle,
   CheckCircle,
   CheckCheck,
+  Table,
+  LayoutGrid,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -229,6 +232,7 @@ export function RidersPage() {
   const [kycFilter, setKycFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"newest" | "trips" | "rating" | "wallet">("newest");
   const [activeTab, setActiveTab] = useState("all");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
   const allRiders = ridersQuery.data ?? [];
   const stats = statsQuery.data;
@@ -628,7 +632,18 @@ export function RidersPage() {
     let filtered = allRiders.filter((r) => {
       const matchesQuery =
         !q ||
-        [r.id, r.name, r.phone, r.email, r.plate, r.vehicle, r.city, r.zone]
+        [
+          r.id,
+          r.name,
+          r.phone,
+          r.email,
+          r.plate,
+          r.vehicle,
+          r.city,
+          r.zone,
+          (r as any).pincode ? String((r as any).pincode) : "",
+          Array.isArray((r as any).operatingPincodes) ? (r as any).operatingPincodes.join(" ") : "",
+        ]
           .join(" ")
           .toLowerCase()
           .includes(q);
@@ -1867,8 +1882,9 @@ export function RidersPage() {
             VIEW B: RIDERS MASTER FLEET DIRECTORY
         ========================================================================= */
         <div className="space-y-6">
-          {/* 1. TOP KPI STATS SUMMARY BAR */}
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-6">
+          {/* 1. TOP EXECUTIVE TELEMETRY STRIP */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            {/* 1. Total Fleet Strength */}
             <div
               onClick={() => {
                 setActiveTab("all");
@@ -1877,84 +1893,100 @@ export function RidersPage() {
                 setKycFilter("all");
                 setQuery("");
               }}
-              className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
             >
-              <KpiCard
-                kpi={{
-                  id: "tot-rdr",
-                  label: "Total Fleet Strength",
-                  value: metrics.total.toLocaleString("en-IN"),
-                  hint: "Registered delivery partners",
-                  positive: true,
-                }}
-              />
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Total Fleet</span>
+                <Truck className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {metrics.total.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                Registered delivery captains
+              </p>
             </div>
+
+            {/* 2. Online Right Now */}
             <div
               onClick={() => setActiveTab("online")}
-              className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
             >
-              <KpiCard
-                kpi={{
-                  id: "onl-rdr",
-                  label: "Online Right Now",
-                  value: metrics.online.toLocaleString("en-IN"),
-                  hint: `${metrics.total ? Math.round((metrics.online / metrics.total) * 100) : 0}% fleet logged in`,
-                  positive: true,
-                }}
-              />
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Live Online</span>
+                <Activity className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {metrics.online.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                {metrics.total ? Math.round((metrics.online / metrics.total) * 100) : 0}% fleet logged in
+              </p>
             </div>
+
+            {/* 3. On Active Delivery */}
             <div
               onClick={() => setActiveTab("delivery")}
-              className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
             >
-              <KpiCard
-                kpi={{
-                  id: "busy-rdr",
-                  label: "On Active Delivery",
-                  value: metrics.busy.toLocaleString("en-IN"),
-                  hint: "Orders in transit",
-                  positive: true,
-                }}
-              />
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Active Transit</span>
+                <Navigation className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {metrics.busy.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                Orders in transit right now
+              </p>
             </div>
+
+            {/* 4. Ready Dispatch */}
             <div
               onClick={() => setActiveTab("online")}
-              className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
             >
-              <KpiCard
-                kpi={{
-                  id: "avail-rdr",
-                  label: "Available Dispatch",
-                  value: metrics.available.toLocaleString("en-IN"),
-                  hint: "Ready for auto-assignment",
-                  positive: true,
-                }}
-              />
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Ready Dispatch</span>
+                <Bike className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {metrics.available.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                Ready for auto-assignment
+              </p>
             </div>
+
+            {/* 5. KYC Verified */}
             <div
-              onClick={() => setKycFilter("pending")}
-              className="cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+              onClick={() => setKycFilter("verified")}
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
             >
-              <KpiCard
-                kpi={{
-                  id: "kyc-rdr",
-                  label: "KYC Verified",
-                  value: metrics.kycVer.toLocaleString("en-IN"),
-                  hint: `${metrics.total ? Math.round((metrics.kycVer / metrics.total) * 100) : 0}% compliance verified`,
-                  positive: true,
-                }}
-              />
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">KYC Verified</span>
+                <FileCheck className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {metrics.kycVer.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                {metrics.total ? Math.round((metrics.kycVer / metrics.total) * 100) : 0}% compliance verified
+              </p>
             </div>
-            <div className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-              <KpiCard
-                kpi={{
-                  id: "pay-rdr",
-                  label: "Total Fleet Earnings",
-                  value: `₹${metrics.totalPayouts.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
-                  hint: "Cumulative disbursements",
-                  positive: true,
-                }}
-              />
+
+            {/* 6. Fleet Earnings */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Fleet Earnings</span>
+                <Wallet className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                ₹{metrics.totalPayouts.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                Cumulative disbursements
+              </p>
             </div>
           </div>
 
@@ -2210,85 +2242,192 @@ export function RidersPage() {
             )}
           </div>
 
-          {/* 2. FLEET FILTERS BAR */}
-          <SectionCard title="Filter & Search Fleet">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 size-4 text-zinc-400" />
-                <Input
-                  placeholder="Search by name, phone, plate, ID..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="pl-9 h-10 text-xs bg-zinc-50 border-zinc-200"
-                />
-              </div>
-
-              <Select value={activeTab} onValueChange={setActiveTab}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="Duty Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Duty States</SelectItem>
-                  <SelectItem value="online">Online / Active</SelectItem>
-                  <SelectItem value="delivery">On Active Delivery</SelectItem>
-                  <SelectItem value="offline">Offline</SelectItem>
-                  <SelectItem value="pending">Pending Approval</SelectItem>
-                  <SelectItem value="suspended">Suspended / Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={city} onValueChange={setCity}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="All Cities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {cities.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={vehicleType} onValueChange={setVehicleType}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="All Vehicles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Vehicles</SelectItem>
-                  <SelectItem value="bike">🏍️ Motorbike</SelectItem>
-                  <SelectItem value="scooter">🛵 Scooter / Scooty</SelectItem>
-                  <SelectItem value="ev">⚡ Electric Vehicle (EV)</SelectItem>
-                  <SelectItem value="bicycle">🚲 Bicycle</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="Sort By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">🕒 Newest Registered</SelectItem>
-                  <SelectItem value="trips">🏆 Most Trips Delivered</SelectItem>
-                  <SelectItem value="rating">★ Highest Customer Rating</SelectItem>
-                  <SelectItem value="wallet">💰 Highest Wallet Balance</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </SectionCard>
-
-          {/* 3. MASTER RIDERS DATA TABLE */}
+          {/* Directory SectionCard */}
           <SectionCard
             title="Fleet Directory & Intelligence"
             description="Click or tap any rider row to open the complete 360° Profile View with KYC inspection, shift history, and COD wallet ledger."
           >
-            <DataTable
-              loading={ridersQuery.isLoading}
-              rows={rows}
-              onRowClick={(rider) => setSelectedId(rider.id)}
-              emptyMessage="No rider accounts found matching the specified filters."
-              columns={[
+            {/* Controls Bar */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by captain name, phone, plate, ID, pincode..."
+                  className="pl-9 pr-8 text-xs bg-white border-zinc-200 text-zinc-950 font-medium rounded-xl h-9 shadow-2xs focus-visible:ring-1 focus-visible:ring-zinc-950"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400 hover:text-zinc-700 flex items-center justify-center"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* View Mode Switcher */}
+                <div className="flex items-center border border-zinc-200 rounded-xl p-0.5 bg-zinc-50 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("table")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                      viewMode === "table"
+                        ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
+                        : "text-zinc-500 hover:text-zinc-950"
+                    }`}
+                    title="High-Density Table View"
+                  >
+                    <Table className="size-3.5" />
+                    <span>Table</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("cards")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                      viewMode === "cards"
+                        ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
+                        : "text-zinc-500 hover:text-zinc-950"
+                    }`}
+                    title="Modern Grid Cards View"
+                  >
+                    <LayoutGrid className="size-3.5" />
+                    <span>Cards</span>
+                  </button>
+                </div>
+
+                {/* City Dropdown */}
+                <Select value={city} onValueChange={setCity}>
+                  <SelectTrigger className="w-[130px] h-9 text-xs bg-white border-zinc-200 text-zinc-900 rounded-xl font-bold shadow-2xs">
+                    <SelectValue placeholder="City" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Cities</SelectItem>
+                    {cities.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Vehicle Type Dropdown */}
+                <Select value={vehicleType} onValueChange={setVehicleType}>
+                  <SelectTrigger className="w-[130px] h-9 text-xs bg-white border-zinc-200 text-zinc-900 rounded-xl font-bold shadow-2xs">
+                    <SelectValue placeholder="Vehicle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Vehicles</SelectItem>
+                    <SelectItem value="bike">🏍️ Motorbike</SelectItem>
+                    <SelectItem value="scooter">🛵 Scooter</SelectItem>
+                    <SelectItem value="ev">⚡ Electric (EV)</SelectItem>
+                    <SelectItem value="bicycle">🚲 Bicycle</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* KYC Filter Dropdown */}
+                <Select value={kycFilter} onValueChange={setKycFilter}>
+                  <SelectTrigger className="w-[140px] h-9 text-xs bg-white border-zinc-200 text-zinc-900 rounded-xl font-bold shadow-2xs">
+                    <SelectValue placeholder="KYC Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All KYC Status</SelectItem>
+                    <SelectItem value="verified">KYC Verified</SelectItem>
+                    <SelectItem value="pending">KYC Pending</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Sort By Dropdown */}
+                <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+                  <SelectTrigger className="w-[130px] h-9 text-xs bg-white border-zinc-200 text-zinc-900 rounded-xl font-bold shadow-2xs">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">🕒 Newest</SelectItem>
+                    <SelectItem value="trips">🏆 Most Trips</SelectItem>
+                    <SelectItem value="rating">★ Rating</SelectItem>
+                    <SelectItem value="wallet">💰 Balance</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* CSV Export */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  className="h-9 gap-1.5 text-xs font-bold rounded-xl border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 shadow-2xs"
+                >
+                  <Download className="size-3.5 text-zinc-700" />
+                  <span>Export CSV</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Smart Cohort Pills */}
+            <div className="flex items-center gap-1.5 pb-3 mb-4 overflow-x-auto text-xs scrollbar-thin">
+              {[
+                { id: "all", label: "All Captains", count: allRiders.length },
+                { id: "online", label: "🟢 Live Online", count: allRiders.filter((r) => r.live === "Online" || r.live === "On delivery").length },
+                { id: "delivery", label: "🚀 In Transit", count: allRiders.filter((r) => r.live === "On delivery").length },
+                { id: "resubmitted", label: "🔄 Re-Submitted", count: allRiders.filter((r) => r.resubmitted).length },
+                { id: "pending", label: "KYC Pending", count: allRiders.filter((r) => r.kyc === "Pending" || r.status === "Pending").length },
+                { id: "verified", label: "KYC Verified", count: allRiders.filter((r) => r.kyc === "Verified").length },
+                { id: "suspended", label: "Suspended", count: allRiders.filter((r) => r.status === "Suspended").length },
+              ].map((t) => {
+                const isActive =
+                  t.id === "all" ? activeTab === "all" && actionQueue === "all" && kycFilter === "all" :
+                  t.id === "online" ? activeTab === "online" :
+                  t.id === "delivery" ? activeTab === "delivery" :
+                  t.id === "resubmitted" ? actionQueue === "resubmitted" :
+                  t.id === "pending" ? activeTab === "pending" || kycFilter === "pending" :
+                  t.id === "verified" ? kycFilter === "verified" :
+                  t.id === "suspended" ? activeTab === "suspended" : false;
+
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      if (t.id === "resubmitted") {
+                        setActionQueue(actionQueue === "resubmitted" ? "all" : "resubmitted");
+                      } else if (t.id === "verified") {
+                        setKycFilter(kycFilter === "verified" ? "all" : "verified");
+                      } else {
+                        setActionQueue("all");
+                        setKycFilter("all");
+                        setActiveTab(t.id);
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black transition-all shrink-0 ${
+                      isActive
+                        ? "bg-zinc-950 text-white shadow-sm ring-1 ring-zinc-900"
+                        : "bg-white text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 border border-zinc-200/90"
+                    }`}
+                  >
+                    <span>{t.label}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black tabular-nums ${
+                        isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-600"
+                      }`}
+                    >
+                      {t.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Rider Fleet - High Density Table or Modern Grid Cards */}
+            {viewMode === "table" ? (
+              <DataTable
+                loading={ridersQuery.isLoading}
+                rows={rows}
+                onRowClick={(rider) => setSelectedId(rider.id)}
+                emptyMessage="No rider accounts found matching the specified filters."
+                columns={[
                 {
                   key: "name",
                   label: "Rider Profile",
@@ -2492,6 +2631,222 @@ export function RidersPage() {
                 },
               ]}
             />
+            ) : (
+              /* Modern Grid Cards View */
+              <div className="p-4 sm:p-5">
+                {ridersQuery.isLoading ? (
+                  <div className="py-20 text-center flex flex-col items-center justify-center">
+                    <Loader2 className="size-8 text-zinc-400 animate-spin mb-3" />
+                    <p className="text-xs font-bold text-zinc-500">Loading delivery fleet directory...</p>
+                  </div>
+                ) : rows.length === 0 ? (
+                  <div className="py-16 text-center bg-white rounded-2xl border border-zinc-200">
+                    <Truck className="size-10 text-zinc-300 mx-auto mb-3" />
+                    <h4 className="font-black text-sm text-zinc-950">No delivery captains found</h4>
+                    <p className="text-xs text-zinc-500 mt-1">Try adjusting your filters or search query.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rows.map((r) => {
+                      const isOnline = r.live === "Online";
+                      const isOnDelivery = r.live === "On delivery";
+                      const isKycVerified = r.kyc === "Verified";
+                      const isKycPending = r.kyc === "Pending";
+                      const isKycRejected = r.kyc === "Rejected";
+
+                      return (
+                        <div
+                          key={r.id}
+                          className="bg-white border border-zinc-200/90 hover:border-zinc-300 rounded-2xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                        >
+                          <div>
+                            {/* Top row: Avatar + Name + Live / KYC Badges */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative size-12 rounded-xl border border-zinc-200 bg-zinc-50 flex items-center justify-center font-black text-zinc-700 text-sm shrink-0 overflow-hidden shadow-xs">
+                                  {r.profilePhoto ? (
+                                    <img
+                                      src={r.profilePhoto}
+                                      alt={r.name}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                  ) : (
+                                    <span>{r.name.slice(0, 2).toUpperCase()}</span>
+                                  )}
+                                  <span
+                                    className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white ${
+                                      isOnline
+                                        ? "bg-emerald-500 ring-2 ring-emerald-200"
+                                        : isOnDelivery
+                                        ? "bg-sky-500 ring-2 ring-sky-200 animate-pulse"
+                                        : "bg-zinc-300"
+                                    }`}
+                                    title={r.live}
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <h4 className="font-black text-sm text-zinc-950 truncate max-w-[160px] group-hover:text-emerald-700 transition-colors">
+                                      {r.name}
+                                    </h4>
+                                    {r.trips > 50 && <Star className="size-3 fill-amber-400 text-amber-500 shrink-0" />}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
+                                    <span className="font-mono text-[10px] text-zinc-400">#{r.id.slice(0, 12)}...</span>
+                                    <span className="size-1 rounded-full bg-zinc-300" />
+                                    <span className="font-bold text-zinc-700 truncate max-w-[90px]">{r.vehicle || "Bike"}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase ${
+                                    isOnline
+                                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                      : isOnDelivery
+                                      ? "bg-sky-50 text-sky-800 border border-sky-200"
+                                      : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                                  }`}
+                                >
+                                  <span
+                                    className={`size-1.5 rounded-full ${
+                                      isOnline ? "bg-emerald-600" : isOnDelivery ? "bg-sky-600 animate-ping" : "bg-zinc-400"
+                                    }`}
+                                  />
+                                  {r.live}
+                                </span>
+
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    isKycVerified
+                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                      : r.resubmitted
+                                      ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                      : isKycPending
+                                      ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                      : isKycRejected
+                                      ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                      : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                                  }`}
+                                >
+                                  {isKycVerified
+                                    ? "KYC ✓"
+                                    : r.resubmitted
+                                    ? "🔄 Resubmitted"
+                                    : isKycPending
+                                    ? "KYC Pending"
+                                    : isKycRejected
+                                    ? "KYC Rejected"
+                                    : "KYC " + r.kyc}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Location & Contact Info */}
+                            <div className="space-y-1.5 mb-3 text-xs">
+                              <div className="flex items-center gap-1.5 text-zinc-600">
+                                <MapPin className="size-3.5 text-zinc-400 shrink-0" />
+                                <span className="truncate">
+                                  {[
+                                    r.city,
+                                    (r as any).pincode ? `PIN: ${(r as any).pincode}` : (r.zone || "Territory Hub"),
+                                  ].filter(Boolean).join(" • ")}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-zinc-600">
+                                <Phone className="size-3.5 text-zinc-400 shrink-0" />
+                                <a href={`tel:${r.phone}`} className="hover:text-emerald-600 font-mono font-medium">
+                                  {r.phone || "No phone"}
+                                </a>
+                                {r.plate && (
+                                  <>
+                                    <span className="text-zinc-300">•</span>
+                                    <span className="font-mono text-[11px] bg-zinc-100 text-zinc-800 px-1.5 py-0.5 rounded font-bold">
+                                      {r.plate}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Financials & Volume Pill Box */}
+                            <div className="grid grid-cols-3 gap-2 bg-zinc-50/80 rounded-xl p-2.5 border border-zinc-100 mb-3 text-center">
+                              <div>
+                                <div className="text-[10px] uppercase font-black tracking-wider text-zinc-400">Trips</div>
+                                <div className="text-sm font-black text-zinc-950 mt-0.5 tabular-nums">
+                                  {(r.trips || 0).toLocaleString("en-IN")}
+                                </div>
+                              </div>
+                              <div className="border-x border-zinc-200/80">
+                                <div className="text-[10px] uppercase font-black tracking-wider text-emerald-700">Earnings</div>
+                                <div className="text-sm font-black text-emerald-700 mt-0.5 tabular-nums">
+                                  {r.wallet}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase font-black tracking-wider text-amber-700">COD Float</div>
+                                <div className="text-sm font-black text-amber-700 mt-0.5 tabular-nums">
+                                  {r.codCash}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Rating, Standing, Battery / Status */}
+                            <div className="flex items-center justify-between text-xs text-zinc-600 px-0.5 mb-3">
+                              <div className="flex items-center gap-1 font-bold text-zinc-900">
+                                <Star className="size-3.5 fill-amber-400 text-amber-500" />
+                                <span>{r.rating || "5.0"}</span>
+                                <span className="text-zinc-400 font-normal">CSAT</span>
+                              </div>
+                              <div className="text-[11px] font-bold text-zinc-700">
+                                Standing: <span className={r.status === "Suspended" ? "text-rose-600 font-black" : "text-emerald-700 font-black"}>{r.status}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Bottom Actions */}
+                          <div className="pt-2 border-t border-zinc-100 flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedId(r.id)}
+                              className="flex-1 h-8 text-xs font-bold rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white shadow-xs gap-1.5"
+                            >
+                              <Eye className="size-3.5" />
+                              <span>Captain 360°</span>
+                            </Button>
+                            {r.status === "Pending" ? (
+                              <Button
+                                size="sm"
+                                className="h-8 rounded-xl bg-emerald-600 px-2.5 text-xs font-bold text-white hover:bg-emerald-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  decideMutation.mutate({ id: r.id, action: "approve" });
+                                }}
+                              >
+                                <Check className="size-3.5" />
+                              </Button>
+                            ) : null}
+                            {r.phone && (
+                              <a
+                                href={`tel:${r.phone}`}
+                                className="size-8 rounded-xl border border-zinc-200 hover:bg-zinc-50 flex items-center justify-center text-zinc-700 transition-colors"
+                                title="Call Captain"
+                              >
+                                <Phone className="size-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </SectionCard>
         </div>
       )}

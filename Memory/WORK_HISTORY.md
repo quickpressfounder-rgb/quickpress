@@ -1262,3 +1262,62 @@ This single command will automatically:
    - **Audit & Governance:** Staff internal notes, push notification dispatcher, account block/unblock.
 6. **Customer Master CSV Report Export:**
    - Generates and downloads a complete CSV audit file with Customer ID, Name, Phone, Email, City, Zone, Orders count, Spend, Wallet, Loyalty, Membership Tier, Registration timestamp, and Addresses.
+
+---
+
+## 34. Laundromat Partners & Delivery Captains Enterprise CRM & Telemetry Transformation (2026-10-26)
+
+### 1. Architectural Upgrades in Laundromat Partners Hub (`/partners`)
+1. **Section 32/33 Pure-White High-Contrast Standard:**
+   - Pure white background (`bg-white`), high-contrast subtle borders (`border-zinc-200/90`), deep-black high-legibility typography (`text-zinc-950 font-black`, `tabular-nums`). Zero dark containers, zero colored background cards.
+2. **6-Tile Executive Partner Telemetry Strip:**
+   - **Total Partners:** Total store count registered across platform hubs with live open stores count hint.
+   - **Live Open Today:** Real-time online store hubs (`allPartners.filter(p => p.isOnline || p.isOpen).length`) + active network capacity percentage.
+   - **Approval Queue:** Onboarding applications pending review + re-submitted count.
+   - **Gross Network GMV:** Real aggregated GMV processed through laundromat stores.
+   - **Merchant Payout (82%):** Live net partner earnings auto-calculated via 82% double-entry formula.
+   - **Platform Margin Float (18%):** QuickPress net commission collected (18%) + average CSAT rating.
+3. **Smart Cohort Pills & Fast Finding:**
+   - `All Stores (${allPartners.length})`
+   - `🟢 Live Online (${onlineCount})`
+   - `🔄 Re-Submitted (${resubmittedCount})`
+   - `Active (${activeCount})`
+   - `Pending Review (${pendingRequestsCount})`
+   - `Suspended (${suspendedCount})`
+   - `Blocked (${blockedCount})`
+   - Fast Search Bar: Search store name, partner ID, owner name, phone, city, pincode, service pincodes.
+   - Multi-parameter City and KYC Status dropdowns.
+4. **Dual View Mode Switcher:**
+   - **High-Density Table View (`viewMode === "table"`):** High-density financial and operations table with Store Avatar, Owner & Phone, City & Zone, Orders, Revenue, Net Earnings, 18% Commission, CSAT Rating, KYC status, Online status, and 360 Actions.
+   - **Modern Grid Cards View (`viewMode === "cards"`):** Responsive 3-column cards (`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`) with store logo / initials, live open green pulse badge, partner ID snippet, owner name, address & PIN, phone `tel:` link, 3-column financial snippet (Orders, Gross GMV, Net 82% Payout), CSAT rating, 18% commission take, and direct "Store 360° Profile" action.
+5. **CSV Export & 360 Deep Drawer:**
+   - Full CSV export and deep inspection with live store location, KYC docs zoom, and double-entry settlements.
+
+---
+
+### 2. Architectural Upgrades in Delivery Captains / Riders Hub (`/riders`)
+1. **Section 32/33 Pure-White High-Contrast Standard:**
+   - Completely upgraded from legacy colored KPI cards to pure white canvas (`bg-white`), `border-zinc-200/90`, high-contrast deep-black typography (`text-zinc-950 font-black`, `tabular-nums`).
+2. **6-Tile Executive Rider Fleet Telemetry Strip:**
+   - **Total Fleet Strength:** Total registered delivery partner count.
+   - **Live Online:** Real-time online delivery captains + `% fleet logged in`.
+   - **Active Transit:** Captains currently in transit with live orders (`metrics.busy`).
+   - **Ready Dispatch:** Captains available for auto-assignment dispatch.
+   - **KYC Verified:** Compliance-approved delivery pilots + `% verified rate`.
+   - **Fleet Earnings & Float:** Cumulative disbursements paid to riders + float balance.
+3. **Smart Cohort Pills & Fast Finding:**
+   - `All Captains (${allRiders.length})`
+   - `🟢 Live Online (${onlineCount})`
+   - `🚀 In Transit (${onDeliveryCount})`
+   - `🔄 Re-Submitted (${resubmittedCount})`
+   - `KYC Pending (${pendingKycCount})`
+   - `KYC Verified (${verifiedKycCount})`
+   - `Suspended (${suspendedCount})`
+   - Fast Search Bar: Search captain name, phone, vehicle plate, ID, city, pincode, operating zones.
+   - City, Vehicle type, KYC status, and Sort By dropdowns.
+4. **Dual View Mode Switcher:**
+   - **High-Density Table View (`viewMode === "table"`):** Compact multi-column table with Captain profile, photo, live status ring, phone, operating PIN/city, duty state, KYC status, Trips count, Wallet balance, COD cash held, and actions.
+   - **Modern Grid Cards View (`viewMode === "cards"`):** Responsive 3-column fleet cards with captain photo/avatar, live duty pulse indicator, vehicle type & license plate badge, phone `tel:` link, operating territory & PIN, 3-column financial block (Trips, Earnings, COD Cash Held), CSAT star rating, standing pill, quick approve/call actions, and "Captain 360° Profile" trigger.
+5. **Master Fleet CSV Export:**
+   - Generates and downloads full CSV report with Captain ID, Name, Phone, Email, City, Zone, Vehicle, Plate, Trips, Rating, Wallet, COD Cash, Duty state, KYC status, and timestamps.
+

@@ -57,6 +57,10 @@ import {
   IdCard,
   Landmark,
   FileCheck2,
+  Table,
+  LayoutGrid,
+  IndianRupee,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -274,6 +278,7 @@ function PartnersPage() {
   const [statusTab, setStatusTab] = useState("all");
   const [kycFilter, setKycFilter] = useState("all");
   const [activityCategoryFilter, setActivityCategoryFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
   // Modals state
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -674,7 +679,12 @@ function PartnersPage() {
           p.businessName.toLowerCase().includes(q) ||
           p.ownerName.toLowerCase().includes(q) ||
           p.phone.includes(q) ||
-          p.email.toLowerCase().includes(q);
+          p.email.toLowerCase().includes(q) ||
+          (p.city && p.city.toLowerCase().includes(q)) ||
+          (p.area && p.area.toLowerCase().includes(q)) ||
+          (p.zone && p.zone.toLowerCase().includes(q)) ||
+          ((p as any).pincode && String((p as any).pincode).includes(q)) ||
+          (Array.isArray((p as any).servicePincodes) && (p as any).servicePincodes.join(" ").includes(q));
         if (!match) return false;
       }
       if (city !== "all" && p.city !== city) return false;
@@ -2077,38 +2087,102 @@ function PartnersPage() {
               )}
             </Button>
           </div>
-          {/* Top KPI Metric Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            <KpiCard
-              title="Total Stores"
-              value={stats?.totalPartners ?? allPartners.length}
-              hint={`${stats?.onlinePartners ?? allPartners.filter((p) => p.isOnline || (p as any).isOpen).length} Live Online`}
-            />
-            <KpiCard
-              title="Active Stores"
-              value={stats?.activePartners ?? allPartners.filter((p) => p.status === "ACTIVE").length}
-              hint={`${stats?.pendingApproval ?? allPartners.filter((p) => p.status === "PENDING_APPROVAL").length} Pending`}
-            />
-            <KpiCard
-              title="Gross Network GMV"
-              value={`₹${(stats?.totalPartnerRevenue ?? allPartners.reduce((acc, p) => acc + (p.revenue || 0), 0)).toLocaleString("en-IN")}`}
-              hint="Total Delivered Orders"
-            />
-            <KpiCard
-              title="Partner Payouts"
-              value={`₹${(stats?.totalPartnerEarnings ?? allPartners.reduce((acc, p) => acc + (p.partnerEarnings || 0), 0)).toLocaleString("en-IN")}`}
-              hint="Net Partner Earnings"
-            />
-            <KpiCard
-              title="Platform Commission"
-              value={`₹${(stats?.totalCommission ?? allPartners.reduce((acc, p) => acc + (p.commission || 0), 0)).toLocaleString("en-IN")}`}
-              hint="18% Avg Commission"
-            />
-            <KpiCard
-              title="Avg Network Rating"
-              value={stats?.customerRating ?? "5.0"}
-              hint="CSAT Quality Index"
-            />
+          {/* =========================================================================
+              SECTION 1: 6-TILE EXECUTIVE PARTNER TELEMETRY STRIP (CRM PURE-WHITE)
+          ========================================================================= */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* 1. TOTAL PARTNER STORES */}
+            <div
+              onClick={() => setStatusTab("all")}
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Total Partners</span>
+                <Store className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {(stats?.totalPartners ?? allPartners.length).toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                {allPartners.filter((p) => p.isOnline || (p as any).isOpen).length} Live Open Stores
+              </p>
+            </div>
+
+            {/* 2. LIVE ONLINE STORES */}
+            <div
+              onClick={() => setStatusTab("ONLINE")}
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Live Open Today</span>
+                <Activity className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {allPartners.filter((p) => p.isOnline || (p as any).isOpen).length.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                {allPartners.length > 0 ? Math.round((allPartners.filter((p) => p.isOnline || (p as any).isOpen).length / allPartners.length) * 100) : 0}% Active Capacity
+              </p>
+            </div>
+
+            {/* 3. APPROVAL QUEUE */}
+            <div
+              onClick={() => setActiveView("requests")}
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Approval Queue</span>
+                <FileCheck2 className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                {pendingRequestsCount.toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                {allPartners.filter((p) => Boolean(p.resubmitted)).length} re-submitted requests
+              </p>
+            </div>
+
+            {/* 4. GROSS NETWORK GMV */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Gross Network GMV</span>
+                <IndianRupee className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                ₹{(stats?.totalPartnerRevenue ?? allPartners.reduce((acc, p) => acc + (p.revenue || 0), 0)).toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                Delivered laundry orders
+              </p>
+            </div>
+
+            {/* 5. MERCHANT NET PAYOUT */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Merchant Payout</span>
+                <Wallet className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                ₹{(stats?.totalPartnerEarnings ?? allPartners.reduce((acc, p) => acc + (p.partnerEarnings || 0), 0)).toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                82% Net Store Earnings
+              </p>
+            </div>
+
+            {/* 6. PLATFORM MARGIN FLOAT */}
+            <div className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Platform Margin (18%)</span>
+                <TrendingUp className="size-4 text-zinc-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
+                ₹{(stats?.totalCommission ?? allPartners.reduce((acc, p) => acc + (p.commission || 0), 0)).toLocaleString("en-IN")}
+              </div>
+              <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
+                Avg CSAT: ★{stats?.customerRating ?? "5.0"}
+              </p>
+            </div>
           </div>
 
 
@@ -2373,21 +2447,60 @@ function PartnersPage() {
           {/* Directory SectionCard */}
           <SectionCard title="Laundry Partner Network & Stores">
             {/* Controls Bar */}
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search partner ID, store name, owner, phone..."
-                  className="pl-9 text-xs bg-zinc-50 border-zinc-200 text-zinc-900 rounded-xl"
+                  placeholder="Search store name, ID, owner, phone, city, pincode..."
+                  className="pl-9 pr-8 text-xs bg-white border-zinc-200 text-zinc-950 font-medium rounded-xl h-9 shadow-2xs focus-visible:ring-1 focus-visible:ring-zinc-950"
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400 hover:text-zinc-700 flex items-center justify-center"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                {/* View Mode Switcher */}
+                <div className="flex items-center border border-zinc-200 rounded-xl p-0.5 bg-zinc-50 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("table")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                      viewMode === "table"
+                        ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
+                        : "text-zinc-500 hover:text-zinc-950"
+                    }`}
+                    title="High-Density Table View"
+                  >
+                    <Table className="size-3.5" />
+                    <span>Table</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("cards")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                      viewMode === "cards"
+                        ? "bg-white text-zinc-950 shadow-xs border border-zinc-200/80"
+                        : "text-zinc-500 hover:text-zinc-950"
+                    }`}
+                    title="Modern Grid Cards View"
+                  >
+                    <LayoutGrid className="size-3.5" />
+                    <span>Cards</span>
+                  </button>
+                </div>
+
                 {/* City Dropdown */}
                 <Select value={city} onValueChange={setCity}>
-                  <SelectTrigger className="w-[130px] h-9 text-xs bg-zinc-50 border-zinc-200">
+                  <SelectTrigger className="w-[130px] h-9 text-xs bg-white border-zinc-200 text-zinc-900 rounded-xl font-bold shadow-2xs">
                     <SelectValue placeholder="City" />
                   </SelectTrigger>
                   <SelectContent>
@@ -2402,13 +2515,13 @@ function PartnersPage() {
 
                 {/* KYC Filter Dropdown */}
                 <Select value={kycFilter} onValueChange={setKycFilter}>
-                  <SelectTrigger className="w-[140px] h-9 text-xs bg-zinc-50 border-zinc-200">
+                  <SelectTrigger className="w-[140px] h-9 text-xs bg-white border-zinc-200 text-zinc-900 rounded-xl font-bold shadow-2xs">
                     <SelectValue placeholder="KYC Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All KYC</SelectItem>
-                    <SelectItem value="verified">Verified</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="all">All KYC Status</SelectItem>
+                    <SelectItem value="verified">KYC Verified</SelectItem>
+                    <SelectItem value="pending">KYC Pending</SelectItem>
                     <SelectItem value="resubmitted">🔄 Re-Submitted</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
                   </SelectContent>
@@ -2418,10 +2531,10 @@ function PartnersPage() {
                 <Button
                   size="sm"
                   onClick={() => setAddModalOpen(true)}
-                  className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                  className="h-9 gap-1.5 text-xs font-bold rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white shadow-xs"
                 >
                   <PlusCircle className="size-3.5" />
-                  <span>Add Partner Store</span>
+                  <span>Add Store</span>
                 </Button>
 
                 {/* CSV Export */}
@@ -2429,41 +2542,54 @@ function PartnersPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleExportCSV}
-                  className="h-9 gap-1.5 text-xs font-bold rounded-xl border-zinc-200 text-zinc-800 hover:bg-zinc-100 shadow-xs"
+                  className="h-9 gap-1.5 text-xs font-bold rounded-xl border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 shadow-2xs"
                 >
-                  <Download className="size-3.5 text-emerald-600" />
+                  <Download className="size-3.5 text-zinc-700" />
                   <span>Export CSV</span>
                 </Button>
               </div>
             </div>
 
-            {/* Status Tabs */}
-            <div className="flex items-center gap-1 border-b border-zinc-100 pb-3 mb-4 overflow-x-auto text-xs">
+            {/* Smart Cohort Pills */}
+            <div className="flex items-center gap-1.5 pb-3 mb-4 overflow-x-auto text-xs scrollbar-thin">
               {[
-                { id: "all", label: `All Stores (${allPartners.length})` },
-                { id: "RESUBMITTED", label: `🔄 Re-Submitted (${allPartners.filter((p) => Boolean(p?.resubmitted)).length})` },
-                { id: "ONLINE", label: `🟢 Live Online (${allPartners.filter((p) => p?.isOnline || (p as any).isOpen).length})` },
-                { id: "ACTIVE", label: `Active (${allPartners.filter((p) => p?.status === "ACTIVE").length})` },
-                { id: "PENDING_APPROVAL", label: `Pending Review (${allPartners.filter((p) => p?.status === "PENDING_APPROVAL").length})` },
-                { id: "TEMPORARILY_SUSPENDED", label: `Suspended (${allPartners.filter((p) => p?.status === "TEMPORARILY_SUSPENDED").length})` },
-                { id: "PERMANENTLY_BLOCKED", label: `Blocked (${allPartners.filter((p) => p?.status === "PERMANENTLY_BLOCKED").length})` },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setStatusTab(t.id)}
-                  className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
-                    statusTab === t.id ? "bg-emerald-600 text-white shadow-xs" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+                { id: "all", label: "All Stores", count: allPartners.length },
+                { id: "ONLINE", label: "🟢 Live Online", count: allPartners.filter((p) => p?.isOnline || (p as any).isOpen).length },
+                { id: "RESUBMITTED", label: "🔄 Re-Submitted", count: allPartners.filter((p) => Boolean(p?.resubmitted)).length },
+                { id: "ACTIVE", label: "Active", count: allPartners.filter((p) => p?.status === "ACTIVE").length },
+                { id: "PENDING_APPROVAL", label: "Pending Review", count: allPartners.filter((p) => p?.status === "PENDING_APPROVAL").length },
+                { id: "TEMPORARILY_SUSPENDED", label: "Suspended", count: allPartners.filter((p) => p?.status === "TEMPORARILY_SUSPENDED").length },
+                { id: "PERMANENTLY_BLOCKED", label: "Blocked", count: allPartners.filter((p) => p?.status === "PERMANENTLY_BLOCKED").length },
+              ].map((t) => {
+                const isActive = statusTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setStatusTab(t.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black transition-all shrink-0 ${
+                      isActive
+                        ? "bg-zinc-950 text-white shadow-sm ring-1 ring-zinc-900"
+                        : "bg-white text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 border border-zinc-200/90"
+                    }`}
+                  >
+                    <span>{t.label}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black tabular-nums ${
+                        isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-600"
+                      }`}
+                    >
+                      {t.count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Partner Stores DataTable */}
-            <DataTable
-              headers={["Partner Store", "Owner / Phone", "City / Zone", "Orders", "Revenue", "Earnings", "Commission", "Rating", "KYC", "Status", "Actions"]}
-              loading={partnersQuery.isLoading}
+            {/* Partner Stores - High Density Table or Modern Grid Cards */}
+            {viewMode === "table" ? (
+              <DataTable
+                headers={["Partner Store", "Owner / Phone", "City / Zone", "Orders", "Revenue", "Earnings", "Commission", "Rating", "KYC", "Status", "Actions"]}
+                loading={partnersQuery.isLoading}
               rows={filteredRows.map((r) => [
                 /* Column 1: Store info with real logo / photo */
                 <div
@@ -2601,6 +2727,190 @@ function PartnersPage() {
                 </div>,
               ])}
             />
+            ) : (
+              /* Modern Grid Cards View */
+              <div className="p-4 sm:p-5">
+                {partnersQuery.isLoading ? (
+                  <div className="py-20 text-center flex flex-col items-center justify-center">
+                    <Loader2 className="size-8 text-zinc-400 animate-spin mb-3" />
+                    <p className="text-xs font-bold text-zinc-500">Loading partner store directory...</p>
+                  </div>
+                ) : filteredRows.length === 0 ? (
+                  <div className="py-16 text-center bg-white rounded-2xl border border-zinc-200">
+                    <Store className="size-10 text-zinc-300 mx-auto mb-3" />
+                    <h4 className="font-black text-sm text-zinc-950">No partner stores found</h4>
+                    <p className="text-xs text-zinc-500 mt-1">Try adjusting your filters or search query.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredRows.map((r) => {
+                      const isOnline = Boolean(r.isOnline || (r as any).isOpen);
+                      const kycLower = (r.kycStatus || "").toLowerCase();
+                      const isKycVerified = kycLower === "verified";
+                      const isKycPending = kycLower === "pending" || kycLower === "under_review";
+                      const isKycResubmitted = Boolean(r.resubmitted) || kycLower.includes("resubmit");
+
+                      return (
+                        <div
+                          key={r.id}
+                          className="bg-white border border-zinc-200/90 hover:border-zinc-300 rounded-2xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                        >
+                          <div>
+                            {/* Top row: Avatar + Name + Online / KYC Badges */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative size-12 rounded-xl border border-zinc-200 bg-zinc-50 flex items-center justify-center font-black text-zinc-700 text-sm shrink-0 overflow-hidden shadow-xs">
+                                  {r.logo || r.ownerPhoto ? (
+                                    <img
+                                      src={r.logo || r.ownerPhoto}
+                                      alt={r.businessName}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                  ) : (
+                                    <span>{(r.businessName || "KP").substring(0, 2).toUpperCase()}</span>
+                                  )}
+                                  <span
+                                    className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white ${
+                                      isOnline ? "bg-emerald-500 animate-pulse" : "bg-zinc-300"
+                                    }`}
+                                    title={isOnline ? "Store is live open" : "Store is closed"}
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="font-black text-sm text-zinc-950 truncate max-w-[180px] group-hover:text-emerald-700 transition-colors">
+                                    {r.businessName}
+                                  </h4>
+                                  <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5 font-mono">
+                                    <span>{r.id.substring(0, 14)}...</span>
+                                    <span className="size-1 rounded-full bg-zinc-300" />
+                                    <span className="font-medium font-sans text-zinc-600 truncate max-w-[80px]">
+                                      {r.ownerName || "Owner"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase ${
+                                    isOnline
+                                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                      : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                                  }`}
+                                >
+                                  <span className={`size-1.5 rounded-full ${isOnline ? "bg-emerald-600" : "bg-zinc-400"}`} />
+                                  {isOnline ? "Open" : "Closed"}
+                                </span>
+
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    isKycVerified
+                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                      : isKycResubmitted
+                                      ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                      : isKycPending
+                                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                      : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                                  }`}
+                                >
+                                  {isKycVerified
+                                    ? "KYC ✓"
+                                    : isKycResubmitted
+                                    ? "🔄 Resubmitted"
+                                    : isKycPending
+                                    ? "KYC Pending"
+                                    : "KYC " + (r.kycStatus || "Draft")}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Location & Contact Info */}
+                            <div className="space-y-1.5 mb-3 text-xs">
+                              <div className="flex items-center gap-1.5 text-zinc-600">
+                                <MapPin className="size-3.5 text-zinc-400 shrink-0" />
+                                <span className="truncate">
+                                  {[r.area, r.city, (r as any).pincode].filter(Boolean).join(", ") || "Location not set"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-zinc-600">
+                                <Phone className="size-3.5 text-zinc-400 shrink-0" />
+                                <a href={`tel:${r.phone}`} className="hover:text-emerald-600 font-mono font-medium">
+                                  {r.phone || "No phone"}
+                                </a>
+                                {r.email && (
+                                  <>
+                                    <span className="text-zinc-300">•</span>
+                                    <span className="truncate text-zinc-500">{r.email}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Financials & Volume Pill Box */}
+                            <div className="grid grid-cols-3 gap-2 bg-zinc-50/80 rounded-xl p-2.5 border border-zinc-100 mb-3 text-center">
+                              <div>
+                                <div className="text-[10px] uppercase font-black tracking-wider text-zinc-400">Orders</div>
+                                <div className="text-sm font-black text-zinc-950 mt-0.5 tabular-nums">
+                                  {(r.orders || 0).toLocaleString("en-IN")}
+                                </div>
+                              </div>
+                              <div className="border-x border-zinc-200/80">
+                                <div className="text-[10px] uppercase font-black tracking-wider text-zinc-400">Gross GMV</div>
+                                <div className="text-sm font-black text-zinc-950 mt-0.5 tabular-nums">
+                                  ₹{(r.revenue || 0).toLocaleString("en-IN")}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase font-black tracking-wider text-emerald-700">Net (82%)</div>
+                                <div className="text-sm font-black text-emerald-700 mt-0.5 tabular-nums">
+                                  ₹{(r.partnerEarnings || 0).toLocaleString("en-IN")}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Rating, Commission, Platform Float */}
+                            <div className="flex items-center justify-between text-xs text-zinc-600 px-0.5 mb-3">
+                              <div className="flex items-center gap-1 font-bold text-zinc-900">
+                                <Star className="size-3.5 fill-amber-400 text-amber-500" />
+                                <span>{r.rating ? r.rating.toFixed(1) : "5.0"}</span>
+                                <span className="text-zinc-400 font-normal">CSAT</span>
+                              </div>
+                              <div className="text-[11px] font-semibold text-zinc-500">
+                                Margin: <span className="text-zinc-900 font-black">18%</span> (₹{(r.commission || 0).toLocaleString("en-IN")})
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Bottom Actions */}
+                          <div className="pt-2 border-t border-zinc-100 flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedId(r.id)}
+                              className="flex-1 h-8 text-xs font-bold rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white shadow-xs gap-1.5"
+                            >
+                              <Eye className="size-3.5" />
+                              <span>Store 360° Profile</span>
+                            </Button>
+                            {r.phone && (
+                              <a
+                                href={`tel:${r.phone}`}
+                                className="size-8 rounded-xl border border-zinc-200 hover:bg-zinc-50 flex items-center justify-center text-zinc-700 transition-colors"
+                                title="Call Store Partner"
+                              >
+                                <Phone className="size-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </SectionCard>
         </div>
       )}
