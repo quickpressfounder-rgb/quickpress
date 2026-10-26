@@ -2998,9 +2998,11 @@ class AdminDashboardRepository:
         effective_revenue = curr_revenue
         effective_orders_cnt = len(curr_orders)
 
-        platform_commission = round((curr_revenue if curr_revenue > 0 else total_revenue) * 0.18)
-        partner_earnings = round((curr_revenue if curr_revenue > 0 else total_revenue) * 0.70)
-        rider_earnings = round((curr_revenue if curr_revenue > 0 else total_revenue) * 0.12)
+        curr_delivered = [o for o in curr_orders if o.get("status") == "delivered"]
+        platform_commission = round(curr_revenue * 0.18)
+        partner_earnings = round(curr_revenue * 0.70)
+        rider_earnings = round(curr_revenue * 0.12)
+        lifetime_platform_commission = round(total_revenue * 0.18)
         refunds_total = sum((o.get("totals") or {}).get("grandTotal", 0) for o in cancelled_orders)
 
         payouts = await database.find_many("admin_payouts")
@@ -3261,6 +3263,7 @@ class AdminDashboardRepository:
             "periodOrders": len(curr_orders),
             "liveOrders": len(active_orders),
             "deliveredOrders": len(delivered_orders),
+            "periodDeliveredOrders": len(curr_delivered),
             "cancelledOrders": len(cancelled_orders),
             "delayedOrders": len(delayed_orders),
             "ordersTrend": {"value": len(curr_orders), "changePct": ord_pct, "positive": ord_pct >= 0},
@@ -3270,6 +3273,7 @@ class AdminDashboardRepository:
             "todayRevenue": curr_revenue,
             "periodRevenue": curr_revenue,
             "platformCommission": platform_commission,
+            "lifetimePlatformCommission": lifetime_platform_commission,
             "pendingPayoutAmount": pending_settlement,
             "totalCustomers": len(customers),
             "activeCustomers": active_customers,

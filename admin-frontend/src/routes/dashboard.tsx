@@ -103,7 +103,7 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const [healthModalOpen, setHealthModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month" | "all">("all");
+  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "7d" | "30d" | "this_month" | "all">("today");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   const [chartPeriod, setChartPeriod] = useState<"today" | "7d" | "30d" | "all">("7d");
@@ -265,7 +265,8 @@ export function DashboardPage() {
   const totalOrders = data?.totalOrders || 0;
   const periodOrders = data?.periodOrders ?? (dateFilter === "all" ? data?.totalOrders : data?.todayOrders) ?? 0;
   const deliveredOrders = data?.deliveredOrders || 0;
-  const fulfillmentPercentage = Math.min(100, Math.round((deliveredOrders / (totalOrders || 1)) * 100));
+  const periodDelivered = data?.periodDeliveredOrders ?? (dateFilter === "all" ? data?.deliveredOrders : 0) ?? 0;
+  const fulfillmentPercentage = Math.min(100, Math.round(((dateFilter === "all" ? deliveredOrders : periodDelivered) / (periodOrders || 1)) * 100));
 
   const totalRiders = data?.totalRiders || 0;
   const onlineRiders = data?.onlineRiders || 0;
@@ -277,6 +278,8 @@ export function DashboardPage() {
 
   const lifetimeRevenue = data?.revenue || 0;
   const periodRevenue = data?.periodRevenue ?? (dateFilter === "all" ? data?.revenue : data?.todayRevenue) ?? 0;
+  const periodCommission = data?.platformCommission ?? 0;
+  const lifetimeCommission = data?.lifetimePlatformCommission ?? Math.round(lifetimeRevenue * 0.18);
   const averageOrderValue = periodOrders > 0 ? Math.round(periodRevenue / periodOrders) : (totalOrders > 0 ? Math.round(lifetimeRevenue / totalOrders) : 0);
 
   const twoRide = data?.twoRideStatus || {
@@ -297,12 +300,12 @@ export function DashboardPage() {
     return list;
   }, [data?.cityBreakdown]);
 
-  const isFiltered = dateFilter !== "all" || cityFilter !== "all" || serviceFilter !== "all";
+  const isFiltered = dateFilter !== "today" || cityFilter !== "all" || serviceFilter !== "all";
   const resetFilters = () => {
-    setDateFilter("all");
+    setDateFilter("today");
     setCityFilter("all");
     setServiceFilter("all");
-    toast.info("Dashboard filters reset to All Time & All Operating Hubs");
+    toast.info("Dashboard filters reset to Today & All Operating Hubs");
   };
 
   return (
@@ -362,12 +365,12 @@ export function DashboardPage() {
               <span>TIMEFRAME:</span>
             </span>
             {[
-              { id: "all", label: "All Time" },
               { id: "today", label: "Today" },
               { id: "yesterday", label: "Yesterday" },
               { id: "7d", label: "Last 7 Days" },
               { id: "30d", label: "Last 30 Days" },
               { id: "this_month", label: "This Month" },
+              { id: "all", label: "All Time" },
             ].map((d) => {
               const active = dateFilter === d.id;
               return (
@@ -615,10 +618,10 @@ export function DashboardPage() {
             <div className="mt-3.5 flex items-baseline justify-between">
               <div>
                 <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                  {currency(data?.platformCommission)}
+                  {currency(periodCommission)}
                 </p>
                 <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Platform Earnings Cut
+                  Platform Earnings Cut ({dateFilter === "all" ? "All Time" : dateFilter.toUpperCase()})
                 </p>
               </div>
             </div>
@@ -628,8 +631,8 @@ export function DashboardPage() {
             </div>
 
             <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
-              <span>Pending Settlement Float</span>
-              <span className="text-amber-800 font-black">{currency(data?.pendingPayoutAmount)}</span>
+              <span>Lifetime Net Commission (18%)</span>
+              <span className="text-indigo-950 font-black">{currency(lifetimeCommission)}</span>
             </div>
           </div>
 
@@ -663,7 +666,7 @@ export function DashboardPage() {
                   {count(periodOrders)}
                 </p>
                 <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  {count(data?.liveOrders)} Active · {count(totalOrders)} Total Lifetime
+                  {dateFilter === "all" ? `${count(data?.liveOrders)} Active in Flight` : `${count(periodOrders)} Orders Placed (${dateFilter.toUpperCase()})`}
                 </p>
               </div>
               <div className="text-right">
@@ -681,8 +684,8 @@ export function DashboardPage() {
             </div>
 
             <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
-              <span>Delivered: <span className="text-zinc-950 font-black">{count(data?.deliveredOrders)}</span></span>
-              <span>Delayed: <span className="text-rose-700 font-black">{count(data?.delayedOrders)}</span></span>
+              <span>Delivered in Period: <span className="text-zinc-950 font-black">{count(dateFilter === "all" ? deliveredOrders : periodDelivered)}</span></span>
+              <span>Total Orders Lifetime: <span className="text-zinc-950 font-black">{count(totalOrders)}</span></span>
             </div>
           </div>
 

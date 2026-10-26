@@ -98,6 +98,7 @@ export type BackendDashboardSummary = {
   periodOrders?: number;
   liveOrders: number;
   deliveredOrders: number;
+  periodDeliveredOrders?: number;
   cancelledOrders: number;
   delayedOrders: number;
   ordersTrend?: { value: number; changePct: number; positive: boolean };
@@ -106,6 +107,7 @@ export type BackendDashboardSummary = {
   todayRevenue: number;
   periodRevenue?: number;
   platformCommission: number;
+  lifetimePlatformCommission?: number;
   pendingPayoutAmount: number;
   totalCustomers: number;
   activeCustomers: number;
