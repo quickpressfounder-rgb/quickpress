@@ -28,10 +28,17 @@ jobs:
             sudo rm -rf /var/www/quickpress/website/*
             sudo cp -r dist/* /var/www/quickpress/website/
 
-            echo "🏬 [3/3] Building Partner Portal & restarting PM2..."
+            echo "🏬 [3/4] Building Partner Portal & restarting PM2..."
             cd ~/quickpress/partner-frontend
             NITRO_PRESET=node-server npm run build
             pm2 restart quickpress-partner || (PORT=8082 pm2 start .output/server/index.mjs --name quickpress-partner && pm2 save)
 
+            echo "🛡️ [4/4] Building Ops / Admin Console & restarting PM2..."
+            cd ~/quickpress/admin-frontend
+            NITRO_PRESET=node-server npm run build
+            pm2 restart quickpress-admin || (PORT=8084 pm2 start .output/server/index.mjs --name quickpress-admin && pm2 save)
+
+            echo "🌐 Syncing Nginx configuration..."
+            sudo cp ~/quickpress/scripts/quickpress_nginx.conf /etc/nginx/sites-available/quickpress.conf
             sudo nginx -t && sudo systemctl reload nginx
             echo "✅ QuickPress Auto-Deployment Finished Successfully!"
