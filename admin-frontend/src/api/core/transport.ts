@@ -67,6 +67,7 @@ async function httpRequest<T>(
   try {
     const response = await fetch(`${apiBaseUrl()}${withQuery(path, options.params)}`, {
       method,
+      credentials: "include",
       headers: {
         Accept: "application/json",
         ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),

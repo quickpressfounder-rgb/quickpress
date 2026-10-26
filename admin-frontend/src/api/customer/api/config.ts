@@ -43,6 +43,12 @@ export function apiBaseUrl(): string {
     const isHttps = window.location.protocol === "https:";
     const host = window.location.hostname;
 
+    // 0. If running on Admin Console behind Cloudflare Zero Trust (ops.withquickpress.com or ops/admin subdomain):
+    // Use relative path "" so requests stay on ops.withquickpress.com/api/* and carry Cloudflare Zero Trust perimeter headers!
+    if (host.includes("ops.") || host.includes("admin.") || host === "ops.withquickpress.com") {
+      return "";
+    }
+
     // 1. If running on an HTTPS page (Vercel, Lovable, production domain):
     // Browser strictly blocks insecure HTTP requests as Mixed Content.
     if (isHttps) {
