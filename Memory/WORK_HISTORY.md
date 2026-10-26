@@ -253,6 +253,48 @@
 - **Build & Verification Status:**
   - `npm --prefix admin-frontend run build`: PASSED (0 errors, clean Nitro bundle).
 
+### 30. 100% Real Supabase Data Integration, Antigravity Typography, and Reactive Multi-Dimensional Dashboard Filters
+- **Commit Hash:** `6366b2d`
+- **User Requirement:**
+  - Remove all mock/fallback data from the Admin Dashboard and aggregate 100% genuine live metrics directly from Supabase PostgreSQL (`customer_orders`, `rides`, `partner_profiles`, `rider_profiles`).
+  - Adopt modern Antigravity IDE typography (`Plus Jakarta Sans`, `Geist`, `Inter`) across the application with optimized font smoothing.
+  - Make all dashboard filters genuinely functional, reactive, and transparent across Timeframes (Today, Yesterday, Last 7 Days, Last 30 Days, This Month, All Time), Operating Cities, and Service Verticals.
+- **Architecture & Technical Decisions:**
+  - **1. Zero Mock / Fallback Elimination (`backend-python/app/db/admin_repositories.py`):**
+    - Removed synthetic fallback that previously reverted `curr_revenue` to `total_revenue` (₹8,296) whenever selected period was 0, which previously caused the filter to appear unresponsive.
+    - Added dedicated `periodRevenue` and `periodOrders` fields returned alongside lifetime `revenue` and `totalOrders`.
+    - Implemented `_normalize_city()` and `_match_city()` with fuzzy string and address substring matching to correctly associate orders (e.g. `"Kasganj, Kasganj 207123"` correctly matches `"Kasganj"`).
+    - Implemented `_match_service()` matching service labels (`wash`, `iron`, `dry`, `shoe`).
+    - Fixed Two-Ride status counts to accurately map live Supabase status values (`OFFER_SENT`, `ACCEPTED`, `COMPLETED`, `CANCELLED`, `NO_RIDER_FOUND`).
+    - In `_series`, implemented continuous calendar day generation for chronological timelines across 7d, 30d, today, and all-time views.
+  - **2. Query Routing & Filter Propagation (`backend-python/app/api/admin.py` & `admin-frontend/src/api/dashboard.ts`):**
+    - Wired `city`, `service`, and `period` query parameters to `/dashboard/revenue-series` and `/dashboard/orders-series`.
+    - Updated frontend API client `fetchRevenueSeries` and `fetchOrdersSeries` to forward active filters.
+  - **3. Antigravity Typography System (`styles.css`, `theme.css`, `__root.tsx`):**
+    - Loaded Google Fonts `Plus Jakarta Sans`, `Geist`, and `Inter` in `__root.tsx` head.
+    - Configured `--font-sans` token across Tailwind and CSS variables.
+    - Enforced `font-family: var(--font-sans)` on `html, body, *, input, select, textarea, button`.
+  - **4. Reactive Dashboard UI (`admin-frontend/src/routes/dashboard.tsx`):**
+    - Added "All Time" to Timeframe switcher alongside Today, Yesterday, 7D, 30D, and This Month.
+    - Dynamically extracted operating hubs from live `cityBreakdown` data.
+    - Added high-contrast active filter badge strip showing matching order counts, GMV, and a 1-click "Reset Filters" action.
+    - Wired `revenue` chart query to dynamically pass `chartPeriod`, `cityFilter`, and `serviceFilter`.
+- **Modified Files:**
+  - `backend-python/app/db/admin_repositories.py`
+  - `backend-python/app/api/admin.py`
+  - `admin-frontend/src/api/dashboard.ts`
+  - `admin-frontend/src/routes/dashboard.tsx`
+  - `admin-frontend/src/routes/__root.tsx`
+  - `admin-frontend/src/styles.css`
+  - `admin-frontend/src/shared/styles/theme.css`
+  - `Memory/WORK_HISTORY.md`
+- **Verification & Deployment:**
+  - Local Vite / TanStack Start build: PASSED (0 errors).
+  - Git Commit & Push: Committed to `origin/main` (commit `6366b2d`).
+  - Production Deployment on AWS EC2 (`65.0.127.43`):
+    - `quickpress-backend` restarted inside Docker and verified healthy (`HTTP 200`).
+    - `quickpress-admin` recompiled with `NITRO_PRESET=node-server` and restarted on PM2 port `8084` (`HTTP 200`).
+
 ---
 
 ## Detailed Log of Work Done Today (25 October 2026)
