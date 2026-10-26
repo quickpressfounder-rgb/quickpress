@@ -290,10 +290,11 @@
   - `Memory/WORK_HISTORY.md`
 - **Verification & Deployment:**
   - Local Vite / TanStack Start build: PASSED (0 errors).
-  - Git Commit & Push: Committed to `origin/main` (commit `6366b2d`).
+  - Git Commit & Push: Committed to `origin/main` (commits `6366b2d` & `bdf9664`).
   - Production Deployment on AWS EC2 (`65.0.127.43`):
-    - `quickpress-backend` restarted inside Docker and verified healthy (`HTTP 200`).
-    - `quickpress-admin` recompiled with `NITRO_PRESET=node-server` and restarted on PM2 port `8084` (`HTTP 200`).
+    - Default filter set to **Today**: strictly returns 0 orders and ₹0 GMV, with zero artificial fallback.
+    - `quickpress-backend` container code updated and verified returning `todayOrders: 0`, `todayRevenue: 0`, `platformCommission: 0` alongside `lifetimeRevenue: 9190`.
+    - `quickpress-admin` recompiled and restarted on PM2 port `8084` (`HTTP 200`).
 
 ---
 
