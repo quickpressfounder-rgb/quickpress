@@ -666,7 +666,7 @@ async def admin_cf_sso_login(request: Request) -> AuthSessionResponse:
 
     # 6. Audit log login event
     try:
-        from app.db.audit_repository import audit_repository
+        from app.db.admin_repositories import audit_repository
         actor_id = email
         await audit_repository.log(
             actor_id,
