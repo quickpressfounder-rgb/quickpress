@@ -2,51 +2,40 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  MapPinPlus,
   MapPin,
   Building2,
   Truck,
   Users,
-  ShoppingBag,
   TrendingUp,
-  Download,
   Plus,
   Search,
   Filter,
   Layers,
-  Sparkles,
-  ChevronRight,
   Store,
-  Compass,
   Globe2,
   Landmark,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  XCircle,
   IndianRupee,
   Bike,
   RefreshCw,
   Eye,
-  Sliders,
   Save,
   Phone,
   Radio,
-  Navigation,
   Check,
   Zap,
   Edit2,
   Trash2,
   Crosshair,
   UserCheck,
-  Route as RouteIcon,
-  Trophy,
-  Award,
-  ArrowRight,
-  Package,
   CircleDollarSign,
   Hash,
   Activity,
+  SlidersHorizontal,
+  ChevronRight,
+  Sliders,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -105,14 +94,14 @@ export const Route = createFileRoute("/cities")({
   beforeLoad: requireAdminSession,
   head: () =>
     adminHead(
-      "State, City & Pincode Territory Engine",
-      "Full state-level territory hierarchy, city-wise pincode serviceability, partner store coverage, rider fleet stationing, and revenue intelligence.",
+      "Cities & Regional Hubs Engine",
+      "Enterprise city territory hierarchy, pincode serviceability, partner store coverage, rider fleet stationing, and pod dispatch intelligence.",
     ),
   component: CitiesPage,
 });
 
 /* =========================================================================
-   HELPER: Compute Rich Non-Zero Pincode Details for Any City
+   HELPER: Compute Rich Pincode Details from Live Database Intelligence
 ========================================================================= */
 function getEnrichedPincodes(
   city: CityIntelligence,
@@ -185,6 +174,7 @@ export function CitiesPage() {
   const [selectedState, setSelectedState] = useState<string>("All States");
   const [selectedCityId, setSelectedCityId] = useState<string>("");
   const [selectedPincode, setSelectedPincode] = useState<string>("");
+  const [searchFilter, setSearchFilter] = useState<string>("");
 
   const [waveConfigState, setWaveConfigState] = useState<Partial<ZomatoDispatchConfig>>({
     wave1RadiusKm: 1.8,
@@ -209,7 +199,7 @@ export function CitiesPage() {
   const updateDispatchMutation = useMutation({
     mutationFn: updateDispatchConfig,
     onSuccess: (data) => {
-      toast.success("⚡ Zomato Pod & Wave Dispatch configuration updated!");
+      toast.success("Zomato Pod & Wave dispatch parameters saved.");
       queryClient.setQueryData(["admin", "dispatch", "config"], data);
     },
     onError: (err: any) => {
@@ -217,7 +207,7 @@ export function CitiesPage() {
     },
   });
 
-  // Modals state
+  // Modal Dialogs state
   const [editingPincode, setEditingPincode] = useState<{ cityId: string; pincode: string; detail: PincodeDetail } | null>(null);
   const [assigningPartner, setAssigningPartner] = useState<{ partner: CityPartner | PincodePartner; cityId: string; cityName: string } | null>(null);
   const [assigningRider, setAssigningRider] = useState<{ rider: CityCaptain | PincodeCaptain; cityId: string; cityName: string } | null>(null);
@@ -229,9 +219,8 @@ export function CitiesPage() {
   }, [citiesQuery.data]);
 
   const stats = statsQuery.data;
-  const rawStates = statesQuery.data ?? [];
 
-  // All unique states derived dynamically
+  // Derive unique states dynamically from database collections
   const stateList = useMemo(() => {
     const map = new Map<string, AdminState>();
 
@@ -248,425 +237,374 @@ export function CitiesPage() {
         sales: 0,
       };
       existing.citiesCount += 1;
-      if (c.status === "Live") existing.liveCities += 1;
+      if (c.status === "Active") existing.liveCities += 1;
       existing.partners += c.totalPartners || 0;
       existing.riders += c.totalRiders || 0;
       existing.customers += c.totalCustomers || 0;
       existing.orders += c.financials?.totalOrders || 0;
-      existing.sales += c.financials?.grossRevenue || 0;
+      existing.sales += c.financials?.grossRevenue || 0.0;
       map.set(sName, existing);
     }
 
-    for (const s of rawStates) {
-      if (!map.has(s.state)) {
-        map.set(s.state, s);
-      }
-    }
+    return Array.from(map.values()).sort((a, b) => b.citiesCount - a.citiesCount);
+  }, [allCities]);
 
-    return Array.from(map.values());
-  }, [allCities, rawStates]);
-
-  // Cities filtered by selected state
+  // Filter cities by state and optional text search
   const filteredCities = useMemo(() => {
-    if (selectedState === "All States") return allCities;
-    return allCities.filter((c) => c.state.toLowerCase() === selectedState.toLowerCase());
-  }, [allCities, selectedState]);
+    let list = allCities;
+    if (selectedState !== "All States") {
+      list = list.filter((c) => c.state.toLowerCase() === selectedState.toLowerCase());
+    }
+    if (searchFilter.trim()) {
+      const q = searchFilter.toLowerCase().trim();
+      list = list.filter(
+        (c) =>
+          c.city.toLowerCase().includes(q) ||
+          c.state.toLowerCase().includes(q) ||
+          (c.pincodes || []).some((pin) => pin.includes(q))
+      );
+    }
+    return list;
+  }, [allCities, selectedState, searchFilter]);
 
-  // Active city for deep drilldown
-  const currentCity: CityIntelligence | null = useMemo(() => {
-    if (allCities.length === 0) return null;
-    const matchInFiltered = filteredCities.find(
-      (c) =>
-        c.id === selectedCityId ||
-        c.city.toLowerCase() === selectedCityId.toLowerCase() ||
-        selectedCityId.toLowerCase().includes(c.city.toLowerCase()) ||
-        c.city.toLowerCase().includes(selectedCityId.toLowerCase())
-    );
-    if (matchInFiltered) return matchInFiltered;
+  // Active City
+  const currentCity = useMemo(() => {
+    if (selectedCityId) {
+      const found = allCities.find((c) => c.id === selectedCityId);
+      if (found) return found;
+    }
     return filteredCities[0] || allCities[0] || null;
-  }, [filteredCities, allCities, selectedCityId]);
+  }, [allCities, selectedCityId, filteredCities]);
 
-
-  // Query pincodes intelligence for active city
+  // Query individual city pincodes intelligence
   const pincodesIntelligenceQuery = useQuery({
     queryKey: ["admin", "cities", "pincodes", currentCity?.id],
-    queryFn: () => (currentCity ? fetchCityPincodesIntelligence(currentCity.id) : Promise.resolve(null as any)),
+    queryFn: () => (currentCity ? fetchCityPincodesIntelligence(currentCity.id) : null),
     enabled: Boolean(currentCity?.id),
+    staleTime: 1000 * 30,
   });
 
-  // Always compute rich, non-zero pincode list
-  const pincodeList = useMemo(() => {
+  const pincodeList: PincodeDetail[] = useMemo(() => {
     if (!currentCity) return [];
     return getEnrichedPincodes(currentCity, pincodesIntelligenceQuery.data);
   }, [currentCity, pincodesIntelligenceQuery.data]);
 
-  // Active selected pincode detail
+  // Selected Pincode Detail
   const activePincodeDetail = useMemo(() => {
-    if (!pincodeList.length) return null;
-    return pincodeList.find((p) => p.pincode === selectedPincode) || pincodeList[0];
+    if (!pincodeList || pincodeList.length === 0) return null;
+    if (selectedPincode) {
+      const found = pincodeList.find((p) => p.pincode === selectedPincode);
+      if (found) return found;
+    }
+    return pincodeList[0];
   }, [pincodeList, selectedPincode]);
 
-  // Synchronize selection when active city changes
-  useEffect(() => {
-    if (pincodeList.length > 0) {
-      const exists = pincodeList.some((p) => p.pincode === selectedPincode);
-      if (!exists && pincodeList[0]) {
-        setSelectedPincode(pincodeList[0].pincode);
-      }
-    }
-  }, [currentCity?.id, pincodeList, selectedPincode]);
-
-  // Top overall KPI metrics
+  // Network metrics calculated from live database
   const metrics = useMemo(() => {
-    const totalCities = stats?.totalCities ?? allCities.length;
-    const totalPincodes = allCities.reduce((acc, c) => acc + (c.pincodes?.length || 1), 0);
-    const totalRevenue = stats?.totalGeoRevenue ?? allCities.reduce((acc, c) => acc + (c.financials?.grossRevenue || 0), 0);
-    const totalCustomers = stats?.totalCityCustomers ?? allCities.reduce((acc, c) => acc + (c.totalCustomers || 0), 0);
-    const totalCaptains = stats?.totalActiveCaptains ?? allCities.reduce((acc, c) => acc + (c.totalRiders || 0), 0);
-    const totalHubs = stats?.totalPartnerHubs ?? allCities.reduce((acc, c) => acc + (c.totalPartners || 0), 0);
+    const totalCities = allCities.length;
+    const totalPincodes = allCities.reduce((sum, c) => sum + (c.pincodes?.length || 0), 0);
+    const totalRevenue = allCities.reduce((sum, c) => sum + (c.financials?.grossRevenue || 0), 0);
+    const totalOrders = allCities.reduce((sum, c) => sum + (c.financials?.totalOrders || 0), 0);
+    const totalCaptains = allCities.reduce((sum, c) => sum + (c.totalRiders || 0), 0);
+    const totalHubs = allCities.reduce((sum, c) => sum + (c.totalPartners || 0), 0);
+    const totalCustomers = allCities.reduce((sum, c) => sum + (c.totalCustomers || 0), 0);
 
-    return { totalCities, totalPincodes, totalRevenue, totalCustomers, totalCaptains, totalHubs };
-  }, [allCities, stats]);
+    return {
+      totalCities,
+      totalPincodes,
+      totalRevenue,
+      totalOrders,
+      totalCaptains,
+      totalHubs,
+      totalCustomers,
+    };
+  }, [allCities]);
 
-  // Flatten all partner stores across cities
+  // Flat Partners & Riders for tabs
   const allPartnersList = useMemo(() => {
-    const list: Array<{ city: CityIntelligence; partner: CityPartner }> = [];
-    for (const c of allCities) {
-      if (c.partnerList && c.partnerList.length > 0) {
-        for (const p of c.partnerList) {
-          list.push({ city: c, partner: p });
-        }
-      }
-    }
-    return list;
-  }, [allCities]);
+    const arr: { partner: CityPartner; city: CityIntelligence }[] = [];
+    filteredCities.forEach((c) => {
+      (c.partnerList || []).forEach((p) => {
+        arr.push({ partner: p, city: c });
+      });
+    });
+    return arr;
+  }, [filteredCities]);
 
-  // Flatten all delivery captains across cities
   const allRidersList = useMemo(() => {
-    const list: Array<{ city: CityIntelligence; rider: CityCaptain }> = [];
-    for (const c of allCities) {
-      if (c.riderList && c.riderList.length > 0) {
-        for (const r of c.riderList) {
-          list.push({ city: c, rider: r });
-        }
-      }
-    }
-    return list;
-  }, [allCities]);
+    const arr: { rider: CityCaptain; city: CityIntelligence }[] = [];
+    filteredCities.forEach((c) => {
+      (c.riderList || []).forEach((r) => {
+        arr.push({ rider: r, city: c });
+      });
+    });
+    return arr;
+  }, [filteredCities]);
 
+  // Mutations
   const deleteCityMutation = useMutation({
-    mutationFn: (cityId: string) => deleteCity(cityId),
+    mutationFn: async (cityId: string) => {
+      const res = await fetch(`/api/admin/cities/${cityId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete city");
+      return res.json();
+    },
     onSuccess: () => {
-      toast.success("City removed from operating network!");
+      toast.success("City hub removed from database.");
       queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
     },
-    onError: () => {
-      toast.error("Failed to delete city.");
-    },
+    onError: () => toast.error("Could not delete city."),
   });
 
   const deletePincodeMutation = useMutation({
-    mutationFn: ({ cityId, pincode }: { cityId: string; pincode: string }) => deleteCityPincode(cityId, pincode),
+    mutationFn: async ({ cityId, pincode }: { cityId: string; pincode: string }) => {
+      return deleteCityPincode(cityId, pincode);
+    },
     onSuccess: () => {
-      toast.success("Pincode removed from city delivery network!");
-      queryClient.invalidateQueries({ queryKey: ["admin", "cities", "pincodes"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "cities", "intelligence"] });
+      toast.success("Pincode removed from operational serviceability.");
+      queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
     },
-    onError: () => {
-      toast.error("Failed to delete pincode.");
-    },
+    onError: () => toast.error("Failed to remove pincode."),
   });
 
-  // Calculate daily order velocity & daily sales for active city
-  const cityOrderVelocity = useMemo(() => {
-    const totalOrders = currentCity?.financials?.totalOrders || pincodeList.reduce((acc, p) => acc + p.totalOrders, 0) || 0;
-    return Math.max(0, Math.round(totalOrders * 0.85));
-  }, [currentCity, pincodeList]);
-
-  const cityDailySales = useMemo(() => {
-    const grossRev = currentCity?.financials?.grossRevenue || pincodeList.reduce((acc, p) => acc + p.grossRevenue, 0) || 0;
-    return Math.round(grossRev * 0.45 * 100) / 100;
-  }, [currentCity, pincodeList]);
-
-  const currentCityGMV = useMemo(() => {
-    return currentCity?.financials?.grossRevenue || pincodeList.reduce((acc, p) => acc + p.grossRevenue, 0) || 0;
-  }, [currentCity, pincodeList]);
+  const currentCityGMV = currentCity?.financials?.grossRevenue || 0.0;
+  const currentCityOrders = currentCity?.financials?.totalOrders || 0;
+  const cityDailySales = currentCityGMV > 0 ? currentCityGMV / 30 : 0.0;
+  const cityOrderVelocity = currentCityOrders > 0 ? Math.ceil(currentCityOrders / 30) : 0;
 
   return (
     <AdminShell
-      title="Territory & Pincode Intelligence Engine"
-      subtitle="Complete hierarchy: State Territory ➔ Operational City Hub ➔ Pincode Geofence & Sectors ➔ Live Partner & Rider Fleet."
+      title="Cities & Regional Operations"
+      subtitle="Pan-India territory hierarchy, pincode serviceability, partner store coverage & pod dispatch"
       actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              citiesQuery.refetch();
-              pincodesIntelligenceQuery.refetch();
-              statsQuery.refetch();
-              statesQuery.refetch();
-              toast.success("Territory intelligence refreshed!");
-            }}
-            disabled={citiesQuery.isRefetching}
-            className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
-          >
-            <RefreshCw className={`size-3.5 mr-1.5 ${citiesQuery.isRefetching ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
-          </Button>
-
+        <div className="flex items-center gap-2">
           <AddStateDialog />
           <AddCityDialog defaultState={selectedState !== "All States" ? selectedState : "Uttar Pradesh"} />
-          <Button
-            size="sm"
-            onClick={() => {
-              if (currentCity) {
-                setAddingPincodeCityId(currentCity.id);
-              } else {
-                toast.error("Please add or select a city first");
-              }
-            }}
-            disabled={!currentCity}
-            className="h-8 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700 shadow-xs disabled:opacity-50"
-          >
-            <Plus className="size-3.5 mr-1" />
-            <span>Add Pincode</span>
-          </Button>
+          {currentCity && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddingPincodeCityId(currentCity.id)}
+              className="h-9 rounded-lg border-zinc-200 bg-white text-xs font-semibold text-zinc-900 hover:bg-zinc-50 shadow-xs cursor-pointer"
+            >
+              <Plus className="size-3.5 mr-1 text-zinc-700" />
+              <span>Add Pincode</span>
+            </Button>
+          )}
         </div>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-6 bg-white min-h-screen text-zinc-950 pb-12">
         {/* =========================================================================
-            1. TOP KPI SUMMARY METRICS
+            1. EXECUTIVE METRICS STRIP (PURE WHITE BACKGROUND, CRISP BLACK TYPOGRAPHY)
         ========================================================================= */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-          <KpiCard
-            kpi={{
-              id: "tot-states",
-              label: "Active States",
-              value: `${stateList.length} States`,
-              hint: "Territory Coverage",
-              positive: true,
-            }}
-          />
-          <KpiCard
-            kpi={{
-              id: "tot-cities",
-              label: "Operational Cities",
-              value: `${metrics.totalCities} Cities`,
-              hint: "Multi-state hubs",
-              positive: true,
-            }}
-          />
-          <KpiCard
-            kpi={{
-              id: "tot-pincodes",
-              label: "Active Pincodes",
-              value: `${metrics.totalPincodes} Pincodes`,
-              hint: "100% full delivery coverage",
-              positive: true,
-            }}
-          />
-          <KpiCard
-            kpi={{
-              id: "tot-geo-rev",
-              label: "Delivered GMV",
-              value: `₹${metrics.totalRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-              hint: "Total network revenue",
-              positive: true,
-            }}
-          />
-          <KpiCard
-            kpi={{
-              id: "tot-captains",
-              label: "Captains Fleet",
-              value: `${metrics.totalCaptains} Riders`,
-              hint: "Stationed per pincode",
-              positive: true,
-            }}
-          />
-          <KpiCard
-            kpi={{
-              id: "tot-hubs",
-              label: "Partner Stores",
-              value: `${metrics.totalHubs} Hubs`,
-              hint: "Serving mapped pincodes",
-              positive: true,
-            }}
-          />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Active Cities</span>
+              <Building2 className="size-4 text-zinc-700" />
+            </div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{metrics.totalCities}</p>
+            <p className="mt-0.5 text-xs text-zinc-500 font-medium">Multi-state operating hubs</p>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Active Pincodes</span>
+              <MapPin className="size-4 text-zinc-700" />
+            </div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{metrics.totalPincodes}</p>
+            <p className="mt-0.5 text-xs text-zinc-500 font-medium">100% full territory coverage</p>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Partner Stores</span>
+              <Store className="size-4 text-zinc-700" />
+            </div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{metrics.totalHubs}</p>
+            <p className="mt-0.5 text-xs text-zinc-500 font-medium">Laundromat service centers</p>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Delivery Fleet</span>
+              <Bike className="size-4 text-zinc-700" />
+            </div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{metrics.totalCaptains}</p>
+            <p className="mt-0.5 text-xs text-zinc-500 font-medium">On-duty stationed captains</p>
+          </div>
+
+          <div className="col-span-2 sm:col-span-1 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+            <div className="flex items-center justify-between text-zinc-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Delivered GMV</span>
+              <IndianRupee className="size-4 text-zinc-700" />
+            </div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">
+              ₹{metrics.totalRevenue.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500 font-medium">Total live platform orders</p>
+          </div>
         </div>
 
         {/* =========================================================================
-            2. TOP STATE SELECTION & TERRITORY LAYER (USER REQUIREMENT)
+            2. TERRITORY COMMAND & FILTER BAR
         ========================================================================= */}
-        <SectionCard
-          title="🏛️ State Territory Filter & Hub Explorer"
-          description="Select a State first to view all operational Cities under that State territory, or add new States, Cities, and Pincodes."
-          actions={
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <AddStateDialog />
-              <AddCityDialog defaultState={selectedState !== "All States" ? selectedState : "Uttar Pradesh"} />
+              <Globe2 className="size-4 text-zinc-600" />
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-700">State Territory Filter</span>
             </div>
-          }
-        >
-          <div className="space-y-4">
-            {/* Horizontal State Pills */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 pb-3">
-              <button
-                type="button"
-                onClick={() => setSelectedState("All States")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  selectedState === "All States"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                }`}
-              >
-                <Globe2 className="size-3.5" />
-                <span>All States ({allCities.length} Cities)</span>
-              </button>
 
-              {stateList.map((st) => {
-                const isSelected = selectedState.toLowerCase() === st.state.toLowerCase();
-                return (
-                  <button
-                    key={st.state}
-                    type="button"
-                    onClick={() => {
-                      setSelectedState(st.state);
-                      const firstCityInState = allCities.find(
-                        (c) => c.state.toLowerCase() === st.state.toLowerCase()
-                      );
-                      if (firstCityInState) {
-                        setSelectedCityId(firstCityInState.id);
-                      }
-                    }}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                      isSelected
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs"
-                        : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search city, state, or 6-digit pincode..."
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="h-8.5 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* State Selector Buttons */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-zinc-100">
+            <button
+              type="button"
+              onClick={() => setSelectedState("All States")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                selectedState === "All States"
+                  ? "border-2 border-zinc-950 bg-white text-zinc-950 font-bold shadow-xs"
+                  : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900"
+              }`}
+            >
+              <Layers className="size-3.5" />
+              <span>All Territories ({allCities.length})</span>
+            </button>
+
+            {stateList.map((st) => {
+              const isSelected = selectedState.toLowerCase() === st.state.toLowerCase();
+              return (
+                <button
+                  key={st.state}
+                  type="button"
+                  onClick={() => {
+                    setSelectedState(st.state);
+                    const firstInState = allCities.find((c) => c.state.toLowerCase() === st.state.toLowerCase());
+                    if (firstInState) setSelectedCityId(firstInState.id);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                    isSelected
+                      ? "border-2 border-zinc-950 bg-white text-zinc-950 font-bold shadow-xs"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900"
+                  }`}
+                >
+                  <Landmark className="size-3.5" />
+                  <span>{st.state}</span>
+                  <span
+                    className={`ml-1 rounded px-1.5 py-0.2 text-[10px] font-bold ${
+                      isSelected ? "bg-zinc-100 text-zinc-950 border border-zinc-300" : "bg-zinc-50 text-zinc-600 border border-zinc-200"
                     }`}
                   >
-                    <Landmark className="size-3.5 text-emerald-600" />
-                    <span>{st.state}</span>
-                    <span className="rounded-full bg-zinc-200/80 px-1.5 py-0.2 text-[10px] font-black text-zinc-800">
-                      {st.citiesCount}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* State Performance Banner (If a state is selected) */}
-            {selectedState !== "All States" && (
-              <div className="rounded-2xl bg-emerald-50/60 border border-emerald-200/80 p-4 text-zinc-900 shadow-xs">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-sm shadow-xs">
-                      {selectedState.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-black text-base text-zinc-900">{selectedState} Territory</h3>
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
-                          ● Operational State Hub
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                        {filteredCities.length} Cities Rollout · {filteredCities.reduce((a, c) => a + (c.pincodes?.length || 1), 0)} Pincodes Serviceable
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
-                    <div className="text-right">
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold">State GMV</p>
-                      <p className="text-sm font-black text-emerald-700">
-                        ₹{filteredCities.reduce((a, c) => a + (c.financials?.grossRevenue || 0), 0).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold">Stores</p>
-                      <p className="text-sm font-black text-zinc-900">
-                        {filteredCities.reduce((a, c) => a + (c.totalPartners || 0), 0)} Hubs
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold">Captains</p>
-                      <p className="text-sm font-black text-sky-700">
-                        {filteredCities.reduce((a, c) => a + (c.totalRiders || 0), 0)} Fleet
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                    {st.citiesCount}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        </SectionCard>
+        </div>
 
         {/* =========================================================================
-            3. MAIN TABS NAVIGATION & TOOLBAR
+            3. ZOMATO / SWIGGY COMMAND TABS NAVIGATION
         ========================================================================= */}
-        <SectionCard>
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-zinc-100">
-            <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
-              <TabsList className="bg-zinc-100 p-1 rounded-xl">
-                <TabsTrigger value="pincodes" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📍 City Pincode & Real-Time Intelligence
-                </TabsTrigger>
-                <TabsTrigger value="cities" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🏙️ Master Cities ({allCities.length})
-                </TabsTrigger>
-                <TabsTrigger value="partners" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🏪 Partner Stores Matrix ({allPartnersList.length})
-                </TabsTrigger>
-                <TabsTrigger value="riders" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🛵 Rider Fleet Stationing ({allRidersList.length})
-                </TabsTrigger>
-                <TabsTrigger value="states" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🏛️ State Directory ({stateList.length})
-                </TabsTrigger>
-                <TabsTrigger value="dispatch" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  ⚡ Zomato Pod Dispatch {Boolean(liveWavesQuery.data?.activeCount) && `(${liveWavesQuery.data?.activeCount} Active)`}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+        <div className="border-b border-zinc-200">
+          <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
+            <TabsList className="bg-transparent h-auto p-0 flex flex-wrap gap-2">
+              <TabsTrigger
+                value="pincodes"
+                className="flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-zinc-600 transition-all data-[state=active]:border-zinc-950 data-[state=active]:text-zinc-950 data-[state=active]:font-bold data-[state=active]:bg-white"
+              >
+                <MapPin className="size-3.5" />
+                <span>Coverage & Pincodes</span>
+              </TabsTrigger>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-              <ShieldCheck className="size-4" />
-              <span>Full Pincode Serviceability Active</span>
-            </div>
-          </div>
-        </SectionCard>
+              <TabsTrigger
+                value="cities"
+                className="flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-zinc-600 transition-all data-[state=active]:border-zinc-950 data-[state=active]:text-zinc-950 data-[state=active]:font-bold data-[state=active]:bg-white"
+              >
+                <Building2 className="size-3.5" />
+                <span>Cities & Hubs ({allCities.length})</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="partners"
+                className="flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-zinc-600 transition-all data-[state=active]:border-zinc-950 data-[state=active]:text-zinc-950 data-[state=active]:font-bold data-[state=active]:bg-white"
+              >
+                <Store className="size-3.5" />
+                <span>Partner Stores ({allPartnersList.length})</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="riders"
+                className="flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-zinc-600 transition-all data-[state=active]:border-zinc-950 data-[state=active]:text-zinc-950 data-[state=active]:font-bold data-[state=active]:bg-white"
+              >
+                <Bike className="size-3.5" />
+                <span>Rider Fleet ({allRidersList.length})</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="states"
+                className="flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-zinc-600 transition-all data-[state=active]:border-zinc-950 data-[state=active]:text-zinc-950 data-[state=active]:font-bold data-[state=active]:bg-white"
+              >
+                <Layers className="size-3.5" />
+                <span>States Directory ({stateList.length})</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="dispatch"
+                className="flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-zinc-600 transition-all data-[state=active]:border-zinc-950 data-[state=active]:text-zinc-950 data-[state=active]:font-bold data-[state=active]:bg-white"
+              >
+                <Zap className="size-3.5" />
+                <span>Pod Dispatch & Waves</span>
+                {Boolean(liveWavesQuery.data?.activeCount) && (
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2">
+                    {liveWavesQuery.data?.activeCount} Active
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         {/* =========================================================================
-            TAB 1: CITY PINCODE HUB & DEEP INTELLIGENCE (MAIN USER REQUIREMENT)
+            TAB 1: CITY PINCODE & DEEP COVERAGE INTELLIGENCE
         ========================================================================= */}
         {activeTab === "pincodes" && (
           <div className="space-y-6">
             {!currentCity ? (
-              <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center shadow-xs">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                  <Building2 className="size-7" />
-                </div>
-                <h3 className="mt-4 text-base font-black text-zinc-900">No Operating Cities Configured</h3>
-                <p className="mt-1 text-xs text-zinc-500 max-w-md mx-auto">
-                  Your territory database is currently empty. Click "Add City Hub" to register your first operational city and its postal codes.
+              <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center shadow-xs">
+                <Building2 className="mx-auto size-10 text-zinc-400" />
+                <h3 className="mt-3 text-sm font-bold text-zinc-950">No Operational Cities Configured</h3>
+                <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto">
+                  Click below to launch your first city and define postal code serviceability.
                 </p>
-                <div className="mt-6 flex justify-center">
+                <div className="mt-4 flex justify-center">
                   <AddCityDialog defaultState={selectedState !== "All States" ? selectedState : "Uttar Pradesh"} />
                 </div>
               </div>
             ) : (
               <>
-                {/* 1.1 SELECT OPERATIONAL CITY */}
-                <SectionCard
-                  title={`1. Select Operational City ${selectedState !== "All States" ? `in ${selectedState}` : ""}`}
-                  description="Tap on any city to explore its real-time pincodes, partner stores, rider fleet, sales, and order velocity."
-                  actions={
+                {/* City Selection Grid */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                      Select Operational City ({filteredCities.length})
+                    </span>
                     <AddCityDialog defaultState={selectedState !== "All States" ? selectedState : "Uttar Pradesh"} />
-                  }
-                >
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                     {filteredCities.map((c) => {
                       const isSelected = c.id === currentCity.id || c.city.toLowerCase() === currentCity.city.toLowerCase();
                       return (
@@ -679,65 +617,46 @@ export function CitiesPage() {
                               setSelectedPincode(c.pincodes[0]);
                             }
                           }}
-                          className={`relative flex flex-col items-start p-4 rounded-2xl border text-left transition-all duration-200 ${
+                          className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all cursor-pointer bg-white ${
                             isSelected
-                              ? "border-emerald-600 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 shadow-md ring-2 ring-emerald-500/20"
-                              : "border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-xs"
+                              ? "border-zinc-950 ring-1 ring-zinc-950 shadow-xs"
+                              : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
                           }`}
                         >
-                          {isSelected && (
-                            <span className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
-                              <Check className="size-3 stroke-[3]" />
-                            </span>
-                          )}
-                          <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black text-xs mb-2.5">
-                            {c.city.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="font-black text-sm text-zinc-900">{c.city}</h4>
-                            <span className="rounded bg-zinc-100 text-zinc-600 text-[9px] font-bold px-1.5 py-0.2">
+                          <div className="flex w-full items-center justify-between">
+                            <span className="font-bold text-sm text-zinc-950">{c.city}</span>
+                            <span className="text-[10px] font-semibold text-zinc-500 uppercase px-1.5 py-0.2 rounded bg-zinc-100">
                               {c.tier}
                             </span>
                           </div>
-                          <p className="text-[10px] text-zinc-400 font-medium">{c.state}</p>
+                          <p className="text-[11px] text-zinc-500 font-medium">{c.state}</p>
 
-                          <div className="mt-3 w-full border-t border-zinc-100 pt-2 flex items-center justify-between text-[11px]">
-                            <span className="font-bold text-zinc-600 flex items-center gap-1">
-                              <Hash className="size-3 text-emerald-600" />
-                              {c.pincodes?.length || 0} Pincodes
-                            </span>
-                            <span className="font-black text-emerald-700">
-                              ₹{(c.financials?.grossRevenue || 0).toFixed(0)}
-                            </span>
+                          <div className="mt-3 w-full border-t border-zinc-100 pt-2 flex items-center justify-between text-xs">
+                            <span className="text-zinc-600 font-medium">{c.pincodes?.length || 0} Pincodes</span>
+                            <span className="font-bold text-zinc-950">₹{(c.financials?.grossRevenue || 0).toFixed(0)}</span>
                           </div>
                         </button>
                       );
                     })}
                   </div>
-                </SectionCard>
+                </div>
 
-                {/* 1.2 CITY DEEP REAL-TIME INTELLIGENCE DASHBOARD (ON CITY TAP) */}
-                <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-6">
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-100 pb-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-white font-black text-lg shadow-sm">
-                        {currentCity.city.slice(0, 2).toUpperCase()}
+                {/* Selected City Overview Card */}
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-bold tracking-tight text-zinc-950">{currentCity.city} Operations</h2>
+                        <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                          {currentCity.status} Hub
+                        </span>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-black tracking-tight text-zinc-900">
-                            {currentCity.city} City Intelligence & Metrics
-                          </h2>
-                          <span className="rounded-full bg-emerald-50 text-emerald-700 text-xs font-black px-2.5 py-0.5 border border-emerald-200">
-                            ● {currentCity.status} Hub
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                          State: <strong className="text-zinc-800">{currentCity.state}</strong> · Tier:{" "}
-                          <strong className="text-zinc-800">{currentCity.tier}</strong> · Delivery Radius:{" "}
-                          <strong className="text-zinc-800">{currentCity.deliveryRadiusKm || 15} km</strong>
-                        </p>
-                      </div>
+                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                        State: <strong className="text-zinc-900">{currentCity.state}</strong> · Tier:{" "}
+                        <strong className="text-zinc-900">{currentCity.tier}</strong> · Delivery Radius:{" "}
+                        <strong className="text-zinc-900">{currentCity.deliveryRadiusKm || 15} km</strong> · Base Fee:{" "}
+                        <strong className="text-zinc-900">₹{currentCity.baseDeliveryFee || 25}</strong>
+                      </p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -745,555 +664,373 @@ export function CitiesPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => setAddingPincodeCityId(currentCity.id)}
-                        className="h-8 rounded-xl border-emerald-300 bg-emerald-50 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
+                        className="h-8 rounded-lg border-zinc-200 bg-white text-xs font-semibold text-zinc-900 hover:bg-zinc-50 shadow-xs cursor-pointer"
                       >
-                        <Plus className="size-3.5 mr-1" /> Add Pincode to {currentCity.city}
+                        <Plus className="size-3.5 mr-1 text-zinc-700" /> Add Pincode to {currentCity.city}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          if (confirm(`Are you sure you want to delete ${currentCity.city}? This will remove it from all 3 portals.`)) {
+                          if (confirm(`Are you sure you want to delete ${currentCity.city}? This will remove it from all portals.`)) {
                             deleteCityMutation.mutate(currentCity.id);
                           }
                         }}
                         disabled={deleteCityMutation.isPending}
-                        className="h-8 rounded-xl border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                        className="h-8 rounded-lg border-zinc-200 bg-white text-xs font-semibold text-rose-600 hover:bg-rose-50 shadow-xs cursor-pointer"
                       >
-                        <Trash2 className="size-3.5 mr-1 text-rose-500" /> Delete City
+                        <Trash2 className="size-3.5 mr-1" /> Delete City
                       </Button>
                     </div>
                   </div>
 
-              {/* Real Data KPI Metric Cards for Selected City */}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {/* 1. Registered Pincodes */}
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4 space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                    <MapPin className="size-3.5 text-emerald-600" />
-                    Serviceable Pincodes
-                  </p>
-                  <p className="text-2xl font-black text-zinc-900">{pincodeList.length} Postal Codes</p>
-                  <p className="text-[11px] text-zinc-500 font-medium">100% full territory coverage</p>
+                  {/* Real Data KPI Cards for Active City */}
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-lg border border-zinc-200 bg-white p-3.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Serviceable Pincodes</p>
+                      <p className="mt-1 text-xl font-bold text-zinc-950">{pincodeList.length} Postal Codes</p>
+                      <p className="text-[11px] text-zinc-500 font-medium">100% full territory coverage</p>
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-200 bg-white p-3.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Delivered GMV</p>
+                      <p className="mt-1 text-xl font-bold text-zinc-950">₹{currentCityGMV.toFixed(2)}</p>
+                      <p className="text-[11px] text-zinc-500 font-medium">Platform Share (18%): ₹{(currentCityGMV * 0.18).toFixed(2)}</p>
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-200 bg-white p-3.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Order Velocity</p>
+                      <p className="mt-1 text-xl font-bold text-zinc-950">{cityOrderVelocity} Orders / Day</p>
+                      <p className="text-[11px] text-zinc-500 font-medium">Daily Revenue: ₹{cityDailySales.toFixed(2)}</p>
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-200 bg-white p-3.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Stores & Captains</p>
+                      <p className="mt-1 text-xl font-bold text-zinc-950">
+                        {currentCity.totalPartners || 0} Stores · {currentCity.totalRiders || 0} Riders
+                      </p>
+                      <p className="text-[11px] text-zinc-500 font-medium">
+                        {currentCity.onlineRiders || 0} On-Duty Captains Active
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 2. Total Sales / Delivered GMV */}
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                    <CircleDollarSign className="size-3.5 text-emerald-600" />
-                    Delivered Gross GMV
-                  </p>
-                  <p className="text-2xl font-black text-emerald-700">₹{currentCityGMV.toFixed(2)}</p>
-                  <p className="text-[11px] text-emerald-600 font-medium">
-                    Platform Share (18%): ₹{(currentCityGMV * 0.18).toFixed(2)}
-                  </p>
-                </div>
+                {/* Pincodes in Active City */}
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-zinc-950">
+                        Postal Codes in {currentCity.city} ({pincodeList.length})
+                      </h3>
+                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                        Select any pincode below to view assigned partner stores, stationed captains, and dispatch health.
+                      </p>
+                    </div>
 
-                {/* 3. Orders Per Day (Velocity) */}
-                <div className="rounded-2xl border border-sky-200 bg-sky-50/40 p-4 space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
-                    <Activity className="size-3.5 text-sky-600" />
-                    Orders Per Day (Velocity)
-                  </p>
-                  <p className="text-2xl font-black text-sky-700">{cityOrderVelocity} Orders / Day</p>
-                  <p className="text-[11px] text-sky-600 font-medium">
-                    Daily Sales: ₹{cityDailySales.toFixed(2)}
-                  </p>
-                </div>
-
-                {/* 4. Active Partners & Riders */}
-                <div className="rounded-2xl border border-purple-200 bg-purple-50/40 p-4 space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
-                    <Store className="size-3.5 text-purple-600" />
-                    Active Fleet & Stores
-                  </p>
-                  <p className="text-2xl font-black text-purple-900">
-                    {currentCity.totalPartners ?? pincodeList.reduce((a, p) => a + p.partnersCount, 0)} Stores ·{" "}
-                    {currentCity.totalRiders ?? pincodeList.reduce((a, p) => a + p.ridersCount, 0)} Riders
-                  </p>
-                  <p className="text-[11px] text-purple-700 font-medium">
-                    {Math.max(currentCity.onlineRiders || 0, pincodeList.reduce((a, p) => a + p.onlineRidersCount, 0))} Captains Online
-                  </p>
-
-                </div>
-              </div>
-
-              {/* Revenue Economics Split Banner */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-2xl bg-zinc-50 border border-zinc-200 p-4 text-center">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-zinc-500">Total City Orders</p>
-                  <p className="text-base font-black text-zinc-900">
-                    {currentCity.financials?.totalOrders || pincodeList.reduce((a, p) => a + p.totalOrders, 0)} Orders
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-zinc-500">Average Order (AOV)</p>
-                  <p className="text-base font-black text-emerald-700">
-                    ₹{((currentCity.financials?.aov || 122.0)).toFixed(2)}
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-zinc-500">Stores Payout (70%)</p>
-                  <p className="text-base font-black text-sky-700">
-                    ₹{(currentCityGMV * 0.7).toFixed(2)}
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-zinc-500">Riders Payout (12%)</p>
-                  <p className="text-base font-black text-amber-700">
-                    ₹{(currentCityGMV * 0.12).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 1.3 PINCODES REGISTERED IN ACTIVE CITY (NEVER 0!) */}
-            <SectionCard
-              title={`2. Pincodes Registered in ${currentCity.city} (${pincodeList.length})`}
-              description="Tap on any Pincode card below to view all available Partner Stores, Delivery Captains, and Revenue for that postal code."
-              actions={
-                <Button
-                  size="sm"
-                  onClick={() => setAddingPincodeCityId(currentCity.id)}
-                  className="h-8 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
-                >
-                  <Plus className="size-3.5 mr-1" /> Add Pincode to {currentCity.city}
-                </Button>
-              }
-            >
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {pincodeList.map((p) => {
-                  const isSelected = p.pincode === activePincodeDetail?.pincode;
-                  return (
-                    <button
-                      key={p.pincode}
-                      type="button"
-                      onClick={() => setSelectedPincode(p.pincode)}
-                      className={`p-4 rounded-2xl border text-left transition-all duration-200 relative ${
-                        isSelected
-                          ? "border-sky-600 bg-gradient-to-br from-sky-50 via-white to-indigo-50/30 shadow-md ring-2 ring-sky-500/20"
-                          : "border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-xs"
-                      }`}
+                    <Button
+                      size="sm"
+                      onClick={() => setAddingPincodeCityId(currentCity.id)}
+                      className="h-8 rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-3 cursor-pointer shadow-xs"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-base font-black text-zinc-900 tracking-tight">
-                          {p.pincode}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            p.status === "Active"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-zinc-100 text-zinc-500"
+                      <Plus className="size-3.5 mr-1" /> Add Pincode
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                    {pincodeList.map((p) => {
+                      const isSelected = p.pincode === activePincodeDetail?.pincode;
+                      return (
+                        <button
+                          key={p.pincode}
+                          type="button"
+                          onClick={() => setSelectedPincode(p.pincode)}
+                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer bg-white ${
+                            isSelected
+                              ? "border-zinc-950 ring-1 ring-zinc-950 shadow-xs"
+                              : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
                           }`}
                         >
-                          ● {p.status}
-                        </span>
-                      </div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-sm font-bold text-zinc-950">{p.pincode}</span>
+                            <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.2 text-[10px] font-bold">
+                              {p.status}
+                            </span>
+                          </div>
 
-                      <p className="text-[11px] text-zinc-500 font-medium line-clamp-1 mt-1">
-                        {p.areaName}
-                      </p>
+                          <p className="text-xs text-zinc-600 font-medium truncate mt-1">{p.areaName}</p>
 
-                      <div className="mt-3 space-y-1 border-t border-zinc-100 pt-2 text-[10px]">
-                        <div className="flex justify-between font-medium">
-                          <span className="text-zinc-400">Stores:</span>
-                          <span className="font-bold text-zinc-800">{p.partnersCount} Stores</span>
-                        </div>
-                        <div className="flex justify-between font-medium">
-                          <span className="text-zinc-400">Riders:</span>
-                          <span className="font-bold text-sky-700">
-                            {p.ridersCount} Fleet ({p.onlineRidersCount} Online)
-                          </span>
-                        </div>
-                        <div className="flex justify-between font-medium">
-                          <span className="text-zinc-400">GMV:</span>
-                          <span className="font-black text-emerald-700">₹{p.grossRevenue.toFixed(2)}</span>
-                        </div>
-                      </div>
+                          <div className="mt-3 border-t border-zinc-100 pt-2 text-[11px] space-y-0.5">
+                            <div className="flex justify-between text-zinc-500">
+                              <span>Stores:</span>
+                              <span className="font-semibold text-zinc-900">{p.partnersCount} Hubs</span>
+                            </div>
+                            <div className="flex justify-between text-zinc-500">
+                              <span>Captains:</span>
+                              <span className="font-semibold text-zinc-900">
+                                {p.ridersCount} Fleet ({p.onlineRidersCount} Online)
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-zinc-500">
+                              <span>GMV:</span>
+                              <span className="font-bold text-zinc-950">₹{p.grossRevenue.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                      {isSelected && (
-                        <div className="mt-2 text-center text-[10px] font-black text-sky-600 uppercase tracking-wider">
-                          ▼ Selected Pincode
+                {/* Pincode Drilldown Card */}
+                {activePincodeDetail && (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-bold text-zinc-950">
+                              Pincode {activePincodeDetail.pincode} — {activePincodeDetail.areaName}
+                            </h3>
+                            <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                              Active Service Zone
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                            {currentCity.city}, {currentCity.state} · Base Delivery Fee: ₹{activePincodeDetail.baseFee} · Surge Multiplier: {activePincodeDetail.surgeMultiplier}x
+                          </p>
                         </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </SectionCard>
 
-            {/* 1.4 SELECTED PINCODE DEEP DRILLDOWN */}
-            {activePincodeDetail && (
-              <div className="space-y-6">
-                {/* Pincode Header & Economics Banner */}
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800 font-mono font-black text-xl border border-emerald-200 shadow-xs">
-                        {activePincodeDetail.pincode.slice(0, 3)}
-                      </div>
-                      <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-black tracking-tight text-zinc-900">
-                            Pincode {activePincodeDetail.pincode}
-                          </h3>
-                          <span className="rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-0.5 border border-emerald-200">
-                            ● {activePincodeDetail.status}
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                          {activePincodeDetail.areaName} · {currentCity.city}, {currentCity.state}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setAddingSectorPincode({
-                            cityId: currentCity.id,
-                            pincode: activePincodeDetail.pincode,
-                            currentArea: activePincodeDetail.areaName,
-                          })
-                        }
-                        className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
-                      >
-                        <Plus className="size-3 mr-1 text-emerald-600" /> Add Sector / Area
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setEditingPincode({
-                            cityId: currentCity.id,
-                            pincode: activePincodeDetail.pincode,
-                            detail: activePincodeDetail,
-                          })
-                        }
-                        className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
-                      >
-                        <Edit2 className="size-3 mr-1" /> Edit Pincode
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (confirm(`Remove pincode ${activePincodeDetail.pincode} from ${currentCity.city}?`)) {
-                            deletePincodeMutation.mutate({ cityId: currentCity.id, pincode: activePincodeDetail.pincode });
-                          }
-                        }}
-                        className="h-8 rounded-xl border-rose-200 bg-rose-50/50 text-xs font-bold text-rose-700 hover:bg-rose-100"
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Financial & Delivery Metrics Grid */}
-                  <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-6 border-t border-zinc-100 pt-4 text-center">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Delivered GMV</p>
-                      <p className="text-lg font-black text-emerald-700">₹{activePincodeDetail.grossRevenue.toFixed(2)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Orders</p>
-                      <p className="text-lg font-black text-zinc-900">{activePincodeDetail.totalOrders}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Platform (18%)</p>
-                      <p className="text-lg font-black text-zinc-800">₹{activePincodeDetail.platformCommission.toFixed(2)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Stores (70%)</p>
-                      <p className="text-lg font-black text-sky-700">₹{activePincodeDetail.partnerEarnings.toFixed(2)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Captains (12%)</p>
-                      <p className="text-lg font-black text-amber-700">₹{activePincodeDetail.riderEarnings.toFixed(2)}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Base Delivery Fee</p>
-                      <p className="text-lg font-black text-zinc-900">₹{activePincodeDetail.baseFee.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 1.5 TOP PARTNER & TOP RIDER SPOTLIGHT */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Top Partner Spotlight */}
-                  <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50 p-5 shadow-xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Trophy className="size-5 text-amber-500" />
-                        <h4 className="font-black text-xs uppercase tracking-wider text-emerald-950">
-                          🏆 Top Partner Store in {activePincodeDetail.pincode}
-                        </h4>
-                      </div>
-                      <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5">
-                        #1 In Postal Zone
-                      </span>
-                    </div>
-
-                    {activePincodeDetail.topPartner ? (
-                      <div className="flex items-center justify-between border-t border-emerald-100 pt-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-xs shadow-sm">
-                            {(activePincodeDetail.topPartner.name || "P").slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-black text-sm text-zinc-900">{activePincodeDetail.topPartner.name}</p>
-                            <p className="text-[11px] text-zinc-500">{activePincodeDetail.topPartner.address}</p>
-                            <p className="text-[10px] text-emerald-700 font-bold mt-0.5">
-                              ⭐ {activePincodeDetail.topPartner.rating} Rating · Status: {activePincodeDetail.topPartner.status}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            setAssigningPartner({
-                              partner: activePincodeDetail.topPartner!,
-                              cityId: currentCity.id,
-                              cityName: currentCity.city,
-                            })
-                          }
-                          className="h-8 rounded-xl border-emerald-300 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
-                        >
-                          Manage Pincodes
-                        </Button>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-zinc-400 py-2">No partner store registered in this pincode yet.</p>
-                    )}
-                  </div>
-
-                  {/* Top Rider Spotlight */}
-                  <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50/80 via-white to-indigo-50/50 p-5 shadow-xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Award className="size-5 text-sky-600" />
-                        <h4 className="font-black text-xs uppercase tracking-wider text-sky-950">
-                          🚴 Top Delivery Captain in {activePincodeDetail.pincode}
-                        </h4>
-                      </div>
-                      <span className="rounded-full bg-sky-100 text-sky-800 text-[10px] font-black px-2 py-0.5">
-                        #1 Top Fleet Dispatch
-                      </span>
-                    </div>
-
-                    {activePincodeDetail.topRider ? (
-                      <div className="flex items-center justify-between border-t border-sky-100 pt-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-10 items-center justify-center rounded-xl bg-sky-600 text-white font-black text-xs shadow-sm">
-                            {activePincodeDetail.topRider.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-black text-sm text-zinc-900">{activePincodeDetail.topRider.name}</p>
-                            <p className="text-[11px] text-zinc-500">
-                              {activePincodeDetail.topRider.vehicle} · {activePincodeDetail.topRider.plate}
-                            </p>
-                            <p className="text-[10px] text-sky-700 font-bold mt-0.5">
-                              ● {activePincodeDetail.topRider.liveState} · {activePincodeDetail.topRider.trips} Trips Handled
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={`tel:${activePincodeDetail.topRider.phone}`}
-                            className="flex size-8 items-center justify-center rounded-xl border border-sky-300 text-sky-800 hover:bg-sky-100"
-                          >
-                            <Phone className="size-3.5" />
-                          </a>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() =>
-                              setAssigningRider({
-                                rider: activePincodeDetail.topRider!,
+                              setAddingSectorPincode({
                                 cityId: currentCity.id,
-                                cityName: currentCity.city,
+                                pincode: activePincodeDetail.pincode,
+                                currentArea: activePincodeDetail.areaName,
                               })
                             }
-                            className="h-8 rounded-xl border-sky-300 text-xs font-bold text-sky-800 hover:bg-sky-100"
+                            className="h-8 rounded-lg border-zinc-200 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
                           >
-                            Station
+                            <Plus className="size-3 mr-1" /> Add Sector
                           </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-zinc-400 py-2">No captains stationed in this pincode yet.</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* 1.6 PARTNER STORES SERVING THIS PINCODE */}
-                <SectionCard
-                  title={`Partner Laundry Stores Serving Pincode ${activePincodeDetail.pincode} (${activePincodeDetail.partners.length})`}
-                  description="All partner processing centers enabled for 100% pickup and delivery coverage in this postal code."
-                >
-                  <DataTable
-                    loading={pincodesIntelligenceQuery.isLoading}
-                    rows={activePincodeDetail.partners}
-                    emptyMessage="No partner stores mapped to this pincode."
-                    columns={[
-                      {
-                        key: "store",
-                        label: "Partner Store Name",
-                        render: (p) => (
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black text-xs">
-                              {(p.name || p.storeName || "P").slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="font-bold text-zinc-900 text-xs">{p.name || p.storeName}</p>
-                              <p className="text-[10px] text-zinc-400 font-medium">{p.address}</p>
-                            </div>
-                          </div>
-                        ),
-                      },
-                      {
-                        key: "pincodes",
-                        label: "Serviced Pincodes",
-                        render: (p) => (
-                          <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-200">
-                            {(p.servicePincodes || [activePincodeDetail.pincode]).join(", ")}
-                          </span>
-                        ),
-                      },
-                      {
-                        key: "status",
-                        label: "Store Status",
-                        render: (p) => (
-                          <span className="rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 border border-emerald-200">
-                            ● {p.status || "Active"}
-                          </span>
-                        ),
-                      },
-                      {
-                        key: "actions",
-                        label: "",
-                        className: "text-right",
-                        render: (p) => (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
                             onClick={() =>
-                              setAssigningPartner({
-                                partner: p,
+                              setEditingPincode({
                                 cityId: currentCity.id,
-                                cityName: currentCity.city,
+                                pincode: activePincodeDetail.pincode,
+                                detail: activePincodeDetail,
                               })
                             }
+                            className="h-8 rounded-lg border-zinc-200 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
                           >
-                            <Crosshair className="size-3.5 mr-1 text-emerald-600" /> Map Pincodes
+                            <Edit2 className="size-3 mr-1" /> Edit
                           </Button>
-                        ),
-                      },
-                    ]}
-                  />
-                </SectionCard>
-
-                {/* 1.7 DELIVERY CAPTAINS IN THIS PINCODE */}
-                <SectionCard
-                  title={`Delivery Captains Fleet Stationed in Pincode ${activePincodeDetail.pincode} (${activePincodeDetail.riders.length})`}
-                  description="Riders allocated to this postal code for instant pickup dispatch from partner stores."
-                >
-                  <DataTable
-                    loading={pincodesIntelligenceQuery.isLoading}
-                    rows={activePincodeDetail.riders}
-                    emptyMessage="No delivery captains stationed in this pincode."
-                    columns={[
-                      {
-                        key: "rider",
-                        label: "Captain & Vehicle",
-                        render: (r) => (
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-9 items-center justify-center rounded-xl bg-sky-100 text-sky-800 font-bold text-xs">
-                              {r.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="font-bold text-zinc-900 text-xs">{r.name}</p>
-                              <p className="text-[10px] text-zinc-400 font-medium">
-                                {r.vehicle || "Motorbike"} · {r.plate || "—"}
-                              </p>
-                            </div>
-                          </div>
-                        ),
-                      },
-                      {
-                        key: "liveState",
-                        label: "Live Fleet State",
-                        render: (r) => (
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              r.liveState === "Online"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : "bg-zinc-100 text-zinc-500"
-                            }`}
-                          >
-                            ● {r.liveState || "Offline"}
-                          </span>
-                        ),
-                      },
-                      {
-                        key: "phone",
-                        label: "Contact",
-                        render: (r) => <span className="font-mono text-xs text-zinc-700">{r.phone}</span>,
-                      },
-                      {
-                        key: "actions",
-                        label: "",
-                        className: "text-right",
-                        render: (r) => (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <a
-                              href={`tel:${r.phone}`}
-                              className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 text-zinc-700 hover:bg-zinc-100"
-                            >
-                              <Phone className="size-3.5" />
-                            </a>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
-                              onClick={() =>
-                                setAssigningRider({
-                                  rider: r,
-                                  cityId: currentCity.id,
-                                  cityName: currentCity.city,
-                                })
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (confirm(`Remove pincode ${activePincodeDetail.pincode} from ${currentCity.city}?`)) {
+                                deletePincodeMutation.mutate({ cityId: currentCity.id, pincode: activePincodeDetail.pincode });
                               }
-                            >
-                              <UserCheck className="size-3.5 mr-1 text-sky-600" /> Reassign
-                            </Button>
-                          </div>
-                        ),
-                      },
-                    ]}
-                  />
-                </SectionCard>
-              </div>
+                            }}
+                            className="h-8 rounded-lg border-zinc-200 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Financial Metrics Strip */}
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-3 text-center">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Delivered Volume</p>
+                          <p className="text-base font-bold text-zinc-950">₹{activePincodeDetail.grossRevenue.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Delivered Orders</p>
+                          <p className="text-base font-bold text-zinc-950">{activePincodeDetail.totalOrders} Orders</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Stores Earnings (70%)</p>
+                          <p className="text-base font-bold text-zinc-950">₹{activePincodeDetail.partnerEarnings.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Riders Payout (12%)</p>
+                          <p className="text-base font-bold text-zinc-950">₹{activePincodeDetail.riderEarnings.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stores in Pincode Table */}
+                    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+                        <h4 className="text-sm font-bold text-zinc-950">
+                          Partner Stores Serving {activePincodeDetail.pincode} ({activePincodeDetail.partners.length})
+                        </h4>
+                      </div>
+
+                      <DataTable
+                        loading={pincodesIntelligenceQuery.isLoading}
+                        rows={activePincodeDetail.partners}
+                        emptyMessage="No partner stores mapped to this pincode."
+                        columns={[
+                          {
+                            key: "store",
+                            label: "Partner Store Name",
+                            render: (p) => (
+                              <div>
+                                <p className="font-bold text-zinc-950 text-xs">{p.name || p.storeName}</p>
+                                <p className="text-[11px] text-zinc-500 font-medium">{p.address}</p>
+                              </div>
+                            ),
+                          },
+                          {
+                            key: "pincodes",
+                            label: "Covered Pincodes",
+                            render: (p) => (
+                              <span className="font-mono text-xs font-semibold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
+                                {(p.servicePincodes || [activePincodeDetail.pincode]).join(", ")}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: "status",
+                            label: "Status",
+                            render: (p) => (
+                              <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                                {p.status || "Active"}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: "actions",
+                            label: "",
+                            className: "text-right",
+                            render: (p) => (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 rounded-lg border-zinc-200 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
+                                onClick={() =>
+                                  setAssigningPartner({
+                                    partner: p,
+                                    cityId: currentCity.id,
+                                    cityName: currentCity.city,
+                                  })
+                                }
+                              >
+                                <Crosshair className="size-3 mr-1 text-zinc-600" /> Map Pincodes
+                              </Button>
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
+
+                    {/* Delivery Captains in Pincode Table */}
+                    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+                        <h4 className="text-sm font-bold text-zinc-950">
+                          Delivery Fleet Stationed in {activePincodeDetail.pincode} ({activePincodeDetail.riders.length})
+                        </h4>
+                      </div>
+
+                      <DataTable
+                        loading={pincodesIntelligenceQuery.isLoading}
+                        rows={activePincodeDetail.riders}
+                        emptyMessage="No delivery captains stationed in this pincode."
+                        columns={[
+                          {
+                            key: "rider",
+                            label: "Captain & Vehicle",
+                            render: (r) => (
+                              <div>
+                                <p className="font-bold text-zinc-950 text-xs">{r.name}</p>
+                                <p className="text-[11px] text-zinc-500 font-medium">
+                                  {r.vehicle || "Motorbike"} · {r.plate || "—"}
+                                </p>
+                              </div>
+                            ),
+                          },
+                          {
+                            key: "liveState",
+                            label: "Status",
+                            render: (r) => (
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                                  r.liveState === "Online"
+                                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                    : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                }`}
+                              >
+                                {r.liveState || "Offline"}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: "phone",
+                            label: "Contact",
+                            render: (r) => <span className="font-mono text-xs text-zinc-800 font-medium">{r.phone}</span>,
+                          },
+                          {
+                            key: "actions",
+                            label: "",
+                            className: "text-right",
+                            render: (r) => (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <a
+                                  href={`tel:${r.phone}`}
+                                  className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                                >
+                                  <Phone className="size-3" />
+                                </a>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 rounded-lg border-zinc-200 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
+                                  onClick={() =>
+                                    setAssigningRider({
+                                      rider: r,
+                                      cityId: currentCity.id,
+                                      cityName: currentCity.city,
+                                    })
+                                  }
+                                >
+                                  <UserCheck className="size-3 mr-1 text-zinc-600" /> Reassign
+                                </Button>
+                              </div>
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-          </>
+          </div>
         )}
-      </div>
-    )}
 
         {/* =========================================================================
-            TAB 2: MASTER CITIES NETWORK
+            TAB 2: MASTER CITIES DIRECTORY
         ========================================================================= */}
         {activeTab === "cities" && (
-          <SectionCard
-            title="Operational Cities & Pincode Coverage"
-            description="Manage city network rollout, base delivery pricing, and inspect city-wise partner stores, captains, and customers."
-            actions={
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-zinc-950">Master Cities Directory ({filteredCities.length})</h3>
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                  Rollout status, base delivery fees, postal coverage, and operating partner density.
+                </p>
+              </div>
               <AddCityDialog defaultState={selectedState !== "All States" ? selectedState : "Uttar Pradesh"} />
-            }
-          >
+            </div>
+
             <DataTable
               loading={citiesQuery.isLoading}
               rows={filteredCities}
@@ -1302,19 +1039,16 @@ export function CitiesPage() {
                   key: "city",
                   label: "City & State",
                   render: (c) => (
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-800 font-black text-xs shadow-xs border border-emerald-200/60">
-                        {c.city.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-bold text-zinc-900 text-xs flex items-center gap-1.5">
-                          {c.city}
-                          <span className="rounded bg-zinc-100 text-zinc-600 text-[10px] px-1.5 py-0.2 font-bold">{c.tier}</span>
-                        </p>
-                        <p className="text-[10px] text-zinc-400 font-medium">
-                          {c.state}, India · {c.pincodes?.length || 1} Pincodes
-                        </p>
-                      </div>
+                    <div>
+                      <p className="font-bold text-zinc-950 text-xs flex items-center gap-1.5">
+                        {c.city}
+                        <span className="rounded bg-zinc-100 text-zinc-600 text-[10px] px-1.5 py-0.2 font-semibold">
+                          {c.tier}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-zinc-500 font-medium">
+                        {c.state}, India · {c.pincodes?.length || 1} Pincodes
+                      </p>
                     </div>
                   ),
                 },
@@ -1325,9 +1059,9 @@ export function CitiesPage() {
                 },
                 {
                   key: "pincodes",
-                  label: "Covered Postal Codes",
+                  label: "Pincodes Covered",
                   render: (c) => (
-                    <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200">
+                    <span className="font-mono text-xs font-semibold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
                       {(c.pincodes || []).join(", ") || "—"}
                     </span>
                   ),
@@ -1336,30 +1070,24 @@ export function CitiesPage() {
                   key: "partners",
                   label: "Partner Stores",
                   render: (c) => (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-700">
-                      <Store className="size-3.5 text-emerald-600" />
-                      {c.totalPartners ?? 0} Hubs
-                    </span>
+                    <span className="text-xs font-semibold text-zinc-900">{c.totalPartners ?? 0} Hubs</span>
                   ),
                 },
                 {
                   key: "captains",
-                  label: "Captains Fleet",
+                  label: "Fleet",
                   render: (c) => (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700">
-                      <Bike className="size-3.5" />
-                      {c.totalRiders ?? 0} Fleet ({c.onlineRiders ?? 0} Online)
+                    <span className="text-xs font-semibold text-zinc-900">
+                      {c.totalRiders ?? 0} Riders ({c.onlineRiders ?? 0} Online)
                     </span>
                   ),
                 },
-
                 {
                   key: "revenue",
                   label: "Delivered GMV",
                   render: (c) => (
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 border border-emerald-200">
-                      <IndianRupee className="size-3.5" />
-                      {(c.financials?.grossRevenue || 0).toFixed(2)}
+                    <span className="text-xs font-bold text-zinc-950 font-mono">
+                      ₹{(c.financials?.grossRevenue || 0).toFixed(2)}
                     </span>
                   ),
                 },
@@ -1372,43 +1100,47 @@ export function CitiesPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 hover:text-emerald-700"
+                        className="h-7 rounded-lg border-zinc-200 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
                         onClick={() => {
                           setSelectedCityId(c.id);
                           setActiveTab("pincodes");
                         }}
                       >
-                        <Eye className="size-3.5 mr-1" /> View Pincodes
+                        <Eye className="size-3 mr-1" /> View Pincodes
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 rounded-xl border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                        className="h-7 rounded-lg border-zinc-200 text-xs font-semibold text-rose-600 hover:bg-rose-50"
                         disabled={deleteCityMutation.isPending}
                         onClick={() => {
-                          if (confirm(`Are you sure you want to delete ${c.city}? This will remove it from all 3 portals.`)) {
+                          if (confirm(`Are you sure you want to delete ${c.city}?`)) {
                             deleteCityMutation.mutate(c.id);
                           }
                         }}
                       >
-                        <Trash2 className="size-3.5 mr-1 text-rose-500" /> Delete
+                        <Trash2 className="size-3" />
                       </Button>
                     </div>
                   ),
                 },
               ]}
             />
-          </SectionCard>
+          </div>
         )}
 
         {/* =========================================================================
-            TAB 3: PARTNER PINCODE MATRIX
+            TAB 3: PARTNER STORES MATRIX
         ========================================================================= */}
         {activeTab === "partners" && (
-          <SectionCard
-            title="Partner Stores Mapped to Service Pincodes"
-            description="View and assign partner stores to serviceable postal codes for guaranteed full-pincode delivery."
-          >
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+            <div className="border-b border-zinc-100 pb-3">
+              <h3 className="text-base font-bold text-zinc-950">Partner Stores Matrix ({allPartnersList.length})</h3>
+              <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                Laundromat facilities mapped to postal service codes for pickup and delivery routing.
+              </p>
+            </div>
+
             <DataTable
               loading={citiesQuery.isLoading}
               rows={allPartnersList}
@@ -1417,32 +1149,27 @@ export function CitiesPage() {
                   key: "store",
                   label: "Partner Store",
                   render: ({ partner, city }) => (
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black text-xs">
-                        {(partner.name || partner.storeName || "P").slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-bold text-zinc-900 text-xs">{partner.name || partner.storeName}</p>
-                        <p className="text-[10px] text-zinc-400">{partner.address || `${city.city}, ${city.state}`}</p>
-                      </div>
+                    <div>
+                      <p className="font-bold text-zinc-950 text-xs">{partner.name || partner.storeName}</p>
+                      <p className="text-[11px] text-zinc-500 font-medium">{partner.address || `${city.city}, ${city.state}`}</p>
                     </div>
                   ),
                 },
                 {
                   key: "city",
-                  label: "City & State",
+                  label: "City Territory",
                   render: ({ city }) => (
                     <div className="text-xs">
-                      <p className="font-bold text-zinc-900">{city.city}</p>
-                      <p className="text-[10px] text-zinc-400">{city.state}</p>
+                      <p className="font-bold text-zinc-950">{city.city}</p>
+                      <p className="text-[11px] text-zinc-500">{city.state}</p>
                     </div>
                   ),
                 },
                 {
                   key: "pincodes",
-                  label: "Covered Delivery Pincodes",
+                  label: "Covered Pincodes",
                   render: ({ partner, city }) => (
-                    <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
+                    <span className="font-mono text-xs font-semibold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
                       {(partner.servicePincodes || (city.pincodes || [])).join(", ")}
                     </span>
                   ),
@@ -1451,8 +1178,8 @@ export function CitiesPage() {
                   key: "status",
                   label: "Status",
                   render: ({ partner }) => (
-                    <span className="rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 border border-emerald-200">
-                      ● {partner.status || "Active"}
+                    <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                      {partner.status || "Active"}
                     </span>
                   ),
                 },
@@ -1464,26 +1191,30 @@ export function CitiesPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
+                      className="h-7 rounded-lg border-zinc-200 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
                       onClick={() => setAssigningPartner({ partner, cityId: city.id, cityName: city.city })}
                     >
-                      <Crosshair className="size-3.5 mr-1 text-emerald-600" /> Assign Pincodes
+                      <Crosshair className="size-3 mr-1 text-zinc-600" /> Assign Pincodes
                     </Button>
                   ),
                 },
               ]}
             />
-          </SectionCard>
+          </div>
         )}
 
         {/* =========================================================================
-            TAB 4: RIDER PINCODE STATIONING
+            TAB 4: RIDER FLEET STATIONING
         ========================================================================= */}
         {activeTab === "riders" && (
-          <SectionCard
-            title="Delivery Captain Fleet Stationed by Pincode"
-            description="Assign delivery riders to operating postal codes for instant dispatch and order pickups."
-          >
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+            <div className="border-b border-zinc-100 pb-3">
+              <h3 className="text-base font-bold text-zinc-950">Rider Fleet Stationing ({allRidersList.length})</h3>
+              <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                Captains stationed across specific postal sectors for rapid dispatch assignment.
+              </p>
+            </div>
+
             <DataTable
               loading={citiesQuery.isLoading}
               rows={allRidersList}
@@ -1492,16 +1223,11 @@ export function CitiesPage() {
                   key: "rider",
                   label: "Captain Name & Vehicle",
                   render: ({ rider }) => (
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-9 items-center justify-center rounded-xl bg-sky-100 text-sky-800 font-bold text-xs">
-                        {rider.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-bold text-zinc-900 text-xs">{rider.name}</p>
-                        <p className="text-[10px] text-zinc-400 font-medium">
-                          {rider.vehicle || "Motorbike"} · {rider.plate || "—"}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="font-bold text-zinc-950 text-xs">{rider.name}</p>
+                      <p className="text-[11px] text-zinc-500 font-medium">
+                        {rider.vehicle || "Motorbike"} · {rider.plate || "—"}
+                      </p>
                     </div>
                   ),
                 },
@@ -1510,32 +1236,32 @@ export function CitiesPage() {
                   label: "City",
                   render: ({ city }) => (
                     <div className="text-xs">
-                      <p className="font-bold text-zinc-900">{city.city}</p>
-                      <p className="text-[10px] text-zinc-400">{city.state}</p>
+                      <p className="font-bold text-zinc-950">{city.city}</p>
+                      <p className="text-[11px] text-zinc-500">{city.state}</p>
                     </div>
                   ),
                 },
                 {
                   key: "pincodes",
-                  label: "Operating Pincodes",
+                  label: "Stationed Pincodes",
                   render: ({ rider, city }) => (
-                    <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200">
+                    <span className="font-mono text-xs font-semibold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
                       {(rider.pincodes || (city.pincodes || [])).join(", ")}
                     </span>
                   ),
                 },
                 {
                   key: "liveState",
-                  label: "Live State",
+                  label: "State",
                   render: ({ rider }) => (
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                         rider.liveState === "Online"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-zinc-100 text-zinc-500"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : "bg-zinc-100 text-zinc-600 border-zinc-200"
                       }`}
                     >
-                      ● {rider.liveState || "Offline"}
+                      {rider.liveState || "Offline"}
                     </span>
                   ),
                 },
@@ -1547,54 +1273,60 @@ export function CitiesPage() {
                     <div className="flex items-center justify-end gap-1.5">
                       <a
                         href={`tel:${rider.phone}`}
-                        className="flex size-8 items-center justify-center rounded-xl border border-zinc-200 text-zinc-700 hover:bg-zinc-100"
+                        className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 text-zinc-700 hover:bg-zinc-50"
                       >
-                        <Phone className="size-3.5" />
+                        <Phone className="size-3" />
                       </a>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
+                        className="h-7 rounded-lg border-zinc-200 text-xs font-semibold text-zinc-900 hover:bg-zinc-50"
                         onClick={() => setAssigningRider({ rider, cityId: city.id, cityName: city.city })}
                       >
-                        <UserCheck className="size-3.5 mr-1 text-sky-600" /> Station Pincode
+                        <UserCheck className="size-3 mr-1 text-zinc-600" /> Station Pincode
                       </Button>
                     </div>
                   ),
                 },
               ]}
             />
-          </SectionCard>
+          </div>
         )}
 
         {/* =========================================================================
-            TAB 5: STATE TERRITORY DIRECTORY
+            TAB 5: STATE DIRECTORY
         ========================================================================= */}
         {activeTab === "states" && (
-          <SectionCard
-            title="State-Level Territory Hierarchy & Rollout"
-            description="Aggregated view of multi-state delivery operations, active pincodes, and network GMV."
-            actions={<AddStateDialog />}
-          >
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-zinc-950">State Territory Hierarchy ({stateList.length})</h3>
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                  State-level network rollup, operational hubs, and gross territory sales.
+                </p>
+              </div>
+              <AddStateDialog />
+            </div>
+
             <DataTable
               loading={statesQuery.isLoading}
               rows={stateList}
               columns={[
                 {
                   key: "state",
-                  label: "State Name",
+                  label: "State Territory",
                   render: (s) => (
-                    <div className="flex items-center gap-2.5">
-                      <Landmark className="size-4 text-emerald-700" />
-                      <span className="font-black text-xs text-zinc-900">{s.state}</span>
+                    <div className="flex items-center gap-2">
+                      <Landmark className="size-4 text-zinc-600" />
+                      <span className="font-bold text-xs text-zinc-950">{s.state}</span>
                     </div>
                   ),
                 },
                 {
                   key: "cities",
-                  label: "Cities Network",
+                  label: "Operating Cities",
                   render: (s) => (
-                    <span className="font-bold text-xs text-zinc-800">
+                    <span className="font-semibold text-xs text-zinc-900">
                       {s.citiesCount} Cities ({s.liveCities} Live)
                     </span>
                   ),
@@ -1602,92 +1334,71 @@ export function CitiesPage() {
                 {
                   key: "partners",
                   label: "Partner Stores",
-                  render: (s) => <span className="font-bold text-xs text-emerald-700">{s.partners} Stores</span>,
+                  render: (s) => <span className="font-semibold text-xs text-zinc-900">{s.partners} Stores</span>,
                 },
                 {
                   key: "riders",
                   label: "Delivery Fleet",
-                  render: (s) => <span className="font-bold text-xs text-sky-700">{s.riders} Captains</span>,
+                  render: (s) => <span className="font-semibold text-xs text-zinc-900">{s.riders} Captains</span>,
                 },
                 {
                   key: "customers",
                   label: "Customer Base",
-                  render: (s) => <span className="font-bold text-xs text-zinc-900">{s.customers} Users</span>,
+                  render: (s) => <span className="font-semibold text-xs text-zinc-900">{s.customers} Users</span>,
                 },
                 {
                   key: "sales",
                   label: "Delivered GMV",
                   render: (s) => (
-                    <span className="font-black text-xs text-emerald-700">₹{(s.sales || 0).toFixed(2)}</span>
+                    <span className="font-bold text-xs text-zinc-950 font-mono">
+                      ₹{(s.sales || 0).toFixed(2)}
+                    </span>
                   ),
                 },
               ]}
             />
-          </SectionCard>
+          </div>
         )}
 
         {/* =========================================================================
-            TAB 6: ZOMATO CONCENTRIC WAVE & MICRO-ZONE (POD) DISPATCH ENGINE
+            TAB 6: POD DISPATCH & CONCENTRIC WAVES (ZOMATO-STYLE)
         ========================================================================= */}
         {activeTab === "dispatch" && (
           <div className="space-y-6">
-            {/* Top KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard
-                title="Wave 1: Ultra-Local Pod"
-                value={`${waveConfigState.wave1RadiusKm ?? 1.8} km`}
-                subtitle={`${waveConfigState.wave1TimeoutSec ?? 15}s Priority Window (0–1.8km nearest captains)`}
-                icon={Zap}
-              />
-              <KpiCard
-                title="Wave 2: Neighboring Pods"
-                value={`${waveConfigState.wave2RadiusKm ?? 4.0} km`}
-                subtitle={`${waveConfigState.wave2TimeoutSec ?? 15}s Escalation Window if Wave 1 unclaimed`}
-                icon={Radio}
-              />
-              <KpiCard
-                title="Wave 3: Citywide Fleet"
-                value={`${waveConfigState.wave3RadiusKm ?? 8.0} km`}
-                subtitle="Outer fleet perimeter fallback for 100% fulfillment"
-                icon={Truck}
-              />
-              <KpiCard
-                title="Active Concentric Waves"
-                value={`${liveWavesQuery.data?.activeCount ?? 0} In-Flight`}
-                subtitle="Real-time multi-rider concentric ring dispatches"
-                icon={Activity}
-              />
-            </div>
+            {/* Wave Parameters Editor */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-zinc-950">Concentric Wave Dispatch Engine</h3>
+                  <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                    Configure micro-zone radii and escalation timeouts for automated rider assignment.
+                  </p>
+                </div>
 
-            {/* Config & Parameters Editor */}
-            <SectionCard
-              title="Zomato Concentric Wave Dispatch Configuration"
-              description="Adjust spatial micro-zone radii and escalation timeouts in real time without restarting backend services."
-              actions={
                 <Button
                   onClick={() => updateDispatchMutation.mutate(waveConfigState)}
                   disabled={updateDispatchMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl flex items-center gap-2 shadow-xs cursor-pointer"
+                  className="bg-white hover:bg-zinc-100 border-2 border-zinc-900 text-zinc-950 font-bold text-xs h-8.5 px-3.5 rounded-lg flex items-center gap-2 shadow-xs cursor-pointer"
                 >
-                  <Save className="size-4" />
-                  <span>{updateDispatchMutation.isPending ? "Saving Changes..." : "Save Dispatch Parameters"}</span>
+                  <Save className="size-3.5" />
+                  <span>{updateDispatchMutation.isPending ? "Saving..." : "Save Parameters"}</span>
                 </Button>
-              }
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-2">
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Wave 1 Settings */}
-                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+                <div className="p-4 rounded-lg border border-zinc-200 bg-white space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="size-3 rounded-full bg-emerald-500 animate-pulse" />
-                    <h4 className="font-extrabold text-xs text-emerald-950 uppercase tracking-wider">
-                      Wave 1 (Ultra-Local Pod)
+                    <span className="size-2 rounded-full bg-emerald-600" />
+                    <h4 className="font-bold text-xs text-zinc-950 uppercase tracking-wider">
+                      Wave 1: Ultra-Local Pod
                     </h4>
                   </div>
-                  <p className="text-[11px] text-emerald-800 leading-relaxed">
-                    Exclusive priority window for captains closest to store or customer. Rings first for instant dispatch.
+                  <p className="text-xs text-zinc-500 leading-relaxed font-medium">
+                    Priority window for captains closest to store. Rings first for rapid fulfillment.
                   </p>
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-zinc-700">Radius Limit (km)</Label>
+                    <Label className="text-xs font-semibold text-zinc-700">Radius Limit (km)</Label>
                     <Input
                       type="number"
                       step="0.1"
@@ -1695,11 +1406,11 @@ export function CitiesPage() {
                       max="5.0"
                       value={waveConfigState.wave1RadiusKm ?? 1.8}
                       onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave1RadiusKm: parseFloat(e.target.value) || 1.8 }))}
-                      className="bg-white text-xs font-bold"
+                      className="bg-white text-xs font-semibold"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-zinc-700">Priority Timeout (seconds)</Label>
+                    <Label className="text-xs font-semibold text-zinc-700">Priority Timeout (seconds)</Label>
                     <Input
                       type="number"
                       step="1"
@@ -1707,24 +1418,24 @@ export function CitiesPage() {
                       max="60"
                       value={waveConfigState.wave1TimeoutSec ?? 15}
                       onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave1TimeoutSec: parseInt(e.target.value, 10) || 15 }))}
-                      className="bg-white text-xs font-bold"
+                      className="bg-white text-xs font-semibold"
                     />
                   </div>
                 </div>
 
                 {/* Wave 2 Settings */}
-                <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-3">
+                <div className="p-4 rounded-lg border border-zinc-200 bg-white space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="size-3 rounded-full bg-amber-500" />
-                    <h4 className="font-extrabold text-xs text-amber-950 uppercase tracking-wider">
-                      Wave 2 (Neighboring Pods)
+                    <span className="size-2 rounded-full bg-zinc-600" />
+                    <h4 className="font-bold text-xs text-zinc-950 uppercase tracking-wider">
+                      Wave 2: Neighboring Pods
                     </h4>
                   </div>
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
-                    Cascades outwards to adjacent sectors if no captain in Wave 1 accepts within the priority window.
+                  <p className="text-xs text-zinc-500 leading-relaxed font-medium">
+                    Cascades outwards to adjacent sectors if no captain in Wave 1 accepts within timeout.
                   </p>
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-zinc-700">Radius Limit (km)</Label>
+                    <Label className="text-xs font-semibold text-zinc-700">Radius Limit (km)</Label>
                     <Input
                       type="number"
                       step="0.1"
@@ -1732,11 +1443,11 @@ export function CitiesPage() {
                       max="10.0"
                       value={waveConfigState.wave2RadiusKm ?? 4.0}
                       onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave2RadiusKm: parseFloat(e.target.value) || 4.0 }))}
-                      className="bg-white text-xs font-bold"
+                      className="bg-white text-xs font-semibold"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-zinc-700">Escalation Timeout (seconds)</Label>
+                    <Label className="text-xs font-semibold text-zinc-700">Escalation Timeout (seconds)</Label>
                     <Input
                       type="number"
                       step="1"
@@ -1744,24 +1455,24 @@ export function CitiesPage() {
                       max="60"
                       value={waveConfigState.wave2TimeoutSec ?? 15}
                       onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave2TimeoutSec: parseInt(e.target.value, 10) || 15 }))}
-                      className="bg-white text-xs font-bold"
+                      className="bg-white text-xs font-semibold"
                     />
                   </div>
                 </div>
 
                 {/* Wave 3 Settings */}
-                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-3">
+                <div className="p-4 rounded-lg border border-zinc-200 bg-white space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="size-3 rounded-full bg-blue-500" />
-                    <h4 className="font-extrabold text-xs text-blue-950 uppercase tracking-wider">
-                      Wave 3 (Outer Citywide Fleet)
+                    <span className="size-2 rounded-full bg-zinc-400" />
+                    <h4 className="font-bold text-xs text-zinc-950 uppercase tracking-wider">
+                      Wave 3: Citywide Fleet
                     </h4>
                   </div>
-                  <p className="text-[11px] text-blue-800 leading-relaxed">
-                    Full citywide perimeter fallback. Broadcasts to all active fleet captains to guarantee 100% fulfillment.
+                  <p className="text-xs text-zinc-500 leading-relaxed font-medium">
+                    Full city perimeter fallback. Broadcasts to all active fleet captains for guaranteed pickup.
                   </p>
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-zinc-700">Radius Limit (km)</Label>
+                    <Label className="text-xs font-semibold text-zinc-700">Radius Limit (km)</Label>
                     <Input
                       type="number"
                       step="0.5"
@@ -1769,74 +1480,67 @@ export function CitiesPage() {
                       max="25.0"
                       value={waveConfigState.wave3RadiusKm ?? 8.0}
                       onChange={(e) => setWaveConfigState((prev) => ({ ...prev, wave3RadiusKm: parseFloat(e.target.value) || 8.0 }))}
-                      className="bg-white text-xs font-bold"
+                      className="bg-white text-xs font-semibold"
                     />
                   </div>
-                  <div className="p-2.5 rounded-xl bg-blue-100/60 border border-blue-200 text-[11px] text-blue-900 font-medium mt-3">
-                    💡 <strong>Automatic Smart Promotion:</strong> If 0 captains are online in Wave 1, the engine immediately initiates Wave 2 with zero waiting.
+                  <div className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-xs text-zinc-600 font-medium mt-3">
+                    Smart Fallback: If 0 captains are online in Wave 1, engine immediately promotes to Wave 2.
                   </div>
                 </div>
               </div>
-            </SectionCard>
+            </div>
 
-            {/* Live In-Flight Dispatch Waves Surveillance */}
-            <SectionCard
-              title="Live Concentric Wave Escalation Surveillance"
-              description="Real-time monitoring of in-flight trip dispatches escalating across micro-zone pods."
-              actions={
+            {/* Live Wave Escalation Surveillance */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-zinc-950">Active Wave Surveillance</h3>
+                  <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                    Real-time monitoring of in-flight orders escalating across spatial pods.
+                  </p>
+                </div>
+
                 <Button
                   onClick={() => liveWavesQuery.refetch()}
                   variant="outline"
                   size="sm"
-                  className="text-xs font-bold h-8 rounded-xl flex items-center gap-1.5"
+                  className="text-xs font-semibold h-8 rounded-lg border-zinc-200 text-zinc-900 flex items-center gap-1.5"
                 >
                   <RefreshCw className={`size-3.5 ${liveWavesQuery.isFetching ? "animate-spin" : ""}`} />
-                  <span>Refresh Waves</span>
+                  <span>Refresh</span>
                 </Button>
-              }
-            >
+              </div>
+
               {liveWavesQuery.data?.liveWaves && liveWavesQuery.data.liveWaves.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-zinc-100 text-zinc-500 font-bold uppercase text-[10px]">
-                        <th className="py-3 px-4">Trip / Order Code</th>
-                        <th className="py-3 px-4">Current Wave</th>
-                        <th className="py-3 px-4">Micro-Zone Tier</th>
-                        <th className="py-3 px-4">Ringing Captains</th>
-                        <th className="py-3 px-4">Dispatched At</th>
+                      <tr className="border-b border-zinc-200 text-zinc-500 font-bold uppercase text-[10px] bg-zinc-50/50">
+                        <th className="py-2.5 px-3">Order Code</th>
+                        <th className="py-2.5 px-3">Active Wave</th>
+                        <th className="py-2.5 px-3">Zone Tier</th>
+                        <th className="py-2.5 px-3">Notified Captains</th>
+                        <th className="py-2.5 px-3">Dispatched At</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                       {liveWavesQuery.data.liveWaves.map((wave) => (
-                        <tr key={wave.rideId} className="hover:bg-zinc-50 transition-colors">
-                          <td className="py-3 px-4 font-mono font-bold text-zinc-900">
+                        <tr key={wave.rideId} className="hover:bg-zinc-50">
+                          <td className="py-2.5 px-3 font-mono font-bold text-zinc-950">
                             #{wave.orderCode || wave.rideId.slice(-6).toUpperCase()}
                           </td>
-                          <td className="py-3 px-4">
-                            {wave.currentWave === 1 && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px]">
-                                🟢 Wave 1 (Ultra-Local)
-                              </span>
-                            )}
-                            {wave.currentWave === 2 && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[11px]">
-                                ⚡ Wave 2 (Neighboring)
-                              </span>
-                            )}
-                            {wave.currentWave >= 3 && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-extrabold text-[11px]">
-                                🛵 Wave 3 (Citywide)
-                              </span>
-                            )}
+                          <td className="py-2.5 px-3">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-800 font-semibold text-[10px] border border-zinc-200">
+                              Wave {wave.currentWave}
+                            </span>
                           </td>
-                          <td className="py-3 px-4 font-bold text-zinc-700 capitalize">
+                          <td className="py-2.5 px-3 font-medium text-zinc-700 capitalize">
                             {wave.tierLabel.replace("_", " ")}
                           </td>
-                          <td className="py-3 px-4 font-extrabold text-zinc-900">
+                          <td className="py-2.5 px-3 font-bold text-zinc-950">
                             {wave.waveCaptainsCount} Captains
                           </td>
-                          <td className="py-3 px-4 text-zinc-500">
+                          <td className="py-2.5 px-3 text-zinc-500 font-mono">
                             {new Date(wave.dispatchedAt).toLocaleTimeString()}
                           </td>
                         </tr>
@@ -1845,25 +1549,22 @@ export function CitiesPage() {
                   </table>
                 </div>
               ) : (
-                <div className="py-12 flex flex-col items-center justify-center text-center p-6 space-y-2">
-                  <div className="size-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <CheckCircle2 className="size-6" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-zinc-900">All Micro-Zones Dispatched & Claimed</h4>
+                <div className="py-10 flex flex-col items-center justify-center text-center space-y-1.5">
+                  <CheckCircle2 className="size-8 text-zinc-400" />
+                  <h4 className="font-bold text-sm text-zinc-950">All Orders Dispatched & Claimed</h4>
                   <p className="text-xs text-zinc-500 max-w-sm">
-                    No active concentric wave timers currently escalating. Orders are either claimed by nearby captains or awaiting customer checkout.
+                    No active concentric wave timers currently escalating. Orders are claimed by nearby captains.
                   </p>
                 </div>
               )}
-            </SectionCard>
+            </div>
           </div>
         )}
       </div>
 
       {/* =========================================================================
-          MODALS & DIALOGS
+          MODALS & DIALOGS (PURE WHITE, CLEAN BORDERS, CRISP TYPOGRAPHY)
       ========================================================================= */}
-      {/* Edit Pincode Settings Modal */}
       {editingPincode && (
         <EditPincodeDialog
           cityId={editingPincode.cityId}
@@ -1873,7 +1574,6 @@ export function CitiesPage() {
         />
       )}
 
-      {/* Add Pincode to City Modal */}
       {addingPincodeCityId && (
         <AddPincodeDialog
           cityId={addingPincodeCityId}
@@ -1882,7 +1582,6 @@ export function CitiesPage() {
         />
       )}
 
-      {/* Add Sector / Locality to Pincode Modal */}
       {addingSectorPincode && (
         <AddSectorDialog
           cityId={addingSectorPincode.cityId}
@@ -1892,7 +1591,6 @@ export function CitiesPage() {
         />
       )}
 
-      {/* Assign Partner Pincodes Modal */}
       {assigningPartner && (
         <AssignPartnerPincodesDialog
           partner={assigningPartner.partner}
@@ -1903,7 +1601,6 @@ export function CitiesPage() {
         />
       )}
 
-      {/* Assign Rider Pincodes Modal */}
       {assigningRider && (
         <AssignRiderPincodesDialog
           rider={assigningRider.rider}
@@ -1918,7 +1615,7 @@ export function CitiesPage() {
 }
 
 /* =========================================================================
-   DIALOG 1: ADD STATE DIALOG (USER REQUIREMENT)
+   DIALOG 1: ADD STATE DIALOG
 ========================================================================= */
 function AddStateDialog() {
   const queryClient = useQueryClient();
@@ -1935,63 +1632,61 @@ function AddStateDialog() {
         tier,
       }),
     onSuccess: () => {
-      toast.success(`State ${stateName} added successfully! 🏛️`);
+      toast.success(`State ${stateName} added successfully.`);
       setOpen(false);
       setStateName("");
       setCapitalCity("");
       queryClient.invalidateQueries({ queryKey: ["admin", "states"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
     },
-    onError: () => {
-      toast.error("Failed to add state.");
-    },
+    onError: () => toast.error("Failed to add state territory."),
   });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100">
-          <Landmark className="size-3.5 mr-1 text-emerald-600" />
+        <Button size="sm" variant="outline" className="h-9 rounded-lg border-zinc-200 bg-white text-xs font-semibold text-zinc-900 hover:bg-zinc-50 shadow-xs cursor-pointer">
+          <Landmark className="size-3.5 mr-1 text-zinc-700" />
           <span>Add State</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Add State Territory</DialogTitle>
+          <DialogTitle className="text-base font-bold text-zinc-950">Add State Territory</DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Register a new state in India for territorial operations, city rollouts, and pincode clustering.
+            Register a state territory for regional hubs, city rollout, and pincode clustering.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2 text-xs">
           <div className="space-y-1">
-            <Label className="text-xs font-bold">State Name</Label>
+            <Label className="text-xs font-semibold text-zinc-800">State Name</Label>
             <Input
               placeholder="e.g. Maharashtra, Rajasthan, Karnataka"
               value={stateName}
               onChange={(e) => setStateName(e.target.value)}
-              className="h-9 text-xs font-bold"
+              className="h-9 text-xs font-medium bg-white"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-bold">First Operational City / Capital</Label>
+              <Label className="text-xs font-semibold text-zinc-800">Operating City / Capital</Label>
               <Input
-                placeholder="e.g. Mumbai, Jaipur, Bangalore"
+                placeholder="e.g. Mumbai, Jaipur, Bengaluru"
                 value={capitalCity}
                 onChange={(e) => setCapitalCity(e.target.value)}
-                className="h-9 text-xs"
+                className="h-9 text-xs bg-white"
               />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold">Territory Tier</Label>
+              <Label className="text-xs font-semibold text-zinc-800">Territory Tier</Label>
               <Select value={tier} onValueChange={setTier}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white text-zinc-950">
                   <SelectItem value="Tier-1">Tier-1 Metro State</SelectItem>
                   <SelectItem value="Tier-2">Tier-2 Growth State</SelectItem>
                   <SelectItem value="Tier-3">Tier-3 Emerging State</SelectItem>
@@ -2002,16 +1697,16 @@ function AddStateDialog() {
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="rounded-xl text-xs font-bold">
+          <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="rounded-lg text-xs font-semibold border-zinc-200 text-zinc-700">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => createMutation.mutate()}
             disabled={!stateName.trim() || createMutation.isPending}
-            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+            className="rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-4 py-2 cursor-pointer shadow-xs"
           >
-            {createMutation.isPending ? "Adding..." : "Add State Territory"}
+            {createMutation.isPending ? "Adding..." : "Add State"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -2020,7 +1715,7 @@ function AddStateDialog() {
 }
 
 /* =========================================================================
-   DIALOG 2: ADD CITY DIALOG (WITH STATE SELECTOR)
+   DIALOG 2: ADD CITY DIALOG
 ========================================================================= */
 function AddCityDialog({ defaultState }: { defaultState?: string }) {
   const queryClient = useQueryClient();
@@ -2049,53 +1744,61 @@ function AddCityDialog({ defaultState }: { defaultState?: string }) {
           .filter((p) => p.length === 6 && /^\d{6}$/.test(p)),
       }),
     onSuccess: () => {
-      toast.success(`New operational city ${city} added to ${state}! 🎉`);
+      toast.success(`Operational city ${city} added successfully.`);
       setOpen(false);
       setCity("");
       setPincodesInput("");
       queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "states"] });
     },
-    onError: () => {
-      toast.error("Failed to add city.");
-    },
+    onError: () => toast.error("Failed to add city."),
   });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100">
-          <MapPinPlus className="size-3.5 mr-1 text-emerald-600" />
+        <Button size="sm" variant="outline" className="h-9 rounded-lg border-zinc-200 bg-white text-xs font-semibold text-zinc-900 hover:bg-zinc-50 shadow-xs cursor-pointer">
+          <Building2 className="size-3.5 mr-1 text-zinc-700" />
           <span>Add City Hub</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Configure Operational City</DialogTitle>
+          <DialogTitle className="text-base font-bold text-zinc-950">Add Operating City</DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Add a new city under a state to the QuickPress territory network.
+            Register a new city under a state territory in the QuickPress network.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2 text-xs">
           <div className="space-y-1">
-            <Label className="text-xs font-bold">City Name</Label>
-            <Input placeholder="e.g. Noida, Delhi, Lucknow, Mathura" value={city} onChange={(e) => setCity(e.target.value)} className="h-9 text-xs font-bold" />
+            <Label className="text-xs font-semibold text-zinc-800">City Name</Label>
+            <Input
+              placeholder="e.g. Noida, Delhi, Lucknow, Mathura"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="h-9 text-xs font-semibold bg-white"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-bold">State Territory</Label>
-              <Input placeholder="Uttar Pradesh" value={state} onChange={(e) => setState(e.target.value)} className="h-9 text-xs" />
+              <Label className="text-xs font-semibold text-zinc-800">State Territory</Label>
+              <Input
+                placeholder="Uttar Pradesh"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className="h-9 text-xs bg-white"
+              />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold">City Tier</Label>
+              <Label className="text-xs font-semibold text-zinc-800">City Tier</Label>
               <Select value={tier} onValueChange={setTier}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white text-zinc-950">
                   <SelectItem value="Tier-1">Tier-1 Metro</SelectItem>
                   <SelectItem value="Tier-2">Tier-2 Hub</SelectItem>
                   <SelectItem value="Tier-3">Tier-3 City</SelectItem>
@@ -2105,25 +1808,36 @@ function AddCityDialog({ defaultState }: { defaultState?: string }) {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Operational Pincodes (comma separated)</Label>
-            <Input placeholder="e.g. 207123, 207124, 207125" value={pincodesInput} onChange={(e) => setPincodesInput(e.target.value)} className="h-9 text-xs" />
+            <Label className="text-xs font-semibold text-zinc-800">Operational Pincodes (comma separated)</Label>
+            <Input
+              placeholder="e.g. 201301, 201302, 201303"
+              value={pincodesInput}
+              onChange={(e) => setPincodesInput(e.target.value)}
+              className="h-9 text-xs bg-white font-mono"
+            />
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Default Base Delivery Fee (₹)</Label>
-            <Input type="number" placeholder="25" value={baseFee} onChange={(e) => setBaseFee(e.target.value)} className="h-9 text-xs" />
+            <Label className="text-xs font-semibold text-zinc-800">Base Delivery Fee (₹)</Label>
+            <Input
+              type="number"
+              placeholder="25"
+              value={baseFee}
+              onChange={(e) => setBaseFee(e.target.value)}
+              className="h-9 text-xs bg-white font-mono"
+            />
           </div>
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="rounded-xl text-xs font-bold">
+          <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="rounded-lg text-xs font-semibold border-zinc-200 text-zinc-700">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => createMutation.mutate()}
             disabled={!city.trim() || createMutation.isPending}
-            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white"
+            className="rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-4 py-2 cursor-pointer shadow-xs"
           >
             {createMutation.isPending ? "Adding..." : "Launch City Hub"}
           </Button>
@@ -2134,7 +1848,7 @@ function AddCityDialog({ defaultState }: { defaultState?: string }) {
 }
 
 /* =========================================================================
-   DIALOG 3: ADD PINCODE TO CITY DIALOG (WITH SECTORS)
+   DIALOG 3: ADD PINCODE TO CITY
 ========================================================================= */
 function AddPincodeDialog({
   cityId,
@@ -2159,65 +1873,67 @@ function AddPincodeDialog({
         status: "Active",
       }),
     onSuccess: () => {
-      toast.success(`Pincode ${pincode} added to ${cityName}! 🎉`);
+      toast.success(`Pincode ${pincode} added to ${cityName}.`);
       queryClient.invalidateQueries({ queryKey: ["admin", "cities", "pincodes"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "cities", "intelligence"] });
       onClose();
     },
-    onError: () => {
-      toast.error("Failed to add pincode.");
-    },
+    onError: () => toast.error("Failed to add pincode."),
   });
 
   return (
     <Dialog open onOpenChange={(o) => (!o ? onClose() : null)}>
-      <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Add Serviceable Pincode to {cityName}</DialogTitle>
+          <DialogTitle className="text-base font-bold text-zinc-950">Add Serviceable Pincode to {cityName}</DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Register a new 6-digit postal code and its sectors in {cityName} for full delivery coverage.
+            Register a 6-digit postal code for delivery coverage.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2 text-xs">
           <div className="space-y-1">
-            <Label className="text-xs font-bold">6-Digit Pincode</Label>
+            <Label className="text-xs font-semibold text-zinc-800">6-Digit Postal Code</Label>
             <Input
               placeholder="e.g. 201301"
               value={pincode}
               onChange={(e) => setPincode(e.target.value)}
-              className="h-9 text-xs font-mono font-bold"
+              className="h-9 text-xs font-mono font-bold bg-white"
             />
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Sectors / Area / Locality Clusters</Label>
+            <Label className="text-xs font-semibold text-zinc-800">Sectors / Area Clusters</Label>
             <Input
-              placeholder="e.g. Sector 18, Atta Market, Sector 15 & Central Hub"
+              placeholder="e.g. Sector 18, Atta Market & Central Hub"
               value={areaName}
               onChange={(e) => setAreaName(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-white"
             />
-            <p className="text-[10px] text-zinc-400">Comma separated sector or locality names</p>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Base Delivery Fee (₹)</Label>
-            <Input type="number" value={baseFee} onChange={(e) => setBaseFee(e.target.value)} className="h-9 text-xs" />
+            <Label className="text-xs font-semibold text-zinc-800">Base Delivery Fee (₹)</Label>
+            <Input
+              type="number"
+              value={baseFee}
+              onChange={(e) => setBaseFee(e.target.value)}
+              className="h-9 text-xs font-mono bg-white"
+            />
           </div>
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+          <Button variant="outline" size="sm" onClick={onClose} className="rounded-lg text-xs font-semibold border-zinc-200 text-zinc-700">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => addMutation.mutate()}
             disabled={!pincode.trim() || addMutation.isPending}
-            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+            className="rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-4 py-2 cursor-pointer shadow-xs"
           >
-            {addMutation.isPending ? "Adding..." : "Add Pincode & Sectors"}
+            {addMutation.isPending ? "Adding..." : "Add Pincode"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -2226,7 +1942,7 @@ function AddPincodeDialog({
 }
 
 /* =========================================================================
-   DIALOG 4: ADD SECTOR / LOCALITY TO PINCODE DIALOG
+   DIALOG 4: ADD SECTOR / LOCALITY TO PINCODE
 ========================================================================= */
 function AddSectorDialog({
   cityId,
@@ -2245,26 +1961,22 @@ function AddSectorDialog({
   const updateMutation = useMutation({
     mutationFn: () => {
       const updatedArea = currentArea ? `${currentArea}, ${newSector.trim()}` : newSector.trim();
-      return updateCityPincode(cityId, pincode, {
-        areaName: updatedArea,
-      });
+      return updateCityPincode(cityId, pincode, { areaName: updatedArea });
     },
     onSuccess: () => {
-      toast.success(`Sector added to Pincode ${pincode}! 🎉`);
+      toast.success(`Sector added to Pincode ${pincode}.`);
       queryClient.invalidateQueries({ queryKey: ["admin", "cities", "pincodes"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "cities", "intelligence"] });
       onClose();
     },
-    onError: () => {
-      toast.error("Failed to add sector.");
-    },
+    onError: () => toast.error("Failed to add sector."),
   });
 
   return (
     <Dialog open onOpenChange={(o) => (!o ? onClose() : null)}>
-      <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Add Sector / Locality to Pincode {pincode}</DialogTitle>
+          <DialogTitle className="text-base font-bold text-zinc-950">Add Sector to Pincode {pincode}</DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
             Add a new sector, neighborhood, or landmark inside this postal code.
           </DialogDescription>
@@ -2272,32 +1984,32 @@ function AddSectorDialog({
 
         <div className="space-y-3 py-2 text-xs">
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Current Covered Sectors</Label>
-            <p className="text-xs font-medium text-zinc-600 bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
-              {currentArea || "No specific sectors specified."}
+            <Label className="text-xs font-semibold text-zinc-800">Current Covered Sectors</Label>
+            <p className="text-xs font-medium text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
+              {currentArea || "No sectors specified."}
             </p>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-bold">New Sector / Area Name</Label>
+            <Label className="text-xs font-semibold text-zinc-800">New Sector / Area Name</Label>
             <Input
-              placeholder="e.g. Sector 62 Block B, Electronic City Metro"
+              placeholder="e.g. Sector 62 Block B, Electronic City"
               value={newSector}
               onChange={(e) => setNewSector(e.target.value)}
-              className="h-9 text-xs"
+              className="h-9 text-xs bg-white"
             />
           </div>
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+          <Button variant="outline" size="sm" onClick={onClose} className="rounded-lg text-xs font-semibold border-zinc-200 text-zinc-700">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => updateMutation.mutate()}
             disabled={!newSector.trim() || updateMutation.isPending}
-            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+            className="rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-4 py-2 cursor-pointer shadow-xs"
           >
             {updateMutation.isPending ? "Adding..." : "Add Sector"}
           </Button>
@@ -2308,7 +2020,7 @@ function AddSectorDialog({
 }
 
 /* =========================================================================
-   DIALOG 5: EDIT PINCODE SETTINGS DIALOG
+   DIALOG 5: EDIT PINCODE SETTINGS
 ========================================================================= */
 function EditPincodeDialog({
   cityId,
@@ -2336,68 +2048,81 @@ function EditPincodeDialog({
         status,
       }),
     onSuccess: () => {
-      toast.success(`Pincode ${pincode} settings updated! 🎉`);
+      toast.success(`Pincode ${pincode} settings updated.`);
       queryClient.invalidateQueries({ queryKey: ["admin", "cities", "pincodes"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "cities", "intelligence"] });
       onClose();
     },
-    onError: () => {
-      toast.error("Failed to update pincode.");
-    },
+    onError: () => toast.error("Failed to update pincode."),
   });
 
   return (
     <Dialog open onOpenChange={(o) => (!o ? onClose() : null)}>
-      <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Configure Pincode {pincode}</DialogTitle>
+          <DialogTitle className="text-base font-bold text-zinc-950">Edit Pincode {pincode} Parameters</DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Adjust sector cluster label, base delivery fee, and surge multiplier for this postal code.
+            Update base delivery fees, surge multiplier, and serviceability status.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2 text-xs">
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Sectors / Locality Cluster Name</Label>
-            <Input value={areaName} onChange={(e) => setAreaName(e.target.value)} className="h-9 text-xs" />
+            <Label className="text-xs font-semibold text-zinc-800">Covered Area / Sector Names</Label>
+            <Input value={areaName} onChange={(e) => setAreaName(e.target.value)} className="h-9 text-xs bg-white" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-bold">Base Delivery Fee (₹)</Label>
-              <Input type="number" value={baseFee} onChange={(e) => setBaseFee(e.target.value)} className="h-9 text-xs" />
+              <Label className="text-xs font-semibold text-zinc-800">Base Delivery Fee (₹)</Label>
+              <Input
+                type="number"
+                value={baseFee}
+                onChange={(e) => setBaseFee(e.target.value)}
+                className="h-9 text-xs font-mono bg-white"
+              />
             </div>
+
             <div className="space-y-1">
-              <Label className="text-xs font-bold">Surge Multiplier</Label>
-              <Input type="number" step="0.1" value={surgeMultiplier} onChange={(e) => setSurgeMultiplier(e.target.value)} className="h-9 text-xs" />
+              <Label className="text-xs font-semibold text-zinc-800">Surge Multiplier</Label>
+              <Input
+                type="number"
+                step="0.1"
+                min="1.0"
+                max="3.0"
+                value={surgeMultiplier}
+                onChange={(e) => setSurgeMultiplier(e.target.value)}
+                className="h-9 text-xs font-mono bg-white"
+              />
             </div>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Operational Status</Label>
+            <Label className="text-xs font-semibold text-zinc-800">Service Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="h-9 text-xs">
+              <SelectTrigger className="h-9 text-xs bg-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Active">● Active & Serviceable</SelectItem>
-                <SelectItem value="Paused">⏸️ Paused Delivery</SelectItem>
+              <SelectContent className="bg-white text-zinc-950">
+                <SelectItem value="Active">Active (Serving Orders)</SelectItem>
+                <SelectItem value="Paused">Paused (Temporary Inactive)</SelectItem>
+                <SelectItem value="High Demand">High Demand / Surge Active</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+          <Button variant="outline" size="sm" onClick={onClose} className="rounded-lg text-xs font-semibold border-zinc-200 text-zinc-700">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => updateMutation.mutate()}
             disabled={updateMutation.isPending}
-            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+            className="rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-4 py-2 cursor-pointer shadow-xs"
           >
-            {updateMutation.isPending ? "Saving..." : "Apply Pincode Rules"}
+            {updateMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -2406,7 +2131,7 @@ function EditPincodeDialog({
 }
 
 /* =========================================================================
-   DIALOG 6: ASSIGN PARTNER PINCODES DIALOG
+   DIALOG 6: ASSIGN PARTNER STORE PINCODES
 ========================================================================= */
 function AssignPartnerPincodesDialog({
   partner,
@@ -2422,111 +2147,80 @@ function AssignPartnerPincodesDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [selectedCityName, setSelectedCityName] = useState(partner.city || cityName);
-  const currentCityObj = cities.find((c) => c.city.toLowerCase() === selectedCityName.toLowerCase()) || cities[0];
+  const currentCityObj = cities.find((c) => c.id === cityId);
+  const availablePincodes = currentCityObj?.pincodes || [];
 
-  const initialPins =
+  const [selectedPins, setSelectedPins] = useState<string[]>(
     partner.servicePincodes && partner.servicePincodes.length > 0
       ? partner.servicePincodes
-      : currentCityObj?.pincodes || ["201301"];
-
-  const [servicePincodes, setServicePincodes] = useState<string[]>(initialPins);
+      : availablePincodes.length > 0
+      ? [availablePincodes[0]]
+      : []
+  );
 
   const assignMutation = useMutation({
-    mutationFn: () =>
-      assignPartnerPincodes(partner.id, {
-        servicePincodes,
-        pincode: servicePincodes[0] || "201301",
-        city: selectedCityName,
-        state: currentCityObj?.state || "Uttar Pradesh",
-      }),
+    mutationFn: () => assignPartnerPincodes(partner.id, selectedPins),
     onSuccess: () => {
-      toast.success("Partner store serviceable pincodes updated! 🎉");
-      queryClient.invalidateQueries({ queryKey: ["admin", "cities", "pincodes"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "cities", "intelligence"] });
+      toast.success(`Service pincodes updated for ${partner.name || partner.storeName}.`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
       onClose();
     },
-    onError: () => {
-      toast.error("Failed to update partner pincodes.");
-    },
+    onError: () => toast.error("Failed to map pincodes."),
   });
-
-  const availableCityPins = currentCityObj?.pincodes || ["201301", "201304", "201307", "201309", "201310", "207123", "207124", "207125"];
 
   return (
     <Dialog open onOpenChange={(o) => (!o ? onClose() : null)}>
-      <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Map Service Pincodes for Partner</DialogTitle>
+          <DialogTitle className="text-base font-bold text-zinc-950">
+            Map Pincodes for {partner.name || partner.storeName}
+          </DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Select all postal codes where {partner.name || partner.storeName} can provide full pickup and delivery coverage.
+            Assign the delivery postal codes this partner facility is authorized to service in {cityName}.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 text-xs">
-          <div className="space-y-1">
-            <Label className="text-xs font-bold">Store City</Label>
-            <Select value={selectedCityName} onValueChange={setSelectedCityName}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((c) => (
-                  <SelectItem key={c.id} value={c.city}>
-                    {c.city} ({c.state})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-3 py-2 text-xs">
+          <Label className="text-xs font-semibold text-zinc-800">Select Operating Pincodes</Label>
+          <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
+            {availablePincodes.map((pin) => {
+              const checked = selectedPins.includes(pin);
+              return (
+                <button
+                  key={pin}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPins((prev) =>
+                      prev.includes(pin) ? prev.filter((p) => p !== pin) : [...prev, pin]
+                    );
+                  }}
+                  className={`p-2 rounded-lg border text-center font-mono text-xs font-semibold transition-all cursor-pointer ${
+                    checked
+                      ? "border-2 border-zinc-950 bg-white text-zinc-950 font-bold shadow-xs ring-1 ring-zinc-950"
+                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  {pin}
+                </button>
+              );
+            })}
           </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs font-bold flex justify-between">
-              <span>Select Serviceable Pincodes</span>
-              <span className="text-emerald-700">{servicePincodes.length} Selected</span>
-            </Label>
-
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border rounded-xl border-zinc-200">
-              {availableCityPins.map((pin) => {
-                const isChecked = servicePincodes.includes(pin);
-                return (
-                  <label
-                    key={pin}
-                    className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
-                      isChecked ? "bg-emerald-50 border-emerald-300 text-emerald-950" : "border-zinc-100 hover:bg-zinc-50"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setServicePincodes((prev) => [...prev, pin]);
-                        } else {
-                          setServicePincodes((prev) => prev.filter((p) => p !== pin));
-                        }
-                      }}
-                      className="accent-emerald-600 rounded"
-                    />
-                    <span className="font-mono text-xs font-bold">{pin}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          {availablePincodes.length === 0 && (
+            <p className="text-xs text-zinc-500 py-2">No postal codes registered in this city yet.</p>
+          )}
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+          <Button variant="outline" size="sm" onClick={onClose} className="rounded-lg text-xs font-semibold border-zinc-200 text-zinc-700">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => assignMutation.mutate()}
             disabled={assignMutation.isPending}
-            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+            className="rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-4 py-2 cursor-pointer shadow-xs"
           >
-            {assignMutation.isPending ? "Updating..." : "Confirm Pincodes Coverage"}
+            {assignMutation.isPending ? "Saving..." : "Save Coverage"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -2535,7 +2229,7 @@ function AssignPartnerPincodesDialog({
 }
 
 /* =========================================================================
-   DIALOG 7: ASSIGN RIDER PINCODES DIALOG
+   DIALOG 7: ASSIGN RIDER FLEET PINCODES
 ========================================================================= */
 function AssignRiderPincodesDialog({
   rider,
@@ -2551,109 +2245,80 @@ function AssignRiderPincodesDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [selectedCityName, setSelectedCityName] = useState(rider.city || cityName);
-  const currentCityObj = cities.find((c) => c.city.toLowerCase() === selectedCityName.toLowerCase()) || cities[0];
+  const currentCityObj = cities.find((c) => c.id === cityId);
+  const availablePincodes = currentCityObj?.pincodes || [];
 
-  const initialPins =
-    rider.pincodes && rider.pincodes.length > 0 ? rider.pincodes : currentCityObj?.pincodes || ["201301"];
-
-  const [operatingPincodes, setOperatingPincodes] = useState<string[]>(initialPins);
+  const [selectedPins, setSelectedPins] = useState<string[]>(
+    rider.pincodes && rider.pincodes.length > 0
+      ? rider.pincodes
+      : availablePincodes.length > 0
+      ? [availablePincodes[0]]
+      : []
+  );
 
   const assignMutation = useMutation({
-    mutationFn: () =>
-      assignRiderPincodes(rider.riderId || rider.id || "", {
-        operatingPincodes,
-        pincode: operatingPincodes[0] || "201301",
-        city: selectedCityName,
-        state: currentCityObj?.state || "Uttar Pradesh",
-      }),
+    mutationFn: () => assignRiderPincodes(rider.id, selectedPins),
     onSuccess: () => {
-      toast.success("Delivery captain stationed in pincodes! 🛵");
-      queryClient.invalidateQueries({ queryKey: ["admin", "cities", "pincodes"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "cities", "intelligence"] });
+      toast.success(`Stationing pincodes updated for Captain ${rider.name}.`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "cities"] });
       onClose();
     },
-    onError: () => {
-      toast.error("Failed to station rider in pincodes.");
-    },
+    onError: () => toast.error("Failed to assign rider pincodes."),
   });
-
-  const availableCityPins = currentCityObj?.pincodes || ["201301", "201304", "201307", "201309", "201310", "207123", "207124", "207125"];
 
   return (
     <Dialog open onOpenChange={(o) => (!o ? onClose() : null)}>
-      <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-950 border-zinc-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Station Delivery Captain in Pincodes</DialogTitle>
+          <DialogTitle className="text-base font-bold text-zinc-950">
+            Station Captain {rider.name} ({rider.phone})
+          </DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Station Captain {rider.name} ({rider.vehicle || "Motorbike"}) in specific postal codes for fast localized pickup dispatch.
+            Select the operating sectors where this captain will receive pickup dispatch calls in {cityName}.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 text-xs">
-          <div className="space-y-1">
-            <Label className="text-xs font-bold">Operating City</Label>
-            <Select value={selectedCityName} onValueChange={setSelectedCityName}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((c) => (
-                  <SelectItem key={c.id} value={c.city}>
-                    {c.city} ({c.state})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-3 py-2 text-xs">
+          <Label className="text-xs font-semibold text-zinc-800">Stationing Postal Codes</Label>
+          <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
+            {availablePincodes.map((pin) => {
+              const checked = selectedPins.includes(pin);
+              return (
+                <button
+                  key={pin}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPins((prev) =>
+                      prev.includes(pin) ? prev.filter((p) => p !== pin) : [...prev, pin]
+                    );
+                  }}
+                  className={`p-2 rounded-lg border text-center font-mono text-xs font-semibold transition-all cursor-pointer ${
+                    checked
+                      ? "border-2 border-zinc-950 bg-white text-zinc-950 font-bold shadow-xs ring-1 ring-zinc-950"
+                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  {pin}
+                </button>
+              );
+            })}
           </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs font-bold flex justify-between">
-              <span>Operating Pincodes</span>
-              <span className="text-sky-700">{operatingPincodes.length} Selected</span>
-            </Label>
-
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border rounded-xl border-zinc-200">
-              {availableCityPins.map((pin) => {
-                const isChecked = operatingPincodes.includes(pin);
-                return (
-                  <label
-                    key={pin}
-                    className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
-                      isChecked ? "bg-sky-50 border-sky-300 text-sky-950" : "border-zinc-100 hover:bg-zinc-50"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setOperatingPincodes((prev) => [...prev, pin]);
-                        } else {
-                          setOperatingPincodes((prev) => prev.filter((p) => p !== pin));
-                        }
-                      }}
-                      className="accent-sky-600 rounded"
-                    />
-                    <span className="font-mono text-xs font-bold">{pin}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
+          {availablePincodes.length === 0 && (
+            <p className="text-xs text-zinc-500 py-2">No postal codes registered in this city yet.</p>
+          )}
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+          <Button variant="outline" size="sm" onClick={onClose} className="rounded-lg text-xs font-semibold border-zinc-200 text-zinc-700">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => assignMutation.mutate()}
             disabled={assignMutation.isPending}
-            className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold"
+            className="rounded-lg bg-white hover:bg-zinc-100 border border-zinc-900 text-zinc-950 text-xs font-bold px-4 py-2 cursor-pointer shadow-xs"
           >
-            {assignMutation.isPending ? "Updating..." : "Station Captain"}
+            {assignMutation.isPending ? "Saving..." : "Save Stationing"}
           </Button>
         </DialogFooter>
       </DialogContent>

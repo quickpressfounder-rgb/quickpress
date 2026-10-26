@@ -328,14 +328,14 @@ export function AdminShell({
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] text-[#111827] font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div className="flex min-h-screen bg-white text-zinc-950 font-sans antialiased selection:bg-zinc-900 selection:text-white">
       {/* Desktop Sticky Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-zinc-200 bg-white lg:flex">
         <BrandBlock account={account} />
         <SidebarNav account={account} />
 
         {/* Bottom Operator Identity Card */}
-        <div className="border-t border-zinc-200 p-3.5 bg-zinc-50/70">
+        <div className="border-t border-zinc-200 p-3.5 bg-white">
           <div className="flex items-center justify-between rounded-xl bg-white border border-zinc-200 p-2.5 shadow-sm">
             <div className="flex items-center gap-2 min-w-0">
               <div className="size-6 rounded-md border border-emerald-500/40 shrink-0 flex items-center justify-center bg-emerald-600 text-white font-black text-[10px]">
