@@ -84,12 +84,39 @@ export interface CrmGeoPulse {
     id: string;
     code: string;
     customer: string;
+    customerPhone?: string;
     partner: string;
     rider: string;
     amount: number;
     status: string;
     placedAt: string;
   }>;
+  geoPins?: Array<{
+    id: string;
+    type: "partner" | "rider" | "order";
+    name: string;
+    phone: string;
+    city: string;
+    pincode: string;
+    lat: number;
+    lng: number;
+    status: string;
+    metric: string;
+  }>;
+  analytics?: {
+    statusDistribution: {
+      delivered: number;
+      inTransit: number;
+      cancelled: number;
+      refunded: number;
+    };
+    timeline: Array<{
+      date: string;
+      sales: number;
+      orders: number;
+      delivered: number;
+    }>;
+  };
   location: {
     state: string;
     city: string;

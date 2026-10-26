@@ -61,6 +61,13 @@ import {
   Lock,
   Unlock,
   PhoneCall,
+  BarChart3,
+  PieChart,
+  Navigation,
+  Crosshair,
+  SlidersHorizontal,
+  Table as TableIcon,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -134,6 +141,24 @@ function EnterpriseCrmPage() {
 
   // RFM & Smart Cohort Filter State
   const [selectedCohort, setSelectedCohort] = useState<string>("all");
+
+  // View Mode: High-Density Table vs Modern Grid Cards
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+
+  // Live Geo Radar Pin Filter & Selection
+  const [radarFilter, setRadarFilter] = useState<"all" | "partner" | "rider">("all");
+  const [selectedPin, setSelectedPin] = useState<{
+    id: string;
+    type: string;
+    name: string;
+    phone: string;
+    city: string;
+    pincode: string;
+    lat: number;
+    lng: number;
+    status: string;
+    metric: string;
+  } | null>(null);
 
   // Multi-Selection State for Bulk Actions
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -415,21 +440,116 @@ function EnterpriseCrmPage() {
             VIEW B: MAIN CRM DIRECTORY, GEO-PULSE & LEADERBOARD VIEW
         ========================================================================== */
         <div className="space-y-6 pb-12">
+          {/* Executive KPI Overview Strip (High-Contrast Monochrome Enterprise) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4.5 shadow-xs transition-all hover:border-zinc-300">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
+                  Total Managed Accounts
+                </span>
+                <span className="size-8 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-900">
+                  <Users className="size-4" />
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-zinc-950 tracking-tight">
+                  {searchResults?.total || displayedItems.length}
+                </span>
+                <span className="text-[11px] font-bold text-zinc-700">
+                  Profiles across UP
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-[11px] font-semibold text-zinc-600 border-t border-zinc-100 pt-2">
+                <span>Active Territory:</span>
+                <strong className="text-zinc-950 font-black">{selectedCity === "all" ? "Kasganj & Grids" : selectedCity}</strong>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4.5 shadow-xs transition-all hover:border-zinc-300">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
+                  Territory Sales (GMV)
+                </span>
+                <span className="size-8 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-900">
+                  <TrendingUp className="size-4" />
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-zinc-950 tracking-tight">
+                  ₹{(geoPulse?.summary.totalSales || 0).toLocaleString("en-IN")}
+                </span>
+                <span className="text-[11px] font-bold text-zinc-700">
+                  Reconciled
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-[11px] font-semibold text-zinc-600 border-t border-zinc-100 pt-2">
+                <span>Net Commission:</span>
+                <strong className="text-zinc-950 font-black">₹{(geoPulse?.summary.platformRevenue || 0).toLocaleString("en-IN")}</strong>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4.5 shadow-xs transition-all hover:border-zinc-300">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
+                  Live Active Fleet
+                </span>
+                <span className="size-8 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-900">
+                  <Truck className="size-4" />
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-zinc-950 tracking-tight">
+                  {geoPulse?.fleet.onlineRiders || 0} / {geoPulse?.fleet.totalRiders || 0}
+                </span>
+                <span className="text-[11px] font-bold text-zinc-700">
+                  Pilots
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-[11px] font-semibold text-zinc-600 border-t border-zinc-100 pt-2">
+                <span>On Active Delivery:</span>
+                <strong className="text-zinc-950 font-black">{geoPulse?.fleet.onDeliveryRiders || 0} runs</strong>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4.5 shadow-xs transition-all hover:border-zinc-300">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-900">
+                  Service Store Nodes
+                </span>
+                <span className="size-8 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-900">
+                  <Building2 className="size-4" />
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-zinc-950 tracking-tight">
+                  {geoPulse?.fleet.activePartners || 0} / {geoPulse?.fleet.totalPartners || 0}
+                </span>
+                <span className="text-[11px] font-bold text-zinc-700">
+                  Store Hubs
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-[11px] font-semibold text-zinc-600 border-t border-zinc-100 pt-2">
+                <span>In-Transit Orders:</span>
+                <strong className="text-zinc-950 font-black">{geoPulse?.summary.activeOrders || 0} orders</strong>
+              </div>
+            </div>
+          </div>
+
           {/* Top Bar: Cascading Location Filters & Search */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-6 shadow-xs">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-xs">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-950">
                     <MapPin className="size-4" />
                   </span>
-                  <h2 className="text-sm font-black tracking-tight text-zinc-900 uppercase">
+                  <h2 className="text-sm font-black tracking-tight text-zinc-950 uppercase">
                     Territory & Geographic Scope
                   </h2>
                 </div>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Filtered Territory:{" "}
-                  <strong className="text-emerald-700 font-bold">{geoFilterLabel}</strong>
+                <p className="mt-1 text-xs text-zinc-700 font-medium">
+                  Active Operational Scope:{" "}
+                  <strong className="text-zinc-950 font-black">{geoFilterLabel}</strong>
                 </p>
               </div>
 
@@ -437,13 +557,13 @@ function EnterpriseCrmPage() {
                 {/* State Dropdown */}
                 <div className="w-36 sm:w-44">
                   <Select value={selectedState} onValueChange={handleStateChange}>
-                    <SelectTrigger className="h-9 text-xs font-semibold bg-zinc-50/80 border-zinc-200">
+                    <SelectTrigger className="h-9 text-xs font-bold text-zinc-950 bg-white border-zinc-300">
                       <SelectValue placeholder="All States" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All States</SelectItem>
                       {availableStates.map((s) => (
-                        <SelectItem key={s} value={s}>
+                        <SelectItem key={s} value={s} className="font-semibold text-zinc-950">
                           {s}
                         </SelectItem>
                       ))}
@@ -454,13 +574,13 @@ function EnterpriseCrmPage() {
                 {/* City Dropdown */}
                 <div className="w-36 sm:w-44">
                   <Select value={selectedCity} onValueChange={handleCityChange}>
-                    <SelectTrigger className="h-9 text-xs font-semibold bg-zinc-50/80 border-zinc-200">
+                    <SelectTrigger className="h-9 text-xs font-bold text-zinc-950 bg-white border-zinc-300">
                       <SelectValue placeholder="All Cities" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Cities</SelectItem>
                       {availableCities.map((c) => (
-                        <SelectItem key={c.city} value={c.city}>
+                        <SelectItem key={c.city} value={c.city} className="font-semibold text-zinc-950">
                           {c.city}
                         </SelectItem>
                       ))}
@@ -471,13 +591,13 @@ function EnterpriseCrmPage() {
                 {/* Pincode Dropdown */}
                 <div className="w-32 sm:w-36">
                   <Select value={selectedPincode} onValueChange={setSelectedPincode}>
-                    <SelectTrigger className="h-9 text-xs font-semibold bg-zinc-50/80 border-zinc-200">
+                    <SelectTrigger className="h-9 text-xs font-bold text-zinc-950 bg-white border-zinc-300">
                       <SelectValue placeholder="All PINs" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All PINs</SelectItem>
                       {availablePincodes.map((p) => (
-                        <SelectItem key={p} value={p}>
+                        <SelectItem key={p} value={p} className="font-semibold text-zinc-950">
                           {p}
                         </SelectItem>
                       ))}
@@ -494,28 +614,28 @@ function EnterpriseCrmPage() {
                     variant="outline"
                     size="sm"
                     onClick={resetFilters}
-                    className="h-9 px-3 text-xs font-bold text-zinc-600 hover:text-zinc-900 border-zinc-200"
+                    className="h-9 px-3 text-xs font-black text-zinc-950 hover:bg-zinc-100 border-zinc-300"
                   >
-                    <RotateCcw className="size-3.5 mr-1" /> Reset
+                    <RotateCcw className="size-3.5 mr-1" /> Reset Filters
                   </Button>
                 )}
               </div>
             </div>
 
             {/* Quick Search & Entity Filter Bar */}
-            <div className="mt-4 pt-4 border-t border-zinc-100 flex flex-col sm:flex-row items-center gap-3">
+            <div className="mt-4 pt-4 border-t border-zinc-200 flex flex-col sm:flex-row items-center gap-3">
               <div className="relative flex-1 w-full">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search across Customers, Riders, Partners by Name, Phone, ID, Email, Vehicle Plate..."
-                  className="h-10 pl-10 pr-4 text-xs font-medium bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white transition-all"
+                  placeholder="Live search across Name, Phone, UID, Email, Vehicle Plate, Address..."
+                  className="h-10 pl-10 pr-4 text-xs font-bold text-zinc-950 bg-white border-zinc-300 rounded-xl focus:border-zinc-900 transition-all placeholder:text-zinc-500"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 p-0.5"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-950 p-0.5"
                   >
                     <X className="size-3.5" />
                   </button>
@@ -527,8 +647,8 @@ function EnterpriseCrmPage() {
                 {[
                   { id: "all", label: "All Entities", icon: Layers },
                   { id: "customer", label: "Customers", icon: Users },
-                  { id: "rider", label: "Riders (Pilots)", icon: Truck },
-                  { id: "partner", label: "Partners (Stores)", icon: Building2 },
+                  { id: "rider", label: "Captains (Pilots)", icon: Truck },
+                  { id: "partner", label: "Store Hubs", icon: Building2 },
                 ].map((t) => {
                   const Icon = t.icon;
                   const isActive = selectedEntityType === t.id;
@@ -536,10 +656,10 @@ function EnterpriseCrmPage() {
                     <button
                       key={t.id}
                       onClick={() => setSelectedEntityType(t.id)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer border ${
                         isActive
-                          ? "bg-zinc-900 border-zinc-900 text-white shadow-xs"
-                          : "bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                          ? "bg-zinc-950 border-zinc-950 text-white shadow-xs"
+                          : "bg-white border-zinc-200 text-zinc-900 hover:border-zinc-400 hover:bg-zinc-50"
                       }`}
                     >
                       <Icon className="size-3.5" />
@@ -554,15 +674,15 @@ function EnterpriseCrmPage() {
           {/* Navigation Tabs */}
           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-200 pb-3">
-              <TabsList className="bg-zinc-100 p-1 rounded-xl h-auto">
+              <TabsList className="bg-zinc-100 p-1 rounded-xl h-auto border border-zinc-200">
                 <TabsTrigger
                   value="directory"
-                  className="rounded-lg px-4 py-2 text-xs font-black data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs"
+                  className="rounded-lg px-4 py-2 text-xs font-black text-zinc-800 data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs"
                 >
-                  <Search className="size-3.5 mr-1.5 inline" />
+                  <Search className="size-3.5 mr-1.5 inline text-zinc-950" />
                   Universal 360° Directory
                   {searchResults?.total !== undefined && (
-                    <span className="ml-1.5 rounded-full bg-zinc-200/80 px-1.5 py-0.2 text-[10px] font-bold text-zinc-700">
+                    <span className="ml-1.5 rounded-full bg-zinc-200 px-1.5 py-0.2 text-[10px] font-black text-zinc-950">
                       {searchResults.total}
                     </span>
                   )}
@@ -570,98 +690,131 @@ function EnterpriseCrmPage() {
 
                 <TabsTrigger
                   value="geo-pulse"
-                  className="rounded-lg px-4 py-2 text-xs font-black data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs"
+                  className="rounded-lg px-4 py-2 text-xs font-black text-zinc-800 data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs"
                 >
-                  <Activity className="size-3.5 mr-1.5 inline text-emerald-600" />
+                  <Activity className="size-3.5 mr-1.5 inline text-zinc-950" />
                   Live Geo Operations Pulse
                   <span className="ml-1.5 size-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
                 </TabsTrigger>
 
                 <TabsTrigger
                   value="leaderboard"
-                  className="rounded-lg px-4 py-2 text-xs font-black data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs"
+                  className="rounded-lg px-4 py-2 text-xs font-black text-zinc-800 data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs"
                 >
-                  <Award className="size-3.5 mr-1.5 inline text-amber-500" />
+                  <Award className="size-3.5 mr-1.5 inline text-zinc-950" />
                   Territory Leaderboard
                 </TabsTrigger>
               </TabsList>
 
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-zinc-500 uppercase">Period:</span>
+                <span className="text-[11px] font-black text-zinc-950 uppercase">Period:</span>
                 <Select value={timeframe} onValueChange={setTimeframe}>
-                  <SelectTrigger className="h-8 w-32 text-xs font-semibold bg-white border-zinc-200">
+                  <SelectTrigger className="h-8 w-32 text-xs font-bold text-zinc-950 bg-white border-zinc-300">
                     <SelectValue placeholder="All Time" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="today">Today (Live)</SelectItem>
-                    <SelectItem value="7d">Last 7 Days</SelectItem>
-                    <SelectItem value="30d">Last 30 Days</SelectItem>
-                    <SelectItem value="all">All-Time</SelectItem>
+                    <SelectItem value="today" className="font-semibold text-zinc-950">Today (Live)</SelectItem>
+                    <SelectItem value="7d" className="font-semibold text-zinc-950">Last 7 Days</SelectItem>
+                    <SelectItem value="30d" className="font-semibold text-zinc-950">Last 30 Days</SelectItem>
+                    <SelectItem value="all" className="font-semibold text-zinc-950">All-Time</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* TAB 1: DIRECTORY */}
+            {/* =========================================================================
+                TAB 1: UNIVERSAL 360° DIRECTORY (Dual View: Table vs Cards)
+            ========================================================================== */}
             <TabsContent value="directory" className="space-y-4 focus-visible:outline-none">
-              {/* Smart RFM & AI Cohort Filter Bar */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
-                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 shrink-0 mr-1 flex items-center gap-1">
-                  <Sparkles className="size-3 text-amber-500" />
-                  AI Cohorts:
-                </span>
-                {[
-                  { id: "all", label: "All Records", icon: Users, color: "text-zinc-600" },
-                  { id: "champions", label: "VIP & Champions", icon: Sparkles, color: "text-amber-500" },
-                  { id: "loyal", label: "High Frequency", icon: Award, color: "text-blue-500" },
-                  { id: "churn_risk", label: "At Risk / Churn Alert", icon: AlertCircle, color: "text-rose-500" },
-                  { id: "inactive", label: "Dormant (>30d)", icon: Clock, color: "text-zinc-400" },
-                  { id: "new", label: "New Joiners", icon: CheckCircle2, color: "text-emerald-500" },
-                  { id: "suspended", label: "Suspended / Blocked", icon: ShieldCheck, color: "text-red-500" },
-                ].map((c) => {
-                  const isActive = selectedCohort === c.id;
-                  const Icon = c.icon;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedCohort(c.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-                        isActive
-                          ? "bg-zinc-900 text-white border-zinc-900 shadow-xs"
-                          : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
-                      }`}
-                    >
-                      <Icon className={`size-3.5 ${isActive ? "text-white" : c.color}`} />
-                      {c.label}
-                    </button>
-                  );
-                })}
+              {/* Smart RFM & AI Cohort Filter Bar + View Mode Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-950 shrink-0 mr-1 flex items-center gap-1">
+                    <Sparkles className="size-3 text-zinc-950" />
+                    Cohorts:
+                  </span>
+                  {[
+                    { id: "all", label: "All Records", icon: Users },
+                    { id: "champions", label: "VIP & Champions", icon: Sparkles },
+                    { id: "loyal", label: "High Frequency", icon: Award },
+                    { id: "churn_risk", label: "At Risk / Churn", icon: AlertCircle },
+                    { id: "inactive", label: "Dormant (>30d)", icon: Clock },
+                    { id: "new", label: "New Joiners", icon: CheckCircle2 },
+                    { id: "suspended", label: "Suspended / Blocked", icon: ShieldCheck },
+                  ].map((c) => {
+                    const isActive = selectedCohort === c.id;
+                    const Icon = c.icon;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedCohort(c.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer border ${
+                          isActive
+                            ? "bg-zinc-950 text-white border-zinc-950 shadow-xs"
+                            : "bg-white text-zinc-900 border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50"
+                        }`}
+                      >
+                        <Icon className="size-3.5" />
+                        {c.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* View Mode Toggle: High-Density Table vs Modern Grid Cards */}
+                <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 shrink-0 self-end sm:self-auto">
+                  <button
+                    onClick={() => setViewMode("table")}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                      viewMode === "table"
+                        ? "bg-white text-zinc-950 shadow-xs"
+                        : "text-zinc-600 hover:text-zinc-950"
+                    }`}
+                    title="High-Density Enterprise Table View"
+                  >
+                    <TableIcon className="size-3.5" />
+                    Table
+                  </button>
+                  <button
+                    onClick={() => setViewMode("cards")}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                      viewMode === "cards"
+                        ? "bg-white text-zinc-950 shadow-xs"
+                        : "text-zinc-600 hover:text-zinc-950"
+                    }`}
+                    title="Modern Grid Cards View"
+                  >
+                    <LayoutGrid className="size-3.5" />
+                    Cards
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-zinc-500 px-1 pt-1">
+              {/* Status Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-zinc-700 px-1 pt-1">
                 <div className="flex items-center gap-3">
                   <span>
-                    Showing <strong>{displayedItems.length}</strong> records{" "}
+                    Showing <strong className="text-zinc-950 font-black">{displayedItems.length}</strong> live profiles{" "}
                     {selectedCohort !== "all" && (
-                      <span className="text-zinc-400 font-normal">
+                      <span className="text-zinc-600 font-semibold">
                         (filtered from {searchResults?.items.length || 0})
                       </span>
                     )}{" "}
-                    in <strong className="text-zinc-800">{geoFilterLabel}</strong>
+                    in <strong className="text-zinc-950 font-black">{geoFilterLabel}</strong>
                   </span>
 
                   {displayedItems.length > 0 && (
                     <button
                       onClick={toggleSelectAll}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-700 hover:text-emerald-700 cursor-pointer bg-zinc-100 hover:bg-zinc-200/80 px-2 py-0.5 rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1 text-[11px] font-black text-zinc-950 hover:bg-zinc-200 cursor-pointer bg-zinc-100 px-2.5 py-0.5 rounded-lg border border-zinc-200 transition-colors"
                     >
                       {selectedIds.length === displayedItems.length && displayedItems.length > 0 ? (
                         <>
-                          <CheckSquare className="size-3.5 text-emerald-600" /> Deselect All
+                          <CheckSquare className="size-3.5 text-zinc-950" /> Deselect All
                         </>
                       ) : (
                         <>
-                          <Square className="size-3.5 text-zinc-400" /> Select All ({displayedItems.length})
+                          <Square className="size-3.5 text-zinc-500" /> Select All ({displayedItems.length})
                         </>
                       )}
                     </button>
@@ -672,167 +825,325 @@ function EnterpriseCrmPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => refetchSearch()}
-                  className="h-7 text-xs text-zinc-600 hover:text-zinc-900"
+                  className="h-7 text-xs font-bold text-zinc-950 hover:bg-zinc-100"
                 >
-                  <RefreshCw className="size-3 mr-1" /> Refresh Data
+                  <RefreshCw className="size-3 mr-1" /> Force Refresh
                 </Button>
               </div>
 
               {isSearchLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {[...Array(6)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-44 rounded-2xl border border-zinc-200 bg-white p-5 animate-pulse"
-                    />
-                  ))}
+                <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center">
+                  <RefreshCw className="size-8 mx-auto text-zinc-400 animate-spin mb-3" />
+                  <p className="text-xs font-bold text-zinc-950">Querying live Supabase collections across UP...</p>
                 </div>
               ) : displayedItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {displayedItems.map((item) => {
-                    const isCust = item.entityType === "customer";
-                    const isRider = item.entityType === "rider";
-                    const isSelected = selectedIds.includes(item.id);
+                viewMode === "table" ? (
+                  /* =========================================================================
+                      VIEW MODE 1: HIGH-DENSITY ENTERPRISE TABLE (End-to-End Tracing)
+                  ========================================================================== */
+                  <div className="rounded-2xl border border-zinc-200 bg-white shadow-xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead>
+                          <tr className="border-b border-zinc-200 bg-zinc-50/70 text-zinc-950 font-black uppercase text-[10px] tracking-wider">
+                            <th className="py-3 px-3.5 w-10 text-center">
+                              <Square className="size-3.5 text-zinc-400 mx-auto" />
+                            </th>
+                            <th className="py-3 px-4">Entity Profile</th>
+                            <th className="py-3 px-3">Role</th>
+                            <th className="py-3 px-3">Contact Details</th>
+                            <th className="py-3 px-3">Territory</th>
+                            <th className="py-3 px-3">Order Volume</th>
+                            <th className="py-3 px-3">Financial Metric</th>
+                            <th className="py-3 px-3 text-center">Status</th>
+                            <th className="py-3 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-200">
+                          {displayedItems.map((item) => {
+                            const isSelected = selectedIds.includes(item.id);
+                            const isCust = item.entityType === "customer";
+                            const isRider = item.entityType === "rider";
+                            const Icon = isCust ? Users : isRider ? Truck : Building2;
 
-                    const badgeBg = isCust
-                      ? "bg-blue-50 text-blue-700 border-blue-200"
-                      : isRider
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-purple-50 text-purple-700 border-purple-200";
-
-                    const Icon = isCust ? Users : isRider ? Truck : Building2;
-
-                    return (
-                      <div
-                        key={`${item.entityType}-${item.id}`}
-                        onClick={() =>
-                          setSelectedTarget({
-                            id: item.id,
-                            entityType: item.entityType,
-                            name: item.name,
-                          })
-                        }
-                        className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white p-4.5 transition-all duration-200 hover:border-emerald-500 hover:shadow-lg cursor-pointer ${
-                          isSelected ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10" : "border-zinc-200/90"
-                        }`}
-                      >
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                        <div>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <button
-                                type="button"
-                                onClick={(e) => toggleSelect(item.id, e)}
-                                className="size-6 flex items-center justify-center rounded-lg hover:bg-zinc-100 transition-colors shrink-0"
-                                title={isSelected ? "Deselect" : "Select profile"}
+                            return (
+                              <tr
+                                key={`${item.entityType}-${item.id}`}
+                                onClick={() =>
+                                  setSelectedTarget({
+                                    id: item.id,
+                                    entityType: item.entityType,
+                                    name: item.name,
+                                  })
+                                }
+                                className={`hover:bg-zinc-50/80 transition-colors cursor-pointer ${
+                                  isSelected ? "bg-zinc-50" : ""
+                                }`}
                               >
-                                {isSelected ? (
-                                  <CheckSquare className="size-4 text-emerald-600" />
-                                ) : (
-                                  <Square className="size-4 text-zinc-300 group-hover:text-zinc-500" />
-                                )}
-                              </button>
+                                <td
+                                  className="py-3 px-3.5 text-center"
+                                  onClick={(e) => toggleSelect(item.id, e)}
+                                >
+                                  {isSelected ? (
+                                    <CheckSquare className="size-4 text-zinc-950 mx-auto" />
+                                  ) : (
+                                    <Square className="size-4 text-zinc-300 hover:text-zinc-600 mx-auto" />
+                                  )}
+                                </td>
 
-                              <div className="flex size-11 items-center justify-center rounded-2xl bg-zinc-900 text-white font-black text-xs shrink-0 shadow-xs">
-                                {item.avatar}
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-950 text-white font-black text-xs shrink-0">
+                                      {item.avatar}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="font-black text-zinc-950 block truncate text-xs hover:underline">
+                                        {item.name}
+                                      </span>
+                                      <div className="flex items-center gap-1.5 mt-0.5">
+                                        <span className="font-mono text-[10px] text-zinc-600">
+                                          #{item.id}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(item.id);
+                                            toast.success("UID copied!");
+                                          }}
+                                          className="text-zinc-400 hover:text-zinc-950"
+                                          title="Copy ID"
+                                        >
+                                          <Copy className="size-2.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-zinc-100 text-zinc-950 border border-zinc-200">
+                                    <Icon className="size-3" />
+                                    {item.entityType}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <div className="space-y-0.5 text-[11px]">
+                                    <div className="font-bold text-zinc-950 flex items-center gap-1">
+                                      <Phone className="size-3 text-zinc-500" /> {item.phone}
+                                    </div>
+                                    {item.email && item.email !== "—" && (
+                                      <div className="text-zinc-600 truncate max-w-[140px] text-[10px]">
+                                        {item.email}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <div className="text-[11px]">
+                                    <span className="font-bold text-zinc-950 block">{item.city}</span>
+                                    <span className="text-[10px] font-mono text-zinc-600">PIN: {item.pincode}</span>
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <span className="font-black text-zinc-950 block text-xs">
+                                    {item.primaryMetric.value}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-600 block">
+                                    {item.primaryMetric.label}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <span className="font-black text-zinc-950 block text-xs">
+                                    {item.secondaryMetric.value}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-600 block">
+                                    {item.secondaryMetric.label}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-3 text-center">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-950 border border-zinc-300">
+                                    <span
+                                      className={`size-1.5 rounded-full ${
+                                        item.statusColor === "emerald"
+                                          ? "bg-emerald-500 animate-pulse"
+                                          : item.statusColor === "amber"
+                                          ? "bg-amber-500"
+                                          : "bg-zinc-400"
+                                      }`}
+                                    />
+                                    {item.status}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-4 text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedTarget({
+                                        id: item.id,
+                                        entityType: item.entityType,
+                                        name: item.name,
+                                      });
+                                    }}
+                                    className="h-7 text-xs font-black text-zinc-950 bg-white hover:bg-zinc-100 border-zinc-300 px-3 rounded-lg"
+                                  >
+                                    Dossier →
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  /* =========================================================================
+                      VIEW MODE 2: MODERN ENTERPRISE CARD GRID
+                  ========================================================================== */
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {displayedItems.map((item) => {
+                      const isCust = item.entityType === "customer";
+                      const isRider = item.entityType === "rider";
+                      const isSelected = selectedIds.includes(item.id);
+                      const Icon = isCust ? Users : isRider ? Truck : Building2;
+
+                      return (
+                        <div
+                          key={`${item.entityType}-${item.id}`}
+                          onClick={() =>
+                            setSelectedTarget({
+                              id: item.id,
+                              entityType: item.entityType,
+                              name: item.name,
+                            })
+                          }
+                          className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white p-4.5 transition-all duration-200 hover:border-zinc-400 hover:shadow-md cursor-pointer ${
+                            isSelected ? "border-zinc-950 ring-2 ring-zinc-950/20 bg-zinc-50/40" : "border-zinc-200"
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleSelect(item.id, e)}
+                                  className="size-6 flex items-center justify-center rounded-lg hover:bg-zinc-100 transition-colors shrink-0"
+                                  title={isSelected ? "Deselect" : "Select profile"}
+                                >
+                                  {isSelected ? (
+                                    <CheckSquare className="size-4 text-zinc-950" />
+                                  ) : (
+                                    <Square className="size-4 text-zinc-300 group-hover:text-zinc-600" />
+                                  )}
+                                </button>
+
+                                <div className="flex size-11 items-center justify-center rounded-2xl bg-zinc-950 text-white font-black text-xs shrink-0 shadow-xs">
+                                  {item.avatar}
+                                </div>
+                                <div className="min-w-0">
+                                  <h3 className="text-sm font-black text-zinc-950 truncate hover:underline">
+                                    {item.name}
+                                  </h3>
+                                  <p className="text-[11px] font-mono text-zinc-600 truncate">
+                                    ID: #{item.id}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <h3 className="text-sm font-black text-zinc-900 truncate group-hover:text-emerald-700 transition-colors">
-                                  {item.name}
-                                </h3>
-                                <p className="text-[11px] font-mono text-zinc-500 truncate">
-                                  ID: #{item.id}
-                                </p>
+
+                              <span className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase border border-zinc-200 bg-zinc-100 text-zinc-950 shrink-0">
+                                <Icon className="size-3" />
+                                {item.entityType}
+                              </span>
+                            </div>
+
+                            <div className="mt-3.5 space-y-1.5 border-t border-zinc-100 pt-3 text-[11px] text-zinc-700">
+                              <div className="flex items-center gap-2">
+                                <Phone className="size-3 text-zinc-500 shrink-0" />
+                                <span className="font-bold text-zinc-950">{item.phone}</span>
+                              </div>
+                              <div className="flex items-center gap-2 truncate">
+                                <Mail className="size-3 text-zinc-500 shrink-0" />
+                                <span className="truncate text-zinc-700">{item.email}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="size-3 text-zinc-500 shrink-0" />
+                                <span>
+                                  {item.city}, {item.state}{" "}
+                                  {item.pincode && (
+                                    <strong className="text-zinc-950 font-mono">({item.pincode})</strong>
+                                  )}
+                                </span>
                               </div>
                             </div>
 
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase border shrink-0 ${badgeBg}`}
-                            >
-                              <Icon className="size-3" />
-                              {item.entityType}
+                            <div className="mt-3.5 grid grid-cols-2 gap-2 rounded-xl bg-zinc-50 p-2.5 border border-zinc-200">
+                              <div>
+                                <span className="text-[10px] uppercase font-bold text-zinc-500 block">
+                                  {item.primaryMetric.label}
+                                </span>
+                                <span className="text-xs font-black text-zinc-950">
+                                  {item.primaryMetric.value}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] uppercase font-bold text-zinc-500 block">
+                                  {item.secondaryMetric.label}
+                                </span>
+                                <span className="text-xs font-black text-zinc-950">
+                                  {item.secondaryMetric.value}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black border border-zinc-300 bg-zinc-100 text-zinc-950">
+                              <span
+                                className={`size-1.5 rounded-full ${
+                                  item.statusColor === "emerald"
+                                    ? "bg-emerald-500 animate-pulse"
+                                    : item.statusColor === "amber"
+                                    ? "bg-amber-500"
+                                    : "bg-zinc-400"
+                                }`}
+                              />
+                              {item.status}
+                            </span>
+
+                            <span className="inline-flex items-center gap-1 text-[11px] font-black text-zinc-950 hover:underline">
+                              Open Full Dossier →
                             </span>
                           </div>
-
-                          <div className="mt-3.5 space-y-1.5 border-t border-zinc-100 pt-3 text-[11px] text-zinc-600">
-                            <div className="flex items-center gap-2">
-                              <Phone className="size-3 text-zinc-400 shrink-0" />
-                              <span className="font-semibold text-zinc-800">{item.phone}</span>
-                            </div>
-                            <div className="flex items-center gap-2 truncate">
-                              <Mail className="size-3 text-zinc-400 shrink-0" />
-                              <span className="truncate text-zinc-600">{item.email}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="size-3 text-zinc-400 shrink-0" />
-                              <span>
-                                {item.city}, {item.state}{" "}
-                                {item.pincode && (
-                                  <strong className="text-zinc-700 font-mono">({item.pincode})</strong>
-                                )}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mt-3.5 grid grid-cols-2 gap-2 rounded-xl bg-zinc-50/80 p-2.5 border border-zinc-100">
-                            <div>
-                              <span className="text-[10px] uppercase font-bold text-zinc-400 block">
-                                {item.primaryMetric.label}
-                              </span>
-                              <span className="text-xs font-black text-zinc-900">
-                                {item.primaryMetric.value}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] uppercase font-bold text-zinc-400 block">
-                                {item.secondaryMetric.label}
-                              </span>
-                              <span className="text-xs font-black text-emerald-700">
-                                {item.secondaryMetric.value}
-                              </span>
-                            </div>
-                          </div>
                         </div>
-
-                        <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                              item.statusColor === "emerald"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : item.statusColor === "amber"
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : item.statusColor === "rose"
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : "bg-zinc-100 text-zinc-600 border-zinc-200"
-                            }`}
-                          >
-                            <span
-                              className={`size-1.5 rounded-full ${
-                                item.statusColor === "emerald"
-                                  ? "bg-emerald-500 animate-pulse"
-                                  : "bg-zinc-400"
-                              }`}
-                            />
-                            {item.status}
-                          </span>
-
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 group-hover:text-emerald-700 group-hover:translate-x-1 transition-all">
-                            Open Full Dossier →
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )
               ) : (
                 <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-12 text-center">
                   <Search className="size-8 mx-auto text-zinc-400 mb-3" />
-                  <h3 className="text-sm font-black text-zinc-900">No matching records in this cohort</h3>
-                  <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto">
+                  <h3 className="text-sm font-black text-zinc-950">No matching records in this cohort</h3>
+                  <p className="mt-1 text-xs text-zinc-600 max-w-sm mx-auto">
                     No profiles matched the active filters ({selectedCohort !== "all" ? `Cohort: ${selectedCohort}` : ""} in {geoFilterLabel}).
                   </p>
-                  <Button variant="outline" size="sm" onClick={() => { setSelectedCohort("all"); resetFilters(); }} className="mt-4 text-xs font-bold">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCohort("all");
+                      resetFilters();
+                    }}
+                    className="mt-4 text-xs font-black text-zinc-950 border-zinc-300 hover:bg-zinc-100"
+                  >
                     Reset Cohort & Filters
                   </Button>
                 </div>
@@ -840,8 +1151,8 @@ function EnterpriseCrmPage() {
 
               {/* Floating Bottom Bulk Action Toolbar */}
               {selectedIds.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-zinc-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-zinc-700 animate-in fade-in slide-in-from-bottom-5">
-                  <div className="flex items-center gap-2 pr-3 border-r border-zinc-700 text-xs font-bold">
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-zinc-950 text-white px-5 py-3 rounded-2xl shadow-2xl border border-zinc-700 animate-in fade-in slide-in-from-bottom-5">
+                  <div className="flex items-center gap-2 pr-3 border-r border-zinc-700 text-xs font-black">
                     <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span>{selectedIds.length} Selected</span>
                   </div>
@@ -849,7 +1160,7 @@ function EnterpriseCrmPage() {
                   <Button
                     size="sm"
                     onClick={() => setIsBulkNotifyOpen(true)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 rounded-xl shadow-xs"
+                    className="bg-white hover:bg-zinc-100 text-zinc-950 font-black text-xs h-8 px-3 rounded-xl shadow-xs"
                   >
                     <Send className="size-3.5 mr-1.5" /> Bulk Push
                   </Button>
@@ -858,9 +1169,9 @@ function EnterpriseCrmPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => setIsBulkTagOpen(true)}
-                    className="border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700 font-bold text-xs h-8 px-3 rounded-xl"
+                    className="border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700 font-black text-xs h-8 px-3 rounded-xl"
                   >
-                    <Tag className="size-3.5 mr-1.5 text-amber-400" /> Add Tag
+                    <Tag className="size-3.5 mr-1.5 text-zinc-300" /> Add Tag
                   </Button>
 
                   <Button
@@ -871,16 +1182,16 @@ function EnterpriseCrmPage() {
                       exportCsvData("selected_crm_profiles", selectedProfiles);
                       toast.success(`Exported ${selectedProfiles.length} profiles to CSV!`);
                     }}
-                    className="border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700 font-bold text-xs h-8 px-3 rounded-xl"
+                    className="border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700 font-black text-xs h-8 px-3 rounded-xl"
                   >
-                    <FileSpreadsheet className="size-3.5 mr-1.5 text-blue-400" /> Export CSV
+                    <FileSpreadsheet className="size-3.5 mr-1.5 text-zinc-300" /> Export CSV
                   </Button>
 
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => setSelectedIds([])}
-                    className="text-zinc-400 hover:text-white text-xs h-8 px-2"
+                    className="text-zinc-400 hover:text-white text-xs h-8 px-2 font-bold"
                   >
                     <X className="size-3.5 mr-1" /> Clear
                   </Button>
@@ -889,31 +1200,31 @@ function EnterpriseCrmPage() {
 
               {/* Dialog: Bulk Push Broadcast */}
               <Dialog open={isBulkNotifyOpen} onOpenChange={setIsBulkNotifyOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md bg-white border border-zinc-200">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-base font-black">
-                      <Send className="size-4 text-emerald-600" />
+                    <DialogTitle className="flex items-center gap-2 text-base font-black text-zinc-950">
+                      <Send className="size-4 text-zinc-950" />
                       Bulk Push Notification ({selectedIds.length} Recipients)
                     </DialogTitle>
-                    <DialogDescription className="text-xs">
+                    <DialogDescription className="text-xs text-zinc-600 font-medium">
                       Send a broadcast push and in-app message to all selected profiles simultaneously.
                     </DialogDescription>
                   </DialogHeader>
 
                   <div className="space-y-3.5 py-2">
                     <div>
-                      <label className="text-[11px] font-bold uppercase text-zinc-500 block mb-1">
+                      <label className="text-[11px] font-black uppercase text-zinc-950 block mb-1">
                         Notification Title
                       </label>
                       <Input
                         placeholder="e.g. Special Weekend Offer from QuickPress!"
                         value={bulkNotifTitle}
                         onChange={(e) => setBulkNotifTitle(e.target.value)}
-                        className="text-xs"
+                        className="text-xs font-bold text-zinc-950"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold uppercase text-zinc-500 block mb-1">
+                      <label className="text-[11px] font-black uppercase text-zinc-950 block mb-1">
                         Message Body
                       </label>
                       <Textarea
@@ -921,7 +1232,7 @@ function EnterpriseCrmPage() {
                         value={bulkNotifMessage}
                         onChange={(e) => setBulkNotifMessage(e.target.value)}
                         rows={3}
-                        className="text-xs"
+                        className="text-xs font-semibold text-zinc-950"
                       />
                     </div>
                   </div>
@@ -932,7 +1243,7 @@ function EnterpriseCrmPage() {
                       size="sm"
                       onClick={() => setIsBulkNotifyOpen(false)}
                       disabled={isBulkSubmitting}
-                      className="text-xs"
+                      className="text-xs font-bold"
                     >
                       Cancel
                     </Button>
@@ -940,7 +1251,7 @@ function EnterpriseCrmPage() {
                       size="sm"
                       onClick={handleBulkNotify}
                       disabled={isBulkSubmitting}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                      className="bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs"
                     >
                       {isBulkSubmitting ? "Broadcasting..." : `Send to ${selectedIds.length} Recipients`}
                     </Button>
@@ -950,24 +1261,24 @@ function EnterpriseCrmPage() {
 
               {/* Dialog: Bulk Tagging */}
               <Dialog open={isBulkTagOpen} onOpenChange={setIsBulkTagOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md bg-white border border-zinc-200">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-base font-black">
-                      <Tag className="size-4 text-amber-500" />
+                    <DialogTitle className="flex items-center gap-2 text-base font-black text-zinc-950">
+                      <Tag className="size-4 text-zinc-950" />
                       Apply Bulk Tag ({selectedIds.length} Profiles)
                     </DialogTitle>
-                    <DialogDescription className="text-xs">
+                    <DialogDescription className="text-xs text-zinc-600 font-medium">
                       Append a custom cohort tag to all selected customer/rider/partner profiles.
                     </DialogDescription>
                   </DialogHeader>
 
                   <div className="space-y-3 py-2">
-                    <label className="text-[11px] font-bold uppercase text-zinc-500 block">Tag Name</label>
+                    <label className="text-[11px] font-black uppercase text-zinc-950 block">Tag Name</label>
                     <Input
                       placeholder="e.g. VIP, Priority-Delivery, Festival-Promo"
                       value={bulkTagText}
                       onChange={(e) => setBulkTagText(e.target.value)}
-                      className="text-xs font-semibold"
+                      className="text-xs font-bold text-zinc-950"
                     />
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {["VIP", "High Value", "Priority Support", "Fast Deliverer", "Loyal"].map((tagPreset) => (
@@ -975,7 +1286,7 @@ function EnterpriseCrmPage() {
                           key={tagPreset}
                           type="button"
                           onClick={() => setBulkTagText(tagPreset)}
-                          className="px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-zinc-200 text-[11px] font-semibold text-zinc-700"
+                          className="px-2 py-0.5 rounded-md bg-zinc-100 hover:bg-zinc-200 text-[11px] font-bold text-zinc-950 border border-zinc-200"
                         >
                           +{tagPreset}
                         </button>
@@ -989,7 +1300,7 @@ function EnterpriseCrmPage() {
                       size="sm"
                       onClick={() => setIsBulkTagOpen(false)}
                       disabled={isBulkSubmitting}
-                      className="text-xs"
+                      className="text-xs font-bold"
                     >
                       Cancel
                     </Button>
@@ -997,7 +1308,7 @@ function EnterpriseCrmPage() {
                       size="sm"
                       onClick={handleBulkTag}
                       disabled={isBulkSubmitting}
-                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                      className="bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs"
                     >
                       {isBulkSubmitting ? "Applying..." : `Apply to ${selectedIds.length} Profiles`}
                     </Button>
@@ -1006,24 +1317,29 @@ function EnterpriseCrmPage() {
               </Dialog>
             </TabsContent>
 
-            {/* TAB 2: LIVE GEO-PULSE */}
+            {/* =========================================================================
+                TAB 2: LIVE GEO OPERATIONS PULSE & INTERACTIVE TELEMETRY RADAR
+            ========================================================================== */}
             <TabsContent value="geo-pulse" className="space-y-6 focus-visible:outline-none">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl bg-zinc-900 p-4 text-white shadow-sm">
+              {/* Header Box (Pure White Background & Black Text) */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl bg-white border border-zinc-200 p-4 sm:p-5 shadow-xs">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    <Activity className="size-5" />
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950 border border-zinc-200">
+                    <Crosshair className="size-5" />
                   </span>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-black tracking-tight">Live Geo Operations Telemetry</h3>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black text-emerald-400">
-                        <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <h3 className="text-sm font-black text-zinc-950 tracking-tight uppercase">
+                        Live Territory Geo-Operations Pulse & Node Telemetry
+                      </h3>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 border border-zinc-300 px-2 py-0.5 text-[10px] font-black text-zinc-950">
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         LIVE SYNC (15s)
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      Real-time aggregated sales, fleet availability, and orders for{" "}
-                      <strong className="text-emerald-300 font-bold">{geoFilterLabel}</strong>
+                    <p className="text-xs text-zinc-700 font-medium mt-0.5">
+                      Real-time aggregated sales, fleet availability, and telemetry nodes for{" "}
+                      <strong className="text-zinc-950 font-black">{geoFilterLabel}</strong>
                     </p>
                   </div>
                 </div>
@@ -1032,80 +1348,424 @@ function EnterpriseCrmPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => refetchGeoPulse()}
-                  className="h-8 bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700 text-xs font-bold"
+                  className="h-8 bg-white border-zinc-300 text-zinc-950 hover:bg-zinc-100 text-xs font-black"
                 >
                   <RefreshCw className="size-3.5 mr-1.5" /> Force Refresh
                 </Button>
               </div>
 
+              {/* 8 Executive KPIs in Pure White Background with Black Text */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                <KpiCard
-                  title="Gross Merchandise Value (GMV)"
-                  value={`₹${(geoPulse?.summary.totalSales || 0).toLocaleString("en-IN")}`}
-                  icon={<TrendingUp className="size-4" />}
-                  hint="Total customer order value"
-                />
-                <KpiCard
-                  title="Delivered Orders"
-                  value={geoPulse?.summary.deliveredOrders || 0}
-                  delta={`${geoPulse?.summary.totalOrders || 0} total booked`}
-                  icon={<ShoppingBag className="size-4" />}
-                  hint="Successfully completed"
-                />
-                <KpiCard
-                  title="Platform Net Commission"
-                  value={`₹${(geoPulse?.summary.platformRevenue || 0).toLocaleString("en-IN")}`}
-                  icon={<Wallet className="size-4" />}
-                  hint="Platform revenue & commission"
-                />
-                <KpiCard
-                  title="Refunds & Dispute Loss"
-                  value={`₹${(geoPulse?.summary.refundsAmount || 0).toLocaleString("en-IN")}`}
-                  delta={`${geoPulse?.summary.refundsCount || 0} claims`}
-                  positive={false}
-                  icon={<RotateCcw className="size-4 text-rose-600" />}
-                  hint="Wallet refunds & disputes"
-                />
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Gross Merchandise Value (GMV)</span>
+                    <TrendingUp className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    ₹{(geoPulse?.summary.totalSales || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">Total customer order value</div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Delivered Orders</span>
+                    <ShoppingBag className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    {geoPulse?.summary.deliveredOrders || 0}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">{geoPulse?.summary.totalOrders || 0} total booked in territory</div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Platform Net Commission</span>
+                    <Wallet className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    ₹{(geoPulse?.summary.platformRevenue || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">Net platform fee accrued</div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Refunds & Dispute Loss</span>
+                    <RotateCcw className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    ₹{(geoPulse?.summary.refundsAmount || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">{geoPulse?.summary.refundsCount || 0} claims processed</div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                <KpiCard
-                  title="Rider Incentives & Bonus"
-                  value={`₹${(geoPulse?.summary.riderIncentives || 0).toLocaleString("en-IN")}`}
-                  icon={<Award className="size-4 text-amber-600" />}
-                  hint="Paid to captains in this zone"
-                />
-                <KpiCard
-                  title="Active Fleet (Pilots)"
-                  value={`${geoPulse?.fleet.onlineRiders || 0} / ${geoPulse?.fleet.totalRiders || 0}`}
-                  delta={`${geoPulse?.fleet.onDeliveryRiders || 0} on active runs`}
-                  icon={<Truck className="size-4 text-emerald-600" />}
-                  hint="Online vs total registered"
-                />
-                <KpiCard
-                  title="Active Partner Stores"
-                  value={`${geoPulse?.fleet.activePartners || 0} / ${geoPulse?.fleet.totalPartners || 0}`}
-                  icon={<Building2 className="size-4" />}
-                  hint="Stores open & accepting orders"
-                />
-                <KpiCard
-                  title="Orders In-Transit"
-                  value={geoPulse?.summary.activeOrders || 0}
-                  icon={<Clock className="size-4 text-blue-600" />}
-                  hint="Currently being delivered"
-                />
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Rider Incentives Paid</span>
+                    <Award className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    ₹{(geoPulse?.summary.riderIncentives || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">Disbursed to captains in zone</div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Active Fleet (Pilots)</span>
+                    <Truck className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    {geoPulse?.fleet.onlineRiders || 0} / {geoPulse?.fleet.totalRiders || 0}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">{geoPulse?.fleet.onDeliveryRiders || 0} on active delivery runs</div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Active Store Hubs</span>
+                    <Building2 className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    {geoPulse?.fleet.activePartners || 0} / {geoPulse?.fleet.totalPartners || 0}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">Stores open & accepting orders</div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span className="text-[10px] uppercase font-bold text-zinc-600">Orders In-Transit</span>
+                    <Clock className="size-4 text-zinc-950" />
+                  </div>
+                  <div className="text-xl font-black text-zinc-950 mt-1">
+                    {geoPulse?.summary.activeOrders || 0}
+                  </div>
+                  <div className="text-[10px] text-zinc-600 mt-1 font-semibold">Live in wash / out for delivery</div>
+                </div>
               </div>
 
-              {/* Recent Orders Table */}
-              <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
+              {/* =========================================================================
+                  INTERACTIVE GEO TELEMETRY RADAR & SPATIAL DISPATCH MAP
+              ========================================================================== */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-zinc-200">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Navigation className="size-4 text-zinc-950" />
+                      <h4 className="text-sm font-black text-zinc-950 uppercase tracking-tight">
+                        Territory Spatial Radar & Dispatch Coordinate Grid
+                      </h4>
+                    </div>
+                    <p className="text-xs text-zinc-700 font-medium mt-0.5">
+                      Live plotting of verified store hubs, active captain telemetry, and order geofences around <strong className="text-zinc-950">Kasganj Hub (27.8081° N, 78.6475° E)</strong>
+                    </p>
+                  </div>
+
+                  {/* Filter Pills for Radar Nodes */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto">
+                    {[
+                      { id: "all", label: `All Nodes (${geoPulse?.geoPins?.length || 0})` },
+                      { id: "partner", label: `Stores (${geoPulse?.fleet.totalPartners || 0})` },
+                      { id: "rider", label: `Captains (${geoPulse?.fleet.totalRiders || 0})` },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setRadarFilter(tab.id as any)}
+                        className={`px-3 py-1 rounded-lg text-xs font-black transition-all border cursor-pointer ${
+                          radarFilter === tab.id
+                            ? "bg-zinc-950 text-white border-zinc-950 shadow-xs"
+                            : "bg-white text-zinc-800 border-zinc-200 hover:border-zinc-400"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Spatial Radar SVG Canvas with Concentric Geofence Rings */}
+                <div className="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+                  {/* Radar Screen Area (3 Cols) */}
+                  <div className="lg:col-span-3 relative h-[360px] rounded-2xl bg-zinc-50 border border-zinc-200 overflow-hidden flex items-center justify-center">
+                    {/* Concentric Rings Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="size-[320px] rounded-full border border-dashed border-zinc-300 flex items-center justify-center">
+                        <div className="size-[240px] rounded-full border border-zinc-200 flex items-center justify-center">
+                          <div className="size-[160px] rounded-full border border-dashed border-zinc-300 flex items-center justify-center">
+                            <div className="size-[80px] rounded-full border border-zinc-200" />
+                          </div>
+                        </div>
+                      </div>
+                      {/* Crosshairs */}
+                      <div className="absolute h-full w-px bg-zinc-200" />
+                      <div className="absolute w-full h-px bg-zinc-200" />
+                      {/* Radial distance labels */}
+                      <span className="absolute top-2 right-3 font-mono text-[10px] font-bold text-zinc-500">8.0 KM GEOFENCE</span>
+                      <span className="absolute bottom-2 left-3 font-mono text-[10px] font-bold text-zinc-500">KASGANJ GRID 207123</span>
+                    </div>
+
+                    {/* Central Grid Anchor Pin */}
+                    <div className="absolute flex flex-col items-center pointer-events-none z-10">
+                      <div className="size-4 rounded-full bg-zinc-950 ring-4 ring-zinc-300 flex items-center justify-center text-white text-[8px] font-black">
+                        ★
+                      </div>
+                      <span className="text-[9px] font-black text-zinc-950 bg-white px-1.5 py-0.2 rounded border border-zinc-300 mt-1 shadow-xs">
+                        HQ Central Hub
+                      </span>
+                    </div>
+
+                    {/* Interactive Plot of Real Geo Pins from Database */}
+                    {geoPulse?.geoPins
+                      ?.filter((pin) => (radarFilter === "all" ? true : pin.type === radarFilter))
+                      ?.map((pin, idx) => {
+                        // Normalize lat/lng around Kasganj 27.8081, 78.6475
+                        const dLat = (pin.lat - 27.8081) * 3500;
+                        const dLng = (pin.lng - 78.6475) * 3500;
+                        const posX = Math.max(20, Math.min(300, 160 + dLng));
+                        const posY = Math.max(20, Math.min(300, 160 - dLat));
+                        const isStore = pin.type === "partner";
+                        const isSelected = selectedPin?.id === pin.id;
+
+                        return (
+                          <div
+                            key={pin.id}
+                            style={{
+                              transform: `translate(${posX - 160}px, ${posY - 160}px)`,
+                            }}
+                            onClick={() => setSelectedPin(pin)}
+                            className={`absolute z-20 flex flex-col items-center cursor-pointer transition-transform hover:scale-125 ${
+                              isSelected ? "scale-125 z-30" : ""
+                            }`}
+                          >
+                            <div
+                              className={`size-6 rounded-full flex items-center justify-center text-white text-[10px] font-black shadow-md border-2 border-white ${
+                                isStore ? "bg-zinc-950" : "bg-emerald-600"
+                              }`}
+                            >
+                              {isStore ? <Building2 className="size-3" /> : <Truck className="size-3" />}
+                            </div>
+                            <span className="text-[9px] font-black text-zinc-950 bg-white px-1.5 py-0.2 rounded border border-zinc-300 mt-0.5 shadow-xs whitespace-nowrap max-w-[100px] truncate">
+                              {pin.name}
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                    {/* Selected Node Details Drawer */}
+                    {selectedPin && (
+                      <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:w-80 bg-white rounded-xl border border-zinc-300 p-3 shadow-lg z-40 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-zinc-500">
+                              {selectedPin.type.toUpperCase()} NODE TELEMETRY
+                            </span>
+                            <h5 className="text-xs font-black text-zinc-950">{selectedPin.name}</h5>
+                          </div>
+                          <button
+                            onClick={() => setSelectedPin(null)}
+                            className="text-zinc-400 hover:text-zinc-950"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                        <div className="mt-2 text-[11px] space-y-1 text-zinc-700 font-medium border-t border-zinc-100 pt-1.5">
+                          <div>Phone: <strong className="text-zinc-950">{selectedPin.phone}</strong></div>
+                          <div>Coordinates: <strong className="text-zinc-950 font-mono">{selectedPin.lat.toFixed(4)}° N, {selectedPin.lng.toFixed(4)}° E</strong></div>
+                          <div>Activity: <strong className="text-zinc-950">{selectedPin.metric}</strong></div>
+                        </div>
+                        <div className="mt-2.5 flex items-center justify-between border-t border-zinc-100 pt-2">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black text-zinc-950">
+                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                            {selectedPin.status}
+                          </span>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTarget({
+                                id: selectedPin.id,
+                                entityType: selectedPin.type as any,
+                                name: selectedPin.name,
+                              });
+                            }}
+                            className="h-6 text-[11px] font-black bg-zinc-950 text-white px-2.5 rounded-lg"
+                          >
+                            Open Dossier →
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Side Fleet Telemetry Breakdown (1 Col) */}
+                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4 flex flex-col justify-between">
+                    <div>
+                      <h5 className="text-xs font-black uppercase text-zinc-950 border-b border-zinc-200 pb-2">
+                        Real-Time Fleet Status
+                      </h5>
+                      <div className="mt-3 space-y-2.5 text-xs">
+                        <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 shadow-xs">
+                          <span className="flex items-center gap-2 font-bold text-zinc-800">
+                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                            Online Captains
+                          </span>
+                          <strong className="text-zinc-950 font-black text-sm">{geoPulse?.fleet.onlineRiders || 0}</strong>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 shadow-xs">
+                          <span className="flex items-center gap-2 font-bold text-zinc-800">
+                            <span className="size-2 rounded-full bg-amber-500" />
+                            On Delivery Run
+                          </span>
+                          <strong className="text-zinc-950 font-black text-sm">{geoPulse?.fleet.onDeliveryRiders || 0}</strong>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 shadow-xs">
+                          <span className="flex items-center gap-2 font-bold text-zinc-800">
+                            <span className="size-2 rounded-full bg-zinc-400" />
+                            Standby / Idle
+                          </span>
+                          <strong className="text-zinc-950 font-black text-sm">{geoPulse?.fleet.idleRiders || 0}</strong>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-zinc-200 shadow-xs">
+                          <span className="flex items-center gap-2 font-bold text-zinc-800">
+                            <Building2 className="size-3.5 text-zinc-950" />
+                            Open Store Hubs
+                          </span>
+                          <strong className="text-zinc-950 font-black text-sm">{geoPulse?.fleet.activePartners || 0}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-zinc-200 text-[10px] text-zinc-500 font-medium">
+                      GPS accuracy within 5-15 meters across Kasganj Municipal Geofence.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* =========================================================================
+                  VISUAL ANALYTICS: ORDER LIFECYCLE FUNNEL & REVENUE TIMELINE GRAPHS
+              ========================================================================== */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 1. Order Status Distribution Funnel */}
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="size-4 text-zinc-950" />
+                      <h4 className="text-xs font-black uppercase text-zinc-950">
+                        Order Lifecycle & Fulfillment Pipeline
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-500">Live Database</span>
+                  </div>
+
+                  <div className="mt-4 space-y-3.5">
+                    {[
+                      {
+                        label: "Delivered & Settled",
+                        count: geoPulse?.analytics?.statusDistribution.delivered ?? (geoPulse?.summary.deliveredOrders || 0),
+                        color: "bg-zinc-950",
+                      },
+                      {
+                        label: "Active In-Flight (In Wash / Run)",
+                        count: geoPulse?.analytics?.statusDistribution.inTransit ?? (geoPulse?.summary.activeOrders || 0),
+                        color: "bg-zinc-700",
+                      },
+                      {
+                        label: "Cancelled / Non-Serviceable",
+                        count: geoPulse?.analytics?.statusDistribution.cancelled ?? (geoPulse?.summary.cancelledOrders || 0),
+                        color: "bg-zinc-400",
+                      },
+                      {
+                        label: "Disputed & Refunded",
+                        count: geoPulse?.analytics?.statusDistribution.refunded ?? (geoPulse?.summary.refundsCount || 0),
+                        color: "bg-zinc-300",
+                      },
+                    ].map((item) => {
+                      const totalOrders = Math.max(1, geoPulse?.summary.totalOrders || 1);
+                      const percent = Math.round((item.count / totalOrders) * 100);
+
+                      return (
+                        <div key={item.label} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-zinc-900">{item.label}</span>
+                            <span className="font-black text-zinc-950">
+                              {item.count} orders ({percent}%)
+                            </span>
+                          </div>
+                          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${item.color} rounded-full transition-all duration-500`}
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Daily Sales & Orders Trend Histogram */}
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="size-4 text-zinc-950" />
+                      <h4 className="text-xs font-black uppercase text-zinc-950">
+                        Territory Revenue & Volume Trend
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-500">Live Timeline</span>
+                  </div>
+
+                  <div className="mt-4">
+                    {geoPulse?.analytics?.timeline && geoPulse.analytics.timeline.length > 0 ? (
+                      <div className="h-44 flex items-end gap-2 pt-4">
+                        {geoPulse.analytics.timeline.map((day) => {
+                          const maxSales = Math.max(
+                            ...geoPulse!.analytics!.timeline.map((t) => t.sales),
+                            500
+                          );
+                          const barHeight = Math.max(15, Math.round((day.sales / maxSales) * 120));
+
+                          return (
+                            <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5 group">
+                              <div className="text-[9px] font-black text-zinc-950 opacity-0 group-hover:opacity-100 transition-opacity">
+                                ₹{day.sales}
+                              </div>
+                              <div
+                                style={{ height: `${barHeight}px` }}
+                                className="w-full bg-zinc-950 group-hover:bg-zinc-700 rounded-t-md transition-all shadow-xs"
+                              />
+                              <span className="text-[9px] font-bold text-zinc-500 truncate w-full text-center">
+                                {day.date.slice(5)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="h-44 flex items-center justify-center text-xs text-zinc-500 border border-dashed border-zinc-200 rounded-xl">
+                        Aggregating chronological sales ledger...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Orders Live Table with End-to-End Tracing */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <ShoppingBag className="size-4 text-emerald-600" />
-                    <h3 className="text-sm font-black text-zinc-900 uppercase">
+                    <ShoppingBag className="size-4 text-zinc-950" />
+                    <h3 className="text-sm font-black text-zinc-950 uppercase">
                       Live Recent Orders in this Territory
                     </h3>
                   </div>
-                  <span className="text-xs text-zinc-500 font-mono">
+                  <span className="text-xs text-zinc-700 font-mono font-bold">
                     Showing {geoPulse?.recentOrders?.length || 0} live orders
                   </span>
                 </div>
@@ -1114,7 +1774,7 @@ function EnterpriseCrmPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left">
                       <thead>
-                        <tr className="border-b border-zinc-200 text-zinc-500 font-bold uppercase text-[10px]">
+                        <tr className="border-b border-zinc-200 bg-zinc-50/70 text-zinc-950 font-black uppercase text-[10px] tracking-wider">
                           <th className="py-2.5 px-3">Order ID</th>
                           <th className="py-2.5 px-3">Customer</th>
                           <th className="py-2.5 px-3">Partner Store</th>
@@ -1123,20 +1783,25 @@ function EnterpriseCrmPage() {
                           <th className="py-2.5 px-3 text-center">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-100">
+                      <tbody className="divide-y divide-zinc-200">
                         {geoPulse.recentOrders.map((o) => (
-                          <tr key={o.id} className="hover:bg-zinc-50/70 transition-colors">
-                            <td className="py-2.5 px-3 font-mono font-bold text-zinc-900">
+                          <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
+                            <td className="py-2.5 px-3 font-mono font-black text-zinc-950">
                               #{o.code || o.id.slice(0, 8)}
                             </td>
-                            <td className="py-2.5 px-3 font-semibold text-zinc-800">{o.customer}</td>
-                            <td className="py-2.5 px-3 text-zinc-600">{o.partner}</td>
-                            <td className="py-2.5 px-3 text-zinc-600 font-medium">{o.rider}</td>
-                            <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                            <td className="py-2.5 px-3">
+                              <span className="font-bold text-zinc-950 block">{o.customer}</span>
+                              {o.customerPhone && (
+                                <span className="text-[10px] font-mono text-zinc-600 block">{o.customerPhone}</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-zinc-800">{o.partner}</td>
+                            <td className="py-2.5 px-3 text-zinc-700 font-bold">{o.rider}</td>
+                            <td className="py-2.5 px-3 text-right font-black text-zinc-950">
                               ₹{o.amount.toLocaleString("en-IN")}
                             </td>
                             <td className="py-2.5 px-3 text-center">
-                              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200 uppercase">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-950 border border-zinc-300 uppercase">
                                 {o.status}
                               </span>
                             </td>
@@ -1146,26 +1811,28 @@ function EnterpriseCrmPage() {
                     </table>
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-xs text-zinc-500 border border-dashed border-zinc-200 rounded-xl">
+                  <div className="p-8 text-center text-xs text-zinc-600 font-medium border border-dashed border-zinc-200 rounded-xl">
                     No recent orders logged in this specific territory.
                   </div>
                 )}
               </div>
             </TabsContent>
 
-            {/* TAB 3: LEADERBOARD */}
+            {/* =========================================================================
+                TAB 3: TERRITORY LEADERBOARD (Monochrome Enterprise Ranking)
+            ========================================================================== */}
             <TabsContent value="leaderboard" className="space-y-6 focus-visible:outline-none">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl bg-white border border-zinc-200/90 p-4 sm:p-5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl bg-white border border-zinc-200 p-4 sm:p-5 shadow-xs">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Award className="size-5 text-amber-500" />
-                    <h3 className="text-sm font-black text-zinc-900 uppercase">
+                    <Award className="size-5 text-zinc-950" />
+                    <h3 className="text-sm font-black text-zinc-950 uppercase tracking-tight">
                       Territory Leaderboard & Performance Ranking
                     </h3>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-700 font-medium mt-1">
                     Ranked by GMV, order volume, and ratings in{" "}
-                    <strong className="text-zinc-800">{geoFilterLabel}</strong>
+                    <strong className="text-zinc-950 font-black">{geoFilterLabel}</strong>
                   </p>
                 </div>
 
@@ -1173,7 +1840,7 @@ function EnterpriseCrmPage() {
                   onClick={() =>
                     exportLeaderboardPdf(leaderboardData, timeframe, geoFilterLabel)
                   }
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs"
+                  className="bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs h-9 px-4 rounded-xl shadow-xs"
                 >
                   <Download className="size-3.5 mr-1.5" /> Download Leaderboard PDF
                 </Button>
@@ -1181,18 +1848,18 @@ function EnterpriseCrmPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* Top Partners */}
-                <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
                     <div className="flex items-center gap-2">
-                      <Building2 className="size-4 text-purple-600" />
-                      <h4 className="text-xs font-black uppercase text-zinc-900">
+                      <Building2 className="size-4 text-zinc-950" />
+                      <h4 className="text-xs font-black uppercase text-zinc-950">
                         Top Partner Stores
                       </h4>
                     </div>
-                    <span className="text-[10px] font-bold text-zinc-400">By GMV</span>
+                    <span className="text-[10px] font-bold text-zinc-500">By GMV</span>
                   </div>
 
-                  <div className="mt-3 divide-y divide-zinc-100">
+                  <div className="mt-3 divide-y divide-zinc-200">
                     {leaderboardData?.partners?.map((p) => (
                       <div
                         key={p.id}
@@ -1206,24 +1873,24 @@ function EnterpriseCrmPage() {
                         className="py-2.5 flex items-center justify-between hover:bg-zinc-50 p-1.5 rounded-lg transition-colors cursor-pointer group"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0">
+                          <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0 text-zinc-950">
                             {p.rank === 1 ? "🥇" : p.rank === 2 ? "🥈" : p.rank === 3 ? "🥉" : p.rank}
                           </span>
                           <div className="min-w-0">
-                            <span className="text-xs font-bold text-zinc-900 truncate block group-hover:text-emerald-700">
+                            <span className="text-xs font-black text-zinc-950 truncate block group-hover:underline">
                               {p.name}
                             </span>
-                            <span className="text-[10px] text-zinc-400">
+                            <span className="text-[10px] text-zinc-600 font-medium">
                               {p.city} · {p.orders} orders
                             </span>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-emerald-700 block">
+                          <span className="text-xs font-black text-zinc-950 block">
                             ₹{p.gmv.toLocaleString("en-IN")}
                           </span>
-                          <span className="text-[10px] font-bold text-zinc-500">{p.rating} ★</span>
+                          <span className="text-[10px] font-bold text-zinc-600">{p.rating} ★</span>
                         </div>
                       </div>
                     ))}
@@ -1231,18 +1898,18 @@ function EnterpriseCrmPage() {
                 </div>
 
                 {/* Top Riders */}
-                <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
                     <div className="flex items-center gap-2">
-                      <Truck className="size-4 text-emerald-600" />
-                      <h4 className="text-xs font-black uppercase text-zinc-900">
+                      <Truck className="size-4 text-zinc-950" />
+                      <h4 className="text-xs font-black uppercase text-zinc-950">
                         Top Delivery Pilots
                       </h4>
                     </div>
-                    <span className="text-[10px] font-bold text-zinc-400">By Trips</span>
+                    <span className="text-[10px] font-bold text-zinc-500">By Trips</span>
                   </div>
 
-                  <div className="mt-3 divide-y divide-zinc-100">
+                  <div className="mt-3 divide-y divide-zinc-200">
                     {leaderboardData?.riders?.map((r) => (
                       <div
                         key={r.id}
@@ -1256,24 +1923,24 @@ function EnterpriseCrmPage() {
                         className="py-2.5 flex items-center justify-between hover:bg-zinc-50 p-1.5 rounded-lg transition-colors cursor-pointer group"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0">
+                          <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0 text-zinc-950">
                             {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
                           </span>
                           <div className="min-w-0">
-                            <span className="text-xs font-bold text-zinc-900 truncate block group-hover:text-emerald-700">
+                            <span className="text-xs font-black text-zinc-950 truncate block group-hover:underline">
                               {r.name}
                             </span>
-                            <span className="text-[10px] text-zinc-400">
+                            <span className="text-[10px] text-zinc-600 font-medium">
                               {r.city} · {r.deliveries} trips
                             </span>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-emerald-700 block">
+                          <span className="text-xs font-black text-zinc-950 block">
                             ₹{r.earnings.toLocaleString("en-IN")}
                           </span>
-                          <span className="text-[10px] font-bold text-zinc-500">
+                          <span className="text-[10px] font-bold text-zinc-600">
                             {r.rating} ★ ({r.onTimeRate}%)
                           </span>
                         </div>
@@ -1283,18 +1950,18 @@ function EnterpriseCrmPage() {
                 </div>
 
                 {/* Top Customers */}
-                <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
                     <div className="flex items-center gap-2">
-                      <Users className="size-4 text-blue-600" />
-                      <h4 className="text-xs font-black uppercase text-zinc-900">
+                      <Users className="size-4 text-zinc-950" />
+                      <h4 className="text-xs font-black uppercase text-zinc-950">
                         Top Valued Customers
                       </h4>
                     </div>
-                    <span className="text-[10px] font-bold text-zinc-400">By Spend</span>
+                    <span className="text-[10px] font-bold text-zinc-500">By Spend</span>
                   </div>
 
-                  <div className="mt-3 divide-y divide-zinc-100">
+                  <div className="mt-3 divide-y divide-zinc-200">
                     {leaderboardData?.customers?.map((c) => (
                       <div
                         key={c.id}
@@ -1308,24 +1975,24 @@ function EnterpriseCrmPage() {
                         className="py-2.5 flex items-center justify-between hover:bg-zinc-50 p-1.5 rounded-lg transition-colors cursor-pointer group"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0">
+                          <span className="flex size-6 items-center justify-center rounded-lg text-xs font-black shrink-0 text-zinc-950">
                             {c.rank === 1 ? "🥇" : c.rank === 2 ? "🥈" : c.rank === 3 ? "🥉" : c.rank}
                           </span>
                           <div className="min-w-0">
-                            <span className="text-xs font-bold text-zinc-900 truncate block group-hover:text-emerald-700">
+                            <span className="text-xs font-black text-zinc-950 truncate block group-hover:underline">
                               {c.name}
                             </span>
-                            <span className="text-[10px] text-zinc-400">
+                            <span className="text-[10px] text-zinc-600 font-medium">
                               {c.city} · {c.orders} orders ({typeof c.membership === "object" && c.membership !== null ? (c.membership as any)?.plan || "VIP" : c.membership || "Standard"})
                             </span>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-emerald-700 block">
+                          <span className="text-xs font-black text-zinc-950 block">
                             ₹{c.spend.toLocaleString("en-IN")}
                           </span>
-                          <span className="text-[10px] font-bold text-zinc-500">
+                          <span className="text-[10px] font-bold text-zinc-600">
                             {c.loyaltyPoints} pts
                           </span>
                         </div>
