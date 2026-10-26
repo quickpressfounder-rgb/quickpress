@@ -39,11 +39,16 @@ import {
   Eye,
   SlidersHorizontal,
   ChevronDown,
+  Navigation,
+  Layers,
+  Sparkles,
+  HelpCircle,
+  Headphones,
+  CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "../components/AdminShell";
-import { SectionCard } from "../components/AdminUI";
 import { RevenueAreaChart } from "../components/AdminCharts";
 import {
   fetchDashboardSummary,
@@ -160,6 +165,7 @@ export function DashboardPage() {
     allRead["pending_partners"] = true;
     allRead["unassigned_orders"] = true;
     allRead["pending_payouts"] = true;
+    allRead["unresolved_support_tickets"] = true;
     setAcknowledgedAlerts(allRead);
     try {
       localStorage.setItem("qp_dashboard_read_alerts", JSON.stringify(allRead));
@@ -252,20 +258,30 @@ export function DashboardPage() {
     day: "numeric",
   });
 
-  const fulfillmentPercentage = Math.min(
-    100,
-    Math.round(((data?.deliveredOrders || 0) / (data?.totalOrders || 1)) * 100)
-  );
+  const totalOrders = data?.totalOrders || 1;
+  const deliveredOrders = data?.deliveredOrders || 0;
+  const fulfillmentPercentage = Math.min(100, Math.round((deliveredOrders / totalOrders) * 100));
 
+  const totalRiders = data?.totalRiders || 1;
+  const onlineRiders = data?.onlineRiders || 0;
+  const availableRiders = data?.availableRiders || 0;
   const fleetReadinessPercentage = Math.min(
     100,
-    Math.round(((data?.availableRiders || 0) / (data?.onlineRiders || 1)) * 100)
+    Math.round((availableRiders / (onlineRiders || 1)) * 100)
   );
+
+  const totalRevenue = data?.todayRevenue || data?.revenue || 0;
+  const averageOrderValue = Math.round(totalRevenue / (data?.totalOrders || 1));
+
+  const twoRide = data?.twoRideStatus || {
+    ride1: { label: "RIDE 1 — PICKUP (Customer → Partner)", searching: 0, offerSent: 0, assigned: 0, timeout: 0, rejected: 0, noRider: 0 },
+    ride2: { label: "RIDE 2 — DELIVERY (Partner → Customer)", searching: 0, offerSent: 0, assigned: 0, timeout: 0, rejected: 0, noRider: 0 },
+  };
 
   return (
     <AdminShell
-      title="Platform Operations Command Center"
-      subtitle={`Live operational telemetry as of ${currentDateStr} · Supabase PostgreSQL Production`}
+      title="Platform Executive Command Center"
+      subtitle={`Founder Real-Time Operations Telemetry as of ${currentDateStr} · Supabase PostgreSQL Production`}
       actions={
         <>
           {/* System Health Heartbeat Pill */}
@@ -279,12 +295,12 @@ export function DashboardPage() {
               <span className="relative inline-flex size-2.5 rounded-full bg-emerald-600" />
             </span>
             <span className="font-extrabold text-zinc-950">Supabase Live</span>
-            <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-900">
+            <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-950">
               99.98% SLA
             </span>
           </button>
 
-          {/* Refresh Button */}
+          {/* Sync Button */}
           <button
             type="button"
             onClick={handleRefresh}
@@ -294,7 +310,7 @@ export function DashboardPage() {
             <span>Sync</span>
           </button>
 
-          {/* Export Snapshot */}
+          {/* Export CSV */}
           <button
             type="button"
             onClick={() => toast.success("Exporting platform operational snapshot as CSV...")}
@@ -309,10 +325,10 @@ export function DashboardPage() {
       <div className="space-y-6">
 
         {/* =========================================================================
-            SECTION 1: GLOBAL OPERATIONAL FILTER BAR
+            SECTION 0: UNIVERSAL MULTI-DIMENSIONAL FILTER BAR
         ========================================================================= */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-3.5 shadow-xs">
-          {/* Date Selector */}
+          {/* Timeframe Switcher */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950 mr-2 flex items-center gap-1">
               <Clock className="size-3 text-zinc-950" />
@@ -346,7 +362,7 @@ export function DashboardPage() {
           {/* City & Service Filters */}
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1 shadow-2xs">
-              <MapPin className="size-3.5 text-zinc-950" />
+              <MapPin className="size-3.5 text-purple-700" />
               <select
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
@@ -360,7 +376,7 @@ export function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1 shadow-2xs">
-              <SlidersHorizontal className="size-3.5 text-zinc-950" />
+              <SlidersHorizontal className="size-3.5 text-sky-700" />
               <select
                 value={serviceFilter}
                 onChange={(e) => setServiceFilter(e.target.value)}
@@ -377,24 +393,24 @@ export function DashboardPage() {
         </div>
 
         {/* =========================================================================
-            SECTION 2: ACTIVE OPERATIONAL INCIDENTS & TRIAGE (HIGH CONTRAST)
+            SECTION 1: ACTIVE OPERATIONAL INCIDENTS & TRIAGE (HIGH CONTRAST)
         ========================================================================= */}
         {activeAlerts.length > 0 && (
-          <div className="rounded-2xl border-2 border-rose-200 bg-white p-4 shadow-xs">
+          <div className="rounded-2xl border-2 border-rose-300 bg-white p-4 shadow-xs">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex size-7 items-center justify-center rounded-xl bg-rose-100 text-rose-900 border border-rose-300">
-                  <AlertTriangle className="size-4" />
+                <span className="flex size-8 items-center justify-center rounded-xl bg-rose-100 text-rose-900 border border-rose-300 font-black">
+                  <AlertTriangle className="size-4 text-rose-700" />
                 </span>
                 <div>
                   <h3 className="text-sm font-black text-zinc-950 flex items-center gap-2">
-                    <span>Priority Operational Incidents</span>
+                    <span>Priority Operational Incidents &amp; SLA Breaches</span>
                     <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-black text-white">
                       {activeAlerts.length} Action Required
                     </span>
                   </h3>
                   <p className="text-xs font-bold text-zinc-700">
-                    Live operational breaches requiring manual dispatch or regional supervisor sign-off
+                    Live operational breaches requiring manual wave dispatch or regional supervisor sign-off
                   </p>
                 </div>
               </div>
@@ -419,7 +435,7 @@ export function DashboardPage() {
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black text-rose-900 border border-rose-200">
-                        INCIDENT
+                        URGENT
                       </span>
                       <button
                         type="button"
@@ -458,263 +474,326 @@ export function DashboardPage() {
         )}
 
         {/* =========================================================================
-            SECTION 3: PRIMARY KPI COMMAND METRICS (DEEP JET-BLACK NUMBERS)
+            SECTION 2: NORTH STAR 4 EXECUTIVE KPI CARDS (COLORFUL & HIGH CONTRAST)
         ========================================================================= */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-          {/* CARD 1: ORDERS & FULFILLMENT */}
+          {/* CARD 1: GROSS MERCHANDISE VALUE (GMV) - EMERALD */}
           <div
-            onClick={() => navigate({ to: adminRoutes.orders })}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-200 hover:border-zinc-400 hover:shadow-md active:scale-[0.99]"
+            onClick={() => navigate({ to: adminRoutes.analytics })}
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-emerald-500 hover:shadow-md hover:-translate-y-0.5"
           >
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-emerald-500 via-teal-500 to-emerald-600" />
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-black">
-                  <ShoppingBag className="size-4" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
-                    ORDERS &amp; FULFILLMENT
-                  </span>
-                  <p className="text-[10px] font-bold text-zinc-600">Total customer bookings</p>
-                </div>
-              </div>
-              <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-black text-emerald-900">
-                <TrendingUp className="size-3" />
-                {data?.ordersTrend ? `${data.ordersTrend.changePct > 0 ? "+" : ""}${data.ordersTrend.changePct}%` : "+0%"}
-              </span>
-            </div>
-
-            <div className="mt-4 flex items-baseline justify-between">
-              <div>
-                <p className="text-3xl font-black text-zinc-950 tracking-tight">
-                  {count(data?.totalOrders)}
-                </p>
-                <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Bookings in current period
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-                  {fulfillmentPercentage}% Fulfilled
-                </span>
-              </div>
-            </div>
-
-            {/* Progress Meter */}
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-              <div
-                className="h-full rounded-full bg-emerald-600 transition-all duration-500"
-                style={{ width: `${fulfillmentPercentage}%` }}
-              />
-            </div>
-
-            {/* 3 Metric Sub-tiles */}
-            <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50 p-2.5 text-center text-xs border border-zinc-200">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.orders });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold">Active</p>
-                <p className="font-black text-emerald-800 text-sm">{count(data?.liveOrders)}</p>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.orders });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold">Delivered</p>
-                <p className="font-black text-zinc-950 text-sm">{count(data?.deliveredOrders)}</p>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.orders });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold">Delayed</p>
-                <p className="font-black text-rose-700 text-sm">{count(data?.delayedOrders)}</p>
-              </button>
-            </div>
-          </div>
-
-          {/* CARD 2: BUSINESS, GMV & PLATFORM TREASURY */}
-          <div
-            onClick={() => navigate({ to: adminRoutes.wallet })}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-200 hover:border-zinc-400 hover:shadow-md active:scale-[0.99]"
-          >
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-200 font-black">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 font-black">
                   <Coins className="size-4" />
                 </div>
                 <div>
                   <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
-                    GROSS REVENUE &amp; GMV
+                    GROSS GMV
                   </span>
-                  <p className="text-[10px] font-bold text-zinc-600">Platform transactional volume</p>
+                  <p className="text-[10px] font-bold text-zinc-600">Total Transacted Value</p>
                 </div>
               </div>
-              <span className="flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-black text-indigo-900">
+              <span className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-950">
                 <TrendingUp className="size-3" />
                 {data?.revenueTrend ? `${data.revenueTrend.changePct > 0 ? "+" : ""}${data.revenueTrend.changePct}%` : "+0%"}
               </span>
             </div>
 
-            <div className="mt-4 flex items-baseline justify-between">
+            <div className="mt-3.5 flex items-baseline justify-between">
               <div>
-                <p className="text-3xl font-black text-zinc-950 tracking-tight">
-                  {currency(data?.todayRevenue || data?.revenue)}
+                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
+                  {currency(totalRevenue)}
                 </p>
                 <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Reconciled order volume
+                  Avg Order: <span className="text-zinc-950 font-black">{currency(averageOrderValue)}</span>
                 </p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-black text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
-                  18% Platform Commission
-                </span>
               </div>
             </div>
 
-            {/* Progress Meter */}
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+              <div className="h-full rounded-full bg-emerald-600 transition-all duration-500 w-full" />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
+              <span>Lifetime Gross Reconciled</span>
+              <span className="text-emerald-800 font-black">{currency(data?.revenue)}</span>
+            </div>
+          </div>
+
+          {/* CARD 2: PLATFORM TAKE RATE (18% NET REVENUE) - INDIGO */}
+          <div
+            onClick={() => navigate({ to: adminRoutes.wallet })}
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5"
+          >
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-indigo-500 via-violet-500 to-purple-600" />
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-900 border border-indigo-300 font-black">
+                  <Wallet className="size-4" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
+                    PLATFORM TAKE (18%)
+                  </span>
+                  <p className="text-[10px] font-bold text-zinc-600">Company Net Commission</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-xs font-black text-indigo-950">
+                18% Margin
+              </span>
+            </div>
+
+            <div className="mt-3.5 flex items-baseline justify-between">
+              <div>
+                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
+                  {currency(data?.platformCommission)}
+                </p>
+                <p className="text-xs font-bold text-zinc-700 mt-0.5">
+                  Platform Earnings Cut
+                </p>
+              </div>
+            </div>
+
             <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
               <div className="h-full rounded-full bg-indigo-600 transition-all duration-500 w-full" />
             </div>
 
-            {/* 3 Metric Sub-tiles */}
-            <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50 p-2.5 text-center text-xs border border-zinc-200">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.wallet });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold truncate">Commission (18%)</p>
-                <p className="font-black text-indigo-900 text-sm">{currency(data?.platformCommission)}</p>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.wallet });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold truncate">Pending Payout</p>
-                <p className="font-black text-amber-800 text-sm">{currency(data?.pendingPayoutAmount)}</p>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.customers });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold">Customers</p>
-                <p className="font-black text-zinc-950 text-sm">{count(data?.totalCustomers)}</p>
-              </button>
+            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
+              <span>Pending Settlement Float</span>
+              <span className="text-amber-800 font-black">{currency(data?.pendingPayoutAmount)}</span>
             </div>
           </div>
 
-          {/* CARD 3: FLEET LOGISTICS & PARTNER STORES */}
+          {/* CARD 3: ORDERS & FULFILLMENT EFFICIENCY - SKY BLUE */}
           <div
-            onClick={() => navigate({ to: adminRoutes.riders })}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-200 hover:border-zinc-400 hover:shadow-md active:scale-[0.99]"
+            onClick={() => navigate({ to: adminRoutes.orders })}
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-sky-500 hover:shadow-md hover:-translate-y-0.5"
           >
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-blue-500 via-sky-500 to-cyan-600" />
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-sky-50 text-sky-800 border border-sky-200 font-black">
-                  <Truck className="size-4" />
+                <div className="flex size-8 items-center justify-center rounded-xl bg-sky-100 text-sky-900 border border-sky-300 font-black">
+                  <ShoppingBag className="size-4" />
                 </div>
                 <div>
                   <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
-                    FLEET &amp; PARTNER NETWORK
+                    ORDERS VOLUME
                   </span>
-                  <p className="text-[10px] font-bold text-zinc-600">Active ground logistics capacity</p>
+                  <p className="text-[10px] font-bold text-zinc-600">Customer Bookings</p>
                 </div>
               </div>
-              <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-black text-sky-900 border border-sky-200">
-                Live Telemetry
+              <span className="flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-black text-sky-950">
+                <TrendingUp className="size-3" />
+                {data?.ordersTrend ? `${data.ordersTrend.changePct > 0 ? "+" : ""}${data.ordersTrend.changePct}%` : "+0%"}
               </span>
             </div>
 
-            <div className="mt-4 flex items-baseline justify-between">
+            <div className="mt-3.5 flex items-baseline justify-between">
               <div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-black text-zinc-950 tracking-tight">
-                    {count(data?.onlineRiders)}
-                  </p>
-                  <span className="text-xs font-bold text-zinc-700">
-                    Online / {count(data?.totalRiders)} Total Fleet
-                  </span>
-                </div>
+                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
+                  {count(data?.totalOrders)}
+                </p>
                 <p className="text-xs font-bold text-zinc-700 mt-0.5">
-                  Available for instant wave dispatch
+                  {count(data?.liveOrders)} Active in Flight
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-xs font-black text-sky-900 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200">
-                  {fleetReadinessPercentage}% Available
+                <span className="text-xs font-black text-sky-900 bg-sky-100 px-2 py-0.5 rounded-lg border border-sky-300">
+                  {fulfillmentPercentage}% Fulfilled
                 </span>
               </div>
             </div>
 
-            {/* Progress Meter */}
             <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
               <div
                 className="h-full rounded-full bg-sky-600 transition-all duration-500"
+                style={{ width: `${fulfillmentPercentage}%` }}
+              />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
+              <span>Delivered: <span className="text-zinc-950 font-black">{count(data?.deliveredOrders)}</span></span>
+              <span>Delayed: <span className="text-rose-700 font-black">{count(data?.delayedOrders)}</span></span>
+            </div>
+          </div>
+
+          {/* CARD 4: FLEET & PARTNER NETWORK CAPACITY - PURPLE */}
+          <div
+            onClick={() => navigate({ to: adminRoutes.riders })}
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs transition-all duration-300 hover:border-purple-500 hover:shadow-md hover:-translate-y-0.5"
+          >
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-purple-100 text-purple-900 border border-purple-300 font-black">
+                  <Truck className="size-4" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-950">
+                    FLEET &amp; STORES
+                  </span>
+                  <p className="text-[10px] font-bold text-zinc-600">Ground Operations</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-xs font-black text-purple-950">
+                Live GPS
+              </span>
+            </div>
+
+            <div className="mt-3.5 flex items-baseline justify-between">
+              <div>
+                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
+                  {count(onlineRiders)}
+                </p>
+                <p className="text-xs font-bold text-zinc-700 mt-0.5">
+                  Online / {count(totalRiders)} Fleet
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-black text-purple-900 bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-300">
+                  {fleetReadinessPercentage}% Ready
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+              <div
+                className="h-full rounded-full bg-purple-600 transition-all duration-500"
                 style={{ width: `${fleetReadinessPercentage}%` }}
               />
             </div>
 
-            {/* 3 Metric Sub-tiles */}
-            <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-zinc-50 p-2.5 text-center text-xs border border-zinc-200">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.riders });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold">Available</p>
-                <p className="font-black text-sky-800 text-sm">{count(data?.availableRiders)}</p>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.partners });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold">Active Stores</p>
-                <p className="font-black text-zinc-950 text-sm">{count(data?.activePartners)}</p>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate({ to: adminRoutes.partners });
-                }}
-                className="rounded-lg p-1.5 transition-all hover:bg-white hover:shadow-2xs active:scale-95"
-              >
-                <p className="text-[11px] text-zinc-800 font-extrabold">Pending KYC</p>
-                <p className="font-black text-rose-700 text-sm">{count(data?.pendingPartners)}</p>
-              </button>
+            <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-zinc-700">
+              <span>Active Stores: <span className="text-zinc-950 font-black">{count(data?.activePartners)}</span></span>
+              <span>Pending KYC: <span className="text-rose-700 font-black">{count(data?.pendingPartners)}</span></span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* =========================================================================
+            SECTION 3: TWO-RIDE ASSIGNMENT TELEMETRY (RIDE 1 PICKUP vs RIDE 2 DELIVERY)
+        ========================================================================= */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3 mb-4">
+            <div>
+              <h2 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                <Navigation className="size-4 text-sky-700" />
+                <span>QuickPress Two-Ride Telemetry Matrix</span>
+                <span className="rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-black text-sky-950 border border-sky-300">
+                  Leg 1 Pickup ⇄ Leg 2 Delivery
+                </span>
+              </h2>
+              <p className="text-xs font-bold text-zinc-700 mt-0.5">
+                Real-time dispatch wave tracking across Customer Pickup and Customer Return Delivery legs
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate({ to: adminRoutes.orders })}
+              className="inline-flex items-center gap-1 text-xs font-black text-emerald-800 hover:text-emerald-950 hover:underline"
+            >
+              <span>View Ride Dispatch Board</span>
+              <ArrowRight className="size-3.5" />
+            </button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* RIDE 1: PICKUP LEG */}
+            <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4">
+              <div className="flex items-center justify-between border-b border-sky-200 pb-2.5 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-sky-600 text-white font-black text-xs">
+                    R1
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-black text-zinc-950 uppercase tracking-wider">
+                      RIDE 1 — PICKUP LEG (Customer → Store)
+                    </h3>
+                    <p className="text-[10px] font-bold text-sky-900">Garment intake &amp; bag tagging</p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-sky-950 border border-sky-300">
+                  Active Waves
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Searching</p>
+                  <p className="text-base font-black text-sky-800">{twoRide.ride1.searching}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Offers Sent</p>
+                  <p className="text-base font-black text-amber-800">{twoRide.ride1.offerSent}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Assigned</p>
+                  <p className="text-base font-black text-emerald-800">{twoRide.ride1.assigned}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Timeouts</p>
+                  <p className="text-base font-black text-zinc-950">{twoRide.ride1.timeout}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Rejected</p>
+                  <p className="text-base font-black text-rose-700">{twoRide.ride1.rejected}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-sky-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">No Rider</p>
+                  <p className="text-base font-black text-rose-800">{twoRide.ride1.noRider}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* RIDE 2: DELIVERY LEG */}
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+              <div className="flex items-center justify-between border-b border-emerald-200 pb-2.5 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white font-black text-xs">
+                    R2
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-black text-zinc-950 uppercase tracking-wider">
+                      RIDE 2 — DELIVERY LEG (Store → Customer)
+                    </h3>
+                    <p className="text-[10px] font-bold text-emerald-900">Finished fresh garment delivery</p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-emerald-950 border border-emerald-300">
+                  Active Waves
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Searching</p>
+                  <p className="text-base font-black text-sky-800">{twoRide.ride2.searching}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Offers Sent</p>
+                  <p className="text-base font-black text-amber-800">{twoRide.ride2.offerSent}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Assigned</p>
+                  <p className="text-base font-black text-emerald-800">{twoRide.ride2.assigned}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Timeouts</p>
+                  <p className="text-base font-black text-zinc-950">{twoRide.ride2.timeout}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">Rejected</p>
+                  <p className="text-base font-black text-rose-700">{twoRide.ride2.rejected}</p>
+                </div>
+                <div className="rounded-lg bg-white p-2 border border-emerald-200 shadow-2xs">
+                  <p className="text-[10px] font-bold text-zinc-700">No Rider</p>
+                  <p className="text-base font-black text-rose-800">{twoRide.ride2.noRider}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -726,6 +805,7 @@ export function DashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3 mb-4">
             <div>
               <h2 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                <Layers className="size-4 text-purple-700" />
                 <span>Order Lifecycle Telemetry Pipeline</span>
                 <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-950 border border-zinc-200">
                   9 Live Stages
@@ -788,9 +868,14 @@ export function DashboardPage() {
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
-                <div>
-                  <h3 className="text-sm font-black text-zinc-950">Financial Reconciliation</h3>
-                  <p className="text-xs font-bold text-zinc-700">Double-entry verified ledger</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    <Wallet className="size-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-zinc-950">Financial Reconciliation</h3>
+                    <p className="text-xs font-bold text-zinc-700">Double-entry verified ledger</p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -822,7 +907,7 @@ export function DashboardPage() {
                   onClick={() => navigate({ to: adminRoutes.wallet })}
                   className="flex justify-between items-center rounded-xl bg-zinc-50 p-2.5 font-bold cursor-pointer hover:bg-zinc-100 transition-all border border-zinc-200"
                 >
-                  <span className="text-zinc-800 font-bold">Partner Store Payouts</span>
+                  <span className="text-zinc-800 font-bold">Partner Store Payouts (70%)</span>
                   <span className="text-zinc-950 font-black text-sm">{currency(data?.revenueSnapshot?.partnerEarnings)}</span>
                 </div>
 
@@ -830,7 +915,7 @@ export function DashboardPage() {
                   onClick={() => navigate({ to: adminRoutes.wallet })}
                   className="flex justify-between items-center rounded-xl bg-zinc-50 p-2.5 font-bold cursor-pointer hover:bg-zinc-100 transition-all border border-zinc-200"
                 >
-                  <span className="text-zinc-800 font-bold">Rider Delivery Earnings</span>
+                  <span className="text-zinc-800 font-bold">Rider Delivery Earnings (12%)</span>
                   <span className="text-zinc-950 font-black text-sm">{currency(data?.revenueSnapshot?.riderEarnings)}</span>
                 </div>
 
@@ -862,9 +947,14 @@ export function DashboardPage() {
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
-                <div>
-                  <h3 className="text-sm font-black text-zinc-950">Rider Fleet Logistics</h3>
-                  <p className="text-xs font-bold text-zinc-700">Active captains readiness telemetry</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-sky-100 text-sky-900 border border-sky-300">
+                    <Truck className="size-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-zinc-950">Rider Fleet Logistics</h3>
+                    <p className="text-xs font-bold text-zinc-700">Active captains readiness telemetry</p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -928,9 +1018,14 @@ export function DashboardPage() {
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-3">
-                <div>
-                  <h3 className="text-sm font-black text-zinc-950">Partner Laundromats</h3>
-                  <p className="text-xs font-bold text-zinc-700">Commercial processing capacity</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-purple-100 text-purple-900 border border-purple-300">
+                    <Building2 className="size-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-zinc-950">Partner Laundromats</h3>
+                    <p className="text-xs font-bold text-zinc-700">Commercial processing capacity</p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -1132,6 +1227,7 @@ export function DashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3 mb-3">
             <div>
               <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                <MapPin className="size-4 text-purple-700" />
                 <span>City &amp; Operating Zone Breakdown</span>
                 <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-black text-zinc-950 border border-zinc-200">
                   Regional Operations

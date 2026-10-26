@@ -224,25 +224,28 @@
   - **2. Active Priority Incidents & Triage Banner:**
     - High-visibility incident strip displaying delayed orders (SLA breach), unassigned orders, pending partner store KYC, and pending settlements.
     - Added one-click action escalation routes and individual resolution acknowledgment toggles.
-  - **3. Primary KPI Command Metric Cards:**
-    - Orders & Fulfillment Operations with live trend badge, fulfillment progress meter, and active/delivered/delayed breakdown.
-    - Gross Revenue & GMV with platform take rate (18%), pending payout amount, and customer count.
-    - Fleet & Partner Network with online captains, readiness progress meter, available fleet, active stores, and pending KYC.
-  - **4. 9-Stage Order Lifecycle Pipeline:**
+  - **3. Primary KPI Command Metric Cards (Colorful & Vibrant Executive Gradients):**
+    - **Gross GMV Card (Emerald Gradient):** Total transacted value, average order value (AOV), lifetime gross reconciled.
+    - **Platform Take (18% Net Revenue - Indigo Gradient):** 18% take rate calculation, company commission, pending float settlement.
+    - **Orders Volume Card (Sky Blue Gradient):** Total customer bookings, in-flight active orders, fulfillment efficiency percentage meter.
+    - **Fleet & Stores Capacity Card (Purple Gradient):** Online captains vs total fleet, readiness progress meter, active stores, and pending KYC count.
+  - **4. QuickPress Two-Ride Telemetry Matrix (Pickup Leg vs Delivery Leg):**
+    - Visualizing Leg 1 (Customer → Laundromat) and Leg 2 (Laundromat → Customer) dispatching waves: Searching, Offers Sent, Assigned, Timeouts, Rejected, and No Rider Found.
+  - **5. 9-Stage Order Lifecycle Pipeline:**
     - High-contrast card grid with stage index badges (`#1` to `#9`), active pulsating indicators, large stage counts, and clear status labels.
-  - **5. Financial Reconciliation & Fleet Telemetry Cards:**
+  - **6. Financial Reconciliation & Fleet Telemetry Cards:**
     - Double-entry verified ledger snapshot (Gross revenue, 18% commission, partner payouts, rider earnings, refunds, pending settlements).
     - Rider Fleet Logistics (Total registered, online now, available for pickup, busy on trip, avg dispatch SLA).
     - Partner Laundromats (Total facilities, active & taking orders, pending KYC signoff, suspended/offline).
-  - **6. Orders & GMV Trajectory Chart:**
+  - **7. Orders & GMV Trajectory Chart:**
     - Recharts area chart with time period toggle (Today, 7 Days, 30 Days) with high-contrast active states.
-  - **7. Top Performance Leaderboards & Regional Breakdown Table:**
+  - **8. Top Performance Leaderboards & Regional Breakdown Table:**
     - Top 5 Partner Laundromats and Top 5 Delivery Captains with ranking badges and performance ratings.
     - City & Operating Zone Breakdown Table with dark headers, bold city names, GMV in emerald, and direct navigation to Regional Console.
-  - **8. Administrative Quick Actions & Live Automation Surveillance:**
+  - **9. Administrative Quick Actions & Live Automation Surveillance:**
     - 9 streamlined action buttons with Lucide vector icons and dark bold labels.
     - Live audit stream with filter pills for Dispatch, Dynamic OTP, Laundry SLA, Auto-Finance, Surge, and Fraud Guard.
-  - **9. System Health Heartbeat Modal:**
+  - **10. System Health Heartbeat Modal:**
     - Real-time service status dialog for Supabase PostgreSQL, 2FA Auth, Supabase Realtime, FCM Push, and Socket.IO real-time dispatch.
 - **Modified Files:**
   - `admin-frontend/src/routes/dashboard.tsx`
