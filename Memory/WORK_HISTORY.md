@@ -188,6 +188,68 @@
 - **Build & Verification Status:**
   - `pytest backend-python/tests/test_staff_auth_rbac_engine.py -v`: 7/7 PASSED (100% pass rate).
 
+### 28. Cities & Regional Operations Console End-to-End Enterprise Redesign
+- **User Requirement:**
+  - Redesign `admin-frontend/src/routes/cities.tsx` into a high-visibility, professional Zomato/Swiggy-level operations command center.
+  - Pure white background (`bg-white`), hairline borders (`border-zinc-200`), and dark high-contrast typography.
+  - End-to-end data visibility per city (Postal codes & coverage matrix, Laundromat facilities, Delivery fleet, Concentric wave dispatching, and Pan-India directory).
+  - Clean enterprise color accents without cartoon colors or emojis.
+- **Architecture & Implementation:**
+  - Integrated city selection carousel strip with active hub metrics.
+  - Implemented 5 dedicated operational tabs:
+    1. Postal Codes & Coverage Matrix
+    2. Laundromat Facilities in City
+    3. Delivery Fleet in City
+    4. Pod Dispatch & Concentric Waves in City
+    5. Pan-India All Cities Directory
+  - Clean Lucide SVG vector icons, real Supabase data queries preserved.
+- **Modified Files:**
+  - `admin-frontend/src/routes/cities.tsx`
+  - `admin-frontend/src/components/AdminShell.tsx`
+- **Build & Verification Status:**
+  - `npm --prefix admin-frontend run build`: PASSED (0 errors).
+  - Deployed to AWS EC2 (`65.0.127.43`), PM2 `quickpress-admin` listening on port 8084 (HTTP 200 OK).
+
+### 29. Platform Command Center Dashboard High-Contrast Dark Text & Pure White Enterprise Redesign
+- **User Requirement:**
+  - Redesign `admin-frontend/src/routes/dashboard.tsx` with high-contrast, deep jet-black typography ("iske ander bhi black text thoda dark rakhna hai"), pure white surfaces (`bg-white`), and hairline borders (`border-zinc-200`).
+  - Professional Zomato/Swiggy-style operations command center layout.
+  - End-to-end operational visibility: Top KPI cards, 9-stage order lifecycle pipeline, Double-entry treasury snapshot, Rider fleet & Partner store capacity telemetry, Trajectory area chart, Top 5 Partners & Captains leaderboards, City breakdown table, Administrative quick actions, and Live automation surveillance feed.
+  - 100% real Supabase data integration preserved with zero mock data.
+- **Architecture & Implementation:**
+  - **1. High-Contrast Typography & Pure White Cards:**
+    - Standardized all primary figures and metrics to deep jet-black `text-zinc-950 font-black tracking-tight`.
+    - Section headers, card labels, sub-metrics, and table headers use `text-zinc-950 font-black` / `font-bold` for crystal-clear readability.
+    - Secondary metadata uses `text-zinc-700 font-bold` instead of washed-out pale gray.
+  - **2. Active Priority Incidents & Triage Banner:**
+    - High-visibility incident strip displaying delayed orders (SLA breach), unassigned orders, pending partner store KYC, and pending settlements.
+    - Added one-click action escalation routes and individual resolution acknowledgment toggles.
+  - **3. Primary KPI Command Metric Cards:**
+    - Orders & Fulfillment Operations with live trend badge, fulfillment progress meter, and active/delivered/delayed breakdown.
+    - Gross Revenue & GMV with platform take rate (18%), pending payout amount, and customer count.
+    - Fleet & Partner Network with online captains, readiness progress meter, available fleet, active stores, and pending KYC.
+  - **4. 9-Stage Order Lifecycle Pipeline:**
+    - High-contrast card grid with stage index badges (`#1` to `#9`), active pulsating indicators, large stage counts, and clear status labels.
+  - **5. Financial Reconciliation & Fleet Telemetry Cards:**
+    - Double-entry verified ledger snapshot (Gross revenue, 18% commission, partner payouts, rider earnings, refunds, pending settlements).
+    - Rider Fleet Logistics (Total registered, online now, available for pickup, busy on trip, avg dispatch SLA).
+    - Partner Laundromats (Total facilities, active & taking orders, pending KYC signoff, suspended/offline).
+  - **6. Orders & GMV Trajectory Chart:**
+    - Recharts area chart with time period toggle (Today, 7 Days, 30 Days) with high-contrast active states.
+  - **7. Top Performance Leaderboards & Regional Breakdown Table:**
+    - Top 5 Partner Laundromats and Top 5 Delivery Captains with ranking badges and performance ratings.
+    - City & Operating Zone Breakdown Table with dark headers, bold city names, GMV in emerald, and direct navigation to Regional Console.
+  - **8. Administrative Quick Actions & Live Automation Surveillance:**
+    - 9 streamlined action buttons with Lucide vector icons and dark bold labels.
+    - Live audit stream with filter pills for Dispatch, Dynamic OTP, Laundry SLA, Auto-Finance, Surge, and Fraud Guard.
+  - **9. System Health Heartbeat Modal:**
+    - Real-time service status dialog for Supabase PostgreSQL, 2FA Auth, Supabase Realtime, FCM Push, and Socket.IO real-time dispatch.
+- **Modified Files:**
+  - `admin-frontend/src/routes/dashboard.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm --prefix admin-frontend run build`: PASSED (0 errors, clean Nitro bundle).
+
 ---
 
 ## Detailed Log of Work Done Today (25 October 2026)
