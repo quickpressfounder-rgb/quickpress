@@ -161,8 +161,14 @@ async def search_crm_entities(
     """Universal multi-entity search across Customers, Riders, and Partners."""
     from app.core.redis_cache import hybrid_cache
 
-    query_str = (q or "").strip().lower()
-    cache_key = f"crm:search:{entity_type}:{state or 'all'}:{city or 'all'}:{pincode or 'all'}:{query_str}:{limit}"
+    q_val = _clean_param(q) or ""
+    query_str = q_val.lower()
+    entity_val = _clean_param(entity_type) or "all"
+    state_val = _clean_param(state)
+    city_val = _clean_param(city)
+    pin_val = _clean_param(pincode)
+
+    cache_key = f"crm:search:{entity_val}:{state_val or 'all'}:{city_val or 'all'}:{pin_val or 'all'}:{query_str}:{limit}"
     if not refresh:
         cached = await hybrid_cache.get(cache_key)
         if cached is not None:
@@ -171,7 +177,7 @@ async def search_crm_entities(
     results: List[Dict[str, Any]] = []
 
     # 1. Search Customers from live admin_customer_repository (joins users, customers, orders, wallets, loyalty)
-    if entity_type in ("all", "customer"):
+    if entity_val in ("all", "customer"):
         try:
             cust_res = await admin_customer_repository.list(1, 500)
             customers_list = cust_res.get("items", [])
@@ -233,7 +239,7 @@ async def search_crm_entities(
             })
 
     # 2. Search Riders from live admin_rider_repository (reads rider_profiles + GPS + vehicle)
-    if entity_type in ("all", "rider"):
+    if entity_val in ("all", "rider"):
         try:
             rider_res = await admin_rider_repository.list(1, 500)
             riders_list = rider_res.get("items", [])
@@ -251,7 +257,7 @@ async def search_crm_entities(
             r_pin = _safe_str(r.get("pincode") or "207123")
             r_veh = _safe_str(r.get("plate") or r.get("vehicle") or "")
 
-            if not _matches_geo(r_state, r_city, r_pin, state, city, pincode):
+            if not _matches_geo(r_state, r_city, r_pin, state_val, city_val, pin_val):
                 continue
 
             if query_str:
@@ -304,7 +310,7 @@ async def search_crm_entities(
             })
 
     # 3. Search Partners from live admin_partner_repository (reads partner_profiles)
-    if entity_type in ("all", "partner"):
+    if entity_val in ("all", "partner"):
         try:
             partner_res = await admin_partner_repository.list(1, 500)
             partners_list = partner_res.get("items", [])
@@ -322,7 +328,7 @@ async def search_crm_entities(
             p_state = _safe_str(p.get("state") or "Uttar Pradesh")
             p_pin = _safe_str(p.get("pincode") or "207123")
 
-            if not _matches_geo(p_state, p_city, p_pin, state, city, pincode):
+            if not _matches_geo(p_state, p_city, p_pin, state_val, city_val, pin_val):
                 continue
 
             if query_str:
@@ -516,7 +522,12 @@ async def get_crm_geo_pulse(
     """Return live sales, orders, net revenue, refunds, rider incentives, and active fleet for a geo location."""
     from app.core.redis_cache import hybrid_cache
 
-    cache_key = f"crm:geopulse:{state or 'all'}:{city or 'all'}:{pincode or 'all'}:{timeframe or 'all'}"
+    state_val = _clean_param(state)
+    city_val = _clean_param(city)
+    pin_val = _clean_param(pincode)
+    tf_val = _clean_param(timeframe) or "all"
+
+    cache_key = f"crm:geopulse:{state_val or 'all'}:{city_val or 'all'}:{pin_val or 'all'}:{tf_val}"
     if not refresh:
         cached = await hybrid_cache.get(cache_key)
         if cached is not None:
@@ -542,15 +553,15 @@ async def get_crm_geo_pulse(
         o_state = str(addr.get("state") or o.get("state") or "Uttar Pradesh")
         o_pin = str(addr.get("pincode") or o.get("pincode") or "")
 
-        if not _matches_geo(o_state, o_city, o_pin, state, city, pincode):
+        if not _matches_geo(o_state, o_city, o_pin, state_val, city_val, pin_val):
             continue
 
         created_str = str(o.get("createdAt") or o.get("created_at") or "")[:10]
-        if timeframe == "today" and not created_str.startswith(today_str):
+        if tf_val == "today" and not created_str.startswith(today_str):
             continue
-        elif timeframe == "7d" and created_str < week_ago_str:
+        elif tf_val == "7d" and created_str < week_ago_str:
             continue
-        elif timeframe == "30d" and created_str < month_ago_str:
+        elif tf_val == "30d" and created_str < month_ago_str:
             continue
 
         matched_orders.append(o)
@@ -596,7 +607,7 @@ async def get_crm_geo_pulse(
         r_city = str(r.get("city") or r.get("preferredCity") or "Kasganj")
         r_state = str(r.get("state") or "Uttar Pradesh")
         r_pin = str(r.get("pincode") or r.get("primaryPincode") or r.get("zonePincode") or "207123")
-        if _matches_geo(r_state, r_city, r_pin, state, city, pincode):
+        if _matches_geo(r_state, r_city, r_pin, state_val, city_val, pin_val):
             geo_riders.append(r)
 
     online_riders = sum(1 for r in geo_riders if (r.get("liveState") == "Online" or r.get("isOnline")))
@@ -621,7 +632,7 @@ async def get_crm_geo_pulse(
         p_city = str(p.get("city") or "Kasganj")
         p_state = str(p.get("state") or "Uttar Pradesh")
         p_pin = str(p.get("pincode") or "207123")
-        if _matches_geo(p_state, p_city, p_pin, state, city, pincode):
+        if _matches_geo(p_state, p_city, p_pin, state_val, city_val, pin_val):
             geo_partners.append(p)
 
     active_partners = sum(1 for p in geo_partners if str(p.get("status") or "").lower() in ("active", "approved") or p.get("isOnline") or p.get("isStoreOpen"))
@@ -761,7 +772,12 @@ async def get_crm_leaderboard(
     """Return top Partners, Riders, and Customers ranked for a specific geographic slice."""
     from app.core.redis_cache import hybrid_cache
 
-    cache_key = f"crm:leaderboard:{state or 'all'}:{city or 'all'}:{pincode or 'all'}:{timeframe or 'all'}"
+    state_val = _clean_param(state)
+    city_val = _clean_param(city)
+    pin_val = _clean_param(pincode)
+    tf_val = _clean_param(timeframe) or "all"
+
+    cache_key = f"crm:leaderboard:{state_val or 'all'}:{city_val or 'all'}:{pin_val or 'all'}:{tf_val}"
     if not refresh:
         cached = await hybrid_cache.get(cache_key)
         if cached is not None:
@@ -788,7 +804,7 @@ async def get_crm_leaderboard(
         p_city = str(p.get("city") or "Kasganj")
         p_state = str(p.get("state") or "Uttar Pradesh")
         p_pin = str(p.get("pincode") or "207123")
-        if not _matches_geo(p_state, p_city, p_pin, state, city, pincode):
+        if not _matches_geo(p_state, p_city, p_pin, state_val, city_val, pin_val):
             continue
 
         p_name = p.get("businessName") or p.get("storeName") or p.get("name") or "Partner Hub"
@@ -808,11 +824,11 @@ async def get_crm_leaderboard(
         p_id = str(o.get("partnerId") or (o.get("partner") or {}).get("id") or "")
         if p_id in partner_stats:
             created_str = str(o.get("createdAt") or "")[:10]
-            if timeframe == "today" and not created_str.startswith(today_str):
+            if tf_val == "today" and not created_str.startswith(today_str):
                 continue
-            elif timeframe == "7d" and created_str < week_ago_str:
+            elif tf_val == "7d" and created_str < week_ago_str:
                 continue
-            elif timeframe == "30d" and created_str < month_ago_str:
+            elif tf_val == "30d" and created_str < month_ago_str:
                 continue
 
             amt = float((o.get("totals") or {}).get("grandTotal") or 0)
@@ -831,7 +847,7 @@ async def get_crm_leaderboard(
         r_city = str(r.get("city") or "Kasganj")
         r_state = str(r.get("state") or "Uttar Pradesh")
         r_pin = str(r.get("pincode") or r.get("zonePincode") or "207123")
-        if not _matches_geo(r_state, r_city, r_pin, state, city, pincode):
+        if not _matches_geo(r_state, r_city, r_pin, state_val, city_val, pin_val):
             continue
 
         r_name = r.get("fullName") or r.get("name") or "Captain Pilot"
@@ -851,11 +867,11 @@ async def get_crm_leaderboard(
         r_id = str(o.get("riderId") or (o.get("rider") or {}).get("id") or "")
         if r_id in rider_stats and o.get("status") == "delivered":
             created_str = str(o.get("createdAt") or "")[:10]
-            if timeframe == "today" and not created_str.startswith(today_str):
+            if tf_val == "today" and not created_str.startswith(today_str):
                 continue
-            elif timeframe == "7d" and created_str < week_ago_str:
+            elif tf_val == "7d" and created_str < week_ago_str:
                 continue
-            elif timeframe == "30d" and created_str < month_ago_str:
+            elif tf_val == "30d" and created_str < month_ago_str:
                 continue
 
             rider_stats[r_id]["deliveries"] += 1
@@ -872,7 +888,7 @@ async def get_crm_leaderboard(
         u_city = str(u.get("city") or "Kasganj")
         u_state = str(u.get("state") or "Uttar Pradesh")
         u_pin = str(u.get("pincode") or "207123")
-        if not _matches_geo(u_state, u_city, u_pin, state, city, pincode):
+        if not _matches_geo(u_state, u_city, u_pin, state_val, city_val, pin_val):
             continue
 
         u_name = u.get("display_name") or u.get("name") or "Valued Customer"
@@ -892,11 +908,11 @@ async def get_crm_leaderboard(
         u_id = str(o.get("userId") or o.get("user_id") or (o.get("customer") or {}).get("id") or "")
         if u_id in customer_stats and o.get("status") == "delivered":
             created_str = str(o.get("createdAt") or "")[:10]
-            if timeframe == "today" and not created_str.startswith(today_str):
+            if tf_val == "today" and not created_str.startswith(today_str):
                 continue
-            elif timeframe == "7d" and created_str < week_ago_str:
+            elif tf_val == "7d" and created_str < week_ago_str:
                 continue
-            elif timeframe == "30d" and created_str < month_ago_str:
+            elif tf_val == "30d" and created_str < month_ago_str:
                 continue
 
             amt = float((o.get("totals") or {}).get("grandTotal") or 0)
