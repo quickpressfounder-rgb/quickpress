@@ -27,13 +27,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Custom URL Scheme Deep Links (e.g. com.quickpress.customer://partner/PRT-186660 or quickpress://partner/PRT-186660) -->
+            <!-- Custom URL Scheme Deep Links (e.g. quickpress://open or com.quickpress.customer://open) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.quickpress.customer" />
                 <data android:scheme="quickpress" />
+                <data android:scheme="com.quickpress.customer" />
             </intent-filter>
 
             <!-- Universal App Links for Official Domains -->
@@ -41,10 +41,12 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="withquickpress.com" android:pathPrefix="/store" />
-                <data android:scheme="https" android:host="withquickpress.com" android:pathPrefix="/partner" />
-                <data android:scheme="https" android:host="quickpress.online" android:pathPrefix="/store" />
-                <data android:scheme="https" android:host="quickpress.online" android:pathPrefix="/partner" />
+                <data android:scheme="https" android:host="withquickpress.com" />
+                <data android:scheme="https" android:host="www.withquickpress.com" />
+                <data android:scheme="https" android:host="quickpress.online" />
+                <data android:scheme="https" android:host="www.quickpress.online" />
+                <data android:scheme="http" android:host="withquickpress.com" />
+                <data android:scheme="http" android:host="www.withquickpress.com" />
             </intent-filter>
 
         </activity>

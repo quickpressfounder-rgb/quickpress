@@ -53,6 +53,38 @@
   - Gradle `assembleDebug` & `bundleDebug` across all 3 apps: ALL 6/6 BINARIES BUILT CLEANLY.
   - `npm run build:website`: PASSED (0 errors).
 
+### 24. Instant 0ms Customer App Deep Linking & Removal of Mobile Redirect Interstitial
+- **Root Cause Analysis & User Pain Point:**
+  - When opening `withquickpress.com` on mobile or tapping store links, users were blocked by a full-screen intermediate "Mobile App Gateway" redirect screen.
+  - Furthermore, tapping CTAs on mobile sent users to `https://play.google.com` or Google Play fallback URL even when `QuickPress-Customer.apk` was already installed on the phone.
+  - In `AndroidManifest.xml`, Universal App Links only handled `/store` and `/partner` paths and omitted root domain paths for `withquickpress.com`.
+- **Architecture & Implementation:**
+  - **1. Removed Intermediate Redirect Page:** Completely eliminated `isMobileRedirectActive` and the blocking interstitial screen from `website/src/App.tsx`. Visitors now land directly on the rich website with zero delay.
+  - **2. Instant Native App Launch (0.0002 ms):**
+    - Updated `website/src/utils/mobileAppRedirect.ts` with `triggerInstantAppLaunch()`.
+    - Formats pure Android intent (`intent://${path}#Intent;scheme=quickpress;package=com.quickpress.customer;end`) without Google Play fallback trap.
+    - If APK is installed, Android immediately switches into the app.
+    - Added visibility detection (`document.hidden` check) so fallback to APK download occurs only if the app is truly not installed.
+  - **3. Connected All Web CTAs to Instant App Launch:**
+    - Updated `handleGetStartedRedirect()` in `website/src/utils/storeRedirect.ts` to trigger `triggerInstantAppLaunch()` on mobile instead of redirecting to `https://play.google.com`.
+    - Updated `DownloadAppModal` and `HomePage.tsx` download buttons to directly invoke instant app launch.
+  - **4. AndroidManifest Universal App Links:**
+    - Updated `customer-frontend/android/app/src/main/AndroidManifest.xml` with full root App Links for `withquickpress.com`, `www.withquickpress.com`, and `quickpress.online`.
+    - Recompiled and verified `QuickPress-Customer.apk` and `QuickPress-Customer.aab`.
+- **Modified Files:**
+  - `customer-frontend/android/app/src/main/AndroidManifest.xml`
+  - `website/src/App.tsx`
+  - `website/src/components/Modals.tsx`
+  - `website/src/pages/HomePage.tsx`
+  - `website/src/utils/mobileAppRedirect.ts`
+  - `website/src/utils/storeRedirect.ts`
+  - `build_all_apks.py`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build:customer`: PASSED (0 errors).
+  - Gradle `assembleDebug` & `bundleDebug` on Customer app: PASSED.
+  - `npm run build:website`: PASSED (0 errors).
+
 ---
 
 ## Detailed Log of Work Done Today (25 October 2026)

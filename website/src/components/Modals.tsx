@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ServiceInfo, JobPosition } from "@/types";
 import { IconClose, IconCheck, IconApple, IconGooglePlay } from "./Icons";
+import { triggerInstantAppLaunch, isAndroidDevice } from "@/utils/mobileAppRedirect";
 
 const GREEN = "#1A7A3C";
 const YELLOW = "#F59E0B";
@@ -965,7 +966,14 @@ export function DownloadAppModal({
             href="https://play.google.com"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => onShowToast("Redirecting to Google Play Store...")}
+            onClick={(e) => {
+              if (isAndroidDevice()) {
+                e.preventDefault();
+                triggerInstantAppLaunch();
+              } else {
+                onShowToast("Opening QuickPress on Google Play...");
+              }
+            }}
             className="flex items-center gap-3.5 p-4 rounded-2xl bg-white text-gray-950 border-2 border-gray-200 hover:border-emerald-600 transition-all shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer group"
           >
             <IconGooglePlay className="w-8 h-8 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />

@@ -20,6 +20,7 @@ import {
 import { IPhone15OrderTracking } from "@/components/IPhone15OrderTracking";
 import { AreaUnavailableModal } from "@/components/AreaUnavailableModal";
 import { handleGetStartedRedirect } from "@/utils/storeRedirect";
+import { triggerInstantAppLaunch, isAndroidDevice } from "@/utils/mobileAppRedirect";
 import customerLogo from "@/assets/quickpress-customer-logo.jpg";
 import partnerLogo from "@/assets/quickpress-partner-blue.png";
 import captainLogo from "@/assets/quickpress-captain-logo.jpg";
@@ -793,7 +794,14 @@ export function HomePage({
                 <a
                   href="/apks/QuickPress-Customer.apk"
                   download="QuickPress-Customer.apk"
-                  onClick={() => onShowToast("Downloading QuickPress Customer APK...")}
+                  onClick={(e) => {
+                    if (isAndroidDevice()) {
+                      e.preventDefault();
+                      triggerInstantAppLaunch();
+                    } else {
+                      onShowToast("Downloading QuickPress Customer APK...");
+                    }
+                  }}
                   className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/75 hover:bg-white text-gray-900 border border-gray-300 hover:border-gray-900 shadow-sm hover:shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
                 >
                   <IconGooglePlay className="w-6 h-6 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />

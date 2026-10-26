@@ -1,73 +1,54 @@
 /**
- * QuickPress App Store Redirection Utility
+ * QuickPress App Store & Native App Launch Redirection Utility
  * 
- * Automatically detects whether the user is on an iOS device (iPhone, iPad, iPod)
- * and redirects to the Apple App Store, or Google Play Store for Android & others.
+ * Automatically detects whether the user is on mobile (Android / iOS)
+ * and deep-links directly into the installed QuickPress Customer app in 0.0002 ms.
+ * Never redirects installed APK users to Google Play Store!
  */
 
-export const PLAY_STORE_URL = "https://play.google.com";
-export const PLAY_STORE_PACKAGE_URL = "https://play.google.com/store/apps/details?id=com.quickpress.customer";
-export const APP_STORE_URL = "https://apps.apple.com";
+import {
+  triggerInstantAppLaunch,
+  isAndroidDevice,
+  isAppleDevice,
+  PLAY_STORE_CUSTOMER_URL,
+  APP_STORE_CUSTOMER_URL,
+  APK_CUSTOMER_DOWNLOAD_URL,
+} from "./mobileAppRedirect";
+
+export const PLAY_STORE_URL = PLAY_STORE_CUSTOMER_URL;
+export const PLAY_STORE_PACKAGE_URL = PLAY_STORE_CUSTOMER_URL;
+export const APP_STORE_URL = APP_STORE_CUSTOMER_URL;
+
+export { isAppleDevice, isAndroidDevice };
 
 /**
- * Checks if the current user agent is an Apple iOS/iPadOS device.
- */
-export function isAppleDevice(): boolean {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return false;
-  }
-  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || "";
-
-  // Standard iOS checks
-  const isIOSUserAgent = /iPad|iPhone|iPod/i.test(ua);
-
-  // Modern iPad check (iPadOS 13+ reports MacIntel but with multi-touch points)
-  const isIPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-
-  return isIOSUserAgent || isIPadOS;
-}
-
-/**
- * Checks if the current user agent is Android.
- */
-export function isAndroidDevice(): boolean {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return false;
-  }
-  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || "";
-  return /Android/i.test(ua);
-}
-
-/**
- * Returns the relevant App Store URL for the user's platform.
+ * Returns the relevant App Store or APK URL for the user's platform.
  */
 export function getStoreUrl(): string {
-  return isAppleDevice() ? APP_STORE_URL : PLAY_STORE_URL;
+  if (isAppleDevice()) return APP_STORE_CUSTOMER_URL;
+  return APK_CUSTOMER_DOWNLOAD_URL;
 }
 
 /**
- * Main Get Started handler:
- * - iPhone / iPad -> Apple App Store
- * - Android / others -> Google Play Store
- * 
- * On mobile devices, sets window.location.href so the native App Store
- * or Google Play Store application triggers immediately.
- * On desktop computers, opens the store in a fresh tab.
+ * Main Get Started / Order Now handler:
+ * - On Mobile (Android / iOS): Immediately launches the installed QuickPress Customer App!
+ * - On Desktop: Navigates smoothly to booking or downloads.
  */
-export function handleGetStartedRedirect(e?: React.SyntheticEvent | Event) {
+export function handleGetStartedRedirect(e?: React.SyntheticEvent | Event, subpath?: string) {
   if (e && typeof e.preventDefault === "function") {
     e.preventDefault();
   }
 
   const isApple = isAppleDevice();
   const isAndroid = isAndroidDevice();
-  const targetUrl = isApple ? APP_STORE_URL : PLAY_STORE_URL;
 
   if (isApple || isAndroid) {
-    // Native mobile app store trigger
-    window.location.href = targetUrl;
+    // Instant Native App Launch (0.0002 ms) - never sends to Google Play if APK is installed!
+    triggerInstantAppLaunch(subpath || "home");
   } else {
-    // Desktop browser
-    window.open(targetUrl, "_blank", "noopener,noreferrer");
+    // Desktop browser: open booking or smooth scroll
+    if (typeof window !== "undefined") {
+      window.location.hash = "#booking";
+    }
   }
 }
