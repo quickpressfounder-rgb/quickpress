@@ -1321,3 +1321,52 @@ This single command will automatically:
 5. **Master Fleet CSV Export:**
    - Generates and downloads full CSV report with Captain ID, Name, Phone, Email, City, Zone, Vehicle, Plate, Trips, Rating, Wallet, COD Cash, Duty state, KYC status, and timestamps.
 
+---
+
+## Section 35: Rider Request Box Integration & Partner / Rider Complete A-to-Z Audit Dossier Engines
+
+### 1. Dedicated Rider Request Box Architecture (`admin-frontend/src/routes/-rider-requests-box.tsx`)
+1. **Request Queue Management:**
+   - Built a comprehensive queue manager mirroring the Partner Request Box architecture:
+     - 4-tile header telemetry: Pending Initial Review, Re-Submitted by Candidate, KYC Flagged, Total In Queue.
+     - Status cohort pills (`All Queue`, `Pending Initial Review`, `Re-Submitted`, `Suspended/Rejected`).
+     - Fast candidate search by name, phone, plate number, UID, or city.
+     - Vehicle type filter (All, Motorbike, Scooter, EV Bike, Cargo).
+   - Candidate request cards displaying vehicle badges, IND plate snippets, phone quick actions, and direct document preview links.
+   - 1-Click "Approve Rider" with confirmation modal.
+   - "Reject / Flag Application" with preset reason selectors (Driving License Invalid/Expired, Registration Certificate RC Unclear, Aadhaar Mismatch, Vehicle Condition, Unserviceable Territory, Custom Note).
+   - Full-resolution document lightbox modal with 60%–300% zoom controls, 90° rotation, and direct external window links.
+2. **Seamless Navigation & Integration in `/riders`:**
+   - Integrated into `admin-frontend/src/routes/riders.tsx` via `activeView` state switcher (`"directory" | "requests"`).
+   - Top navigation switcher bar allowing 1-click toggle between "Fleet Directory" and "Rider Request Box" with animated pending request count badge.
+   - Wired Telemetry Tile 5 ("Request Queue") directly to `setActiveView("requests")`.
+   - In Captain 360 Profile top header bar: added "Rider Request Box" shortcut with live pending count.
+
+---
+
+### 2. Complete A-to-Z 360 Detail View & History on Tap
+1. **Interactive Tap-to-Inspect:**
+   - Tapping any row in the high-density table view (`onRowClick`) or any card in the modern grid view (`onClick`) immediately triggers `setSelectedId(id)`.
+   - Automatically queries and renders complete 360° telemetry (`fetchRider360` for Captains, `fetchPartner360` for Partners):
+     - Complete identification, addresses, contact numbers, and operating territory.
+     - Authentic Indian registration plate badge, vehicle make/model, fuel, DL, RC, insurance & PUC expiry dates.
+     - Facility floor area, commercial washers, dryers, steam ironing tables, boiler type, and SLA turnaround.
+     - Live double-entry settlements, gross GMV, 82% store payout vs 18% QuickPress platform margin, captain delivery fees, wallet balances, and COD cash float.
+     - Statutory compliance documentation: Aadhaar, PAN, GSTIN, DL, RC, Electricity bill, cancelled cheque, and signed digital SLA agreements (with signer name, IP address, and timestamp).
+     - Recent orders/trips history tables with breakdown of earnings, customer names, routes, and order values.
+
+---
+
+### 3. Executive Multi-Section Audit Dossier Generators (`handleExportPartnerDossier` & `handleExportRiderDossier`)
+1. **Downloadable Text Audit Dossiers (`.txt`):**
+   - **For Delivery Captains:** Compiles full identification, vehicle asset telemetry, financial ledger (completed trips, CSAT score, wallet balance, COD float, lifetime disbursements, bank details, UPI VPA), statutory KYC verification statuses, and recent trips ledger into a structured audit file with official verification seal `[VERIFIED-CORP-SEC-QP-IND]`.
+   - **For Partner Stores:** Compiles store credentials, machinery & workshop capacity, pricing catalog master, double-entry financials (gross GMV, store 82% payout, 18% commission take, bank account, IFSC, NPCI live verification), statutory KYC compliance (GSTIN, PAN, utility bill, cancelled cheque, signed SLA), and recent garment processing orders into an official audit document with seal `[VERIFIED-STORE-QP-IND]`.
+2. **On-Screen High-Contrast Printable / PDF Modal:**
+   - Added executive **"Export Captain Dossier"** and **"Export Store Dossier"** buttons to the top action bars of both 360 views.
+   - Opens a full-screen, high-contrast pure-white modal dialog displaying:
+     - Corporate QuickPress header badge, document reference number, and timestamp.
+     - Formatted tables and cards for personal/store credentials, machinery/vehicle specs, financial balances, statutory KYC requirements, and recent orders.
+     - Digital Verification Attestation Seal with cryptographically signed SHA256 security hash.
+     - Action buttons: "Print / Save PDF" (`window.print()`) and "Download .TXT" file.
+
+

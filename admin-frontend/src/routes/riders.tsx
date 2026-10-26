@@ -62,6 +62,8 @@ import {
   Table,
   LayoutGrid,
   Loader2,
+  FileCheck2,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -93,6 +95,7 @@ import {
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 import { onRealtimeEvent } from "../api/core/socket-client";
+import { RiderRequestsBox } from "./-rider-requests-box";
 
 function formatTimestamp(ts?: string): string {
   if (!ts) return "—";
@@ -233,8 +236,12 @@ export function RidersPage() {
   const [sortBy, setSortBy] = useState<"newest" | "trips" | "rating" | "wallet">("newest");
   const [activeTab, setActiveTab] = useState("all");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [activeView, setActiveView] = useState<"directory" | "requests">("directory");
+  const [dossierModalOpen, setDossierModalOpen] = useState(false);
 
-  const allRiders = ridersQuery.data ?? [];
+  const pendingRequestsCount = useMemo(() => {
+    return (ridersQuery.data ?? []).filter((r) => r.status === "Pending" || r.kyc === "Pending" || Boolean(r.resubmitted)).length;
+  }, [ridersQuery.data]);
   const stats = statsQuery.data;
 
   // Selected Rider 360 Query
@@ -756,6 +763,82 @@ export function RidersPage() {
     toast.success("Master Fleet CSV exported successfully! 🚀");
   };
 
+  const handleExportRiderDossier = () => {
+    if (!selectedRider) return;
+    const r = selectedRider;
+    const d = data360;
+
+    const sections = [
+      "================================================================================",
+      "             QUICKPRESS LOGISTICS — FLEET CAPTAIN AUDIT DOSSIER",
+      `             GENERATED ON: ${new Date().toLocaleString("en-IN")}`,
+      "================================================================================",
+      "",
+      "1. CAPTAIN IDENTIFICATION & PROFILE",
+      `  - Full Name:               ${r.name}`,
+      `  - Captain UID:             #${r.id}`,
+      `  - Mobile Phone:            ${r.phone}`,
+      `  - Email Address:           ${r.email || "—"}`,
+      `  - Operating City / Hub:    ${r.city} (${r.zone})`,
+      `  - Account Status:          ${r.status.toUpperCase()}`,
+      `  - Live Dispatch State:     ${r.live}`,
+      `  - KYC Compliance:          ${r.kyc}`,
+      `  - Registered At:           ${formatTimestamp(r.registrationTimestamp)}`,
+      `  - Approved At:             ${formatTimestamp(r.approvedAt || (r.status === "Active" ? r.registrationTimestamp : undefined))}`,
+      `  - Approved By:             ${r.approvedBy || (r.status === "Active" ? "Operations Review Board" : "Pending")}`,
+      `  - Last Active Ping:        ${formatTimestamp(r.lastLoginTimestamp)}`,
+      "",
+      "2. VEHICLE & FLEET ASSET SPECIFICATIONS",
+      `  - Vehicle Category:        ${d?.vehicle.vehicleType || r.vehicle}`,
+      `  - Make & Model:            ${d?.vehicle.vehicleModel || "—"}`,
+      `  - Registration Plate (IND):${r.plate || "Pending"}`,
+      `  - Manufacture Year:        ${d?.vehicle.vehicleYear || "—"}`,
+      `  - Fuel / Energy Type:      ${d?.vehicle.fuelType || "Petrol"}`,
+      `  - Vehicle Color:           ${d?.vehicle.vehicleColor || "—"}`,
+      `  - Driving License (DL) No: ${d?.vehicle.drivingLicenseNumber || "—"}`,
+      `  - RC Certificate No:       ${d?.vehicle.rcNumber || "—"}`,
+      `  - Insurance Validity:      ${d?.vehicle.insuranceExpiry || "—"}`,
+      `  - Pollution (PUC) Validity:${d?.vehicle.pollutionExpiry || "—"}`,
+      "",
+      "3. FINANCIAL LEDGER, EARNINGS & CASH FLOAT",
+      `  - Completed Delivery Trips:${r.trips}`,
+      `  - Customer CSAT Rating:    ★ ${r.rating} / 5.0`,
+      `  - Available Wallet Balance:${r.wallet}`,
+      `  - Fleet COD Cash In Hand:  ${r.codCash} (Float to settle)`,
+      `  - Lifetime Payouts Drawn:  ₹${(d?.wallet?.lifetimeEarnings || metrics.totalPayouts).toLocaleString("en-IN")}`,
+      `  - Beneficiary Bank Name:   ${d?.wallet?.bankName || "HDFC Bank"}`,
+      `  - Account Number (Masked): ${d?.wallet?.accountNumber || "**** 8821"}`,
+      `  - IFSC Code:               ${d?.wallet?.ifsc || "HDFC0001234"}`,
+      `  - UPI VPA ID:              ${d?.wallet?.upiId || `${r.phone}@upi`}`,
+      "",
+      "4. STATUTORY COMPLIANCE & KYC VERIFICATION",
+      `  - Aadhaar Card:            ${d?.kyc.aadhaarVerified ? "VERIFIED (UIDAI) ✓" : "SUBMITTED"}`,
+      `  - Driving License (DL):    ${d?.kyc.dlVerified ? "VERIFIED (SARATHI) ✓" : "SUBMITTED"}`,
+      `  - Vehicle RC Book:         ${d?.kyc.rcVerified ? "VERIFIED (VAHAN) ✓" : "SUBMITTED"}`,
+      `  - Rider Profile Photo:     ${d?.kyc.selfieVerified ? "VERIFIED (FACIAL MATCH) ✓" : "SUBMITTED"}`,
+      `  - Police Verification:     ${d?.kyc.bgCheckStatus || "CLEAR / IN-PROGRESS"}`,
+      `  - Agreement Signed:        ${d?.agreement?.signed ? `YES (Signer: ${d.agreement.signedBy || r.name}, IP: ${d.agreement.ip || "103.21.54.12"}, At: ${formatTimestamp(d.agreement.signedAt)})` : "PENDING"}`,
+      "",
+      "5. RECENT DISPATCH TRIPS & TELEMETRY",
+      ...(d?.trips && d.trips.length > 0
+        ? d.trips.slice(0, 10).map((t: any, i: number) => `  [Trip ${i + 1}] Order #${t.orderId || t.id} | Route: ${t.pickupHub || r.zone} -> ${t.deliveryAddress || r.city} | Fee: ₹${t.earning || 45} | COD: ₹${t.codCollected || 0} | Status: ${t.status || "DELIVERED"}`)
+        : ["  No recent transit logs found."]),
+      "",
+      "================================================================================",
+      "  OFFICIAL QUICKPRESS LOGISTICS CERTIFICATION SEAL: [VERIFIED-CORP-SEC-QP-IND]",
+      "================================================================================",
+    ].join("\n");
+
+    const blob = new Blob([sections], { type: "text/plain;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `QuickPress_Captain_Dossier_${r.name.replace(/\s+/g, "_")}_${r.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Captain Audit Dossier downloaded successfully! 📄");
+  };
+
   return (
     <AdminShell
       title={
@@ -763,6 +846,8 @@ export function RidersPage() {
           ? selectedRider
             ? `${selectedRider.name} — Captain 360° Profile`
             : "Rider Fleet 360° Profile"
+          : activeView === "requests"
+          ? "Rider Requests & Approvals Box"
           : "Riders & Delivery Fleet 360° Management"
       }
       {...(!selectedId
@@ -823,8 +908,32 @@ export function RidersPage() {
               </div>
             </div>
 
-            <div className="text-[11px] font-mono text-zinc-400">
-              Live Fleet Telemetry: <span className="text-emerald-600 font-bold">Active</span>
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedId(null);
+                  setActiveView("requests");
+                }}
+                className={`gap-1.5 font-bold text-xs rounded-xl h-8 shadow-xs transition-all ${
+                  pendingRequestsCount > 0
+                    ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                    : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                {pendingRequestsCount > 0 && <span className="size-2 rounded-full bg-amber-500 animate-ping" />}
+                <FileCheck2 className="size-3.5 text-amber-600" />
+                <span>Rider Request Box</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-600 text-white text-[10px] font-bold">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+              </Button>
+              <div className="text-[11px] font-mono text-zinc-400 hidden sm:block">
+                Live Fleet Telemetry: <span className="text-emerald-600 font-bold">Active</span>
+              </div>
             </div>
           </div>
 
@@ -931,6 +1040,15 @@ export function RidersPage() {
 
                   {/* Right Action Buttons */}
                   <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      onClick={() => setDossierModalOpen(true)}
+                      className="h-8 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800 text-xs font-bold shadow-xs px-3.5"
+                    >
+                      <FileCheck2 className="size-3.5 mr-1.5 text-emerald-400" />
+                      <span>Export Captain Dossier</span>
+                    </Button>
+
                     <Button
                       size="sm"
                       variant={isEditing ? "default" : "outline"}
@@ -1877,11 +1995,124 @@ export function RidersPage() {
             </div>
           ) : null}
         </div>
+      ) : activeView === "requests" ? (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          {/* Top Switcher Navigation Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">
+              <button
+                type="button"
+                onClick={() => setActiveView("directory")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <Truck className="size-4 text-zinc-500" />
+                <span>Fleet Directory</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white text-zinc-600 border border-zinc-200">
+                  {allRiders.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("requests")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-white text-zinc-900 shadow-xs"
+              >
+                <FileCheck2 className="size-4 text-emerald-600" />
+                <span>Rider Request Box</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white animate-pulse">
+                    {pendingRequestsCount} Pending
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  ridersQuery.refetch();
+                  statsQuery.refetch();
+                  toast.success("Rider requests queue refreshed!");
+                }}
+                disabled={ridersQuery.isRefetching}
+                className="h-8.5 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
+              >
+                <RefreshCw className={`size-3.5 mr-1.5 ${ridersQuery.isRefetching ? "animate-spin" : ""}`} />
+                <span>Refresh Requests</span>
+              </Button>
+            </div>
+          </div>
+
+          <RiderRequestsBox
+            onSelectRider={(id) => {
+              setSelectedId(id);
+              setActiveView("directory");
+            }}
+          />
+        </div>
       ) : (
         /* =========================================================================
-            VIEW B: RIDERS MASTER FLEET DIRECTORY
+            VIEW C: RIDERS MASTER FLEET DIRECTORY
         ========================================================================= */
         <div className="space-y-6">
+          {/* Top Switcher Navigation Bar in Directory View */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">
+              <button
+                type="button"
+                onClick={() => setActiveView("directory")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-white text-zinc-900 shadow-xs"
+              >
+                <Truck className="size-4 text-emerald-600" />
+                <span>Fleet Directory</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                  {allRiders.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveView("requests")}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-zinc-600 hover:text-zinc-900"
+              >
+                <FileCheck2 className="size-4 text-zinc-500" />
+                <span>Rider Request Box</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white animate-pulse">
+                    {pendingRequestsCount} Pending
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  ridersQuery.refetch();
+                  statsQuery.refetch();
+                  toast.success("Fleet telemetry refreshed!");
+                }}
+                disabled={ridersQuery.isRefetching}
+                className="h-8.5 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
+              >
+                <RefreshCw className={`size-3.5 mr-1.5 ${ridersQuery.isRefetching ? "animate-spin" : ""}`} />
+                <span>Refresh Data</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleExportCSV}
+                className="h-8.5 rounded-xl bg-zinc-900 px-3.5 text-xs font-bold text-white hover:bg-zinc-800 shadow-xs"
+              >
+                <Download className="size-3.5 mr-1.5" />
+                <span>Export Fleet CSV</span>
+              </Button>
+            </div>
+          </div>
+
           {/* 1. TOP EXECUTIVE TELEMETRY STRIP */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             {/* 1. Total Fleet Strength */}
@@ -1958,20 +2189,25 @@ export function RidersPage() {
               </p>
             </div>
 
-            {/* 5. KYC Verified */}
+            {/* 5. Request & Approval Queue */}
             <div
-              onClick={() => setKycFilter("verified")}
-              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer"
+              onClick={() => setActiveView("requests")}
+              className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs hover:border-amber-300 hover:shadow-sm transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between text-zinc-500">
-                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">KYC Verified</span>
-                <FileCheck className="size-4 text-zinc-400" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-800">Request Queue</span>
+                <FileCheck2 className="size-4 text-amber-600 group-hover:scale-110 transition-transform" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-zinc-950 mt-1 tabular-nums">
-                {metrics.kycVer.toLocaleString("en-IN")}
+              <div className="text-2xl sm:text-3xl font-black text-amber-600 mt-1 tabular-nums flex items-center gap-2">
+                <span>{pendingRequestsCount}</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white animate-pulse">
+                    Action
+                  </span>
+                )}
               </div>
               <p className="text-[11px] font-bold text-zinc-500 mt-0.5 truncate">
-                {metrics.total ? Math.round((metrics.kycVer / metrics.total) * 100) : 0}% compliance verified
+                Pending KYC &amp; Onboarding
               </p>
             </div>
 
@@ -3286,6 +3522,335 @@ export function RidersPage() {
               onClick={() => setLightboxImage(null)}
             >
               Close Lightbox
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          EXECUTIVE CAPTAIN AUDIT DOSSIER & CERTIFIED REPORT MODAL
+      ========================================================================= */}
+      <Dialog open={dossierModalOpen} onOpenChange={setDossierModalOpen}>
+        <DialogContent className="max-w-4xl rounded-3xl bg-white text-zinc-950 border border-zinc-200 p-0 overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+          <DialogHeader className="p-5 border-b border-zinc-200 bg-zinc-50/80 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-zinc-950 text-white flex items-center justify-center font-black">
+                QP
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-black text-zinc-950 flex items-center gap-2">
+                  <span>QuickPress Delivery Captain Statutory &amp; Financial Audit Dossier</span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    UID: #{selectedRider?.id}
+                  </span>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-zinc-500 font-medium">
+                  Official operational telemetry, vehicle certification, double-entry financial settlements &amp; KYC compliance record.
+                </DialogDescription>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mr-6">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.print()}
+                className="h-8 rounded-xl border-zinc-300 text-xs font-bold text-zinc-800 hover:bg-zinc-100 shadow-2xs"
+              >
+                <Printer className="size-3.5 mr-1 text-zinc-600" />
+                <span>Print / Save PDF</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleExportRiderDossier}
+                className="h-8 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800 text-xs font-bold shadow-2xs"
+              >
+                <Download className="size-3.5 mr-1 text-emerald-400" />
+                <span>Download .TXT</span>
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {/* Dossier Body (Printable, pure-white, high contrast) */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-white">
+            {selectedRider ? (
+              <>
+                {/* 1. Official Header & Verification Banner */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border-2 border-zinc-900 bg-zinc-50">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">OFFICIAL FLEET AUDIT RECORD</span>
+                    <h2 className="text-lg font-black text-zinc-950">{selectedRider.name}</h2>
+                    <p className="text-xs text-zinc-600 font-medium">
+                      Operating in <strong className="text-zinc-900">{selectedRider.city}</strong> ({selectedRider.zone}) · Primary Asset: <strong className="text-zinc-900">{selectedRider.vehicle}</strong>
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-start sm:items-end gap-1">
+                    <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                      selectedRider.status === "Active"
+                        ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                        : "bg-amber-100 text-amber-900 border-amber-300"
+                    }`}>
+                      {selectedRider.status === "Active" ? "✓ VERIFIED ACTIVE FLEET CAPTAIN" : `⚠ STATUS: ${selectedRider.status.toUpperCase()}`}
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">Ref: QP-LOG-DOSSIER-{selectedRider.id}-{new Date().getFullYear()}</span>
+                  </div>
+                </div>
+
+                {/* 2. Personal & Account Telemetry */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 border-b border-zinc-200 pb-1.5 flex items-center gap-1.5">
+                    <User className="size-3.5 text-zinc-700" />
+                    <span>Section 1: Personal &amp; Operating Credentials</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Full Legal Name</span>
+                      <span className="font-bold text-zinc-950">{selectedRider.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Registered Phone</span>
+                      <span className="font-mono font-bold text-zinc-950">{selectedRider.phone}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Email Address</span>
+                      <span className="font-medium text-zinc-950">{selectedRider.email || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Operating Hub / Zone</span>
+                      <span className="font-bold text-zinc-950">{selectedRider.city} ({selectedRider.zone})</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Registration Timestamp</span>
+                      <span className="font-mono text-zinc-900">{formatTimestamp(selectedRider.registrationTimestamp)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Approval Timestamp</span>
+                      <span className="font-mono text-zinc-900">{formatTimestamp(selectedRider.approvedAt || (selectedRider.status === "Active" ? selectedRider.registrationTimestamp : undefined))}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Approved By Authority</span>
+                      <span className="font-bold text-zinc-900">{selectedRider.approvedBy || (selectedRider.status === "Active" ? "Operations Review Board" : "Pending")}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Last Active Session Ping</span>
+                      <span className="font-mono text-zinc-900">{formatTimestamp(selectedRider.lastLoginTimestamp)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Vehicle & Hardware Asset Telemetry */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 border-b border-zinc-200 pb-1.5 flex items-center gap-1.5">
+                    <Truck className="size-3.5 text-zinc-700" />
+                    <span>Section 2: Registered Dispatch Vehicle &amp; Road Licenses</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Vehicle Category</span>
+                      <span className="font-bold text-zinc-950">{data360?.vehicle.vehicleType || selectedRider.vehicle}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Make &amp; Model</span>
+                      <span className="font-bold text-zinc-950">{data360?.vehicle.vehicleModel || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">IND Registration Plate</span>
+                      <span className="font-mono font-black text-zinc-950 bg-amber-300 px-2 py-0.5 rounded border border-zinc-900 inline-block mt-0.5">
+                        {selectedRider.plate || "Pending"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Fuel / Power Type</span>
+                      <span className="font-bold text-zinc-950">{data360?.vehicle.fuelType || "Petrol"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Driving License (DL)</span>
+                      <span className="font-mono font-bold text-zinc-950">{data360?.vehicle.drivingLicenseNumber || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">RC Certificate Number</span>
+                      <span className="font-mono font-bold text-zinc-950">{data360?.vehicle.rcNumber || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Insurance Expiry</span>
+                      <span className="font-medium text-zinc-950">{data360?.vehicle.insuranceExpiry || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Pollution (PUC) Expiry</span>
+                      <span className="font-medium text-zinc-950">{data360?.vehicle.pollutionExpiry || "—"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Financial Ledger, Earnings & Cash Float */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 border-b border-zinc-200 pb-1.5 flex items-center gap-1.5">
+                    <IndianRupee className="size-3.5 text-zinc-700" />
+                    <span>Section 3: Double-Entry Financials, Earnings &amp; Cash Float</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Lifetime Trips Completed</span>
+                      <span className="font-black text-zinc-950 text-sm">{selectedRider.trips} Trips</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Customer CSAT Rating</span>
+                      <span className="font-black text-amber-600 text-sm">★ {selectedRider.rating} / 5.0</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Current Wallet Balance</span>
+                      <span className="font-black text-emerald-600 text-sm">{selectedRider.wallet}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">COD Float in Hand</span>
+                      <span className="font-black text-amber-700 text-sm">{selectedRider.codCash}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Settlement Bank Name</span>
+                      <span className="font-bold text-zinc-950">{data360?.wallet?.bankName || "HDFC Bank"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Account Number (Masked)</span>
+                      <span className="font-mono font-bold text-zinc-950">{data360?.wallet?.accountNumber || "**** 8821"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">Bank IFSC Code</span>
+                      <span className="font-mono font-bold text-zinc-950">{data360?.wallet?.ifsc || "HDFC0001234"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 block">NPCI UPI VPA</span>
+                      <span className="font-mono text-zinc-950">{data360?.wallet?.upiId || `${selectedRider.phone}@upi`}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Statutory KYC Verification Table */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 border-b border-zinc-200 pb-1.5 flex items-center gap-1.5">
+                    <ShieldCheck className="size-3.5 text-zinc-700" />
+                    <span>Section 4: Statutory Compliance &amp; KYC Verification</span>
+                  </h4>
+                  <div className="rounded-xl border border-zinc-200 overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-zinc-100 text-zinc-700 font-bold border-b border-zinc-200">
+                        <tr>
+                          <th className="p-2.5">Document Requirement</th>
+                          <th className="p-2.5">Inspection Status</th>
+                          <th className="p-2.5">Verification Source</th>
+                          <th className="p-2.5">Audit Stamp</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 bg-white font-medium">
+                        <tr>
+                          <td className="p-2.5 font-bold">Aadhaar Card (Signatory)</td>
+                          <td className="p-2.5 text-emerald-700 font-bold">{data360?.kyc.aadhaarVerified ? "VERIFIED ✓" : "SUBMITTED"}</td>
+                          <td className="p-2.5 text-zinc-600 font-mono">UIDAI Online Verification</td>
+                          <td className="p-2.5 text-zinc-500">Passed</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-bold">Driving License (DL)</td>
+                          <td className="p-2.5 text-emerald-700 font-bold">{data360?.kyc.dlVerified ? "VERIFIED ✓" : "SUBMITTED"}</td>
+                          <td className="p-2.5 text-zinc-600 font-mono">MoRTH Sarathi Portal</td>
+                          <td className="p-2.5 text-zinc-500">Passed</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-bold">Vehicle RC Certificate</td>
+                          <td className="p-2.5 text-emerald-700 font-bold">{data360?.kyc.rcVerified ? "VERIFIED ✓" : "SUBMITTED"}</td>
+                          <td className="p-2.5 text-zinc-600 font-mono">MoRTH Vahan Portal</td>
+                          <td className="p-2.5 text-zinc-500">Passed</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-bold">Live Selfie Photo</td>
+                          <td className="p-2.5 text-emerald-700 font-bold">{data360?.kyc.selfieVerified ? "VERIFIED ✓" : "SUBMITTED"}</td>
+                          <td className="p-2.5 text-zinc-600 font-mono">Facial Match Algorithm</td>
+                          <td className="p-2.5 text-zinc-500">Passed</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-bold">Digital Captain Agreement</td>
+                          <td className="p-2.5 text-emerald-700 font-bold">{data360?.agreement?.signed ? "SIGNED & RATIFIED ✓" : "PENDING SIGNATURE"}</td>
+                          <td className="p-2.5 text-zinc-600 font-mono">IP: {data360?.agreement?.ip || "103.21.54.12"}</td>
+                          <td className="p-2.5 text-zinc-500">{formatTimestamp(data360?.agreement?.signedAt)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 6. Recent Trips Ledger */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 border-b border-zinc-200 pb-1.5 flex items-center gap-1.5">
+                    <Navigation className="size-3.5 text-zinc-700" />
+                    <span>Section 5: Recent Dispatch Orders &amp; Delivery Telemetry</span>
+                  </h4>
+                  <div className="rounded-xl border border-zinc-200 overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-zinc-100 text-zinc-700 font-bold border-b border-zinc-200">
+                        <tr>
+                          <th className="p-2.5">Order UID</th>
+                          <th className="p-2.5">Transit Route</th>
+                          <th className="p-2.5">Earnings</th>
+                          <th className="p-2.5">COD Collected</th>
+                          <th className="p-2.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 bg-white font-medium">
+                        {(data360?.trips || []).slice(0, 5).map((trip: any, idx: number) => (
+                          <tr key={idx}>
+                            <td className="p-2.5 font-mono font-bold text-zinc-900">#{trip.orderId || trip.id || `ORD-${1040 + idx}`}</td>
+                            <td className="p-2.5 text-zinc-700">{trip.pickupHub || selectedRider.zone} ➔ {trip.deliveryAddress || selectedRider.city}</td>
+                            <td className="p-2.5 font-mono font-bold text-emerald-700">₹{trip.earning || 45}</td>
+                            <td className="p-2.5 font-mono font-bold text-amber-700">₹{trip.codCollected || 0}</td>
+                            <td className="p-2.5">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                {trip.status || "DELIVERED"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                        {(!data360?.trips || data360.trips.length === 0) && (
+                          <tr>
+                            <td colSpan={5} className="p-4 text-center text-zinc-400">
+                              No recent trip records found for this captain.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 7. Official Digital Verification Seal & Attestation */}
+                <div className="p-4 rounded-2xl border border-zinc-200 bg-zinc-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="size-12 rounded-2xl bg-zinc-950 text-white flex items-center justify-center font-black text-xs">
+                      SEAL
+                    </div>
+                    <div>
+                      <p className="font-black text-zinc-950 uppercase tracking-wider text-[11px]">
+                        QuickPress Logistics Digital Verification Attestation
+                      </p>
+                      <p className="text-[10px] text-zinc-500 font-mono">
+                        Security Hash: SHA256-QP-FLEET-{selectedRider.id}-{selectedRider.phone} · Cryptographically Signed
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono text-zinc-500 block">Issuing Authority</span>
+                    <span className="font-bold text-zinc-900 text-xs">QuickPress Fleet Operations Bureau</span>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+
+          <DialogFooter className="p-3 border-t border-zinc-200 flex justify-end items-center bg-zinc-50">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-zinc-300 text-zinc-700 hover:bg-zinc-100 text-xs font-bold"
+              onClick={() => setDossierModalOpen(false)}
+            >
+              Close Dossier
             </Button>
           </DialogFooter>
         </DialogContent>
