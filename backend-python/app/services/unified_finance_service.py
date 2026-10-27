@@ -2941,12 +2941,20 @@ class UnifiedFinanceService:
         partner_gst_total = round(taxable_laundry * 0.18, 2)
         total_withholdings = round(tcs_sec52 + tds_sec194o, 2)
 
+        from app.db.admin_repositories import get_company_legal_profile
+        comp_profile = await get_company_legal_profile()
+        corp_gstin = comp_profile.get("gstin") or "09AADCB1234K1Z8"
+        corp_pan = comp_profile.get("pan") or "AADCB1234K"
+        corp_legal = comp_profile.get("legalName") or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+        corp_state = comp_profile.get("state") or "Uttar Pradesh"
+        corp_state_code = comp_profile.get("stateCode") or "09"
+
         return {
             "ok": True,
-            "gstin": "09AAECQ1234F1Z5",
-            "pan": "AAECQ1234F",
-            "legalEntity": "QuickPress Technologies Private Limited",
-            "jurisdiction": "Uttar Pradesh (State Code: 09)",
+            "gstin": corp_gstin,
+            "pan": corp_pan,
+            "legalEntity": corp_legal,
+            "jurisdiction": f"{corp_state} (State Code: {corp_state_code})",
             "taxSummary": {
                 "grossTaxableSales": round(gross_taxable, 2),
                 "laundryTaxableSales": round(taxable_laundry, 2),
@@ -3075,16 +3083,21 @@ class UnifiedFinanceService:
         b2cs_taxable = summary["platformTaxableSales"] + summary["deliveryTaxableSales"]
         b2cs_tax = summary["platformTaxCollected"]
 
+        from app.db.admin_repositories import get_company_legal_profile
+        comp_profile = await get_company_legal_profile()
+        corp_gstin = comp_profile.get("gstin") or "09AADCB1234K1Z8"
+        corp_legal = comp_profile.get("legalName") or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
+
         csv_rows = [
             "SECTION,GSTIN/UIN,INVOICE_NO,DATE,VALUE,RATE,TAXABLE_VALUE,CGST,SGST,IGST,PLACE_OF_SUPPLY",
         ]
         for inv in b2b_invoices:
             csv_rows.append(f"4A-B2B,{inv['partnerGstin']},{inv['invoiceNo']},{inv['date']},{inv['totalInvoiceValue']},18.0,{inv['baseCommission']},{round(inv['gstAmount']*0.5, 2)},{round(inv['gstAmount']*0.5, 2)},0.0,09-Uttar Pradesh")
         csv_rows.append(f"7-B2CS,N/A,CONSUMER_ECO_OCT26,{datetime.now(timezone.utc).strftime('%Y-%m-%d')},{round(b2cs_taxable*1.18, 2)},18.0,{b2cs_taxable},{round(b2cs_tax*0.5, 2)},{round(b2cs_tax*0.5, 2)},0.0,09-Uttar Pradesh")
-        csv_rows.append(f"14-ECO,09AAECQ1234F1Z5,ECO_SEC95_OCT26,{datetime.now(timezone.utc).strftime('%Y-%m-%d')},{round(summary['laundryTaxableSales']*1.18, 2)},18.0,{summary['laundryTaxableSales']},{round(summary['partnerGstSec95']*0.5, 2)},{round(summary['partnerGstSec95']*0.5, 2)},0.0,09-Uttar Pradesh")
+        csv_rows.append(f"14-ECO,{corp_gstin},ECO_SEC95_OCT26,{datetime.now(timezone.utc).strftime('%Y-%m-%d')},{round(summary['laundryTaxableSales']*1.18, 2)},18.0,{summary['laundryTaxableSales']},{round(summary['partnerGstSec95']*0.5, 2)},{round(summary['partnerGstSec95']*0.5, 2)},0.0,09-Uttar Pradesh")
 
         json_schema = {
-            "gstin": "09AAECQ1234F1Z5",
+            "gstin": corp_gstin,
             "fp": period_str,
             "version": "GSTR1_v2.0",
             "gross_turnover": summary["grossTaxableSales"],
@@ -3138,8 +3151,8 @@ class UnifiedFinanceService:
             "ok": True,
             "reportType": "GSTR-1",
             "period": period_str,
-            "legalEntity": "QuickPress Technologies Private Limited",
-            "gstin": "09AAECQ1234F1Z5",
+            "legalEntity": corp_legal,
+            "gstin": corp_gstin,
             "jsonSchema": json_schema,
             "csvData": "\n".join(csv_rows),
             "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -3150,6 +3163,11 @@ class UnifiedFinanceService:
         tax_center = await self.get_tax_compliance_center()
         summary = tax_center["taxSummary"]
         period_str = period or datetime.now(timezone.utc).strftime("%m%Y")
+
+        from app.db.admin_repositories import get_company_legal_profile
+        comp_profile = await get_company_legal_profile()
+        corp_gstin = comp_profile.get("gstin") or "09AADCB1234K1Z8"
+        corp_legal = comp_profile.get("legalName") or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
 
         table31_taxable = summary["platformTaxableSales"] + summary["deliveryTaxableSales"]
         table31_tax = summary["platformTaxCollected"]
@@ -3169,7 +3187,7 @@ class UnifiedFinanceService:
         ]
 
         json_schema = {
-            "gstin": "09AAECQ1234F1Z5",
+            "gstin": corp_gstin,
             "ret_period": period_str,
             "sup_details": {
                 "osup_det": {
@@ -3215,8 +3233,8 @@ class UnifiedFinanceService:
             "ok": True,
             "reportType": "GSTR-3B",
             "period": period_str,
-            "legalEntity": "QuickPress Technologies Private Limited",
-            "gstin": "09AAECQ1234F1Z5",
+            "legalEntity": corp_legal,
+            "gstin": corp_gstin,
             "jsonSchema": json_schema,
             "csvData": "\n".join(csv_rows),
             "generatedAt": datetime.now(timezone.utc).isoformat(),

@@ -348,6 +348,13 @@ async def get_public_website_settings() -> Dict[str, Any]:
     return await cms_repo.get_website_settings()
 
 
+@router.get("/company-profile")
+async def get_public_company_profile() -> Dict[str, Any]:
+    """Publicly accessible endpoint for apps and websites to render official company name, GSTIN, CIN, address, and legal links."""
+    from app.db.admin_repositories import get_company_legal_profile
+    return await get_company_legal_profile()
+
+
 # =========================================================================
 #  7. Public Landing Page & Testimonials (CMS-backed)
 # =========================================================================

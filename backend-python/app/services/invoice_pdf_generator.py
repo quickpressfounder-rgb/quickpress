@@ -58,9 +58,45 @@ COMPANY_ADDRESS = os.getenv(
     "COMPANY_ADDRESS",
     "Pioneer Tech Park, Near Highway, Kasganj, Uttar Pradesh - 207123, India",
 )
-COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "support@quickpress.online")
+COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "official.quickpress@gmail.com")
 COMPANY_STATE = os.getenv("COMPANY_STATE", "Uttar Pradesh")
 COMPANY_STATE_CODE = os.getenv("COMPANY_STATE_CODE", "09")
+
+
+def get_live_company_profile(override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Dynamically resolves live legal entity details, PAN, CIN, GSTIN, and registered address from admin settings."""
+    profile = {
+        "legal_name": COMPANY_LEGAL_NAME,
+        "trade_name": COMPANY_TRADE_NAME,
+        "cin": COMPANY_CIN,
+        "pan": COMPANY_PAN,
+        "gstin": COMPANY_GSTIN,
+        "address": COMPANY_ADDRESS,
+        "email": COMPANY_EMAIL,
+        "state": COMPANY_STATE,
+        "state_code": COMPANY_STATE_CODE,
+    }
+    try:
+        from app.db.admin_repositories import admin_settings_repository
+        comp = admin_settings_repository.default_settings.get("company", {})
+        if comp:
+            profile["legal_name"] = comp.get("legalName") or profile["legal_name"]
+            profile["trade_name"] = comp.get("brandName") or profile["trade_name"]
+            profile["cin"] = comp.get("cin") or profile["cin"]
+            profile["pan"] = comp.get("pan") or profile["pan"]
+            profile["gstin"] = comp.get("gstin") or profile["gstin"]
+            profile["address"] = comp.get("registeredAddress") or profile["address"]
+            profile["email"] = comp.get("supportEmail") or comp.get("corporateEmail") or profile["email"]
+            profile["state"] = comp.get("state") or profile["state"]
+            profile["state_code"] = comp.get("stateCode") or profile["state_code"]
+    except Exception:
+        pass
+
+    if override and isinstance(override, dict):
+        for k, v in override.items():
+            if v:
+                profile[k] = v
+    return profile
 
 
 def num_to_words_inr(amount: float) -> str:
@@ -784,6 +820,7 @@ def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = No
 
     partner_legal = partner.get("legalName") or partner.get("name") or "Authorized Laundromat Partner"
     partner_gstin = gst.get("gstin") or partner.get("gstin") or "UNREGISTERED"
+    comp = get_live_company_profile()
 
     return {
         "order_number": order_num,
@@ -801,8 +838,8 @@ def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = No
         "payment_method": payment.get("methodLabel") or payment.get("method") or "UPI",
         "invoice_no": invoice_num,
         "invoice_date": _format_date(order_time),
-        "state": COMPANY_STATE,
-        "place_of_supply": gst.get("placeOfSupply") or f"{COMPANY_STATE}({COMPANY_STATE_CODE})",
+        "state": comp["state"],
+        "place_of_supply": gst.get("placeOfSupply") or f"{comp['state']}({comp['state_code']})",
         "partner_gst": partner_gstin,
         "partner_name": partner.get("name") or "QuickPress Partner Hub",
         "partner_legal_name": partner_legal,
@@ -815,11 +852,12 @@ def build_invoice_pdf_payload(invoice: Any, order: Optional[Dict[str, Any]] = No
         "service_description": "Laundry and Dry Cleaning Services",
         "platform_invoice_no": f"QP26UPOT{str(abs(hash(invoice_num)))[:8]}",
         "platform_invoice_date": _format_date(order_time),
-        "company_legal_name": COMPANY_LEGAL_NAME,
-        "company_pan": COMPANY_PAN,
-        "company_cin": COMPANY_CIN,
-        "company_gst": COMPANY_GSTIN,
-        "company_address": COMPANY_ADDRESS,
+        "company_legal_name": comp["legal_name"],
+        "company_pan": comp["pan"],
+        "company_cin": comp["cin"],
+        "company_gst": comp["gstin"],
+        "company_address": comp["address"],
+        "company_email": comp["email"],
     }
 
 
@@ -885,12 +923,12 @@ def generate_commission_invoice_pdf(data: Dict[str, Any]) -> bytes:
     partner_name = data.get("partner_name", "Partner Store")
     partner_id = data.get("partner_id", "")
     partner_gst = data.get("partner_gst", "Unregistered / Composition")
-    partner_city = data.get("partner_city", "")
+    comp = get_live_company_profile(data.get("company_profile"))
 
     meta_table_data = [
         [
-            Paragraph(f"<b>Invoice Number:</b> {inv_num}<br/><b>Date of Issue:</b> {inv_date}<br/><b>Billing Period:</b> {period}<br/><b>Place of Supply:</b> 09 - Uttar Pradesh", body_style),
-            Paragraph("<b>ISSUER / PLATFORM:</b><br/><b>QuickPress Technologies Pvt. Ltd.</b><br/>Registered Corporate Office<br/><b>GSTIN:</b> 09AAHCR1710J1ZE<br/><b>PAN:</b> AAHCR1710J", body_style),
+            Paragraph(f"<b>Invoice Number:</b> {inv_num}<br/><b>Date of Issue:</b> {inv_date}<br/><b>Billing Period:</b> {period}<br/><b>Place of Supply:</b> {comp['state_code']} - {comp['state']}", body_style),
+            Paragraph(f"<b>ISSUER / PLATFORM:</b><br/><b>{comp['legal_name']}</b><br/>Registered Corporate Office<br/><b>GSTIN:</b> {comp['gstin']}<br/><b>PAN:</b> {comp['pan']}<br/><b>CIN:</b> {comp['cin']}", body_style),
         ],
         [
             Paragraph(f"<b>RECIPIENT / MERCHANT PARTNER:</b><br/><b>{partner_name}</b> (ID: {partner_id})<br/>{partner_city}<br/><b>GSTIN:</b> {partner_gst}", body_style),
@@ -1066,10 +1104,11 @@ def generate_settlement_statement_pdf(data: Dict[str, Any]) -> bytes:
     story = []
 
     # 1. Header Banner
+    comp = get_live_company_profile(data.get("company_profile"))
     header_data = [
         [
             Paragraph("<b>QUICKPRESS MERCHANT SETTLEMENT STATEMENT</b><br/><font color='#64748b' size='8'>Official Payout Ledger & Statutory Bank Reconciliation Document</font>", header_style),
-            Paragraph("<b>QuickPress Technologies Pvt. Ltd.</b><br/>GSTIN: 09AAHCR1710J1ZE · PAN: AAHCR1710J<br/>Registered Corporate Office", ParagraphStyle("Right", parent=regular_style, alignment=2)),
+            Paragraph(f"<b>{comp['legal_name']}</b><br/>GSTIN: {comp['gstin']} · PAN: {comp['pan']}<br/>{comp['address']}", ParagraphStyle("Right", parent=regular_style, alignment=2)),
         ]
     ]
     t_head = Table(header_data, colWidths=[310, 213])

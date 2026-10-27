@@ -2031,6 +2031,23 @@ async def update_settings(
     return settings_doc
 
 
+@router.get("/settings/company-profile")
+async def get_company_profile_endpoint(user: User = Depends(current_user)):
+    """GET /api/admin/settings/company-profile — Returns active corporate legal profile and statutory details."""
+    return await admin_settings_repository.get_company_profile()
+
+
+@router.put("/settings/company-profile")
+async def update_company_profile_endpoint(
+    payload: Dict[str, Any] = Body(...),
+    user: User = Depends(current_user),
+):
+    """PUT /api/admin/settings/company-profile — Updates company legal profile, GSTIN, CIN, PAN, address, and statutory details."""
+    settings_doc = await admin_settings_repository.update({"company": payload}, scope="global")
+    await audit_repository.log(await _actor(user), "company_profile.update", "platform", payload)
+    return settings_doc.get("company", payload)
+
+
 # --------------------------------------------------------------------- wallet
 @router.get("/wallet/all-wallets")
 async def get_all_wallets(user: User = Depends(current_user)):

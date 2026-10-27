@@ -165,9 +165,25 @@ def generate_partner_agreement_pdf(data: Dict[str, Any]) -> bytes:
 
     story = []
 
-    # Variables
     company_name = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED")
-    signatory_name = os.getenv("COMPANY_SIGNATORY_NAME", "Dhani Ram")
+    signatory_name = os.getenv("COMPANY_SIGNATORY_NAME", "Himanshu Pal")
+    comp_cin = "U74999UP2024PTC198141"
+    comp_gstin = "09AADCB1234K1Z8"
+    comp_pan = "AADCB1234K"
+    comp_address = "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India"
+    try:
+        from app.db.admin_repositories import admin_settings_repository
+        comp = admin_settings_repository.default_settings.get("company", {})
+        if comp:
+            company_name = comp.get("legalName") or company_name
+            signatory_name = comp.get("authorizedSignatoryName") or signatory_name
+            comp_cin = comp.get("cin") or comp_cin
+            comp_gstin = comp.get("gstin") or comp_gstin
+            comp_pan = comp.get("pan") or comp_pan
+            comp_address = comp.get("registeredAddress") or comp_address
+    except Exception:
+        pass
+
     store_name = _safe_str(data.get("storeName") or data.get("businessName"), "Partner Store")
     owner_name = _safe_str(data.get("ownerName") or data.get("name"), "Partner Merchant")
     partner_email = _safe_str(data.get("email"), "verified@partner.com")
@@ -194,11 +210,11 @@ def generate_partner_agreement_pdf(data: Dict[str, Any]) -> bytes:
             Paragraph(f"<b>Reference:</b> {agreement_ref}", p_small),
         ],
         [
-            Paragraph("CIN: U74999UP2024PTC198141 · GSTIN: 09AADCB1234K1Z8", p_small),
+            Paragraph(f"CIN: {comp_cin} · GSTIN: {comp_gstin} · PAN: {comp_pan}", p_small),
             Paragraph(f"<b>Effective Date:</b> {signed_at[:11]}", p_small),
         ],
         [
-            Paragraph("Regd. Office: Pioneer Tech Park, Kasganj, Uttar Pradesh - 207123, India", p_small),
+            Paragraph(f"Regd. Office: {comp_address}", p_small),
             Paragraph("<b>E-Sign Status:</b> Verified via Email OTP", p_small),
         ],
     ]

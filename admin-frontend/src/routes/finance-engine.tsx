@@ -249,7 +249,7 @@ export const DEFAULT_FINANCIAL_RULES: any = {
     igstPercent: "5.0",
     tcsPercent: "1",
     tdsPercent: "1",
-    quickpressGstin: "09AAECQ1234F1Z5",
+    quickpressGstin: "09AADCB1234K1Z8",
     defaultState: "Uttar Pradesh",
     categoryTaxOverrides: [
       { id: "tax-dryclean", category: "Dry Cleaning", gstRatePercent: "12", active: true },
@@ -486,7 +486,7 @@ function mapServerRulesToForm(data: FinancialRules): any {
       igstPercent: String(Math.round((data.gst?.igstRate ?? 0.05) * 10000) / 100),
       tcsPercent: String(Math.round((data.gst?.tcsRate ?? 0.01) * 10000) / 100),
       tdsPercent: String(Math.round((data.gst?.tdsRate ?? 0.01) * 10000) / 100),
-      quickpressGstin: String(data.gst?.quickpressGstin ?? "09AAECQ1234F1Z5"),
+      quickpressGstin: String(data.gst?.quickpressGstin ?? "09AADCB1234K1Z8"),
       defaultState: String(data.gst?.defaultState ?? "Uttar Pradesh"),
       categoryTaxOverrides: (data.gst?.categoryTaxOverrides || DEFAULT_FINANCIAL_RULES.gst.categoryTaxOverrides).map((t: any) => ({
         id: String(t.id ?? ""),

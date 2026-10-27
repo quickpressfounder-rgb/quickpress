@@ -2168,5 +2168,50 @@ This single command will automatically:
   - `admin-frontend/src/routes/settings.tsx`
   - `Memory/WORK_HISTORY.md`
 
+---
+
+### 37. Single Source of Truth: Corporate Legal Profile, Brand Identity & Statutory Document Governance Console
+- **User Requirement:**
+  - "setting me se sab hatao or uske baad only legal documnet ka Or peofile rkho brand name JIsme Name Entity Pan Cin Addres mail ectc etc ho or mere full project me yahi detail show kare jo mene yaha uplorde ki hai all documnet par ,bill ,invoice reports etc etc jaha jaha iska use hai me yaja update karo to full project me update ho gaye"
+- **Architecture & Implementation:**
+  1. **Focused Corporate Legal & Statutory Documents Console (`admin-frontend/src/routes/settings.tsx`):**
+     - Eliminated legacy cluttered technical tabs and replaced with an ultra-premium, focused enterprise management center:
+       - **Interactive Live Letterhead & Invoice Header Preview Card:** Real-time visual canvas demonstrating how legal details appear on Customer Tax Invoices, B2B Partner Statements, and Official Company Letterheads with a live sync indicator.
+       - **Corporate Legal & Tax (MCA & GSTN):** Registered Corporate Legal Name, Corporate Identity Number (CIN), Permanent Account Number (PAN), Goods & Services Tax (GSTIN - 15 chars), State & State Code, Registered Corporate Office Full Address, and Regional Logistics Facility Address.
+       - **Brand Identity & Online Presence:** Brand Display Name (QuickPress), Tagline / Business Nature, and Canonical Platform Website URL (`https://withquickpress.com`).
+       - **Communications & Grievance Governance:** Official Support Email (`official.quickpress@gmail.com`), Corporate Affairs Email (`info@withquickpress.com`), Legal & Grievance Nodal Email (`legal@withquickpress.com`), Customer Care Toll-Free (`1800 012 3456`), Operations Helpline, and Grievance Redressal Officer Name & Phone.
+       - **Authorized Signatory & Executive Seal:** Director / Authorized Officer Name (`Himanshu Pal`), Designation (`Director & Authorized Signatory`), Transparent Digital Signature URL, and Corporate Rubber Stamp Seal URL.
+       - **Statutory Document Vault:** Certificate of Incorporation (COI), GST Registration Certificate (Form GST REG-06), Company PAN Card Document, and MSME/Udyam Registration Certificate with 1-click external view action.
+       - **Public Legal Policies:** Direct links to Privacy Policy, Terms & Conditions, Grievance Redressal, and Return/Refund Policy.
+       - **Sticky Floating Dock:** Real-time unsaved changes detection, ⌘S keyboard shortcut, and immediate cloud propagation.
+  2. **Centralized Backend Legal Engine (`backend-python/app/db/admin_repositories.py`):**
+     - Canonical `company` profile dictionary in `AdminSettingsRepository.default_settings`.
+     - Automatic two-way synchronization: updating `company` automatically propagates to top-level aliases (`platformName`, `supportEmail`, `supportPhone`, `legalName`, `gstin`, `cin`, `pan`, `address`), updates `cms_repo.website_settings`, and updates `unified_finance_service` live rules cache.
+     - Global async accessor `get_company_legal_profile()` for cross-module consumption.
+  3. **Universal Project-Wide Synchronization Across Bills, Invoices & Reports:**
+     - **Rapido-Style 3-Way Customer Tax Invoices (`invoice_pdf_generator.py`):** Dynamically uses live `company_legal_name`, `company_gstin`, `company_pan`, `company_cin`, `company_address`, and `company_email` via `get_live_company_profile()`.
+     - **B2B Commission Invoices & Merchant Settlement Statements (`invoice_pdf_generator.py`):** Issuer details render live legal entity name, GSTIN, PAN, and address.
+     - **Partner SLA Merchant Agreement PDF (`partner_agreement_pdf_generator.py`):** Dynamic corporate header with live CIN, GSTIN, PAN, registered office address, and authorized signatory.
+     - **Statutory Tax Center & Return Generators (`unified_finance_service.py`):** GSTR-1 Table 14/15 ECO supplies and GSTR-3B Table 3.1 & Table 4 ITC reports immediately generate under the live configured GSTIN and Legal Entity.
+     - **Public Website & Client Consoles (`public.py` & `settings.ts`):** `GET /api/public/company-profile`, `GET /api/admin/settings/company-profile`, and `PUT /api/admin/settings/company-profile` ensure web and mobile apps always access updated legal information.
+- **Modified Files:**
+  - `admin-frontend/src/routes/settings.tsx`
+  - `admin-frontend/src/api/settings.ts`
+  - `admin-frontend/src/components/finance/TaxComplianceCenterView.tsx`
+  - `admin-frontend/src/routes/finance-engine.tsx`
+  - `customer-frontend/src/api/customer/finance-api.ts`
+  - `backend-python/app/db/admin_repositories.py`
+  - `backend-python/app/api/admin.py`
+  - `backend-python/app/api/public.py`
+  - `backend-python/app/services/invoice_pdf_generator.py`
+  - `backend-python/app/services/partner_agreement_pdf_generator.py`
+  - `backend-python/app/services/unified_finance_service.py`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - Backend syntax: `python3 -m py_compile`: **ALL 6 FILES COMPILED (100% PASS, code 0)**.
+  - Financial precision test suite: `tests/test_finance_rules_precision.py`: **ALL 5 PRECISION TESTS PASSED (100% SUCCESS)**.
+  - Admin Frontend build: `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 1.84s)**.
+  - Customer Frontend build: `npm --prefix customer-frontend run build`: **PASSED (0 errors, built in 1.07s)**.
+
 
 

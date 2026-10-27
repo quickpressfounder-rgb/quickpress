@@ -121,11 +121,45 @@ export type OmniChannelSettings = {
   deliveryOtpSms?: boolean;
 };
 
+export type CompanyLegalSettings = {
+  brandName: string;
+  tagline: string;
+  legalName: string;
+  cin: string;
+  pan: string;
+  gstin: string;
+  registeredAddress: string;
+  operatingAddress: string;
+  supportEmail: string;
+  corporateEmail: string;
+  legalEmail: string;
+  supportPhone: string;
+  tollFreePhone: string;
+  grievanceOfficerName: string;
+  grievanceOfficerPhone: string;
+  authorizedSignatoryName: string;
+  authorizedSignatoryDesignation: string;
+  digitalSignatureUrl?: string;
+  companySealUrl?: string;
+  state: string;
+  stateCode: string;
+  websiteUrl: string;
+  privacyPolicyUrl: string;
+  termsUrl: string;
+  grievanceUrl: string;
+  refundPolicyUrl: string;
+  coiDocUrl?: string;
+  gstCertDocUrl?: string;
+  panCardDocUrl?: string;
+  msmeDocUrl?: string;
+};
+
 export type AdminSettings = {
   _scope?: "global" | "city" | "area";
   _cityId?: string | null;
   _cityName?: string | null;
   _isOverridden?: boolean;
+  company: CompanyLegalSettings;
   platform: PlatformSettings;
   business: BusinessSettings;
   integrations: IntegrationSettings;
@@ -168,11 +202,43 @@ const DEFAULTS: AdminSettings = {
   _scope: "global",
   _cityId: null,
   _isOverridden: false,
-  platform: {
-    platformName: "QuickPress Laundry & Dry Clean",
-    tagline: "Ultra-Fast On-Demand Laundry & Express Dry Cleaning",
+  company: {
+    brandName: "QuickPress",
+    tagline: "Hyperlocal On-Demand Laundry & Garment Care Platform",
+    legalName: "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+    cin: "U74999UP2024PTC198141",
+    pan: "AADCB1234K",
+    gstin: "09AADCB1234K1Z8",
+    registeredAddress: "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
+    operatingAddress: "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
     supportEmail: "official.quickpress@gmail.com",
-    supportPhone: "+91 98719 62596",
+    corporateEmail: "info@withquickpress.com",
+    legalEmail: "legal@withquickpress.com",
+    supportPhone: "+91 90000 00000",
+    tollFreePhone: "1800 012 3456",
+    grievanceOfficerName: "Himanshu Pal",
+    grievanceOfficerPhone: "+91 90000 00000",
+    authorizedSignatoryName: "Himanshu Pal",
+    authorizedSignatoryDesignation: "Director & Authorized Signatory",
+    digitalSignatureUrl: "",
+    companySealUrl: "",
+    state: "Uttar Pradesh",
+    stateCode: "09",
+    websiteUrl: "https://withquickpress.com",
+    privacyPolicyUrl: "https://withquickpress.com/#privacy",
+    termsUrl: "https://withquickpress.com/#terms",
+    grievanceUrl: "https://withquickpress.com/#contact",
+    refundPolicyUrl: "https://withquickpress.com/#refund",
+    coiDocUrl: "",
+    gstCertDocUrl: "",
+    panCardDocUrl: "",
+    msmeDocUrl: "",
+  },
+  platform: {
+    platformName: "QuickPress",
+    tagline: "Hyperlocal On-Demand Laundry & Garment Care Platform",
+    supportEmail: "official.quickpress@gmail.com",
+    supportPhone: "+91 90000 00000",
     defaultCity: "",
     currency: "INR (₹)",
     operatingHours: "08:00 AM - 09:00 PM (Mon-Sun)",
@@ -273,6 +339,7 @@ export async function fetchSettings(scope: string = "global", cityId?: string): 
     merged._cityName = doc._cityName || null;
     merged._isOverridden = Boolean(doc._isOverridden);
 
+    if (doc.company) Object.assign(merged.company, doc.company);
     if (doc.platform) Object.assign(merged.platform, doc.platform);
     if (doc.business) Object.assign(merged.business, doc.business);
     if (doc.integrations) Object.assign(merged.integrations, doc.integrations);
@@ -305,6 +372,27 @@ export async function saveSettings(payload: { settings: AdminSettings; scope?: s
 
   const url = query.toString() ? `/api/admin/settings?${query.toString()}` : "/api/admin/settings";
   return await apiPutJson<AdminSettings>(url, payload.settings);
+}
+
+export async function fetchCompanyProfile(): Promise<CompanyLegalSettings> {
+  try {
+    const res = await apiGetJson<CompanyLegalSettings>("/api/admin/settings/company-profile");
+    return { ...DEFAULTS.company, ...res };
+  } catch {
+    const full = await fetchSettings("global");
+    return full.company;
+  }
+}
+
+export async function saveCompanyProfile(profile: CompanyLegalSettings): Promise<CompanyLegalSettings> {
+  try {
+    return await apiPutJson<CompanyLegalSettings>("/api/admin/settings/company-profile", profile);
+  } catch {
+    const full = await fetchSettings("global");
+    full.company = profile;
+    await saveSettings({ settings: full, scope: "global" });
+    return profile;
+  }
 }
 
 export async function fetchSecurityEvents(): Promise<SecurityEventsResponse> {

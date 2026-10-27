@@ -4223,17 +4223,49 @@ class AdminSettingsRepository:
         "partnerApprovalRequired": True,
         "orderAutoCancelMinutes": 15,
         "partnerAcceptanceTimeoutMinutes": 10,
+        "company": {
+            "brandName": "QuickPress",
+            "tagline": "Hyperlocal On-Demand Laundry & Garment Care Platform",
+            "legalName": "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+            "cin": "U74999UP2024PTC198141",
+            "pan": "AADCB1234K",
+            "gstin": "09AADCB1234K1Z8",
+            "registeredAddress": "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
+            "operatingAddress": "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
+            "supportEmail": "official.quickpress@gmail.com",
+            "corporateEmail": "info@withquickpress.com",
+            "legalEmail": "legal@withquickpress.com",
+            "supportPhone": "+91 90000 00000",
+            "tollFreePhone": "1800 012 3456",
+            "grievanceOfficerName": "Himanshu Pal",
+            "grievanceOfficerPhone": "+91 90000 00000",
+            "authorizedSignatoryName": "Himanshu Pal",
+            "authorizedSignatoryDesignation": "Director & Authorized Signatory",
+            "digitalSignatureUrl": "",
+            "companySealUrl": "",
+            "state": "Uttar Pradesh",
+            "stateCode": "09",
+            "websiteUrl": "https://withquickpress.com",
+            "privacyPolicyUrl": "https://withquickpress.com/#privacy",
+            "termsUrl": "https://withquickpress.com/#terms",
+            "grievanceUrl": "https://withquickpress.com/#contact",
+            "refundPolicyUrl": "https://withquickpress.com/#refund",
+            "coiDocUrl": "",
+            "gstCertDocUrl": "",
+            "panCardDocUrl": "",
+            "msmeDocUrl": "",
+        },
         "platform": {
-            "platformName": "QuickPress Laundry",
-            "supportEmail": "support@quickpress.app",
+            "platformName": "QuickPress",
+            "supportEmail": "official.quickpress@gmail.com",
             "supportPhone": "+91 90000 00000",
             "defaultCity": "Kasganj",
             "currency": "INR",
         },
         "business": {
-            "legalName": "QuickPress Logistics Pvt Ltd",
-            "gstin": "09AAAAA0000A1Z5",
-            "address": "Express Hub, Kasganj, Uttar Pradesh 207123",
+            "legalName": "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+            "gstin": "09AADCB1234K1Z8",
+            "address": "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India",
             "payoutCycle": "Weekly on Monday",
             "minimumOrderValue": "99",
             "deliveryFee": "29",
@@ -4475,8 +4507,66 @@ class AdminSettingsRepository:
         except Exception:
             pass
 
+        # Synchronize company profile if updated
+        if "company" in merged and isinstance(merged["company"], dict):
+            comp = merged["company"]
+            if comp.get("brandName"):
+                merged["platformName"] = comp["brandName"]
+                if "platform" in merged and isinstance(merged["platform"], dict):
+                    merged["platform"]["platformName"] = comp["brandName"]
+            if comp.get("supportEmail"):
+                merged["supportEmail"] = comp["supportEmail"]
+                if "platform" in merged and isinstance(merged["platform"], dict):
+                    merged["platform"]["supportEmail"] = comp["supportEmail"]
+            if comp.get("supportPhone"):
+                merged["supportPhone"] = comp["supportPhone"]
+                if "platform" in merged and isinstance(merged["platform"], dict):
+                    merged["platform"]["supportPhone"] = comp["supportPhone"]
+            if comp.get("legalName"):
+                if "business" in merged and isinstance(merged["business"], dict):
+                    merged["business"]["legalName"] = comp["legalName"]
+            if comp.get("gstin"):
+                if "business" in merged and isinstance(merged["business"], dict):
+                    merged["business"]["gstin"] = comp["gstin"]
+            if comp.get("registeredAddress"):
+                if "business" in merged and isinstance(merged["business"], dict):
+                    merged["business"]["address"] = comp["registeredAddress"]
+
+            # Keep website_settings synchronized across the platform
+            try:
+                from app.db.cms_repositories import cms_repo
+                await cms_repo.update_website_settings_admin({
+                    "brandName": comp.get("brandName") or "QuickPress",
+                    "tagline": comp.get("tagline") or "Laundry, simplified.",
+                    "supportEmail": comp.get("supportEmail") or "official.quickpress@gmail.com",
+                    "supportPhone": comp.get("supportPhone") or "+91 90000 00000",
+                    "registeredOffice": comp.get("registeredAddress") or "",
+                    "operatingAddress": comp.get("operatingAddress") or "",
+                    "gstin": comp.get("gstin") or "",
+                    "cin": comp.get("cin") or "",
+                })
+            except Exception:
+                pass
+
+            # Keep unified finance engine GSTIN synchronized
+            try:
+                from app.services.unified_finance_service import unified_finance_service
+                if comp.get("gstin"):
+                    unified_finance_service.config.setdefault("gst", {})["quickpressGstin"] = comp["gstin"]
+                    if unified_finance_service._rules_cache and "gst" in unified_finance_service._rules_cache:
+                        unified_finance_service._rules_cache["gst"]["quickpressGstin"] = comp["gstin"]
+            except Exception:
+                pass
+
         await database.update("admin_settings", {"_id": self.doc_id}, merged, upsert=True)
         return await self.get(scope="global")
+
+    async def get_company_profile(self) -> Dict[str, Any]:
+        """Fetch the active master company profile and statutory legal entity details."""
+        global_settings = await self.get(scope="global")
+        company = global_settings.get("company") or {}
+        defaults = self.default_settings.get("company", {})
+        return {**defaults, **company}
 
     async def get_available_scopes(self) -> List[Dict[str, Any]]:
         scopes: List[Dict[str, Any]] = [
@@ -4530,6 +4620,11 @@ def structured_clone_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 
 
 admin_settings_repository = AdminSettingsRepository()
+
+
+async def get_company_legal_profile() -> Dict[str, Any]:
+    """Global async accessor to fetch live company profile and legal entity details."""
+    return await admin_settings_repository.get_company_profile()
 
 
 class SimpleCrudRepository:
