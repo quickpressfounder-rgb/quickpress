@@ -1228,7 +1228,119 @@ export interface TaxCenterResponse {
     netTaxPayable: number;
     registeredPartnersCount: number;
     unregisteredPartnersCount: number;
+    // 4 Key KPIs
+    todayCollectedTax?: number;
+    todayTaxableSales?: number;
+    todayOrdersCount?: number;
+    todayCgst?: number;
+    todaySgst?: number;
+    platformTaxCollected?: number;
+    platformConvenienceTax?: number;
+    deliveryLogisticsTax?: number;
+    partnerGstTotal?: number;
+    partnerGstRegistered?: number;
+    partnerGstSec95?: number;
+    totalWithholdings?: number;
+    // Challans & ITC Balance Offset
+    grossTaxLiability?: number;
+    totalEligibleItc?: number;
+    liabilityAfterItc?: number;
+    totalChallansPaid?: number;
+    netBalanceDue?: number;
+    excessChallanCredit?: number;
+    isPeriodFullyPaid?: boolean;
+    totalOpex?: number;
+    totalGstPaidOnOpex?: number;
   };
+  todayOrdersList?: Array<{
+    orderId: string;
+    orderCode: string;
+    customerName: string;
+    partnerName: string;
+    date: string;
+    taxableValue: number;
+    laundryValue: number;
+    deliveryFee: number;
+    platformFee: number;
+    cgst: number;
+    sgst: number;
+    totalGst: number;
+    status: string;
+  }>;
+  platformTaxOrders?: Array<{
+    orderId: string;
+    date: string;
+    platformFee: number;
+    platformGst: number;
+    deliveryFee: number;
+    deliveryGst: number;
+    totalPlatformGst: number;
+    sacCodes: string;
+    statutoryObligation: string;
+  }>;
+  partnerGstList?: Array<{
+    partnerId: string;
+    businessName: string;
+    gstin: string;
+    isRegistered: boolean;
+    city: string;
+    orderCount: number;
+    laundryTaxable: number;
+    laundryGst: number;
+    remittedBy: string;
+    taxClassification: string;
+  }>;
+  tdsTcsList?: Array<{
+    partnerId: string;
+    businessName: string;
+    pan: string;
+    gstin: string;
+    taxableSupplies: number;
+    section52Tcs: number;
+    section194OTds: number;
+    tcsForm: string;
+    tdsForm: string;
+    complianceStatus: string;
+  }>;
+  challansList?: Array<{
+    id: string;
+    cpin: string;
+    cin: string;
+    taxPeriod: string;
+    paymentDate: string;
+    cgstPaid: number;
+    sgstPaid: number;
+    igstPaid: number;
+    cessPaid?: number;
+    interestFee?: number;
+    totalChallanAmount: number;
+    bankName: string;
+    bankBsrc?: string;
+    paymentMode: string;
+    status: string;
+    notes?: string;
+  }>;
+  expensesList?: Array<{
+    id: string;
+    title: string;
+    vendorName: string;
+    vendorGstin?: string;
+    invoiceNumber: string;
+    invoiceDate: string;
+    category: string;
+    baseAmount: number;
+    gstRate: number;
+    cgst: number;
+    sgst: number;
+    igst: number;
+    taxAmount: number;
+    amount: number;
+    itcEligible: boolean;
+    itcStatus: string;
+    paymentMode: string;
+    status: string;
+    notes?: string;
+  }>;
   gstr3bLedger?: Array<{
     sacCode: string;
     natureOfSupply: string;
@@ -1290,6 +1402,175 @@ export interface TaxCenterResponse {
 
 export async function fetchTaxCenter(): Promise<TaxCenterResponse> {
   return await apiGetJson("/api/finance-engine/tax-center");
+}
+
+export async function recordTaxChallan(payload: {
+  taxPeriod: string;
+  cpin: string;
+  cin: string;
+  paymentDate: string;
+  cgstPaid: number;
+  sgstPaid: number;
+  igstPaid: number;
+  cessPaid?: number;
+  interestFee?: number;
+  totalChallanAmount?: number;
+  bankName: string;
+  bankBsrc?: string;
+  paymentMode?: string;
+  notes?: string;
+}): Promise<{ ok: boolean; challan: any }> {
+  return await apiPostJson("/api/finance-engine/tax-challans", payload);
+}
+
+export async function deleteTaxChallan(challanId: string): Promise<{ ok: boolean; deletedId: string }> {
+  return await apiPostJson(`/api/finance-engine/tax-challans/${challanId}/delete`, {});
+}
+
+export async function generateGstr1Report(period?: string): Promise<{
+  ok: boolean;
+  reportType: string;
+  period: string;
+  legalEntity: string;
+  gstin: string;
+  jsonSchema: any;
+  csvData: string;
+  generatedAt: string;
+}> {
+  const url = period ? `/api/finance-engine/reports/gstr1?period=${period}` : "/api/finance-engine/reports/gstr1";
+  return await apiGetJson(url);
+}
+
+export async function generateGstr3bReport(period?: string): Promise<{
+  ok: boolean;
+  reportType: string;
+  period: string;
+  legalEntity: string;
+  gstin: string;
+  jsonSchema: any;
+  csvData: string;
+  generatedAt: string;
+}> {
+  const url = period ? `/api/finance-engine/reports/gstr3b?period=${period}` : "/api/finance-engine/reports/gstr3b";
+  return await apiGetJson(url);
+}
+
+export interface BusinessExpense {
+  id: string;
+  title: string;
+  vendorName: string;
+  vendorGstin?: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  category: string;
+  baseAmount: number;
+  gstRate: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  taxAmount: number;
+  amount: number;
+  itcEligible: boolean;
+  itcStatus: string;
+  paymentMode: string;
+  status: string;
+  notes?: string;
+  addedBy?: string;
+  date: string;
+  createdAt?: string;
+}
+
+export interface ExpensesResponse {
+  ok: boolean;
+  expenses: BusinessExpense[];
+  totalCount: number;
+  totalOpex: number;
+  totalBaseAmount: number;
+  totalGstPaid: number;
+  totalEligibleItc: number;
+  byCategory: Record<string, number>;
+  itcByCategory: Record<string, number>;
+}
+
+export async function fetchBusinessExpenses(category?: string, limit: number = 200): Promise<ExpensesResponse> {
+  const params = new URLSearchParams();
+  if (category && category !== "ALL") params.append("category", category);
+  params.append("limit", limit.toString());
+  return await apiGetJson(`/api/finance-engine/expenses?${params.toString()}`);
+}
+
+export async function addBusinessExpense(payload: {
+  title?: string;
+  vendorName: string;
+  vendorGstin?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  category: string;
+  baseAmount?: number;
+  gstRate?: number;
+  amount?: number;
+  itcEligible?: boolean;
+  paymentMode?: string;
+  notes?: string;
+}): Promise<{ ok: boolean; expense: BusinessExpense }> {
+  return await apiPostJson("/api/finance-engine/expenses", payload);
+}
+
+export async function deleteBusinessExpense(expenseId: string): Promise<{ ok: boolean; deletedId: string }> {
+  return await apiPostJson(`/api/finance-engine/expenses/${expenseId}/delete`, {});
+}
+
+export interface CustomerDepositsSummaryResponse {
+  ok: boolean;
+  summary: {
+    totalCustomerDeposits: number;
+    totalWalletBalanceOutstanding: number;
+    totalWalletConsumedInOrders: number;
+    totalPromoCreditsOutstanding: number;
+    totalCustomerWalletsCount: number;
+    averageWalletBalance: number;
+    activeDepositorsRatio: string;
+  };
+  customerLedger: Array<{
+    userId: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    walletBalance: number;
+    rewardBalance: number;
+    membershipCredits: number;
+    totalDeposits: number;
+    totalSpent: number;
+    txnCount: number;
+    status: string;
+    lastActive: string;
+  }>;
+  recentTransactions: Array<{
+    id: string;
+    userId: string;
+    customerName: string;
+    customerPhone: string;
+    kind: string;
+    direction: "credit" | "debit";
+    amount: number;
+    balanceAfter: number;
+    method: string;
+    status: string;
+    date: string;
+    description: string;
+  }>;
+}
+
+export async function fetchCustomerDepositsSummary(): Promise<CustomerDepositsSummaryResponse> {
+  return await apiGetJson("/api/finance-engine/customer-deposits/summary");
+}
+
+export async function fetchCustomerWalletHistory(userId: string): Promise<{
+  ok: boolean;
+  customer?: any;
+  transactions: Array<any>;
+}> {
+  return await apiGetJson(`/api/finance-engine/customer-deposits/history/${userId}`);
 }
 
 // --------------------------------------------------------------------------

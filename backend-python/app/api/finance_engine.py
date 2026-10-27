@@ -489,6 +489,53 @@ async def get_tax_compliance_center() -> Dict[str, Any]:
     return await unified_finance_service.get_tax_compliance_center()
 
 
+@router.get("/tax-challans", summary="Get Statutory GST Challan Payments")
+async def get_tax_challans() -> Dict[str, Any]:
+    """Returns all recorded GST Challan PMT-06 payments offsetting tax liability."""
+    return await unified_finance_service.get_tax_challans()
+
+
+@router.post("/tax-challans", summary="Record Statutory GST Challan Payment")
+async def record_tax_challan(
+    body: Dict[str, Any],
+    user: Optional[User] = Depends(optional_user),
+) -> Dict[str, Any]:
+    """Records a verified GST Challan payment directly deducting from outward liability."""
+    admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("paidBy") or "super_admin"
+    return await unified_finance_service.record_tax_challan(data=body, admin_id=str(admin_id))
+
+
+@router.delete("/tax-challans/{challan_id}", summary="Delete GST Challan Payment")
+@router.post("/tax-challans/{challan_id}/delete", summary="Delete GST Challan Payment (POST fallback)")
+async def delete_tax_challan(challan_id: str) -> Dict[str, Any]:
+    """Reverses a GST Challan entry."""
+    return await unified_finance_service.delete_tax_challan(challan_id=challan_id)
+
+
+@router.get("/reports/gstr1", summary="Generate GSTR-1 Return Report")
+async def generate_gstr1_report(period: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+    """Generates official GST Portal-compatible GSTR-1 JSON schema and CSV report."""
+    return await unified_finance_service.generate_gstr1_report(period=period)
+
+
+@router.get("/reports/gstr3b", summary="Generate GSTR-3B Return Report")
+async def generate_gstr3b_report(period: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+    """Generates official GST Portal-compatible GSTR-3B summary JSON schema and CSV report."""
+    return await unified_finance_service.generate_gstr3b_report(period=period)
+
+
+@router.get("/customer-deposits/summary", summary="Customer Deposits & Wallet Advances Ledger")
+async def get_customer_deposits_summary() -> Dict[str, Any]:
+    """Returns aggregate customer wallet deposits, advance liabilities, and transaction ledger."""
+    return await unified_finance_service.get_customer_deposits_summary()
+
+
+@router.get("/customer-deposits/history/{user_id}", summary="Customer Wallet Passbook History")
+async def get_customer_wallet_history(user_id: str) -> Dict[str, Any]:
+    """Returns detailed transaction passbook for an individual customer wallet."""
+    return await unified_finance_service.get_customer_wallet_history(user_id=user_id)
+
+
 # --------------------------------------------------------------------------
 # 14. PHASE 4: TREASURY CENTER, BANK ACCOUNTS & CASH POSITIONING
 # --------------------------------------------------------------------------

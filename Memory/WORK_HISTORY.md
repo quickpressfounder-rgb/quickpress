@@ -2042,3 +2042,56 @@ This single command will automatically:
   - Local build `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 2.04s)**.
   - Fixed missing `ArrowRight` icon import in `FinanceOverviewCommandCenter.tsx`.
   - Pushed to `main` and deployed live to EC2 (`65.0.127.43`).
+
+### 33. Statutory Tax Center Overhaul: 4 Live KPIs, GSTR-1 & GSTR-3B Generators, GST Challan Balance Offset, Expenses & ITC Register, and Customer Deposits Ledger
+- **User Request:**
+  - `tex center me kpi add toady collect tax pletform, partner gst ,tds kle kpi banao or unke ander usnka full data`
+  - `or iske ander gstr-1 ke liye report gernet or gstr 3 ke liye bhi gernet karna ha buton`
+  - `or hum gst paid karne ke baad yaha add ki humne itne baar diya to humara balane me add ho gaye ki humne is month ka gst baar kiya hai`
+  - `or iske expencess ka bhi banato jaha jaha humne gst diya hai kyunki humklo bhi to itc lena hai jisme hum apne expensess add kar sake`
+  - `or oiske baad humare projet me customer ne kitne deposti kiya or or kitna balace hai or Etc etc bnana hai`
+  - `or finanance rule bhi check karo sab sahi hai testing karo unki`
+- **Implementation Details:**
+  1. **Tax Center 4 Executive Interactive KPIs:**
+     - **Today Collected Tax**: Live tax collected from orders placed today with real order counts, CGST, and SGST breakdowns. "View Today Orders" drilldown opens modal with individual orders.
+     - **Platform Tax / GST**: Direct statutory liability under SAC 9983 (Platform Brokerage Fee) and SAC 9968 (Express Logistics). "Platform Fee Breakdown" drilldown reveals order-level platform tax.
+     - **Partner GST**: Split into Section 9(5) Platform Remitted (unregistered small stores) vs Registered Store B2B tax. "Partner Stores Audit" drilldown displays store-level tax audit.
+     - **TDS & TCS Deductions**: Section 194-O TDS (1%) and Section 52 TCS (1%) withholdings. "Withholding Statements" drilldown provides store PAN and challan forms.
+  2. **GST Challan Paid (Form PMT-06) & Net Balance Offset Banner:**
+     - Automatic mathematical waterfall: `Gross Outward Tax - Eligible ITC Credit - Verified Challans Paid = Net Balance Due`.
+     - Displays "GST COMPLIANT — Current Period Tax Fully Settled via Verified Challan" badge when liability is settled.
+     - "Record GST Challan Payment" modal capturing CPIN (14 digits), CIN, Bank Reference, Payment Date, CGST/SGST/IGST paid, Bank Account used, and Notes.
+     - Verified Challans ledger table with instant reversal/delete functionality.
+  3. **Official GSTR-1 & GSTR-3B Return Generators:**
+     - "GSTR-1 Report" button: Generates official GST Portal-compatible JSON schema and CSV report for outward supplies under Section 9(5).
+     - "GSTR-3B Report" button: Generates Table 3.1 outward tax, Table 4 eligible ITC offset, and payment summary JSON schema and CSV report.
+     - One-click instant file download (`.json` and `.csv`).
+  4. **Business Operating Expenses & Input Tax Credit (ITC) Purchase Register:**
+     - Tracks corporate OPEX purchases where QuickPress pays GST (Servers/APIs, Marketing, Packaging, Hub Detergent, Equipment).
+     - Computes total eligible ITC claimed to offset outward tax liability.
+     - "Log New Business Expense" modal to add vendor name, vendor GSTIN, category, invoice number, invoice date, base amount, GST rate (18%, 12%, 5%, 28%), and ITC eligibility.
+     - Expense ledger table with delete capability.
+  5. **Customer Advance Deposits & Wallet Command Center:**
+     - Tracks total customer deposits (Razorpay/UPI top-ups), active unearned wallet liability held in escrow, amounts consumed at checkout for orders, and active wallets count.
+     - Searchable Customer Accounts Ledger with individual customer balances, lifetime deposits, lifetime spends, and "Passbook" action modal showing chronological credit/debit audit transactions.
+  6. **Automated Mathematical Precision & Zero-Rounding-Loss Test Suite:**
+     - Created `backend-python/tests/test_finance_rules_precision.py` verifying:
+       - Service pricing positive rate checks across all categories.
+       - GST component mathematical precision (odd pennies rounding).
+       - Tiered commission slabs (18% / 15% / 12%) and Section 194-O TCS (1%).
+       - Distance-based delivery fee brackets (0-2km ₹30, 2-5km ₹40, 5-8km ₹60, 8-12km ₹90, 12+km ₹120).
+       - Double-entry settlement equation balancing with zero rounding loss:
+         `Customer Payable == Partner Net Payout + Rider Payout + QuickPress Net Margin + Statutory Tax Remittance`.
+     - Test passed with 100% success!
+- **Modified Files:**
+  - `backend-python/app/services/unified_finance_service.py`
+  - `backend-python/app/api/finance_engine.py`
+  - `backend-python/tests/test_finance_rules_precision.py`
+  - `admin-frontend/src/api/finance-api.ts`
+  - `admin-frontend/src/components/finance/TaxComplianceCenterView.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - Backend tests: `PYTHONPATH=. ./venv/bin/python3 tests/test_finance_rules_precision.py`: **ALL 5 PRECISION TESTS PASSED (100% SUCCESS)**.
+  - Frontend build: `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 3.53s)**.
+  - Pushed to `main` and deployed live to EC2 (`65.0.127.43`).
+
