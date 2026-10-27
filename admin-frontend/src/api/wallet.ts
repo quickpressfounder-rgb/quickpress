@@ -30,9 +30,12 @@ export type AccountWallet = {
   totalSpent: number;
   codCashInHand: number;
   pendingPayout: number;
-  status: "Active" | "Suspended";
+  status: "Active" | "Blocked" | "Suspended";
   bank?: { accountNumber: string; ifsc: string; upi: string } | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
+
 
 export type Payout = {
   id: string;
@@ -117,6 +120,37 @@ export async function adjustWalletBalance(payload: {
 }) {
   return await apiPostJson<{ accountId: string; previousBalance: number; newBalance: number }>("/api/admin/wallet/adjust", payload);
 }
+
+export async function toggleWalletBlock(payload: {
+  accountId: string;
+  role: "customer" | "partner" | "rider";
+  block: boolean;
+  reason?: string;
+}): Promise<{ accountId: string; status: string; isBlocked: boolean; reason: string }> {
+  return await apiPostJson("/api/admin/wallet/toggle-block", payload);
+}
+
+export type AccountHistoryItem = {
+  id: string;
+  date: string;
+  kind: string;
+  type: "credit" | "debit" | "block" | "unblock";
+  amount: number;
+  balanceAfter?: number | null;
+  status: string;
+  reason: string;
+  refOrder?: string;
+};
+
+export async function fetchAccountWalletHistory(accountId: string): Promise<AccountHistoryItem[]> {
+  try {
+    const rows = await apiGetJson<AccountHistoryItem[]>(`/api/admin/wallet/${accountId}/history`);
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
 
 export async function fetchFinanceKpis(): Promise<Kpi[]> {
   try {

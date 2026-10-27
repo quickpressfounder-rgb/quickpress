@@ -1545,6 +1545,59 @@ This single command will automatically:
   - `npm run build` in `admin-frontend`: **PASSED (0 errors)**.
   - `python3 -m py_compile backend-python/app/db/admin_repositories.py`: **PASSED (0 errors)**.
 
+---
+
+## 35. Enterprise Multi-Role Wallet Management, Statements, Recharge/Deduct & 5-Dimensional Filters
+- **Date & Timestamp:** 2026-10-27T12:50:00+05:30
+- **Status:** COMPLETED & VERIFIED
+- **Architectural & Design Decisions:**
+  - **1. Multi-Role User Wallet Directory & Management:**
+    - Supports **Customer**, **Partner Laundromat Hub**, and **Delivery Captain** accounts in a unified financial clearing house.
+    - Standardized wallet statuses across backend repositories and frontend: `"Active"` vs `"Blocked"` / `"Frozen"`.
+    - Returns timestamps (`createdAt`, `updatedAt`) for date range telemetry.
+  - **2. Universal 5-Dimensional Filter System:**
+    - **Role Filter:** All Roles, Customers Only, Partner Store Hubs Only, Delivery Captains Only.
+    - **Status Filter:** All Status, Active Accounts, Blocked / Frozen Accounts.
+    - **Operating City / Area Hub Filter:** All Operating Hubs, and dynamically extracted unique cities (`availableCities`).
+    - **Date Range Filter:** All Time, Today, Yesterday, Last 7 Days, Last 30 Days, This Month.
+    - **Universal Search:** Instant debounce matching across user name, phone, city, ID, and role.
+    - **Sort By Engine:** Highest Balance First, Lowest Balance First, Most Earned, Most Spent, Name A-Z.
+    - **Active Summary Strip:** Live indicator displaying matching user count, combined pool GMV (`₹`), active count, blocked count, and a 1-click `Reset All Filters` button.
+  - **3. Instant Manual Wallet Recharge (Credit) & Deduct (Debit):**
+    - Enhanced `AdjustBalanceDialog`:
+      - Dynamic toggle between ➕ **Recharge (Credit)** and ➖ **Deduct (Debit)**.
+      - 7 Quick Amount Presets: `+₹50`, `+₹100`, `+₹250`, `+₹500`, `+₹1,000`, `+₹2,000`, `+₹5,000`.
+      - Real-Time Calculation Preview banner: `Previous Balance ➔ Adjustment (±) ➔ New Calculated Balance`.
+      - Auto warning if debit deduction exceeds available balance.
+      - Enterprise Reason category dropdown with specific operational presets + optional custom internal audit remarks.
+  - **4. Global Manual Recharge / Deduct Dialog (`GlobalAdjustWalletDialog`):**
+    - Accessible directly from the top action bar (`⚡ Manual Recharge / Deduct`).
+    - Provides a searchable user picker across all Customers, Partner Stores, and Delivery Captains.
+    - Allows immediate recharge or deduction on any user without needing to find them in the table first.
+  - **5. User-Specific Payment History & Statement Ledger (`UserWalletStatementDialog`):**
+    - High-density statement modal rendering user profile header (Name, Phone, City, Role, Security Status).
+    - 3-tile metric summary: Current Balance, Inflow (Total Credits), Outflow (Total Debits).
+    - Double-entry statement ledger table: Date & Time, Txn ID, Order Code, Type & Amount (+₹ in emerald, -₹ in red), Audit Reason, and Status.
+    - Dedicated CSV Export button downloading `statement_{username}_{id}.csv`.
+  - **6. Wallet Security Lock / Unlock Controls (`BlockWalletDialog`):**
+    - 1-click toggle to freeze/lock or unfreeze any user's wallet with security reason selection.
+    - Freezing locks balance from being used for new orders, recharges, or payout disbursements.
+    - Logs audit security record into `admin_wallet_transactions`.
+  - **7. Top Financial Metric Strip (6 KPIs):**
+    - Aggregates live pool telemetry: Platform Escrow Pool, Customer Float Pool, Partner Store Balances, Delivery Fleet Balances, Fleet COD Float in Hand, and Frozen / Blocked Wallets.
+  - **8. Directory CSV Export:**
+    - Top action bar `Export CSV` downloads full filtered wallet records with timestamp, role, balance, earned, spent, and COD float.
+- **Modified Files:**
+  - `backend-python/app/db/admin_repositories.py`
+  - `backend-python/app/api/admin.py`
+  - `admin-frontend/src/api/wallet.ts`
+  - `admin-frontend/src/routes/wallet.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build` in `admin-frontend`: **PASSED (0 errors)**.
+  - `python3 -m py_compile backend-python/app/api/admin.py backend-python/app/db/admin_repositories.py`: **PASSED (0 errors)**.
+
+
 
 
 

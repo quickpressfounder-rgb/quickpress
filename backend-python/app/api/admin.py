@@ -2009,6 +2009,23 @@ async def adjust_any_wallet(payload: dict, user: User = Depends(current_user)):
     return res
 
 
+@router.post("/wallet/toggle-block")
+async def toggle_wallet_block(payload: dict, user: User = Depends(current_user)):
+    account_id = str(payload.get("accountId") or payload.get("id"))
+    role = str(payload.get("role") or "customer").lower()
+    block = bool(payload.get("block", True))
+    reason = str(payload.get("reason") or "Administrative Security Action")
+    res = await admin_wallet_repository.toggle_wallet_block(account_id, role, block, reason, user.id)
+    await audit_repository.log(await _actor(user), f"wallet.{'block' if block else 'unblock'}", account_id, payload)
+    return res
+
+
+@router.get("/wallet/{account_id}/history")
+async def get_account_wallet_history(account_id: str, user: User = Depends(current_user)):
+    return await admin_wallet_repository.account_history(account_id)
+
+
+
 @router.get("/wallet")
 async def wallet(user: User = Depends(current_user)):
     return await admin_wallet_repository.wallet()

@@ -34,8 +34,21 @@ import {
   AlertCircle,
   HelpCircle,
   RefreshCwOff,
+  Lock,
+  Unlock,
+  History,
+  FileText,
+  SlidersHorizontal,
+  MapPin,
+  Calendar,
+  ArrowUpDown,
+  PlusCircle,
+  MinusCircle,
+  Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
+
 
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -63,6 +76,8 @@ import { DataTable, SectionCard, StatusPill, KpiCard } from "../components/Admin
 import { RevenueAreaChart } from "../components/AdminCharts";
 import {
   adjustWalletBalance,
+  toggleWalletBlock,
+  fetchAccountWalletHistory,
   approveAdminRefund,
   approveWithdrawal,
   fetchAdminRefunds,
@@ -81,11 +96,13 @@ import {
   batchDisburseSettlements,
   approveSettlementRecord,
   type AccountWallet,
+  type AccountHistoryItem,
   type Payout,
   type RefundRecord,
   type SettlementsOverview,
   type SettlementRecordItem,
 } from "../api/wallet";
+
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 
@@ -112,12 +129,19 @@ export function WalletPage() {
   const refundStatsQuery = useQuery({ queryKey: ["admin", "finance", "refund-stats"], queryFn: fetchAdminRefundsStats });
   const settlementsQuery = useQuery({ queryKey: ["admin", "finance", "settlements-overview"], queryFn: fetchSettlementsOverview });
 
-  const [activeTab, setActiveTab] = useState<"settlements" | "wallets" | "refunds" | "withdrawals" | "split" | "ledger" | "cod">("settlements");
+  const [activeTab, setActiveTab] = useState<"wallets" | "settlements" | "refunds" | "withdrawals" | "split" | "ledger" | "cod">("wallets");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all");
+  const [cityFilter, setCityFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "yesterday" | "7d" | "30d" | "this_month">("all");
+  const [sortBy, setSortBy] = useState<"balance_desc" | "balance_asc" | "earned_desc" | "spent_desc" | "name_asc">("balance_desc");
   const [settlementRoleFilter, setSettlementRoleFilter] = useState<"all" | "partner" | "rider">("all");
   const [settlementStatusFilter, setSettlementStatusFilter] = useState<"all" | "settled" | "pending">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [adjustTarget, setAdjustTarget] = useState<AccountWallet | null>(null);
+  const [statementTarget, setStatementTarget] = useState<AccountWallet | null>(null);
+  const [blockTarget, setBlockTarget] = useState<AccountWallet | null>(null);
+  const [globalAdjustOpen, setGlobalAdjustOpen] = useState(false);
 
   const allWallets = walletsQuery.data ?? [];
   const allWithdrawals = withdrawalsQuery.data ?? [];
@@ -182,14 +206,174 @@ export function WalletPage() {
     onError: () => toast.error("Failed to approve settlement."),
   });
 
+  // Unique available cities from active accounts
+  const availableCities = useMemo(() => {
+    const set = new Set<string>();
+    allWallets.forEach((w) => {
+      if (w.city && w.city.trim()) set.add(w.city.trim());
+    });
+    return Array.from(set).sort();
+  }, [allWallets]);
+
+  // Date filter evaluator
+  const matchesDateFilter = (isoStr?: string, filter: string = "all") => {
+    if (filter === "all" || !isoStr) return true;
+    try {
+      const d = new Date(isoStr);
+      const now = new Date();
+      if (isNaN(d.getTime())) return true;
+      if (filter === "today") {
+        return d.toDateString() === now.toDateString();
+      }
+      if (filter === "yesterday") {
+        const y = new Date(now);
+        y.setDate(y.getDate() - 1);
+        return d.toDateString() === y.toDateString();
+      }
+      if (filter === "7d") {
+        const diff = now.getTime() - d.getTime();
+        return diff <= 7 * 24 * 60 * 60 * 1000;
+      }
+      if (filter === "30d") {
+        const diff = now.getTime() - d.getTime();
+        return diff <= 30 * 24 * 60 * 60 * 1000;
+      }
+      if (filter === "this_month") {
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }
+    } catch {
+      return true;
+    }
+    return true;
+  };
+
+  // Filtered and sorted wallets
   const filteredWallets = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return allWallets.filter((w) => {
-      const matchSearch = !q || [w.name, w.phone, w.city, w.role, w.id].join(" ").toLowerCase().includes(q);
+    const result = allWallets.filter((w) => {
+      const matchSearch =
+        !q ||
+        [w.name, w.phone, w.city, w.role, w.id, w.status]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
       const matchRole = roleFilter === "all" || w.role.toLowerCase() === roleFilter.toLowerCase();
-      return matchSearch && matchRole;
+      const isBlocked = w.status === "Blocked" || (w as any).isBlocked === true;
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "blocked" ? isBlocked : !isBlocked);
+      const matchCity =
+        cityFilter === "all" || (w.city && w.city.toLowerCase() === cityFilter.toLowerCase());
+      const matchDate = matchesDateFilter(w.updatedAt || w.createdAt, dateFilter);
+      return matchSearch && matchRole && matchStatus && matchCity && matchDate;
     });
-  }, [allWallets, searchQuery, roleFilter]);
+
+    return [...result].sort((a, b) => {
+      if (sortBy === "balance_desc") return b.balance - a.balance;
+      if (sortBy === "balance_asc") return a.balance - b.balance;
+      if (sortBy === "earned_desc") return b.totalEarned - a.totalEarned;
+      if (sortBy === "spent_desc") return (b.totalSpent ?? 0) - (a.totalSpent ?? 0);
+      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+      return 0;
+    });
+  }, [allWallets, searchQuery, roleFilter, statusFilter, cityFilter, dateFilter, sortBy]);
+
+  // Aggregate metrics summary for KPIs
+  const walletSummary = useMemo(() => {
+    let totalBalance = 0;
+    let customerBalance = 0;
+    let partnerBalance = 0;
+    let riderBalance = 0;
+    let codFloat = 0;
+    let blockedCount = 0;
+
+    allWallets.forEach((w) => {
+      totalBalance += w.balance || 0;
+      if (w.role === "customer") customerBalance += w.balance || 0;
+      if (w.role === "partner") partnerBalance += w.balance || 0;
+      if (w.role === "rider") {
+        riderBalance += w.balance || 0;
+        if (w.codBalance) codFloat += w.codBalance;
+      }
+      if (w.status === "Blocked" || (w as any).isBlocked) {
+        blockedCount += 1;
+      }
+    });
+
+    let filteredTotal = 0;
+    filteredWallets.forEach((w) => {
+      filteredTotal += w.balance || 0;
+    });
+
+    return {
+      totalBalance,
+      customerBalance,
+      partnerBalance,
+      riderBalance,
+      codFloat,
+      blockedCount,
+      filteredTotal,
+    };
+  }, [allWallets, filteredWallets]);
+
+  const isWalletFiltered =
+    searchQuery.trim() !== "" ||
+    roleFilter !== "all" ||
+    statusFilter !== "all" ||
+    cityFilter !== "all" ||
+    dateFilter !== "all" ||
+    sortBy !== "balance_desc";
+
+  const resetWalletFilters = () => {
+    setSearchQuery("");
+    setRoleFilter("all");
+    setStatusFilter("all");
+    setCityFilter("all");
+    setDateFilter("all");
+    setSortBy("balance_desc");
+  };
+
+  const handleExportWalletsCsv = () => {
+    const headers = [
+      "Account ID",
+      "Name",
+      "Role",
+      "Phone",
+      "City",
+      "Available Balance (INR)",
+      "Total Earned (INR)",
+      "Total Spent (INR)",
+      "COD Float (INR)",
+      "Status",
+      "Last Activity",
+    ];
+    const rows = filteredWallets.map((w) => [
+      w.id,
+      w.name,
+      w.role,
+      w.phone,
+      w.city || "N/A",
+      w.balance.toFixed(2),
+      w.totalEarned.toFixed(2),
+      (w.totalSpent ?? 0).toFixed(2),
+      (w.codBalance ?? 0).toFixed(2),
+      w.status,
+      w.updatedAt || w.createdAt || "N/A",
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.map((x) => `"${String(x ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `quickpress_wallets_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Wallets directory exported as CSV! 📊");
+  };
 
   const filteredRefunds = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -219,6 +403,25 @@ export function WalletPage() {
         <div className="flex items-center gap-2">
           <Button
             size="sm"
+            onClick={() => setGlobalAdjustOpen(true)}
+            className="h-8 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold shadow-xs"
+          >
+            <PlusCircle className="size-3.5 mr-1.5 text-emerald-400" />
+            <span>Manual Recharge / Deduct</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportWalletsCsv}
+            className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
+          >
+            <Download className="size-3.5 mr-1.5 text-zinc-500" />
+            <span>Export CSV</span>
+          </Button>
+
+          <Button
+            size="sm"
             variant="outline"
             onClick={() => {
               walletsQuery.refetch();
@@ -246,27 +449,27 @@ export function WalletPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <KpiCard
             kpi={{
-              id: "gmv-tot",
-              label: "Nationwide GMV",
-              value: (kpisQuery.data ?? []).find((k) => k.id === "revenue")?.value || "₹0.00",
-              hint: "18% Platform commission",
+              id: "tot-escrow",
+              label: "Platform Escrow Pool",
+              value: `₹${walletSummary.totalBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              hint: `${allWallets.length} registered wallets`,
               positive: true,
             }}
           />
           <KpiCard
             kpi={{
-              id: "comm-earned",
-              label: "Platform Revenue",
-              value: (kpisQuery.data ?? []).find((k) => k.id === "commission")?.value || "₹0.00",
-              hint: "Realized commission",
+              id: "cust-pool",
+              label: "Customer Float Pool",
+              value: `₹${walletSummary.customerBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              hint: `${allWallets.filter((w) => w.role === "customer").length} Customer Accounts`,
               positive: true,
             }}
           />
           <KpiCard
             kpi={{
               id: "partner-escrow",
-              label: "Partner Escrow (70%)",
-              value: (kpisQuery.data ?? []).find((k) => k.id === "partner_payouts")?.value || "₹0.00",
+              label: "Partner Store Balances",
+              value: `₹${walletSummary.partnerBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
               hint: `${allWallets.filter((w) => w.role === "partner").length} Partner Stores`,
               positive: true,
             }}
@@ -274,28 +477,28 @@ export function WalletPage() {
           <KpiCard
             kpi={{
               id: "rider-escrow",
-              label: "Fleet Earnings (12%)",
-              value: (kpisQuery.data ?? []).find((k) => k.id === "rider_earnings")?.value || "₹0.00",
+              label: "Delivery Fleet Balances",
+              value: `₹${walletSummary.riderBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
               hint: `${allWallets.filter((w) => w.role === "rider").length} Active Captains`,
               positive: true,
             }}
           />
           <KpiCard
             kpi={{
-              id: "tot-refunds",
-              label: "Refunds Processed",
-              value: refundStats?.totalRefundedAmount || "₹0.00",
-              hint: `${allRefunds.length} Refund orders`,
-              positive: true,
+              id: "fleet-cod",
+              label: "Fleet COD Float in Hand",
+              value: `₹${walletSummary.codFloat.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              hint: walletSummary.codFloat > 0 ? "Pending rider cash deposit" : "All cash cleared",
+              positive: walletSummary.codFloat === 0,
             }}
           />
           <KpiCard
             kpi={{
-              id: "pending-claims",
-              label: "Pending Claims",
-              value: `${refundStats?.pendingClaimsCount || 0} Claims`,
-              hint: "Awaiting staff action",
-              positive: (refundStats?.pendingClaimsCount || 0) === 0,
+              id: "blocked-wallets",
+              label: "Frozen / Blocked Wallets",
+              value: `${walletSummary.blockedCount} Accounts`,
+              hint: walletSummary.blockedCount > 0 ? "Under security freeze" : "Zero frozen accounts",
+              positive: walletSummary.blockedCount === 0,
             }}
           />
         </div>
@@ -525,58 +728,152 @@ export function WalletPage() {
         {activeTab === "wallets" && (
           <SectionCard
             title="Unified Accounts & Wallets Directory"
-            description="Inspect balances across Customer, Partner Hubs, and Delivery Rider accounts."
+            description="Manage and audit customer, partner hub, and rider fleet balances with instant recharge, deduction, statement ledger, and wallet freeze controls."
           >
-            <div className="pb-4 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100">
-              <div className="relative w-full max-w-sm">
-                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name, phone, city, or ID..."
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                />
-              </div>
+            {/* Multi-Dimensional Filter Controls */}
+            <div className="space-y-3 pb-4 border-b border-zinc-100">
+              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-6">
+                {/* Search */}
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search name, phone, city, or ID..."
+                    className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-8 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-2">
+                {/* Role Filter */}
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="h-9 w-44 rounded-xl bg-white text-xs border-zinc-200">
+                  <SelectTrigger className="h-9 rounded-xl bg-white text-xs border-zinc-200">
                     <SelectValue placeholder="All Roles" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">🌐 All Account Types</SelectItem>
-                    <SelectItem value="customer">👤 Customers</SelectItem>
-                    <SelectItem value="partner">🏪 Partner Store Hubs</SelectItem>
-                    <SelectItem value="rider">🚴 Delivery Captains</SelectItem>
+                    <SelectItem value="all">🌐 All Roles ({allWallets.length})</SelectItem>
+                    <SelectItem value="customer">👤 Customers ({allWallets.filter((w) => w.role === "customer").length})</SelectItem>
+                    <SelectItem value="partner">🏪 Partner Stores ({allWallets.filter((w) => w.role === "partner").length})</SelectItem>
+                    <SelectItem value="rider">🚴 Captains ({allWallets.filter((w) => w.role === "rider").length})</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                  <SelectTrigger className="h-9 rounded-xl bg-white text-xs border-zinc-200">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">🛡️ All Status</SelectItem>
+                    <SelectItem value="active">🟢 Active Accounts</SelectItem>
+                    <SelectItem value="blocked">🔴 Blocked / Frozen</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* City / Hub Filter */}
+                <Select value={cityFilter} onValueChange={setCityFilter}>
+                  <SelectTrigger className="h-9 rounded-xl bg-white text-xs border-zinc-200">
+                    <SelectValue placeholder="All Hubs" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">📍 All Operating Hubs</SelectItem>
+                    {availableCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Date Activity Filter */}
+                <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
+                  <SelectTrigger className="h-9 rounded-xl bg-white text-xs border-zinc-200">
+                    <SelectValue placeholder="Date Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">📅 All Time</SelectItem>
+                    <SelectItem value="today">⚡ Today</SelectItem>
+                    <SelectItem value="yesterday">⏳ Yesterday</SelectItem>
+                    <SelectItem value="7d">🗓️ Last 7 Days</SelectItem>
+                    <SelectItem value="30d">🗓️ Last 30 Days</SelectItem>
+                    <SelectItem value="this_month">📆 This Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort By & Summary Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-zinc-900">
+                    Showing {filteredWallets.length} of {allWallets.length} accounts
+                  </span>
+                  <span className="text-zinc-300">•</span>
+                  <span className="text-zinc-600">
+                    Combined Float Pool: <strong className="text-zinc-950 font-black">₹{walletSummary.filteredTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                  </span>
+                  {isWalletFiltered && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={resetWalletFilters}
+                      className="h-6 px-2 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
+                    >
+                      <X className="size-3 mr-1" /> Reset All Filters
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-zinc-500 font-bold">Sort:</span>
+                  <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                    <SelectTrigger className="h-7 w-44 rounded-lg bg-zinc-50 text-[11px] font-bold border-zinc-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="balance_desc">💰 Balance (High to Low)</SelectItem>
+                      <SelectItem value="balance_asc">🪙 Balance (Low to High)</SelectItem>
+                      <SelectItem value="earned_desc">📈 Total Earned</SelectItem>
+                      <SelectItem value="spent_desc">🛍️ Total Spent</SelectItem>
+                      <SelectItem value="name_asc">🔤 Name (A - Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
             <DataTable
               loading={walletsQuery.isLoading}
               rows={filteredWallets}
-              emptyMessage="No wallets match your search."
+              emptyMessage="No wallets match the specified filters. Try resetting filters."
               columns={[
                 {
                   key: "name",
-                  label: "Account Name & Role",
+                  label: "Account Identity & Hub",
                   render: (w) => (
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`flex size-8 items-center justify-center rounded-xl font-bold text-xs ${
+                        className={`flex size-8 shrink-0 items-center justify-center rounded-xl font-bold text-xs ${
                           w.role === "customer"
-                            ? "bg-purple-50 text-purple-700"
+                            ? "bg-purple-50 text-purple-700 border border-purple-100"
                             : w.role === "partner"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-sky-50 text-sky-700"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                            : "bg-sky-50 text-sky-700 border border-sky-100"
                         }`}
                       >
                         {w.role === "customer" ? <User className="size-4" /> : w.role === "partner" ? <Store className="size-4" /> : <Bike className="size-4" />}
                       </div>
-                      <div>
-                        <p className="font-bold text-zinc-900 text-xs">{w.name}</p>
-                        <p className="text-[10px] text-zinc-400">{w.phone} · {w.city}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-zinc-950 text-xs truncate">{w.name}</p>
+                        <p className="text-[10px] text-zinc-500 font-mono">
+                          {w.phone} · <span className="font-sans">{w.city || "Kasganj Hub"}</span>
+                        </p>
                       </div>
                     </div>
                   ),
@@ -586,7 +883,7 @@ export function WalletPage() {
                   label: "Account Role",
                   render: (w) => (
                     <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
+                      className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
                         w.role === "customer"
                           ? "bg-purple-50 text-purple-800 border border-purple-200"
                           : w.role === "partner"
@@ -594,7 +891,7 @@ export function WalletPage() {
                           : "bg-sky-50 text-sky-800 border border-sky-200"
                       }`}
                     >
-                      {w.role}
+                      {w.role === "customer" ? "Customer" : w.role === "partner" ? "Partner Store" : "Captain Fleet"}
                     </span>
                   ),
                 },
@@ -602,38 +899,97 @@ export function WalletPage() {
                   key: "balance",
                   label: "Available Balance",
                   render: (w) => (
-                    <span className="font-black text-xs text-zinc-900">
-                      ₹{w.balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    <span className="font-black text-xs text-zinc-950 tabular-nums">
+                      ₹{w.balance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   ),
                 },
                 {
                   key: "totalEarned",
-                  label: "Total Earned",
+                  label: "Inflow / Volume",
                   render: (w) => (
-                    <span className="font-bold text-xs text-emerald-600">
-                      ₹{w.totalEarned.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </span>
+                    <div className="text-xs space-y-0.5">
+                      <p className="font-bold text-emerald-600 text-[11px] tabular-nums">
+                        +₹{w.totalEarned.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-[10px] text-zinc-400 tabular-nums">
+                        Spent: ₹{(w.totalSpent ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
                   ),
+                },
+                {
+                  key: "cod",
+                  label: "COD Float",
+                  render: (w) =>
+                    w.role === "rider" && (w.codBalance ?? 0) > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
+                        <Banknote className="size-3 text-amber-700" />
+                        ₹{(w.codBalance ?? 0).toFixed(2)}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-zinc-400">-</span>
+                    ),
                 },
                 {
                   key: "status",
-                  label: "Status",
-                  render: (w) => <StatusPill value={w.status} />,
+                  label: "Security Status",
+                  render: (w) => {
+                    const isBlocked = w.status === "Blocked" || (w as any).isBlocked;
+                    return isBlocked ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-700 border border-rose-200">
+                        <Lock className="size-2.5" /> Frozen
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 border border-emerald-200">
+                        <ShieldCheck className="size-2.5" /> Active
+                      </span>
+                    );
+                  },
                 },
                 {
                   key: "actions",
-                  label: "Manual Adjustment",
-                  render: (w) => (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 rounded-lg text-xs font-bold text-zinc-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
-                      onClick={() => setAdjustTarget(w)}
-                    >
-                      <Sliders className="size-3 mr-1" /> Adjust Balance
-                    </Button>
-                  ),
+                  label: "Wallet Actions",
+                  render: (w) => {
+                    const isBlocked = w.status === "Blocked" || (w as any).isBlocked;
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 rounded-lg text-xs font-bold text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
+                          onClick={() => setAdjustTarget(w)}
+                          title="Recharge or Deduct Wallet Balance"
+                        >
+                          <Sliders className="size-3 mr-1" /> Recharge / Deduct
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 rounded-lg text-xs font-bold text-zinc-700 border-zinc-200 hover:bg-zinc-100"
+                          onClick={() => setStatementTarget(w)}
+                          title="View Complete Payment History & Statement"
+                        >
+                          <History className="size-3 mr-1 text-zinc-500" /> Statement
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-7 px-2 rounded-lg text-xs font-bold ${
+                            isBlocked
+                              ? "text-amber-700 border-amber-300 hover:bg-amber-50"
+                              : "text-rose-600 border-rose-200 hover:bg-rose-50"
+                          }`}
+                          onClick={() => setBlockTarget(w)}
+                          title={isBlocked ? "Unfreeze Wallet Access" : "Freeze / Lock Wallet Access"}
+                        >
+                          {isBlocked ? <Unlock className="size-3" /> : <Lock className="size-3" />}
+                        </Button>
+                      </div>
+                    );
+                  },
                 },
               ]}
             />
@@ -953,6 +1309,23 @@ export function WalletPage() {
       {adjustTarget && (
         <AdjustBalanceDialog target={adjustTarget} onClose={() => setAdjustTarget(null)} />
       )}
+
+      {/* User Statement & Payment History Dialog */}
+      {statementTarget && (
+        <UserWalletStatementDialog target={statementTarget} onClose={() => setStatementTarget(null)} />
+      )}
+
+      {/* Wallet Security Lock / Unlock Dialog */}
+      {blockTarget && (
+        <BlockWalletDialog target={blockTarget} onClose={() => setBlockTarget(null)} />
+      )}
+
+      {/* Global Quick Recharge / Deduct Dialog */}
+      <GlobalAdjustWalletDialog
+        open={globalAdjustOpen}
+        onClose={() => setGlobalAdjustOpen(false)}
+        wallets={allWallets}
+      />
     </AdminShell>
   );
 }
@@ -1115,97 +1488,669 @@ function IssueRefundDialog() {
 }
 
 // -----------------------------------------------------------------------------
-// ADJUST BALANCE DIALOG
+// ADJUST BALANCE DIALOG (RECHARGE & DEDUCT WITH PRESETS & PREVIEW)
 // -----------------------------------------------------------------------------
 function AdjustBalanceDialog({ target, onClose }: { target: AccountWallet; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const [amount, setAmount] = useState("50");
+  const [amount, setAmount] = useState("100");
   const [type, setType] = useState<"credit" | "debit">("credit");
-  const [reason, setReason] = useState("Manual Customer Service Goodwill Balance");
+  const [presetCategory, setPresetCategory] = useState("Goodwill / Courtesy Credit");
+  const [remarks, setRemarks] = useState("");
+
+  const numAmount = parseFloat(amount) || 0;
+  const newBalance = type === "credit" ? target.balance + numAmount : target.balance - numAmount;
 
   const mutation = useMutation({
     mutationFn: () =>
       adjustWalletBalance({
         accountId: target.id,
         role: target.role,
-        amount: parseFloat(amount) || 0,
+        amount: numAmount,
         type,
-        reason,
+        reason: remarks.trim() ? `${presetCategory} - ${remarks.trim()}` : presetCategory,
       }),
     onSuccess: (data) => {
-      toast.success(`Wallet balance updated: New Balance ₹${data.newBalance.toFixed(2)}`);
+      toast.success(
+        `Wallet ${type === "credit" ? "recharged" : "debited"} successfully! New Balance: ₹${data.newBalance.toFixed(2)}`
+      );
       onClose();
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "all-wallets"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "finance", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "finance", "kpis"] });
     },
     onError: () => toast.error("Failed to adjust wallet balance."),
   });
 
+  const amountPresets = [50, 100, 250, 500, 1000, 2000, 5000];
+
   return (
     <Dialog open={Boolean(target)} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className="max-w-md rounded-2xl bg-white border border-zinc-200">
         <DialogHeader>
-          <DialogTitle className="text-sm font-black">Manual Wallet Balance Adjustment</DialogTitle>
+          <DialogTitle className="text-sm font-black text-zinc-950 flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+              <IndianRupee className="size-4" />
+            </span>
+            Manual Wallet Balance Management
+          </DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Adjust balance for <strong>{target.name}</strong> ({target.role.toUpperCase()})
+            Recharge or debit funds for <strong>{target.name}</strong> ({target.role.toUpperCase()})
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-2 text-xs">
-          <div className="rounded-xl bg-zinc-50 p-3 border border-zinc-200 flex items-center justify-between">
-            <span className="text-zinc-500 font-medium">Current Balance</span>
-            <span className="font-black text-sm text-zinc-900">₹{target.balance.toFixed(2)}</span>
+        <div className="space-y-3.5 py-2 text-xs">
+          {/* Target Profile Card */}
+          <div className="rounded-xl bg-zinc-50 p-3 border border-zinc-200/80 flex items-center justify-between">
+            <div>
+              <p className="font-black text-xs text-zinc-900">{target.name}</p>
+              <p className="text-[10px] text-zinc-500 font-mono">{target.phone} · {target.city || "Kasganj Hub"}</p>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase">Current Balance</span>
+              <p className="font-black text-sm text-zinc-950 tabular-nums">₹{target.balance.toFixed(2)}</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Adjustment Type</Label>
-              <Select value={type} onValueChange={(v: any) => setType(v)}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit">➕ Credit (Add Money)</SelectItem>
-                  <SelectItem value="debit">➖ Debit (Deduct Money)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Action Toggle (Credit vs Debit) */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setType("credit");
+                setPresetCategory("Goodwill / Courtesy Credit");
+              }}
+              className={`flex items-center justify-center gap-1.5 h-9 rounded-xl text-xs font-bold transition-all ${
+                type === "credit"
+                  ? "bg-emerald-600 text-white shadow-xs font-black"
+                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/70"
+              }`}
+            >
+              <PlusCircle className="size-3.5" />
+              <span>➕ Recharge (Credit)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setType("debit");
+                setPresetCategory("Administrative Penalty / Surcharge");
+              }}
+              className={`flex items-center justify-center gap-1.5 h-9 rounded-xl text-xs font-bold transition-all ${
+                type === "debit"
+                  ? "bg-rose-600 text-white shadow-xs font-black"
+                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/70"
+              }`}
+            >
+              <MinusCircle className="size-3.5" />
+              <span>➖ Deduct (Debit)</span>
+            </button>
+          </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Amount (₹)</Label>
+          {/* Amount Input */}
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-zinc-900">Adjustment Amount (₹)</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-zinc-400 text-xs">₹</span>
               <Input
                 type="number"
+                min="1"
+                step="1"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="h-9 text-xs font-mono font-bold"
+                className="h-9 pl-7 text-xs font-mono font-black border-zinc-200"
+                placeholder="100"
               />
             </div>
           </div>
 
+          {/* Quick Presets */}
           <div className="space-y-1">
-            <Label className="text-xs font-bold">Audit Reason / Remarks</Label>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Quick Presets</span>
+            <div className="flex flex-wrap gap-1.5">
+              {amountPresets.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setAmount(preset.toString())}
+                  className={`h-6 px-2 text-[11px] font-bold rounded-lg border transition-all ${
+                    amount === preset.toString()
+                      ? "bg-zinc-900 text-white border-zinc-900 shadow-xs"
+                      : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                  }`}
+                >
+                  +₹{preset}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Real-Time Calculation Preview */}
+          <div
+            className={`rounded-xl p-3 border text-xs space-y-1 ${
+              type === "credit"
+                ? "bg-emerald-50/60 border-emerald-200 text-emerald-950"
+                : newBalance < 0
+                ? "bg-rose-50/80 border-rose-300 text-rose-950"
+                : "bg-amber-50/60 border-amber-200 text-amber-950"
+            }`}
+          >
+            <div className="flex items-center justify-between font-bold">
+              <span>{type === "credit" ? "Recharge Calculation:" : "Debit Calculation:"}</span>
+              <span className="font-mono tabular-nums">
+                ₹{target.balance.toFixed(2)} {type === "credit" ? "+" : "-"} ₹{numAmount.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-black/10">
+              <span className="font-black">New Calculated Balance:</span>
+              <span className="font-black text-sm font-mono tabular-nums">
+                ₹{newBalance.toFixed(2)}
+              </span>
+            </div>
+            {type === "debit" && newBalance < 0 && (
+              <p className="text-[10px] text-rose-700 font-semibold pt-1">
+                ⚠️ Warning: Balance will become negative (-₹{Math.abs(newBalance).toFixed(2)}).
+              </p>
+            )}
+          </div>
+
+          {/* Reason Category Select */}
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-zinc-900">Reason Category</Label>
+            <Select value={presetCategory} onValueChange={setPresetCategory}>
+              <SelectTrigger className="h-9 text-xs border-zinc-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {type === "credit" ? (
+                  <>
+                    <SelectItem value="Goodwill / Courtesy Credit">🎁 Goodwill / Courtesy Credit</SelectItem>
+                    <SelectItem value="Promotional Loyalty Bonus">🏷️ Promotional Loyalty Bonus</SelectItem>
+                    <SelectItem value="Offline Cash Direct Deposit">💵 Offline Cash Direct Deposit</SelectItem>
+                    <SelectItem value="Dispute Resolution Compensation">⚖️ Dispute Resolution Compensation</SelectItem>
+                    <SelectItem value="System Balance Correction">🔧 System Balance Correction</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="Administrative Penalty / Surcharge">⚠️ Administrative Penalty / Surcharge</SelectItem>
+                    <SelectItem value="Dispute Rework / Damage Deduction">🧺 Dispute Rework / Damage Deduction</SelectItem>
+                    <SelectItem value="Duplicate Credit Reversal">🔄 Duplicate Credit Reversal</SelectItem>
+                    <SelectItem value="Order Cancellation Charge">❌ Order Cancellation Charge</SelectItem>
+                    <SelectItem value="Manual Float Recovery">💼 Manual Float Recovery</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Custom Remarks */}
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-zinc-900">Internal Audit Remarks (Optional)</Label>
             <Input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="h-9 text-xs"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="e.g. Approved per ticket QP-892"
+              className="h-9 text-xs border-zinc-200"
             />
           </div>
         </div>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="h-9 rounded-xl text-xs">
+          <Button variant="outline" size="sm" onClick={onClose} className="h-9 rounded-xl text-xs font-bold">
             Cancel
           </Button>
           <Button
             size="sm"
             onClick={() => mutation.mutate()}
-            disabled={!amount || mutation.isPending}
-            className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+            disabled={numAmount <= 0 || mutation.isPending}
+            className={`h-9 rounded-xl text-white font-black text-xs shadow-xs ${
+              type === "credit" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
+            }`}
           >
-            {mutation.isPending ? "Saving..." : "Confirm Adjustment"}
+            {mutation.isPending
+              ? "Executing..."
+              : `Confirm ₹${numAmount.toFixed(2)} ${type === "credit" ? "Recharge" : "Deduction"}`}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// USER STATEMENT & PAYMENT HISTORY DIALOG
+// -----------------------------------------------------------------------------
+function UserWalletStatementDialog({ target, onClose }: { target: AccountWallet; onClose: () => void }) {
+  const historyQuery = useQuery({
+    queryKey: ["admin", "finance", "user-history", target.id],
+    queryFn: () => fetchAccountWalletHistory(target.id),
+  });
+
+  const historyItems = historyQuery.data ?? [];
+
+  const { totalInflow, totalOutflow } = useMemo(() => {
+    let inflow = 0;
+    let outflow = 0;
+    historyItems.forEach((item) => {
+      if (item.type === "credit") inflow += item.amount;
+      else outflow += item.amount;
+    });
+    return { totalInflow: inflow, totalOutflow: outflow };
+  }, [historyItems]);
+
+  const handleExportStatementCsv = () => {
+    const headers = ["Timestamp", "Transaction ID", "Order Reference", "Type", "Amount (INR)", "Description", "Status"];
+    const rows = historyItems.map((h) => [
+      h.createdAt,
+      h.id,
+      h.orderCode || "N/A",
+      h.type.toUpperCase(),
+      h.amount.toFixed(2),
+      h.description,
+      h.status,
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.map((x) => `"${String(x ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `statement_${target.name.replace(/\s+/g, "_")}_${target.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Statement CSV exported successfully! 📄");
+  };
+
+  return (
+    <Dialog open={Boolean(target)} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-3xl rounded-2xl bg-white border border-zinc-200">
+        <DialogHeader>
+          <div className="flex items-center justify-between pr-4">
+            <DialogTitle className="text-sm font-black text-zinc-950 flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-800">
+                <FileText className="size-4" />
+              </span>
+              Account Ledger & Payment Statement
+            </DialogTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportStatementCsv}
+              disabled={historyItems.length === 0}
+              className="h-7 text-xs font-bold text-zinc-700 border-zinc-200 hover:bg-zinc-100 rounded-lg"
+            >
+              <Download className="size-3 mr-1 text-zinc-500" /> Export CSV
+            </Button>
+          </div>
+          <DialogDescription className="text-xs text-zinc-500">
+            Audit-grade double-entry statement for <strong>{target.name}</strong> ({target.role.toUpperCase()})
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2 text-xs">
+          {/* User Profile Card */}
+          <div className="rounded-xl bg-zinc-50 p-3.5 border border-zinc-200/80 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex size-10 items-center justify-center rounded-xl font-bold text-sm ${
+                  target.role === "customer"
+                    ? "bg-purple-100 text-purple-700"
+                    : target.role === "partner"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-sky-100 text-sky-700"
+                }`}
+              >
+                {target.role === "customer" ? <User className="size-5" /> : target.role === "partner" ? <Store className="size-5" /> : <Bike className="size-5" />}
+              </div>
+              <div>
+                <p className="font-black text-sm text-zinc-950">{target.name}</p>
+                <p className="text-[11px] text-zinc-500 font-mono">
+                  {target.phone} · <span className="font-sans">{target.city || "Kasganj Hub"}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span
+                className={`inline-block rounded-md px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                  target.role === "customer"
+                    ? "bg-purple-50 text-purple-800 border border-purple-200"
+                    : target.role === "partner"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-sky-50 text-sky-800 border border-sky-200"
+                }`}
+              >
+                {target.role}
+              </span>
+              {target.status === "Blocked" || (target as any).isBlocked ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-700 border border-rose-200">
+                  <Lock className="size-2.5" /> Frozen
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 border border-emerald-200">
+                  <ShieldCheck className="size-2.5" /> Active
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 3 Mini KPI Tiles */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-zinc-200 bg-white p-3 space-y-1 shadow-xs">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Current Balance</span>
+              <p className="text-lg font-black text-zinc-950 tabular-nums">₹{target.balance.toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-1">
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Total Inflow (Credits)</span>
+              <p className="text-lg font-black text-emerald-800 tabular-nums">+₹{totalInflow.toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl border border-rose-200 bg-rose-50/40 p-3 space-y-1">
+              <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Total Outflow (Debits)</span>
+              <p className="text-lg font-black text-rose-800 tabular-nums">-₹{totalOutflow.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Statement Ledger Table */}
+          <div className="rounded-xl border border-zinc-200 overflow-hidden max-h-80 overflow-y-auto">
+            {historyQuery.isLoading ? (
+              <div className="py-8 text-center text-xs text-zinc-400">Loading payment history...</div>
+            ) : historyItems.length === 0 ? (
+              <div className="py-8 text-center text-xs text-zinc-400">No payment transaction records found for this account.</div>
+            ) : (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-bold uppercase tracking-wider text-zinc-500 sticky top-0">
+                  <tr>
+                    <th className="py-2.5 px-3">Date & Time</th>
+                    <th className="py-2.5 px-3">Txn Ref / Order</th>
+                    <th className="py-2.5 px-3">Type & Amount</th>
+                    <th className="py-2.5 px-3">Description / Remarks</th>
+                    <th className="py-2.5 px-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 font-sans">
+                  {historyItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-zinc-50/70 transition-colors">
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-zinc-600 whitespace-nowrap">
+                        {item.createdAt}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className="font-mono text-xs font-bold text-zinc-900 block">{item.id}</span>
+                        {item.orderCode && (
+                          <span className="text-[10px] text-zinc-400 font-mono">Order: #{item.orderCode}</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span
+                          className={`inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-xs font-black tabular-nums ${
+                            item.type === "credit"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-rose-50 text-rose-700 border border-rose-200"
+                          }`}
+                        >
+                          {item.type === "credit" ? "+" : "-"}₹{item.amount.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-zinc-700 max-w-xs truncate" title={item.description}>
+                        {item.description}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
+                          <CheckCircle2 className="size-3" /> {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="pt-2">
+          <Button variant="outline" size="sm" onClick={onClose} className="h-9 rounded-xl text-xs font-bold">
+            Close Statement
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// BLOCK / UNBLOCK WALLET SECURITY DIALOG
+// -----------------------------------------------------------------------------
+function BlockWalletDialog({ target, onClose }: { target: AccountWallet; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const isBlocked = target.status === "Blocked" || (target as any).isBlocked;
+  const [reason, setReason] = useState(
+    isBlocked ? "Administrative Restriction Lifted" : "Suspicious Order Fraud Activity"
+  );
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      toggleWalletBlock({
+        accountId: target.id,
+        role: target.role,
+        block: !isBlocked,
+        reason,
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message);
+      onClose();
+      queryClient.invalidateQueries({ queryKey: ["admin", "finance", "all-wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "finance", "transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "finance", "kpis"] });
+    },
+    onError: () => toast.error("Failed to update wallet security status."),
+  });
+
+  return (
+    <Dialog open={Boolean(target)} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-md rounded-2xl bg-white border border-zinc-200">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-black text-zinc-950 flex items-center gap-2">
+            <span
+              className={`flex size-7 items-center justify-center rounded-lg ${
+                isBlocked ? "bg-amber-50 text-amber-700" : "bg-rose-50 text-rose-700"
+              }`}
+            >
+              {isBlocked ? <Unlock className="size-4" /> : <Lock className="size-4" />}
+            </span>
+            {isBlocked ? "Unfreeze & Restore Account Wallet" : "Freeze & Lock Account Wallet"}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-zinc-500">
+            {isBlocked
+              ? `Re-enable wallet access for ${target.name} (${target.role.toUpperCase()}).`
+              : `Freeze wallet access for ${target.name} (${target.role.toUpperCase()}) to prevent fraud.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2 text-xs">
+          <div className="rounded-xl bg-zinc-50 p-3 border border-zinc-200 flex items-center justify-between">
+            <div>
+              <p className="font-bold text-xs text-zinc-900">{target.name}</p>
+              <p className="text-[10px] text-zinc-400 font-mono">{target.phone} · {target.city || "Kasganj Hub"}</p>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase">Balance</span>
+              <p className="font-black text-xs text-zinc-900">₹{target.balance.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div
+            className={`rounded-xl p-3 border text-xs ${
+              isBlocked ? "bg-emerald-50/70 border-emerald-200 text-emerald-950" : "bg-rose-50/70 border-rose-200 text-rose-950"
+            }`}
+          >
+            {isBlocked ? (
+              <p className="font-medium">
+                ✅ Unfreezing will immediately restore this user's ability to place laundry orders, receive wallet recharges, and withdraw payout earnings.
+              </p>
+            ) : (
+              <p className="font-medium">
+                ⚠️ Freezing locks this wallet. The user will not be able to use wallet balance for orders, receive credits, or disburse bank payouts until restored.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-zinc-900">Reason for {isBlocked ? "Restoration" : "Freeze"}</Label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger className="h-9 text-xs border-zinc-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {isBlocked ? (
+                  <>
+                    <SelectItem value="Administrative Restriction Lifted">🟢 Administrative Restriction Lifted</SelectItem>
+                    <SelectItem value="KYC Verification Completed">🛡️ KYC Verification Completed</SelectItem>
+                    <SelectItem value="Dispute Resolved Favorably">⚖️ Dispute Resolved Favorably</SelectItem>
+                    <SelectItem value="User Identity Re-verified">👤 User Identity Re-verified</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="Suspicious Order Fraud Activity">🚨 Suspicious Order Fraud Activity</SelectItem>
+                    <SelectItem value="Negative Cash Balance Default">💸 Negative Cash Balance Default</SelectItem>
+                    <SelectItem value="KYC Verification Non-Compliance">📋 KYC Verification Non-Compliance</SelectItem>
+                    <SelectItem value="Administrative Investigation">🔍 Administrative Investigation</SelectItem>
+                    <SelectItem value="Customer Requested Lock">🔒 Customer Requested Lock</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter className="pt-2">
+          <Button variant="outline" size="sm" onClick={onClose} className="h-9 rounded-xl text-xs font-bold">
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            className={`h-9 rounded-xl text-white font-black text-xs shadow-xs ${
+              isBlocked ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
+            }`}
+          >
+            {mutation.isPending ? "Processing..." : isBlocked ? "Restore Wallet" : "Confirm Freeze"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// GLOBAL QUICK RECHARGE / DEDUCT DIALOG (ANY USER PICKER)
+// -----------------------------------------------------------------------------
+function GlobalAdjustWalletDialog({
+  open,
+  onClose,
+  wallets,
+}: {
+  open: boolean;
+  onClose: () => void;
+  wallets: AccountWallet[];
+}) {
+  const [selectedWallet, setSelectedWallet] = useState<AccountWallet | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
+
+  const matchingWallets = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return wallets.slice(0, 8);
+    return wallets
+      .filter((w) => [w.name, w.phone, w.city, w.role, w.id].filter(Boolean).join(" ").toLowerCase().includes(q))
+      .slice(0, 10);
+  }, [wallets, pickerSearch]);
+
+  const handleClose = () => {
+    setSelectedWallet(null);
+    setPickerSearch("");
+    onClose();
+  };
+
+  return (
+    <>
+      <Dialog open={open && !selectedWallet} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md rounded-2xl bg-white border border-zinc-200">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black text-zinc-950 flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 text-white">
+                <PlusCircle className="size-4 text-emerald-400" />
+              </span>
+              Manual User Wallet Recharge / Deduct
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Select any Customer, Partner Hub, or Delivery Captain to adjust balance.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400" />
+              <Input
+                placeholder="Search user by name, phone, city, or ID..."
+                value={pickerSearch}
+                onChange={(e) => setPickerSearch(e.target.value)}
+                className="h-9 pl-9 text-xs border-zinc-200"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {matchingWallets.map((w) => (
+                <div
+                  key={w.id}
+                  onClick={() => setSelectedWallet(w)}
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-emerald-300 cursor-pointer transition-all"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-xl font-bold text-xs ${
+                        w.role === "customer"
+                          ? "bg-purple-50 text-purple-700"
+                          : w.role === "partner"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-sky-50 text-sky-700"
+                      }`}
+                    >
+                      {w.role === "customer" ? <User className="size-4" /> : w.role === "partner" ? <Store className="size-4" /> : <Bike className="size-4" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs text-zinc-900 truncate">{w.name}</p>
+                      <p className="text-[10px] text-zinc-400 font-mono">
+                        {w.phone} · <span className="uppercase">{w.role}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] font-bold text-zinc-400">Balance</span>
+                    <p className="font-black text-xs text-zinc-950 tabular-nums">₹{w.balance.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button variant="outline" size="sm" onClick={handleClose} className="h-9 rounded-xl text-xs font-bold">
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* When a user is selected, open the adjust dialog for them */}
+      {selectedWallet && (
+        <AdjustBalanceDialog
+          target={selectedWallet}
+          onClose={() => {
+            setSelectedWallet(null);
+            handleClose();
+          }}
+        />
+      )}
+    </>
   );
 }

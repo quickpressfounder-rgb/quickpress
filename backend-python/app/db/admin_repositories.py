@@ -3656,6 +3656,7 @@ class AdminWalletRepository:
             c_wallets,
             r_wallets,
             p_wallets,
+            admin_txns,
         ) = await asyncio.gather(
             database.find_many("users"),
             database.find_many("partner_profiles"),
@@ -3664,6 +3665,7 @@ class AdminWalletRepository:
             database.find_many("customer_wallets"),
             database.find_many("rider_wallets"),
             database.find_many("partner_wallets"),
+            database.find_many("admin_wallet_transactions"),
         )
 
         c_wal_map = {str(w.get("_id") or w.get("userId") or w.get("id")): w for w in (c_wallets or [])}
@@ -3679,19 +3681,23 @@ class AdminWalletRepository:
             p_ords = [o for o in delivered if (o.get("partner") or {}).get("id") == pid]
             p_earned = round(sum((o.get("totals") or {}).get("grandTotal", 0) * 0.70 for o in p_ords), 2)
             custom_wal = p_wal_map.get(pid) or {}
+            is_blocked = custom_wal.get("isBlocked") is True or custom_wal.get("status") == "Blocked" or p.get("status") in ("suspended", "blocked")
+            bal = float(custom_wal.get("balance") if custom_wal.get("balance") is not None else p_earned)
             all_accounts.append({
                 "id": pid,
-                "name": p.get("name") or "Partner Store",
+                "name": p.get("name") or p.get("storeName") or "Partner Store",
                 "role": "partner",
                 "phone": p.get("phone") or "",
                 "city": p.get("city") or "Kasganj",
-                "balance": float(custom_wal.get("balance") if custom_wal.get("balance") is not None else p_earned),
+                "balance": bal,
                 "totalEarned": p_earned,
                 "totalSpent": 0.0,
                 "codCashInHand": 0.0,
                 "pendingPayout": float(custom_wal.get("pendingPayout") or 0.0),
-                "status": p.get("status", "Active"),
+                "status": "Blocked" if is_blocked else "Active",
                 "bank": p.get("bank") or {"accountNumber": "918237192837", "ifsc": "HDFC000182", "upi": "store@okaxis"},
+                "createdAt": p.get("createdAt") or p.get("created_at") or now_iso(),
+                "updatedAt": custom_wal.get("updatedAt") or p.get("updatedAt") or now_iso(),
             })
 
         # 2. Rider accounts (12% delivery fee)
@@ -3700,42 +3706,50 @@ class AdminWalletRepository:
             r_ords = [o for o in delivered if (o.get("rider") or {}).get("id") == rid]
             r_earned = round(sum((o.get("totals") or {}).get("grandTotal", 0) * 0.12 for o in r_ords), 2)
             custom_wal = r_wal_map.get(rid) or {}
+            is_blocked = custom_wal.get("isBlocked") is True or custom_wal.get("status") == "Blocked" or r.get("status") in ("suspended", "blocked")
             cod_cash = float(custom_wal.get("codCash") or (120.0 if r.get("name") == "Rahul Express Rider" else 0.0))
+            bal = float(custom_wal.get("balance") if custom_wal.get("balance") is not None else r_earned)
             all_accounts.append({
                 "id": rid,
-                "name": r.get("name") or "Delivery Captain",
+                "name": r.get("fullName") or r.get("name") or "Delivery Captain",
                 "role": "rider",
                 "phone": r.get("phone") or "",
-                "city": r.get("city") or "Kasganj",
-                "balance": float(custom_wal.get("balance") if custom_wal.get("balance") is not None else r_earned),
+                "city": r.get("city") or r.get("preferredCity") or "Kasganj",
+                "balance": bal,
                 "totalEarned": r_earned,
                 "totalSpent": 0.0,
                 "codCashInHand": cod_cash,
                 "pendingPayout": float(custom_wal.get("pendingPayout") or 0.0),
-                "status": "Active",
+                "status": "Blocked" if is_blocked else "Active",
                 "bank": r.get("bank") or {"accountNumber": "481920381928", "ifsc": "SBIN000492", "upi": "rider@paytm"},
+                "createdAt": r.get("createdAt") or r.get("created_at") or now_iso(),
+                "updatedAt": custom_wal.get("updatedAt") or r.get("updatedAt") or now_iso(),
             })
 
         # 3. Customer accounts
-        customers = [u for u in (users or []) if u.get("role") in ("customer", "user", None)]
-        for c in customers[:20]:
+        customers = [u for u in (users or []) if str(u.get("role") or "customer").lower() in ("customer", "user", "none")]
+        for c in customers:
             cid = str(c.get("_id") or c.get("id"))
             c_ords = [o for o in delivered if (o.get("customer") or {}).get("id") == cid or o.get("userId") == cid]
             c_spent = sum((o.get("totals") or {}).get("grandTotal", 0) for o in c_ords)
             custom_wal = c_wal_map.get(cid) or {}
+            is_blocked = custom_wal.get("isBlocked") is True or custom_wal.get("status") == "Blocked" or c.get("isBlocked") is True
+            bal = float(custom_wal.get("balance") if custom_wal.get("balance") is not None else 0.0)
             all_accounts.append({
                 "id": cid,
                 "name": c.get("display_name") or c.get("name") or "Customer",
                 "role": "customer",
                 "phone": c.get("phone") or "",
-                "city": str(c.get("city") or "Kasganj"),
-                "balance": float(custom_wal.get("balance") or 0.0),
+                "city": str(c.get("city") or (c.get("address") or {}).get("city") or "Kasganj"),
+                "balance": bal,
                 "totalEarned": 0.0,
                 "totalSpent": c_spent,
                 "codCashInHand": 0.0,
                 "pendingPayout": 0.0,
-                "status": "Active",
+                "status": "Blocked" if is_blocked else "Active",
                 "bank": None,
+                "createdAt": c.get("createdAt") or c.get("created_at") or now_iso(),
+                "updatedAt": custom_wal.get("updatedAt") or c.get("updatedAt") or now_iso(),
             })
 
         return all_accounts
@@ -3747,16 +3761,26 @@ class AdminWalletRepository:
         commission = round(revenue * 0.18, 2)
         partner_payouts = round(revenue * 0.70, 2)
         rider_earnings = round(revenue * 0.12, 2)
-        riders = await database.find_many("rider_profiles")
-        cod_cash = round(sum(float((r.get("wallet") or {}).get("codCashInHand", 0.0) if isinstance(r.get("wallet"), dict) else (r.get("codCashInHand", 0.0) or 0.0)) for r in (riders or [])), 2)
+
+        # Calculate real wallet balances & blocked count
+        all_accs = await self.all_wallets()
+        total_float = round(sum(a.get("balance", 0.0) for a in all_accs), 2)
+        customer_float = round(sum(a.get("balance", 0.0) for a in all_accs if a.get("role") == "customer"), 2)
+        partner_float = round(sum(a.get("balance", 0.0) for a in all_accs if a.get("role") == "partner"), 2)
+        rider_float = round(sum(a.get("balance", 0.0) for a in all_accs if a.get("role") == "rider"), 2)
+        cod_cash = round(sum(a.get("codCashInHand", 0.0) for a in all_accs if a.get("role") == "rider"), 2)
+        blocked_count = len([a for a in all_accs if a.get("status") == "Blocked"])
+
+        payouts = await database.find_many("admin_payouts")
+        pending_withdrawals = sum(float(p.get("amount", 0)) for p in (payouts or []) if p.get("status") in ("Pending", "Requested"))
 
         return [
-            {"id": "revenue", "label": "Platform GMV (Delivered)", "value": revenue, "positive": True, "hint": "Gross order volume"},
-            {"id": "commission", "label": "Platform Commission (18%)", "value": commission, "positive": True, "hint": "Net platform revenue"},
-            {"id": "partner_payouts", "label": "Partner Store Escrow (70%)", "value": partner_payouts, "positive": True, "hint": "Payable to stores"},
-            {"id": "rider_earnings", "label": "Fleet Delivery Share (12%)", "value": rider_earnings, "positive": True, "hint": "Payable to captains"},
-            {"id": "pending_withdrawals", "label": "Pending Withdrawals", "value": 0, "positive": False, "hint": "Awaiting approval"},
-            {"id": "cod_cash", "label": "Fleet COD Cash in Hand", "value": cod_cash, "positive": True, "hint": "Pending settlement"},
+            {"id": "total_float", "label": "Total Escrow Float", "value": total_float, "positive": True, "hint": "All user wallet balances"},
+            {"id": "customer_float", "label": "Customer Wallet Pool", "value": customer_float, "positive": True, "hint": f"{len([a for a in all_accs if a.get('role') == 'customer'])} Active customers"},
+            {"id": "partner_payouts", "label": "Partner Store Balance", "value": partner_float, "positive": True, "hint": f"{len([a for a in all_accs if a.get('role') == 'partner'])} Laundromat stores"},
+            {"id": "rider_earnings", "label": "Delivery Fleet Balance", "value": rider_float, "positive": True, "hint": f"{len([a for a in all_accs if a.get('role') == 'rider'])} Delivery captains"},
+            {"id": "cod_cash", "label": "Fleet COD Float in Hand", "value": cod_cash, "positive": True, "hint": "Cash with captains"},
+            {"id": "blocked_wallets", "label": "Blocked / Frozen Wallets", "value": blocked_count, "positive": blocked_count == 0, "hint": f"{blocked_count} security holds"},
         ]
 
     async def revenue_split(self) -> List[Dict[str, Any]]:
@@ -3890,9 +3914,9 @@ class AdminWalletRepository:
 
     async def adjust_wallet(self, account_id: str, role: str, amount: float, kind: str, reason: str, admin_id: str) -> Dict[str, Any]:
         coll_name = f"{role}_wallets" if role in ("customer", "partner", "rider") else "admin_wallets"
-        doc = await database.find_one(coll_name, {"_id": account_id}) or await database.find_one(coll_name, {"userId": account_id})
+        doc = await database.find_one(coll_name, {"_id": account_id}) or await database.find_one(coll_name, {"userId": account_id}) or await database.find_one(coll_name, {"partnerId": account_id}) or await database.find_one(coll_name, {"riderId": account_id})
         prev_bal = float((doc or {}).get("balance", 0.0))
-        new_bal = prev_bal + amount if kind == "credit" else max(0.0, prev_bal - amount)
+        new_bal = round(prev_bal + amount if kind == "credit" else max(0.0, prev_bal - amount), 2)
 
         await database.update_one(coll_name, {"_id": account_id}, {"$set": {"balance": new_bal, "updatedAt": now_iso()}}, upsert=True)
 
@@ -3901,7 +3925,9 @@ class AdminWalletRepository:
             "accountId": account_id,
             "role": role,
             "kind": f"Manual {kind.capitalize()}",
+            "type": kind,
             "amount": amount,
+            "balanceAfter": new_bal,
             "status": "Completed",
             "reason": reason,
             "adminId": admin_id,
@@ -3909,6 +3935,96 @@ class AdminWalletRepository:
         }
         await database.insert("admin_wallet_transactions", txn)
         return {"accountId": account_id, "previousBalance": prev_bal, "newBalance": new_bal, "adjusted": amount}
+
+    async def toggle_wallet_block(self, account_id: str, role: str, block: bool, reason: str, admin_id: str) -> Dict[str, Any]:
+        status_str = "Blocked" if block else "Active"
+        coll_name = f"{role}_wallets" if role in ("customer", "partner", "rider") else "admin_wallets"
+        await database.update_one(coll_name, {"_id": account_id}, {"$set": {"status": status_str, "isBlocked": block, "blockReason": reason, "updatedAt": now_iso()}}, upsert=True)
+        
+        txn = {
+            "_id": new_id("TXN"),
+            "accountId": account_id,
+            "role": role,
+            "kind": f"Wallet {'Blocked' if block else 'Unblocked'}",
+            "type": "block" if block else "unblock",
+            "amount": 0.0,
+            "balanceAfter": 0.0,
+            "status": "Completed",
+            "reason": reason,
+            "adminId": admin_id,
+            "createdAt": now_iso(),
+        }
+        await database.insert("admin_wallet_transactions", txn)
+        return {"accountId": account_id, "status": status_str, "isBlocked": block, "reason": reason}
+
+    async def account_history(self, account_id: str) -> List[Dict[str, Any]]:
+        all_admin_txns = await database.find_many("admin_wallet_transactions")
+        acc_txns = []
+        for t in (all_admin_txns or []):
+            if str(t.get("accountId") or t.get("userId") or t.get("id")) == str(account_id):
+                acc_txns.append({
+                    "id": str(t.get("_id") or t.get("id")),
+                    "date": (t.get("createdAt") or now_iso())[:16].replace("T", " "),
+                    "kind": t.get("kind") or "Adjustment",
+                    "type": t.get("type") or ("credit" if "credit" in str(t.get("kind", "")).lower() else "debit"),
+                    "amount": float(t.get("amount") or 0.0),
+                    "balanceAfter": t.get("balanceAfter"),
+                    "status": t.get("status") or "Completed",
+                    "reason": t.get("reason") or "Manual Adjustment",
+                    "refOrder": t.get("refOrder") or "—",
+                })
+
+        orders = await database.find_many("customer_orders")
+        for o in (orders or []):
+            oid = str(o.get("_id") or o.get("id"))
+            c_id = str((o.get("customer") or {}).get("id") or o.get("userId") or "")
+            p_id = str((o.get("partner") or {}).get("id") or o.get("partnerId") or "")
+            r_id = str((o.get("rider") or {}).get("id") or o.get("riderId") or "")
+            amt = float((o.get("totals") or {}).get("grandTotal", 0))
+            created = o.get("createdAt") or o.get("created_at") or now_iso()
+            code = o.get("code") or f"ORD-{oid[:6]}"
+            st = "Completed" if o.get("status") == "delivered" else ("Failed" if o.get("status") == "cancelled" else "Pending")
+
+            if c_id == account_id:
+                acc_txns.append({
+                    "id": f"TXN-ORD-{oid[:8]}",
+                    "date": created[:16].replace("T", " "),
+                    "kind": "Order Payment",
+                    "type": "debit",
+                    "amount": amt,
+                    "balanceAfter": None,
+                    "status": st,
+                    "reason": f"Payment for Order #{code}",
+                    "refOrder": code,
+                })
+            elif p_id == account_id:
+                acc_txns.append({
+                    "id": f"TXN-PRT-{oid[:8]}",
+                    "date": created[:16].replace("T", " "),
+                    "kind": "Store Wash Credit (70%)",
+                    "type": "credit",
+                    "amount": round(amt * 0.70, 2),
+                    "balanceAfter": None,
+                    "status": st,
+                    "reason": f"Order #{code} Processing Revenue",
+                    "refOrder": code,
+                })
+            elif r_id == account_id:
+                acc_txns.append({
+                    "id": f"TXN-RDR-{oid[:8]}",
+                    "date": created[:16].replace("T", " "),
+                    "kind": "Captain Delivery Share (12%)",
+                    "type": "credit",
+                    "amount": round(amt * 0.12, 2),
+                    "balanceAfter": None,
+                    "status": st,
+                    "reason": f"Order #{code} Delivery Payout",
+                    "refOrder": code,
+                })
+
+        acc_txns.sort(key=lambda x: str(x.get("date") or ""), reverse=True)
+        return acc_txns
+
 
 
 admin_wallet_repository = AdminWalletRepository()
