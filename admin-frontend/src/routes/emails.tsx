@@ -36,10 +36,12 @@ import {
   Palette,
   Megaphone,
   FileCheck2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { TemplateStudioTab, CampaignsTab, ThreadViewer } from "./-email-studio-campaigns";
 import { MerchantAgreementsTab } from "./-email-agreements";
+import { AudienceDirectoryTab } from "./-email-audience-directory";
 
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -75,6 +77,22 @@ export const Route = createFileRoute("/emails")({
 });
 
 const QUICK_TEMPLATES = [
+  {
+    id: "order_delivered_zomato",
+    label: "Order Delivered with Tax Invoice (Zomato Theme)",
+    subject: "Your QuickPress Laundry Order has been Delivered — Invoice Attached",
+    message: "Thank you for choosing QuickPress! Your clothes have been professionally cleaned, inspected, and delivered to your doorstep. Your official GST tax invoice has been generated and attached.",
+    audience: "customer",
+    category: "order",
+  },
+  {
+    id: "account_security_alert",
+    label: "Account Alert & Login Notice",
+    subject: "Security Alert for your QuickPress account",
+    message: "We noticed a recent activity or sign-in on your QuickPress account. If this was you, you can safely ignore this email. If not, please secure your account immediately or contact support.",
+    audience: "customer",
+    category: "security",
+  },
   {
     id: "repeat_loyalty",
     label: "Repeat Customer Loyalty Reward (25% Off)",
@@ -129,7 +147,7 @@ function EmailHubPage() {
   const queryClient = useQueryClient();
 
   // Navigation main view tab
-  const [activeMainTab, setActiveMainTab] = useState<"logs" | "agreements" | "templates" | "campaigns">("logs");
+  const [activeMainTab, setActiveMainTab] = useState<"directory" | "logs" | "agreements" | "templates" | "campaigns">("directory");
 
   // Filters state
   const [audienceFilter, setAudienceFilter] = useState<string>("all");
@@ -266,6 +284,21 @@ function EmailHubPage() {
     toast.info(`Applied template: ${tmpl.label}`);
   }
 
+  function handleComposeFromDirectory(recipient: {
+    to: string;
+    name: string;
+    audience: "customer" | "partner" | "rider";
+    suggestedSubject?: string;
+    suggestedMessage?: string;
+  }) {
+    setFormTo(recipient.to);
+    setFormName(recipient.name);
+    setFormAudience(recipient.audience);
+    setFormSubject(recipient.suggestedSubject || "");
+    setFormMessage(recipient.suggestedMessage || "");
+    setComposeOpen(true);
+  }
+
   const emailsList = emailsQuery.data || [];
   const stats: EmailStats = statsQuery.data || {
     total: 0,
@@ -376,8 +409,19 @@ function EmailHubPage() {
           />
         </div>
 
-        {/* Main View Tabs (Surveillance Logs / Agreements / Template Studio / Marketing Campaigns) */}
+        {/* Main View Tabs (Audience Directory / Surveillance Logs / Agreements / Template Studio / Marketing Campaigns) */}
         <div className="flex border-b border-zinc-200 gap-8 overflow-x-auto pb-0">
+          <button
+            onClick={() => setActiveMainTab("directory")}
+            className={`pb-3 text-sm font-black flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+              activeMainTab === "directory"
+                ? "border-emerald-600 text-emerald-700"
+                : "border-transparent text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Audience Directory &amp; Direct Mail
+          </button>
           <button
             onClick={() => setActiveMainTab("logs")}
             className={`pb-3 text-sm font-black flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
@@ -424,6 +468,9 @@ function EmailHubPage() {
           </button>
         </div>
 
+        {activeMainTab === "directory" && (
+          <AudienceDirectoryTab onComposeTo={handleComposeFromDirectory} />
+        )}
         {activeMainTab === "agreements" && <MerchantAgreementsTab />}
         {activeMainTab === "templates" && <TemplateStudioTab />}
         {activeMainTab === "campaigns" && <CampaignsTab />}

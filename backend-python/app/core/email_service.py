@@ -472,7 +472,8 @@ async def dispatch_email(
 
 
 # =============================================================================
-# BASE EMAIL TEMPLATE WRAPPER (Responsive, Modern QuickPress Theme)
+# =============================================================================
+# BASE EMAIL TEMPLATE WRAPPER (Zomato-Inspired High-End Minimalist Design)
 # =============================================================================
 def _render_base_email(
     preheader_text: str,
@@ -481,24 +482,48 @@ def _render_base_email(
     subheadline: str,
     content_html: str,
     footer_note: Optional[str] = None,
+    order_code: Optional[str] = None,
+    status_label: Optional[str] = None,
 ) -> str:
-    """Generate cohesive, premium QuickPress branded HTML container."""
+    """Generate cohesive, clean, modern Zomato-inspired QuickPress branded HTML container."""
     settings = get_settings()
     contact_email = settings.smtp_user or "info@withquickpress.com"
     footer_line = footer_note or f"Questions? Reach us anytime at {contact_email}"
+    headline_clean = headline.replace("✨🧺", "").replace("🎉", "").strip() if headline else ""
+    subheadline_clean = subheadline.strip() if subheadline else ""
+
+    status_row_html = ""
+    if order_code or status_label:
+        code_str = order_code or ""
+        badge_text = status_label or badge_label or "Completed"
+        status_row_html = f"""
+        <div style="border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; padding: 12px 0; margin: 18px 0; display: table; width: 100%;">
+          <div style="display: table-cell; vertical-align: middle; text-align: left;">
+            <span style="font-size: 13px; font-weight: 800; color: #111827; letter-spacing: 0.5px; text-transform: uppercase;">
+              {f'ORDER ID: {code_str}' if code_str else 'STATUS'}
+            </span>
+          </div>
+          <div style="display: table-cell; vertical-align: middle; text-align: right;">
+            <span style="display: inline-block; background-color: #ecfdf5; color: #047857; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; border: 1px solid #a7f3d0;">
+              <span style="color: #10b981; margin-right: 4px;">●</span> {badge_text}
+            </span>
+          </div>
+        </div>
+        """
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{headline}</title>
+  <title>{headline_clean or 'QuickPress'}</title>
   <style>
     body {{
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f8fafc;
+      background-color: #f2f4f7;
       margin: 0;
       padding: 0;
-      color: #0f172a;
+      color: #111827;
       -webkit-font-smoothing: antialiased;
     }}
     .preheader {{
@@ -510,69 +535,72 @@ def _render_base_email(
       width: 0;
       mso-hide: all;
     }}
+    .wrapper {{
+      width: 100%;
+      background-color: #f2f4f7;
+      padding: 32px 12px;
+    }}
     .container {{
-      max-width: 600px;
-      margin: 24px auto;
-      background: #ffffff;
-      border-radius: 20px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      max-width: 580px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
       overflow: hidden;
     }}
     .header {{
-      background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%);
-      padding: 32px 28px;
-      text-align: center;
-      color: #ffffff;
+      padding: 36px 36px 16px 36px;
+      text-align: left;
+      background: #ffffff;
     }}
-    .logo-badge {{
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(8px);
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1.5px;
-      padding: 5px 14px;
-      border-radius: 9999px;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+    .brand-wordmark {{
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      color: #111827;
+      text-transform: lowercase;
+      line-height: 1;
+      margin: 0 0 20px 0;
     }}
-    .header h1 {{
+    .headline {{
       font-size: 22px;
       font-weight: 800;
-      margin: 0;
-      letter-spacing: -0.5px;
-      color: #ffffff;
+      line-height: 1.3;
+      color: #111827;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.4px;
     }}
-    .header p {{
-      font-size: 13px;
-      color: #a7f3d0;
-      margin: 8px 0 0 0;
-      font-weight: 500;
+    .subheadline {{
+      font-size: 14px;
+      color: #4b5563;
+      margin: 0 0 16px 0;
+      line-height: 1.5;
     }}
     .content {{
-      padding: 32px 28px;
+      padding: 0 36px 28px 36px;
+      font-size: 14px;
+      color: #374151;
+      line-height: 1.6;
     }}
     .card {{
-      background: #f8fafc;
-      border-radius: 14px;
-      padding: 18px 20px;
-      border: 1px solid #e2e8f0;
-      margin: 20px 0;
+      background-color: #f9fafb;
+      border-radius: 12px;
+      padding: 16px 18px;
+      border: 1px solid #e5e7eb;
+      margin: 18px 0;
     }}
     .btn {{
       display: inline-block;
-      background: #059669;
+      background-color: #111827;
       color: #ffffff !important;
       text-decoration: none;
       font-weight: 700;
       font-size: 14px;
       padding: 12px 24px;
-      border-radius: 10px;
+      border-radius: 8px;
       text-align: center;
-      margin: 16px 0;
+      margin: 14px 0;
     }}
     .meta-table {{
       width: 100%;
@@ -580,51 +608,81 @@ def _render_base_email(
       font-size: 13px;
     }}
     .meta-table td {{
-      padding: 6px 0;
-      vertical-align: top;
+      padding: 8px 0;
+      vertical-align: middle;
+      border-bottom: 1px solid #f3f4f6;
+    }}
+    .meta-table tr:last-child td {{
+      border-bottom: none;
     }}
     .meta-label {{
-      color: #64748b;
-      font-weight: 600;
-      width: 40%;
+      color: #6b7280;
+      font-weight: 500;
+      width: 45%;
     }}
     .meta-val {{
-      color: #0f172a;
+      color: #111827;
       font-weight: 700;
       text-align: right;
     }}
-    .footer {{
+    .disclaimer-box {{
+      margin: 20px 36px 0 36px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 11px;
+      color: #6b7280;
+      line-height: 1.55;
+    }}
+    .rate-banner {{
+      margin: 20px 36px;
+      padding: 16px 20px;
       background: #0f172a;
-      padding: 24px 28px;
+      border-radius: 12px;
       text-align: center;
-      color: #94a3b8;
-      font-size: 12px;
+      color: #ffffff;
+    }}
+    .footer {{
+      padding: 24px 36px 36px 36px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 11px;
       line-height: 1.6;
     }}
     .footer a {{
-      color: #10b981;
+      color: #2563eb;
       text-decoration: none;
-      font-weight: 600;
     }}
   </style>
 </head>
 <body>
   <div class="preheader">{preheader_text}</div>
-  <div class="container">
-    <div class="header">
-      <div class="logo-badge">{badge_label}</div>
-      <h1>{headline}</h1>
-      <p>{subheadline}</p>
-    </div>
-    <div class="content">
-      {content_html}
-    </div>
-    <div class="footer">
-      <strong style="color: #ffffff;">QuickPress Laundry &amp; Dry Cleaning Services</strong><br>
-      {footer_line}<br>
-      <span style="font-size: 11px; color: #64748b; display: inline-block; margin-top: 6px;">
-        Eco-Friendly Care · 7-Step Inspection · Kasganj Operations Hub
-      </span>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <div class="brand-wordmark">quickpress</div>
+        {f'<h1 class="headline">{headline_clean}</h1>' if headline_clean else ''}
+        {f'<p class="subheadline">{subheadline_clean}</p>' if subheadline_clean else ''}
+        {status_row_html}
+      </div>
+      <div class="content">
+        {content_html}
+      </div>
+      <div class="disclaimer-box">
+        QuickPress employees or representatives will NEVER ask you for your personal information (i.e. your bank account details, password, PIN, CVV, OTP, etc.). For your own safety, DO NOT share these details with anyone over phone, SMS or email.
+      </div>
+      <div class="rate-banner">
+        <div style="font-size: 13px; font-weight: 800; color: #ffffff; margin-bottom: 2px;">Like using QuickPress? Please rate us!</div>
+        <div style="font-size: 14px; color: #facc15; margin-bottom: 8px; letter-spacing: 2px;">★★★★★</div>
+        <div>
+          <a href="https://withquickpress.com" style="display: inline-block; background: rgba(255,255,255,0.15); color: #ffffff; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; text-decoration: none; margin: 0 4px; border: 1px solid rgba(255,255,255,0.2);">Google Play</a>
+          <a href="https://withquickpress.com" style="display: inline-block; background: rgba(255,255,255,0.15); color: #ffffff; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; text-decoration: none; margin: 0 4px; border: 1px solid rgba(255,255,255,0.2);">App Store</a>
+        </div>
+      </div>
+      <div class="footer">
+        © 2025–2026 QuickPress. All rights reserved.<br>
+        QuickPress Technologies Private Limited · Kasganj Operations Hub<br>
+        {footer_line}
+      </div>
     </div>
   </div>
 </body>
@@ -739,8 +797,8 @@ async def send_welcome_email(
     html = _render_base_email(
         preheader_text="Get flat ₹50 off on your first QuickPress laundry order!",
         badge_label="Welcome to QuickPress",
-        headline="Fresh Clothes, Zero Hassle! ✨",
-        subheadline="Your on-demand doorstep laundry partner",
+        headline="Welcome to QuickPress",
+        subheadline="Your on-demand doorstep laundry & garment care partner",
         content_html=content,
     )
     return await dispatch_email(
@@ -779,12 +837,12 @@ async def send_order_confirmation_email(order: Dict[str, Any]) -> Dict[str, Any]
 
     subject = f"Order Confirmed #{order_code} — QuickPress Laundry"
     content = f"""
-      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
-        Hello <strong>{customer_name}</strong>,
+      <p style="font-size: 15px; color: #111827; margin: 0 0 10px 0; font-weight: 600;">
+        Hi {customer_name},
       </p>
-      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
-        Your laundry order <strong>#{order_code}</strong> has been placed successfully! Our partner store and nearest delivery captain are being assigned.
-      </p>
+      <div style="font-size: 20px; font-weight: 800; color: #111827; line-height: 1.3; margin: 0 0 18px 0;">
+        Your laundry order has been placed successfully
+      </div>
 
       <div class="card">
         <table class="meta-table">
@@ -807,9 +865,11 @@ async def send_order_confirmation_email(order: Dict[str, Any]) -> Dict[str, Any]
     html = _render_base_email(
         preheader_text=f"Your QuickPress order #{order_code} is confirmed! Total: ₹{grand_total:.2f}",
         badge_label="Order Confirmed",
-        headline="We've Got Your Laundry! 🧺",
-        subheadline=f"Order #{order_code} is booked and processing",
+        headline=f"Order #{order_code} Confirmed",
+        subheadline=f"Scheduled for pickup: {pickup_slot}",
         content_html=content,
+        order_code=order_code,
+        status_label="Confirmed",
     )
     return await dispatch_email(
         to=recipient_email,
@@ -968,45 +1028,83 @@ async def send_order_completion_email(order_or_id: str | Dict[str, Any]) -> Dict
         logger.warning("Could not generate PDF attachment for Order #%s: %s", order_code, exc)
 
     items_rows = "".join([
-        f"<tr><td style='padding: 6px 0; color: #334155;'>{it.get('name','Item')}</td><td style='text-align: center; color: #64748b;'>x{it.get('qty', 1)}</td><td style='text-align: right; font-weight: 700;'>₹{float(it.get('total') or (float(it.get('unitPrice') or 0)*int(it.get('qty') or 1))):.2f}</td></tr>"
+        f"""
+        <div style="display: table; width: 100%; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; font-size: 13px;">
+          <div style="display: table-cell; color: #374151; font-weight: 600;">
+            {it.get('qty', 1)} X {it.get('name', 'Garment Care')}
+          </div>
+          <div style="display: table-cell; text-align: right; font-weight: 700; color: #111827;">
+            ₹{float(it.get('total') or (float(it.get('unitPrice') or 0)*int(it.get('qty') or 1))):.2f}
+          </div>
+        </div>
+        """
         for it in items
     ])
+    if not items_rows:
+        items_rows = f"""
+        <div style="display: table; width: 100%; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; font-size: 13px;">
+          <div style="display: table-cell; color: #374151; font-weight: 600;">1 X Premium Laundry & Dry Cleaning</div>
+          <div style="display: table-cell; text-align: right; font-weight: 700; color: #111827;">₹{grand_total:.2f}</div>
+        </div>
+        """
 
     subject = f"Order #{order_code} Delivered — Your QuickPress Tax Invoice & Summary"
     content = f"""
-      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
-        Hello <strong>{customer_name}</strong>,
+      <p style="font-size: 15px; color: #111827; margin: 0 0 10px 0; font-weight: 600;">
+        Hi {customer_name},
       </p>
-      <p style="font-size: 14px; color: #475569; line-height: 1.6;">
-        Your garments have been freshly cleaned, crisp-pressed, and safely delivered by Captain <strong>{captain_name}</strong>.
-      </p>
-
-      <div style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 12px; padding: 14px; margin: 16px 0;">
-        <strong style="color: #065f46; font-size: 13px;">📄 Official Tax Invoice Attached (PDF)</strong>
-        <p style="color: #047857; font-size: 12px; margin: 2px 0 0 0;">GST-compliant breakdown with SAC Code 999799 attached for your tax and expense records.</p>
+      <div style="font-size: 20px; font-weight: 800; color: #111827; line-height: 1.3; margin: 0 0 18px 0; letter-spacing: -0.4px;">
+        Thank you for ordering from {partner_name}
       </div>
 
-      <div class="card">
-        <table class="meta-table">
-          <tr><td class="meta-label">ORDER ID</td><td class="meta-val">#{order_code}</td></tr>
-          <tr><td class="meta-label">DELIVERED ON</td><td class="meta-val">{order_date}</td></tr>
-          <tr><td class="meta-label">LAUNDROMAT</td><td class="meta-val">{partner_name}</td></tr>
-          <tr><td class="meta-label">PAYMENT MODE</td><td class="meta-val" style="color: #059669;">{payment_mode.upper()}</td></tr>
-          <tr><td class="meta-label">TOTAL PAID</td><td class="meta-val" style="font-size: 16px; color: #064e3b;">₹{grand_total:.2f}</td></tr>
-        </table>
+      <!-- Partner Laundromat Merchant Card -->
+      <div style="display: table; width: 100%; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; margin: 16px 0;">
+        <div style="display: table-cell; vertical-align: top; width: 44px;">
+          <div style="width: 38px; height: 38px; background: #e11d48; color: #ffffff; border-radius: 8px; font-weight: 900; font-size: 14px; line-height: 38px; text-align: center;">
+            QP
+          </div>
+        </div>
+        <div style="display: table-cell; vertical-align: middle; padding-left: 12px;">
+          <div style="font-size: 14px; font-weight: 800; color: #111827;">{partner_name}</div>
+          <div style="font-size: 12px; color: #6b7280; line-height: 1.4; margin-top: 2px;">{delivery_addr_str}</div>
+        </div>
       </div>
 
-      <h4 style="font-size: 13px; text-transform: uppercase; color: #64748b; margin: 16px 0 6px 0;">Garments Summary</h4>
-      <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px;">
+      <!-- Items Ordered -->
+      <div style="margin: 20px 0 12px 0;">
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 8px;">
+          ITEMS
+        </div>
         {items_rows}
-      </table>
+      </div>
+
+      <!-- Total Paid Row -->
+      <div style="display: table; width: 100%; padding: 14px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; margin: 16px 0;">
+        <div style="display: table-cell; font-size: 16px; font-weight: 800; color: #111827;">
+          Total paid - ₹{grand_total:.2f}
+        </div>
+        <div style="display: table-cell; text-align: right; font-size: 12px; font-weight: 700; color: #059669;">
+          PAID VIA {payment_mode.upper()}
+        </div>
+      </div>
+
+      <!-- Official Tax Invoice Attached Banner -->
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px 14px; margin: 18px 0; display: table; width: 100%;">
+        <div style="display: table-cell; vertical-align: middle; width: 28px; font-size: 18px;">📄</div>
+        <div style="display: table-cell; vertical-align: middle; padding-left: 8px;">
+          <div style="font-size: 13px; font-weight: 700; color: #166534;">Official GST Tax Invoice Attached (PDF)</div>
+          <div style="font-size: 11px; color: #15803d; margin-top: 1px;">Invoice #{order_code} · SAC 999799 · Delivered by Captain {captain_name}</div>
+        </div>
+      </div>
     """
     html = _render_base_email(
-        preheader_text=f"Your QuickPress order #{order_code} has been delivered. Invoice attached.",
-        badge_label="Order Delivered",
-        headline="Delivered Crisp &amp; Fresh! ✨🧺",
-        subheadline=f"Your order #{order_code} is complete",
+        preheader_text=f"Your QuickPress order #{order_code} from {partner_name} has been delivered. Invoice attached.",
+        badge_label="Delivered",
+        headline="",
+        subheadline="",
         content_html=content,
+        order_code=order_code,
+        status_label="Delivered",
     )
 
     return await dispatch_email(
@@ -2164,18 +2262,22 @@ async def send_custom_admin_email(
     """Allow Admin staff to compose custom outbound emails or reply directly to users."""
     name = recipient_name or to_email.split("@")[0].capitalize()
     formatted_html = f"""
-      <p style="font-size: 15px; color: #1e293b; margin-top: 0;">
-        Hello <strong>{name}</strong>,
+      <p style="font-size: 15px; color: #111827; margin: 0 0 12px 0; font-weight: 600;">
+        Hi {name},
       </p>
-      <div style="font-size: 14px; color: #334155; line-height: 1.7; margin: 18px 0;">
+      <div style="font-size: 14px; color: #374151; line-height: 1.7; margin: 16px 0;">
         {html_or_text_message}
+      </div>
+      <div style="margin-top: 24px; font-size: 14px; color: #4b5563;">
+        Best,<br>
+        <strong style="color: #111827;">Team QuickPress</strong>
       </div>
     """
     html = _render_base_email(
         preheader_text=subject,
-        badge_label="QuickPress Team",
-        headline="Message from QuickPress",
-        subheadline="Official correspondence from our operations team",
+        badge_label="QuickPress",
+        headline=subject,
+        subheadline="",
         content_html=formatted_html,
     )
     return await dispatch_email(

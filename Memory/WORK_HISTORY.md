@@ -33,6 +33,29 @@
 
 ## Detailed Log of Work Done Today (27 October 2026)
 
+### 26. Zomato-Themed Minimalist Email Templates & Unified Audience Directory Dispatcher
+- **Architecture & Implementation:**
+  - **Zomato Email Design System (`_render_base_email`):** Redesigned the base email template in `backend-python/app/core/email_service.py` to match the exact Zomato corporate theme from user reference screenshots: bold lowercase `quickpress` wordmark, light neutral `#f2f4f7` wrapper, centered `#ffffff` card, clean sans-serif typography, order/status pills (`● Delivered`), security disclaimer against fraud, 5-star review card with App Store / Google Play links, and formal legal footer. Completely eliminated cartoon emojis and green/dark gradient blocks.
+  - **Order Complete Receipt with Tax Invoice (`send_order_completion_email`):** Exactly structured like Zomato delivered order card (Image 1): `Hi {customer_name},`, `Thank you for ordering from {partner_name}`, `ORDER ID: {order_code}` | `● Delivered`, Partner Laundromat store card with `QP` badge and physical address, itemized garments list, `Total paid - ₹{grand_total}`, and attached PDF tax invoice notice.
+  - **Custom Operations & Alert Emails (`send_custom_admin_email`):** Matches Image 2 with clean headline, personalized salutation, clear message body, and signature `Best, Team QuickPress`.
+  - **Audience Directory & Direct Mail Tab (`admin-frontend/src/routes/-email-audience-directory.tsx`):**
+    - Aggregated Customers (`fetchCustomers`), Store Partners (`fetchPartners`), and Fleet Captains (`fetchRiders`) into a single searchable directory.
+    - Added real-time search across Name, Email, Phone, City, and Entity ID.
+    - Added Audience role filter pills (`All Contacts`, `Customers`, `Store Partners`, `Fleet Captains`) and City dropdown filter.
+    - Added 1-click **"Compose Mail"** on every contact that automatically pre-fills recipient name, email, audience role, and template presets.
+    - Added multi-select checkbox bar for bulk emailing.
+    - Connected as the first tab in `admin-frontend/src/routes/emails.tsx`.
+- **Modified Files:**
+  - `backend-python/app/core/email_service.py`
+  - `admin-frontend/src/routes/emails.tsx`
+  - `admin-frontend/src/routes/-email-audience-directory.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Verification Status:**
+  - Python `py_compile backend-python/app/core/email_service.py`: PASSED (0 errors).
+  - Admin Frontend `npm run build`: PASSED (Nitro `node-server` bundle built in 2.66s, 0 errors).
+
+---
+
 ### 25. Production Secrets Live Integration: Hostinger Business Email & Firebase Admin SDK (EC2: 65.0.127.43)
 - **Architecture & Implementation:**
   - **Firebase Admin SDK Setup:** Resolved multiline JSON parsing limitation in Docker `--env-file` by generating clean single-line JSON and persisting canonical service account file `quickpress-firebase-service-account.json` (Project: `quickpress-b1e19`, Key ID: `2892ed3cdd727a9ea057bccc2b0eb96a2c23f110`).
