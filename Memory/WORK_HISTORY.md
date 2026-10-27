@@ -2095,3 +2095,53 @@ This single command will automatically:
   - Frontend build: `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 3.53s)**.
   - Pushed to `main` and deployed live to EC2 (`65.0.127.43`).
 
+### 34. Omnichannel Support & Resolution Audit System (Customer, Partner & Rider)
+- **User Request:**
+  - `ab support system banao jisme bhi hum har kisi ki suppoort kar sake customer partner rider solve kar sake or chat kar sake or solved ya resolve with resone status update kar sake or filter bahi sare types ke or support ye bhui pata chale kisne ki uska bhi ful datial etc etc`
+- **Implementation Details:**
+  1. **Omnichannel Ticket Management:**
+     - Unified support tickets for Customers (`support_tickets`), Partners (`partner_support_tickets`), and Riders (`rider_support_tickets`).
+     - Added `GET /api/rider/tickets`, `POST /api/rider/tickets`, and `POST /api/rider/tickets/{id}/reply` in `backend-python/app/api/rider.py`.
+     - Added `POST /api/partner/tickets/{id}/reply` in `backend-python/app/api/partner.py`.
+  2. **Resolution Workflow with Reason & Notes:**
+     - Extended `SupportRepository.update_status` and `SupportRepository.close` with `resolutionReason` and `resolutionNotes`.
+     - Full resolution dialog with required reason categories (Issue Resolved, Order Cancelled & Refunded, Policy Explained, User Non-Responsive, Escalated, Duplicate Ticket) and notes.
+  3. **Staff Attribution Audit Card:**
+     - Live card on resolved tickets displaying `resolvedBy`, `resolvedByEmail`, `resolvedByRole`, `resolvedAt`, `resolutionReason`, and `resolutionNotes`.
+  4. **Multi-Type Filters & Live Conversation Thread:**
+     - Real-time conversation thread with internal notes vs public replies, priority tagging, and multi-channel filtering.
+- **Modified Files:**
+  - `backend-python/app/api/rider.py`
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/db/repositories/support_repository.py`
+  - `admin-frontend/src/routes/support.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Commit:** `f1e9932`
+
+### 35. Staff & Operator Governance Redesign: Full Onboarding, Edit Staff & Access-Wise Controls
+- **User Request:**
+  - `ab staff ka bhi desing redesing karo or staff add kar sake or edit bhi acces wise`
+- **Implementation Details:**
+  1. **Corporate Minimalist Admin Redesign:**
+     - Pure white canvas (`bg-white`), thin borders (`border-zinc-200/90`), high-contrast typography (`text-zinc-950 font-black`), zero cartoon icons.
+     - 4 executive KPI cards (Active Operators, Roles Configured, Suspended Accounts, Audit Events Logged).
+     - Dual view mode (High-Density Table View vs Modern Grid Cards View).
+     - Search by Name, Email, Phone, Role, Scope, and filter by Role and Account Status.
+  2. **Full Add Staff Modal (`OnboardStaffDialog`):**
+     - Complete creation form: Full Name, Official Email, Phone Number, Security Role dropdown, Territory Scope, and Password generator.
+     - Interactive Granular RBAC Permissions Checklist organized into 4 functional groups (Core Operations, Fleet & Inventory, Growth & Treasury, Platform Governance).
+     - Role preset auto-selection with 1-click "Select All", "Reset to Role Defaults", and "Clear All".
+  3. **Full Edit Staff & Access Dialog (`EditStaffDialog`):**
+     - Dedicated editing modal supporting both basic information and granular access-wise configuration.
+     - Editable fields: Full Name, Phone, Security Role, Territory Scope, Status (`Active` / `Suspended`).
+     - Optional password reset field with random password generator.
+     - Granular module access toggles with direct visual feedback and category group select/deselect.
+     - Backend ID compatibility: Fixed `_id` vs `id` lookups across `PUT /api/admin/staff/{id}`, `PUT /api/admin/staff/{id}/permissions`, `PUT /api/admin/staff/{id}/status`, and `DELETE /api/admin/staff/{id}`.
+- **Modified Files:**
+  - `admin-frontend/src/routes/staff.tsx`
+  - `backend-python/app/api/admin.py`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - Frontend build: `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 2.37s)**.
+
+

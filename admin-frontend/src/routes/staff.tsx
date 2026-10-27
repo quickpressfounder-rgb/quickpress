@@ -188,7 +188,6 @@ export function StaffPage() {
 
   // Modals state
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
-  const [permStaff, setPermStaff] = useState<StaffMember | null>(null);
   const [deletingStaff, setDeletingStaff] = useState<StaffMember | null>(null);
 
   const allStaff = staff.data ?? [];
@@ -1435,17 +1434,17 @@ function AddStaffDialog() {
   const mutation = useMutation({
     mutationFn: () =>
       inviteStaff({
-        name,
+        name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
-        password,
+        password: password.trim(),
         role,
         scope,
         permissions: selectedPerms,
         status: "Active",
       }),
     onSuccess: () => {
-      toast.success(`Staff Administrator "${name}" onboarded successfully! 🎉`);
+      toast.success(`Staff Administrator "${name}" onboarded successfully!`);
       setOpen(false);
       setName("");
       setEmail("");
@@ -1473,6 +1472,16 @@ function AddStaffDialog() {
     );
   };
 
+  const toggleCategory = (category: string) => {
+    const catPerms = ALL_PERMISSIONS.filter((p) => p.category === category).map((p) => p.key);
+    const allCatSelected = catPerms.every((k) => selectedPerms.includes(k));
+    if (allCatSelected) {
+      setSelectedPerms((prev) => prev.filter((k) => !catPerms.includes(k)));
+    } else {
+      setSelectedPerms((prev) => Array.from(new Set([...prev, ...catPerms])));
+    }
+  };
+
   const generateRandomPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
     let pwd = "QP_";
@@ -1484,77 +1493,102 @@ function AddStaffDialog() {
     toast.success("Strong password generated and copied to clipboard!");
   };
 
+  const isValidEmail = (str: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim());
+  const canSubmit = name.trim().length > 0 && isValidEmail(email) && !mutation.isPending;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="h-8 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs">
+        <Button size="sm" className="h-8 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs transition-all">
           <UserPlus className="size-3.5 mr-1.5" />
           <span>Onboard Staff Admin</span>
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-base font-black flex items-center gap-2">
-            <UserPlus className="size-5 text-emerald-600" />
-            <span>Onboard New Staff Administrator</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-zinc-500">
-            Create an administrative account, assign operational role, and configure granular module permissions.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-3xl border border-zinc-200 bg-white shadow-2xl">
+        {/* Header */}
+        <div className="p-6 border-b border-zinc-100 bg-zinc-50/60">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-md">
+              <UserPlus className="size-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-black text-zinc-950">
+                Onboard New Staff Administrator
+              </DialogTitle>
+              <DialogDescription className="text-xs text-zinc-500 mt-0.5">
+                Register administrative credentials, assign operator role, and configure granular module permissions.
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
 
-        <div className="space-y-4 py-2 text-xs">
-          {/* Section 1: Personal & Corporate Info */}
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 space-y-3">
-            <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="size-3.5 text-zinc-500" />
-              <span>1. Operator Identity</span>
-            </h4>
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+          {/* Section 1: Operator Identity & Security */}
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+              <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                <Users className="size-4 text-zinc-700" />
+                <span>1. Operator Identity & Authentication</span>
+              </h4>
+              <span className="text-[11px] font-semibold text-zinc-400">Required credentials</span>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Full Name *</Label>
-                <Input
-                  placeholder="e.g. Rajesh Sharma"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-9 text-xs font-semibold bg-white"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Full Name *</Label>
+                <div className="relative">
+                  <Input
+                    placeholder="e.g. Vikramaditya Sharma"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-10 text-xs font-semibold bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white focus:border-zinc-950 pl-3"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Official Business Email *</Label>
-                <Input
-                  type="email"
-                  placeholder="rajesh.ops@quickpress.online"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 text-xs bg-white font-mono"
-                />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Corporate Email *</Label>
+                <div className="relative">
+                  <Input
+                    type="email"
+                    placeholder="name.ops@quickpress.online"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-10 text-xs bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white focus:border-zinc-950 font-mono pl-3"
+                  />
+                  {email && !isValidEmail(email) && (
+                    <span className="text-[10px] text-rose-600 font-semibold absolute -bottom-4 left-1">
+                      Enter a valid email address
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Contact Phone Number</Label>
-                <Input
-                  placeholder="+91 98719 62596"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-9 text-xs bg-white font-mono"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Contact Phone Number</Label>
+                <div className="relative">
+                  <Input
+                    placeholder="+91 98719 62596"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-10 text-xs bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white focus:border-zinc-950 font-mono pl-3"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold">Initial Password</Label>
+                  <Label className="text-xs font-bold text-zinc-800">Initial Password *</Label>
                   <button
                     type="button"
                     onClick={generateRandomPassword}
-                    className="text-[10px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
                   >
-                    <KeyRound className="size-2.5" /> Generate Strong
+                    <KeyRound className="size-3" /> Generate Strong
                   </button>
                 </div>
                 <div className="relative">
@@ -1563,36 +1597,40 @@ function AddStaffDialog() {
                     placeholder="Staff@2026"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-9 text-xs bg-white pr-9 font-mono"
+                    className="h-10 text-xs bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white focus:border-zinc-950 pr-10 font-mono pl-3"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    title={showPassword ? "Hide Password" : "Show Password"}
                   >
-                    {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 2: Role & Jurisdiction */}
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 space-y-3">
-            <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Building className="size-3.5 text-zinc-500" />
-              <span>2. Security Role & Territory Jurisdiction</span>
-            </h4>
+          {/* Section 2: Role & Scope */}
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+              <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                <ShieldCheck className="size-4 text-zinc-700" />
+                <span>2. Security Role & Territory Scope</span>
+              </h4>
+              <span className="text-[11px] font-semibold text-zinc-400">Jurisdiction boundary</span>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Assigned Security Role</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Assigned Platform Role</Label>
                 <Select value={role} onValueChange={handleRoleChange}>
-                  <SelectTrigger className="h-9 text-xs bg-white font-semibold">
+                  <SelectTrigger className="h-10 text-xs bg-white font-bold border-zinc-200 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Super Admin">Super Admin (All Modules)</SelectItem>
+                    <SelectItem value="Super Admin">Super Admin (All 14 Modules)</SelectItem>
                     <SelectItem value="Operations Admin">Operations Admin</SelectItem>
                     <SelectItem value="Fleet Dispatch Manager">Fleet Dispatch Manager</SelectItem>
                     <SelectItem value="Support Lead">Support Lead</SelectItem>
@@ -1601,112 +1639,169 @@ function AddStaffDialog() {
                   </SelectContent>
                 </Select>
                 {ROLE_PRESETS[role] && (
-                  <p className="text-[11px] text-zinc-500 mt-1">{ROLE_PRESETS[role].desc}</p>
+                  <p className="text-[11px] text-zinc-500 font-medium leading-relaxed mt-1">
+                    {ROLE_PRESETS[role].desc}
+                  </p>
                 )}
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Territory Jurisdiction</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Territory Jurisdiction</Label>
                 <Select value={scope} onValueChange={setScope}>
-                  <SelectTrigger className="h-9 text-xs bg-white font-semibold">
+                  <SelectTrigger className="h-10 text-xs bg-white font-bold border-zinc-200 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All India Hubs">All India Hubs (HQ / Nationwide)</SelectItem>
+                    <SelectItem value="All India Hubs">All India Hubs (HQ / Global)</SelectItem>
                     <SelectItem value="Kasganj Market Hub">Kasganj Market Hub (Central)</SelectItem>
                     <SelectItem value="Aligarh Division">Aligarh Division (Express)</SelectItem>
                     <SelectItem value="Delhi NCR">Delhi NCR</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-zinc-500 mt-1">Defines operator visibility scope.</p>
+                <p className="text-[11px] text-zinc-500 font-medium leading-relaxed mt-1">
+                  Limits order dispatch and partner store management to this regional cluster.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Granular Permissions Checklist ("acces wise") */}
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Section 3: Granular RBAC Modules Checklist ("acces wise") */}
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
-                <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sliders className="size-3.5 text-emerald-600" />
-                  <span>3. Granular Access Modules ({selectedPerms.length} of {ALL_PERMISSIONS.length})</span>
+                <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                  <SlidersHorizontal className="size-4 text-emerald-600" />
+                  <span>3. Granular Access Modules</span>
                 </h4>
-                <p className="text-[11px] text-zinc-500">
-                  Toggle individual access boundaries or select quick presets.
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  Selectively permit or restrict individual platform modules for this operator.
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded-xl ${
+                    selectedPerms.length === ALL_PERMISSIONS.length
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : selectedPerms.length >= 7
+                      ? "bg-sky-50 text-sky-800 border-sky-200"
+                      : "bg-zinc-100 text-zinc-700 border-zinc-200"
+                  }`}
+                >
+                  {selectedPerms.length} / {ALL_PERMISSIONS.length} Modules Granted
+                </Badge>
+
                 <button
                   type="button"
                   onClick={() => setSelectedPerms(ALL_PERMISSIONS.map((p) => p.key))}
-                  className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg hover:bg-emerald-100"
+                  className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl hover:bg-emerald-100 transition-colors"
                 >
                   Select All
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedPerms([])}
-                  className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg hover:bg-rose-100"
+                  className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl hover:bg-rose-100 transition-colors"
                 >
                   Clear All
                 </button>
               </div>
             </div>
 
-            {/* Grouped Permission Tiles */}
-            <div className="space-y-3">
-              {CATEGORIES.map((cat) => (
-                <div key={cat} className="space-y-1.5">
-                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-                    {cat}
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {ALL_PERMISSIONS.filter((p) => p.category === cat).map((p) => {
-                      const checked = selectedPerms.includes(p.key);
-                      return (
-                        <button
-                          key={p.key}
-                          type="button"
-                          onClick={() => togglePermission(p.key)}
-                          className={`flex items-start justify-between p-2.5 rounded-xl border text-left transition-all ${
-                            checked
-                              ? "border-emerald-600 bg-emerald-50/80 text-emerald-950 shadow-xs"
-                              : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
-                          }`}
-                        >
-                          <div className="pr-2">
-                            <p className="font-bold text-xs">{p.label}</p>
-                            <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">{p.description}</p>
-                          </div>
-                          {checked ? (
-                            <CheckSquare className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                          ) : (
-                            <Square className="size-4 text-zinc-300 shrink-0 mt-0.5" />
-                          )}
-                        </button>
-                      );
-                    })}
+            {/* Grouped Category Checkboxes */}
+            <div className="space-y-4">
+              {CATEGORIES.map((cat) => {
+                const catItems = ALL_PERMISSIONS.filter((p) => p.category === cat);
+                const allCatChecked = catItems.every((p) => selectedPerms.includes(p.key));
+                const someCatChecked = catItems.some((p) => selectedPerms.includes(p.key));
+
+                return (
+                  <div key={cat} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">
+                        {cat}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(cat)}
+                        className="text-[10px] font-bold text-zinc-600 hover:text-zinc-950 underline"
+                      >
+                        {allCatChecked ? "Deselect Group" : "Select Group"}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {catItems.map((p) => {
+                        const checked = selectedPerms.includes(p.key);
+                        return (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => togglePermission(p.key)}
+                            className={`flex items-start justify-between p-3 rounded-xl border text-left transition-all ${
+                              checked
+                                ? "border-emerald-600 bg-emerald-50/70 text-emerald-950 shadow-xs ring-1 ring-emerald-600/20"
+                                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                            }`}
+                          >
+                            <div className="pr-2 min-w-0">
+                              <p className={`font-bold text-xs ${checked ? "text-emerald-950" : "text-zinc-900"}`}>
+                                {p.label}
+                              </p>
+                              <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">
+                                {p.description}
+                              </p>
+                            </div>
+                            <div className="pt-0.5 shrink-0">
+                              {checked ? (
+                                <CheckSquare className="size-4 text-emerald-600" />
+                              ) : (
+                                <Square className="size-4 text-zinc-300" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
-        <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="h-9 rounded-xl text-xs font-semibold">
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => mutation.mutate()}
-            disabled={!name.trim() || !email.trim() || mutation.isPending}
-            className="h-9 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs"
-          >
-            {mutation.isPending ? "Onboarding Staff..." : "Onboard Staff Administrator"}
-          </Button>
-        </DialogFooter>
+        {/* Footer */}
+        <div className="p-4 border-t border-zinc-100 bg-zinc-50/80 flex items-center justify-between gap-3">
+          <div className="text-xs text-zinc-500 font-medium hidden sm:block">
+            {canSubmit ? (
+              <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="size-3.5" /> Ready to onboard operator
+              </span>
+            ) : (
+              <span>Fill in full name and official email to continue</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setOpen(false)}
+              className="h-9 px-4 rounded-xl text-xs font-bold border-zinc-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => mutation.mutate()}
+              disabled={!canSubmit}
+              className="h-9 px-5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs transition-all disabled:opacity-50"
+            >
+              {mutation.isPending ? "Creating Operator Account..." : "Confirm & Onboard Staff"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -1734,21 +1829,21 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
 
   const mutation = useMutation({
     mutationFn: async () => {
-      // 1. Update staff details
+      // 1. Update staff core profile & credentials
       await updateStaff(staff.id, {
-        name,
-        phone,
+        name: name.trim(),
+        phone: phone.trim(),
         role,
         scope,
         status,
         permissions: perms,
         password: password.trim() ? password.trim() : undefined,
       });
-      // 2. Explicitly update permissions endpoint for safety
+      // 2. Explicitly update granular permissions endpoint
       await updateStaffPermissions(staff.id, perms);
     },
     onSuccess: () => {
-      toast.success(`Staff Administrator "${name}" and access boundaries updated! 🛡️`);
+      toast.success(`Staff Administrator "${name}" and access boundaries updated!`);
       onClose();
       queryClient.invalidateQueries({ queryKey: ["admin", "staff"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "activity-logs"] });
@@ -1773,6 +1868,16 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
     setPerms((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
 
+  const toggleCategory = (category: string) => {
+    const catPerms = ALL_PERMISSIONS.filter((p) => p.category === category).map((p) => p.key);
+    const allCatSelected = catPerms.every((k) => perms.includes(k));
+    if (allCatSelected) {
+      setPerms((prev) => prev.filter((k) => !catPerms.includes(k)));
+    } else {
+      setPerms((prev) => Array.from(new Set([...prev, ...catPerms])));
+    }
+  };
+
   const generateRandomPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
     let pwd = "QP_";
@@ -1784,72 +1889,89 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
     toast.success("New password generated and copied to clipboard!");
   };
 
+  const isSuperAdmin = staff.role === "Super Admin";
+
   return (
     <Dialog open={true} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-900 text-white font-black text-sm">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-3xl border border-zinc-200 bg-white shadow-2xl">
+        {/* Header */}
+        <div className="p-6 border-b border-zinc-100 bg-zinc-50/60">
+          <div className="flex items-center gap-3.5">
+            <div
+              className={`flex size-12 items-center justify-center rounded-2xl text-white font-black text-sm shadow-md ${
+                isSuperAdmin ? "bg-amber-500" : "bg-zinc-950"
+              }`}
+            >
               {staff.name.slice(0, 2).toUpperCase()}
             </div>
-            <div>
-              <DialogTitle className="text-base font-black flex items-center gap-2">
-                <span>Edit Staff Member & Access Controls</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs text-zinc-500 flex items-center gap-2 mt-0.5">
-                <span className="font-mono text-zinc-700">{staff.email}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-base font-black text-zinc-950 truncate">
+                  Edit Staff Member & Access Governance
+                </DialogTitle>
+                {isSuperAdmin && <Crown className="size-4 text-amber-500 shrink-0" />}
+              </div>
+              <DialogDescription className="text-xs text-zinc-500 flex flex-wrap items-center gap-2 mt-1">
+                <span className="font-mono text-zinc-700 font-semibold">{staff.email}</span>
                 <span className="text-zinc-300">•</span>
                 <StatusPill value={staff.status} />
+                <span className="text-zinc-300">•</span>
+                <span className="font-semibold text-zinc-600">ID: {staff.id}</span>
               </DialogDescription>
             </div>
           </div>
-        </DialogHeader>
+        </div>
 
-        <div className="space-y-4 py-2 text-xs">
-          {/* Section 1: Basic Info */}
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 space-y-3">
-            <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="size-3.5 text-zinc-500" />
-              <span>Operator Profile & Status</span>
-            </h4>
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+          {/* Section 1: Basic Identity & Status */}
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+              <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                <Users className="size-4 text-zinc-700" />
+                <span>1. Operator Identity & Status</span>
+              </h4>
+              <span className="text-[11px] font-semibold text-zinc-400">Core parameters</span>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Full Name</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Full Name *</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="h-9 text-xs font-semibold bg-white"
+                  className="h-10 text-xs font-semibold bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white focus:border-zinc-950 pl-3"
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Corporate Email (Identity Locked)</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Corporate Email (Identity Locked)</Label>
                 <div className="relative">
                   <Input
                     value={staff.email}
                     disabled
-                    className="h-9 text-xs bg-zinc-100 font-mono text-zinc-500 pr-8"
+                    className="h-10 text-xs bg-zinc-100 font-mono text-zinc-500 pr-10 border-zinc-200 rounded-xl"
                   />
-                  <Lock className="size-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="size-4 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2" />
                 </div>
+                <p className="text-[10px] text-zinc-400">Tied to Cloudflare SSO and primary Supabase account ID.</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Phone Number</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Phone Number</Label>
                 <Input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="h-9 text-xs bg-white font-mono"
+                  className="h-10 text-xs bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white focus:border-zinc-950 font-mono pl-3"
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Account Status</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Account Status</Label>
                 <Select value={status} onValueChange={(v: any) => setStatus(v)}>
-                  <SelectTrigger className="h-9 text-xs bg-white font-semibold">
+                  <SelectTrigger className="h-10 text-xs bg-white font-bold border-zinc-200 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1860,16 +1982,16 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Territory Scope</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-zinc-800">Territory Jurisdiction</Label>
                 <Select value={scope} onValueChange={setScope}>
-                  <SelectTrigger className="h-9 text-xs bg-white font-semibold">
+                  <SelectTrigger className="h-10 text-xs bg-white font-bold border-zinc-200 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All India Hubs">All India Hubs</SelectItem>
-                    <SelectItem value="Kasganj Market Hub">Kasganj Market Hub</SelectItem>
-                    <SelectItem value="Aligarh Division">Aligarh Division</SelectItem>
+                    <SelectItem value="All India Hubs">All India Hubs (HQ / Global)</SelectItem>
+                    <SelectItem value="Kasganj Market Hub">Kasganj Market Hub (Central)</SelectItem>
+                    <SelectItem value="Aligarh Division">Aligarh Division (Express)</SelectItem>
                     <SelectItem value="Delhi NCR">Delhi NCR</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1877,54 +1999,54 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
             </div>
 
             {/* Optional Password Reset */}
-            <div className="pt-2 border-t border-zinc-200">
-              <div className="flex items-center justify-between mb-1">
+            <div className="pt-3 border-t border-zinc-100 space-y-1.5">
+              <div className="flex items-center justify-between">
                 <Label className="text-xs font-bold text-zinc-700">
-                  Reset Password <span className="font-normal text-zinc-400">(leave blank to keep existing)</span>
+                  Reset Password <span className="font-normal text-zinc-400">(leave blank to keep existing password)</span>
                 </Label>
                 <button
                   type="button"
                   onClick={generateRandomPassword}
-                  className="text-[10px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                  className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
                 >
-                  <KeyRound className="size-2.5" /> Generate New
+                  <KeyRound className="size-3" /> Generate New
                 </button>
               </div>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter new password to reset..."
+                  placeholder="Enter new password to update..."
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-9 text-xs bg-white pr-9 font-mono"
+                  className="h-10 text-xs bg-zinc-50/50 border-zinc-200 rounded-xl focus:bg-white focus:border-zinc-950 pr-10 font-mono pl-3"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
                 >
-                  {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Section 2: Role & Access Boundaries ("edit bhi acces wise") */}
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {/* Section 2: Role & Granular RBAC Grants ("edit bhi acces wise") */}
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
-                <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Shield className="size-3.5 text-emerald-600" />
-                  <span>Security Role & Granular RBAC Grants</span>
+                <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                  <Shield className="size-4 text-emerald-600" />
+                  <span>2. Security Role & Granular Access Boundaries</span>
                 </h4>
-                <p className="text-[11px] text-zinc-500">
-                  Assigned permissions directly govern which modules this operator can view and edit.
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  Assigned permissions directly govern which modules this operator can view, edit, or dispatch.
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <Select value={role} onValueChange={handleRoleChange}>
-                  <SelectTrigger className="h-8 w-48 text-xs bg-white font-bold border-zinc-200">
+                  <SelectTrigger className="h-9 w-48 text-xs bg-white font-bold border-zinc-200 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1941,11 +2063,11 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
 
             {/* Role Change Banner Alert */}
             {roleChanged && ROLE_PRESETS[role] && (
-              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-amber-900">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-amber-50 border border-amber-200 p-3 rounded-2xl text-amber-900">
                 <div className="flex items-center gap-2 text-xs">
                   <AlertCircle className="size-4 text-amber-600 shrink-0" />
                   <span>
-                    Role changed to <strong>{role}</strong>. Would you like to sync default permissions?
+                    Role changed to <strong>{role}</strong>. Would you like to load its recommended permission set?
                   </span>
                 </div>
                 <Button
@@ -1953,7 +2075,7 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
                   type="button"
                   variant="outline"
                   onClick={() => applyRolePreset(role)}
-                  className="h-7 text-xs font-bold border-amber-300 bg-white hover:bg-amber-100 text-amber-900"
+                  className="h-8 text-xs font-bold border-amber-300 bg-white hover:bg-amber-100 text-amber-900 rounded-xl self-end sm:self-auto"
                 >
                   Apply Role Defaults
                 </Button>
@@ -1961,89 +2083,124 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
             )}
 
             {/* Quick Action Presets Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-2 rounded-xl border border-zinc-200">
-              <span className="text-[11px] font-bold text-zinc-600">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-zinc-50 p-2.5 rounded-xl border border-zinc-200/80">
+              <span className="text-[11px] font-bold text-zinc-700">
                 Granted Modules: <strong className="text-emerald-700">{perms.length} of {ALL_PERMISSIONS.length}</strong>
               </span>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setPerms(ALL_PERMISSIONS.map((p) => p.key))}
-                  className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded hover:bg-emerald-100"
+                  className="text-[11px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2.5 py-1 rounded-lg hover:bg-emerald-50 transition-colors"
                 >
-                  Select All
+                  Select All (14)
                 </button>
                 <button
                   type="button"
                   onClick={() => applyRolePreset(role)}
-                  className="text-[10px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded hover:bg-zinc-200"
+                  className="text-[11px] font-bold text-zinc-700 bg-white border border-zinc-200 px-2.5 py-1 rounded-lg hover:bg-zinc-100 transition-colors"
                 >
                   Reset to Role Defaults
                 </button>
                 <button
                   type="button"
                   onClick={() => setPerms([])}
-                  className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded hover:bg-rose-100"
+                  className="text-[11px] font-bold text-rose-700 bg-white border border-rose-200 px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-colors"
                 >
                   Clear All
                 </button>
               </div>
             </div>
 
-            {/* Interactive Module Checklist */}
-            <div className="space-y-3 pt-1">
-              {CATEGORIES.map((cat) => (
-                <div key={cat} className="space-y-1.5">
-                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-                    {cat}
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {ALL_PERMISSIONS.filter((p) => p.category === cat).map((p) => {
-                      const isChecked = perms.includes(p.key);
-                      return (
-                        <button
-                          key={p.key}
-                          type="button"
-                          onClick={() => togglePermission(p.key)}
-                          className={`flex items-start justify-between p-2.5 rounded-xl border text-left transition-all ${
-                            isChecked
-                              ? "border-emerald-600 bg-emerald-50/80 text-emerald-950 shadow-xs"
-                              : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
-                          }`}
-                        >
-                          <div className="pr-2">
-                            <p className="font-bold text-xs">{p.label}</p>
-                            <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">{p.description}</p>
-                          </div>
-                          {isChecked ? (
-                            <CheckSquare className="size-4 text-emerald-600 shrink-0 mt-0.5" />
-                          ) : (
-                            <Square className="size-4 text-zinc-300 shrink-0 mt-0.5" />
-                          )}
-                        </button>
-                      );
-                    })}
+            {/* Interactive Module Checklist By Category */}
+            <div className="space-y-4 pt-1">
+              {CATEGORIES.map((cat) => {
+                const catItems = ALL_PERMISSIONS.filter((p) => p.category === cat);
+                const allCatChecked = catItems.every((p) => perms.includes(p.key));
+
+                return (
+                  <div key={cat} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">
+                        {cat}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(cat)}
+                        className="text-[10px] font-bold text-zinc-600 hover:text-zinc-950 underline"
+                      >
+                        {allCatChecked ? "Deselect Group" : "Select Group"}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {catItems.map((p) => {
+                        const isChecked = perms.includes(p.key);
+                        return (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => togglePermission(p.key)}
+                            className={`flex items-start justify-between p-3 rounded-xl border text-left transition-all ${
+                              isChecked
+                                ? "border-emerald-600 bg-emerald-50/70 text-emerald-950 shadow-xs ring-1 ring-emerald-600/20"
+                                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                            }`}
+                          >
+                            <div className="pr-2 min-w-0">
+                              <p className={`font-bold text-xs ${isChecked ? "text-emerald-950" : "text-zinc-900"}`}>
+                                {p.label}
+                              </p>
+                              <p className="text-[10px] text-zinc-500 leading-tight mt-0.5">
+                                {p.description}
+                              </p>
+                            </div>
+                            <div className="pt-0.5 shrink-0">
+                              {isChecked ? (
+                                <CheckSquare className="size-4 text-emerald-600" />
+                              ) : (
+                                <Square className="size-4 text-zinc-300" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
-        <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={onClose} className="h-9 rounded-xl text-xs font-semibold">
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => mutation.mutate()}
-            disabled={!name.trim() || mutation.isPending}
-            className="h-9 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs"
-          >
-            {mutation.isPending ? "Saving Changes..." : "Save Staff & Access Updates"}
-          </Button>
-        </DialogFooter>
+        {/* Footer */}
+        <div className="p-4 border-t border-zinc-100 bg-zinc-50/80 flex items-center justify-between gap-3">
+          <div className="text-xs text-zinc-500 font-medium hidden sm:block">
+            <span>
+              Configuring <strong className="text-zinc-900">{perms.length} active permissions</strong> for {name || staff.name}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="h-9 px-4 rounded-xl text-xs font-bold border-zinc-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => mutation.mutate()}
+              disabled={!name.trim() || mutation.isPending}
+              className="h-9 px-5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs transition-all disabled:opacity-50"
+            >
+              {mutation.isPending ? "Saving Updates..." : "Save Staff & Access Updates"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

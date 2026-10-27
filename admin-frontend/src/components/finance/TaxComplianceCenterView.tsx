@@ -483,30 +483,30 @@ export function TaxComplianceCenterView() {
           {/* ========================================================================= */}
           {/* 3. GST CHALLAN PAID & STATUTORY BALANCE OFFSET CARD                       */}
           {/* ========================================================================= */}
-          <div className="bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-950 text-white rounded-2xl p-6 shadow-sm border border-zinc-800">
+          <div className="bg-white rounded-2xl p-6 shadow-xs border border-zinc-200/90">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="size-5 text-emerald-400" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                  <ShieldCheck className="size-5 text-emerald-600" />
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-500">
                     Statutory Net Tax Settlement Ledger (Form PMT-06 Offset)
                   </span>
                   {summary?.isPeriodFullyPaid ? (
-                    <Badge className="bg-emerald-500 text-zinc-950 text-[10px] font-black">
+                    <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-300 text-[10px] font-black">
                       Fully Paid / Compliant
                     </Badge>
                   ) : (
-                    <Badge className="bg-amber-500 text-zinc-950 text-[10px] font-black">
+                    <Badge className="bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-black">
                       Payment Pending
                     </Badge>
                   )}
                 </div>
-                <h3 className="text-xl font-black text-white">
+                <h3 className="text-xl sm:text-2xl font-black text-zinc-950">
                   {summary?.isPeriodFullyPaid
                     ? "Statutory Outward Tax Liability is Fully Settled for Current Period"
                     : `Remaining Net Tax Payable: ₹${(summary?.netBalanceDue ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
                 </h3>
-                <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                <p className="text-xs text-zinc-600 max-w-2xl leading-relaxed">
                   Gross outward liability under Section 9(5) is automatically offset by Eligible Input Tax Credit (ITC) from business expenses and verified advance GST Challans (Form PMT-06).
                 </p>
               </div>
@@ -515,7 +515,7 @@ export function TaxComplianceCenterView() {
               <div className="flex flex-wrap items-center gap-3">
                 <Button
                   onClick={() => setIsRecordChallanOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-xs"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs h-10 px-4 rounded-xl shadow-xs"
                 >
                   <Plus className="size-4 mr-1.5" />
                   Record GST Challan Payment
@@ -523,46 +523,46 @@ export function TaxComplianceCenterView() {
                 <Button
                   onClick={() => setIsAddExpenseOpen(true)}
                   variant="outline"
-                  className="border-zinc-700 text-zinc-200 hover:bg-zinc-800 font-bold text-xs h-10 px-4 rounded-xl"
+                  className="border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50 font-black text-xs h-10 px-4 rounded-xl"
                 >
-                  <Plus className="size-4 mr-1.5 text-emerald-400" />
+                  <Plus className="size-4 mr-1.5 text-emerald-600" />
                   Add Business Expense (ITC)
                 </Button>
               </div>
             </div>
 
             {/* Mathematical Waterfall Breakdown */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-zinc-800/80">
-              <div>
-                <span className="text-[11px] font-semibold text-zinc-400 uppercase">Gross Tax Liability</span>
-                <div className="text-lg font-black text-white mt-0.5 tabular-nums">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-zinc-200">
+              <div className="p-3 rounded-xl bg-zinc-50/80 border border-zinc-200/60">
+                <span className="text-[11px] font-bold text-zinc-500 uppercase">Gross Tax Liability</span>
+                <div className="text-lg font-black text-zinc-950 mt-0.5 tabular-nums">
                   ₹{(summary?.grossTaxLiability ?? summary?.gstSec95Payable ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </div>
                 <span className="text-[10px] text-zinc-500">Outward Sec 9(5) + Platform</span>
               </div>
 
-              <div>
-                <span className="text-[11px] font-semibold text-emerald-400 uppercase">(-) Eligible ITC Credit</span>
-                <div className="text-lg font-black text-emerald-400 mt-0.5 tabular-nums">
+              <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/60">
+                <span className="text-[11px] font-bold text-emerald-700 uppercase">(-) Eligible ITC Credit</span>
+                <div className="text-lg font-black text-emerald-700 mt-0.5 tabular-nums">
                   -₹{(summary?.totalEligibleItc ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </div>
-                <span className="text-[10px] text-zinc-500">Claimed from OPEX Invoices</span>
+                <span className="text-[10px] text-emerald-600">Claimed from OPEX Invoices</span>
               </div>
 
-              <div>
-                <span className="text-[11px] font-semibold text-blue-400 uppercase">(-) Challans Paid</span>
-                <div className="text-lg font-black text-blue-400 mt-0.5 tabular-nums">
+              <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-200/60">
+                <span className="text-[11px] font-bold text-blue-700 uppercase">(-) Challans Paid</span>
+                <div className="text-lg font-black text-blue-700 mt-0.5 tabular-nums">
                   -₹{(summary?.totalChallansPaid ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </div>
-                <span className="text-[10px] text-zinc-500">{challansList.length} Verified Challan(s)</span>
+                <span className="text-[10px] text-blue-600">{challansList.length} Verified Challan(s)</span>
               </div>
 
-              <div>
-                <span className="text-[11px] font-semibold text-amber-300 uppercase">(=) Net Balance Due</span>
-                <div className="text-lg font-black text-amber-300 mt-0.5 tabular-nums">
+              <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/60">
+                <span className="text-[11px] font-bold text-amber-800 uppercase">(=) Net Balance Due</span>
+                <div className="text-lg font-black text-amber-800 mt-0.5 tabular-nums">
                   ₹{(summary?.netBalanceDue ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </div>
-                <span className="text-[10px] text-zinc-500">
+                <span className="text-[10px] text-amber-700 font-semibold">
                   {summary?.isPeriodFullyPaid ? "Zero Liability Due" : "Pay via Challan PMT-06"}
                 </span>
               </div>

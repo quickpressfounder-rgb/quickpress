@@ -1536,8 +1536,6 @@ export function FinanceEnginePage() {
                 <option value="" disabled>Select Technical Module...</option>
                 <option value="rules">Finance Rules Engine</option>
                 <option value="memberships">Membership Plans & MRR</option>
-                <option value="loyalty">Loyalty & Rewards</option>
-                <option value="accounting-statements">Accounting Statements</option>
                 <option value="general-ledger">General Ledger</option>
                 <option value="expenses">Expense & Net Profit</option>
                 <option value="profitability">Profitability Heatmap</option>
@@ -1829,20 +1827,20 @@ export function FinanceEnginePage() {
                  ========================================================================= */}
               <TabsContent value="distance-fare" className="mt-4 space-y-6">
                 {/* Header Banner */}
-                <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-zinc-900 text-white rounded-2xl p-6 shadow-lg border border-emerald-700/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="bg-white rounded-2xl p-6 shadow-xs border border-zinc-200/90 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300">
+                      <span className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
                         <Navigation className="size-5" />
                       </span>
-                      <h2 className="text-xl font-black tracking-tight">
+                      <h2 className="text-xl font-black tracking-tight text-zinc-950">
                         Master Distance Rate & Dynamic Fare Engine
                       </h2>
-                      <Badge className="bg-emerald-500 text-emerald-950 font-black text-[10px] tracking-wide">
+                      <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-300 font-black text-[10px] tracking-wide">
                         LIVE PRICING
                       </Badge>
                     </div>
-                    <p className="text-xs text-zinc-300 max-w-2xl leading-relaxed">
+                    <p className="text-xs text-zinc-600 max-w-2xl leading-relaxed">
                       Enterprise dynamic fare calculation algorithm with Admin controls for Base Distance, Extra KM Slabs, Weather & Peak Rush Surge, Late Night Surcharges, and Doorstep Waiting Compensation.
                     </p>
                   </div>
@@ -1852,7 +1850,7 @@ export function FinanceEnginePage() {
                       size="sm"
                       onClick={() => resetFareEngineMutation.mutate()}
                       disabled={resetFareEngineMutation.isPending}
-                      className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 text-xs font-bold"
+                      className="border-zinc-300 bg-white text-zinc-700 hover:text-zinc-950 hover:bg-zinc-50 text-xs font-bold"
                     >
                       <RotateCcw className="size-3.5 mr-1.5" />
                       Reset Defaults
@@ -1861,7 +1859,7 @@ export function FinanceEnginePage() {
                       size="sm"
                       onClick={() => updateFareEngineMutation.mutate(fareEngineForm)}
                       disabled={updateFareEngineMutation.isPending}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xs shadow-md shadow-emerald-900/50"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs"
                     >
                       {updateFareEngineMutation.isPending ? (
                         <RefreshCw className="size-3.5 mr-1.5 animate-spin" />
@@ -2216,29 +2214,29 @@ export function FinanceEnginePage() {
 
                   {/* Right Column: Live Interactive Trip Fare Simulator (5 cols) */}
                   <div className="lg:col-span-5 sticky top-6 space-y-4">
-                    <div className="bg-gradient-to-br from-zinc-900 via-zinc-950 to-black text-white p-6 rounded-3xl shadow-xl border border-zinc-800 space-y-5">
-                      <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+                    <div className="bg-white text-zinc-950 p-6 rounded-3xl shadow-xs border border-zinc-200/90 space-y-5">
+                      <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
                         <div className="flex items-center gap-2">
-                          <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          <span className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <Zap className="size-4" />
                           </span>
                           <div>
-                            <h3 className="text-base font-black text-white">Live Trip Fare Simulator</h3>
-                            <p className="text-[11px] text-zinc-400">Real-time breakdown calculator</p>
+                            <h3 className="text-base font-black text-zinc-950">Live Trip Fare Simulator</h3>
+                            <p className="text-[11px] text-zinc-500">Real-time breakdown calculator</p>
                           </div>
                         </div>
-                        <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px]">
+                        <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-300 text-[10px] font-black">
                           INSTANT
                         </Badge>
                       </div>
 
                       {/* Simulator Controls */}
-                      <div className="space-y-4 bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800/80">
+                      <div className="space-y-4 bg-zinc-50/80 p-4 rounded-2xl border border-zinc-200/80">
                         {/* Distance Slider */}
                         <div>
-                          <div className="flex items-center justify-between text-xs font-bold text-zinc-300 mb-1.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1.5">
                             <span>Trip Distance</span>
-                            <span className="text-emerald-400 text-sm font-black">{simDistance.toFixed(1)} km</span>
+                            <span className="text-emerald-700 text-sm font-black">{simDistance.toFixed(1)} km</span>
                           </div>
                           <input
                             type="range"
@@ -2247,9 +2245,9 @@ export function FinanceEnginePage() {
                             step="0.5"
                             value={simDistance}
                             onChange={(e) => setSimDistance(Number(e.target.value))}
-                            className="w-full accent-emerald-500 cursor-pointer h-2 bg-zinc-800 rounded-lg"
+                            className="w-full accent-emerald-600 cursor-pointer h-2 bg-zinc-200 rounded-lg"
                           />
-                          <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+                          <div className="flex justify-between text-[10px] text-zinc-500 mt-1 font-medium">
                             <span>0.5 km</span>
                             <span>12.5 km</span>
                             <span>25.0 km</span>
@@ -2258,9 +2256,9 @@ export function FinanceEnginePage() {
 
                         {/* Waiting Duration Slider */}
                         <div>
-                          <div className="flex items-center justify-between text-xs font-bold text-zinc-300 mb-1.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1.5">
                             <span>Doorstep Waiting Duration</span>
-                            <span className="text-sky-400 text-sm font-black">{simWaitingMinutes} mins</span>
+                            <span className="text-sky-700 text-sm font-black">{simWaitingMinutes} mins</span>
                           </div>
                           <input
                             type="range"
@@ -2269,9 +2267,9 @@ export function FinanceEnginePage() {
                             step="1"
                             value={simWaitingMinutes}
                             onChange={(e) => setSimWaitingMinutes(Number(e.target.value))}
-                            className="w-full accent-sky-500 cursor-pointer h-2 bg-zinc-800 rounded-lg"
+                            className="w-full accent-sky-600 cursor-pointer h-2 bg-zinc-200 rounded-lg"
                           />
-                          <div className="flex justify-between text-[10px] text-zinc-500 mt-1">
+                          <div className="flex justify-between text-[10px] text-zinc-500 mt-1 font-medium">
                             <span>0 min (Free)</span>
                             <span>15 mins</span>
                             <span>30 mins</span>
@@ -2285,8 +2283,8 @@ export function FinanceEnginePage() {
                             onClick={() => setSimIsNight(!simIsNight)}
                             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
                               simIsNight
-                                ? "bg-purple-950/80 border-purple-500 text-purple-200 shadow-xs"
-                                : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
+                                ? "bg-purple-100 border-purple-300 text-purple-900 shadow-2xs"
+                                : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                             }`}
                           >
                             <Moon className="size-3.5" />
@@ -2298,8 +2296,8 @@ export function FinanceEnginePage() {
                             onClick={() => setSimIsRain(!simIsRain)}
                             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
                               simIsRain
-                                ? "bg-amber-950/80 border-amber-500 text-amber-200 shadow-xs"
-                                : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
+                                ? "bg-amber-100 border-amber-300 text-amber-900 shadow-2xs"
+                                : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                             }`}
                           >
                             <CloudRain className="size-3.5" />
@@ -2311,8 +2309,8 @@ export function FinanceEnginePage() {
                             onClick={() => setSimIsExpress(!simIsExpress)}
                             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
                               simIsExpress
-                                ? "bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs"
-                                : "bg-zinc-800/80 border-zinc-700 text-zinc-400 hover:text-white"
+                                ? "bg-emerald-100 border-emerald-300 text-emerald-900 shadow-2xs"
+                                : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                             }`}
                           >
                             <Zap className="size-3.5" />
@@ -2322,7 +2320,7 @@ export function FinanceEnginePage() {
                           <select
                             value={simVehicle}
                             onChange={(e) => setSimVehicle(e.target.value)}
-                            className="bg-zinc-800 border border-zinc-700 text-xs font-bold text-zinc-200 rounded-xl px-2.5 py-2"
+                            className="bg-white border border-zinc-200 text-xs font-bold text-zinc-900 rounded-xl px-2.5 py-2 focus:border-zinc-400 focus:outline-none"
                           >
                             <option value="bike">🛵 Standard Bike (1.0x)</option>
                             <option value="electric_bike">⚡ Electric Bike (1.0x)</option>
@@ -2334,81 +2332,81 @@ export function FinanceEnginePage() {
                       </div>
 
                       {/* Receipt Output Card */}
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3.5">
+                      <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4 space-y-3.5">
                         <div className="flex items-baseline justify-between">
-                          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Rider Earning</span>
-                          <span className="text-3xl font-black text-emerald-400 tracking-tight">
+                          <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Total Rider Earning</span>
+                          <span className="text-3xl font-black text-emerald-700 tracking-tight">
                             ₹{simResult ? Math.round(simResult.totalFare) : 35}
                           </span>
                         </div>
 
                         {simResult?.breakdownText && (
-                          <div className="text-[11px] font-semibold text-zinc-300 bg-zinc-800/60 p-2.5 rounded-xl border border-zinc-700/50">
+                          <div className="text-[11px] font-semibold text-zinc-700 bg-white p-2.5 rounded-xl border border-zinc-200 shadow-2xs">
                             🧾 {simResult.breakdownText}
                           </div>
                         )}
 
                         {/* Itemized Line Items */}
-                        <div className="space-y-1.5 text-xs text-zinc-300 pt-1">
+                        <div className="space-y-1.5 text-xs text-zinc-700 pt-1">
                           <div className="flex justify-between">
-                            <span className="text-zinc-400">Base Fare (First {simResult?.baseDistanceKm ?? 2} km):</span>
-                            <span className="font-bold">₹{simResult?.baseFare ?? 35}</span>
+                            <span className="text-zinc-500">Base Fare (First {simResult?.baseDistanceKm ?? 2} km):</span>
+                            <span className="font-bold text-zinc-900">₹{simResult?.baseFare ?? 35}</span>
                           </div>
 
                           <div className="flex justify-between">
-                            <span className="text-zinc-400">Extra Distance ({simResult?.extraDistanceKm ?? 0} km @ ₹{simResult?.extraKmRate ?? 8}/km):</span>
-                            <span className="font-bold text-emerald-400">+₹{simResult?.distanceFare ?? 0}</span>
+                            <span className="text-zinc-500">Extra Distance ({simResult?.extraDistanceKm ?? 0} km @ ₹{simResult?.extraKmRate ?? 8}/km):</span>
+                            <span className="font-bold text-emerald-700">+₹{simResult?.distanceFare ?? 0}</span>
                           </div>
 
                           {simResult && simResult.isNight && (
-                            <div className="flex justify-between text-purple-300">
+                            <div className="flex justify-between text-purple-700">
                               <span>Late Night Surcharge:</span>
                               <span className="font-bold">+₹{simResult.nightFee}</span>
                             </div>
                           )}
 
                           {simResult && simResult.isSurge && (
-                            <div className="flex justify-between text-amber-300">
+                            <div className="flex justify-between text-amber-800">
                               <span>Surge ({simResult.surgeReason}):</span>
                               <span className="font-bold">+₹{simResult.surgeFee}</span>
                             </div>
                           )}
 
                           {simResult && simResult.waitingFare > 0 && (
-                            <div className="flex justify-between text-sky-300">
+                            <div className="flex justify-between text-sky-700">
                               <span>Waiting ({simResult.billableWaitingMinutes}m billable):</span>
                               <span className="font-bold">+₹{simResult.waitingFare}</span>
                             </div>
                           )}
 
                           {simResult && simResult.expressBonus > 0 && (
-                            <div className="flex justify-between text-emerald-300">
+                            <div className="flex justify-between text-emerald-700">
                               <span>Express Priority Bonus:</span>
                               <span className="font-bold">+₹{simResult.expressBonus}</span>
                             </div>
                           )}
 
                           {simResult && simResult.vehicleMultiplier !== 1.0 && (
-                            <div className="flex justify-between text-zinc-400">
+                            <div className="flex justify-between text-zinc-600">
                               <span>Vehicle Multiplier ({simResult.vehicleType}):</span>
-                              <span className="font-bold">{simResult.vehicleMultiplier}x</span>
+                              <span className="font-bold text-zinc-900">{simResult.vehicleMultiplier}x</span>
                             </div>
                           )}
 
-                          <div className="pt-2 border-t border-zinc-800 flex justify-between text-xs font-black">
-                            <span className="text-zinc-400">Raw Computed Total:</span>
+                          <div className="pt-2 border-t border-zinc-200 flex justify-between text-xs font-black text-zinc-900">
+                            <span className="text-zinc-500">Raw Computed Total:</span>
                             <span>₹{simResult?.rawTotal ?? 35}</span>
                           </div>
                         </div>
 
                         {/* Clamping indicator */}
                         {simResult?.isClampedMin && (
-                          <div className="text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-800/50 p-2 rounded-lg text-center">
+                          <div className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded-lg text-center">
                             ⚠️ Clamped up to Minimum Floor Guarantee (₹{fareEngineForm.minimumFare})
                           </div>
                         )}
                         {simResult?.isClampedMax && (
-                          <div className="text-[10px] font-bold text-red-400 bg-red-950/40 border border-red-800/50 p-2 rounded-lg text-center">
+                          <div className="text-[10px] font-bold text-red-800 bg-red-50 border border-red-200 p-2 rounded-lg text-center">
                             ⚠️ Clamped down to Safety Ceiling Cap (₹{fareEngineForm.maximumFareCap})
                           </div>
                         )}

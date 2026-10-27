@@ -1703,17 +1703,18 @@ async def update_staff(staff_id: str, payload: StaffPayload, user: User = Depend
     from app.core.admin_security import hash_password
     from app.db.client import database
 
-    existing = await database.find_one("admin_staff", {"_id": staff_id})
+    existing = await database.find_one("admin_staff", {"_id": staff_id}) or await database.find_one("admin_staff", {"id": staff_id})
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff member not found")
 
+    target_id = existing.get("_id") or existing.get("id") or staff_id
     update_dict = payload.model_dump(exclude_unset=True)
     if "password" in update_dict and update_dict["password"]:
         update_dict["passwordHash"] = hash_password(update_dict.pop("password"))
     update_dict["updatedAt"] = now_iso()
 
-    await database.update_one("admin_staff", {"_id": staff_id}, {"$set": update_dict})
-    updated = await database.find_one("admin_staff", {"_id": staff_id})
+    await database.update_one("admin_staff", {"_id": target_id}, {"$set": update_dict})
+    updated = await database.find_one("admin_staff", {"_id": target_id})
 
     # Sync status and name to users collection if updated
     sync_user: dict = {}
@@ -1723,12 +1724,12 @@ async def update_staff(staff_id: str, payload: StaffPayload, user: User = Depend
         sync_user["status"] = "active" if update_dict["status"] == "Active" else "suspended"
     if sync_user:
         sync_user["updated_at"] = now_iso()
-        await database.update_one("users", {"_id": staff_id}, {"$set": sync_user})
+        await database.update_one("users", {"_id": target_id}, {"$set": sync_user})
 
     await audit_repository.log(await _actor(user), "staff.update", staff_id, meta=update_dict)
     clean_res = dict(updated or {})
     clean_res.pop("passwordHash", None)
-    clean_res["id"] = staff_id
+    clean_res["id"] = str(clean_res.get("_id") or clean_res.get("id") or staff_id)
     return clean_res
 
 
@@ -1736,14 +1737,15 @@ async def update_staff(staff_id: str, payload: StaffPayload, user: User = Depend
 async def update_staff_permissions(staff_id: str, payload: StaffPermissionsPayload, user: User = Depends(current_user)):
     from app.db.client import database
 
-    existing = await database.find_one("admin_staff", {"_id": staff_id})
+    existing = await database.find_one("admin_staff", {"_id": staff_id}) or await database.find_one("admin_staff", {"id": staff_id})
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff member not found")
 
+    target_id = existing.get("_id") or existing.get("id") or staff_id
     now = now_iso()
     await database.update_one(
         "admin_staff",
-        {"_id": staff_id},
+        {"_id": target_id},
         {"$set": {"permissions": payload.permissions, "updatedAt": now}},
     )
     await audit_repository.log(
@@ -1759,20 +1761,21 @@ async def update_staff_permissions(staff_id: str, payload: StaffPermissionsPaylo
 async def update_staff_status(staff_id: str, payload: StaffStatusPayload, user: User = Depends(current_user)):
     from app.db.client import database
 
-    existing = await database.find_one("admin_staff", {"_id": staff_id})
+    existing = await database.find_one("admin_staff", {"_id": staff_id}) or await database.find_one("admin_staff", {"id": staff_id})
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff member not found")
 
+    target_id = existing.get("_id") or existing.get("id") or staff_id
     now = now_iso()
     new_status = payload.status
     await database.update_one(
         "admin_staff",
-        {"_id": staff_id},
+        {"_id": target_id},
         {"$set": {"status": new_status, "updatedAt": now}},
     )
     # Sync status to users collection
     user_status = "active" if new_status.lower() in ("active", "approved") else "suspended"
-    await database.update_one("users", {"_id": staff_id}, {"$set": {"status": user_status, "updated_at": now}})
+    await database.update_one("users", {"_id": target_id}, {"$set": {"status": user_status, "updated_at": now}})
 
     await audit_repository.log(
         await _actor(user),
@@ -1787,12 +1790,13 @@ async def update_staff_status(staff_id: str, payload: StaffStatusPayload, user: 
 async def delete_staff(staff_id: str, user: User = Depends(current_user)):
     from app.db.client import database
 
-    existing = await database.find_one("admin_staff", {"_id": staff_id})
+    existing = await database.find_one("admin_staff", {"_id": staff_id}) or await database.find_one("admin_staff", {"id": staff_id})
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff member not found")
 
-    await database.delete_many("admin_staff", {"_id": staff_id})
-    await database.update_one("users", {"_id": staff_id}, {"$set": {"status": "blocked"}})
+    target_id = existing.get("_id") or existing.get("id") or staff_id
+    await database.delete_many("admin_staff", {"_id": target_id})
+    await database.update_one("users", {"_id": target_id}, {"$set": {"status": "blocked"}})
     await audit_repository.log(await _actor(user), "staff.delete", staff_id, meta={"staffName": existing.get("name"), "email": existing.get("email")})
     return {"ok": True}
 

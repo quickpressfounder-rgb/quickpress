@@ -173,18 +173,6 @@ export const FINANCE_SUB_ITEMS = [
     tab: "rules",
     search: { tab: "rules" },
   },
-  {
-    id: "loyalty",
-    label: "Loyalty",
-    tab: "loyalty",
-    search: { tab: "loyalty" },
-  },
-  {
-    id: "accounting",
-    label: "Accounting",
-    tab: "accounting-statements",
-    search: { tab: "accounting-statements" },
-  },
 ] as const;
 
 function SidebarNav({
@@ -289,11 +277,7 @@ function SidebarNav({
                                 (sub.tab === "settlements" &&
                                   (currentFinanceTab === "payouts" ||
                                     currentFinanceTab === "settlements" ||
-                                    currentFinanceTab === "cod")) ||
-                                (sub.tab === "accounting-statements" &&
-                                  (currentFinanceTab === "accounting" ||
-                                    currentFinanceTab === "accounting-statements" ||
-                                    currentFinanceTab === "general-ledger")));
+                                    currentFinanceTab === "cod")));
 
                             return (
                               <Link
