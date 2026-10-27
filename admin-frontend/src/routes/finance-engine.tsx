@@ -88,6 +88,7 @@ import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 import { GlobalFinanceSearch } from "../components/finance/GlobalFinanceSearch";
 import { FinanceOverviewCommandCenter } from "../components/finance/FinanceOverviewCommandCenter";
+import { PayoutsCommandCenter } from "../components/finance/PayoutsCommandCenter";
 import { AnomalyAlertBanner } from "../components/finance/AnomalyAlertBanner";
 import { QuickViewDrawer } from "../components/finance/QuickViewDrawer";
 import { DoubleEntryLedgerView } from "../components/finance/DoubleEntryLedgerView";
@@ -1488,167 +1489,69 @@ export function FinanceEnginePage() {
         />
 
         {/* Primary Enterprise Navigation Tabs */}
+        {/* Streamlined Primary Navigation Switcher */}
         <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as any)} className="w-full">
-          <TabsList className="flex flex-wrap gap-1 bg-zinc-100 p-1.5 rounded-2xl h-auto border border-zinc-200 shadow-2xs">
-            {/* 1. Overview */}
-            <TabsTrigger
-              value="overview"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Activity className="size-3.5" />
-              <span>Overview & P&L</span>
-            </TabsTrigger>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-zinc-100/90 p-1.5 rounded-2xl border border-zinc-200 shadow-2xs">
+            <TabsList className="flex items-center gap-1 bg-transparent p-0 h-auto overflow-x-auto">
+              {/* 1. Overview */}
+              <TabsTrigger
+                value="overview"
+                className="font-black text-xs py-2 px-3.5 flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs rounded-xl transition-all"
+              >
+                <Activity className="size-3.5 text-zinc-900" />
+                <span>Overview & Analytics</span>
+              </TabsTrigger>
 
-            {/* 2. Payouts (Customer, Partner, Captain) */}
-            <TabsTrigger
-              value="settlements"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Landmark className="size-3.5 text-emerald-600" />
-              <span>Payouts (Customer, Partner, Captain)</span>
-            </TabsTrigger>
+              {/* 2. Payouts Command Center */}
+              <TabsTrigger
+                value="settlements"
+                className="font-black text-xs py-2 px-3.5 flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl transition-all"
+              >
+                <Landmark className="size-3.5 text-emerald-600" />
+                <span>Payouts Command Center</span>
+              </TabsTrigger>
 
-            {/* 3. Tax Center */}
-            <TabsTrigger
-              value="tax-center"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Receipt className="size-3.5 text-purple-600" />
-              <span>Tax Center (GST & TDS)</span>
-            </TabsTrigger>
+              {/* 3. Tax Center */}
+              <TabsTrigger
+                value="tax-center"
+                className="font-black text-xs py-2 px-3.5 flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl transition-all"
+              >
+                <Receipt className="size-3.5 text-purple-600" />
+                <span>Tax Center (GST/TDS)</span>
+              </TabsTrigger>
+            </TabsList>
 
-            {/* 4. Membership */}
-            <TabsTrigger
-              value="memberships"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Tag className="size-3.5 text-indigo-600" />
-              <span>Membership Plans & MRR</span>
-            </TabsTrigger>
-
-            {/* 5. Finance Rules */}
-            <TabsTrigger
-              value="rules"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Sliders className="size-3.5 text-amber-600" />
-              <span>Finance Rules Engine</span>
-            </TabsTrigger>
-
-            {/* 6. Loyalty */}
-            <TabsTrigger
-              value="loyalty"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Sparkles className="size-3.5 text-amber-500" />
-              <span>Loyalty & Rewards</span>
-            </TabsTrigger>
-
-            {/* 7. Accounting */}
-            <TabsTrigger
-              value="accounting-statements"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Scale className="size-3.5 text-blue-600" />
-              <span>Accounting Statements</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="general-ledger"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Scale className="size-3.5 text-blue-600" />
-              <span>General Ledger</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="customer-360"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <User className="size-3.5 text-indigo-600" />
-              <span>Customer 360</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="expenses"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Wallet className="size-3.5 text-emerald-600" />
-              <span>Expense & Net Profit</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="profitability"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <TrendingUp className="size-3.5 text-amber-600" />
-              <span>Profitability Heatmap</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="treasury"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Landmark className="size-3.5 text-emerald-600" />
-              <span>Treasury & Banks</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="cod"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Truck className="size-3.5 text-emerald-600" />
-              <span>COD & Fleet Vault</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="recon"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <ShieldCheck className="size-3.5 text-purple-600" />
-              <span>3-Way Recon</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="unit-economics"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <TrendingUp className="size-3.5 text-amber-600" />
-              <span>Unit Economics</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="approvals"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-rose-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <ShieldCheck className="size-3.5 text-rose-600" />
-              <span>Maker-Checker</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="ai-assistant"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Sparkles className="size-3.5 text-cyan-600" />
-              <span>AI Simulator</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="ledger"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <FileText className="size-3.5" />
-              <span>Order Inspector</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="audit"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <History className="size-3.5" />
-              <span>Audit Logs</span>
-            </TabsTrigger>
-          </TabsList>
+            {/* Advanced Secondary Modules Dropdown */}
+            <div className="flex items-center gap-2 pr-2">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider">Other Engines:</span>
+              <select
+                value={["overview", "settlements", "tax-center"].includes(activeTab) ? "" : activeTab}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleTabChange(e.target.value as any);
+                  }
+                }}
+                className="h-8 rounded-xl border border-zinc-200 bg-white px-2.5 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
+              >
+                <option value="" disabled>Select Technical Module...</option>
+                <option value="rules">Finance Rules Engine</option>
+                <option value="memberships">Membership Plans & MRR</option>
+                <option value="loyalty">Loyalty & Rewards</option>
+                <option value="accounting-statements">Accounting Statements</option>
+                <option value="general-ledger">General Ledger</option>
+                <option value="expenses">Expense & Net Profit</option>
+                <option value="profitability">Profitability Heatmap</option>
+                <option value="treasury">Treasury & Banks</option>
+                <option value="cod">COD & Fleet Vault</option>
+                <option value="recon">3-Way Recon</option>
+                <option value="unit-economics">Unit Economics</option>
+                <option value="approvals">Maker-Checker</option>
+                <option value="ai-assistant">AI Simulator</option>
+                <option value="ledger">Order Inspector</option>
+                <option value="audit">Audit Logs</option>
+              </select>
+            </div>
+          </div>
 
           {/* =========================================================================
               TAB 1: FINANCIAL OVERVIEW & COMMAND CENTER
@@ -4279,7 +4182,7 @@ export function FinanceEnginePage() {
               TAB 4: SETTLEMENTS & PAYOUTS
              ========================================================================= */}
           <TabsContent value="settlements" className="mt-6 space-y-6">
-            <SettlementEngineControlHub />
+            <PayoutsCommandCenter />
           </TabsContent>
 
           {/* =========================================================================

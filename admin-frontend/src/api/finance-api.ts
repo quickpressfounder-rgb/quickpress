@@ -1379,4 +1379,144 @@ export async function simulateCommercialScenario(params: {
   return await apiPostJson("/api/finance-engine/simulate-scenario", params);
 }
 
+// --------------------------------------------------------------------------
+// PAYOUTS & DISBURSALS COMMAND CENTER
+// --------------------------------------------------------------------------
+
+export interface PayoutBankDetails {
+  accountHolder: string;
+  bankName: string;
+  accountNumberMasked: string;
+  ifsc: string;
+  upiId?: string;
+  verified: boolean;
+}
+
+export interface PartnerPayoutRecord {
+  partnerId: string;
+  businessName: string;
+  ownerName: string;
+  phone: string;
+  city: string;
+  area: string;
+  tier: string;
+  bankDetails: PayoutBankDetails;
+  orderCount: number;
+  grossRevenue: number;
+  commissionDeducted: number;
+  tdsDeducted: number;
+  bonusAmount: number;
+  netPayable: number;
+  status: "DUE_TODAY" | "CYCLE_ACTIVE" | "SETTLED" | "PENDING";
+  utr?: string | null;
+  paidAt?: string | null;
+  cycleDueToday: boolean;
+}
+
+export interface RiderPayoutRecord {
+  riderId: string;
+  riderName: string;
+  phone: string;
+  city: string;
+  vehicle: string;
+  bankDetails: PayoutBankDetails;
+  tripCount: number;
+  baseFare: number;
+  distanceSurge: number;
+  tips: number;
+  bonusAmount: number;
+  netPayable: number;
+  status: "DUE_TODAY" | "CYCLE_ACTIVE" | "SETTLED" | "PENDING";
+  utr?: string | null;
+  paidAt?: string | null;
+  cycleDueToday: boolean;
+}
+
+export interface CustomerCompensationRecord {
+  _id?: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  orderId?: string;
+  amount: number;
+  reason: string;
+  mode: string;
+  utr?: string;
+  issuedBy: string;
+  createdAt: string;
+}
+
+export interface PayoutsOverviewResponse {
+  ok: boolean;
+  kpis: {
+    totalDisbursedCycle: number;
+    pendingPartnerPayables: number;
+    pendingRiderPayables: number;
+    dueTodayAmount: number;
+    dueTodayCount: number;
+    totalBonusDisbursed: number;
+    totalCompensations: number;
+  };
+  cycle: {
+    cycleId: string;
+    startDate: string;
+    endDate: string;
+    payoutDay: string;
+    isPayoutDay: boolean;
+    dueTodayPartnersCount: number;
+    dueTodayRidersCount: number;
+  };
+  partners: PartnerPayoutRecord[];
+  riders: RiderPayoutRecord[];
+  batches: SettlementBatch[];
+  compensations: CustomerCompensationRecord[];
+}
+
+export async function fetchPayoutsOverview(): Promise<PayoutsOverviewResponse> {
+  return await apiGetJson<PayoutsOverviewResponse>("/api/finance-engine/payouts/overview");
+}
+
+export async function disburseEntityPayout(payload: {
+  entityId: string;
+  entityType: "partner" | "rider";
+  amount: number;
+  utr: string;
+  mode?: string;
+  notes?: string;
+}): Promise<{ ok: boolean; utr: string; status: string }> {
+  return await apiPostJson("/api/finance-engine/payouts/disburse", payload);
+}
+
+export async function bulkDisbursePayouts(payload: {
+  items: Array<{ entityId: string; entityType: string; amount: number }>;
+  utr: string;
+  mode?: string;
+}): Promise<{ ok: boolean; disbursedCount: number; totalDisbursed: number; utr: string }> {
+  return await apiPostJson("/api/finance-engine/payouts/bulk-disburse", payload);
+}
+
+export async function addBonusIncentive(payload: {
+  targetType: "partner" | "rider" | "bulk_city";
+  targetId?: string;
+  city?: string;
+  amount: number;
+  title: string;
+  reason: string;
+}): Promise<{ ok: boolean; bonus: any }> {
+  return await apiPostJson("/api/finance-engine/payouts/bonus-incentive", payload);
+}
+
+export async function issueCustomerCompensation(payload: {
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  orderId?: string;
+  amount: number;
+  reason: string;
+  mode?: "WALLET_CREDIT" | "BANK_TRANSFER";
+  utr?: string;
+}): Promise<{ ok: boolean; compensation: any }> {
+  return await apiPostJson("/api/finance-engine/payouts/customer-compensation", payload);
+}
+
 

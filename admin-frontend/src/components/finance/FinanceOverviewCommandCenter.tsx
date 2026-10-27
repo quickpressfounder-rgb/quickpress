@@ -345,30 +345,62 @@ export function FinanceOverviewCommandCenter() {
   }, [scopedOrders]);
 
   // --------------------------------------------------------------------------
-  // 6. Trend Graphs Data Generator (Responsive to Timeframe)
+  // 6. Real Trend Graph Data Grouped from Live Orders
   // --------------------------------------------------------------------------
   const trendChartData = useMemo(() => {
-    // Generate 7-10 timeline intervals
-    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const baseGmv = Math.max(5000, Math.round(computedMetrics.grossGmv / 7));
+    if (scopedOrders.length > 0) {
+      const sorted = [...scopedOrders].sort((a, b) => {
+        const da = new Date(a.placedAt).getTime() || 0;
+        const db = new Date(b.placedAt).getTime() || 0;
+        return da - db;
+      });
 
-    return labels.map((day, idx) => {
-      const gmv = Math.round(baseGmv * (0.8 + (idx % 3) * 0.25));
-      const payouts = Math.round(gmv * 0.68);
-      const commission = Math.round(gmv * 0.18);
-      const opex = Math.round(gmv * 0.05);
-      const profit = Math.max(0, commission - opex);
+      const dateMap = new Map<string, { gmv: number; payouts: number; commission: number; profit: number; expense: number }>();
 
-      return {
-        name: day,
-        GMV: gmv,
-        Payouts: payouts,
-        Commission: commission,
-        Profit: profit,
-        Expense: opex,
-      };
-    });
-  }, [computedMetrics]);
+      sorted.forEach((order) => {
+        const d = new Date(order.placedAt);
+        const key = isNaN(d.getTime()) ? "Today" : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+        const amt = parseOrderAmount(order.amount);
+        const commission = Math.round(amt * 0.18);
+        const partnerPayable = Math.max(0, amt - commission);
+        const riderPayable = 45;
+        const payouts = partnerPayable + riderPayable;
+        const expense = Math.round(amt * 0.06);
+        const profit = Math.max(0, commission - expense);
+
+        if (!dateMap.has(key)) {
+          dateMap.set(key, { gmv: 0, payouts: 0, commission: 0, profit: 0, expense: 0 });
+        }
+        const curr = dateMap.get(key)!;
+        curr.gmv += amt;
+        curr.payouts += payouts;
+        curr.commission += commission;
+        curr.profit += profit;
+        curr.expense += expense;
+      });
+
+      if (dateMap.size > 0) {
+        return Array.from(dateMap.entries()).map(([name, data]) => ({
+          name,
+          GMV: Math.round(data.gmv),
+          Payouts: Math.round(data.payouts),
+          Commission: Math.round(data.commission),
+          Profit: Math.round(data.profit),
+          Expense: Math.round(data.expense),
+        }));
+      }
+    }
+
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    return days.map((day) => ({
+      name: day,
+      GMV: 0,
+      Payouts: 0,
+      Commission: 0,
+      Profit: 0,
+      Expense: 0,
+    }));
+  }, [scopedOrders]);
 
   // --------------------------------------------------------------------------
   // 7. CSV Downloader Helpers
@@ -823,7 +855,7 @@ export function FinanceOverviewCommandCenter() {
             }}
             className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
           >
-            <option value="all">🏙️ All Cities ({allOrders.length})</option>
+            <option value="all">All Cities ({allOrders.length})</option>
             {availableCities.map((c) => (
               <option key={c} value={c}>
                 {c} ({allOrders.filter((o) => o.city.toLowerCase() === c.toLowerCase()).length})
@@ -838,7 +870,7 @@ export function FinanceOverviewCommandCenter() {
             disabled={availableAreas.length === 0}
             className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none disabled:opacity-50"
           >
-            <option value="all">📍 All Hubs & Areas</option>
+            <option value="all">All Hubs & Areas</option>
             {availableAreas.map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -852,7 +884,7 @@ export function FinanceOverviewCommandCenter() {
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
           >
-            <option value="all">⚡ All Statuses</option>
+            <option value="all">All Statuses</option>
             <option value="settled">Settled & Paid</option>
             <option value="pending">Pending COD / Payout</option>
             <option value="reconciled">Reconciled</option>
