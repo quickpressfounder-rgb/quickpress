@@ -1885,3 +1885,47 @@ This single command will automatically:
 - **Build & Verification Status:**
   - `npm run build` in `admin-frontend`: **PASSED (0 errors, Vite + Nitro built cleanly in 2.73s)**.
   - Pushed to `main` and deployed live on EC2 (`65.0.127.43`).
+
+### 32. Enterprise Finance Overview Command Center & Deep-Dive Reports
+- **User Request:**
+  - Build comprehensive Finance Overview page covering full project financial metrics, KPIs, dynamic inflow/outflow charts, Gain %, Profit & Loss, Cash vs Bank balances.
+  - Provide direct tools to download GAAP Balance Sheet CSV/preview, view & download double-entry General Journal entries, and view & download daily Cash Book with fleet float ledger.
+  - Filter by City, Date Range/Timeframe, Area/Hub, Status, and real-time live search.
+  - Match the exact visual theme of the Orders page (`bg-white`, `border-zinc-200/90`, `text-zinc-950 font-black`, `tabular-nums`, crisp uppercase badges, high contrast).
+  - Tapping on any KPI tile (Earnings/Revenue, Net Profit, OPEX, Cash Vault, Bank Escrow, Commissions, Payouts, Tax) opens a full-page detailed breakdown report with back navigation, itemized transaction ledger, and status visibility.
+- **Implementation Details:**
+  - Created `admin-frontend/src/components/finance/FinanceOverviewCommandCenter.tsx`:
+    - **Filter Toolbar**:
+      - Timeframe selector pills (`Today`, `Yesterday`, `Last 7 Days`, `Last 30 Days`, `This Month`, `All Time`).
+      - City selector dropdown (`All Cities`, `Kasganj`, `Delhi NCR`, `Lucknow`, etc.).
+      - Area / Hub dynamic selector based on active city.
+      - Status filter (`All Statuses`, `Settled & Paid`, `Pending COD / Payout`, `Reconciled`, `Cancelled / Refunded`).
+      - Real-time search input for Order ID, UTR, Partner, Customer, Rider.
+      - Dynamic "Reset" button when filters are active.
+    - **8 Clickable Executive KPI Tiles**:
+      1. `Gross Sales GMV`: with `+18.4% MoM` Gain badge.
+      2. `Net Profit`: with `24.6% Margin` badge.
+      3. `OPEX & Loss`: with `6.8% OPEX` ratio badge.
+      4. `Cash Vault`: with `Fleet COD` live vault badge.
+      5. `Bank Escrow`: with `Razorpay Escrow` badge.
+      6. `Platform Commissions`: with `18% Standard Take-Rate` badge.
+      7. `Payouts`: with partner & captain disbursal badge.
+      8. `GST & Tax`: with `5% / 18% HSN 9997` compliance badge.
+    - **Interactive Visualizations**:
+      - Recharts Area trend graph (GMV vs Net Profit vs Payouts).
+      - Treasury liquidity distribution split bar (85% Bank Escrow vs 15% Fleet COD Float).
+      - Double-entry reconciliation status card.
+    - **Master Download Modals**:
+      - `GAAP Balance Sheet Modal`: Formatted Assets, Liabilities, Equity statement + CSV export.
+      - `Double-Entry Journal Vouchers Modal`: Complete journal voucher explorer with debits, credits, ref order IDs + CSV export.
+      - `Cash Book & Fleet Float Modal`: Daily opening balance, COD collections, closing vault + CSV export.
+    - **Full-Page Deep Dive Drilldown Engine**:
+      - Clicking any KPI tile opens full-page view with "← Back to Overview" button, scope summary metrics, and itemized data table with `StatusPill` indicators.
+  - Mounted `FinanceOverviewCommandCenter` in `admin-frontend/src/routes/finance-engine.tsx` under `<TabsContent value="overview">`.
+- **Modified Files:**
+  - `admin-frontend/src/components/finance/FinanceOverviewCommandCenter.tsx`
+  - `admin-frontend/src/routes/finance-engine.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - Local build `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 2.04s)**.
+  - Pushed to `main` and deployed live to EC2 (`65.0.127.43`).

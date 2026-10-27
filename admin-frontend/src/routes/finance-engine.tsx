@@ -87,6 +87,7 @@ import { DataTable, SectionCard, StatusPill, KpiCard } from "../components/Admin
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 import { GlobalFinanceSearch } from "../components/finance/GlobalFinanceSearch";
+import { FinanceOverviewCommandCenter } from "../components/finance/FinanceOverviewCommandCenter";
 import { AnomalyAlertBanner } from "../components/finance/AnomalyAlertBanner";
 import { QuickViewDrawer } from "../components/finance/QuickViewDrawer";
 import { DoubleEntryLedgerView } from "../components/finance/DoubleEntryLedgerView";
@@ -1650,92 +1651,10 @@ export function FinanceEnginePage() {
           </TabsList>
 
           {/* =========================================================================
-              TAB 1: FINANCIAL OVERVIEW & LIVE METRICS
+              TAB 1: FINANCIAL OVERVIEW & COMMAND CENTER
              ========================================================================= */}
           <TabsContent value="overview" className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard
-                title="Gross Merchandise Value (GMV)"
-                value={`₹${metrics.grossMerchandiseValue.toLocaleString("en-IN")}`}
-                subtitle={`Across ${metrics.totalOrders} total orders`}
-                icon={<TrendingUp className="size-4" />}
-              />
-              <KpiCard
-                title="Customer Collections"
-                value={`₹${metrics.customerCollections.toLocaleString("en-IN")}`}
-                subtitle="Net paid via Razorpay/UPI/Cards"
-                icon={<CheckCircle2 className="size-4" />}
-              />
-              <KpiCard
-                title="QuickPress Commission"
-                value={`₹${metrics.quickpressCommission.toLocaleString("en-IN")}`}
-                subtitle="Platform take rate (12% - 18%)"
-                icon={<Percent className="size-4" />}
-              />
-              <KpiCard
-                title="Net Platform Revenue"
-                value={`₹${metrics.quickpressNetRevenue.toLocaleString("en-IN")}`}
-                subtitle="Commission + fees - subsidies"
-                icon={<DollarSign className="size-4" />}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard
-                title="Total GST Collected"
-                value={`₹${metrics.totalGstCollected.toLocaleString("en-IN")}`}
-                subtitle="5% Fabric + 18% Platform & Delivery"
-                icon={<Scale className="size-4" />}
-              />
-              <KpiCard
-                title="Delivery Subsidies"
-                value={`₹${metrics.deliverySubsidies.toLocaleString("en-IN")}`}
-                subtitle="QuickPress-funded free delivery"
-                icon={<Truck className="size-4" />}
-              />
-              <KpiCard
-                title="Laundry Partner Payables"
-                value={`₹${metrics.partnerPayables.toLocaleString("en-IN")}`}
-                subtitle="Net processing revenue to merchants"
-                icon={<Building2 className="size-4" />}
-              />
-              <KpiCard
-                title="Delivery Captain Payables"
-                value={`₹${metrics.riderPayables.toLocaleString("en-IN")}`}
-                subtitle="100% net delivery trip fares"
-                icon={<Bike className="size-4" />}
-              />
-            </div>
-
-            {/* Architecture Explainer Card */}
-            <SectionCard title="QuickPress Unified Financial Architecture">
-              <div className="p-4 bg-slate-900 text-slate-100 rounded-xl space-y-3 font-mono text-xs leading-relaxed border border-slate-800">
-                <div className="text-emerald-400 font-bold flex items-center gap-2">
-                  <ShieldCheck className="size-4" />
-                  <span>TRD 1.0 PRINCIPLE: ONE ORDER → ONE FINANCIAL LEDGER → COMPLETE IMMUTABILITY</span>
-                </div>
-                <p className="text-slate-300">
-                  QuickPress acts as a pure technology marketplace. Laundry processing is fulfilled by store partners;
-                  pickup & delivery is handled by captains. The Finance Engine governs live pricing at checkout,
-                  splits GST by service type, applies tiered commission slabs, tracks free-delivery funding sources,
-                  and maintains double-entry immutable ledgers for audit compliance.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-[11px]">
-                  <div className="bg-slate-800 p-2.5 rounded-lg border border-slate-700">
-                    <span className="text-emerald-400 font-bold block mb-1">CUSTOMER FACING</span>
-                    Service Subtotal + Distance Delivery Fee + Platform Fee + Taxes - Promo = Final Payable
-                  </div>
-                  <div className="bg-slate-800 p-2.5 rounded-lg border border-slate-700">
-                    <span className="text-sky-400 font-bold block mb-1">MERCHANT SETTLEMENT</span>
-                    Gross Service Amount - Platform Commission (18%/15%/12%) - TCS (1%) ± Penalties/Incentives
-                  </div>
-                  <div className="bg-slate-800 p-2.5 rounded-lg border border-slate-700">
-                    <span className="text-amber-400 font-bold block mb-1">CAPTAIN SETTLEMENT</span>
-                    Base Fare (₹30) + Distance (₹8/km) + Surge (Rain/Night) + 100% Tips (0% Platform Cut)
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
+            <FinanceOverviewCommandCenter />
           </TabsContent>
 
           {/* =========================================================================
