@@ -1853,3 +1853,35 @@ This single command will automatically:
 - **Build & Verification Status:**
   - `npm run build` in `admin-frontend`: **PASSED (0 errors, built in 2.16s)**.
   - Deployed to EC2 (`65.0.127.43`), restarted PM2 process `quickpress-admin`, verified HTTP 200 OK.
+
+### 31. Finance Tree Collapsible Navigation & Multi-View Pillar Integration
+- **User Request:**
+  - Redesign Finance navigation in Admin sidebar to have a collapsible submenu with smooth expansion on tap, exactly matching the reference screenshot (with parent badge, chevron toggle, and vertical tree branch line).
+  - Include 7 primary sub-items: Overview, Payouts (Customer, Partner, Captain), Tax Center, Membership, Finance Rules, Loyalty, Accounting.
+- **Implementation Details:**
+  - **Collapsible Sidebar Tree in `admin-frontend/src/components/AdminShell.tsx`:**
+    - Defined `FINANCE_SUB_ITEMS` constant with 7 structured sub-destinations:
+      1. `Overview`: `tab="overview"`, links to Gross Margin, Real P&L, Float & Bank Cashflow.
+      2. `Payouts (Customer, Partner, Captain)`: `tab="settlements"`, links to Partner settlement batches, Captain payouts & COD vault, Customer refunds.
+      3. `Tax Center`: `tab="tax-center"`, links to GST (5%/18%), HSN 9997 filings, TDS/TCS, B2B Invoices.
+      4. `Membership`: `tab="memberships"`, links to VIP Membership plans, MRR metrics, subscriber renewals.
+      5. `Finance Rules`: `tab="rules"`, links to Universal service pricing, distance & surge multipliers, commission splits.
+      6. `Loyalty`: `tab="loyalty"`, links to Customer post-delivery loyalty program, cashback coins, scratch cards.
+      7. `Accounting`: `tab="accounting-statements"`, links to GAAP statements (Balance sheet, P&L, Cashflow) & double-entry General Ledger.
+    - Added collapsible dropdown trigger button with "Beta" pill badge and rotating chevron.
+    - Added vertical tree branch guide line (`border-l-2 border-zinc-200 ml-5 pl-3 space-y-0.5`).
+    - Styled active sub-item with high-contrast dark rounded pill (`bg-zinc-900 text-white font-black shadow-xs`) and emerald dot indicator, exactly matching the screenshot aesthetic.
+    - Submenu automatically stays expanded when on the `/finance-engine` route and can be toggled on tap.
+  - **Query-Param Synchronization in `admin-frontend/src/routes/finance-engine.tsx`:**
+    - Added `validateSearch` schema for `tab?: string` on `Route`.
+    - Added `resolveFinanceTab` with alias mapping (`payouts` -> `settlements`, `accounting` -> `accounting-statements`, `tax` -> `tax-center`, `membership` -> `memberships`, `rules` -> `rules`).
+    - Synchronized `activeTab` with URL search param via `handleTabChange`, ensuring URL updates without page reload and keeping sidebar active pill in sync.
+    - Reordered primary 7 pillars at the front of `TabsList` in `finance-engine.tsx`.
+- **Modified Files:**
+  - `admin-frontend/src/navigation/admin-routes.ts`
+  - `admin-frontend/src/components/AdminShell.tsx`
+  - `admin-frontend/src/routes/finance-engine.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build` in `admin-frontend`: **PASSED (0 errors, Vite + Nitro built cleanly in 2.73s)**.
+  - Pushed to `main` and deployed live on EC2 (`65.0.127.43`).

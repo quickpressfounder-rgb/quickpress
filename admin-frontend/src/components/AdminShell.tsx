@@ -142,6 +142,51 @@ function getAvatarInitials(name?: string, email?: string): string {
   return "QP";
 }
 
+export const FINANCE_SUB_ITEMS = [
+  {
+    id: "overview",
+    label: "Overview",
+    tab: "overview",
+    search: { tab: "overview" },
+  },
+  {
+    id: "payouts",
+    label: "Payouts (Customer, Partner, Captain)",
+    tab: "settlements",
+    search: { tab: "settlements" },
+  },
+  {
+    id: "tax-center",
+    label: "Tax Center",
+    tab: "tax-center",
+    search: { tab: "tax-center" },
+  },
+  {
+    id: "memberships",
+    label: "Membership",
+    tab: "memberships",
+    search: { tab: "memberships" },
+  },
+  {
+    id: "rules",
+    label: "Finance Rules",
+    tab: "rules",
+    search: { tab: "rules" },
+  },
+  {
+    id: "loyalty",
+    label: "Loyalty",
+    tab: "loyalty",
+    search: { tab: "loyalty" },
+  },
+  {
+    id: "accounting",
+    label: "Accounting",
+    tab: "accounting-statements",
+    search: { tab: "accounting-statements" },
+  },
+] as const;
+
 function SidebarNav({
   onNavigate,
   account,
@@ -149,7 +194,25 @@ function SidebarNav({
   onNavigate?: () => void;
   account?: Account | null | undefined;
 }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const location = useRouterState({ select: (s) => s.location });
+  const pathname = location.pathname;
+  const locationSearch = location.search as any;
+  const isFinanceRoute = pathname === "/finance-engine";
+  const [isFinanceOpen, setIsFinanceOpen] = useState(isFinanceRoute);
+
+  useEffect(() => {
+    if (isFinanceRoute) {
+      setIsFinanceOpen(true);
+    }
+  }, [isFinanceRoute]);
+
+  const currentFinanceTab =
+    locationSearch?.tab ||
+    (typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("tab")
+      : null) ||
+    (isFinanceRoute ? "overview" : "");
 
   return (
     <nav className="flex-1 space-y-6 overflow-y-auto px-3.5 py-4 scrollbar-thin scrollbar-thumb-zinc-200">
@@ -169,6 +232,94 @@ function SidebarNav({
             </p>
             <div className="space-y-1">
               {groupItems.map((item) => {
+                // If this is the Finance module, render the expandable sub-tree
+                if (item.id === "finance-engine") {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      {/* Parent Collapsible Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsFinanceOpen((prev) => !prev);
+                          if (!isFinanceRoute) {
+                            navigate({ to: "/finance-engine", search: { tab: "overview" } });
+                            onNavigate?.();
+                          }
+                        }}
+                        className={`group relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition-all ${
+                          isFinanceRoute
+                            ? "bg-emerald-50 text-emerald-950 font-extrabold border border-emerald-200 shadow-2xs"
+                            : "text-zinc-600 hover:bg-zinc-100/80 hover:text-zinc-900 border border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`flex size-7 items-center justify-center rounded-lg transition-colors ${
+                              isFinanceRoute
+                                ? "bg-emerald-600 text-white shadow-xs"
+                                : "bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200 group-hover:text-zinc-900"
+                            }`}
+                          >
+                            <Icon className="size-3.5" />
+                          </div>
+                          <span className="font-bold text-left">{item.label}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/80 px-2 py-0.5 text-[9px] font-black">
+                            Beta
+                          </span>
+                          <ChevronDown
+                            className={`size-3.5 text-zinc-400 transition-transform duration-200 ${
+                              isFinanceOpen ? "rotate-180 text-zinc-700" : ""
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      {/* Sub-Items Tree (Matching User's Screenshot) */}
+                      {isFinanceOpen && (
+                        <div className="relative ml-5 pl-3 border-l-2 border-zinc-200/90 dark:border-zinc-800 space-y-0.5 my-1.5 transition-all">
+                          {FINANCE_SUB_ITEMS.map((sub) => {
+                            const isSubActive =
+                              isFinanceRoute &&
+                              (currentFinanceTab === sub.tab ||
+                                (!currentFinanceTab && sub.tab === "overview") ||
+                                (sub.tab === "settlements" &&
+                                  (currentFinanceTab === "payouts" ||
+                                    currentFinanceTab === "settlements" ||
+                                    currentFinanceTab === "cod")) ||
+                                (sub.tab === "accounting-statements" &&
+                                  (currentFinanceTab === "accounting" ||
+                                    currentFinanceTab === "accounting-statements" ||
+                                    currentFinanceTab === "general-ledger")));
+
+                            return (
+                              <Link
+                                key={sub.id}
+                                to="/finance-engine"
+                                search={sub.search}
+                                onClick={onNavigate}
+                                className={`group flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-all ${
+                                  isSubActive
+                                    ? "bg-zinc-900 text-white font-black shadow-xs dark:bg-white dark:text-zinc-950"
+                                    : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/90 font-medium"
+                                }`}
+                              >
+                                <span className="truncate leading-tight">{sub.label}</span>
+                                {isSubActive && (
+                                  <span className="size-1.5 rounded-full bg-emerald-400 shrink-0 ml-1.5" />
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 const active =
                   pathname === item.to ||
                   (item.to !== "/dashboard" && pathname.startsWith(`${item.to}/`));

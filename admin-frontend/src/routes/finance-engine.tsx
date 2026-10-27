@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -897,8 +897,15 @@ function prepareRulesForSave(raw: any): FinancialRules {
   };
 }
 
+type FinanceSearchParams = {
+  tab?: string;
+};
+
 export const Route = createFileRoute("/finance-engine")({
   beforeLoad: requireAdminSession,
+  validateSearch: (search: Record<string, unknown>): FinanceSearchParams => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   head: () =>
     adminHead(
       "QuickPress Finance Engine — Unified Pricing, GST, Commission & Settlement",
@@ -909,27 +916,41 @@ export const Route = createFileRoute("/finance-engine")({
 
 export function FinanceEnginePage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<
-    | "overview"
-    | "customer-360"
-    | "accounting-statements"
-    | "profitability"
-    | "tax-center"
-    | "treasury"
-    | "approvals"
-    | "ai-assistant"
-    | "expenses"
-    | "general-ledger"
-    | "cod"
-    | "recon"
-    | "unit-economics"
-    | "memberships"
-    | "rules"
-    | "loyalty"
-    | "ledger"
-    | "settlements"
-    | "audit"
-  >("overview");
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+
+  const resolveFinanceTab = (raw?: string) => {
+    if (!raw) return "overview";
+    if (raw === "payouts" || raw === "settlements" || raw === "cod") return "settlements";
+    if (raw === "accounting" || raw === "accounting-statements" || raw === "general-ledger")
+      return "accounting-statements";
+    if (raw === "tax" || raw === "tax-center") return "tax-center";
+    if (raw === "membership" || raw === "memberships") return "memberships";
+    if (raw === "finance-rules" || raw === "rules") return "rules";
+    if (raw === "loyalty") return "loyalty";
+    if (raw === "overview") return "overview";
+    return raw;
+  };
+
+  const [activeTab, setActiveTab] = useState<string>(resolveFinanceTab(search?.tab));
+
+  useEffect(() => {
+    if (search?.tab) {
+      const target = resolveFinanceTab(search.tab);
+      if (target !== activeTab) {
+        setActiveTab(target);
+      }
+    }
+  }, [search?.tab]);
+
+  const handleTabChange = (nextTab: string) => {
+    setActiveTab(nextTab);
+    navigate({
+      to: "/finance-engine",
+      search: { tab: nextTab },
+      replace: true,
+    });
+  };
 
   // Quick View Drawer states
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -1466,8 +1487,9 @@ export function FinanceEnginePage() {
         />
 
         {/* Primary Enterprise Navigation Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as any)} className="w-full">
           <TabsList className="flex flex-wrap gap-1 bg-zinc-100 p-1.5 rounded-2xl h-auto border border-zinc-200 shadow-2xs">
+            {/* 1. Overview */}
             <TabsTrigger
               value="overview"
               className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
@@ -1476,15 +1498,74 @@ export function FinanceEnginePage() {
               <span>Overview & P&L</span>
             </TabsTrigger>
 
+            {/* 2. Payouts (Customer, Partner, Captain) */}
+            <TabsTrigger
+              value="settlements"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Landmark className="size-3.5 text-emerald-600" />
+              <span>Payouts (Customer, Partner, Captain)</span>
+            </TabsTrigger>
+
+            {/* 3. Tax Center */}
+            <TabsTrigger
+              value="tax-center"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Receipt className="size-3.5 text-purple-600" />
+              <span>Tax Center (GST & TDS)</span>
+            </TabsTrigger>
+
+            {/* 4. Membership */}
+            <TabsTrigger
+              value="memberships"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Tag className="size-3.5 text-indigo-600" />
+              <span>Membership Plans & MRR</span>
+            </TabsTrigger>
+
+            {/* 5. Finance Rules */}
+            <TabsTrigger
+              value="rules"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Sliders className="size-3.5 text-amber-600" />
+              <span>Finance Rules Engine</span>
+            </TabsTrigger>
+
+            {/* 6. Loyalty */}
+            <TabsTrigger
+              value="loyalty"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Sparkles className="size-3.5 text-amber-500" />
+              <span>Loyalty & Rewards</span>
+            </TabsTrigger>
+
+            {/* 7. Accounting */}
+            <TabsTrigger
+              value="accounting-statements"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Scale className="size-3.5 text-blue-600" />
+              <span>Accounting Statements</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="general-ledger"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
+            >
+              <Scale className="size-3.5 text-blue-600" />
+              <span>General Ledger</span>
+            </TabsTrigger>
+
             <TabsTrigger
               value="customer-360"
               className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs rounded-xl"
             >
               <User className="size-3.5 text-indigo-600" />
               <span>Customer 360</span>
-              <Badge className="bg-indigo-100 text-indigo-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                PHASE 1
-              </Badge>
             </TabsTrigger>
 
             <TabsTrigger
@@ -1493,20 +1574,6 @@ export function FinanceEnginePage() {
             >
               <Wallet className="size-3.5 text-emerald-600" />
               <span>Expense & Net Profit</span>
-              <Badge className="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                REAL P&L
-              </Badge>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="accounting-statements"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Scale className="size-3.5 text-blue-600" />
-              <span>GAAP Statements</span>
-              <Badge className="bg-blue-100 text-blue-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                PHASE 2
-              </Badge>
             </TabsTrigger>
 
             <TabsTrigger
@@ -1515,9 +1582,6 @@ export function FinanceEnginePage() {
             >
               <TrendingUp className="size-3.5 text-amber-600" />
               <span>Profitability Heatmap</span>
-              <Badge className="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                PHASE 2
-              </Badge>
             </TabsTrigger>
 
             <TabsTrigger
@@ -1526,50 +1590,6 @@ export function FinanceEnginePage() {
             >
               <Landmark className="size-3.5 text-emerald-600" />
               <span>Treasury & Banks</span>
-              <Badge className="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                PHASE 4
-              </Badge>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="tax-center"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Receipt className="size-3.5 text-purple-600" />
-              <span>GST & Tax Center</span>
-              <Badge className="bg-purple-100 text-purple-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                PHASE 2/4
-              </Badge>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="approvals"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-rose-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <ShieldCheck className="size-3.5 text-rose-600" />
-              <span>Maker-Checker</span>
-              <Badge className="bg-rose-100 text-rose-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                PHASE 1/3
-              </Badge>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="ai-assistant"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Sparkles className="size-3.5 text-cyan-600" />
-              <span>AI Simulator</span>
-              <Badge className="bg-cyan-100 text-cyan-800 text-[9px] px-1.5 py-0 h-4 font-black">
-                PHASE 3
-              </Badge>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="general-ledger"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Scale className="size-3.5 text-blue-600" />
-              <span>General Ledger (Double-Entry)</span>
             </TabsTrigger>
 
             <TabsTrigger
@@ -1593,39 +1613,23 @@ export function FinanceEnginePage() {
               className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-700 data-[state=active]:shadow-xs rounded-xl"
             >
               <TrendingUp className="size-3.5 text-amber-600" />
-              <span>Unit Economics (CM1/CM2)</span>
+              <span>Unit Economics</span>
             </TabsTrigger>
 
             <TabsTrigger
-              value="memberships"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs rounded-xl"
+              value="approvals"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-rose-700 data-[state=active]:shadow-xs rounded-xl"
             >
-              <Tag className="size-3.5 text-indigo-600" />
-              <span>Membership Plans</span>
+              <ShieldCheck className="size-3.5 text-rose-600" />
+              <span>Maker-Checker</span>
             </TabsTrigger>
 
             <TabsTrigger
-              value="settlements"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
+              value="ai-assistant"
+              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-xs rounded-xl"
             >
-              <Landmark className="size-3.5" />
-              <span>Settlements</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="rules"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-zinc-900 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Sliders className="size-3.5" />
-              <span>Rules Engine</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="loyalty"
-              className="font-bold text-xs py-2 px-3 flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-amber-800 data-[state=active]:shadow-xs rounded-xl"
-            >
-              <Sparkles className="size-3.5 text-amber-500" />
-              <span>Loyalty</span>
+              <Sparkles className="size-3.5 text-cyan-600" />
+              <span>AI Simulator</span>
             </TabsTrigger>
 
             <TabsTrigger
