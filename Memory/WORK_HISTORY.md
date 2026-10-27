@@ -1788,3 +1788,52 @@ This single command will automatically:
 - **Build & Verification Status:**
   - `npm run build` in `admin-frontend`: **PASSED (0 errors, Vite + Nitro built in 2.04s)**.
   - `python3 -m py_compile backend-python/app/models/admin.py backend-python/app/api/admin.py backend-python/app/db/admin_repositories.py backend-python/app/api/email_campaigns_api.py`: **PASSED (0 errors)**.
+
+### 29. Staff Directory & Granular RBAC Governance Console Complete Redesign
+- **User Request:**
+  `"ab staff ka bhi desing redesing karo or staff add kar sake or edit bhi acces wise"`
+- **Architecture & Implementation:**
+  - **1. Modernized Executive UI (`admin-frontend/src/routes/staff.tsx`):**
+    - Redesigned with corporate minimalist aesthetics (`bg-white`, `border-zinc-200/90`, `text-zinc-950 font-black`, `tabular-nums`), zero cartoon emojis, and tasteful Lucide icons.
+    - 6 Executive KPI summary cards: Total Operators, Active Admins, RBAC Roles Tiers, Edge SSO & 2FA Enforcement (Cloudflare Zero Trust), Immutable Audit Ledger events, and Regional Coverage hubs.
+    - Multi-tab governance navigation:
+      - `staff`: Staff Directory & Team Members with live count.
+      - `matrix`: Comparative Granular RBAC Permissions Matrix.
+      - `logs`: Real-Time Security & Action Audit Trail.
+      - `territory`: Territory & Regional Hub Jurisdiction (Kasganj, Aligarh, Delhi NCR, HQ).
+      - `cloudflare`: Cloudflare Zero Trust Access Groups & SSO Perimeter Architecture.
+    - Search and multi-filter controls bar: Search across Name, Email, Phone, Role, Scope, and granted permissions; Filter by Role; Filter by Status (`Active`, `Suspended`, `Pending OTP`); Filter by Territory Scope.
+    - View mode toggle: High-density **Table View** and elevated **Grid Cards View**.
+  - **2. Full Add Staff Administrator Modal (`AddStaffDialog`):**
+    - Comprehensive operator onboarding workflow with 3 structured sections:
+      - **Operator Identity**: Full Name, Official Corporate Email (with format validation), and Phone Number.
+      - **Credentials & Security**: Initial Password with show/hide toggle and 1-click **Generate Strong Password** generator (`QP_...`) with instant clipboard copy.
+      - **Security Role & Territory Jurisdiction**: Role selector (`Super Admin`, `Operations Admin`, `Fleet Dispatch Manager`, `Support Lead`, `Finance & Settlements Lead`, `Store Partner Lead`) and Territory Scope dropdown. Changing the role automatically loads standard role permissions.
+      - **Granular Access Modules Checklist ("acces wise")**:
+        - 14 distinct platform permissions organized into 5 clear enterprise domains:
+          - *Dispatch & Operations*: `orders`, `cities`.
+          - *Fleet & Stores*: `partners`, `riders`.
+          - *Customer Care & Support*: `customers`, `support`.
+          - *Finance & Growth*: `finance`, `coupons`, `memberships`.
+          - *Governance & Catalog*: `services`, `analytics`, `notifications`, `staff`, `settings`.
+        - 1-click "Select All" and "Clear All" controls with live module counter (`X of 14 modules selected`).
+        - Calls `inviteStaff` and invalidates query cache on success.
+  - **3. Comprehensive Edit Staff & Access Modal (`EditStaffDialog`):**
+    - Opened via 1-click "Edit & Access" on any staff card or table row.
+    - Full profile editing: Full Name, Contact Phone, Account Status (`Active` vs `Suspended`), Territory Scope, and optional Password Reset with random password generator.
+    - Corporate Email locked for verified identity protection.
+    - **Access-Wise Granular Permissions Governance**:
+      - Role selector with smart role-change detection: Displays prompt banner *"Role changed to [Role]. Apply recommended access defaults?"* with 1-click sync or keep custom permissions.
+      - Quick preset buttons: "Select All", "Reset to Role Defaults", and "Clear All".
+      - Full interactive module checklist with real-time toggle across all 14 permissions.
+      - Calls `updateStaff` and `updateStaffPermissions` simultaneously, ensuring instant backend database and session synchronization.
+  - **4. Instant Operator Controls & Safety:**
+    - 1-click "Suspend" / "Activate" toggle directly from directory rows.
+    - 1-click "Inspect Audit Trail" filtering audit logs specifically for the selected staff member.
+    - Revoke Access confirmation dialog with security consequence disclosure.
+- **Modified Files:**
+  - `admin-frontend/src/routes/staff.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `admin-frontend npm run build`: **PASSED (0 errors, Vite + Nitro built cleanly in 1.99s)**.
+  - `backend-python/venv/bin/pytest backend-python/tests/test_staff_auth_rbac_engine.py`: **PASSED (7/7 tests passed, 100% success)**.
