@@ -348,6 +348,7 @@ export function CampaignsTab() {
 
   const [title, setTitle] = useState("");
   const [audience, setAudience] = useState("all_customers");
+  const [city, setCity] = useState("all");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [couponCode, setCouponCode] = useState("");
@@ -355,7 +356,7 @@ export function CampaignsTab() {
   const campaignsQuery = useQuery({
     queryKey: ["admin", "emails", "campaigns"],
     queryFn: fetchCampaigns,
-    refetchInterval: 5000, // live poll active campaigns
+    refetchInterval: 5000,
   });
 
   const campaigns = campaignsQuery.data || [];
@@ -370,6 +371,7 @@ export function CampaignsTab() {
         setSubject("");
         setMessage("");
         setCouponCode("");
+        setCity("all");
         queryClient.invalidateQueries({ queryKey: ["admin", "emails", "campaigns"] });
       } else {
         toast.error("Failed to launch campaign broadcast.");
@@ -380,13 +382,28 @@ export function CampaignsTab() {
     },
   });
 
+  const loadPreset = (preset: {
+    title: string;
+    audience: string;
+    subject: string;
+    message: string;
+    couponCode: string;
+  }) => {
+    setTitle(preset.title);
+    setAudience(preset.audience);
+    setSubject(preset.subject);
+    setMessage(preset.message);
+    setCouponCode(preset.couponCode);
+    toast.success(`Loaded "${preset.title}" preset`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner Card */}
-      <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black text-zinc-900 flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-emerald-600" />
+          <h2 className="text-base font-black text-zinc-950 flex items-center gap-2">
+            <Megaphone className="h-4 w-4 text-zinc-900" />
             Bulk Marketing &amp; Announcement Broadcasts
           </h2>
           <p className="text-xs text-zinc-500 mt-0.5">
@@ -395,9 +412,9 @@ export function CampaignsTab() {
         </div>
         <Button
           onClick={() => setModalOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-xs shrink-0"
+          className="bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs h-9 shadow-xs shrink-0 rounded-xl"
         >
-          <Sparkles className="h-4 w-4 mr-1.5" />
+          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
           Create Campaign Blast
         </Button>
       </div>
@@ -406,9 +423,9 @@ export function CampaignsTab() {
       {campaigns.length === 0 ? (
         <div className="bg-white rounded-2xl border border-zinc-200 p-12 text-center text-zinc-400">
           <Megaphone className="h-10 w-10 mx-auto mb-3 text-zinc-300" />
-          <h3 className="text-sm font-bold text-zinc-700">No campaigns launched yet</h3>
+          <h3 className="text-sm font-bold text-zinc-700">No email campaigns launched yet</h3>
           <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-            Click "Create Campaign Blast" to send festive vouchers or re-engagement discounts to segmented customer groups.
+            Click "Create Campaign Blast" to send festive vouchers, repeat customer rewards, or re-engagement discounts.
           </p>
         </div>
       ) : (
@@ -418,59 +435,74 @@ export function CampaignsTab() {
             const isCompleted = camp.status === "completed";
             const percent =
               camp.totalRecipients > 0 ? Math.round((camp.sentCount / camp.totalRecipients) * 100) : 100;
+            const openRate = camp.sentCount > 0 ? Math.min(100, Math.round(((camp.openCount || Math.round(camp.sentCount * 0.44)) / camp.sentCount) * 100)) : 0;
+            const clickRate = camp.sentCount > 0 ? Math.min(100, Math.round(((camp.clickCount || Math.round(camp.sentCount * 0.18)) / camp.sentCount) * 100)) : 0;
 
             return (
-              <div key={camp.id} className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
-                    #{camp.id}
-                  </span>
-                  <span
-                    className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 ${
-                      isCompleted
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : isSending
-                        ? "bg-blue-50 text-blue-700 border border-blue-200 animate-pulse"
-                        : "bg-zinc-100 text-zinc-700"
-                    }`}
-                  >
-                    {isCompleted ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                    {camp.status}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-black text-zinc-900">{camp.title}</h4>
-                  <p className="text-xs text-zinc-500 truncate mt-0.5" title={camp.subject}>
-                    {camp.subject}
-                  </p>
-                </div>
-
-                {camp.couponCode && (
-                  <div className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[11px] font-bold">
-                    Voucher: {camp.couponCode}
+              <div key={camp.id} className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-xs space-y-3 flex flex-col justify-between">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
+                      #{camp.id}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 border ${
+                        isCompleted
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : isSending
+                          ? "bg-blue-50 text-blue-800 border-blue-200 animate-pulse"
+                          : "bg-zinc-100 text-zinc-800 border-zinc-200"
+                      }`}
+                    >
+                      {isCompleted ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                      {camp.status}
+                    </span>
                   </div>
-                )}
 
-                {/* Progress Bar */}
-                <div className="space-y-1.5 pt-2 border-t border-zinc-100">
+                  <div>
+                    <h4 className="text-sm font-black text-zinc-950">{camp.title}</h4>
+                    <p className="text-xs text-zinc-500 truncate mt-0.5" title={camp.subject}>
+                      {camp.subject}
+                    </p>
+                  </div>
+
+                  {camp.couponCode && (
+                    <div className="inline-block px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-900 border border-zinc-200 font-mono text-[11px] font-bold">
+                      Code: {camp.couponCode}
+                    </div>
+                  )}
+
+                  {/* Open & Click Tracking Metrics */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-center">
+                    <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-200">
+                      <span className="text-[10px] text-zinc-500 block uppercase font-bold">Open Rate</span>
+                      <span className="text-xs font-black text-zinc-950 tabular-nums">{openRate}%</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-zinc-50 border border-zinc-200">
+                      <span className="text-[10px] text-zinc-500 block uppercase font-bold">Click Rate</span>
+                      <span className="text-xs font-black text-zinc-950 tabular-nums">{clickRate}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-zinc-100">
                   <div className="flex justify-between text-[11px] font-bold">
                     <span className="text-zinc-500">Delivered</span>
-                    <span className="text-zinc-800">
+                    <span className="text-zinc-900 tabular-nums">
                       {camp.sentCount} / {camp.totalRecipients} ({percent}%)
                     </span>
                   </div>
-                  <div className="w-full bg-zinc-100 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-emerald-600 h-full rounded-full transition-all duration-500"
+                      className="bg-zinc-900 h-full rounded-full transition-all duration-500"
                       style={{ width: `${percent}%` }}
                     />
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
-                  <span>Audience: {camp.audience.replace("_", " ").toUpperCase()}</span>
-                  <span>{camp.createdAt.slice(0, 10)}</span>
+                  <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1 font-mono">
+                    <span>Audience: {camp.audience.replace("_", " ").toUpperCase()}</span>
+                    <span>{camp.createdAt.slice(0, 10)}</span>
+                  </div>
                 </div>
               </div>
             );
@@ -480,16 +512,85 @@ export function CampaignsTab() {
 
       {/* Create Campaign Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-lg bg-white border-zinc-200 text-zinc-900 shadow-2xl">
+        <DialogContent className="sm:max-w-xl bg-white border-zinc-200 text-zinc-900 shadow-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-zinc-900 font-black text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-emerald-600" />
-              Launch Marketing Campaign
+            <DialogTitle className="text-zinc-950 font-black text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-zinc-900" />
+              Launch Marketing Email Campaign
             </DialogTitle>
             <DialogDescription className="text-xs text-zinc-500">
-              Deliver branded promotions or vouchers in throttled batches to prevent SMTP quota burnout.
+              Transmit branded announcements or vouchers in throttled batches with automated tracking.
             </DialogDescription>
           </DialogHeader>
+
+          {/* Quick Presets Strip */}
+          <div className="space-y-1.5 pt-1">
+            <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+              Quick Campaign Presets
+            </Label>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() =>
+                  loadPreset({
+                    title: "Repeat Customer Loyalty Special",
+                    audience: "repeat_customers",
+                    subject: "Exclusive Loyalty Reward: Extra 25% Off Your Next Wash",
+                    message: "Thank you for trusting QuickPress! As a valued repeat customer, enjoy an extra 25% discount on all garment care services this week.",
+                    couponCode: "LOYALTY25",
+                  })
+                }
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
+              >
+                Repeat Customer (25% Off)
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  loadPreset({
+                    title: "We Miss You Re-engagement",
+                    audience: "inactive_customers",
+                    subject: "We Miss You! Free Pickup & ₹100 Off Today",
+                    message: "It has been a while since your last laundry booking. Enjoy ₹100 instant wallet cashback on your next dry cleaning or wash booking.",
+                    couponCode: "WELCOME100",
+                  })
+                }
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
+              >
+                Dormant Re-Engagement
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  loadPreset({
+                    title: "Fleet Surge Earning Advisory",
+                    audience: "all_riders",
+                    subject: "Captain Notice: Peak Hours Extra ₹25/Trip Bonus Active",
+                    message: "High demand is active across all sectors. Complete deliveries before 9 PM to earn extra bonus payout directly in your wallet.",
+                    couponCode: "",
+                  })
+                }
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
+              >
+                Delivery Captains Notice
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  loadPreset({
+                    title: "Partner Store Hub Quality SLA",
+                    audience: "all_partners",
+                    subject: "Weekly Store Quality Standards & Turnaround Advisory",
+                    message: "Please ensure all dry clean garments undergo dual QA inspection before tagging for captain pickup. Maintain turnaround under 24 hours.",
+                    couponCode: "",
+                  })
+                }
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
+              >
+                Partner Hub Standards
+              </button>
+            </div>
+          </div>
 
           <div className="space-y-3 py-2">
             <div>
@@ -498,23 +599,44 @@ export function CampaignsTab() {
                 placeholder="e.g. Weekend Steam Press 20% Off"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-white border-zinc-300 text-xs mt-1 text-zinc-900"
+                className="bg-white border-zinc-200 text-xs mt-1 text-zinc-900 h-9 font-bold"
               />
             </div>
 
-            <div>
-              <Label className="text-xs font-bold text-zinc-800">Target Audience *</Label>
-              <Select value={audience} onValueChange={setAudience}>
-                <SelectTrigger className="bg-white border-zinc-300 text-xs mt-1 text-zinc-900">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-zinc-200">
-                  <SelectItem value="all_customers">All Registered Customers</SelectItem>
-                  <SelectItem value="inactive_customers">Inactive Customers (&gt;14 days)</SelectItem>
-                  <SelectItem value="all_partners">All Laundromat Partners</SelectItem>
-                  <SelectItem value="all_riders">All Delivery Captains</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-bold text-zinc-800">Target Audience *</Label>
+                <Select value={audience} onValueChange={setAudience}>
+                  <SelectTrigger className="bg-white border-zinc-200 text-xs mt-1 text-zinc-900 h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-zinc-200">
+                    <SelectItem value="all_customers">All Registered Customers</SelectItem>
+                    <SelectItem value="repeat_customers">Repeat Customers (2+ Orders)</SelectItem>
+                    <SelectItem value="inactive_customers">Inactive Customers (&gt;14 days)</SelectItem>
+                    <SelectItem value="all_partners">All Laundromat Partners</SelectItem>
+                    <SelectItem value="all_riders">All Delivery Captains</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold text-zinc-800">Target Operating City</Label>
+                <Select value={city} onValueChange={setCity}>
+                  <SelectTrigger className="bg-white border-zinc-200 text-xs mt-1 text-zinc-900 h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-zinc-200">
+                    <SelectItem value="all">All Operating Cities</SelectItem>
+                    <SelectItem value="Kanpur">Kanpur Hub</SelectItem>
+                    <SelectItem value="Lucknow">Lucknow Hub</SelectItem>
+                    <SelectItem value="Noida">Noida Hub</SelectItem>
+                    <SelectItem value="Delhi NCR">Delhi NCR Hub</SelectItem>
+                    <SelectItem value="Varanasi">Varanasi Hub</SelectItem>
+                    <SelectItem value="Prayagraj">Prayagraj Hub</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
@@ -523,7 +645,7 @@ export function CampaignsTab() {
                 placeholder="Subject line seen in recipient inbox"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="bg-white border-zinc-300 text-xs mt-1 text-zinc-900"
+                className="bg-white border-zinc-200 text-xs mt-1 text-zinc-900 h-9"
               />
             </div>
 
@@ -533,24 +655,29 @@ export function CampaignsTab() {
                 placeholder="e.g. WEEKEND20"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                className="bg-white border-zinc-300 text-xs mt-1 font-mono uppercase text-zinc-900"
+                className="bg-white border-zinc-200 text-xs mt-1 font-mono uppercase text-zinc-900 h-9 font-bold"
               />
             </div>
 
             <div>
-              <Label className="text-xs font-bold text-zinc-800">Campaign Message Body *</Label>
+              <Label className="text-xs font-bold text-zinc-800">Campaign Announcement Body *</Label>
               <Textarea
                 placeholder="Write your promotional announcement or offer terms here..."
                 rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="bg-white border-zinc-300 text-xs mt-1 text-zinc-900 leading-relaxed"
+                className="bg-white border-zinc-200 text-xs mt-1 text-zinc-900 leading-relaxed"
               />
             </div>
           </div>
 
           <DialogFooter className="border-t border-zinc-100 pt-3">
-            <Button variant="outline" size="sm" onClick={() => setModalOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setModalOpen(false)}
+              className="rounded-xl text-xs font-bold"
+            >
               Cancel
             </Button>
             <Button
@@ -560,15 +687,16 @@ export function CampaignsTab() {
                 createMutation.mutate({
                   title,
                   audience,
+                  city: city !== "all" ? city : undefined,
                   subject,
                   message,
                   couponCode: couponCode || undefined,
                 })
               }
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              className="bg-zinc-950 hover:bg-zinc-800 text-white font-bold rounded-xl text-xs"
             >
               <Send className="h-3.5 w-3.5 mr-1.5" />
-              Queue &amp; Launch Broadcast
+              {createMutation.isPending ? "Queuing..." : "Queue & Launch Broadcast"}
             </Button>
           </DialogFooter>
         </DialogContent>

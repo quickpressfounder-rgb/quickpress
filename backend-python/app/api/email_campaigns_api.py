@@ -33,24 +33,51 @@ router = APIRouter(
 
 class CreateCampaignPayload(BaseModel):
     title: str = Field(..., description="Campaign internal name / title")
-    audience: str = Field("all_customers", description="all_customers | inactive_customers | all_partners | all_riders")
+    audience: str = Field("all_customers", description="all_customers | repeat_customers | inactive_customers | all_partners | all_riders")
     subject: str = Field(..., description="Outbound email subject line")
     message: str = Field(..., description="Campaign announcement body text or HTML")
     couponCode: Optional[str] = Field(None, description="Optional promo voucher code")
+    city: Optional[str] = Field("all", description="Target city / operational area or 'all'")
 
 
-async def _resolve_audience_recipients(audience: str) -> List[Dict[str, str]]:
-    """Fetch real recipient emails from database based on target audience filter."""
+async def _resolve_audience_recipients(audience: str, city: Optional[str] = "all") -> List[Dict[str, str]]:
+    """Fetch real recipient emails from database based on target audience filter and city."""
     recipients: List[Dict[str, str]] = []
     seen_emails = set()
+    city_lower = (city or "all").strip().lower()
+
+    # Pre-calculate order frequency if targeting repeat customers
+    customer_order_counts: Dict[str, int] = {}
+    if audience in ("repeat_customers", "inactive_customers"):
+        try:
+            orders = await database.find_many("customer_orders", {})
+            for o in orders:
+                cid = str(o.get("customerId") or o.get("userId") or o.get("user_id") or "")
+                if cid:
+                    customer_order_counts[cid] = customer_order_counts.get(cid, 0) + 1
+        except Exception:
+            pass
 
     try:
-        if audience in ("all_customers", "inactive_customers"):
+        if audience in ("all_customers", "repeat_customers", "inactive_customers"):
             users = await database.find_many("users", {})
             for u in users:
                 email = str(u.get("email") or "").strip().lower()
                 role = str(u.get("role") or "customer").lower()
+                uid = str(u.get("_id") or u.get("id") or "")
+                user_city = str(u.get("city") or (u.get("address") or {}).get("city") or "").strip().lower()
+
+                # City filter
+                if city_lower != "all" and user_city and city_lower not in user_city:
+                    continue
+
                 if email and "@" in email and email not in seen_emails and role == "customer":
+                    cnt = customer_order_counts.get(uid, 0)
+                    if audience == "repeat_customers" and cnt < 2:
+                        continue
+                    if audience == "inactive_customers" and cnt > 0:
+                        continue
+
                     seen_emails.add(email)
                     recipients.append({
                         "email": email,
@@ -62,6 +89,9 @@ async def _resolve_audience_recipients(audience: str) -> List[Dict[str, str]]:
             partners = await database.find_many("partners", {})
             for p in partners:
                 email = str(p.get("email") or p.get("contactEmail") or "").strip().lower()
+                pcity = str(p.get("city") or "").strip().lower()
+                if city_lower != "all" and pcity and city_lower not in pcity:
+                    continue
                 if email and "@" in email and email not in seen_emails:
                     seen_emails.add(email)
                     recipients.append({
@@ -70,10 +100,13 @@ async def _resolve_audience_recipients(audience: str) -> List[Dict[str, str]]:
                         "audience": "partner",
                     })
 
-        elif audience == "all_riders":
+        elif audience in ("all_riders", "captains"):
             riders = await database.find_many("riders", {})
             for r in riders:
                 email = str(r.get("email") or "").strip().lower()
+                rcity = str(r.get("city") or "").strip().lower()
+                if city_lower != "all" and rcity and city_lower not in rcity:
+                    continue
                 if email and "@" in email and email not in seen_emails:
                     seen_emails.add(email)
                     recipients.append({
@@ -214,7 +247,7 @@ async def create_and_launch_campaign(
         error_message="Campaign creation limit reached (5 per 5m). Please wait before launching another campaign.",
     )
 
-    recipients = await _resolve_audience_recipients(payload.audience)
+    recipients = await _resolve_audience_recipients(payload.audience, city=payload.city)
     total_recipients = len(recipients)
 
     campaign_data = payload.model_dump()

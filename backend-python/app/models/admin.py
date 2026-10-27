@@ -319,6 +319,11 @@ class BroadcastPayload(BaseModel):
     message: Optional[str] = None
     category: Optional[str] = None
     channel: Optional[str] = None
+    city: Optional[str] = "all"
+    segment: Optional[str] = "all"
+    couponCode: Optional[str] = None
+    deepLink: Optional[str] = None
+    priority: Optional[str] = "normal"
 
 
 class SettingsUpdatePayload(BaseModel):

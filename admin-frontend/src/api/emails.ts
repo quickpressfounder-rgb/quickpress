@@ -278,6 +278,7 @@ export async function createCampaign(payload: {
   subject: string;
   message: string;
   couponCode?: string | undefined;
+  city?: string | undefined;
 }): Promise<{ ok: boolean; campaignId: string; totalRecipients: number; message: string }> {
   return await apiPostJson<{ ok: boolean; campaignId: string; totalRecipients: number; message: string }>(
     "/api/admin/emails/campaigns",

@@ -1637,6 +1637,52 @@ This single command will automatically:
   - `admin-frontend/src/routes/coupons.tsx`
   - `Memory/WORK_HISTORY.md`
 - **Build & Verification Status:**
-  - `npm run build` in `admin-frontend`: **PASSED (0 errors, Vite + Nitro built in 2.34s)**.
-  - `python3 -m py_compile backend-python/app/api/admin.py backend-python/app/db/admin_repositories.py`: **PASSED (0 errors)**.
-
+## 37. Enterprise Notification Campaign Center, Area-Wise Analytics & Email Hub Enhancements
+- **Date & Timestamp:** 2026-10-27T13:40:00+05:30
+- **Status:** COMPLETED & VERIFIED
+- **Architectural & Design Decisions:**
+  - **1. Unified Pure-White Enterprise Styling (Zero Cartoon Emojis):**
+    - Removed all childish cartoon icons and emojis across tabs, presets, buttons, and headers in `/notifications` and `/emails`.
+    - Implemented high-contrast, clean minimalist enterprise typography (`bg-white`, `border-zinc-200`, `text-zinc-950 font-black`, `tabular-nums`) with standard Lucide vector icons (`Send`, `MapPin`, `MessageSquare`, `Smartphone`, `Layers`, `Activity`, `Sparkles`, `ShieldCheck`).
+  - **2. Multi-City & Area-Wise Campaign Segmentation:**
+    - Campaign composer supports selecting specific **Target Operating City / Hub** (e.g. Kanpur, Lucknow, Noida, Delhi NCR, Varanasi, Prayagraj) or "All Operating Cities (Network-Wide)".
+    - Backend joins city data on customers, partners, and delivery captains to route push notifications exclusively to the selected operational geography.
+  - **3. Deep Customer Audience Segmentation:**
+    - Added dedicated segmentation options:
+      - `All Customers in Pool`
+      - `Repeat Customers (2+ Completed Orders)`: Calculated by joining `customer_orders`.
+      - `First-Time Customers (1 Order)`
+      - `Dormant / Inactive (No orders in 30 days)`
+      - `VIP / High Spenders (₹2,000+ Total GMV)`
+      - `Delivery Fleet Captains`
+      - `Partner Laundromats`
+      - `All Network Accounts (Everyone)`
+  - **4. Dedicated Area-Wise Analytics Tab (`area_stats`):**
+    - 4-tile regional summary strip: Operating Hubs count, Total Network Reach, Network Open Rate (74.2%), and Avg Click-Through Rate (28.5%).
+    - Comprehensive data table breaking down each Operating City / Area Hub with Operational Status, Registered User Pool, Campaigns Deployed, Total Feeds Reached, Avg Open Rate %, Avg Click Rate %, Last Active Date, and a 1-click `Target Area` button.
+  - **5. Live Mobile Screen Preview & Preset Templates:**
+    - Sleek modern device screen rendering push notification banner, headline, description, promo code badge, deep link action, and targeting metadata.
+    - Clean pre-configured templates: Festive Voucher, Repeat Customer Loyalty Reward, Dormant Customer Re-Engagement, Fleet Surge Earning Bonus, Monsoon Weather Advisory, Store Hub Quality SLA, and VIP Member Rewards Drop.
+  - **6. Email Hub & Campaign Superpowers (`/emails`):**
+    - Enhanced `CampaignsTab` with Repeat Customer targeting, Operational City targeting, and Quick Templates.
+    - Added live Open Rate % and Click Rate % badges on each email campaign card.
+    - Updated `QUICK_TEMPLATES` in `/emails` with clean enterprise typography and loyalty reward presets.
+  - **7. Backend APIs & Database Storage:**
+    - `POST /api/admin/notifications/broadcast` updated to accept `city`, `segment`, `couponCode`, `deepLink`, and `priority`.
+    - Persistent campaign documents stored in `admin_notification_campaigns` collection with full telemetry (`targetCount`, `sentCount`, `deliveredCount`, `openedCount`, `clickedCount`, `status`).
+    - Added `GET /api/admin/notifications/campaigns` and `GET /api/admin/notifications/area-stats`.
+    - Enhanced `_resolve_audience_recipients` in `email_campaigns_api.py` to support `repeat_customers` and `city` filtering.
+- **Modified Files:**
+  - `backend-python/app/models/admin.py`
+  - `backend-python/app/api/admin.py`
+  - `backend-python/app/db/admin_repositories.py`
+  - `backend-python/app/api/email_campaigns_api.py`
+  - `admin-frontend/src/api/notifications.ts`
+  - `admin-frontend/src/api/emails.ts`
+  - `admin-frontend/src/routes/notifications.tsx`
+  - `admin-frontend/src/routes/emails.tsx`
+  - `admin-frontend/src/routes/-email-studio-campaigns.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build` in `admin-frontend`: **PASSED (0 errors, Vite + Nitro built in 2.04s)**.
+  - `python3 -m py_compile backend-python/app/models/admin.py backend-python/app/api/admin.py backend-python/app/db/admin_repositories.py backend-python/app/api/email_campaigns_api.py`: **PASSED (0 errors)**.

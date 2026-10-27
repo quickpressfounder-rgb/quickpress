@@ -33,6 +33,14 @@ import {
   MessageCircle,
   CheckCheck,
   PhoneCall,
+  MapPin,
+  TrendingUp,
+  X,
+  Tag,
+  ChevronRight,
+  ExternalLink,
+  Shield,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,7 +54,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { AdminShell } from "../components/AdminShell";
 import { DataTable, SectionCard, StatusPill, KpiCard } from "../components/AdminUI";
 import {
-  fetchCampaigns,
+  fetchNotificationCampaigns,
+  fetchAreaNotificationStats,
   sendBroadcast,
   fetchWhatsAppLogs,
   sendAdminWhatsApp,
@@ -56,9 +65,11 @@ import {
   fetchOmniSettings,
   updateOmniSettings,
   type Campaign,
+  type AreaNotificationStat,
   type WhatsAppLog,
   type SmsLog,
 } from "../api/notifications";
+import { fetchCities } from "../api/cities";
 import { adminHead } from "../lib/head";
 import { requireAdminSession } from "../lib/require-admin-session";
 
@@ -108,70 +119,148 @@ const WA_TEMPLATE_PRESETS = [
 const TEMPLATE_PRESETS = [
   {
     id: "festive-50",
-    label: "🎉 Festive 50% Off Voucher",
-    title: "Diwali Special: Flat 50% OFF on Dry Clean!",
-    body: "Get your traditional outfits shining like new. Use code FESTIVE50 on orders above ₹249. Free doorstep pickup!",
+    label: "Festive Voucher 50% Off",
+    title: "Festive Special: Flat 50% OFF on Dry Clean",
+    body: "Get your traditional outfits shining like new. Use code FESTIVE50 on orders above ₹249. Free doorstep pickup included!",
     audience: "Customers",
+    segment: "all",
     category: "Promotional",
+    couponCode: "FESTIVE50",
+    deepLink: "/offers",
+  },
+  {
+    id: "repeat-loyalty",
+    label: "Repeat Customer Loyalty Reward",
+    title: "Welcome Back! Extra 25% Off Your Next Wash",
+    body: "As a valued repeat customer, enjoy an exclusive 25% discount across all laundry and dry cleaning services today.",
+    audience: "Customers",
+    segment: "repeat_customers",
+    category: "Promotional",
+    couponCode: "LOYALTY25",
+    deepLink: "/offers",
+  },
+  {
+    id: "re-engagement",
+    label: "Dormant Customer Re-Engagement",
+    title: "We Miss You! Free Pickup & ₹100 Off Today",
+    body: "Your fresh clothes are waiting. Book any service today and receive ₹100 instant wallet credit on completed order.",
+    audience: "Customers",
+    segment: "inactive_customers",
+    category: "Promotional",
+    couponCode: "WELCOMEBACK",
+    deepLink: "/offers",
   },
   {
     id: "surge-rider",
-    label: "⚡ Rider Surge Earning Bonus",
-    title: "⚡ Peak Hours Surge Active: Extra ₹25/Trip!",
+    label: "Fleet Surge Earning Bonus",
+    title: "Peak Hours Surge Active: Extra ₹25/Trip",
     body: "High order demand across operational zones. Earn ₹25 extra bonus on every delivery completed before 9 PM.",
     audience: "Riders",
+    segment: "all",
     category: "Urgent",
+    couponCode: "",
+    deepLink: "/rider/notifications",
   },
   {
     id: "weather-alert",
-    label: "🌧️ Monsoon Pickup Advisory",
-    title: "Monsoon Weather Advisory: Safe Garment Protection",
+    label: "Monsoon Weather Advisory",
+    title: "Weather Advisory: Water-Sealed Garment Packaging",
     body: "Due to heavy rainfall, doorstep delivery may experience a slight 15-20 min delay. All laundry bags are water-sealed.",
-    audience: "All",
+    audience: "All Users",
+    segment: "all",
     category: "Operational",
+    couponCode: "",
+    deepLink: "/notifications",
   },
   {
     id: "partner-quality",
-    label: "🏪 Store Hub SLA Guidelines",
+    label: "Store Hub SLA Guidelines",
     title: "Weekly Store Quality Standards & Express SLA",
     body: "Please ensure all dry clean items undergo dual QA inspection before tagging for rider pickup. Keep turnaround within 24 hrs.",
     audience: "Partners",
+    segment: "all",
     category: "Operational",
+    couponCode: "",
+    deepLink: "/partner/notifications",
   },
   {
     id: "vip-perks",
-    label: "👑 VIP Member Rewards Drop",
+    label: "VIP Member Rewards Drop",
     title: "Exclusive VIP Perk Unlocked: Free Express Wash",
     body: "Thank you for being a Platinum Elite member! Your priority wash voucher is now active in your wallet.",
     audience: "Customers",
+    segment: "vip",
     category: "Promotional",
+    couponCode: "VIPFREE",
+    deepLink: "/wallet",
   },
 ];
 
 export function NotificationsPage() {
   const queryClient = useQueryClient();
-  const campaigns = useQuery({ queryKey: ["admin", "campaigns"], queryFn: fetchCampaigns });
-  const whatsappLogs = useQuery({ queryKey: ["admin", "whatsapp-logs"], queryFn: () => fetchWhatsAppLogs(50) });
-  const smsLogs = useQuery({ queryKey: ["admin", "sms-logs"], queryFn: () => fetchSmsLogs(50) });
-  const omniStats = useQuery({ queryKey: ["admin", "omni-stats"], queryFn: fetchOmniStats });
-  const omniSettings = useQuery({ queryKey: ["admin", "omni-settings"], queryFn: fetchOmniSettings });
 
+  // Queries
+  const campaigns = useQuery({
+    queryKey: ["admin", "notification-campaigns"],
+    queryFn: fetchNotificationCampaigns,
+  });
+  const areaStats = useQuery({
+    queryKey: ["admin", "area-notification-stats"],
+    queryFn: fetchAreaNotificationStats,
+  });
+  const citiesQuery = useQuery({
+    queryKey: ["admin", "cities", "list"],
+    queryFn: fetchCities,
+  });
+  const whatsappLogs = useQuery({
+    queryKey: ["admin", "whatsapp-logs"],
+    queryFn: () => fetchWhatsAppLogs(50),
+  });
+  const smsLogs = useQuery({
+    queryKey: ["admin", "sms-logs"],
+    queryFn: () => fetchSmsLogs(50),
+  });
+  const omniStats = useQuery({
+    queryKey: ["admin", "omni-stats"],
+    queryFn: fetchOmniStats,
+  });
+  const omniSettings = useQuery({
+    queryKey: ["admin", "omni-settings"],
+    queryFn: fetchOmniSettings,
+  });
+
+  // Main navigation tab
+  const [activeTab, setActiveTab] = useState<
+    "campaigns" | "area_stats" | "whatsapp" | "sms" | "templates" | "gateway"
+  >("campaigns");
+
+  // Broadcast Composer State
   const [form, setForm] = useState({
     title: "",
     body: "",
     audience: "Customers",
+    segment: "all",
+    city: "all",
     channel: "All Channels",
     category: "Promotional",
+    couponCode: "",
+    deepLink: "/offers",
+    priority: "normal",
   });
-  const [activeTab, setActiveTab] = useState<"campaigns" | "whatsapp" | "sms" | "templates" | "gateway" | "audience">("campaigns");
+
+  // Table Filters State
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [cityFilter, setCityFilter] = useState("all");
+  const [audienceFilter, setAudienceFilter] = useState("all");
 
   // WhatsApp form state
   const [waForm, setWaForm] = useState({
     toPhone: "",
     recipientName: "Valued Customer",
     templateName: "order_confirmed",
-    messageBody: "Hello Valued Customer, your QuickPress order #QP-2026 has been confirmed! Pickup is scheduled. Track live progress anytime.",
+    messageBody:
+      "Hello Valued Customer, your QuickPress order #QP-2026 has been confirmed! Pickup is scheduled. Track live progress anytime.",
     orderId: "QP-2026",
   });
   const [waStatusFilter, setWaStatusFilter] = useState("all");
@@ -180,19 +269,42 @@ export function NotificationsPage() {
   // SMS form state
   const [smsForm, setSmsForm] = useState({
     toPhone: "",
-    message: "QuickPress: Your delivery verification OTP is 4821. Valid for 5 mins. Share with Captain only.",
+    message:
+      "QuickPress: Your delivery verification OTP is 4821. Valid for 5 mins. Share with Captain only.",
     purpose: "delivery_otp",
   });
   const [smsSearch, setSmsSearch] = useState("");
 
   const allCampaigns = campaigns.data ?? [];
+  const allAreaStats = areaStats.data ?? [];
+  const availableCities = useMemo(() => {
+    const fromCities = (citiesQuery.data ?? [])
+      .map((c) => c.city || c.name)
+      .filter(Boolean);
+    const defaults = ["Kanpur", "Lucknow", "Noida", "Delhi NCR", "Varanasi", "Prayagraj"];
+    return Array.from(new Set([...fromCities, ...defaults]));
+  }, [citiesQuery.data]);
 
   const sendMutation = useMutation({
     mutationFn: sendBroadcast,
     onSuccess: (data) => {
-      toast.success(`Broadcast transmitted to ${data?.reached || 19} active devices across feeds! 🎉`);
-      setForm({ title: "", body: "", audience: "Customers", channel: "All Channels", category: "Promotional" });
-      queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      toast.success(
+        `Broadcast transmitted to ${data?.reached || 0} active devices across feeds!`
+      );
+      setForm({
+        title: "",
+        body: "",
+        audience: "Customers",
+        segment: "all",
+        city: "all",
+        channel: "All Channels",
+        category: "Promotional",
+        couponCode: "",
+        deepLink: "/offers",
+        priority: "normal",
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin", "notification-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "area-notification-stats"] });
     },
     onError: () => {
       toast.error("Failed to transmit broadcast.");
@@ -202,7 +314,9 @@ export function NotificationsPage() {
   const sendWaMutation = useMutation({
     mutationFn: sendAdminWhatsApp,
     onSuccess: (data) => {
-      toast.success(`WhatsApp message transmitted successfully! ID: ${data?.messageId || "sent"} 💬`);
+      toast.success(
+        `WhatsApp message transmitted successfully! ID: ${data?.messageId || "sent"}`
+      );
       queryClient.invalidateQueries({ queryKey: ["admin", "whatsapp-logs"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "omni-stats"] });
     },
@@ -214,7 +328,9 @@ export function NotificationsPage() {
   const sendSmsMutation = useMutation({
     mutationFn: sendAdminSms,
     onSuccess: (data) => {
-      toast.success(`Transactional SMS transmitted successfully! ID: ${data?.messageId || "sent"} 📱`);
+      toast.success(
+        `Transactional SMS transmitted successfully! ID: ${data?.messageId || "sent"}`
+      );
       queryClient.invalidateQueries({ queryKey: ["admin", "sms-logs"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "omni-stats"] });
     },
@@ -234,44 +350,133 @@ export function NotificationsPage() {
     },
   });
 
+  // Metrics computation
   const metrics = useMemo(() => {
     const total = allCampaigns.length;
-    const customerCampaigns = allCampaigns.filter((c) => c.audience.includes("Customer") || c.audience === "All Users").length;
-    const partnerCampaigns = allCampaigns.filter((c) => c.audience.includes("Partner") || c.audience === "All Users").length;
-    const riderCampaigns = allCampaigns.filter((c) => c.audience.includes("Rider") || c.audience === "All Users").length;
-    return { total, customerCampaigns, partnerCampaigns, riderCampaigns };
+    const customerCampaigns = allCampaigns.filter(
+      (c) => c.audience.includes("Customer") || c.audience === "All Users"
+    ).length;
+    const partnerCampaigns = allCampaigns.filter(
+      (c) => c.audience.includes("Partner") || c.audience === "All Users"
+    ).length;
+    const riderCampaigns = allCampaigns.filter(
+      (c) => c.audience.includes("Rider") || c.audience === "All Users"
+    ).length;
+    const totalSent = allCampaigns.reduce((acc, c) => acc + (c.sent || 0), 0);
+    return {
+      total,
+      customerCampaigns,
+      partnerCampaigns,
+      riderCampaigns,
+      totalSent,
+    };
   }, [allCampaigns]);
 
+  // Filtered campaigns
   const filteredCampaigns = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return allCampaigns.filter((c) => {
-      return !q || [c.title, c.message, c.audience, c.category].join(" ").toLowerCase().includes(q);
+      const matchSearch =
+        !q ||
+        [c.title, c.message, c.audience, c.category, c.city, c.segment, c.couponCode]
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+      const matchStatus =
+        statusFilter === "all" ||
+        c.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchCity =
+        cityFilter === "all" ||
+        (c.city && c.city.toLowerCase() === cityFilter.toLowerCase());
+      const matchAudience =
+        audienceFilter === "all" ||
+        c.audience.toLowerCase().includes(audienceFilter.toLowerCase());
+
+      return matchSearch && matchStatus && matchCity && matchAudience;
     });
-  }, [allCampaigns, searchQuery]);
+  }, [allCampaigns, searchQuery, statusFilter, cityFilter, audienceFilter]);
 
   const handleApplyTemplate = (tpl: (typeof TEMPLATE_PRESETS)[0]) => {
-    setForm({
+    setForm((p) => ({
+      ...p,
       title: tpl.title,
       body: tpl.body,
       audience: tpl.audience,
-      channel: "All Channels",
+      segment: tpl.segment || "all",
       category: tpl.category,
-    });
-    toast.success(`Loaded template "${tpl.label}"!`);
+      couponCode: tpl.couponCode || "",
+      deepLink: tpl.deepLink || "/offers",
+      channel: "All Channels",
+    }));
+    toast.success(`Loaded template "${tpl.label}"`);
+  };
+
+  const handleExportCampaignsCSV = () => {
+    if (filteredCampaigns.length === 0) {
+      toast.error("No campaigns to export.");
+      return;
+    }
+    const headers = [
+      "Campaign Title",
+      "Audience",
+      "Segment",
+      "Operating City",
+      "Channel",
+      "Category",
+      "Devices Reached",
+      "Open Rate",
+      "Coupon Code",
+      "Status",
+      "Dispatched Date",
+      "Dispatched Time",
+    ];
+    const rows = filteredCampaigns.map((c) => [
+      `"${c.title.replace(/"/g, '""')}"`,
+      `"${c.audience}"`,
+      `"${c.segment || "all"}"`,
+      `"${c.city || "All Hubs"}"`,
+      `"${c.channel}"`,
+      `"${c.category}"`,
+      `"${c.sent}"`,
+      `"${c.opened}"`,
+      `"${c.couponCode || "None"}"`,
+      `"${c.status}"`,
+      `"${c.date}"`,
+      `"${c.time}"`,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `QuickPress_Notification_Campaigns_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Campaigns ledger exported successfully!");
   };
 
   return (
     <AdminShell
       title="Push Notifications & Campaign Center"
-      subtitle="Transmit multi-channel mobile notifications, promotional alerts, fleet push advisories, and store bulletins."
+      subtitle="Transmit multi-channel announcements, promotional alerts, fleet push notifications, and area-wise bulletins."
       actions={
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             variant="outline"
+            onClick={handleExportCampaignsCSV}
+            className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
+          >
+            <Download className="size-3.5 mr-1.5" />
+            <span>Export CSV</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => {
               campaigns.refetch();
-              toast.success("Broadcast feeds refreshed!");
+              areaStats.refetch();
+              toast.success("Feeds refreshed!");
             }}
             disabled={campaigns.isRefetching}
             className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
@@ -291,8 +496,17 @@ export function NotificationsPage() {
             kpi={{
               id: "tot-notif",
               label: "Dispatched Campaigns",
-              value: `${metrics.total} Broadcasts`,
+              value: `${metrics.total} Campaigns`,
               hint: "Multi-channel history",
+              positive: true,
+            }}
+          />
+          <KpiCard
+            kpi={{
+              id: "devices-reached",
+              label: "Total Feeds Reached",
+              value: `${metrics.totalSent} Dispatches`,
+              hint: "Combined device hits",
               positive: true,
             }}
           />
@@ -301,7 +515,7 @@ export function NotificationsPage() {
               id: "cust-alerts",
               label: "Customer Broadcasts",
               value: `${metrics.customerCampaigns} Sent`,
-              hint: "65 User accounts",
+              hint: "Segment & area targeted",
               positive: true,
             }}
           />
@@ -310,7 +524,7 @@ export function NotificationsPage() {
               id: "part-alerts",
               label: "Partner Store Bulletins",
               value: `${metrics.partnerCampaigns} Sent`,
-              hint: "8 Hub owners",
+              hint: "Laundromat store hubs",
               positive: true,
             }}
           />
@@ -319,39 +533,30 @@ export function NotificationsPage() {
               id: "rdr-alerts",
               label: "Fleet Push Dispatches",
               value: `${metrics.riderCampaigns} Sent`,
-              hint: "4 Delivery captains",
+              hint: "Delivery captain alerts",
               positive: true,
             }}
           />
           <KpiCard
             kpi={{
               id: "delivery-rate",
-              label: "Delivery Success Rate",
-              value: "99.8%",
-              hint: "FCM & Socket transmitted",
-              positive: true,
-            }}
-          />
-          <KpiCard
-            kpi={{
-              id: "channels-active",
-              label: "Gateway Channels",
-              value: "Socket + FCM",
-              hint: "Live realtime push",
+              label: "Avg Open / CTR Rate",
+              value: "74.2%",
+              hint: "99.8% delivery score",
               positive: true,
             }}
           />
         </div>
 
         {/* =========================================================================
-            2. INTERACTIVE CAMPAIGN BUILDER + LIVE MOBILE DEVICE PREVIEW
+            2. INTERACTIVE CAMPAIGN BUILDER + LIVE PHONE PREVIEW
         ========================================================================= */}
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Builder Form (7 Cols) */}
           <div className="lg:col-span-7 space-y-4">
             <SectionCard
-              title="Compose Multi-Channel Broadcast"
-              description="Craft announcements with real-time push to Customer, Partner, and Captain app feeds."
+              title="Compose Multi-Channel Campaign"
+              description="Transmit targeted announcements with real-time push to Customer, Partner, and Captain app feeds."
             >
               <div className="space-y-4">
                 {/* Template Fast Loader */}
@@ -365,7 +570,7 @@ export function NotificationsPage() {
                         key={tpl.id}
                         type="button"
                         onClick={() => handleApplyTemplate(tpl)}
-                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-bold text-zinc-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-bold text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300 transition-colors"
                       >
                         {tpl.label}
                       </button>
@@ -374,67 +579,167 @@ export function NotificationsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold">Broadcast Headline / Title</Label>
+                  <Label className="text-xs font-bold text-zinc-900">Campaign Headline / Title *</Label>
                   <Input
-                    placeholder="e.g. 50% Off Dry Clean This Weekend!"
+                    placeholder="e.g. Weekend Steam Press 20% Off for Repeat Customers"
                     value={form.title}
                     onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                    className="h-10 text-xs font-bold"
+                    className="h-10 text-xs font-bold bg-white border-zinc-200"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold">Message Content / Description</Label>
+                  <Label className="text-xs font-bold text-zinc-900">Message Content / Announcement Description *</Label>
                   <Textarea
-                    placeholder="Enter your announcement text, promo details, or operational guidelines..."
+                    placeholder="Enter announcement text, promotional voucher terms, or operational guidelines..."
                     rows={4}
                     value={form.body}
                     onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
-                    className="text-xs resize-none"
+                    className="text-xs resize-none bg-white border-zinc-200"
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 pt-1">
+                {/* 3 Dropdowns: Audience, Segment, Operating City */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div className="space-y-1">
-                    <Label className="text-xs font-bold">Target Audience</Label>
-                    <Select value={form.audience} onValueChange={(v) => setForm((p) => ({ ...p, audience: v }))}>
-                      <SelectTrigger className="h-9 text-xs">
+                    <Label className="text-xs font-bold text-zinc-800">Target Audience</Label>
+                    <Select
+                      value={form.audience}
+                      onValueChange={(v) => setForm((p) => ({ ...p, audience: v }))}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white border-zinc-200">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="All">🌐 All Users (Everyone)</SelectItem>
-                        <SelectItem value="Customers">👥 Customers Only</SelectItem>
-                        <SelectItem value="Partners">🏪 Partner Store Hubs</SelectItem>
-                        <SelectItem value="Riders">🚴 Delivery Captains</SelectItem>
+                      <SelectContent className="bg-white border-zinc-200">
+                        <SelectItem value="All Users">All Network Accounts (Everyone)</SelectItem>
+                        <SelectItem value="Customers">Customers Only</SelectItem>
+                        <SelectItem value="Partners">Partner Store Hubs</SelectItem>
+                        <SelectItem value="Riders">Delivery Captains</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs font-bold">Notification Category</Label>
-                    <Select value={form.category} onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}>
-                      <SelectTrigger className="h-9 text-xs">
+                    <Label className="text-xs font-bold text-zinc-800">Customer Segment</Label>
+                    <Select
+                      value={form.segment}
+                      onValueChange={(v) => setForm((p) => ({ ...p, segment: v }))}
+                      disabled={form.audience === "Partners" || form.audience === "Riders"}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white border-zinc-200">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Promotional">🏷️ Promotional</SelectItem>
-                        <SelectItem value="Operational">⚙️ Operational Alert</SelectItem>
-                        <SelectItem value="Urgent">⚡ Urgent / Surge</SelectItem>
-                        <SelectItem value="System">🛡️ System Update</SelectItem>
+                      <SelectContent className="bg-white border-zinc-200">
+                        <SelectItem value="all">All Customers in Pool</SelectItem>
+                        <SelectItem value="repeat_customers">Repeat Customers (2+ Orders)</SelectItem>
+                        <SelectItem value="new_customers">First-Time Customers (1 Order)</SelectItem>
+                        <SelectItem value="inactive_customers">Dormant (No order 30d)</SelectItem>
+                        <SelectItem value="vip">VIP / High Spenders (₹2k+)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs font-bold">Delivery Channel</Label>
-                    <Select value={form.channel} onValueChange={(v) => setForm((p) => ({ ...p, channel: v }))}>
-                      <SelectTrigger className="h-9 text-xs">
+                    <Label className="text-xs font-bold text-zinc-800">Target Operating City</Label>
+                    <Select
+                      value={form.city}
+                      onValueChange={(v) => setForm((p) => ({ ...p, city: v }))}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white border-zinc-200">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="All Channels">🔔 In-App + FCM Push</SelectItem>
-                        <SelectItem value="In-App Feed">📱 In-App Feed Only</SelectItem>
-                        <SelectItem value="FCM Mobile Push">⚡ Urgent Push Only</SelectItem>
+                      <SelectContent className="bg-white border-zinc-200">
+                        <SelectItem value="all">All Operating Cities (Network)</SelectItem>
+                        {availableCities.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c} Hub
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* 3 Dropdowns: Category, Channel, Priority */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-zinc-800">Notification Category</Label>
+                    <Select
+                      value={form.category}
+                      onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white border-zinc-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-zinc-200">
+                        <SelectItem value="Promotional">Promotional Offer</SelectItem>
+                        <SelectItem value="Operational">Operational Alert</SelectItem>
+                        <SelectItem value="Urgent">Urgent Surge Notice</SelectItem>
+                        <SelectItem value="System">System &amp; Security</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-zinc-800">Delivery Channel</Label>
+                    <Select
+                      value={form.channel}
+                      onValueChange={(v) => setForm((p) => ({ ...p, channel: v }))}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white border-zinc-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-zinc-200">
+                        <SelectItem value="All Channels">In-App + FCM Push</SelectItem>
+                        <SelectItem value="In-App Feed">In-App Feed Only</SelectItem>
+                        <SelectItem value="FCM Mobile Push">FCM High-Priority Push Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-zinc-800">Delivery Priority</Label>
+                    <Select
+                      value={form.priority}
+                      onValueChange={(v) => setForm((p) => ({ ...p, priority: v }))}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white border-zinc-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-zinc-200">
+                        <SelectItem value="normal">Standard Normal</SelectItem>
+                        <SelectItem value="high">High Priority</SelectItem>
+                        <SelectItem value="urgent">Urgent / Sound Wakeup</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Optional Promo Code & Deep Link */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-zinc-800">Voucher / Promo Code (Optional)</Label>
+                    <Input
+                      placeholder="e.g. LOYALTY25, WEEKEND50"
+                      value={form.couponCode}
+                      onChange={(e) => setForm((p) => ({ ...p, couponCode: e.target.value.toUpperCase() }))}
+                      className="h-9 text-xs font-mono font-bold uppercase bg-white border-zinc-200"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-zinc-800">Deep Link Destination</Label>
+                    <Select
+                      value={form.deepLink}
+                      onValueChange={(v) => setForm((p) => ({ ...p, deepLink: v }))}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white border-zinc-200 font-mono">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-zinc-200 font-mono text-xs">
+                        <SelectItem value="/offers">/offers (Discounts &amp; Vouchers)</SelectItem>
+                        <SelectItem value="/wallet">/wallet (Wallet Balance &amp; Pass)</SelectItem>
+                        <SelectItem value="/orders">/orders (Order History &amp; Book)</SelectItem>
+                        <SelectItem value="/notifications">/notifications (Notification Feed)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -444,7 +749,7 @@ export function NotificationsPage() {
                   <Button
                     onClick={() => sendMutation.mutate(form)}
                     disabled={!form.title || !form.body || sendMutation.isPending}
-                    className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-xs"
+                    className="w-full h-10 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs"
                   >
                     <Send className="size-3.5 mr-1.5" />
                     {sendMutation.isPending ? "Transmitting Across Devices..." : "Dispatch Broadcast Campaign"}
@@ -456,37 +761,61 @@ export function NotificationsPage() {
 
           {/* Live Mobile Device Screen Preview (5 Cols) */}
           <div className="lg:col-span-5">
-            <SectionCard title="Live Mobile App Screen Preview" description="Real-time rendering of device push banner and in-app feed.">
-              <div className="mx-auto w-full max-w-[320px] rounded-[36px] border-4 border-zinc-800 bg-zinc-900 p-3.5 shadow-2xl space-y-4">
+            <SectionCard
+              title="Live Mobile Screen Preview"
+              description="Real-time rendering of device push banner and feed notification."
+            >
+              <div className="mx-auto w-full max-w-[320px] rounded-[36px] border-4 border-zinc-900 bg-zinc-950 p-4 shadow-xl space-y-4">
                 {/* Mobile Notch */}
                 <div className="mx-auto h-4 w-28 rounded-full bg-zinc-800 flex items-center justify-center">
                   <div className="size-2 rounded-full bg-zinc-900" />
                 </div>
 
                 {/* Lockscreen / Push Banner */}
-                <div className="rounded-2xl bg-white/95 p-3.5 backdrop-blur-md shadow-lg space-y-1.5 border border-zinc-200">
+                <div className="rounded-2xl bg-white p-3.5 shadow-lg space-y-1.5 border border-zinc-200 text-zinc-950">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <div className="flex size-5 items-center justify-center rounded-md bg-emerald-600 text-white font-black text-[9px]">
+                      <div className="flex size-5 items-center justify-center rounded-md bg-zinc-950 text-white font-black text-[9px]">
                         QP
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-zinc-900">QuickPress</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-zinc-950">
+                        QuickPress
+                      </span>
                     </div>
-                    <span className="text-[9px] text-zinc-400 font-medium">now</span>
+                    <span className="text-[9px] text-zinc-400 font-medium">Just now</span>
                   </div>
 
-                  <p className="font-bold text-zinc-900 text-xs leading-tight">
+                  <p className="font-bold text-zinc-950 text-xs leading-tight">
                     {form.title || "Announcement Headline"}
                   </p>
                   <p className="text-[11px] text-zinc-600 line-clamp-3 leading-relaxed">
-                    {form.body || "Your broadcast message text will preview here in real-time as you type..."}
+                    {form.body || "Your broadcast announcement preview will render here in real-time as you compose..."}
                   </p>
+
+                  {form.couponCode && (
+                    <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
+                        Code: {form.couponCode}
+                      </span>
+                      <span className="text-[10px] font-bold text-zinc-900 flex items-center gap-0.5">
+                        Claim ➜
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Audience Pill */}
-                <div className="rounded-xl bg-zinc-800/80 p-2 text-center text-[10px] font-bold text-zinc-400 flex items-center justify-center gap-1.5">
-                  <Radio className="size-3 text-emerald-500 animate-pulse" />
-                  <span>Target: {form.audience} · {form.category}</span>
+                {/* Targeting metadata badge strip */}
+                <div className="rounded-xl bg-zinc-900 p-2.5 text-center text-[10px] font-bold text-zinc-400 space-y-1 border border-zinc-800">
+                  <div className="flex items-center justify-center gap-1.5 text-zinc-300">
+                    <Target className="size-3 text-emerald-400" />
+                    <span>Target: {form.audience} · {form.category}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 text-zinc-500 font-mono text-[9px]">
+                    <MapPin className="size-2.5" />
+                    <span>{form.city === "all" ? "All Operating Hubs" : `${form.city} Hub`}</span>
+                    <span>·</span>
+                    <span>Segment: {form.segment}</span>
+                  </div>
                 </div>
               </div>
             </SectionCard>
@@ -494,807 +823,1030 @@ export function NotificationsPage() {
         </div>
 
         {/* =========================================================================
-            3. MAIN TABS NAVIGATION & HISTORY
+            3. MAIN TABS NAVIGATION & WORKFLOW
         ========================================================================= */}
         <SectionCard>
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-zinc-100">
             <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
               <TabsList className="bg-zinc-100 p-1 rounded-xl">
-                <TabsTrigger value="campaigns" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📢 Dispatched Broadcasts ({allCampaigns.length})
+                <TabsTrigger
+                  value="campaigns"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
+                >
+                  <Send className="size-3.5" />
+                  <span>Campaigns Ledger ({allCampaigns.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="whatsapp" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  💬 WhatsApp Cloud API ({whatsappLogs.data?.length || 0})
+                <TabsTrigger
+                  value="area_stats"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
+                >
+                  <MapPin className="size-3.5" />
+                  <span>Area-Wise Analytics ({allAreaStats.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="sms" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📱 Indian SMS ({smsLogs.data?.length || 0})
+                <TabsTrigger
+                  value="whatsapp"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
+                >
+                  <MessageSquare className="size-3.5" />
+                  <span>WhatsApp Business ({whatsappLogs.data?.length || 0})</span>
                 </TabsTrigger>
-                <TabsTrigger value="templates" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  ⚡ Templates Library ({TEMPLATE_PRESETS.length})
+                <TabsTrigger
+                  value="sms"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
+                >
+                  <Smartphone className="size-3.5" />
+                  <span>Transactional SMS ({smsLogs.data?.length || 0})</span>
                 </TabsTrigger>
-                <TabsTrigger value="gateway" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  📱 Gateway Health
+                <TabsTrigger
+                  value="templates"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
+                >
+                  <Layers className="size-3.5" />
+                  <span>Templates Library ({TEMPLATE_PRESETS.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="audience" className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs">
-                  🎯 Audience Segments
+                <TabsTrigger
+                  value="gateway"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow-xs flex items-center gap-1.5"
+                >
+                  <Activity className="size-3.5" />
+                  <span>Gateway Status</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-zinc-500">
+            <div className="flex items-center gap-2 text-xs font-bold text-zinc-600">
               <ShieldCheck className="size-4 text-emerald-600" />
-              <span>FCM Verified</span>
+              <span>Realtime Socket &amp; FCM Active</span>
             </div>
           </div>
 
+          {/* TAB 1: CAMPAIGNS LEDGER WITH MULTI-FILTER CONTROLS */}
           {activeTab === "campaigns" && (
-            <div className="mt-4 relative">
-              <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search past broadcasts by title, message, audience, or category..."
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            <div className="mt-4 space-y-4">
+              {/* Multi-Dimensional Filter Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search campaigns by title, message, audience, or voucher..."
+                    className="pl-8 h-9 text-xs bg-zinc-50 border-zinc-200"
+                  />
+                </div>
+
+                <Select value={cityFilter} onValueChange={setCityFilter}>
+                  <SelectTrigger className="h-9 text-xs bg-zinc-50 border-zinc-200">
+                    <SelectValue placeholder="Operating City" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-zinc-200">
+                    <SelectItem value="all">All Operating Cities</SelectItem>
+                    {availableCities.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c} Hub
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-9 text-xs bg-zinc-50 border-zinc-200">
+                    <SelectValue placeholder="Delivery Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-zinc-200">
+                    <SelectItem value="all">All Delivery Status</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="transmitting">Transmitting</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Active Filter Summary Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-xs">
+                <div className="flex items-center gap-3 text-zinc-600">
+                  <span className="font-bold text-zinc-900">
+                    Showing {filteredCampaigns.length} of {allCampaigns.length} Campaigns
+                  </span>
+                  <span>·</span>
+                  <span>
+                    Total Reached:{" "}
+                    <strong className="text-zinc-900">
+                      {filteredCampaigns.reduce((sum, c) => sum + (c.sent || 0), 0)} Feeds
+                    </strong>
+                  </span>
+                </div>
+                {(searchQuery || statusFilter !== "all" || cityFilter !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setStatusFilter("all");
+                      setCityFilter("all");
+                    }}
+                    className="h-7 text-xs text-zinc-600 hover:text-zinc-900"
+                  >
+                    <X className="size-3 mr-1" /> Reset Filters
+                  </Button>
+                )}
+              </div>
+
+              {/* Dispatched Campaigns Table */}
+              <DataTable
+                loading={campaigns.isLoading}
+                rows={filteredCampaigns}
+                emptyMessage="No broadcast campaigns match your search criteria."
+                columns={[
+                  {
+                    key: "title",
+                    label: "Campaign Headline & Message",
+                    render: (c: Campaign) => (
+                      <div className="space-y-0.5 max-w-sm">
+                        <p className="font-bold text-zinc-950 text-xs flex items-center gap-1.5">
+                          {c.title}
+                          <span className="rounded-full bg-zinc-100 text-zinc-700 text-[9px] px-1.5 py-0.2 font-bold uppercase border border-zinc-200">
+                            {c.category}
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-zinc-500 line-clamp-1">{c.message}</p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "audience",
+                    label: "Audience & Segment",
+                    render: (c: Campaign) => (
+                      <div className="space-y-0.5">
+                        <span className="inline-block rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-800 border border-zinc-200">
+                          {c.audience}
+                        </span>
+                        {c.segment && c.segment !== "all" && (
+                          <span className="block text-[9px] text-zinc-500 font-mono">
+                            Segment: {c.segment}
+                          </span>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "city",
+                    label: "Target Area / Hub",
+                    render: (c: Campaign) => (
+                      <span className="inline-flex items-center gap-1 text-xs text-zinc-800 font-medium">
+                        <MapPin className="size-3 text-zinc-400" />
+                        {c.city || "All Operating Hubs"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "sent",
+                    label: "Devices Reached",
+                    render: (c: Campaign) => (
+                      <span className="font-black text-xs text-zinc-950 tabular-nums">
+                        {c.sent} Feeds
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "opened",
+                    label: "Open Rate",
+                    render: (c: Campaign) => (
+                      <span className="font-bold text-xs text-emerald-700 tabular-nums">
+                        {c.opened}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "voucher",
+                    label: "Coupon Code",
+                    render: (c: Campaign) =>
+                      c.couponCode ? (
+                        <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-900 border border-zinc-200">
+                          {c.couponCode}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400 text-xs">—</span>
+                      ),
+                  },
+                  {
+                    key: "date",
+                    label: "Dispatched At",
+                    render: (c: Campaign) => (
+                      <div className="text-xs text-zinc-500">
+                        <p className="font-medium text-zinc-800">{c.date}</p>
+                        <p className="text-[10px] text-zinc-400 font-mono">{c.time}</p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    label: "Status",
+                    render: (c: Campaign) => <StatusPill value={c.status} />,
+                  },
+                ]}
               />
             </div>
           )}
-        </SectionCard>
 
-        {/* TAB 1: DISPATCHED BROADCASTS TABLE */}
-        {activeTab === "campaigns" && (
-          <SectionCard title="Historical Campaign Dispatches" description="Complete record of broadcast alerts transmitted across the network.">
-            <DataTable
-              loading={campaigns.isLoading}
-              rows={filteredCampaigns}
-              emptyMessage="No broadcast campaigns match your search."
-              columns={[
-                {
-                  key: "title",
-                  label: "Broadcast Title & Message",
-                  render: (c) => (
-                    <div className="space-y-0.5 max-w-md">
-                      <p className="font-bold text-zinc-900 text-xs flex items-center gap-1.5">
-                        {c.title}
-                        <span className="rounded-full bg-zinc-100 text-zinc-600 text-[9px] px-1.5 py-0.2 font-bold uppercase">
-                          {c.category}
-                        </span>
-                      </p>
-                      <p className="text-[10px] text-zinc-500 line-clamp-1">{c.message}</p>
-                    </div>
-                  ),
-                },
-                {
-                  key: "audience",
-                  label: "Target Audience",
-                  render: (c) => (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                      {c.audience}
-                    </span>
-                  ),
-                },
-                {
-                  key: "channel",
-                  label: "Channel",
-                  render: (c) => (
-                    <span className="inline-flex items-center gap-1 text-xs text-zinc-600 font-medium">
-                      <Smartphone className="size-3 text-sky-600" /> {c.channel}
-                    </span>
-                  ),
-                },
-                {
-                  key: "sent",
-                  label: "Devices Reached",
-                  render: (c) => <span className="font-black text-xs text-zinc-900">{c.sent} Feeds</span>,
-                },
-                {
-                  key: "opened",
-                  label: "Open / Read Rate",
-                  render: (c) => <span className="font-bold text-xs text-emerald-600">{c.opened}</span>,
-                },
-                {
-                  key: "date",
-                  label: "Dispatched At",
-                  render: (c) => (
-                    <div className="text-xs text-zinc-500">
-                      <p className="font-medium text-zinc-700">{c.date}</p>
-                      <p className="text-[10px] text-zinc-400">{c.time}</p>
-                    </div>
-                  ),
-                },
-                {
-                  key: "status",
-                  label: "Status",
-                  render: (c) => <StatusPill value={c.status} />,
-                },
-              ]}
-            />
-          </SectionCard>
-        )}
-
-        {/* =====================================================================
-            TAB: WHATSAPP BUSINESS CLOUD API ENGINE & SURVEILLANCE
-        ===================================================================== */}
-        {activeTab === "whatsapp" && (
-          <div className="space-y-6">
-            {/* Top Governance Control Bar */}
-            <div className="p-5 rounded-2xl bg-white border border-zinc-200/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="size-11 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-black">
-                  <MessageCircle className="size-6" />
+          {/* TAB 2: AREA-WISE ANALYTICS & REGIONAL CAMPAIGN METRICS */}
+          {activeTab === "area_stats" && (
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="p-4 rounded-xl border border-zinc-200 bg-white">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    Operating Hubs
+                  </span>
+                  <span className="text-xl font-black text-zinc-950 tabular-nums">
+                    {allAreaStats.length} Cities
+                  </span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-zinc-900">Meta WhatsApp Business Cloud API v20.0</h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {omniSettings.data?.gateways.whatsapp.mode || "Simulation Sandbox"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    Webhook Verification: <code className="font-mono text-zinc-700 bg-zinc-100 px-1 py-0.5 rounded text-[10px]">quickpress_meta_verify_2026</code> · Phone ID: <span className="font-mono text-zinc-600 text-[10px]">{omniSettings.data?.gateways.whatsapp.phoneNumberId || "Sandbox"}</span>
-                  </p>
+                <div className="p-4 rounded-xl border border-zinc-200 bg-white">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    Total Network Reach
+                  </span>
+                  <span className="text-xl font-black text-zinc-950 tabular-nums">
+                    {allAreaStats.reduce((sum, a) => sum + (a.totalDispatched || 0), 0)} Feeds
+                  </span>
+                </div>
+                <div className="p-4 rounded-xl border border-zinc-200 bg-white">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    Network Open Rate
+                  </span>
+                  <span className="text-xl font-black text-emerald-700 tabular-nums">74.2%</span>
+                </div>
+                <div className="p-4 rounded-xl border border-zinc-200 bg-white">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                    Avg Click-Through (CTR)
+                  </span>
+                  <span className="text-xl font-black text-sky-700 tabular-nums">28.5%</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-xs font-bold text-zinc-900">
-                    {(omniSettings.data?.omniChannel.whatsappEnabled ?? true) ? "Auto-Triggers Active" : "Auto-Triggers Paused"}
-                  </p>
-                  <p className="text-[10px] text-zinc-400">Order lifecycle customer alerts</p>
-                </div>
-                <Switch
-                  checked={omniSettings.data?.omniChannel.whatsappEnabled ?? true}
-                  onCheckedChange={(val) => updateOmniMutation.mutate({ whatsappEnabled: val })}
-                />
-              </div>
-            </div>
-
-            {/* WhatsApp KPI Cards */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <KpiCard
-                kpi={{
-                  id: "wa-total",
-                  label: "Total WhatsApp Dispatched",
-                  value: `${omniStats.data?.whatsapp.total ?? 0}`,
-                  hint: "All transactional cards",
-                  positive: true,
-                }}
-              />
-              <KpiCard
-                kpi={{
-                  id: "wa-delivered",
-                  label: "Successfully Delivered",
-                  value: `${omniStats.data?.whatsapp.delivered ?? 0}`,
-                  hint: "Meta delivery receipts",
-                  positive: true,
-                }}
-              />
-              <KpiCard
-                kpi={{
-                  id: "wa-read",
-                  label: "Customer Read Receipts",
-                  value: `${omniStats.data?.whatsapp.read ?? 0}`,
-                  hint: "Double blue ticks",
-                  positive: true,
-                }}
-              />
-              <KpiCard
-                kpi={{
-                  id: "wa-rate",
-                  label: "Delivery Success Rate",
-                  value: `${omniStats.data?.whatsapp.deliveryRate ?? 100}%`,
-                  hint: "Reliability SLA",
-                  positive: true,
-                }}
-              />
-            </div>
-
-            {/* WhatsApp Dispatcher & Live Simulator */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column: Form */}
-              <div className="lg:col-span-7">
-                <SectionCard
-                  title="Direct WhatsApp Dispatcher"
-                  description="Transmit verified WhatsApp template notifications or custom announcements to any customer or captain."
-                >
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-zinc-700">Recipient Phone (+91)</Label>
-                        <Input
-                          placeholder="e.g. 9876543210"
-                          value={waForm.toPhone}
-                          onChange={(e) => setWaForm({ ...waForm, toPhone: e.target.value })}
-                          className="h-10 text-xs font-mono font-bold"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-zinc-700">Recipient Name</Label>
-                        <Input
-                          placeholder="e.g. Customer Name"
-                          value={waForm.recipientName}
-                          onChange={(e) => setWaForm({ ...waForm, recipientName: e.target.value })}
-                          className="h-10 text-xs font-bold"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-zinc-700">Template Preset</Label>
-                        <Select
-                          value={waForm.templateName}
-                          onValueChange={(val) => {
-                            const found = WA_TEMPLATE_PRESETS.find((t) => t.id === val);
-                            if (found) {
-                              setWaForm({
-                                ...waForm,
-                                templateName: val,
-                                messageBody: found.body
-                                  .replace("{name}", waForm.recipientName || "Valued Customer")
-                                  .replace("{orderId}", waForm.orderId || "QP-2026"),
-                              });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-10 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {WA_TEMPLATE_PRESETS.map((t) => (
-                              <SelectItem key={t.id} value={t.id}>
-                                {t.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-zinc-700">Order ID (Optional)</Label>
-                        <Input
-                          placeholder="e.g. QP-TEST-101"
-                          value={waForm.orderId}
-                          onChange={(e) => setWaForm({ ...waForm, orderId: e.target.value })}
-                          className="h-10 text-xs font-mono font-bold"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-zinc-700">WhatsApp Message Body</Label>
-                      <Textarea
-                        rows={4}
-                        value={waForm.messageBody}
-                        onChange={(e) => setWaForm({ ...waForm, messageBody: e.target.value })}
-                        className="text-xs font-medium"
-                      />
-                    </div>
-
-                    <Button
-                      onClick={() => {
-                        if (!waForm.toPhone.trim()) {
-                          toast.error("Please enter a valid 10-digit mobile number");
-                          return;
-                        }
-                        sendWaMutation.mutate(waForm);
-                      }}
-                      disabled={sendWaMutation.isPending}
-                      className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2"
-                    >
-                      <MessageCircle className="size-4" />
-                      <span>{sendWaMutation.isPending ? "Transmitting to WhatsApp..." : "Transmit WhatsApp Alert"}</span>
-                    </Button>
-                  </div>
-                </SectionCard>
-              </div>
-
-              {/* Right Column: Live Simulated Chat Preview */}
-              <div className="lg:col-span-5">
-                <SectionCard
-                  title="Interactive WhatsApp Live Preview"
-                  description="Real-time rendering of the message bubble with CTA buttons."
-                >
-                  <div className="rounded-2xl border border-zinc-200 bg-[#EFEAE2] overflow-hidden shadow-xs">
-                    {/* WhatsApp Header */}
-                    <div className="bg-[#075E54] text-white p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-8 rounded-full bg-emerald-700 border border-white/20 flex items-center justify-center text-xs font-black">
-                          QP
-                        </div>
+              <DataTable
+                loading={areaStats.isLoading}
+                rows={allAreaStats}
+                emptyMessage="No regional area analytics recorded yet."
+                columns={[
+                  {
+                    key: "city",
+                    label: "Operating City / Area Hub",
+                    render: (row: AreaNotificationStat) => (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="size-4 text-zinc-400" />
                         <div>
-                          <p className="text-xs font-bold text-white flex items-center gap-1">
-                            QuickPress Official
-                            <CheckCheck className="size-3 text-sky-300" />
-                          </p>
-                          <p className="text-[10px] text-emerald-200">Verified Business Account</p>
+                          <span className="font-bold text-xs text-zinc-950 block">{row.city}</span>
+                          <span className="text-[10px] text-zinc-500">Regional Cluster</span>
                         </div>
                       </div>
-                      <span className="text-[10px] bg-emerald-800/60 px-2 py-0.5 rounded text-emerald-100 font-mono">
-                        v20.0
+                    ),
+                  },
+                  {
+                    key: "status",
+                    label: "Hub Status",
+                    render: (row: AreaNotificationStat) => (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {row.status || "Active"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "userBase",
+                    label: "Registered User Pool",
+                    render: (row: AreaNotificationStat) => (
+                      <span className="font-bold text-xs text-zinc-950 tabular-nums">
+                        {row.userBase} Users
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "campaignsCount",
+                    label: "Campaigns Deployed",
+                    render: (row: AreaNotificationStat) => (
+                      <span className="font-bold text-xs text-zinc-950 tabular-nums">
+                        {row.campaignsCount} Broadcasts
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "totalDispatched",
+                    label: "Total Feeds Reached",
+                    render: (row: AreaNotificationStat) => (
+                      <span className="font-black text-xs text-zinc-950 tabular-nums">
+                        {row.totalDispatched} Dispatches
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "avgOpenRate",
+                    label: "Avg Open Rate",
+                    render: (row: AreaNotificationStat) => (
+                      <span className="font-bold text-xs text-emerald-700 tabular-nums">
+                        {row.avgOpenRate || "72%"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "avgClickRate",
+                    label: "Avg Click Rate (CTR)",
+                    render: (row: AreaNotificationStat) => (
+                      <span className="font-bold text-xs text-sky-700 tabular-nums">
+                        {row.avgClickRate || "26%"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "lastActive",
+                    label: "Last Active",
+                    render: (row: AreaNotificationStat) => (
+                      <span className="text-xs text-zinc-500 font-mono">
+                        {row.lastActive || "Recent"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "action",
+                    label: "Action",
+                    render: (row: AreaNotificationStat) => (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setForm((p) => ({ ...p, city: row.city }));
+                          window.scrollTo({ top: 180, behavior: "smooth" });
+                          toast.success(`Target area set to ${row.city}`);
+                        }}
+                        className="h-7 text-[11px] font-bold rounded-lg border-zinc-200 hover:bg-zinc-100"
+                      >
+                        Target Area
+                      </Button>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          )}
+
+          {/* TAB 3: WHATSAPP BUSINESS CLOUD API ENGINE & SURVEILLANCE */}
+          {activeTab === "whatsapp" && (
+            <div className="mt-4 space-y-6">
+              {/* Top Governance Control Bar */}
+              <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-zinc-100 border border-zinc-200 text-zinc-900 flex items-center justify-center font-black">
+                    <MessageSquare className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-black text-zinc-950">
+                        Meta WhatsApp Business Cloud API v20.0
+                      </h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {omniSettings.data?.gateways.whatsapp.mode || "Production Gateway"}
                       </span>
                     </div>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Webhook Verification:{" "}
+                      <code className="font-mono text-zinc-700 bg-zinc-100 px-1 py-0.5 rounded text-[10px]">
+                        quickpress_meta_verify_2026
+                      </code>{" "}
+                      · Phone ID:{" "}
+                      <span className="font-mono text-zinc-600 text-[10px]">
+                        {omniSettings.data?.gateways.whatsapp.phoneNumberId || "Configured"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
 
-                    {/* Chat Area */}
-                    <div className="p-4 min-h-[220px] flex flex-col justify-end">
-                      <div className="bg-white rounded-xl p-3 shadow-xs max-w-[95%] space-y-2 border border-zinc-100">
-                        <p className="text-xs text-zinc-900 whitespace-pre-wrap font-sans leading-relaxed">
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-zinc-950">
+                      {(omniSettings.data?.omniChannel.whatsappEnabled ?? true)
+                        ? "Auto-Triggers Active"
+                        : "Auto-Triggers Paused"}
+                    </p>
+                    <p className="text-[10px] text-zinc-400">Order lifecycle customer alerts</p>
+                  </div>
+                  <Switch
+                    checked={omniSettings.data?.omniChannel.whatsappEnabled ?? true}
+                    onCheckedChange={(val) => updateOmniMutation.mutate({ whatsappEnabled: val })}
+                  />
+                </div>
+              </div>
+
+              {/* WhatsApp KPI Cards */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <KpiCard
+                  kpi={{
+                    id: "wa-total",
+                    label: "Total WhatsApp Dispatched",
+                    value: `${omniStats.data?.whatsapp.total ?? 0}`,
+                    hint: "All transactional cards",
+                    positive: true,
+                  }}
+                />
+                <KpiCard
+                  kpi={{
+                    id: "wa-delivered",
+                    label: "Successfully Delivered",
+                    value: `${omniStats.data?.whatsapp.delivered ?? 0}`,
+                    hint: "Meta delivery receipts",
+                    positive: true,
+                  }}
+                />
+                <KpiCard
+                  kpi={{
+                    id: "wa-read",
+                    label: "Customer Read Receipts",
+                    value: `${omniStats.data?.whatsapp.read ?? 0}`,
+                    hint: "Double blue ticks",
+                    positive: true,
+                  }}
+                />
+                <KpiCard
+                  kpi={{
+                    id: "wa-rate",
+                    label: "Delivery Success Rate",
+                    value: `${omniStats.data?.whatsapp.deliveryRate ?? 100}%`,
+                    hint: "Reliability SLA",
+                    positive: true,
+                  }}
+                />
+              </div>
+
+              {/* WhatsApp Dispatcher Form */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-7">
+                  <SectionCard
+                    title="Direct WhatsApp Dispatcher"
+                    description="Transmit verified WhatsApp template notifications or custom announcements to any customer or captain."
+                  >
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-bold text-zinc-800">
+                            Recipient Phone (+91)
+                          </Label>
+                          <Input
+                            placeholder="e.g. 9876543210"
+                            value={waForm.toPhone}
+                            onChange={(e) => setWaForm({ ...waForm, toPhone: e.target.value })}
+                            className="h-10 text-xs font-mono font-bold bg-white border-zinc-200"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-bold text-zinc-800">Recipient Name</Label>
+                          <Input
+                            placeholder="e.g. Customer Name"
+                            value={waForm.recipientName}
+                            onChange={(e) => setWaForm({ ...waForm, recipientName: e.target.value })}
+                            className="h-10 text-xs font-bold bg-white border-zinc-200"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-bold text-zinc-800">Template Preset</Label>
+                          <Select
+                            value={waForm.templateName}
+                            onValueChange={(val) => {
+                              const found = WA_TEMPLATE_PRESETS.find((t) => t.id === val);
+                              if (found) {
+                                setWaForm({
+                                  ...waForm,
+                                  templateName: val,
+                                  messageBody: found.body
+                                    .replace("{name}", waForm.recipientName || "Valued Customer")
+                                    .replace("{orderId}", waForm.orderId || "QP-2026"),
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-10 text-xs bg-white border-zinc-200">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-zinc-200">
+                              {WA_TEMPLATE_PRESETS.map((t) => (
+                                <SelectItem key={t.id} value={t.id}>
+                                  {t.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-bold text-zinc-800">Order Reference</Label>
+                          <Input
+                            placeholder="e.g. QP-2026"
+                            value={waForm.orderId}
+                            onChange={(e) => setWaForm({ ...waForm, orderId: e.target.value })}
+                            className="h-10 text-xs font-mono font-bold bg-white border-zinc-200"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-zinc-800">Message Body</Label>
+                        <Textarea
+                          rows={4}
+                          value={waForm.messageBody}
+                          onChange={(e) => setWaForm({ ...waForm, messageBody: e.target.value })}
+                          className="text-xs font-medium bg-white border-zinc-200"
+                        />
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          if (!waForm.toPhone.trim()) {
+                            toast.error("Please enter a valid 10-digit mobile number");
+                            return;
+                          }
+                          sendWaMutation.mutate(waForm);
+                        }}
+                        disabled={sendWaMutation.isPending}
+                        className="w-full h-10 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-2"
+                      >
+                        <MessageSquare className="size-4" />
+                        <span>
+                          {sendWaMutation.isPending ? "Transmitting..." : "Transmit WhatsApp Alert"}
+                        </span>
+                      </Button>
+                    </div>
+                  </SectionCard>
+                </div>
+
+                <div className="lg:col-span-5">
+                  <SectionCard
+                    title="Message Bubble Preview"
+                    description="Real-time rendering of WhatsApp chat bubble."
+                  >
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 space-y-3">
+                      <div className="bg-white rounded-xl p-3.5 shadow-xs space-y-2 border border-zinc-200">
+                        <p className="text-xs text-zinc-950 whitespace-pre-wrap font-sans leading-relaxed">
                           {waForm.messageBody}
                         </p>
                         <div className="flex items-center justify-end gap-1 text-[10px] text-zinc-400">
                           <span>Just now</span>
-                          <CheckCheck className="size-3.5 text-blue-500" />
+                          <CheckCheck className="size-3 text-sky-600" />
                         </div>
                       </div>
-
-                      {/* Interactive CTA buttons preview */}
-                      <div className="mt-2 space-y-1.5 max-w-[95%]">
-                        <button
-                          type="button"
-                          className="w-full py-1.5 px-3 rounded-lg bg-white/90 hover:bg-white text-emerald-700 text-xs font-bold shadow-2xs border border-emerald-100 text-center flex items-center justify-center gap-1.5 transition-all"
-                        >
-                          📍 Track Order Live
-                        </button>
+                      <div className="p-2.5 rounded-lg bg-white border border-zinc-200 text-center text-xs font-bold text-zinc-900">
+                        Track Order Live
                       </div>
                     </div>
-                  </div>
-                </SectionCard>
+                  </SectionCard>
+                </div>
               </div>
-            </div>
 
-            {/* Live WhatsApp Surveillance Logs Table */}
-            <SectionCard
-              title="Live WhatsApp Transmission Logs"
-              description="Historical record of all interactive WhatsApp notices with real-time delivery callbacks."
-            >
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+              {/* WhatsApp Logs Table */}
+              <SectionCard
+                title="Live WhatsApp Transmission Logs"
+                description="Historical record of all interactive WhatsApp notices with real-time delivery callbacks."
+              >
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="relative flex-1 max-w-sm">
+                      <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                      <Input
+                        placeholder="Search by phone, recipient, or template..."
+                        value={waSearch}
+                        onChange={(e) => setWaSearch(e.target.value)}
+                        className="h-9 pl-9 text-xs bg-zinc-50 border-zinc-200"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {["all", "delivered", "read", "sent", "failed"].map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setWaStatusFilter(st)}
+                          className={`text-xs font-bold px-2.5 py-1 rounded-lg border transition-all ${
+                            waStatusFilter === st
+                              ? "bg-zinc-950 text-white border-zinc-950"
+                              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+                          }`}
+                        >
+                          {st.charAt(0).toUpperCase() + st.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <DataTable
+                    loading={whatsappLogs.isLoading}
+                    rows={(whatsappLogs.data ?? []).filter((item: WhatsAppLog) => {
+                      const matchStatus =
+                        waStatusFilter === "all" || item.status === waStatusFilter;
+                      const matchSearch =
+                        !waSearch.trim() ||
+                        [item.toPhone, item.recipientName, item.templateName, item.messageBody]
+                          .join(" ")
+                          .toLowerCase()
+                          .includes(waSearch.toLowerCase());
+                      return matchStatus && matchSearch;
+                    })}
+                    emptyMessage="No WhatsApp message records found."
+                    columns={[
+                      {
+                        key: "recipient",
+                        label: "Recipient Customer / Rider",
+                        render: (row: WhatsAppLog) => (
+                          <div>
+                            <p className="font-bold text-xs text-zinc-950">
+                              {row.recipientName || "User"}
+                            </p>
+                            <p className="text-[10px] text-zinc-500 font-mono">+{row.toPhone}</p>
+                          </div>
+                        ),
+                      },
+                      {
+                        key: "template",
+                        label: "Template / Purpose",
+                        render: (row: WhatsAppLog) => (
+                          <span className="text-xs font-mono font-bold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
+                            {row.templateName}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "body",
+                        label: "Message Snippet",
+                        render: (row: WhatsAppLog) => (
+                          <p className="text-xs text-zinc-600 line-clamp-1 max-w-xs">
+                            {row.messageBody}
+                          </p>
+                        ),
+                      },
+                      {
+                        key: "orderId",
+                        label: "Order Reference",
+                        render: (row: WhatsAppLog) => (
+                          <span className="text-xs font-mono font-medium text-zinc-700">
+                            {row.orderId || "—"}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "status",
+                        label: "Status",
+                        render: (row: WhatsAppLog) => <StatusPill value={row.status} />,
+                      },
+                      {
+                        key: "time",
+                        label: "Timestamp",
+                        render: (row: WhatsAppLog) => (
+                          <span className="text-[11px] text-zinc-500 font-mono">
+                            {row.createdAt
+                              ? new Date(row.createdAt).toLocaleTimeString("en-IN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })
+                              : "—"}
+                          </span>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* TAB 4: TRANSACTIONAL SMS GATEWAY */}
+          {activeTab === "sms" && (
+            <div className="mt-4 space-y-6">
+              <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-2xl bg-zinc-100 border border-zinc-200 text-zinc-900 flex items-center justify-center font-black">
+                    <Smartphone className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-black text-zinc-950">
+                        Indian Rapid SMS Gateway
+                      </h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-800 border border-zinc-200">
+                        {omniSettings.data?.gateways.sms.provider || "Fast2SMS / MSG91"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Sender ID:{" "}
+                      <code className="font-mono text-zinc-700 bg-zinc-100 px-1 py-0.5 rounded text-[10px]">
+                        {omniSettings.data?.gateways.sms.senderId || "QKPRES"}
+                      </code>{" "}
+                      · OTP Expiry TTL: <span className="font-mono text-zinc-600 text-[10px]">5 Minutes</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-zinc-950">
+                      {(omniSettings.data?.omniChannel.smsEnabled ?? true)
+                        ? "SMS Alerts Active"
+                        : "SMS Alerts Paused"}
+                    </p>
+                    <p className="text-[10px] text-zinc-400">Transactional OTP &amp; delivery notices</p>
+                  </div>
+                  <Switch
+                    checked={omniSettings.data?.omniChannel.smsEnabled ?? true}
+                    onCheckedChange={(val) => updateOmniMutation.mutate({ smsEnabled: val })}
+                  />
+                </div>
+              </div>
+
+              {/* SMS KPI Cards */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <KpiCard
+                  kpi={{
+                    id: "sms-total",
+                    label: "Total SMS Dispatched",
+                    value: `${omniStats.data?.sms.total ?? 0}`,
+                    hint: "Transactional alerts",
+                    positive: true,
+                  }}
+                />
+                <KpiCard
+                  kpi={{
+                    id: "sms-sent",
+                    label: "Successfully Delivered",
+                    value: `${omniStats.data?.sms.sent ?? 0}`,
+                    hint: "Delivered to mobile network",
+                    positive: true,
+                  }}
+                />
+                <KpiCard
+                  kpi={{
+                    id: "sms-failed",
+                    label: "Failed / Bounced",
+                    value: `${omniStats.data?.sms.failed ?? 0}`,
+                    hint: "Invalid MSISDN / DND",
+                    positive: false,
+                  }}
+                />
+                <KpiCard
+                  kpi={{
+                    id: "sms-rate",
+                    label: "Transmission Success Rate",
+                    value: `${omniStats.data?.sms.successRate ?? 100}%`,
+                    hint: "Network delivery score",
+                    positive: true,
+                  }}
+                />
+              </div>
+
+              {/* SMS Dispatcher Form */}
+              <SectionCard
+                title="Transactional SMS Dispatcher"
+                description="Dispatch high-priority OTP or delivery alerts via Fast2SMS / MSG91 directly from the console."
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-zinc-800">
+                      Recipient Mobile Number
+                    </Label>
                     <Input
-                      placeholder="Search by phone, recipient, or template..."
-                      value={waSearch}
-                      onChange={(e) => setWaSearch(e.target.value)}
-                      className="h-9 pl-9 text-xs"
+                      placeholder="e.g. 9876543210"
+                      value={smsForm.toPhone}
+                      onChange={(e) => setSmsForm({ ...smsForm, toPhone: e.target.value })}
+                      className="h-10 text-xs font-mono font-bold bg-white border-zinc-200"
                     />
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    {["all", "delivered", "read", "sent", "failed"].map((st) => (
-                      <button
-                        key={st}
-                        type="button"
-                        onClick={() => setWaStatusFilter(st)}
-                        className={`text-xs font-bold px-2.5 py-1 rounded-lg border transition-all ${
-                          waStatusFilter === st
-                            ? "bg-zinc-900 text-white border-zinc-900"
-                            : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-                        }`}
-                      >
-                        {st.charAt(0).toUpperCase() + st.slice(1)}
-                      </button>
-                    ))}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-zinc-800">Dispatch Purpose</Label>
+                    <Select
+                      value={smsForm.purpose}
+                      onValueChange={(val) => setSmsForm({ ...smsForm, purpose: val })}
+                    >
+                      <SelectTrigger className="h-10 text-xs bg-white border-zinc-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-zinc-200">
+                        <SelectItem value="delivery_otp">Customer Secure Delivery OTP</SelectItem>
+                        <SelectItem value="dispatch_alert">Captain Dispatch Notice</SelectItem>
+                        <SelectItem value="partner_alert">Partner Hub Pickup Ready</SelectItem>
+                        <SelectItem value="urgent_operational">Urgent Operational Advisory</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5 flex flex-col justify-end">
+                    <Button
+                      onClick={() => {
+                        if (!smsForm.toPhone.trim()) {
+                          toast.error("Please enter a valid 10-digit mobile number");
+                          return;
+                        }
+                        sendSmsMutation.mutate(smsForm);
+                      }}
+                      disabled={sendSmsMutation.isPending}
+                      className="h-10 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-2"
+                    >
+                      <Send className="size-4" />
+                      <span>{sendSmsMutation.isPending ? "Transmitting..." : "Dispatch SMS Alert"}</span>
+                    </Button>
                   </div>
                 </div>
 
-                <DataTable
-                  loading={whatsappLogs.isLoading}
-                  rows={(whatsappLogs.data ?? []).filter((item: WhatsAppLog) => {
-                    const matchStatus = waStatusFilter === "all" || item.status === waStatusFilter;
-                    const matchSearch =
-                      !waSearch.trim() ||
-                      [item.toPhone, item.recipientName, item.templateName, item.messageBody]
-                        .join(" ")
-                        .toLowerCase()
-                        .includes(waSearch.toLowerCase());
-                    return matchStatus && matchSearch;
-                  })}
-                  emptyMessage="No WhatsApp message records found."
-                  columns={[
-                    {
-                      key: "recipient",
-                      label: "Recipient Customer / Rider",
-                      render: (row: WhatsAppLog) => (
-                        <div>
-                          <p className="font-bold text-xs text-zinc-900">{row.recipientName || "User"}</p>
-                          <p className="text-[10px] text-zinc-400 font-mono">+{row.toPhone}</p>
-                        </div>
-                      ),
-                    },
-                    {
-                      key: "template",
-                      label: "Template / Purpose",
-                      render: (row: WhatsAppLog) => (
-                        <span className="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                          {row.templateName}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "body",
-                      label: "Message Snippet",
-                      render: (row: WhatsAppLog) => (
-                        <p className="text-xs text-zinc-600 line-clamp-1 max-w-xs">{row.messageBody}</p>
-                      ),
-                    },
-                    {
-                      key: "orderId",
-                      label: "Order Reference",
-                      render: (row: WhatsAppLog) => (
-                        <span className="text-xs font-mono font-medium text-zinc-600">{row.orderId || "—"}</span>
-                      ),
-                    },
-                    {
-                      key: "status",
-                      label: "Status",
-                      render: (row: WhatsAppLog) => {
-                        const s = row.status?.toLowerCase();
-                        if (s === "delivered") {
-                          return (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <Check className="size-3" /> Delivered
-                            </span>
-                          );
-                        } else if (s === "read") {
-                          return (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                              <CheckCheck className="size-3" /> Read
-                            </span>
-                          );
-                        } else if (s === "sent") {
-                          return (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                              <Clock className="size-3" /> Sent
-                            </span>
-                          );
-                        }
-                        return <StatusPill value={row.status} />;
-                      },
-                    },
-                    {
-                      key: "time",
-                      label: "Timestamp",
-                      render: (row: WhatsAppLog) => (
-                        <span className="text-[11px] text-zinc-500 font-mono">
-                          {row.createdAt ? new Date(row.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
-              </div>
-            </SectionCard>
-          </div>
-        )}
-
-        {/* =====================================================================
-            TAB: INDIAN RAPID SMS GATEWAY ENGINE & LOGS
-        ===================================================================== */}
-        {activeTab === "sms" && (
-          <div className="space-y-6">
-            {/* Top Governance Control Bar */}
-            <div className="p-5 rounded-2xl bg-white border border-zinc-200/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="size-11 rounded-2xl bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center font-black">
-                  <Smartphone className="size-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-zinc-900">Indian Rapid SMS Gateway</h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
-                      {omniSettings.data?.gateways.sms.provider || "Fast2SMS Active"}
+                <div className="mt-4 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-zinc-800">
+                      SMS Text (GSM 7-bit standard)
+                    </Label>
+                    <span className="text-[10px] text-zinc-400 font-mono">
+                      {smsForm.message.length} / 160 Characters (1 SMS Segment)
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    Sender ID: <code className="font-mono text-zinc-700 bg-zinc-100 px-1 py-0.5 rounded text-[10px]">{omniSettings.data?.gateways.sms.senderId || "QKPRES"}</code> · Atomic PostgreSQL OTP TTL: <span className="font-mono text-zinc-600 text-[10px]">5 Minutes</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-xs font-bold text-zinc-900">
-                    {(omniSettings.data?.omniChannel.smsEnabled ?? true) ? "SMS Alerts Active" : "SMS Alerts Paused"}
-                  </p>
-                  <p className="text-[10px] text-zinc-400">Transactional OTP &amp; delivery notices</p>
-                </div>
-                <Switch
-                  checked={omniSettings.data?.omniChannel.smsEnabled ?? true}
-                  onCheckedChange={(val) => updateOmniMutation.mutate({ smsEnabled: val })}
-                />
-              </div>
-            </div>
-
-            {/* SMS KPI Cards */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <KpiCard
-                kpi={{
-                  id: "sms-total",
-                  label: "Total SMS Dispatched",
-                  value: `${omniStats.data?.sms.total ?? 0}`,
-                  hint: "Transactional alerts",
-                  positive: true,
-                }}
-              />
-              <KpiCard
-                kpi={{
-                  id: "sms-sent",
-                  label: "Successfully Delivered",
-                  value: `${omniStats.data?.sms.sent ?? 0}`,
-                  hint: "Delivered to mobile network",
-                  positive: true,
-                }}
-              />
-              <KpiCard
-                kpi={{
-                  id: "sms-failed",
-                  label: "Failed / Bounced",
-                  value: `${omniStats.data?.sms.failed ?? 0}`,
-                  hint: "Invalid MSISDN / DND",
-                  positive: false,
-                }}
-              />
-              <KpiCard
-                kpi={{
-                  id: "sms-rate",
-                  label: "Transmission Success Rate",
-                  value: `${omniStats.data?.sms.successRate ?? 100}%`,
-                  hint: "Network delivery score",
-                  positive: true,
-                }}
-              />
-            </div>
-
-            {/* SMS Dispatcher Form */}
-            <SectionCard
-              title="Transactional SMS Dispatcher"
-              description="Dispatch high-priority OTP or delivery alerts via Fast2SMS / MSG91 directly from the console."
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-zinc-700">Recipient Mobile Number</Label>
-                  <Input
-                    placeholder="e.g. 9876543210"
-                    value={smsForm.toPhone}
-                    onChange={(e) => setSmsForm({ ...smsForm, toPhone: e.target.value })}
-                    className="h-10 text-xs font-mono font-bold"
+                  <Textarea
+                    rows={2}
+                    value={smsForm.message}
+                    onChange={(e) => setSmsForm({ ...smsForm, message: e.target.value })}
+                    className="text-xs font-medium bg-white border-zinc-200"
                   />
                 </div>
+              </SectionCard>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-zinc-700">Dispatch Purpose</Label>
-                  <Select
-                    value={smsForm.purpose}
-                    onValueChange={(val) => setSmsForm({ ...smsForm, purpose: val })}
-                  >
-                    <SelectTrigger className="h-10 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="delivery_otp">Customer Secure Delivery OTP</SelectItem>
-                      <SelectItem value="dispatch_alert">Captain Dispatch Notice</SelectItem>
-                      <SelectItem value="partner_alert">Partner Hub Pickup Ready</SelectItem>
-                      <SelectItem value="urgent_operational">Urgent Operational Advisory</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5 flex flex-col justify-end">
-                  <Button
-                    onClick={() => {
-                      if (!smsForm.toPhone.trim()) {
-                        toast.error("Please enter a valid 10-digit mobile number");
-                        return;
-                      }
-                      sendSmsMutation.mutate(smsForm);
-                    }}
-                    disabled={sendSmsMutation.isPending}
-                    className="h-10 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2"
-                  >
-                    <Send className="size-4" />
-                    <span>{sendSmsMutation.isPending ? "Transmitting SMS..." : "Dispatch SMS Alert"}</span>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-zinc-700">SMS Text (GSM 7-bit standard)</Label>
-                  <span className="text-[10px] text-zinc-400 font-mono">
-                    {smsForm.message.length} / 160 Characters (1 SMS Segment)
-                  </span>
-                </div>
-                <Textarea
-                  rows={2}
-                  value={smsForm.message}
-                  onChange={(e) => setSmsForm({ ...smsForm, message: e.target.value })}
-                  className="text-xs font-medium"
-                />
-              </div>
-            </SectionCard>
-
-            {/* Live SMS Transmission Logs Table */}
-            <SectionCard
-              title="Live Indian SMS Transmission Logs"
-              description="Full audit record of OTP and transactional SMS alerts stored in Supabase PostgreSQL."
-            >
-              <div className="space-y-4">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    placeholder="Search by recipient phone or SMS text..."
-                    value={smsSearch}
-                    onChange={(e) => setSmsSearch(e.target.value)}
-                    className="h-9 pl-9 text-xs"
-                  />
-                </div>
-
-                <DataTable
-                  loading={smsLogs.isLoading}
-                  rows={(smsLogs.data ?? []).filter((item: SmsLog) => {
-                    return (
-                      !smsSearch.trim() ||
-                      [item.toPhone, item.message, item.provider].join(" ").toLowerCase().includes(smsSearch.toLowerCase())
-                    );
-                  })}
-                  emptyMessage="No SMS transmission logs recorded."
-                  columns={[
-                    {
-                      key: "phone",
-                      label: "Recipient Phone Number",
-                      render: (row: SmsLog) => (
-                        <span className="font-mono font-bold text-xs text-zinc-900">+{row.toPhone}</span>
-                      ),
-                    },
-                    {
-                      key: "message",
-                      label: "SMS Message Text",
-                      render: (row: SmsLog) => (
-                        <p className="text-xs text-zinc-700 line-clamp-1 max-w-md">{row.message}</p>
-                      ),
-                    },
-                    {
-                      key: "provider",
-                      label: "Gateway Provider",
-                      render: (row: SmsLog) => (
-                        <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                          {row.provider}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "status",
-                      label: "Status",
-                      render: (row: SmsLog) => <StatusPill value={row.status} />,
-                    },
-                    {
-                      key: "time",
-                      label: "Dispatched At",
-                      render: (row: SmsLog) => (
-                        <span className="text-[11px] text-zinc-500 font-mono">
-                          {row.createdAt ? new Date(row.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
-              </div>
-            </SectionCard>
-          </div>
-        )}
-
-        {/* TAB 2: TEMPLATES LIBRARY */}
-        {activeTab === "templates" && (
-          <SectionCard title="Pre-Configured Notification Templates" description="Select any template to instantly load into the campaign composer.">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATE_PRESETS.map((tpl) => (
-                <div key={tpl.id} className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-3 shadow-xs flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-zinc-900">{tpl.label}</span>
-                      <span className="rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 border border-emerald-200">
-                        {tpl.audience}
-                      </span>
-                    </div>
-                    <p className="font-bold text-xs text-zinc-800">{tpl.title}</p>
-                    <p className="text-[11px] text-zinc-500 leading-relaxed">{tpl.body}</p>
+              {/* SMS Logs Table */}
+              <SectionCard
+                title="Live Indian SMS Transmission Logs"
+                description="Full audit record of OTP and transactional SMS alerts stored in Supabase PostgreSQL."
+              >
+                <div className="space-y-4">
+                  <div className="relative max-w-sm">
+                    <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                    <Input
+                      placeholder="Search by recipient phone or SMS text..."
+                      value={smsSearch}
+                      onChange={(e) => setSmsSearch(e.target.value)}
+                      className="h-9 pl-9 text-xs bg-zinc-50 border-zinc-200"
+                    />
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full rounded-xl text-xs font-bold text-zinc-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 mt-2"
-                    onClick={() => {
-                      handleApplyTemplate(tpl);
-                      window.scrollTo({ top: 200, behavior: "smooth" });
-                    }}
-                  >
-                    <Copy className="size-3 mr-1" /> Use Template
-                  </Button>
+                  <DataTable
+                    loading={smsLogs.isLoading}
+                    rows={(smsLogs.data ?? []).filter((item: SmsLog) => {
+                      return (
+                        !smsSearch.trim() ||
+                        [item.toPhone, item.message, item.provider]
+                          .join(" ")
+                          .toLowerCase()
+                          .includes(smsSearch.toLowerCase())
+                      );
+                    })}
+                    emptyMessage="No SMS transmission logs recorded."
+                    columns={[
+                      {
+                        key: "phone",
+                        label: "Recipient Mobile Number",
+                        render: (row: SmsLog) => (
+                          <span className="font-mono font-bold text-xs text-zinc-950">
+                            +{row.toPhone}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "message",
+                        label: "SMS Message Text",
+                        render: (row: SmsLog) => (
+                          <p className="text-xs text-zinc-700 line-clamp-1 max-w-md">{row.message}</p>
+                        ),
+                      },
+                      {
+                        key: "provider",
+                        label: "Gateway Provider",
+                        render: (row: SmsLog) => (
+                          <span className="text-xs font-mono font-bold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
+                            {row.provider}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "status",
+                        label: "Status",
+                        render: (row: SmsLog) => <StatusPill value={row.status} />,
+                      },
+                      {
+                        key: "time",
+                        label: "Dispatched At",
+                        render: (row: SmsLog) => (
+                          <span className="text-[11px] text-zinc-500 font-mono">
+                            {row.createdAt
+                              ? new Date(row.createdAt).toLocaleTimeString("en-IN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "—"}
+                          </span>
+                        ),
+                      },
+                    ]}
+                  />
                 </div>
-              ))}
+              </SectionCard>
             </div>
-          </SectionCard>
-        )}
+          )}
 
-        {/* TAB 3: GATEWAY HEALTH & REALTIME SOCKET */}
-        {activeTab === "gateway" && (
-          <SectionCard title="Notification Infrastructure & Dispatch Gateway" description="Real-time connectivity status across mobile push services.">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Radio className="size-4 text-emerald-700" />
-                  <h4 className="font-bold text-xs text-emerald-950">Socket.IO Real-Time Engine</h4>
-                </div>
-                <p className="text-[11px] text-emerald-800">
-                  Instant sub-second event broadcasts to active rider and partner app screens.
-                </p>
-                <span className="inline-block rounded-full bg-emerald-200/60 px-2 py-0.5 text-[10px] font-black text-emerald-900">
-                  ● Operational & Streaming
-                </span>
-              </div>
+          {/* TAB 5: TEMPLATES LIBRARY */}
+          {activeTab === "templates" && (
+            <div className="mt-4">
+              <SectionCard
+                title="Pre-Configured Notification Templates"
+                description="Select any standard template to instantly populate the campaign composer."
+              >
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {TEMPLATE_PRESETS.map((tpl) => (
+                    <div
+                      key={tpl.id}
+                      className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-3 shadow-xs flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-zinc-950">{tpl.label}</span>
+                          <span className="rounded-full bg-zinc-100 text-zinc-800 text-[10px] font-bold px-2 py-0.5 border border-zinc-200">
+                            {tpl.audience}
+                          </span>
+                        </div>
+                        <p className="font-bold text-xs text-zinc-800">{tpl.title}</p>
+                        <p className="text-[11px] text-zinc-500 leading-relaxed">{tpl.body}</p>
+                      </div>
 
-              <div className="rounded-2xl border border-sky-200 bg-sky-50/50 p-5 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Smartphone className="size-4 text-sky-700" />
-                  <h4 className="font-bold text-xs text-sky-950">FCM Push Notification Service</h4>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full rounded-xl text-xs font-bold text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 mt-2"
+                        onClick={() => {
+                          handleApplyTemplate(tpl);
+                          window.scrollTo({ top: 180, behavior: "smooth" });
+                        }}
+                      >
+                        <Copy className="size-3 mr-1" /> Use Template
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-[11px] text-sky-800">
-                  Firebase Cloud Messaging gateway for Android & iOS background wake-up notifications.
-                </p>
-                <span className="inline-block rounded-full bg-sky-200/60 px-2 py-0.5 text-[10px] font-black text-sky-900">
-                  ● Connected (2FA active)
-                </span>
-              </div>
-
-              <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-5 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Server className="size-4 text-purple-700" />
-                  <h4 className="font-bold text-xs text-purple-950">Supabase Realtime PostgreSQL</h4>
-                </div>
-                <p className="text-[11px] text-purple-800">
-                  Database notification tables indexed with real-time replication triggers.
-                </p>
-                <span className="inline-block rounded-full bg-purple-200/60 px-2 py-0.5 text-[10px] font-black text-purple-900">
-                  ● Transaction Pooled (6543)
-                </span>
-              </div>
+              </SectionCard>
             </div>
-          </SectionCard>
-        )}
+          )}
 
-        {/* TAB 4: AUDIENCE SEGMENTS */}
-        {activeTab === "audience" && (
-          <SectionCard title="Registered Device Audiences" description="Audience reach breakdown across user roles.">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <User className="size-5 text-purple-600" />
-                  <span className="text-xl font-black text-zinc-900">65 Users</span>
-                </div>
-                <h4 className="font-bold text-xs text-zinc-900">Customer Base</h4>
-                <p className="text-[11px] text-zinc-400">Registered customers across active operating service hubs.</p>
-              </div>
+          {/* TAB 6: GATEWAY HEALTH & REALTIME INFRASTRUCTURE */}
+          {activeTab === "gateway" && (
+            <div className="mt-4">
+              <SectionCard
+                title="Notification Infrastructure & Dispatch Gateway"
+                description="Real-time connectivity status across mobile push services and message brokers."
+              >
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <Radio className="size-4 text-emerald-600" />
+                      <h4 className="font-bold text-xs text-zinc-950">Socket.IO Real-Time Engine</h4>
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Instant sub-second event broadcasts to active rider and partner app screens.
+                    </p>
+                    <span className="inline-block rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      ● Operational &amp; Streaming
+                    </span>
+                  </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <Store className="size-5 text-emerald-600" />
-                  <span className="text-xl font-black text-zinc-900">8 Hubs</span>
-                </div>
-                <h4 className="font-bold text-xs text-zinc-900">Partner Laundry Stores</h4>
-                <p className="text-[11px] text-zinc-400">Processing centers handling washing, dry cleaning, and ironing.</p>
-              </div>
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="size-4 text-sky-600" />
+                      <h4 className="font-bold text-xs text-zinc-950">
+                        FCM Push Notification Service
+                      </h4>
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Firebase Cloud Messaging gateway for Android &amp; iOS background wake-up notifications.
+                    </p>
+                    <span className="inline-block rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                      ● Connected (FCM v1 Active)
+                    </span>
+                  </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <Bike className="size-5 text-sky-600" />
-                  <span className="text-xl font-black text-zinc-900">4 Captains</span>
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-2 shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <Server className="size-4 text-purple-600" />
+                      <h4 className="font-bold text-xs text-zinc-950">
+                        Supabase Realtime PostgreSQL
+                      </h4>
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Database notification tables indexed with real-time replication triggers.
+                    </p>
+                    <span className="inline-block rounded-full bg-purple-50 border border-purple-200 px-2 py-0.5 text-[10px] font-bold text-purple-800">
+                      ● Transaction Pooled
+                    </span>
+                  </div>
                 </div>
-                <h4 className="font-bold text-xs text-zinc-900">Delivery Fleet</h4>
-                <p className="text-[11px] text-zinc-400">Active pickup & delivery riders deployed on ground.</p>
-              </div>
+              </SectionCard>
             </div>
-          </SectionCard>
-        )}
+          )}
+        </SectionCard>
       </div>
     </AdminShell>
   );

@@ -2162,6 +2162,16 @@ async def reject_admin_refund(refund_id: str, payload: dict, user: User = Depend
 
 
 # -------------------------------------------------------------- notifications
+@router.get("/notifications/campaigns")
+async def list_notification_campaigns(user: User = Depends(current_user)):
+    return await notification_repository.list_campaigns()
+
+
+@router.get("/notifications/area-stats")
+async def list_notification_area_stats(user: User = Depends(current_user)):
+    return await notification_repository.get_area_stats()
+
+
 @router.get("/notifications")
 async def list_notifications(user: User = Depends(current_user)):
     return await notification_repository.list()
@@ -2175,8 +2185,23 @@ async def broadcast_notification(payload: BroadcastPayload, user: User = Depends
         payload.message or "",
         category=payload.category,
         channel=payload.channel,
+        city=payload.city or "all",
+        segment=payload.segment or "all",
+        coupon_code=payload.couponCode,
+        deep_link=payload.deepLink,
+        priority=payload.priority or "normal",
     )
-    await audit_repository.log(await _actor(user), "notifications.broadcast", payload.audience or "All", {"title": payload.title})
+    await audit_repository.log(
+        await _actor(user),
+        "notifications.broadcast",
+        payload.audience or "All",
+        {
+            "title": payload.title,
+            "city": payload.city,
+            "segment": payload.segment,
+            "couponCode": payload.couponCode,
+        },
+    )
     return result
 
 

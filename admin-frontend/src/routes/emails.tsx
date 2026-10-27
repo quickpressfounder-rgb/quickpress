@@ -76,8 +76,24 @@ export const Route = createFileRoute("/emails")({
 
 const QUICK_TEMPLATES = [
   {
+    id: "repeat_loyalty",
+    label: "Repeat Customer Loyalty Reward (25% Off)",
+    subject: "Exclusive Loyalty Reward: Extra 25% Off Your Next Wash",
+    message: "Thank you for choosing QuickPress! As a valued repeat customer, enjoy an exclusive 25% discount on all laundry, ironing, and dry cleaning bookings this week.",
+    audience: "customer",
+    category: "order",
+  },
+  {
+    id: "re_engagement",
+    label: "Dormant Customer Re-Engagement",
+    subject: "We Miss You! Free Pickup & ₹100 Off Your Next Wash",
+    message: "It has been a while since your last garment care booking. We are pleased to offer ₹100 instant wallet cashback on your next dry cleaning or laundry order. Free doorstep pickup included!",
+    audience: "customer",
+    category: "order",
+  },
+  {
     id: "order_resolved",
-    label: "📦 Order Update / Resolved",
+    label: "Order Resolution & Status Update",
     subject: "Update Regarding Your QuickPress Laundry Order",
     message: "Thank you for reaching out to QuickPress Support. We have reviewed your order details with our partner laundromat hub and the delivery captain. Your request has been processed and updated. Please let us know if you need any further assistance!",
     audience: "customer",
@@ -85,7 +101,7 @@ const QUICK_TEMPLATES = [
   },
   {
     id: "refund_processed",
-    label: "💸 Refund / Credit Note",
+    label: "Refund & Credit Note Notification",
     subject: "Refund Processed to Your QuickPress Account",
     message: "We have processed a refund for your recent laundry order. The amount has been credited to your QuickPress Wallet and is available for immediate use on any future booking.",
     audience: "customer",
@@ -93,7 +109,7 @@ const QUICK_TEMPLATES = [
   },
   {
     id: "kyc_clarification",
-    label: "🏪 Store KYC Clarification",
+    label: "Store Partner KYC Clarification",
     subject: "QuickPress Partner Store: KYC Verification Clarification",
     message: "We are currently reviewing your store registration documents. Could you please provide a clear scanned copy of your Bank Passbook / Cancelled Cheque with IFSC code clearly visible?",
     audience: "partner",
@@ -101,7 +117,7 @@ const QUICK_TEMPLATES = [
   },
   {
     id: "captain_advisory",
-    label: "🛵 Captain Safety & COD Advisory",
+    label: "Captain Safety & COD Cash Deposit Advisory",
     subject: "Advisory: Peak Hours Cash In Hand Deposit",
     message: "Captain, please ensure all collected Cash-on-Delivery funds are deposited via company UPI before 8:00 PM today to maintain continuous order dispatch clearance. Ride safely!",
     audience: "rider",
