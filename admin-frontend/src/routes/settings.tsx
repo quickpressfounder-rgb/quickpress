@@ -75,86 +75,130 @@ export const Route = createFileRoute("/settings")({
 });
 
 // Category Definition for the Left Navigation
-const SETTINGS_CATEGORIES = [
-  {
-    id: "logistics",
-    title: "Logistics & Fees",
-    subtitle: "Delivery & Thresholds",
-    icon: Truck,
-    badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    gradient: "from-emerald-500/10 to-teal-500/10",
-  },
-  {
-    id: "dispatch",
-    title: "Fleet Dispatch & Geofence",
-    subtitle: "Auto-Assign & 250m Guard",
-    icon: Compass,
-    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-    gradient: "from-purple-500/10 to-indigo-500/10",
-  },
-  {
-    id: "surge",
-    title: "Monsoon & Surge",
-    subtitle: "Weather & Rush Pricing",
-    icon: CloudRain,
-    badgeColor: "bg-sky-50 text-sky-700 border-sky-200",
-    gradient: "from-sky-500/10 to-blue-500/10",
-  },
-  {
-    id: "slots",
-    title: "Slots & Capacity",
-    subtitle: "Windows & Speed Multipliers",
-    icon: CalendarClock,
-    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    gradient: "from-indigo-500/10 to-violet-500/10",
-  },
-  {
-    id: "referral",
-    title: "Referral & Wallet",
-    subtitle: "Cashback & Burn Limits",
-    icon: Gift,
-    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-    gradient: "from-purple-500/10 to-pink-500/10",
-  },
-  {
-    id: "finance",
-    title: "Taxes & Commission",
-    subtitle: "GST % & Store Settlement",
-    icon: DollarSign,
-    badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
-    gradient: "from-amber-500/10 to-yellow-500/10",
-  },
-  {
-    id: "compliance",
-    title: "SAC 998813 Invoice",
-    subtitle: "GST Law & Section 194C",
-    icon: FileText,
-    badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
-    gradient: "from-teal-500/10 to-emerald-500/10",
-  },
-  {
-    id: "safety",
-    title: "Fraud & Safety",
-    subtitle: "Dual OTP & Anti-Spoofing",
-    icon: ShieldAlert,
-    badgeColor: "bg-rose-50 text-rose-700 border-rose-200",
-    gradient: "from-rose-500/10 to-red-500/10",
-  },
+export interface SettingCategoryItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  group: "Platform Governance" | "Finance Engine";
+  isFinanceEngine: boolean;
+  icon: any;
+  badgeColor: string;
+  gradient: string;
+}
+
+const SETTINGS_CATEGORIES: SettingCategoryItem[] = [
+  // 1. Platform & Security Governance (Configured directly in this console)
   {
     id: "operations",
     title: "Operations Mode",
     subtitle: "Emergency & Onboarding",
+    group: "Platform Governance",
+    isFinanceEngine: false,
     icon: Cpu,
     badgeColor: "bg-zinc-100 text-zinc-800 border-zinc-200",
     gradient: "from-zinc-500/10 to-slate-500/10",
   },
   {
+    id: "dispatch",
+    title: "Fleet Dispatch & Geofence",
+    subtitle: "Auto-Assign & 250m Guard",
+    group: "Platform Governance",
+    isFinanceEngine: false,
+    icon: Compass,
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
+    gradient: "from-purple-500/10 to-indigo-500/10",
+  },
+  {
+    id: "safety",
+    title: "Fraud & Safety",
+    subtitle: "Dual OTP & Anti-Spoofing",
+    group: "Platform Governance",
+    isFinanceEngine: false,
+    icon: ShieldAlert,
+    badgeColor: "bg-rose-50 text-rose-700 border-rose-200",
+    gradient: "from-rose-500/10 to-red-500/10",
+  },
+  {
     id: "security",
     title: "Security & PIN",
     subtitle: "Passcode & Audit Logs",
+    group: "Platform Governance",
+    isFinanceEngine: false,
     icon: Lock,
     badgeColor: "bg-slate-100 text-slate-800 border-slate-200",
     gradient: "from-slate-500/10 to-zinc-500/10",
+  },
+  {
+    id: "slots",
+    title: "Slots & Capacity",
+    subtitle: "Windows & Speed Multipliers",
+    group: "Platform Governance",
+    isFinanceEngine: false,
+    icon: CalendarClock,
+    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    gradient: "from-indigo-500/10 to-violet-500/10",
+  },
+  {
+    id: "integrations",
+    title: "Integrations & APIs",
+    subtitle: "Gateway, Maps & SMS Keys",
+    group: "Platform Governance",
+    isFinanceEngine: false,
+    icon: Key,
+    badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
+    gradient: "from-amber-500/10 to-yellow-500/10",
+  },
+
+  // 2. Commercial & Financial Governance (Centrally governed by QuickPress Finance Engine)
+  {
+    id: "finance",
+    title: "Taxes & Commission",
+    subtitle: "GST % & Store Settlement",
+    group: "Finance Engine",
+    isFinanceEngine: true,
+    icon: DollarSign,
+    badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    gradient: "from-emerald-500/10 to-teal-500/10",
+  },
+  {
+    id: "logistics",
+    title: "Logistics & Fees",
+    subtitle: "Delivery & Thresholds",
+    group: "Finance Engine",
+    isFinanceEngine: true,
+    icon: Truck,
+    badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
+    gradient: "from-blue-500/10 to-sky-500/10",
+  },
+  {
+    id: "surge",
+    title: "Monsoon & Surge",
+    subtitle: "Weather & Rush Pricing",
+    group: "Finance Engine",
+    isFinanceEngine: true,
+    icon: CloudRain,
+    badgeColor: "bg-sky-50 text-sky-700 border-sky-200",
+    gradient: "from-sky-500/10 to-blue-500/10",
+  },
+  {
+    id: "compliance",
+    title: "SAC 998813 Invoice",
+    subtitle: "GST Law & Section 194C",
+    group: "Finance Engine",
+    isFinanceEngine: true,
+    icon: FileText,
+    badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
+    gradient: "from-teal-500/10 to-emerald-500/10",
+  },
+  {
+    id: "referral",
+    title: "Referral & Wallet",
+    subtitle: "Cashback & Burn Limits",
+    group: "Finance Engine",
+    isFinanceEngine: true,
+    icon: Gift,
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
+    gradient: "from-purple-500/10 to-pink-500/10",
   },
 ];
 
@@ -175,7 +219,7 @@ export function SettingsPage() {
   const securityEvents = useQuery({ queryKey: ["admin", "security-events"], queryFn: fetchSecurityEvents });
 
   const [draft, setDraft] = useState<AdminSettings | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("logistics");
+  const [activeTab, setActiveTab] = useState<string>("operations");
   const [searchFilter, setSearchFilter] = useState<string>("");
   const [justSaved, setJustSaved] = useState<boolean>(false);
 
@@ -450,92 +494,9 @@ export function SettingsPage() {
             1. TOP HIGH-IMPACT TELEMETRY HUD (6 STAT CARDS)
         ========================================================================= */}
         <div className="grid gap-3.5 grid-cols-2 lg:grid-cols-6">
-          {/* Card 1: Logistics & Min Cart */}
-          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-emerald-300 hover:shadow-md">
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Min Cart Value</span>
-              <div className="size-7 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200/60">
-                <Truck className="size-3.5" />
-              </div>
-            </div>
-            <p className="mt-2 text-lg font-black text-zinc-900 truncate">₹{draft.business.minimumOrderValue}</p>
-            <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">Base Delivery: ₹{draft.business.deliveryFee}</div>
-          </div>
-
-          {/* Card 2: Monsoon Surge */}
-          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-sky-300 hover:shadow-md">
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-sky-500 to-blue-500 opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Monsoon Surge</span>
-              <div
-                className={cn(
-                  "size-7 rounded-xl flex items-center justify-center border",
-                  draft.surge.enabled ? "bg-sky-50 text-sky-700 border-sky-200" : "bg-zinc-50 text-zinc-400 border-zinc-200"
-                )}
-              >
-                <CloudRain className="size-3.5" />
-              </div>
-            </div>
-            <div className="mt-2 flex items-center gap-1.5">
-              <p className="text-lg font-black text-zinc-900">
-                {draft.surge.enabled ? `+₹${draft.surge.rainSurgeFee}` : "Standard"}
-              </p>
-              {draft.surge.enabled && (
-                <span className="px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[9px] font-black uppercase">
-                  LIVE
-                </span>
-              )}
-            </div>
-            <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">
-              {draft.surge.enabled ? `+${draft.surge.etaDelayMinutes}m rain delay` : "Normal weather rules"}
-            </div>
-          </div>
-
-          {/* Card 3: Platform Cut */}
-          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-emerald-300 hover:shadow-md">
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Commission</span>
-              <div className="size-7 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200/60">
-                <Percent className="size-3.5" />
-              </div>
-            </div>
-            <p className="mt-2 text-lg font-black text-zinc-900">{draft.finance.defaultCommission}%</p>
-            <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">Per store order settlement</div>
-          </div>
-
-          {/* Card 4: SAC Invoicing */}
-          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-indigo-300 hover:shadow-md">
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Tax & SAC Code</span>
-              <div className="size-7 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-200/60">
-                <FileText className="size-3.5" />
-              </div>
-            </div>
-            <p className="mt-2 text-lg font-black text-zinc-900 font-mono">{draft.compliance.sacCode || "998813"}</p>
-            <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">GST: {draft.finance.gstPercent}% Laundry</div>
-          </div>
-
-          {/* Card 5: Referral Reward */}
-          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-purple-300 hover:shadow-md">
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Referral Reward</span>
-              <div className="size-7 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200/60">
-                <Gift className="size-3.5" />
-              </div>
-            </div>
-            <p className="mt-2 text-lg font-black text-zinc-900">₹{draft.referral.referrerReward}</p>
-            <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">
-              Max {draft.referral.maxWalletUsagePercent}% wallet burn
-            </div>
-          </div>
-
-          {/* Card 6: Operations Health */}
-          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-amber-300 hover:shadow-md">
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 to-emerald-500 opacity-0 transition-opacity group-hover:opacity-100" />
+          {/* Card 1: Operations Health */}
+          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-zinc-300 hover:shadow-md">
+            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-zinc-700 to-zinc-900 opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">System State</span>
               <div
@@ -549,12 +510,89 @@ export function SettingsPage() {
                 {draft.business.maintenanceMode ? <AlertTriangle className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
               </div>
             </div>
-            <p className="mt-2 text-lg font-black text-zinc-900 truncate">
+            <p className="mt-2 text-base font-black text-zinc-900 truncate">
               {draft.business.maintenanceMode ? "Maintenance" : "● Operational"}
             </p>
             <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">
-              {draft.business.maintenanceMode ? "Customer checkout paused" : "All Gateways Active"}
+              {draft.business.maintenanceMode ? "Checkout intake paused" : "All Gateways Live"}
             </div>
+          </div>
+
+          {/* Card 2: Fleet Geofence */}
+          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-purple-300 hover:shadow-md">
+            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="flex items-center justify-between text-zinc-400">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Fleet Geofence</span>
+              <div className="size-7 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200/60">
+                <Compass className="size-3.5" />
+              </div>
+            </div>
+            <p className="mt-2 text-base font-black text-zinc-900 truncate">{draft.dispatch?.geofenceRadiusMeters ?? 250}m Guard</p>
+            <div className="mt-2 text-[10px] text-purple-700 font-medium truncate">Haversine 2-Ride SLA</div>
+          </div>
+
+          {/* Card 3: Auto-Dispatch Engine */}
+          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-indigo-300 hover:shadow-md">
+            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-indigo-500 to-blue-500 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Auto-Dispatch</span>
+              <div className="size-7 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-200/60">
+                <Zap className="size-3.5" />
+              </div>
+            </div>
+            <p className="mt-2 text-base font-black text-zinc-900 truncate">
+              {draft.dispatch?.autoDispatchEnabled !== false ? "Active (Auto)" : "Manual Mode"}
+            </p>
+            <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">
+              Radius: {draft.dispatch?.searchRadiusKm ?? 5}km auto-sweep
+            </div>
+          </div>
+
+          {/* Card 4: Finance Engine Single Source of Truth */}
+          <a
+            href="/finance-engine"
+            className="group relative overflow-hidden rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50/90 to-teal-50/60 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-emerald-500 hover:shadow-md cursor-pointer block"
+          >
+            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-500 to-teal-500 opacity-100" />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900">Finance Engine</span>
+              <div className="size-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                <ArrowUpRight className="size-3.5" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <p className="text-base font-black text-emerald-950">v2.5.0 Synced</p>
+              <span className="px-1.5 py-0.2 rounded-md bg-emerald-200/70 text-emerald-900 text-[8px] font-black uppercase">
+                SOURCE
+              </span>
+            </div>
+            <div className="mt-2 text-[10px] text-emerald-800 font-bold truncate">Double-Entry Ledger Live →</div>
+          </a>
+
+          {/* Card 5: Statutory Tax SAC 998813 */}
+          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-teal-300 hover:shadow-md">
+            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-teal-500 to-emerald-500 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Tax & Invoicing</span>
+              <div className="size-7 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-200/60">
+                <FileText className="size-3.5" />
+              </div>
+            </div>
+            <p className="mt-2 text-base font-black text-zinc-900 font-mono">SAC {draft.compliance.sacCode || "998813"}</p>
+            <div className="mt-2 text-[10px] text-zinc-400 font-medium truncate">5% Laundry · 1% TDS</div>
+          </div>
+
+          {/* Card 6: Admin Security PIN */}
+          <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 p-4 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-slate-300 hover:shadow-md">
+            <div className="pointer-events-none absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-slate-600 to-zinc-900 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Admin Security</span>
+              <div className="size-7 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center border border-slate-200/60">
+                <ShieldCheck className="size-3.5" />
+              </div>
+            </div>
+            <p className="mt-2 text-base font-black text-zinc-900 truncate">Protected</p>
+            <div className="mt-2 text-[10px] text-emerald-700 font-medium truncate">Anti-Spoof & PIN ON</div>
           </div>
         </div>
 
@@ -566,7 +604,7 @@ export function SettingsPage() {
               LEFT COLUMN: ENGINE SELECTOR NAVIGATION (4 COLS)
           ------------------------------------------------------------- */}
           <div className="lg:col-span-4 space-y-3 sticky top-6">
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-xs space-y-2">
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-xs space-y-3">
               {/* Category Search Filter */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400" />
@@ -578,77 +616,161 @@ export function SettingsPage() {
                 />
               </div>
 
-              {/* Navigation List */}
-              <div className="space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto pr-0.5">
-                {filteredCategories.map((cat) => {
-                  const Icon = cat.icon;
-                  const isSelected = activeTab === cat.id;
+              {/* Navigation List - Grouped */}
+              <div className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto pr-0.5">
+                {/* GROUP 1: Platform & Security Governance */}
+                <div className="space-y-1">
+                  <div className="px-2 pb-1 text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                    <span>Platform Governance</span>
+                    <span className="text-[9px] font-semibold text-zinc-400">Core Rules</span>
+                  </div>
+                  {filteredCategories
+                    .filter((c) => !c.isFinanceEngine)
+                    .map((cat) => {
+                      const Icon = cat.icon;
+                      const isSelected = activeTab === cat.id;
 
-                  // Dynamic tag indicator
-                  let tag = "";
-                  if (cat.id === "surge" && draft.surge.enabled) tag = "ACTIVE";
-                  if (cat.id === "compliance") tag = "SAC 998813";
-                  if (cat.id === "slots") tag = `${draft.slots.express24hMultiplier}x Express`;
-                  if (cat.id === "referral") tag = `₹${draft.referral.referrerReward}`;
-                  if (cat.id === "finance") tag = `${draft.finance.gstPercent}% GST`;
-                  if (cat.id === "safety" && draft.safety.mockGpsGuard) tag = "Anti-Spoof";
-                  if (cat.id === "operations" && draft.business.maintenanceMode) tag = "PAUSED";
+                      let tag = "";
+                      if (cat.id === "safety" && draft.safety.mockGpsGuard) tag = "Anti-Spoof";
+                      if (cat.id === "operations" && draft.business.maintenanceMode) tag = "PAUSED";
+                      if (cat.id === "slots") tag = `${draft.slots.express24hMultiplier}x`;
+                      if (cat.id === "dispatch") tag = `${draft.dispatch?.geofenceRadiusMeters ?? 250}m`;
+                      if (cat.id === "integrations") tag = "Live";
 
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => setActiveTab(cat.id)}
-                      className={cn(
-                        "w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-all duration-200 cursor-pointer group",
-                        isSelected
-                          ? "bg-zinc-900 text-white shadow-md shadow-zinc-900/10"
-                          : "text-zinc-700 hover:bg-zinc-100/80"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActiveTab(cat.id)}
                           className={cn(
-                            "size-8 rounded-lg flex items-center justify-center shrink-0 border transition-all",
+                            "w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-all duration-200 cursor-pointer group",
                             isSelected
-                              ? "bg-zinc-800 text-white border-zinc-700"
-                              : cn(cat.badgeColor, "group-hover:scale-105")
+                              ? "bg-zinc-900 text-white shadow-md shadow-zinc-900/10"
+                              : "text-zinc-700 hover:bg-zinc-100/80"
                           )}
                         >
-                          <Icon className="size-4" />
-                        </div>
-                        <div>
-                          <p className={cn("text-xs font-bold leading-none", isSelected ? "text-white" : "text-zinc-900")}>
-                            {cat.title}
-                          </p>
-                          <p className={cn("text-[10px] mt-1 line-clamp-1", isSelected ? "text-zinc-400" : "text-zinc-500")}>
-                            {cat.subtitle}
-                          </p>
-                        </div>
-                      </div>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={cn(
+                                "size-8 rounded-lg flex items-center justify-center shrink-0 border transition-all",
+                                isSelected
+                                  ? "bg-zinc-800 text-white border-zinc-700"
+                                  : cn(cat.badgeColor, "group-hover:scale-105")
+                              )}
+                            >
+                              <Icon className="size-4" />
+                            </div>
+                            <div>
+                              <p className={cn("text-xs font-bold leading-none", isSelected ? "text-white" : "text-zinc-900")}>
+                                {cat.title}
+                              </p>
+                              <p className={cn("text-[10px] mt-1 line-clamp-1", isSelected ? "text-zinc-400" : "text-zinc-500")}>
+                                {cat.subtitle}
+                              </p>
+                            </div>
+                          </div>
 
-                      <div className="flex items-center gap-1.5">
-                        {tag && (
-                          <span
-                            className={cn(
-                              "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
-                              isSelected
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                          <div className="flex items-center gap-1.5">
+                            {tag && (
+                              <span
+                                className={cn(
+                                  "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
+                                  isSelected
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                    : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                                )}
+                              >
+                                {tag}
+                              </span>
                             )}
-                          >
-                            {tag}
-                          </span>
-                        )}
-                        <ChevronRight
+                            <ChevronRight
+                              className={cn(
+                                "size-3.5 transition-transform",
+                                isSelected ? "text-emerald-400 translate-x-0.5" : "text-zinc-400 opacity-0 group-hover:opacity-100"
+                              )}
+                            />
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {/* GROUP 2: Financial & Commercial Engines */}
+                <div className="space-y-1 pt-2 border-t border-zinc-100">
+                  <div className="px-2 pb-1 text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center justify-between">
+                    <span>Finance Engine</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-sm bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Single Source
+                    </span>
+                  </div>
+                  {filteredCategories
+                    .filter((c) => c.isFinanceEngine)
+                    .map((cat) => {
+                      const Icon = cat.icon;
+                      const isSelected = activeTab === cat.id;
+
+                      let tag = "";
+                      if (cat.id === "surge" && draft.surge.enabled) tag = "SURGE ON";
+                      if (cat.id === "compliance") tag = "SAC 998813";
+                      if (cat.id === "referral") tag = `₹${draft.referral.referrerReward}`;
+                      if (cat.id === "finance") tag = `${draft.finance.gstPercent}% GST`;
+                      if (cat.id === "logistics") tag = `₹${draft.business.deliveryFee}`;
+
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setActiveTab(cat.id)}
                           className={cn(
-                            "size-3.5 transition-transform",
-                            isSelected ? "text-emerald-400 translate-x-0.5" : "text-zinc-400 opacity-0 group-hover:opacity-100"
+                            "w-full text-left p-2.5 rounded-xl flex items-center justify-between transition-all duration-200 cursor-pointer group",
+                            isSelected
+                              ? "bg-zinc-900 text-white shadow-md shadow-zinc-900/10"
+                              : "text-zinc-700 hover:bg-zinc-100/80"
                           )}
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={cn(
+                                "size-8 rounded-lg flex items-center justify-center shrink-0 border transition-all",
+                                isSelected
+                                  ? "bg-zinc-800 text-white border-zinc-700"
+                                  : cn(cat.badgeColor, "group-hover:scale-105")
+                              )}
+                            >
+                              <Icon className="size-4" />
+                            </div>
+                            <div>
+                              <p className={cn("text-xs font-bold leading-none", isSelected ? "text-white" : "text-zinc-900")}>
+                                {cat.title}
+                              </p>
+                              <p className={cn("text-[10px] mt-1 line-clamp-1", isSelected ? "text-zinc-400" : "text-zinc-500")}>
+                                {cat.subtitle}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {tag && (
+                              <span
+                                className={cn(
+                                  "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
+                                  isSelected
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                )}
+                              >
+                                {tag}
+                              </span>
+                            )}
+                            <ChevronRight
+                              className={cn(
+                                "size-3.5 transition-transform",
+                                isSelected ? "text-emerald-400 translate-x-0.5" : "text-zinc-400 opacity-0 group-hover:opacity-100"
+                              )}
+                            />
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
             </div>
 
