@@ -31,6 +31,7 @@ export type PartnerDashboardStats = {
 
 export type BackendPartnerItem = {
   id: string;
+  rawId?: string;
   businessName: string;
   ownerName: string;
   phone: string;
@@ -417,6 +418,7 @@ export async function fetchPartners(page = 1, pageSize = 100, q?: string, status
 
     return {
       ...p,
+      rawId: p.rawId || p.id || cleanPartnerId,
       id: cleanPartnerId,
       partnerId: cleanPartnerId,
       businessName: p.businessName || name,

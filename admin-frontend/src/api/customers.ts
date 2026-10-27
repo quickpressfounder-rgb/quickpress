@@ -48,12 +48,15 @@ export type AdminCustomer = {
   addressCount: number;
   primaryAddress: string;
   deviceInfo: string;
+  photo?: string;
+  avatar?: string;
 };
 
 function toAdminCustomer(row: any): AdminCustomer {
   const rawStatus = (row.status || "active").toLowerCase();
   const spendNum = typeof row.spend === "number" ? row.spend : (row.spendRaw || 0);
   const walletNum = typeof row.walletBalance === "number" ? row.walletBalance : (row.walletRaw || 0);
+  const realPhoto = row.photo || row.avatar || row.profilePhoto || row.image || row.profilePicture || "";
   return {
     id: String(row.id || row._id || ""),
     name: row.name || "QuickPress Customer",
@@ -83,6 +86,8 @@ function toAdminCustomer(row: any): AdminCustomer {
     addressCount: Number(row.addressCount || (row.addresses ? row.addresses.length : 1)),
     primaryAddress: row.primaryAddress || (row.city ? `${row.city}` : "—"),
     deviceInfo: row.deviceInfo || "Mobile App (Android/iOS)",
+    photo: realPhoto,
+    avatar: realPhoto,
   };
 }
 

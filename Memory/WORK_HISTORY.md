@@ -1369,4 +1369,98 @@ This single command will automatically:
      - Digital Verification Attestation Seal with cryptographically signed SHA256 security hash.
      - Action buttons: "Print / Save PDF" (`window.print()`) and "Download .TXT" file.
 
+---
+
+## Section 36: Dedicated Customer 360 Full-Page Profile, Multi-Parameter Reports & Intelligence Engines, Universal Avatar Logic, and Partner / Rider Profile Fixes
+
+### 1. Dedicated Customer 360 Full-Page Profile Page (`admin-frontend/src/routes/customers.tsx`)
+- **Architecture & UX Upgrade:**
+  - Upgraded from the cramped side-drawer Sheet into a dedicated full-page 360° Customer Profile experience (`Customer360FullPageView`) when tapping any customer in the high-density table or card grid.
+  - **Top Navigation Bar:**
+    - High-contrast breadcrumbs: `Directory / Customers / Profile (CUST-XXXX)`.
+    - "Back to Customer Directory" button with left arrow icon for immediate return to directory.
+    - Quick action badge: "Status: Active / Suspended".
+    - "Export PDF Dossier / Report" primary action trigger.
+  - **Hero Identity Card:**
+    - Real profile photo display or fallback badge with the first letter of customer's name (`(customer.name || "C").trim().charAt(0).toUpperCase()`).
+    - Customer Full Name, Verified Mobile Phone with `tel:` link, Email address with `mailto:` link, and unique QuickPress Customer ID.
+    - Tier status badge (Standard, Silver, Gold, Platinum VIP).
+  - **4-Tile Executive Financial & Order Telemetry Strip:**
+    - **Total Lifetime GMV Spend:** Rupee formatted total spent on platform.
+    - **Total Bookings / Orders:** Completed order count.
+    - **QuickPress Wallet Float:** Real-time stored stored balance.
+    - **Loyalty Points Balance:** Reward points available.
+  - **Account Timestamps Strip:**
+    - First Registered timestamp with calendar icon and relative age.
+    - Last Active / Login timestamp with activity pulse and relative time.
+  - **7 Full-Data Tabs:**
+    1. **Order History:** Tabular breakdown of all customer orders, store assigned, services, amounts, payment mode, and order statuses.
+    2. **Saved Delivery Addresses:** Geo-coded delivery locations with Flat/House number, Apartment/Society, Street, City, Pincode, and Default tag.
+    3. **Wallet & Ledger:** Complete double-entry balance, transaction entries (credit/debit), and direct manual float adjustment form with reason audit trail.
+    4. **Loyalty Rewards:** Points accrual history and redemption ledger.
+    5. **Security & Sessions:** Active sessions, device info, IP addresses, and account lock/unlock controls.
+    6. **Internal Staff Notes:** CRM operational notes logged by support agents with timestamp and staff email.
+    7. **Push Notifications:** Direct targeted push dispatch form with title, body, and notification history.
+  - **Export PDF / Print Dossier Dialog:**
+    - High-contrast modal containing complete customer intelligence report with QuickPress header, security hashes, and statutory certification stamp.
+    - Includes `window.print()` for instant PDF generation and text dossier download (`.txt`).
+
+---
+
+### 2. Multi-Parameter Reports & Intelligence Engines (Customers, Partners, Riders)
+- **Customers Module (`/customers`):**
+  - Added expandable "Reports & Intelligence Engine" accessible from the top action bar.
+  - **Area-Wise / City-Wise Distribution Table:** Aggregates customer density across cities (Kasganj, Bengaluru, Aligarh, Delhi NCR, etc.) with customer count and percentage share of total base.
+  - **Date-Wise Registration Breakdown Table:** Aggregates customer acquisition by date, showing daily new signups and cumulative growth.
+  - **KPI Metrics:** Total Customer Base, Active Accounts, VIP Members, and Blocked Accounts.
+  - **Export Options:** Master CSV export with full customer attributes, and Print Summary view.
+- **Partners Module (`/partners`):**
+  - Added expandable "Store Reports & Intelligence Engine" to the top action bar.
+  - **Area-Wise Distribution Table:** Laundromat partner density by city/locality.
+  - **Date-Wise Onboarding Table:** Partner onboarding velocity over time.
+  - **Export CSV & Print:** Clean summary reports of partner network capacity and distribution.
+- **Riders Module (`/riders`):**
+  - Added expandable "Fleet Reports & Intelligence Engine" to the top action bar.
+  - **Area-Wise Operating Zones Table:** Active delivery captain coverage by city and operational territory.
+  - **Date-Wise Onboarding Table:** Fleet registration and verification trends.
+  - **Export CSV & Print:** Fleet distribution metrics for operational planning.
+
+---
+
+### 3. Universal Avatar Logic Across Platform
+- **Design Standard:**
+  - Standardized profile photo rendering across Customers, Partners, and Delivery Captains:
+    - If a valid photo or logo URL is present (`photo`, `avatar`, `profilePhoto`, `logo`, `ownerPhoto`), render the image cleanly using `<img ... onError=... />`.
+    - If no photo exists or if the image fails to load (`onError`), immediately fall back to a high-contrast badge containing the **single first letter** of their name (`(name || "U").trim().charAt(0).toUpperCase()`).
+  - Applied consistently across:
+    - High-density directory tables.
+    - Responsive modern grid cards.
+    - 360° profile headers and hero cards.
+
+---
+
+### 4. Partner Profile & Rider Page Opening Fixes
+- **Root Causes Identified & Resolved:**
+  1. **Rider Page Not Opening:**
+     - `ReferenceError: allRiders is not defined` occurred on `/riders` route mount because `allRiders` was referenced in KPIs and filters but had not been declared in `RidersPage()`.
+     - **Fix:** Declared `const allRiders = ridersQuery.data ?? [];` immediately after `ridersQuery`.
+  2. **Partner Profile Not Opening:**
+     - When tapping a partner, `selectedId` was set to formatted `formatPartnerId(r.id)` (`PRT-XXXX`), whereas the backend repository only queried raw database UUIDs. If the 360 API call returned 404/empty, the component rendered `: null` (completely blank page below header).
+     - **Fix:**
+       - Added `selectedPartner` memo in `partners.tsx` so that `profile` is immediately derived from `allPartners` while `profile360Query` loads (never renders blank).
+       - Updated table and card `onClick` handlers to pass `r.rawId || r.id`.
+       - Updated backend `get_partner_360` in `backend-python/app/db/admin_repositories.py` to match raw UUIDs, `partnerId`, `code`, and formatted `PRT-XXXX` strings.
+  3. **Rider 360 Lookup:**
+     - Updated `AdminRiderRepository.detail` to match raw UUIDs, `rawId`, and formatted `CAP-XXXX` strings so rider lookup never raises `LookupError`.
+  4. **Hybrid Redis Cache Invalidation Bug:**
+     - In `backend-python/app/core/redis_cache.py`, fixed `delete_pattern()` which called undefined `_get_upstash_client()` instead of `_is_redis_active()`.
+
+---
+
+### 5. Build Verification & Test Status
+- `npm run build` in `admin-frontend`: **PASSED (0 errors, client and SSR bundles generated cleanly)**.
+- `python3 -m py_compile backend-python/app/db/admin_repositories.py`: **PASSED (0 syntax errors)**.
+- `pytest backend-python/tests/test_admin_crm_cache.py`: **6/6 PASSED (100% test pass rate)**.
+
+
 

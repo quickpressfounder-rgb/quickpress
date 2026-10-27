@@ -64,6 +64,7 @@ import {
   Loader2,
   FileCheck2,
   Printer,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -178,6 +179,7 @@ export function RidersPage() {
   const queryClient = useQueryClient();
   const ridersQuery = useQuery({ queryKey: ["admin", "riders"], queryFn: fetchRiders, staleTime: 30 * 1000 });
   const statsQuery = useQuery({ queryKey: ["admin", "riders", "stats"], queryFn: fetchRiderStats, staleTime: 30 * 1000 });
+  const allRiders = ridersQuery.data ?? [];
 
   // URL query parameter synchronization (?id=...)
   const [selectedId, setSelectedId] = useState<string | null>(() => {
@@ -240,9 +242,36 @@ export function RidersPage() {
   const [dossierModalOpen, setDossierModalOpen] = useState(false);
 
   const pendingRequestsCount = useMemo(() => {
-    return (ridersQuery.data ?? []).filter((r) => r.status === "Pending" || r.kyc === "Pending" || Boolean(r.resubmitted)).length;
-  }, [ridersQuery.data]);
+    return allRiders.filter((r) => r.status === "Pending" || r.kyc === "Pending" || Boolean(r.resubmitted)).length;
+  }, [allRiders]);
   const stats = statsQuery.data;
+
+  const [showReportsEngine, setShowReportsEngine] = useState(false);
+
+  // Fleet Area-wise & Date-wise breakdown
+  const areaBreakdown = useMemo(() => {
+    const map = new Map<string, { city: string; count: number; active: number; verified: number }>();
+    allRiders.forEach((r) => {
+      const cityName = r.city || "Kasganj";
+      const existing = map.get(cityName) || { city: cityName, count: 0, active: 0, verified: 0 };
+      existing.count += 1;
+      if (r.live === "Online" || r.live === "On delivery") existing.active += 1;
+      if (r.kyc === "Verified") existing.verified += 1;
+      map.set(cityName, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [allRiders]);
+
+  const dateWiseBreakdown = useMemo(() => {
+    const map = new Map<string, { date: string; signups: number }>();
+    allRiders.forEach((r) => {
+      const d = (r.joined || "").slice(0, 10) || "Earlier";
+      const existing = map.get(d) || { date: d, signups: 0 };
+      existing.signups += 1;
+      map.set(d, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+  }, [allRiders]);
 
   // Selected Rider 360 Query
   const rider360Query = useQuery({
@@ -256,10 +285,14 @@ export function RidersPage() {
 
   const selectedRider: AdminRider | null = useMemo(() => {
     if (!selectedId) return null;
-    const found = allRiders.find((r) => r.id === selectedId);
-    if (found) return found;
-    if (data360?.profile) return data360.profile;
-    return null;
+    const found = allRiders.find((r) => r.id === selectedId || (r as any).rawId === selectedId);
+    if (data360?.profile) {
+      return {
+        ...(found || {}),
+        ...data360.profile,
+      } as AdminRider;
+    }
+    return found || null;
   }, [selectedId, allRiders, data360]);
 
   // Dedicated 360 Full-Page States
@@ -855,6 +888,20 @@ export function RidersPage() {
             subtitle: "Fleet onboarding, real-time GPS telemetry, KYC verification, shift attendance, and dispatch operations.",
             actions: (
               <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowReportsEngine((prev) => !prev)}
+                  className={`h-8 gap-1.5 rounded-xl border-zinc-200 text-xs font-bold transition-all shadow-xs ${
+                    showReportsEngine
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+                      : "bg-white text-zinc-700 hover:bg-zinc-100"
+                  }`}
+                >
+                  <BarChart3 className="size-3.5 text-emerald-600" />
+                  <span>{showReportsEngine ? "Hide Reports" : "Fleet Reports & Analytics"}</span>
+                </Button>
+
                 <Button
                   size="sm"
                   variant="outline"
@@ -2053,10 +2100,109 @@ export function RidersPage() {
           />
         </div>
       ) : (
-        /* =========================================================================
-            VIEW C: RIDERS MASTER FLEET DIRECTORY
-        ========================================================================= */
         <div className="space-y-6">
+          {/* Fleet Intelligence & Reports Engine (Expandable) */}
+          {showReportsEngine && (
+            <div className="space-y-4 rounded-3xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/40 via-white to-teal-50/30 p-5 shadow-sm animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                    <BarChart3 className="size-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-zinc-950">Delivery Fleet Intelligence & Reports Engine</h3>
+                    <p className="text-xs text-zinc-500 font-medium">Area-wise rider fleet distribution, KYC verification status, and acquisition telemetry.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.print()}
+                    className="h-8 gap-1.5 text-xs font-bold rounded-xl border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-100 shadow-xs"
+                  >
+                    <Printer className="size-3.5 text-emerald-600" />
+                    <span>Print Reports Summary</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleExportCSV}
+                    className="h-8 gap-1.5 text-xs font-bold rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 shadow-xs"
+                  >
+                    <Download className="size-3.5" />
+                    <span>Export Fleet CSV</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* 2-Way Reports Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 1. Area-Wise / City Fleet Distribution */}
+                <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                      <MapPin className="size-3.5 text-emerald-600" />
+                      Area-Wise Fleet Distribution Report
+                    </h4>
+                    <span className="text-[11px] font-bold text-zinc-400">{areaBreakdown.length} Operating Cities</span>
+                  </div>
+                  <div className="mt-3 overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-100 text-zinc-400 font-black text-[10px] uppercase">
+                          <th className="pb-2">City / Area</th>
+                          <th className="pb-2 text-right">Total Captains</th>
+                          <th className="pb-2 text-right">Active Online</th>
+                          <th className="pb-2 text-right">KYC Verified</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50 font-medium">
+                        {areaBreakdown.map((a) => (
+                          <tr key={a.city} className="hover:bg-zinc-50/80 transition-colors">
+                            <td className="py-2 font-bold text-zinc-900">{a.city}</td>
+                            <td className="py-2 text-right font-black text-zinc-950 tabular-nums">{a.count}</td>
+                            <td className="py-2 text-right font-bold text-emerald-700 tabular-nums">{a.active}</td>
+                            <td className="py-2 text-right font-bold text-sky-700 tabular-nums">{a.verified}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 2. Date-Wise Rider Registration & Onboarding */}
+                <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                      <Calendar className="size-3.5 text-sky-600" />
+                      Date-Wise Fleet Onboarding Report
+                    </h4>
+                    <span className="text-[11px] font-bold text-zinc-400">{dateWiseBreakdown.length} Registration Dates</span>
+                  </div>
+                  <div className="mt-3 max-h-56 overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-100 text-zinc-400 font-black text-[10px] uppercase">
+                          <th className="pb-2">Registration Date</th>
+                          <th className="pb-2 text-right">New Captains</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50 font-medium">
+                        {dateWiseBreakdown.map((d) => (
+                          <tr key={d.date} className="hover:bg-zinc-50/80 transition-colors">
+                            <td className="py-2 font-mono text-zinc-700 font-bold">{d.date}</td>
+                            <td className="py-2 text-right font-black text-emerald-700 tabular-nums">+{d.signups}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Switcher Navigation Bar in Directory View */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-xs">
             <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">
@@ -2661,7 +2807,7 @@ export function RidersPage() {
               <DataTable
                 loading={ridersQuery.isLoading}
                 rows={rows}
-                onRowClick={(rider) => setSelectedId(rider.id)}
+                onRowClick={(rider) => setSelectedId(rider?.rawId || rider?.id)}
                 emptyMessage="No rider accounts found matching the specified filters."
                 columns={[
                 {
@@ -2671,10 +2817,20 @@ export function RidersPage() {
                     <div className="flex items-center gap-3">
                       <div className="relative flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 text-sky-900 font-black text-xs shadow-xs border border-sky-200/60 overflow-hidden shrink-0">
                         {r.profilePhoto ? (
-                          <img src={r.profilePhoto} alt={r.name} className="w-full h-full object-cover" />
-                        ) : (
-                          r.name.slice(0, 2).toUpperCase()
-                        )}
+                          <img
+                            src={r.profilePhoto}
+                            alt={r.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = "none";
+                              const fb = (e.currentTarget.parentElement as HTMLElement)?.querySelector(".rider-table-initial");
+                              if (fb) fb.classList.remove("hidden");
+                            }}
+                          />
+                        ) : null}
+                        <span className={cn("font-black uppercase text-xs rider-table-initial", r.profilePhoto ? "hidden" : "")}>
+                          {(r.name || "R").trim().charAt(0).toUpperCase()}
+                        </span>
                         <span
                           className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white ${
                             r.live === "Online"
@@ -2907,11 +3063,14 @@ export function RidersPage() {
                                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                       onError={(e) => {
                                         (e.currentTarget as HTMLImageElement).style.display = "none";
+                                        const fb = (e.currentTarget.parentElement as HTMLElement)?.querySelector(".rider-card-initial");
+                                        if (fb) fb.classList.remove("hidden");
                                       }}
                                     />
-                                  ) : (
-                                    <span>{r.name.slice(0, 2).toUpperCase()}</span>
-                                  )}
+                                  ) : null}
+                                  <span className={cn("font-black uppercase text-sm rider-card-initial", r.profilePhoto ? "hidden" : "")}>
+                                    {(r.name || "R").trim().charAt(0).toUpperCase()}
+                                  </span>
                                   <span
                                     className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white ${
                                       isOnline

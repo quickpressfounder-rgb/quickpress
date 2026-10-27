@@ -62,6 +62,7 @@ import {
   IndianRupee,
   Loader2,
   Printer,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -222,6 +223,12 @@ function PartnersPage() {
     staleTime: 60 * 1000,
   });
 
+  const allPartners = partnersQuery.data ?? [];
+  const selectedPartner = useMemo(() => {
+    if (!selectedId) return null;
+    return allPartners.find((p) => p.id === selectedId || (p as any).rawId === selectedId) || null;
+  }, [selectedId, allPartners]);
+
   const statsQuery = useQuery({
     queryKey: ["admin", "partners", "stats"],
     queryFn: fetchPartnerStats,
@@ -235,7 +242,54 @@ function PartnersPage() {
     enabled: Boolean(selectedId),
     staleTime: 60 * 1000,
   });
-  const profile = profile360Query.data;
+
+  const profile = useMemo(() => {
+    if (profile360Query.data?.header) return profile360Query.data;
+    if (!selectedPartner) return null;
+    return {
+      header: {
+        id: selectedPartner.id,
+        rawId: (selectedPartner as any).rawId,
+        businessName: selectedPartner.businessName,
+        ownerName: selectedPartner.ownerName,
+        phone: selectedPartner.phone,
+        email: selectedPartner.email,
+        city: selectedPartner.city,
+        zone: selectedPartner.zone,
+        status: selectedPartner.status,
+        kycStatus: selectedPartner.kycStatus,
+        rating: selectedPartner.rating,
+        joinedDate: selectedPartner.joinedDate,
+        lastActive: selectedPartner.lastActive,
+        tags: selectedPartner.tags || [],
+        activeOrdersCount: 0,
+        isOpen: selectedPartner.isOnline,
+        isOnline: selectedPartner.isOnline,
+        logo: selectedPartner.logo,
+        ownerPhoto: selectedPartner.ownerPhoto,
+        address: selectedPartner.address,
+        pincode: selectedPartner.pincode,
+        area: selectedPartner.area,
+        aadhaar: selectedPartner.aadhaar,
+        pan: selectedPartner.pan,
+      },
+      overview: {
+        totalOrders: selectedPartner.totalOrders || 0,
+        completedOrders: selectedPartner.completedOrders || 0,
+        cancelledOrders: selectedPartner.cancelledOrders || 0,
+        grossRevenue: selectedPartner.revenue || 0,
+        partnerEarnings: selectedPartner.partnerEarnings || 0,
+        commission: selectedPartner.commission || 0,
+      },
+      ratings: { average: selectedPartner.rating || 5.0, totalReviews: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }, reviews: [] },
+      activities: [],
+      orders: [],
+      payouts: [],
+      services: [],
+      internalNotes: [],
+      penalties: [],
+    } as any;
+  }, [profile360Query.data, selectedPartner]);
 
   // Real-time partner store status listener
   useEffect(() => {
@@ -320,12 +374,36 @@ function PartnersPage() {
   const [notifyBody, setNotifyBody] = useState("");
 
   const [newNoteText, setNewNoteText] = useState("");
-
-  // Lightbox preview modal for real photos & documents
   const [lightboxImage, setLightboxImage] = useState<{ src: string; title: string } | null>(null);
 
-  const allPartners = partnersQuery.data ?? [];
+  const [showReportsEngine, setShowReportsEngine] = useState(false);
   const stats = statsQuery.data;
+
+  // Partner Area-wise & Date-wise reports breakdown
+  const areaBreakdown = useMemo(() => {
+    const map = new Map<string, { city: string; count: number; active: number; gmv: number }>();
+    allPartners.forEach((p) => {
+      const cityName = p.city || "Kasganj";
+      const existing = map.get(cityName) || { city: cityName, count: 0, active: 0, gmv: 0 };
+      existing.count += 1;
+      if (p.status === "ACTIVE") existing.active += 1;
+      existing.gmv += p.revenue || 0;
+      map.set(cityName, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [allPartners]);
+
+  const dateWiseBreakdown = useMemo(() => {
+    const map = new Map<string, { date: string; count: number; gmv: number }>();
+    allPartners.forEach((p) => {
+      const d = (p.joinedDate || "").slice(0, 10) || "Earlier";
+      const existing = map.get(d) || { date: d, count: 0, gmv: 0 };
+      existing.count += 1;
+      existing.gmv += p.revenue || 0;
+      map.set(d, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+  }, [allPartners]);
 
   // Mutations
   const createMutation = useMutation({
@@ -868,6 +946,46 @@ function PartnersPage() {
           ? "B2B Bulk Order Partners & Enterprise Clients"
           : "Partner Control Center & 360° Management"
       }
+      actions={
+        !selectedId ? (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReportsEngine((prev) => !prev)}
+              className={`h-8 gap-1.5 rounded-xl border-zinc-200 text-xs font-bold transition-all shadow-xs ${
+                showReportsEngine
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+                  : "bg-white text-zinc-700 hover:bg-zinc-100"
+              }`}
+            >
+              <BarChart3 className="size-3.5 text-emerald-600" />
+              <span>{showReportsEngine ? "Hide Reports" : "Store Reports & Analytics"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["admin", "partners"] });
+                queryClient.invalidateQueries({ queryKey: ["admin", "partners", "stats"] });
+                toast.success("Partner list refreshed.");
+              }}
+              className="h-8 gap-1.5 rounded-xl border-zinc-200 bg-white text-xs font-bold text-zinc-700 hover:bg-zinc-100"
+            >
+              <RefreshCw className="size-3.5 text-zinc-500" />
+              <span>Refresh</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleExportCSV}
+              className="h-8 gap-1.5 rounded-xl bg-zinc-900 text-xs font-bold text-white hover:bg-zinc-800 shadow-xs"
+            >
+              <Download className="size-3.5 text-emerald-400" />
+              <span>Export CSV</span>
+            </Button>
+          </div>
+        ) : undefined
+      }
     >
       {/* =========================================================================
           VIEW A: DEDICATED FULL-PAGE PARTNER 360 PROFILE (SAME RIDER PREVIEW STYLE)
@@ -923,7 +1041,7 @@ function PartnersPage() {
             </div>
           </div>
 
-          {profile360Query.isLoading ? (
+          {profile360Query.isLoading && !profile ? (
             <div className="p-20 text-center text-xs font-bold text-zinc-500 bg-white rounded-2xl border border-zinc-200 shadow-xs">
               <RefreshCw className="size-7 text-emerald-600 animate-spin mx-auto mb-3" />
               Loading Complete Partner Store 360° Profile &amp; KYC Photos...
@@ -939,7 +1057,7 @@ function PartnersPage() {
                   <div className="flex items-start gap-4">
                     {/* Brand Monogram Badge */}
                     <div
-                      className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 text-white font-black text-lg shadow-md shrink-0 border-2 border-emerald-500/20 group cursor-pointer"
+                      className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 text-white font-black text-lg shadow-md shrink-0 border-2 border-emerald-500/20 group cursor-pointer overflow-hidden"
                       onClick={() => {
                         const src = isValidStoreImage(profile.header.logo)
                           ? profile.header.logo
@@ -950,23 +1068,21 @@ function PartnersPage() {
                       }}
                       title="Store Emblem (Click to preview uploaded photos)"
                     >
-                      {isValidStoreImage(profile.header.logo) ? (
+                      {isValidStoreImage(profile.header.logo || profile.header.ownerPhoto) ? (
                         <img
-                          src={profile.header.logo}
+                          src={profile.header.logo || profile.header.ownerPhoto}
                           alt={profile.header.businessName}
                           className="w-full h-full object-cover rounded-2xl group-hover:scale-105 transition-transform"
                           onError={(e) => {
                             (e.currentTarget as HTMLElement).style.display = "none";
+                            const fb = (e.currentTarget.parentElement as HTMLElement)?.querySelector(".partner-initials");
+                            if (fb) fb.classList.remove("hidden");
                           }}
                         />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center">
-                          <span className="tracking-tight text-white font-black text-xl leading-none">
-                            {getStoreInitials(profile.header.businessName)}
-                          </span>
-                          <Store className="size-3 text-emerald-200/80 mt-1" />
-                        </div>
-                      )}
+                      ) : null}
+                      <span className={cn("tracking-tight text-white font-black text-2xl leading-none uppercase partner-initials", isValidStoreImage(profile.header.logo || profile.header.ownerPhoto) ? "hidden" : "")}>
+                        {(profile.header.businessName || "P").trim().charAt(0).toUpperCase()}
+                      </span>
                       <span
                         className={`absolute -bottom-1 -right-1 size-4 rounded-full border-2 border-white ${
                           profile.header.isOnline || profile.header.isOpen
@@ -2120,6 +2236,110 @@ function PartnersPage() {
             VIEW B: PARTNER DIRECTORY & NETWORK OVERVIEW (WHEN NO PARTNER SELECTED)
         ========================================================================= */
         <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Partner Intelligence & Reports Engine (Expandable) */}
+          {showReportsEngine && (
+            <div className="space-y-4 rounded-3xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/40 via-white to-teal-50/30 p-5 shadow-sm animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                    <BarChart3 className="size-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-zinc-950">Partner Store Intelligence & Reports Engine</h3>
+                    <p className="text-xs text-zinc-500 font-medium">Area-wise partner distribution, store capacity, and onboarding telemetry.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.print()}
+                    className="h-8 gap-1.5 text-xs font-bold rounded-xl border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-100 shadow-xs"
+                  >
+                    <Printer className="size-3.5 text-emerald-600" />
+                    <span>Print Reports Summary</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleExportCSV}
+                    className="h-8 gap-1.5 text-xs font-bold rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 shadow-xs"
+                  >
+                    <Download className="size-3.5" />
+                    <span>Export Full Data CSV</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* 2-Way Reports Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 1. Area-Wise / City Distribution Breakdown */}
+                <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                      <MapPin className="size-3.5 text-emerald-600" />
+                      Area-Wise Store Distribution Report
+                    </h4>
+                    <span className="text-[11px] font-bold text-zinc-400">{areaBreakdown.length} Operational Cities</span>
+                  </div>
+                  <div className="mt-3 overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-100 text-zinc-400 font-black text-[10px] uppercase">
+                          <th className="pb-2">City / Area</th>
+                          <th className="pb-2 text-right">Partner Stores</th>
+                          <th className="pb-2 text-right">Active</th>
+                          <th className="pb-2 text-right">Total GMV</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50 font-medium">
+                        {areaBreakdown.map((a) => (
+                          <tr key={a.city} className="hover:bg-zinc-50/80 transition-colors">
+                            <td className="py-2 font-bold text-zinc-900">{a.city}</td>
+                            <td className="py-2 text-right font-black text-zinc-950 tabular-nums">{a.count}</td>
+                            <td className="py-2 text-right font-bold text-emerald-700 tabular-nums">{a.active}</td>
+                            <td className="py-2 text-right font-black text-zinc-900 tabular-nums">₹{a.gmv.toLocaleString("en-IN")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 2. Date-Wise Onboarding & Growth Report */}
+                <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                      <Calendar className="size-3.5 text-sky-600" />
+                      Date-Wise Store Onboarding Report
+                    </h4>
+                    <span className="text-[11px] font-bold text-zinc-400">{dateWiseBreakdown.length} Onboarding Dates</span>
+                  </div>
+                  <div className="mt-3 max-h-56 overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-100 text-zinc-400 font-black text-[10px] uppercase">
+                          <th className="pb-2">Joined Date</th>
+                          <th className="pb-2 text-right">New Stores</th>
+                          <th className="pb-2 text-right">Revenue GMV</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50 font-medium">
+                        {dateWiseBreakdown.map((d) => (
+                          <tr key={d.date} className="hover:bg-zinc-50/80 transition-colors">
+                            <td className="py-2 font-mono text-zinc-700 font-bold">{d.date}</td>
+                            <td className="py-2 text-right font-black text-emerald-700 tabular-nums">+{d.count}</td>
+                            <td className="py-2 text-right font-black text-zinc-950 tabular-nums">₹{d.gmv.toLocaleString("en-IN")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Switcher Navigation Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200/90 shadow-xs">
             <div className="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">

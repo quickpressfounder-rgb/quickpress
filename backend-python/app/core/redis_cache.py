@@ -116,8 +116,7 @@ class HybridCacheEngine:
         count = len(to_del)
 
         # Purge from L2 Redis
-        client = _get_upstash_client()
-        if client is not None:
+        if _is_redis_active():
             try:
                 redis_pattern = f"{_KEY_PREFIX}{pattern}"
                 keys = await _upstash_command("KEYS", redis_pattern)

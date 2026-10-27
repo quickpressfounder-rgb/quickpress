@@ -1028,10 +1028,10 @@ class AdminPartnerRepository:
         }
 
     async def get_partner_360(self, partner_id: str) -> Dict[str, Any]:
-        doc1 = await database.find_one(self.collection, {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"userId": partner_id}]}) or {}
-        doc2 = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"userId": partner_id}]}) or {}
-        doc3 = await database.find_one("catalog_partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}]}) or {}
-        doc4 = await database.find_one("partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}]}) or {}
+        doc1 = await database.find_one(self.collection, {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"userId": partner_id}, {"code": partner_id}]}) or {}
+        doc2 = await database.find_one("partner_profiles", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"userId": partner_id}, {"code": partner_id}]}) or {}
+        doc3 = await database.find_one("catalog_partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"code": partner_id}]}) or {}
+        doc4 = await database.find_one("partners", {"$or": [{"_id": partner_id}, {"id": partner_id}, {"partnerId": partner_id}, {"code": partner_id}]}) or {}
         doc5 = await database.find_one("users", {"$or": [{"_id": partner_id}, {"id": partner_id}], "role": "partner"}) or {}
 
         doc = {}
@@ -1039,6 +1039,16 @@ class AdminPartnerRepository:
             for k, v in d.items():
                 if v is not None and v != "":
                     doc[k] = v
+
+        if not doc:
+            raw_all = await self._get_raw_partners()
+            for r in raw_all:
+                pid_cand = str(r.get("_id") or r.get("id") or r.get("partnerId") or "")
+                cand_code = format_partner_id(pid_cand).upper()
+                if cand_code == partner_id.upper() or partner_id.upper() in pid_cand.upper() or pid_cand.upper() in partner_id.upper() or partner_id.upper() in str(r.get("businessName") or "").upper():
+                    doc = dict(r)
+                    partner_id = pid_cand
+                    break
 
         pid = str(doc.get("_id") or doc.get("id") or doc.get("partnerId") or partner_id)
 
@@ -2247,8 +2257,13 @@ class AdminRiderRepository:
 
         # 6. Fallback match
         for item in items:
-            if entity_id and (entity_id in str(item.get("id", "")) or str(item.get("id", "")) in entity_id or entity_id in str(item.get("rawId", ""))):
-                return item
+            if entity_id:
+                eid_u = entity_id.upper()
+                i_id = str(item.get("id", "")).upper()
+                i_raw = str(item.get("rawId", "")).upper()
+                i_code = format_captain_id(str(item.get("rawId", ""))).upper()
+                if eid_u in (i_id, i_raw, i_code) or eid_u in i_raw or i_raw in eid_u or eid_u in i_id:
+                    return item
 
         return items[0] if (len(items) == 1 and entity_id) else None
 
