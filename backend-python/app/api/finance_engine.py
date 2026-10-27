@@ -625,7 +625,7 @@ async def get_payouts_overview() -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     weekday = now.weekday()  # 0 is Monday
     start_of_week = (now - timedelta(days=weekday)).replace(hour=0, minute=0, second=0, microsecond=0)
-    end_of_week = start_of_week + timedelta(days=6, hours=23, minute=59, second=59)
+    end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
     # Disbursals index by entityId
     disbursal_by_entity = {}
