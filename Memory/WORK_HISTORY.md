@@ -33,6 +33,42 @@
 
 ## Detailed Log of Work Done Today (27 October 2026)
 
+### 29. Staff Directory & RBAC Governance Redesign with Access-Wise Controls
+- **User Requirement:**
+  - "ab staff ka bhi desing redesing karo or staff add kar sake or edit bhi acces wise"
+- **Architecture & Implementation:**
+  1. **Redesigned Staff Directory & RBAC Governance UI (`admin-frontend/src/routes/staff.tsx`):**
+     - Ultra-premium corporate aesthetic (`bg-white`, `border-zinc-200`, `text-zinc-950 font-black`, `tabular-nums`) matching Linear/Vercel/Stripe standards, zero cartoon emojis.
+     - 6 Key Executive Metric KPI Cards: Total Operators, Active Admins, RBAC Roles, Edge SSO & 2FA Enforced, Audit Ledger, Regional Hub Coverage.
+     - Search & filter controls with instant text search across Name, Email, Phone, Role, Territory Scope, and granted permissions.
+     - Multi-tier filtering by Security Role, Account Status (`Active`, `Suspended`, `Pending OTP`), and Territory Hub.
+     - Dual-view toggle: High-density structured Table View and responsive Card Grid View.
+  2. **Add Staff Administrator Flow ("staff add kar sake"):**
+     - Modern `AddStaffDialog` with:
+       - Identity details: Full Name, Official Corporate Email, Contact Phone Number.
+       - Password Generator: One-click secure password generation (`QP_...`) with automatic clipboard copy and visibility toggle.
+       - Security Role selection: `Super Admin`, `Operations Admin`, `Fleet Dispatch Manager`, `Support Lead`, `Finance & Settlements Lead`, `Store Partner Lead`.
+       - Territory Scope: Hub visibility assignment (`All India Hubs`, `Kasganj Market Hub`, `Aligarh Division`, `Delhi NCR`).
+       - Granular RBAC Checklist: 14 distinct permission modules categorized by Dispatch, Fleet & Stores, Customer & Support, Finance & Growth, and Governance with quick "Select All" and "Clear All" presets.
+     - Calls `POST /api/admin/staff` syncing credentials and role bindings.
+  3. **Edit Staff & Access-Wise Controls ("edit bhi acces wise"):**
+     - Dedicated `EditStaffDialog` component:
+       - Update operator profile (Name, Phone, Account Status, Territory Scope).
+       - Security role switcher with intelligent prompt to auto-sync default permission presets or retain custom grants.
+       - Password reset field (optional, leaves existing password untouched if blank).
+       - Full granular access modules checklist allowing custom per-module permission grants/revocations.
+     - Two-way update calling `PUT /api/admin/staff/{id}` and `PUT /api/admin/staff/{id}/permissions`.
+  4. **Security Enforcement & Audit Trail:**
+     - Automatic super admin seed verification (`ensure_super_admin_seed`).
+     - Session enrichment attaches active permissions and scope to all admin auth sessions.
+     - Instant account suspension and access revoking confirmation dialog.
+- **Modified Files:**
+  - `admin-frontend/src/routes/staff.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build Verifications:**
+  - `admin-frontend npm run build`: PASSED (Exit code 0).
+  - Python backend & Docker container: Tested & verified.
+
 ### 28. Enterprise Payouts & Settlements Command Center, Weekly Cycle Alerts, Bulk Disbursal with UTR, & Finance Navigation Streamlining
 - **User Requirement:**
   - "ye sab hatao yaha se or is page ko real intragtion karo real graph etc etc or bola tha cartoon ICon ka use nahi karna hai or iske baad payout page banana hai jimse ke partner or rider ka payout ka deatil kpi or approval Bank deatil Rider or partner ki full deatil or payout ka statement weekly payout baa syaytem or bonus Incentive bhi yahi se diya jaye bulk me payout or bulk me bounes incentive etc etc Or customer ke liye commensation ka option Sdarch karke payout payout ke baad payout deatil usme Full summaery aaye ki iske is wekly cycyle me kiya bana hai uske pay karne ke baad utr pase kar or bo utr partner or rider ke payout me sastue me show kare cycyle alart kab kisiki cycyle puri ho raho hai aaj kiasa payout baki hia ye sab bhi"

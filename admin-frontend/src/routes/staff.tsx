@@ -410,7 +410,7 @@ export function StaffPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search staff by name, email, role, phone, or permission..."
-                  className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 transition-all font-medium"
+                  className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-950 focus:bg-white focus:outline-none focus:ring-1 focus:ring-zinc-950 transition-all font-medium"
                 />
                 {searchQuery && (
                   <button
@@ -1487,7 +1487,7 @@ function AddStaffDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-xs">
+        <Button size="sm" className="h-8 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs">
           <UserPlus className="size-3.5 mr-1.5" />
           <span>Onboard Staff Admin</span>
         </Button>
@@ -1702,7 +1702,7 @@ function AddStaffDialog() {
             size="sm"
             onClick={() => mutation.mutate()}
             disabled={!name.trim() || !email.trim() || mutation.isPending}
-            className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-xs"
+            className="h-9 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs"
           >
             {mutation.isPending ? "Onboarding Staff..." : "Onboard Staff Administrator"}
           </Button>
@@ -2039,7 +2039,7 @@ function EditStaffDialog({ staff, onClose }: { staff: StaffMember; onClose: () =
             size="sm"
             onClick={() => mutation.mutate()}
             disabled={!name.trim() || mutation.isPending}
-            className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-xs"
+            className="h-9 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-xs font-bold text-white shadow-xs"
           >
             {mutation.isPending ? "Saving Changes..." : "Save Staff & Access Updates"}
           </Button>
