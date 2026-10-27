@@ -123,3 +123,28 @@ export async function submitPublicContact(payload: ContactFormPayload): Promise<
     body: JSON.stringify(payload),
   });
 }
+
+export interface CompanyLegalProfile {
+  brandName?: string;
+  tagline?: string;
+  legalName?: string;
+  cin?: string;
+  pan?: string;
+  gstin?: string;
+  registeredAddress?: string;
+  operatingAddress?: string;
+  supportEmail?: string;
+  corporateEmail?: string;
+  legalEmail?: string;
+  supportPhone?: string;
+  tollFreePhone?: string;
+  grievanceOfficerName?: string;
+  grievanceOfficerPhone?: string;
+  authorizedSignatoryName?: string;
+  authorizedSignatoryDesignation?: string;
+  websiteUrl?: string;
+}
+
+export async function fetchCompanyProfile(): Promise<CompanyLegalProfile> {
+  return apiFetch<CompanyLegalProfile>("/api/public/company-profile");
+}

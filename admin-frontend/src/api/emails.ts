@@ -369,7 +369,7 @@ export async function fetchMerchantAgreements(params?: {
         acceptanceRate: 0,
         gateway: "Hostinger Business API",
         cc: "official.quickpress@gmail.com",
-        signatory: "Dhani Ram",
+        signatory: "Himanshu Pal",
       },
     };
   } catch (err) {
@@ -384,7 +384,7 @@ export async function fetchMerchantAgreements(params?: {
         acceptanceRate: 0,
         gateway: "Hostinger Business API",
         cc: "official.quickpress@gmail.com",
-        signatory: "Dhani Ram",
+        signatory: "Himanshu Pal",
       },
     };
   }

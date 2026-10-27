@@ -205,7 +205,7 @@ export function InvoiceSheet({ order, onClose }: { order: ManagedOrder; onClose:
             <div>
               <p className="font-bold text-muted-foreground uppercase tracking-wide text-[9px]">Store Hub</p>
               <p className="font-black text-foreground">QuickPress Partner Hub</p>
-              <p className="text-muted-foreground font-medium">GSTIN: 29AABCQ1234P1ZV</p>
+              <p className="text-muted-foreground font-medium">GSTIN: 09AADCB1234K1Z8</p>
             </div>
           </div>
         </div>

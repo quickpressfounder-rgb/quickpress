@@ -2,7 +2,7 @@
 
 Generates an official, legally-binding 3-page bilateral delivery partner agreement PDF:
 - Corporate: QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-- Authorized Signatory: Dhani Ram (Director / Authorized Signatory)
+- Authorized Signatory: Himanshu Pal (Director / Authorized Signatory)
 - Official Seal Stamp: Circular company seal with 3 stars
 - Delivery Captain: Full Name, Verified Email, Phone, DL No, Vehicle RC, Bank Account
 - Core SLA Clauses: Cash Remittance (COD float within 24 hrs), Garment Integrity, Road Safety, Payouts
@@ -182,8 +182,25 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
     sig_url = data.get("signatureUrl") or data.get("agreementSignature") or ""
     signed_at = _safe_str(data.get("signedAt") or data.get("agreementSignedAt"), datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"))
 
-    company_name = "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
-    signatory_name = "Dhani Ram"
+    company_name = os.getenv("COMPANY_LEGAL_NAME", "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED")
+    signatory_name = os.getenv("COMPANY_SIGNATORY_NAME", "Himanshu Pal")
+    comp_cin = "U74999UP2024PTC198141"
+    comp_gstin = "09AADCB1234K1Z8"
+    comp_pan = "AADCB1234K"
+    comp_address = "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India"
+    try:
+        from app.db.admin_repositories import admin_settings_repository
+        comp = admin_settings_repository.default_settings.get("company", {})
+        if comp:
+            company_name = comp.get("legalName") or company_name
+            signatory_name = comp.get("authorizedSignatoryName") or signatory_name
+            comp_cin = comp.get("cin") or comp_cin
+            comp_gstin = comp.get("gstin") or comp_gstin
+            comp_pan = comp.get("pan") or comp_pan
+            comp_address = comp.get("registeredAddress") or comp_address
+    except Exception:
+        pass
+
     agreement_ref = _safe_str(data.get("agreementRef"), f"QP-CAPTAIN-SLA-2026-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M')}")
 
     # =========================================================================
@@ -191,7 +208,7 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
     # =========================================================================
     header_table_data = [
         [
-            Paragraph("<b>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</b><br/><font size=7 color='#64748b'>CIN: U93090UP2026PTC192841 · Regd. Office: Kasganj, Uttar Pradesh 207123</font>", p_body),
+            Paragraph(f"<b>{company_name}</b><br/><font size=7 color='#64748b'>CIN: {comp_cin} · Regd. Office: {comp_address}</font>", p_body),
             Paragraph(f"<b>Reference:</b> {agreement_ref}<br/><b>Captain ID:</b> {rider_id}<br/><b>Date:</b> {signed_at[:11]}", p_small),
         ]
     ]
@@ -211,8 +228,8 @@ def generate_rider_agreement_pdf(data: Dict[str, Any]) -> bytes:
 
     preamble = (
         f"This <b>Master Delivery Captain Service Level & Onboarding Agreement</b> (\"Agreement\") is entered into on "
-        f"<b>{signed_at[:11]}</b> by and between <b>{company_name}</b>, an Indian corporation having its principal office at "
-        f"Kasganj, Uttar Pradesh (hereinafter referred to as \"<b>QuickPress</b>\", which expression shall include its successors and assigns), "
+        f"<b>{signed_at[:11]}</b> by and between <b>{company_name}</b>, an Indian corporation having its registered office at "
+        f"{comp_address} (hereinafter referred to as \"<b>QuickPress</b>\", which expression shall include its successors and assigns), "
         f"and <b>{captain_name.upper()}</b> (hereinafter referred to as \"<b>Delivery Captain</b>\" or \"<b>Contractor</b>\"). "
         f"QuickPress and the Delivery Captain are individually referred to as a \"<b>Party</b>\" and collectively as the \"<b>Parties</b>\"."
     )

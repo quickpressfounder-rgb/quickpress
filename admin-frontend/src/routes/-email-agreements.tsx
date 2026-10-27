@@ -78,7 +78,7 @@ export function MerchantAgreementsTab() {
     acceptanceRate: 0,
     gateway: "Hostinger Business API (info@withquickpress.com)",
     cc: "official.quickpress@gmail.com",
-    signatory: "Dhani Ram",
+    signatory: "Himanshu Pal",
   };
 
   // 2. Resend Mutation
@@ -119,7 +119,7 @@ export function MerchantAgreementsTab() {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-                Bilateral legal agreements executed with QuickPress seal, authorized signatory Dhani Ram, and partner signatures.
+                Bilateral legal agreements executed with QuickPress seal, authorized signatory Himanshu Pal, and partner signatures.
               </p>
             </div>
           </div>
@@ -386,7 +386,7 @@ export function MerchantAgreementsTab() {
                           </div>
 
                           <div className="text-[10px] text-zinc-500 leading-tight">
-                            <span className="font-bold text-zinc-800 block">Dhani Ram · Dir</span>
+                            <span className="font-bold text-zinc-800 block">{stats.signatory || "Himanshu Pal"} · Dir</span>
                             <span>{item.hasSignature ? "Partner Signed ✓" : "Partner Pending"}</span>
                           </div>
                         </div>
@@ -712,7 +712,7 @@ export function DispatchAgreementModal({ isOpen, onClose, onSuccess }: DispatchA
                   Platform Signatory Stamp
                 </span>
                 <div className="font-bold text-zinc-900">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</div>
-                <div className="text-[11px] text-zinc-600">Signatory: Dhani Ram (Director / Signatory)</div>
+                <div className="text-[11px] text-zinc-600">Signatory: {stats.signatory || "Himanshu Pal"} (Director &amp; Authorized Signatory)</div>
               </div>
             </div>
 

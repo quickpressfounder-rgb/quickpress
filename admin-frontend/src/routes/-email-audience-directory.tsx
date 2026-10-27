@@ -99,7 +99,7 @@ export function AudienceDirectoryTab({ onComposeTo }: AudienceDirectoryTabProps)
           email: c.email || "",
           phone: c.phone || "",
           role: "customer",
-          city: c.city || "Kasganj",
+          city: c.city || "Unassigned",
           status: c.status || "Active",
           metricLabel: "Orders",
           metricValue: c.orders || 0,
@@ -118,7 +118,7 @@ export function AudienceDirectoryTab({ onComposeTo }: AudienceDirectoryTabProps)
           email: p.email || "",
           phone: p.phone || "",
           role: "partner",
-          city: p.city || "Kasganj",
+          city: p.city || "Unassigned",
           status: "Verified",
           metricLabel: "Completed",
           metricValue: p.completedOrders || p.totalOrders || 0,
@@ -137,7 +137,7 @@ export function AudienceDirectoryTab({ onComposeTo }: AudienceDirectoryTabProps)
           email: r.email || "",
           phone: r.phone || "",
           role: "rider",
-          city: r.city || "Kasganj",
+          city: r.city || "Unassigned",
           status: r.status || "Active",
           metricLabel: "Trips",
           metricValue: r.trips || 0,
@@ -505,7 +505,7 @@ export function AudienceDirectoryTab({ onComposeTo }: AudienceDirectoryTabProps)
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1 font-semibold text-zinc-700">
                           <MapPin className="h-3 w-3 text-zinc-400" />
-                          <span>{entity.city || "Kasganj"}</span>
+                          <span>{entity.city || "Unassigned"}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4">

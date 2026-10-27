@@ -57,8 +57,8 @@ ORDERS = "customer_orders"
 LEGACY_ORDERS = "orders"
 COUNTERS = "counters"
 
-#: Billing entity — QuickPress GSTIN
-COMPANY_GSTIN = "29AABCQ1234P1ZV"
+#: Billing entity — QuickPress GSTIN (Canonical UP GSTIN)
+COMPANY_GSTIN = os.getenv("COMPANY_GSTIN", "09AADCB1234K1Z8")
 TAX_RATE = 18.0
 
 PAYMENT_LABELS: Dict[str, str] = {
@@ -242,19 +242,19 @@ class InvoiceRepository:
                 "phone": customer.get("phone") or (getattr(user, "phone", "") if user else "") or "",
                 "email": customer.get("email") or (getattr(user, "email", "") if user else "") or "",
                 "addressLine": address.get("line") or address.get("address") or (order.get("delivery") or {}).get("address") or "",
-                "city": address.get("city") or "Kasganj",
+                "city": address.get("city") or "",
             },
             "partner": {
                 "id": part_id,
                 "name": partner.get("name") or partner.get("businessName") or "QuickPress Partner Hub",
                 "phone": partner.get("phone") or "",
                 "email": partner.get("email") or "",
-                "addressLine": partner.get("addressLine") or partner.get("city") or "MDR 82W, Kasganj",
-                "city": partner.get("city") or "Kasganj",
+                "addressLine": partner.get("addressLine") or partner.get("address") or "",
+                "city": partner.get("city") or "",
             },
             "gst": {
                 "gstin": COMPANY_GSTIN,
-                "placeOfSupply": address.get("city") or partner.get("city") or "Uttar Pradesh",
+                "placeOfSupply": address.get("state") or partner.get("state") or "Uttar Pradesh",
                 "hsnCode": "9997",
                 "taxRate": TAX_RATE,
                 "cgst": round(taxes / 2, 2),

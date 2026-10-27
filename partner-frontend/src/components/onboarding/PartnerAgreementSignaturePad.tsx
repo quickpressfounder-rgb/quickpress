@@ -321,7 +321,7 @@ export function PartnerAgreementSignaturePad({
 
           <div className="max-h-60 overflow-y-auto rounded-2xl bg-zinc-50 border border-zinc-200/80 p-4 text-[11px] text-zinc-700 space-y-3 leading-relaxed font-sans">
             <p>
-              <strong>1. PARTIES:</strong> This Agreement is executed between <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (&quot;Platform&quot;), represented by Director / Signatory <strong>Dhani Ram</strong>, and <strong>{storeName || "The Partner Store"}</strong>, represented by authorized signatory <strong>{effectiveSignerName}</strong> (&quot;Merchant Partner&quot;).
+              <strong>1. PARTIES:</strong> This Agreement is executed between <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (&quot;Platform&quot;), represented by Director / Signatory <strong>Himanshu Pal</strong>, and <strong>{storeName || "The Partner Store"}</strong>, represented by authorized signatory <strong>{effectiveSignerName}</strong> (&quot;Merchant Partner&quot;).
             </p>
 
             <p>
@@ -529,10 +529,10 @@ export function PartnerAgreementSignaturePad({
                   QUICKPRESS
                 </div>
                 <div className="text-[11px] font-bold text-zinc-700">
-                  Signatory: Dhani Ram
+                  Signatory: Himanshu Pal
                 </div>
                 <div className="text-[10px] text-zinc-500 truncate">
-                  Director / Signatory · info@withquickpress.com
+                  Director / Signatory · official.quickpress@gmail.com
                 </div>
               </div>
             </div>

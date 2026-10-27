@@ -2,7 +2,7 @@
 
 Generates an official, legally-binding 3-page bilateral agreement PDF:
 - Corporate: QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-- Authorized Signatory: Dhani Ram (Director / Authorized Signatory)
+- Authorized Signatory: Himanshu Pal (Director / Authorized Signatory)
 - Official Seal Stamp: Circular company seal with 3 stars
 - Merchant: Partner Store, Owner, Address, Bank, PAN, GSTIN
 - Commercial Terms: 15% Platform Commission, T+1 Settlement

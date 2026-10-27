@@ -110,7 +110,7 @@ class Settings(BaseSettings):
     hostinger_smtp_host: str = "smtp.hostinger.com"
     hostinger_smtp_port: int = 465
     company_legal_name: str = "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
-    company_signatory_name: str = "Dhani Ram"
+    company_signatory_name: str = "Himanshu Pal"
     notification_email: str = "official.quickpress@gmail.com"
     # --- WhatsApp Business Cloud API (Meta Graph API) --------------------
     whatsapp_phone_number_id: str = ""

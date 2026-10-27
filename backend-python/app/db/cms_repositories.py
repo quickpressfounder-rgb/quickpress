@@ -117,10 +117,10 @@ We may update this Privacy Policy periodically to reflect technological, operati
 If you have any questions, concerns, or requests regarding this Privacy Policy or our data handling practices, please reach out to us:
 
 * **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-* **CIN:** U96010UW2026PTC259787
+* **CIN:** U74999UP2024PTC198141
 * **Official Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [+91 9258730561](tel:+919258730561) (Mon–Sun, 7:00 AM – 10:00 PM IST)
-* **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
+* **Phone / Helpline:** [1800 012 3456](tel:18000123456) (Mon–Sun, 7:00 AM – 10:00 PM IST)
+* **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
 """,
         "versions": [
             {
@@ -228,10 +228,10 @@ These Terms are governed by and construed in accordance with the laws of India. 
 
 For any clarifications regarding these Terms:
 * **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-* **CIN:** U96010UW2026PTC259787
+* **CIN:** U74999UP2024PTC198141
 * **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [+91 9258730561](tel:+919258730561)
-* **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
+* **Phone / Helpline:** [1800 012 3456](tel:18000123456)
+* **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
 """,
         "versions": [
             {
@@ -324,10 +324,10 @@ If you are unsatisfied with garment cleaning quality or if an item is missing/da
 ## 5. Contact Information
 
 * **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-* **CIN:** U96010UW2026PTC259787
+* **CIN:** U74999UP2024PTC198141
 * **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-* **Phone / Helpline:** [+91 9258730561](tel:+919258730561)
-* **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
+* **Phone / Helpline:** [1800 012 3456](tel:18000123456)
+* **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
 """,
         "versions": [
             {
@@ -513,10 +513,10 @@ QuickPress is committed to providing prompt, fair, and transparent redressal of 
 If your complaint is not resolved satisfactorily at Level 1 within 48 hours, you may escalate directly to our designated Grievance Officer:
 
 - **Company:** QUICKPRESS TECHNOLOGIES PRIVATE LIMITED
-- **CIN:** U96010UW2026PTC259787
-- **Registered Office:** C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
+- **CIN:** U74999UP2024PTC198141
+- **Registered Office:** 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
 - **Email:** [info@withquickpress.com](mailto:info@withquickpress.com)
-- **Phone / Helpline:** [+91 9258730561](tel:+919258730561) (Mon–Sun, 7:00 AM – 10:00 PM IST)
+- **Phone / Helpline:** [1800 012 3456](tel:18000123456) (Mon–Sun, 7:00 AM – 10:00 PM IST)
 - **Statutory Acknowledgment:** Within **48 hours** with unique Ticket Reference ID.
 - **Resolution SLA:** Mandatory disposal and resolution within **30 days** of filing.
 

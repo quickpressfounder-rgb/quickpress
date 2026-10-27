@@ -204,8 +204,8 @@ function PartnerLegalDocScreen() {
               </h3>
               <p className="text-slate-500 leading-relaxed">
                 Operating Entity: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
-                CIN: <strong>U96010UW2026PTC259787</strong><br />
-                Registered Office: <strong>C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, UP, India</strong>
+                CIN: <strong>U74999UP2024PTC198141</strong><br />
+                Registered Office: <strong>0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</strong>
               </p>
               <div className="pt-2 border-t border-slate-100 space-y-1">
                 <a

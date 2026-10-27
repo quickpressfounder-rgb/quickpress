@@ -290,7 +290,7 @@ export function ContactPage({
   };
 
   const handleCopyAddress = () => {
-    const address = "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED, C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India";
+    const address = "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED, 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India";
     navigator.clipboard.writeText(address);
     setCopiedAddress(true);
     setTimeout(() => setCopiedAddress(false), 2500);
@@ -732,7 +732,7 @@ export function ContactPage({
               <div className="space-y-3 text-xs font-mono">
                 <div className="flex justify-between py-1 border-b border-zinc-100">
                   <span className="text-zinc-600 font-semibold">CIN:</span>
-                  <span className="font-mono text-[#16a34a] font-black text-right">U96010UW2026PTC259787</span>
+                  <span className="font-mono text-[#16a34a] font-black text-right">U74999UP2024PTC198141</span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-zinc-100">
                   <span className="text-zinc-600 font-semibold">Helpline:</span>
@@ -773,7 +773,7 @@ export function ContactPage({
                   </button>
                 </div>
                 <p className="text-xs text-zinc-700 leading-relaxed font-sans font-medium">
-                  C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah - 207123, Uttar Pradesh, India
+                  0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India
                 </p>
               </div>
 
@@ -817,7 +817,7 @@ export function ContactPage({
               </p>
               <div className="text-xs text-zinc-800 font-mono space-y-1.5 pt-1">
                 <p><strong>Legal Entity:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</p>
-                <p><strong>CIN:</strong> U96010UW2026PTC259787</p>
+                <p><strong>CIN:</strong> U74999UP2024PTC198141</p>
                 <p><strong>Nodal Email:</strong> <a href="mailto:legal@withquickpress.com" className="text-[#16a34a] font-bold hover:underline">legal@withquickpress.com</a></p>
                 <div className="flex items-center justify-between pt-1">
                   <span><strong>Direct Helpline:</strong></span>

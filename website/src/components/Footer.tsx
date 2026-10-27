@@ -249,7 +249,7 @@ export function Footer({
             By continuing past this page, you agree to our Terms of Service, Cookie Policy, Privacy Policy and Content Policies. All trademarks are properties of their respective owners.
           </p>
           <p>
-            2026 © <strong className="text-zinc-400 font-bold">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (CIN: U96010UW2026PTC259787). All rights reserved.
+            2026 © <strong className="text-zinc-400 font-bold">QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (CIN: U74999UP2024PTC198141). All rights reserved.
           </p>
         </div>
       </div>

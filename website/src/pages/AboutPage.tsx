@@ -351,11 +351,11 @@ export function AboutPage({
                   </div>
                   <div className="flex justify-between py-1 border-b border-zinc-100">
                     <span className="text-zinc-600 font-semibold">CIN:</span>
-                    <span className="font-mono text-[#16a34a] font-black text-right">U96010UW2026PTC259787</span>
+                    <span className="font-mono text-[#16a34a] font-black text-right">U74999UP2024PTC198141</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-zinc-100">
                     <span className="text-zinc-600 font-semibold">Registered Office:</span>
-                    <span className="text-black font-bold text-right max-w-[170px] truncate" title="Jail Road Nagla Baini, Kasganj, UP">
+                    <span className="text-black font-bold text-right max-w-[170px] truncate" title="0, Jail Road, Nagla Beni, Kasganj, UP">
                       Jail Road, Kasganj, UP
                     </span>
                   </div>

@@ -806,8 +806,10 @@ function TrackOrderScreen() {
                   avatar: rawAvatar,
                   vehicle: detail?.rider?.vehicle || tracking?.rider?.vehicle || "QuickPress Fleet",
                   plate: detail?.rider?.plate || tracking?.rider?.plate || "—",
-                  rating: Number(detail?.rider?.rating || tracking?.rider?.rating || 5.0),
-                  trips: String(detail?.rider?.trips || tracking?.rider?.trips || "10+ deliveries"),
+                  rating: Number(detail?.rider?.rating ?? tracking?.rider?.rating ?? 5.0),
+                  trips: (detail?.rider?.trips || tracking?.rider?.trips)
+                    ? `${detail?.rider?.trips || tracking?.rider?.trips} deliveries`
+                    : "Verified Captain",
                   phone: String(detail?.rider?.phone || tracking?.rider?.phone || ""),
                 };
 

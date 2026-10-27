@@ -14,9 +14,9 @@ import {
   Sparkles,
   Globe,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { submitPublicContact, type ContactFormPayload } from "@/api/customer/public-api";
+import { submitPublicContact, fetchCompanyProfile, type ContactFormPayload, type CompanyLegalProfile } from "@/api/customer/public-api";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -32,6 +32,7 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactScreen() {
+  const [companyProfile, setCompanyProfile] = useState<CompanyLegalProfile | null>(null);
   const [form, setForm] = useState<ContactFormPayload>({
     name: "",
     email: "",
@@ -42,6 +43,10 @@ function ContactScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCompanyProfile().then(setCompanyProfile).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,33 +133,46 @@ function ContactScreen() {
                 </a>
 
                 <a
-                  href="tel:+919258730561"
+                  href={`tel:${companyProfile?.tollFreePhone || "18000123456"}`}
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
                     <Phone className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">+91 92587 30561</p>
-                    <p className="text-slate-500 mt-0.5">Company MD Contact / Direct Desk</p>
+                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.tollFreePhone || "1800 012 3456"}</p>
+                    <p className="text-slate-500 mt-0.5">QuickPress Helpdesk (Mon–Sun, 7:00 AM – 10:00 PM IST)</p>
                   </div>
                 </a>
 
                 <a
-                  href="mailto:official.quickpress@gmail.com"
+                  href={`tel:${companyProfile?.supportPhone || "+919000000000"}`}
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                >
+                  <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                    <Phone className="size-4" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.supportPhone || "+91 90000 00000"}</p>
+                    <p className="text-slate-500 mt-0.5">Grievance & Operations Desk ({companyProfile?.grievanceOfficerName || "Himanshu Pal"})</p>
+                  </div>
+                </a>
+
+                <a
+                  href={`mailto:${companyProfile?.supportEmail || "official.quickpress@gmail.com"}`}
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
                 >
                   <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
                     <Mail className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">official.quickpress@gmail.com</p>
-                    <p className="text-slate-500 mt-0.5">Central Support Desk</p>
+                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.supportEmail || "official.quickpress@gmail.com"}</p>
+                    <p className="text-slate-500 mt-0.5">Central Support & Corporate Desk</p>
                   </div>
                 </a>
 
                 <a
-                  href="https://with.quickpress.com"
+                  href={companyProfile?.websiteUrl || "https://withquickpress.com"}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5 transition hover:border-emerald-200 hover:bg-emerald-50/50"
@@ -163,8 +181,8 @@ function ContactScreen() {
                     <Globe className="size-4" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">with.quickpress.com</p>
-                    <p className="text-slate-500 mt-0.5">Official Brand & Company Website</p>
+                    <p className="font-bold text-slate-900 text-sm">{companyProfile?.websiteUrl ? companyProfile.websiteUrl.replace(/^https?:\/\//, "") : "withquickpress.com"}</p>
+                    <p className="text-slate-500 mt-0.5">Official Brand & Platform Website</p>
                   </div>
                 </a>
               </div>
@@ -181,9 +199,9 @@ function ContactScreen() {
                 <div className="flex items-start gap-2.5">
                   <MapPin className="size-4 text-slate-400 shrink-0 mt-0.5" />
                   <p>
-                    <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong><br />
-                    <span className="text-slate-500">CIN: U96010UW2026PTC259787</span><br />
-                    C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, Uttar Pradesh, India
+                    <strong>{companyProfile?.legalName || "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"}</strong><br />
+                    <span className="text-slate-500">CIN: {companyProfile?.cin || "U74999UP2024PTC198141"}</span><br />
+                    {companyProfile?.registeredAddress || "0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India"}
                   </p>
                 </div>
               </div>

@@ -328,15 +328,57 @@ export function HomePage({
     };
   }, []);
 
+  const [liveServices, setLiveServices] = useState<ServiceInfo[]>(AVAILABLE_SERVICES);
+
+  // Fetch live master catalog from database
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/public/services")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!mounted || !Array.isArray(data) || data.length === 0) return;
+        const mapped: ServiceInfo[] = data.map((item: any, idx: number) => {
+          const fallbackMatch = AVAILABLE_SERVICES.find(
+            (s) => s.id === item.id || s.title.toLowerCase() === (item.name || "").toLowerCase()
+          );
+          return {
+            id: item.id || `svc-${idx}`,
+            title: item.name || fallbackMatch?.title || "Care Service",
+            category: item.category || fallbackMatch?.category || "Daily Garment Care",
+            desc: item.description || fallbackMatch?.desc || "Hygienic processing & door-to-door delivery.",
+            tagline: item.tagline || fallbackMatch?.tagline || "Expert garment care",
+            price: typeof item.price === "number" ? `From ₹${item.price}` : (item.price || fallbackMatch?.price || "₹49 / kg"),
+            turnaround: item.turnaround || fallbackMatch?.turnaround || "24 Hours",
+            features: Array.isArray(item.features) && item.features.length > 0
+              ? item.features
+              : (fallbackMatch?.features || [
+                  "Hypoallergenic eco-detergent wash",
+                  "Color-sorted temperature control",
+                  "Neatly folded & sealed packaging",
+                ]),
+            accentColor: fallbackMatch?.accentColor || GREEN,
+            bgLight: fallbackMatch?.bgLight || "#ECFDF5",
+          };
+        });
+        setLiveServices(mapped);
+      })
+      .catch(() => {
+        // Fallback cleanly to default operational services
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Filter available services based on search query
   const filteredServices = searchQuery.trim()
-    ? AVAILABLE_SERVICES.filter(
+    ? liveServices.filter(
       (s) =>
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.tagline.toLowerCase().includes(searchQuery.toLowerCase())
     )
-    : AVAILABLE_SERVICES;
+    : liveServices;
 
   // Handler: Real GPS Live Location Detection
   const handleDetectCurrentLocation = () => {

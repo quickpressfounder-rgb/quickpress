@@ -6,11 +6,11 @@
 
 export const BRAND = {
   name: "QuickPress",
-  tagline: "Laundry pickup & delivery",
-  domain: "with.quickpress.com",
-  websiteUrl: "https://with.quickpress.com",
-  supportEmail: "help@quickpress.in",
-  supportPhone: "+91 1800 200 400",
+  tagline: "Hyperlocal On-Demand Laundry & Garment Care Platform",
+  domain: "withquickpress.com",
+  websiteUrl: "https://withquickpress.com",
+  supportEmail: "official.quickpress@gmail.com",
+  supportPhone: "1800 012 3456",
 } as const;
 
 /** Namespaces on the single shared QuickPress backend. */

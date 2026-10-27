@@ -261,8 +261,11 @@ async def list_merchant_agreements(
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by executed / pending / all"),
     limit: int = Query(100, ge=1, le=300),
 ) -> Dict[str, Any]:
-    """Retrieve all Franchise & SLA Merchant Agreement dispatch records, execution status, and timestamps."""
     settings = get_settings()
+    from app.db.admin_repositories import get_company_legal_profile
+    comp_profile = await get_company_legal_profile()
+    active_signatory = comp_profile.get("authorizedSignatoryName") or settings.company_signatory_name or "Himanshu Pal"
+    active_legal_name = comp_profile.get("legalName") or settings.company_legal_name or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED"
 
     # 1. Fetch from partner_agreements
     agreements = await database.find_many("partner_agreements", {}, limit=limit) or []
@@ -306,8 +309,8 @@ async def list_merchant_agreements(
             "signedAt": a.get("signedAt") or a.get("updatedAt") or "",
             "hasSignature": bool(a.get("signatureUrl")),
             "signatureUrl": a.get("signatureUrl"),
-            "signatoryName": a.get("signatory") or settings.company_signatory_name or "Dhani Ram",
-            "companyLegalName": settings.company_legal_name or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+            "signatoryName": a.get("signatory") or active_signatory,
+            "companyLegalName": active_legal_name,
             "lastDispatchedAt": log.get("createdAt") or a.get("signedAt") or "",
             "dispatchStatus": log.get("status") or "sent",
             "dispatchMethod": log.get("method") or "hostinger_api",
@@ -342,8 +345,8 @@ async def list_merchant_agreements(
             "signedAt": "",
             "hasSignature": False,
             "signatureUrl": None,
-            "signatoryName": settings.company_signatory_name or "Dhani Ram",
-            "companyLegalName": settings.company_legal_name or "QUICKPRESS TECHNOLOGIES PRIVATE LIMITED",
+            "signatoryName": active_signatory,
+            "companyLegalName": active_legal_name,
             "lastDispatchedAt": log.get("createdAt") or "",
             "dispatchStatus": log.get("status") or ("sent" if has_log else "unattempted"),
             "dispatchMethod": log.get("method") or "hostinger_api",
@@ -386,7 +389,7 @@ async def list_merchant_agreements(
             "acceptanceRate": round((accepted_count / total_count * 100) if total_count else 0, 1),
             "gateway": "Hostinger Business API (info@withquickpress.com)",
             "cc": settings.notification_email or "official.quickpress@gmail.com",
-            "signatory": settings.company_signatory_name or "Dhani Ram",
+            "signatory": active_signatory,
         },
     }
 
@@ -456,7 +459,7 @@ async def dispatch_agreement_letter(payload: DispatchAgreementPayload, request: 
                 "state": payload.state or "Uttar Pradesh",
                 "address": payload.address or "",
                 "status": "digitally_executed" if sig_url else "dispatched_pending",
-                "signatory": settings.company_signatory_name or "Dhani Ram",
+                "signatory": settings.company_signatory_name or "Himanshu Pal",
                 "lastDispatchedAt": now_iso,
                 "version": "QP-SLA-2026.4",
                 "updatedAt": now_iso,

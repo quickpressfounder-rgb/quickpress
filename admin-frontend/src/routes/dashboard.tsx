@@ -1359,10 +1359,10 @@ export function DashboardPage() {
                 <span className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-black text-sky-950">Catalog</span>
               </div>
               <p className="text-2xl font-black text-zinc-950 mt-1.5 tabular-nums">
-                {data?.activeServicesCount || 23}
+                {data?.activeServicesCount ?? (servicesList?.length || 0)}
               </p>
               <p className="text-[11px] font-bold text-zinc-600 mt-0.5">
-                Across {data?.totalCategoriesCount || 7} care verticals
+                Across {data?.totalCategoriesCount ?? (categoriesList?.length || 0)} care verticals
               </p>
             </div>
 
@@ -1372,10 +1372,10 @@ export function DashboardPage() {
                 <span className="rounded-md bg-amber-200 px-1.5 py-0.5 text-[10px] font-black text-amber-950">Revenue</span>
               </div>
               <p className="text-sm font-black text-zinc-950 mt-1.5 truncate">
-                ⭐ {data?.topGrossingService || "Steam Iron & Press"}
+                {data?.topGrossingService ? `⭐ ${data.topGrossingService}` : "No sales recorded yet"}
               </p>
               <p className="text-xs font-black text-emerald-800 mt-0.5">
-                {currency(data?.topGrossingRevenue || 52400)} GMV transacted
+                {currency(data?.topGrossingRevenue ?? 0)} GMV transacted
               </p>
             </div>
 
@@ -1385,7 +1385,7 @@ export function DashboardPage() {
                 <span className="rounded-md bg-purple-200 px-1.5 py-0.5 text-[10px] font-black text-purple-950">Orders</span>
               </div>
               <p className="text-sm font-black text-zinc-950 mt-1.5 truncate">
-                📦 {data?.topOrderService || "Wash & Fold Standard"}
+                {data?.topOrderService ? `📦 ${data.topOrderService}` : "No orders recorded yet"}
               </p>
               <p className="text-xs font-black text-purple-950 mt-0.5">
                 {data?.topOrderOrders || 0} completed orders
@@ -1398,7 +1398,7 @@ export function DashboardPage() {
                 <span className="rounded-md bg-emerald-200 px-1.5 py-0.5 text-[10px] font-black text-emerald-950">Synced</span>
               </div>
               <p className="text-2xl font-black text-emerald-950 mt-1.5 tabular-nums">
-                {data?.partnerAdoptionRate || 78}%
+                {data?.partnerAdoptionRate ?? 0}%
               </p>
               <p className="text-[11px] font-bold text-emerald-900 mt-0.5">
                 Active in partner onboarding flow

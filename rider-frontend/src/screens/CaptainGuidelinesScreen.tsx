@@ -279,8 +279,8 @@ export const CaptainGuidelinesScreen: React.FC<CaptainGuidelinesScreenProps> = (
               {/* Legal Entity Card */}
               <div className="border-t border-zinc-100 pt-3 bg-zinc-50 rounded-2xl p-3 border border-zinc-200/70 space-y-1 text-[11px]">
                 <p className="font-black text-zinc-900">Legal Entity & Nodal Office:</p>
-                <p className="text-zinc-600"><strong>Company:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (CIN: U96010UW2026PTC259787)</p>
-                <p className="text-zinc-600"><strong>Registered Office:</strong> C/O DHANI RAM, Jail Road Nagla Baini, Kasganj, Etah- 207123, UP</p>
+                <p className="text-zinc-600"><strong>Company:</strong> QUICKPRESS TECHNOLOGIES PRIVATE LIMITED (CIN: U74999UP2024PTC198141)</p>
+                <p className="text-zinc-600"><strong>Registered Office:</strong> 0, Jail Road, Nagla Beni, Near Gadda Factory, Kaliyanpur, Kasganj, Uttar Pradesh - 207123, India</p>
                 <p className="text-zinc-600">
                   <strong>Official Legal Email:</strong>{" "}
                   <a href={`mailto:${CAPTAIN_SUPPORT_EMAIL_OFFICIAL}`} className="text-blue-600 font-bold underline">

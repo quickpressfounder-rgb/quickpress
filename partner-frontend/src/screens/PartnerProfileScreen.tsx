@@ -1712,7 +1712,7 @@ export function PartnerProfileScreen() {
                         </span>
                       </div>
                       <div className="text-[11px] text-emerald-900 space-y-1">
-                        <p>Signatory: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (Dhani Ram)</p>
+                        <p>Signatory: <strong>QUICKPRESS TECHNOLOGIES PRIVATE LIMITED</strong> (Himanshu Pal)</p>
                         <p>Partner Signatory: <strong>{profile?.ownerName || "Store Proprietor"}</strong></p>
                       </div>
                       <div className="pt-1 flex items-center justify-between border-t border-emerald-200/80">
