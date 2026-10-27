@@ -84,10 +84,15 @@ if command -v docker &> /dev/null; then
     sudo docker build -t quickpress-api .
     sudo docker stop quickpress-backend 2>/dev/null || true
     sudo docker rm quickpress-backend 2>/dev/null || true
+    FIREBASE_MOUNT=""
+    if [ -f "$REPO_ROOT/quickpress-firebase-service-account.json" ]; then
+        FIREBASE_MOUNT="-v $REPO_ROOT/quickpress-firebase-service-account.json:/app/quickpress-firebase-service-account.json"
+    fi
     sudo docker run -d \
         --name quickpress-backend \
         --restart always \
         --env-file .env \
+        $FIREBASE_MOUNT \
         -p 127.0.0.1:8000:8000 \
         quickpress-api
     echo "  -> Verifying backend container health..."
