@@ -2212,6 +2212,11 @@ This single command will automatically:
   - Financial precision test suite: `tests/test_finance_rules_precision.py`: **ALL 5 PRECISION TESTS PASSED (100% SUCCESS)**.
   - Admin Frontend build: `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 1.84s)**.
   - Customer Frontend build: `npm --prefix customer-frontend run build`: **PASSED (0 errors, built in 1.07s)**.
-
-
-
+- **Production Deployment to EC2 (`65.0.127.43`):**
+  - Git commit: `dfd38a6` ("feat: centralize company legal profile single source of truth across platform").
+  - Admin Frontend (`admin-frontend`): Built with `NITRO_PRESET=node-server npm run build` and restarted via PM2 (`quickpress-admin` PID 369080, status online on port 8084).
+  - Backend API (`quickpress-backend`): Docker container rebuilt and restarted (`container ID 57347fbcf9b8`, bound to `0.0.0.0:8000->8000/tcp`).
+  - Health & Endpoints Verification:
+    - `/api/health`: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`
+    - `/api/public/company-profile`: Successfully returns full legal identity (Legal Name, CIN, PAN, GSTIN, Registered Address, etc.).
+    - Admin Console (`http://127.0.0.1:8084`): Active with HTTP 307 redirect to auth.
