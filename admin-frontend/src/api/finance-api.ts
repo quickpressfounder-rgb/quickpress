@@ -1207,24 +1207,84 @@ export async function fetchProfitabilityAnalytics(period?: string): Promise<Prof
 
 export interface TaxCenterResponse {
   ok: boolean;
+  gstin: string;
+  pan: string;
+  legalEntity: string;
+  jurisdiction: string;
   taxSummary: {
     grossTaxableSales: number;
+    laundryTaxableSales: number;
+    deliveryTaxableSales: number;
+    platformTaxableSales: number;
     cgstCollected: number;
     sgstCollected: number;
     igstCollected: number;
     totalGstCollected: number;
+    gstSec95Payable: number;
+    gstPassedToRegisteredPartners: number;
     tcs194O: number;
+    tcsSection52: number;
     tds194C: number;
     netTaxPayable: number;
+    registeredPartnersCount: number;
+    unregisteredPartnersCount: number;
   };
-  gstin: string;
-  jurisdiction: string;
+  gstr3bLedger?: Array<{
+    sacCode: string;
+    natureOfSupply: string;
+    taxableValue: number;
+    cgst: number;
+    sgst: number;
+    totalTax: number;
+    remittedBy: string;
+  }>;
+  gstr8TcsLedger?: Array<{
+    partnerId: string;
+    businessName: string;
+    gstin: string;
+    city: string;
+    taxableSupplies: number;
+    cgstTcs: number;
+    sgstTcs: number;
+    totalTcs: number;
+    status: string;
+  }>;
+  b2bInvoicesLedger?: Array<{
+    invoiceNo: string;
+    date: string;
+    partnerName: string;
+    partnerGstin: string;
+    baseCommission: number;
+    gstAmount: number;
+    totalInvoiceValue: number;
+    itcEligibility: string;
+  }>;
+  threeWayInvoicesSample?: Array<{
+    orderId: string;
+    date: string;
+    customerName: string;
+    partnerName: string;
+    partnerGstin: string | null;
+    isPartnerRegistered: boolean;
+    partnerInvoiceNo: string;
+    laundryAmount: number;
+    laundryGst: number;
+    riderName: string;
+    riderReceiptNo: string;
+    deliveryFee: number;
+    deliveryGst: number;
+    platformInvoiceNo: string;
+    platformFee: number;
+    platformGst: number;
+    grandTotal: number;
+  }>;
   complianceCalendar: Array<{
     period: string;
     dueDate: string;
     status: string;
     statutoryForm: string;
     description: string;
+    frequency?: string;
   }>;
 }
 
@@ -1411,6 +1471,12 @@ export interface PartnerPayoutRecord {
   utr?: string | null;
   paidAt?: string | null;
   cycleDueToday: boolean;
+  isGstRegistered?: boolean;
+  gstin?: string | null;
+  taxStatus?: "REGISTERED_GST" | "UNREGISTERED_COMPOSITION";
+  laundryGst?: number;
+  commissionGst?: number;
+  tcsDeducted?: number;
 }
 
 export interface RiderPayoutRecord {

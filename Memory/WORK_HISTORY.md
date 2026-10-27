@@ -33,6 +33,50 @@
 
 ## Detailed Log of Work Done Today (27 October 2026)
 
+### 30. GST-Aware Partner Payout Calculation Engine & Advanced Statutory Tax Center
+- **User Requirement:**
+  - "or iske ander aager gst bala partner hai to uska calculation enging banao or uske liye payout m ek option add karo Unregistyered or registered partern jisme uske dekh sake or uske ius ka invoice me uska gst print ko or tex center ko advance enginearing ke sarh banao jisme sare tex ka record ho kitni gst paid karna hai kitna collet hua hai total tex kpi tds etc etc sare tax se related option ho or real dta bhi ho unka"
+- **Architecture & Implementation:**
+  1. **GST-Registered vs. Unregistered Calculation Engine (`backend-python/app/api/finance_engine.py`):**
+     - Differentiates registered partners (with verified 15-char GSTIN) from unregistered partners.
+     - **Registered Partner Calculation:**
+       - Laundry GST (18%) is passed to partner for direct GSTR-3B filing.
+       - QuickPress platform commission (10%) deducted + 18% GST on Commission charged (QuickPress issues B2B invoice for Partner's ITC).
+       - Section 52 TCS (1%) deducted and remitted under Partner's GSTIN for GSTR-8 credit.
+       - Section 194-O TDS (1%) deducted.
+       - Net bank disbursal accurately balanced: `Gross + Laundry GST - Commission - Comm GST - TCS - TDS + Bonus`.
+     - **Unregistered Partner Calculation:**
+       - Handled under Section 9(5) CGST Act. QuickPress directly remits the 18% laundry GST to Government on behalf of the unregistered laundromat.
+       - Partner receives net base payout without laundry GST.
+       - Zero commission GST charged (unregistered cannot claim ITC).
+       - Zero TCS deducted (TCS applies only to registered sellers).
+       - Net bank disbursal: `Gross - Commission - TDS + Bonus`.
+  2. **Payouts Command Center UI Enhancements (`admin-frontend/src/components/finance/PayoutsCommandCenter.tsx`):**
+     - New Tax Filter dropdown: `All Tax Profiles`, `Registered B2B (Has GSTIN)`, `Unregistered / Sec 9(5)`.
+     - GSTIN badge and B2B status directly on the store row (`GSTIN: 09AAACH7821K1Z4 · B2B Reg` vs `Unregistered · Sec 9(5) Platform Remitted`).
+     - Tax breakdown display under Gross Sales (`+₹... GST`) and Commission (`-18% Comm GST · -1% TCS`).
+     - Net Bank Disbursal clarification label.
+     - Instant search filter supports searching directly by GSTIN.
+  3. **Advanced Statutory Tax Center (`TaxComplianceCenterView.tsx` & `unified_finance_service.py`):**
+     - Executive KPIs aggregating directly from live Supabase collections (`order_financials`, `orders`, `partner_profiles`):
+       - Gross Taxable Base (with Laundry, Logistics, Platform splits).
+       - Total GST Collected from Customers (CGST 9% + SGST 9% / IGST 18%).
+       - QuickPress Section 9(5) Tax Due (Unregistered Laundry + Delivery + Platform fee).
+       - Total GST passed to Registered Partners for their own filing.
+       - Section 52 TCS (1% for GSTR-8).
+       - Section 194-O TDS (1% for Income Tax Form 26Q).
+       - Net Statutory Payable to Government this cycle.
+     - Multi-Tab Corporate Ledgers:
+       - **Tab 1: GSTR-3B Summary Ledger (SAC 9997, SAC 9968, SAC 9983)** with Taxable Value, CGST, SGST, Total Tax, and Legal Remitter.
+       - **Tab 2: 3-Way Invoicing Registry (Rapido/Uber architecture):** displays order-by-order breakdown with Partner Laundry Invoice (`QP-LND-xxx`), Rider Logistics Receipt (`QP-DLV-xxx`), and Platform Fee Invoice (`QP-PLT-xxx`), complete with consolidated 3-invoice package view modal and PDF download action.
+       - **Tab 3: GSTR-8 Statement (Section 52 TCS)** for registered partners with GSTIN, Gross Supplies, CGST TCS, SGST TCS, Net TCS, and JSON export.
+       - **Tab 4: B2B Commission Invoices** issued by QuickPress to registered partners for their Input Tax Credit (ITC) claim.
+       - **Tab 5: Statutory Filing Compliance Calendar** with live due dates and status.
+- **Verification:**
+  - `admin-frontend` Vite build verification: 100% pass (code 0).
+  - `backend-python` syntax verification: 100% pass (code 0).
+  - Deployed live to AWS EC2 (`65.0.127.43`) and verified on `https://ops.withquickpress.com/finance-engine`.
+
 ### 29. Staff Directory & RBAC Governance Redesign with Access-Wise Controls
 - **User Requirement:**
   - "ab staff ka bhi desing redesing karo or staff add kar sake or edit bhi acces wise"

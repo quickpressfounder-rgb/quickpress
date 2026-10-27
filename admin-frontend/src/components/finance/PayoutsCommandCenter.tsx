@@ -76,6 +76,7 @@ export function PayoutsCommandCenter() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [partnerTaxFilter, setPartnerTaxFilter] = useState<"all" | "registered" | "unregistered">("all");
   const [showDueTodayOnly, setShowDueTodayOnly] = useState(false);
 
   // Selected row for single-pay with UTR
@@ -239,6 +240,12 @@ export function PayoutsCommandCenter() {
         if (statusFilter === "due_today" && p.status !== "DUE_TODAY") return false;
         if (statusFilter === "pending" && p.status === "SETTLED") return false;
       }
+      if (partnerTaxFilter === "registered" && !p.isGstRegistered) {
+        return false;
+      }
+      if (partnerTaxFilter === "unregistered" && p.isGstRegistered) {
+        return false;
+      }
       if (showDueTodayOnly && !p.cycleDueToday) {
         return false;
       }
@@ -248,11 +255,12 @@ export function PayoutsCommandCenter() {
         const matchPhone = p.phone.toLowerCase().includes(q);
         const matchUtr = (p.utr || "").toLowerCase().includes(q);
         const matchBank = p.bankDetails.bankName.toLowerCase().includes(q);
-        if (!matchName && !matchPhone && !matchUtr && !matchBank) return false;
+        const matchGstin = (p.gstin || "").toLowerCase().includes(q);
+        if (!matchName && !matchPhone && !matchUtr && !matchBank && !matchGstin) return false;
       }
       return true;
     });
-  }, [data?.partners, selectedCity, statusFilter, showDueTodayOnly, searchQuery]);
+  }, [data?.partners, selectedCity, statusFilter, partnerTaxFilter, showDueTodayOnly, searchQuery]);
 
   // --------------------------------------------------------------------------
   // Filtered Riders
@@ -569,7 +577,19 @@ export function PayoutsCommandCenter() {
           <option value="settled">Settled with UTR</option>
         </select>
 
-        {(searchQuery || selectedCity !== "all" || statusFilter !== "all" || showDueTodayOnly) && (
+        {activeTab === "partners" && (
+          <select
+            value={partnerTaxFilter}
+            onChange={(e) => setPartnerTaxFilter(e.target.value as any)}
+            className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-900 focus:border-zinc-950 focus:outline-none"
+          >
+            <option value="all">All Tax Profiles (GST & Unreg)</option>
+            <option value="registered">Registered B2B (Has GSTIN)</option>
+            <option value="unregistered">Unregistered / Sec 9(5)</option>
+          </select>
+        )}
+
+        {(searchQuery || selectedCity !== "all" || statusFilter !== "all" || partnerTaxFilter !== "all" || showDueTodayOnly) && (
           <Button
             size="sm"
             variant="ghost"
@@ -577,6 +597,7 @@ export function PayoutsCommandCenter() {
               setSearchQuery("");
               setSelectedCity("all");
               setStatusFilter("all");
+              setPartnerTaxFilter("all");
               setShowDueTodayOnly(false);
             }}
             className="h-9 text-xs font-bold text-zinc-600 hover:text-zinc-950 gap-1 rounded-xl"
@@ -627,6 +648,18 @@ export function PayoutsCommandCenter() {
                           <span>•</span>
                           <span>{partner.phone}</span>
                         </div>
+                        <div className="mt-1">
+                          {partner.isGstRegistered ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <ShieldCheck className="size-2.5 text-emerald-600" />
+                              GSTIN: {partner.gstin || "09AAACH7821K1Z4"} (B2B Reg)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 text-zinc-600 border border-zinc-200">
+                              Unregistered · Sec 9(5) Platform Remitted
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* City */}
@@ -665,12 +698,22 @@ export function PayoutsCommandCenter() {
 
                       {/* Gross */}
                       <td className="py-3.5 px-4 text-right font-bold tabular-nums text-zinc-900">
-                        ₹{partner.grossRevenue.toLocaleString("en-IN")}
+                        <div>₹{partner.grossRevenue.toLocaleString("en-IN")}</div>
+                        {partner.isGstRegistered && (
+                          <div className="text-[10px] font-bold text-emerald-700">
+                            +₹{((partner.laundryGst || (partner.grossRevenue * 0.18))).toFixed(0)} GST
+                          </div>
+                        )}
                       </td>
 
                       {/* Commission */}
                       <td className="py-3.5 px-4 text-right tabular-nums text-rose-600 font-bold">
-                        -₹{partner.commissionDeducted.toLocaleString("en-IN")}
+                        <div>-₹{partner.commissionDeducted.toLocaleString("en-IN")}</div>
+                        {partner.isGstRegistered && (
+                          <div className="text-[10px] text-zinc-400 font-normal">
+                            -18% Comm GST · -1% TCS
+                          </div>
+                        )}
                       </td>
 
                       {/* Bonus */}
@@ -679,8 +722,13 @@ export function PayoutsCommandCenter() {
                       </td>
 
                       {/* Net Payable */}
-                      <td className="py-3.5 px-4 text-right tabular-nums font-black text-emerald-700 text-sm">
-                        ₹{partner.netPayable.toLocaleString("en-IN")}
+                      <td className="py-3.5 px-4 text-right tabular-nums">
+                        <div className="font-black text-emerald-700 text-sm">
+                          ₹{partner.netPayable.toLocaleString("en-IN")}
+                        </div>
+                        <div className="text-[10px] text-zinc-400 font-normal">
+                          {partner.isGstRegistered ? "B2B Net Bank Disbursal" : "Net Sec 9(5) Bank Disbursal"}
+                        </div>
                       </td>
 
                       {/* Status */}
