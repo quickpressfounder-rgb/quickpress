@@ -80,8 +80,10 @@ async def get_public_legal_doc(doc_slug: str) -> Dict[str, Any]:
 
 @router.get("/services")
 async def get_public_services() -> List[Dict[str, Any]]:
-    """Return all active master services for the public website without internal pricing."""
+    """Return all active master services for the public website and partner onboarding."""
     admin_svcs = await database.find_many("admin_services")
+    categories = await database.find_many("admin_categories")
+    cat_map = {str(c.get("_id")): c.get("name") for c in (categories or [])}
     admin_map = {str(a.get("name", "")).strip().lower(): a for a in (admin_svcs or [])}
 
     services = await catalog.services()
@@ -94,10 +96,13 @@ async def get_public_services() -> List[Dict[str, Any]]:
         admin_match = admin_map.get(s_key)
         img = (admin_match.get("image") if admin_match else None) or getattr(s, "image", None) or getattr(s, "imageUrl", "")
         turnaround = getattr(s, "processingTime", None) or getattr(s, "turnaround", "24-48 hours")
+        cat_name = (admin_match.get("category") if admin_match else None) or (cat_map.get(admin_match.get("categoryId")) if admin_match else None) or getattr(s, "category", "Laundry")
         results.append({
             "id": s.id,
             "slug": s.id,
             "name": s_name,
+            "category": cat_name,
+            "categoryId": (admin_match.get("categoryId") if admin_match else None) or "cat-1",
             "description": s.description or f"Professional {s_name} with door-to-door pickup & delivery.",
             "tagline": getattr(s, "tagline", "Expert care for your garments"),
             "icon": getattr(s, "icon", "sparkles"),
@@ -105,6 +110,7 @@ async def get_public_services() -> List[Dict[str, Any]]:
             "imageUrl": img,
             "price": getattr(s, "finalPrice", getattr(s, "price", 79)),
             "turnaround": turnaround,
+            "defaultHours": int(getattr(s, "turnaroundHours", 24) or 24),
             "popular": getattr(s, "popular", False),
             "unit": getattr(s, "unit", "Item / Kg"),
             "features": [
@@ -120,18 +126,22 @@ async def get_public_services() -> List[Dict[str, Any]]:
         if a_name and a_name.lower() not in seen:
             seen.add(a_name.lower())
             img = a.get("image", "")
+            cat_name = a.get("category") or cat_map.get(a.get("categoryId")) or "Laundry"
             results.append({
                 "id": str(a.get("_id", a_name)),
                 "slug": str(a.get("_id", a_name)),
                 "name": a_name,
+                "category": cat_name,
+                "categoryId": a.get("categoryId") or "cat-1",
                 "description": a.get("description") or f"Professional {a_name} with door-to-door pickup & delivery.",
                 "tagline": "Expert care for your garments",
-                "icon": "sparkles",
+                "icon": a.get("icon") or "sparkles",
                 "image": img,
                 "imageUrl": img,
                 "price": float(a.get("price", 79)),
                 "turnaround": f"{a.get('turnaroundHours', 24)} hours",
-                "popular": False,
+                "defaultHours": int(a.get("turnaroundHours", 24) or 24),
+                "popular": bool(a.get("popular", False)),
                 "unit": a.get("unit", "Item / Kg"),
                 "features": [
                     "Doorstep pickup & drop-off",

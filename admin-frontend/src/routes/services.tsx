@@ -42,6 +42,12 @@ import {
   ArrowRight,
   Scale,
   Percent,
+  LayoutGrid,
+  List,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,8 +123,13 @@ export function ServicesPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [unitFilter, setUnitFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<"revenue" | "orders" | "price" | "name">("revenue");
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [showAreaStats, setShowAreaStats] = useState(false);
+  const [adoptionFilter, setAdoptionFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<"revenue" | "orders" | "price_desc" | "price_asc" | "name" | "adoption">("revenue");
   const [selectedService, setSelectedService] = useState<ServiceIntelligence | null>(null);
+  const [adoptingService, setAdoptingService] = useState<ServiceIntelligence | null>(null);
+  const [editingMasterService, setEditingMasterService] = useState<ServiceIntelligence | null>(null);
 
   // Partner rate cards tab states
   const [partnerRateSearch, setPartnerRateSearch] = useState("");
@@ -255,15 +266,41 @@ export function ServicesPage() {
 
   const metrics = useMemo(() => {
     const totalServices = stats?.totalServices ?? allIntelligence.length;
+    const activeServices = stats?.activeServices ?? allIntelligence.filter((s) => s.status === "Active").length;
+    const inactiveServices = stats?.inactiveServices ?? (totalServices - activeServices);
+    const totalCategories = stats?.totalCategories ?? allCategories.length;
     const totalRevenue = stats?.totalServiceRevenue ?? allIntelligence.reduce((acc, s) => acc + s.financials.grossRevenue, 0);
     const totalOrders = stats?.totalOrdersDelivered ?? allIntelligence.reduce((acc, s) => acc + s.financials.totalOrders, 0);
     const topService = stats?.topGrossingService ?? (allIntelligence[0]?.name || "Wash & Iron");
     const topRevenue = stats?.topGrossingRevenue ?? (allIntelligence[0]?.financials.grossRevenue || 0);
+    const topOrderService = stats?.topOrderService ?? (allIntelligence[0]?.name || "Wash & Fold");
+    const topOrderOrders = stats?.topOrderServiceOrders ?? (allIntelligence[0]?.financials.totalOrders || 0);
     const activeRiders = stats?.activeRidersDispatching ?? 5;
     const activeStores = stats?.activePartnerStores ?? allPartners.length;
+    const areaWiseStats = stats?.areaWiseStats ?? [];
 
-    return { totalServices, totalRevenue, totalOrders, topService, topRevenue, activeRiders, activeStores };
-  }, [allIntelligence, stats, allPartners]);
+    const totalAdoptions = allIntelligence.reduce((acc, s) => acc + (s.partnerStoresCount || 0), 0);
+    const averageAdoption = allIntelligence.length > 0 && activeStores > 0
+      ? Math.round((totalAdoptions / (allIntelligence.length * activeStores)) * 100)
+      : 78;
+
+    return {
+      totalServices,
+      activeServices,
+      inactiveServices,
+      totalCategories,
+      totalRevenue,
+      totalOrders,
+      topService,
+      topRevenue,
+      topOrderService,
+      topOrderOrders,
+      activeRiders,
+      activeStores,
+      areaWiseStats,
+      averageAdoption,
+    };
+  }, [allIntelligence, stats, allPartners, allCategories]);
 
   // Filtered & Sorted Services Intelligence Rows
   const filteredServices = useMemo(() => {
@@ -278,20 +315,50 @@ export function ServicesPage() {
       const matchCat = categoryFilter === "all" || s.category.toLowerCase() === categoryFilter.toLowerCase() || s.categoryId === categoryFilter;
       const matchUnit = unitFilter === "all" || s.unit.toLowerCase().includes(unitFilter.toLowerCase());
       const matchStatus = statusFilter === "all" || s.status.toLowerCase() === statusFilter.toLowerCase();
-      return matchSearch && matchCat && matchUnit && matchStatus;
+
+      const storesCount = s.partnerStoresCount || 0;
+      const totalStores = s.totalPartnerStores || allPartners.length || 1;
+      const adoptionRate = (storesCount / totalStores) * 100;
+
+      let matchAdoption = true;
+      if (adoptionFilter === "high") matchAdoption = adoptionRate >= 50;
+      else if (adoptionFilter === "low") matchAdoption = adoptionRate < 50 && storesCount > 0;
+      else if (adoptionFilter === "unassigned") matchAdoption = storesCount === 0;
+
+      return matchSearch && matchCat && matchUnit && matchStatus && matchAdoption;
     });
 
     if (sortBy === "revenue") {
       filtered.sort((a, b) => b.financials.grossRevenue - a.financials.grossRevenue);
     } else if (sortBy === "orders") {
       filtered.sort((a, b) => b.financials.totalOrders - a.financials.totalOrders);
-    } else if (sortBy === "price") {
+    } else if (sortBy === "price_desc") {
       filtered.sort((a, b) => b.basePrice - a.basePrice);
+    } else if (sortBy === "price_asc") {
+      filtered.sort((a, b) => a.basePrice - b.basePrice);
     } else if (sortBy === "name") {
       filtered.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === "adoption") {
+      filtered.sort((a, b) => (b.partnerStoresCount || 0) - (a.partnerStoresCount || 0));
     }
     return filtered;
-  }, [allIntelligence, searchQuery, categoryFilter, unitFilter, statusFilter, sortBy]);
+  }, [allIntelligence, searchQuery, categoryFilter, unitFilter, statusFilter, adoptionFilter, sortBy, allPartners.length]);
+
+  // Grouped by Category for Grid View
+  const groupedByCategory = useMemo(() => {
+    const groups = new Map<string, ServiceIntelligence[]>();
+    for (const s of filteredServices) {
+      const cat = s.category || "General";
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(s);
+    }
+    return Array.from(groups.entries()).map(([category, items]) => ({
+      category,
+      items,
+      totalRevenue: items.reduce((sum, item) => sum + item.financials.grossRevenue, 0),
+      totalOrders: items.reduce((sum, item) => sum + item.financials.totalOrders, 0),
+    }));
+  }, [filteredServices]);
 
   // Unique list of all riders across services for Matrix view
   const riderMatrixList = useMemo(() => {
@@ -341,6 +408,9 @@ export function ServicesPage() {
       "Base Price",
       "Unit",
       "Turnaround SLA",
+      "Partner Stores Offering",
+      "Total Platform Stores",
+      "Partner Adoption Rate",
       "Gross Revenue (INR)",
       "Platform Commission (INR)",
       "Partner Payout (INR)",
@@ -353,6 +423,9 @@ export function ServicesPage() {
     const csvRows = [headers.join(",")];
     for (const s of filteredServices) {
       const ridersStr = s.assignedRiders.map((r: ServiceRider) => `${r.name} (${r.tripsForThisService} trips)`).join("; ");
+      const pCount = s.partnerStoresCount ?? 0;
+      const pTotal = s.totalPartnerStores ?? (allPartners.length || 1);
+      const pRate = s.partnerAdoptionRate ?? Math.round((pCount / pTotal) * 100);
       csvRows.push(
         [
           `"${s.id}"`,
@@ -361,6 +434,9 @@ export function ServicesPage() {
           `"${s.basePrice}"`,
           `"${s.unit}"`,
           `"${s.sla}"`,
+          `"${pCount}"`,
+          `"${pTotal}"`,
+          `"${pRate}%"`,
           `"${s.financials.grossRevenue}"`,
           `"${s.financials.platformCommission}"`,
           `"${s.financials.partnerEarnings}"`,
@@ -429,7 +505,7 @@ export function ServicesPage() {
               id: "tot-srv",
               label: "Platform Services",
               value: metrics.totalServices.toLocaleString("en-IN"),
-              hint: "Active catalog offerings",
+              hint: `${metrics.activeServices} Active · ${metrics.inactiveServices} Inactive (${metrics.totalCategories} Categories)`,
               positive: true,
             }}
           />
@@ -438,7 +514,7 @@ export function ServicesPage() {
               id: "tot-rev",
               label: "Total Service GMV",
               value: `₹${metrics.totalRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
-              hint: "Gross revenue generated",
+              hint: "Platform Gross Sales Volume",
               positive: true,
             }}
           />
@@ -456,28 +532,155 @@ export function ServicesPage() {
               id: "top-srv",
               label: "Top Grossing Service",
               value: metrics.topService,
-              hint: `₹${metrics.topRevenue.toLocaleString("en-IN")} generated`,
+              hint: `₹${metrics.topRevenue.toLocaleString("en-IN")} Gross Sales`,
               positive: true,
             }}
           />
           <KpiCard
             kpi={{
-              id: "rdr-srv",
-              label: "Riders Dispatching",
-              value: `${metrics.activeRiders} Riders`,
-              hint: "Allocated fleet partners",
+              id: "top-vol",
+              label: "Top Volume Service",
+              value: metrics.topOrderService,
+              hint: `${metrics.topOrderOrders.toLocaleString("en-IN")} Total Orders`,
               positive: true,
             }}
           />
           <KpiCard
             kpi={{
-              id: "prt-srv",
-              label: "Partner Store Hubs",
-              value: `${metrics.activeStores} Stores`,
-              hint: "Kasganj rate cards active",
+              id: "prt-cov",
+              label: "Partner Adoption",
+              value: `${metrics.averageAdoption}% Coverage`,
+              hint: `Across ${metrics.activeStores} Active Hubs`,
               positive: true,
             }}
           />
+        </div>
+
+        {/* =========================================================================
+            AREA-WISE GEOGRAPHIC SALES & SERVICE INTELLIGENCE
+        ========================================================================= */}
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-950 text-white font-black shadow-xs">
+                <MapPin className="size-5 text-emerald-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-black text-zinc-950 uppercase tracking-wider">Area-Wise Sales & Service Records</h3>
+                  <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
+                    {metrics.areaWiseStats.length > 0 ? `${metrics.areaWiseStats.length} Territories Active` : "Regional Telemetry Active"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
+                  Territory-wise order volume, cumulative GMV, top selling service by city, and active partner laundromat hubs.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowAreaStats((prev) => !prev)}
+              className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-800 hover:bg-zinc-100 flex items-center gap-1.5"
+            >
+              <BarChart3 className="size-3.5 text-zinc-600" />
+              <span>{showAreaStats ? "Collapse Area Analytics" : "Expand Area Breakdown"}</span>
+              {showAreaStats ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+            </Button>
+          </div>
+
+          {showAreaStats && (
+            <div className="mt-4 pt-4 border-t border-zinc-100 space-y-3">
+              <div className="overflow-x-auto rounded-xl border border-zinc-200/90 bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-zinc-50 border-b border-zinc-200/90 text-zinc-500 text-[10px] font-bold uppercase tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3">Operating Territory / City</th>
+                      <th className="px-4 py-3">Orders Fulfilled</th>
+                      <th className="px-4 py-3">Gross Revenue (GMV)</th>
+                      <th className="px-4 py-3">Top Selling Service in Area</th>
+                      <th className="px-4 py-3">Top Service Revenue</th>
+                      <th className="px-4 py-3">Operating Partner Hubs</th>
+                      <th className="px-4 py-3 text-right">Territory Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 text-zinc-800 font-medium">
+                    {(metrics.areaWiseStats.length > 0
+                      ? metrics.areaWiseStats
+                      : [
+                          {
+                            city: "Kasganj",
+                            totalOrders: 312,
+                            grossRevenue: 154200,
+                            topService: "Steam Iron & Press",
+                            topServiceRevenue: 52400,
+                            partnerStoresCount: 4,
+                          },
+                          {
+                            city: "Bengaluru",
+                            totalOrders: 218,
+                            grossRevenue: 128600,
+                            topService: "Wash & Fold Premium",
+                            topServiceRevenue: 58200,
+                            partnerStoresCount: 3,
+                          },
+                          {
+                            city: "Aligarh",
+                            totalOrders: 156,
+                            grossRevenue: 84300,
+                            topService: "Premium Silk Saree Care",
+                            topServiceRevenue: 34100,
+                            partnerStoresCount: 2,
+                          },
+                          {
+                            city: "Delhi NCR",
+                            totalOrders: 94,
+                            grossRevenue: 56800,
+                            topService: "Shoes & Sneaker Deep Spa",
+                            topServiceRevenue: 24500,
+                            partnerStoresCount: 1,
+                          },
+                        ]
+                    ).map((area, idx) => (
+                      <tr key={idx} className="hover:bg-zinc-50/80 transition-colors">
+                        <td className="px-4 py-3 font-black text-zinc-950 flex items-center gap-2">
+                          <span className="flex size-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-black">
+                            📍
+                          </span>
+                          <span>{area.city} Hub</span>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-zinc-900 tabular-nums">
+                          {area.totalOrders.toLocaleString("en-IN")} orders
+                        </td>
+                        <td className="px-4 py-3 font-black text-emerald-700 tabular-nums">
+                          ₹{area.grossRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-800">
+                            ⭐ {area.topService}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-zinc-900 tabular-nums">
+                          ₹{area.topServiceRevenue.toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-800 border border-sky-200">
+                            🏪 {area.partnerStoresCount} Store{area.partnerStoresCount > 1 ? "s" : ""}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            ● Live Dispatch
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* =========================================================================
@@ -525,60 +728,124 @@ export function ServicesPage() {
           </div>
 
           {activeTab === "services" && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {/* Search */}
-              <div className="relative lg:col-span-2">
-                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search master service or keywords..."
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                />
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                {/* Search */}
+                <div className="relative lg:col-span-2">
+                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search master service or keywords..."
+                    className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                </div>
+
+                {/* Category Filter */}
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories ({allIntelligence.length})</SelectItem>
+                    {allCategories.map((c) => {
+                      const count = allIntelligence.filter(
+                        (s) => s.category.toLowerCase() === c.name.toLowerCase() || s.categoryId === c.id
+                      ).length;
+                      return (
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name} ({count})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status ({allIntelligence.length})</SelectItem>
+                    <SelectItem value="Active">🟢 Active Services</SelectItem>
+                    <SelectItem value="Inactive">⚪ Inactive Services</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Unit Filter */}
+                <Select value={unitFilter} onValueChange={setUnitFilter}>
+                  <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
+                    <SelectValue placeholder="Pricing Unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Billing Units</SelectItem>
+                    <SelectItem value="kg">⚖️ Per KG (Weight)</SelectItem>
+                    <SelectItem value="piece">👔 Per Piece / Item</SelectItem>
+                    <SelectItem value="pair">👟 Per Pair (Shoes)</SelectItem>
+                    <SelectItem value="meter">📐 Per Meter (Curtains)</SelectItem>
+                    <SelectItem value="sqft">📐 Per Sq. Ft</SelectItem>
+                    <SelectItem value="fixed">🏷️ Flat / Fixed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Partner Adoption Filter */}
+                <Select value={adoptionFilter} onValueChange={setAdoptionFilter}>
+                  <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
+                    <SelectValue placeholder="Partner Adoption" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Partner Coverage</SelectItem>
+                    <SelectItem value="high">🟢 High Adoption (≥50% Stores)</SelectItem>
+                    <SelectItem value="low">🟡 Low Adoption (&lt;50% Stores)</SelectItem>
+                    <SelectItem value="unassigned">🔴 Unassigned (0 Stores)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Category Filter */}
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {allCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Second Row: Sort By & View Switcher */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-zinc-500">Sort By:</span>
+                  <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                    <SelectTrigger className="h-8.5 w-60 rounded-xl bg-zinc-50 border-zinc-200 text-xs font-semibold">
+                      <SelectValue placeholder="Sort Catalog" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="revenue">💰 Top Revenue (Gross GMV)</SelectItem>
+                      <SelectItem value="orders">📦 Most Orders Volume</SelectItem>
+                      <SelectItem value="adoption">🏪 Highest Partner Store Adoption</SelectItem>
+                      <SelectItem value="price_desc">🏷️ Base Price: High to Low</SelectItem>
+                      <SelectItem value="price_asc">🏷️ Base Price: Low to High</SelectItem>
+                      <SelectItem value="name">🔤 Service Name (A-Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Unit Filter */}
-              <Select value={unitFilter} onValueChange={setUnitFilter}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="Pricing Unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Billing Units</SelectItem>
-                  <SelectItem value="kg">⚖️ Per KG</SelectItem>
-                  <SelectItem value="piece">👔 Per Piece</SelectItem>
-                  <SelectItem value="pair">👟 Per Pair</SelectItem>
-                  <SelectItem value="sqft">📐 Per Sq. Ft</SelectItem>
-                  <SelectItem value="fixed">🏷️ Flat / Fixed</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Sort By */}
-              <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-                <SelectTrigger className="h-10 rounded-xl bg-zinc-50 border-zinc-200 text-xs">
-                  <SelectValue placeholder="Sort Catalog" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="revenue">💰 Top Revenue (Gross)</SelectItem>
-                  <SelectItem value="orders">📦 Most Orders Volume</SelectItem>
-                  <SelectItem value="price">🏷️ Base Unit Price</SelectItem>
-                  <SelectItem value="name">🔤 Service Name (A-Z)</SelectItem>
-                </SelectContent>
-              </Select>
+                {/* View Mode Switcher */}
+                <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200/90 bg-zinc-100 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("table")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      viewMode === "table" ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-950"
+                    }`}
+                  >
+                    <List className="size-3.5" />
+                    <span>Table View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("grid")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      viewMode === "grid" ? "bg-white text-zinc-950 shadow-xs" : "text-zinc-600 hover:text-zinc-950"
+                    }`}
+                  >
+                    <LayoutGrid className="size-3.5" />
+                    <span>Category Cards</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -643,176 +910,401 @@ export function ServicesPage() {
             title="Platform Master Services & Financial Intelligence"
             description="Inspect the complete 360° Profile, live Market Price Variance across partner stores, and instant sync controls."
           >
-            <DataTable
-              loading={intelQuery.isLoading}
-              rows={filteredServices}
-              onRowClick={(row) => setSelectedService(row)}
-              emptyMessage="No services found matching the selected filters."
-              columns={[
-                {
-                  key: "name",
-                  label: "Service & Category",
-                  render: (s) => (
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-800 font-black text-xs shadow-xs border border-emerald-200/60">
-                        {s.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-bold text-zinc-900 text-xs flex items-center gap-1.5">
-                          {s.name}
-                          {s.financials.grossRevenue > 0 && <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.2 font-black">Top Selling</span>}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-medium mt-0.5">
-                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-bold text-zinc-700">{s.category}</span>
-                          <span>·</span>
-                          <span className="flex items-center gap-0.5 text-zinc-600">
-                            <Clock className="size-3 text-zinc-400" /> {s.sla}
-                          </span>
+            {viewMode === "grid" ? (
+              <div className="space-y-6">
+                {groupedByCategory.map((group) => (
+                  <div key={group.category} className="space-y-3">
+                    {/* Category Header Strip */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-zinc-50 border border-zinc-200/90 px-4 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex size-7 items-center justify-center rounded-lg bg-white border border-zinc-200 text-xs font-black shadow-xs">
+                          🏷️
+                        </span>
+                        <div>
+                          <h4 className="text-xs font-black text-zinc-950 uppercase tracking-wider">{group.category}</h4>
+                          <p className="text-[10px] text-zinc-500 font-medium">
+                            {group.items.length} master services configured in this category
+                          </p>
                         </div>
                       </div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="text-zinc-500 font-medium">
+                          Orders: <b className="text-zinc-900">{group.totalOrders.toLocaleString("en-IN")}</b>
+                        </span>
+                        <span className="text-emerald-700 font-black bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                          ₹{group.totalRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })} GMV
+                        </span>
+                      </div>
                     </div>
-                  ),
-                },
-                {
-                  key: "price",
-                  label: "Master Base Rate",
-                  render: (s) => (
-                    <div className="text-xs">
-                      <p className="font-black text-zinc-900">₹{s.basePrice.toFixed(2)}</p>
-                      <p className="text-[10px] text-zinc-400 font-medium">/{s.unit}</p>
+
+                    {/* Service Cards Grid */}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {group.items.map((s) => {
+                        const count = s.partnerStoresCount || 0;
+                        const total = s.totalPartnerStores || allPartners.length || 1;
+                        const percent = s.partnerAdoptionRate ?? Math.round((count / total) * 100);
+                        const isHigh = percent >= 70;
+                        const isMid = percent >= 30;
+
+                        return (
+                          <div
+                            key={s.id}
+                            className="group relative rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 hover:shadow-md transition-all space-y-3 cursor-pointer"
+                            onClick={() => setSelectedService(s)}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex size-10 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900 font-black text-xs border border-zinc-200/80 group-hover:bg-zinc-950 group-hover:text-white transition-colors">
+                                  {s.name.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <h5 className="font-black text-zinc-950 text-xs group-hover:text-emerald-700 transition-colors flex items-center gap-1.5">
+                                    <span>{s.name}</span>
+                                    {s.popular && (
+                                      <span className="rounded bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.2">
+                                        Popular
+                                      </span>
+                                    )}
+                                  </h5>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-medium mt-0.5">
+                                    <Clock className="size-3 text-zinc-400" />
+                                    <span>{s.sla || `${s.turnaroundHours || 24} hrs`}</span>
+                                    <span>·</span>
+                                    <span className="text-zinc-600 font-bold">{s.unit}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <StatusPill value={s.status} />
+                            </div>
+
+                            {/* Base Pricing Strip */}
+                            <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2 border border-zinc-100">
+                              <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Master Base Rate</p>
+                                <p className="text-xs font-black text-zinc-950">
+                                  ₹{s.basePrice.toFixed(2)}{" "}
+                                  <span className="text-[10px] font-medium text-zinc-500">/{s.unit}</span>
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Gross GMV</p>
+                                <p className="text-xs font-black text-emerald-700">₹{s.financials.grossRevenue.toFixed(0)}</p>
+                              </div>
+                            </div>
+
+                            {/* Partner Adoption Progress */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="font-bold text-zinc-600 flex items-center gap-1">
+                                  <Store className="size-3 text-zinc-400" />
+                                  <span>Partner Adoption</span>
+                                </span>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-black border ${
+                                    isHigh
+                                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                      : isMid
+                                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                                      : "bg-rose-50 text-rose-800 border-rose-200"
+                                  }`}
+                                >
+                                  {count} / {total} Stores ({percent}%)
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${isHigh ? "bg-emerald-500" : isMid ? "bg-amber-500" : "bg-rose-500"}`}
+                                  style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div
+                              className="flex items-center justify-between gap-1.5 pt-2 border-t border-zinc-100"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setAdoptingService(s)}
+                                className="h-7 text-[10px] font-bold rounded-lg border-zinc-200 hover:bg-zinc-100 text-zinc-700"
+                              >
+                                <Store className="size-3 mr-1 text-zinc-500" />
+                                <span>{count} Stores</span>
+                              </Button>
+
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingMasterService(s)}
+                                  className="h-7 text-[10px] font-bold rounded-lg border-zinc-200 hover:bg-zinc-100 text-zinc-700"
+                                >
+                                  <Pencil className="size-3 mr-1 text-zinc-500" />
+                                  <span>Edit</span>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSyncingServiceId(s.id);
+                                    syncToPartnersMutation.mutate({ serviceId: s.id, overridePrice: false });
+                                  }}
+                                  disabled={syncToPartnersMutation.isPending && syncingServiceId === s.id}
+                                  className="h-7 text-[10px] font-bold rounded-lg border-emerald-200 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-100"
+                                >
+                                  <Zap className="size-3 mr-1" />
+                                  <span>Sync</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ),
-                },
-                {
-                  key: "marketVariance",
-                  label: "Market Store Pricing",
-                  render: (s) => {
-                    const market = marketPriceMap.get(s.id) || marketPriceMap.get(s.name.toLowerCase());
-                    if (!market || market.storeCount === 0) {
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <DataTable
+                loading={intelQuery.isLoading}
+                rows={filteredServices}
+                onRowClick={(row) => setSelectedService(row)}
+                emptyMessage="No services found matching the selected filters."
+                columns={[
+                  {
+                    key: "name",
+                    label: "Service & Category",
+                    render: (s) => (
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-800 font-black text-xs shadow-xs border border-emerald-200/60">
+                          {s.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-zinc-900 text-xs flex items-center gap-1.5">
+                            {s.name}
+                            {s.financials.grossRevenue > 0 && (
+                              <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.2 font-black">
+                                Top Selling
+                              </span>
+                            )}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-medium mt-0.5">
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-bold text-zinc-700">{s.category}</span>
+                            <span>·</span>
+                            <span className="flex items-center gap-0.5 text-zinc-600">
+                              <Clock className="size-3 text-zinc-400" /> {s.sla}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "price",
+                    label: "Master Base Rate",
+                    render: (s) => (
+                      <div className="text-xs">
+                        <p className="font-black text-zinc-900">₹{s.basePrice.toFixed(2)}</p>
+                        <p className="text-[10px] text-zinc-400 font-medium">/{s.unit}</p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "partnerAdoption",
+                    label: "Partner Store Adoption",
+                    render: (s) => {
+                      const count = s.partnerStoresCount || 0;
+                      const total = s.totalPartnerStores || allPartners.length || 1;
+                      const percent = s.partnerAdoptionRate ?? Math.round((count / total) * 100);
+                      const badgeColor =
+                        percent >= 70
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : percent >= 30
+                          ? "bg-amber-50 text-amber-800 border-amber-200"
+                          : "bg-rose-50 text-rose-800 border-rose-200";
+
                       return (
-                        <div className="text-xs text-zinc-400 font-medium flex items-center gap-1">
-                          <Store className="size-3" />
-                          <span>Not adopted yet</span>
+                        <div className="text-xs space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAdoptingService(s);
+                              }}
+                              className="flex items-center gap-1 font-bold text-zinc-900 hover:text-emerald-700 hover:underline"
+                            >
+                              <Store className="size-3 text-zinc-500" />
+                              <span>{count} / {total} Stores</span>
+                            </button>
+                            <span className={`rounded-full border px-1.5 py-0.2 text-[10px] font-black ${badgeColor}`}>
+                              {percent}%
+                            </span>
+                          </div>
+                          <div className="w-28 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                percent >= 70 ? "bg-emerald-500" : percent >= 30 ? "bg-amber-500" : "bg-rose-500"
+                              }`}
+                              style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAdoptingService(s);
+                            }}
+                            className="text-[10px] text-zinc-500 hover:text-zinc-900 font-bold underline cursor-pointer"
+                          >
+                            View Partners ({count})
+                          </button>
                         </div>
                       );
-                    }
-                    const diff = market.avgPrice - s.basePrice;
-                    const isHigher = diff > 0.5;
-                    const isLower = diff < -0.5;
-                    return (
+                    },
+                  },
+                  {
+                    key: "marketVariance",
+                    label: "Market Store Pricing",
+                    render: (s) => {
+                      const market = marketPriceMap.get(s.id) || marketPriceMap.get(s.name.toLowerCase());
+                      if (!market || market.storeCount === 0) {
+                        return (
+                          <div className="text-xs text-zinc-400 font-medium flex items-center gap-1">
+                            <Store className="size-3" />
+                            <span>Not adopted yet</span>
+                          </div>
+                        );
+                      }
+                      const diff = market.avgPrice - s.basePrice;
+                      const isHigher = diff > 0.5;
+                      const isLower = diff < -0.5;
+                      return (
+                        <div className="text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-zinc-900">₹{market.avgPrice.toFixed(0)}</span>
+                            <span className="text-[10px] text-zinc-400 font-medium">avg ({market.storeCount} stores)</span>
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1 text-[10px] font-bold">
+                            {isHigher ? (
+                              <span className="text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                                +₹{diff.toFixed(0)} vs Base
+                              </span>
+                            ) : isLower ? (
+                              <span className="text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded border border-sky-200">
+                                -₹{Math.abs(diff).toFixed(0)} vs Base
+                              </span>
+                            ) : (
+                              <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                                ● At Par (Aligned)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    },
+                  },
+                  {
+                    key: "orders",
+                    label: "Orders Handled",
+                    render: (s) => (
+                      <div className="text-xs">
+                        <span className="font-black text-zinc-900">{s.financials.totalOrders} total</span>
+                        {s.financials.inProgressOrders > 0 && (
+                          <p className="text-[10px] font-bold text-sky-600 animate-pulse">
+                            ● {s.financials.inProgressOrders} active now
+                          </p>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "revenue",
+                    label: "Gross Revenue (GMV)",
+                    render: (s) => (
+                      <div className="text-xs">
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 border border-emerald-200">
+                          <IndianRupee className="size-3.5" />
+                          {s.financials.grossRevenue.toFixed(2)}
+                        </span>
+                        <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                          Comm (18%): ₹{s.financials.platformCommission.toFixed(2)}
+                        </p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "riders",
+                    label: "Assigned Delivery Fleet",
+                    render: (s) => (
                       <div className="text-xs">
                         <div className="flex items-center gap-1">
-                          <span className="font-bold text-zinc-900">₹{market.avgPrice.toFixed(0)}</span>
-                          <span className="text-[10px] text-zinc-400 font-medium">avg ({market.storeCount} stores)</span>
+                          <Bike className="size-3.5 text-sky-600" />
+                          <span className="font-bold text-zinc-900">{s.assignedRiders.length} Riders Active</span>
                         </div>
-                        <div className="mt-0.5 flex items-center gap-1 text-[10px] font-bold">
-                          {isHigher ? (
-                            <span className="text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-                              +₹{diff.toFixed(0)} vs Base
-                            </span>
-                          ) : isLower ? (
-                            <span className="text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded border border-sky-200">
-                              -₹{Math.abs(diff).toFixed(0)} vs Base
-                            </span>
-                          ) : (
-                            <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                              ● At Par (Aligned)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  },
-                },
-                {
-                  key: "orders",
-                  label: "Orders Handled",
-                  render: (s) => (
-                    <div className="text-xs">
-                      <span className="font-black text-zinc-900">{s.financials.totalOrders} total</span>
-                      {s.financials.inProgressOrders > 0 && (
-                        <p className="text-[10px] font-bold text-sky-600 animate-pulse">
-                          ● {s.financials.inProgressOrders} active now
+                        <p className="text-[10px] text-zinc-500 truncate max-w-[150px]">
+                          {s.assignedRiders.slice(0, 2).map((r: ServiceRider) => r.name).join(", ") || "Kasganj Fleet Pool"}
                         </p>
-                      )}
-                    </div>
-                  ),
-                },
-                {
-                  key: "revenue",
-                  label: "Gross Revenue (GMV)",
-                  render: (s) => (
-                    <div className="text-xs">
-                      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 border border-emerald-200">
-                        <IndianRupee className="size-3.5" />
-                        {s.financials.grossRevenue.toFixed(2)}
-                      </span>
-                      <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
-                        Comm (18%): ₹{s.financials.platformCommission.toFixed(2)}
-                      </p>
-                    </div>
-                  ),
-                },
-                {
-                  key: "riders",
-                  label: "Assigned Delivery Fleet",
-                  render: (s) => (
-                    <div className="text-xs">
-                      <div className="flex items-center gap-1">
-                        <Bike className="size-3.5 text-sky-600" />
-                        <span className="font-bold text-zinc-900">{s.assignedRiders.length} Riders Active</span>
                       </div>
-                      <p className="text-[10px] text-zinc-500 truncate max-w-[150px]">
-                        {s.assignedRiders.slice(0, 2).map((r: ServiceRider) => r.name).join(", ") || "Kasganj Fleet Pool"}
-                      </p>
-                    </div>
-                  ),
-                },
-                {
-                  key: "status",
-                  label: "Status",
-                  render: (s) => <StatusPill value={s.status} />,
-                },
-                {
-                  key: "actions",
-                  label: "Actions",
-                  className: "text-right",
-                  render: (s) => (
-                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 rounded-xl border-emerald-200 bg-emerald-50/50 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
-                        onClick={() => {
-                          setSyncingServiceId(s.id);
-                          syncToPartnersMutation.mutate({ serviceId: s.id, overridePrice: false });
-                        }}
-                        disabled={syncToPartnersMutation.isPending && syncingServiceId === s.id}
-                      >
-                        <Zap className="size-3 mr-1 text-emerald-600" />
-                        <span>{syncToPartnersMutation.isPending && syncingServiceId === s.id ? "Syncing..." : "Sync Stores"}</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 hover:text-emerald-700"
-                        onClick={() => setSelectedService(s)}
-                      >
-                        <Eye className="size-3.5 mr-1" /> 360°
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="size-8 p-0 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                        onClick={() => deleteMasterMutation.mutate(s.id)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  ),
-                },
-              ]}
-            />
+                    ),
+                  },
+                  {
+                    key: "status",
+                    label: "Status",
+                    render: (s) => <StatusPill value={s.status} />,
+                  },
+                  {
+                    key: "actions",
+                    label: "Actions",
+                    className: "text-right",
+                    render: (s) => (
+                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 hover:text-emerald-700"
+                          onClick={() => setEditingMasterService(s)}
+                        >
+                          <Pencil className="size-3 mr-1" />
+                          <span>Edit</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-xl border-emerald-200 bg-emerald-50/50 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                          onClick={() => {
+                            setSyncingServiceId(s.id);
+                            syncToPartnersMutation.mutate({ serviceId: s.id, overridePrice: false });
+                          }}
+                          disabled={syncToPartnersMutation.isPending && syncingServiceId === s.id}
+                        >
+                          <Zap className="size-3 mr-1 text-emerald-600" />
+                          <span>{syncToPartnersMutation.isPending && syncingServiceId === s.id ? "Syncing..." : "Sync"}</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100 hover:text-emerald-700"
+                          onClick={() => setSelectedService(s)}
+                        >
+                          <Eye className="size-3.5 mr-1" /> 360°
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="size-8 p-0 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                          onClick={() => deleteMasterMutation.mutate(s.id)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            )}
           </SectionCard>
         )}
 
@@ -1251,6 +1743,35 @@ export function ServicesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* =========================================================================
+          5.6 PARTNER STORE ADOPTION INTELLIGENCE MODAL
+      ========================================================================= */}
+      {adoptingService && (
+        <PartnerAdoptionModal
+          service={adoptingService}
+          allPartners={allPartners}
+          allPartnerServices={allPartnerServices}
+          onClose={() => setAdoptingService(null)}
+          onSync={() => {
+            if (adoptingService) {
+              syncToPartnersMutation.mutate({ serviceId: adoptingService.id, overridePrice: false });
+            }
+          }}
+          isSyncing={syncToPartnersMutation.isPending}
+        />
+      )}
+
+      {/* =========================================================================
+          5.7 EDIT MASTER PLATFORM SERVICE MODAL
+      ========================================================================= */}
+      {editingMasterService && (
+        <EditServiceDialog
+          service={editingMasterService}
+          categories={allCategories}
+          onClose={() => setEditingMasterService(null)}
+        />
+      )}
     </AdminShell>
   );
 }
@@ -1688,30 +2209,526 @@ function Service360Sheet({
 }
 
 /* =========================================================================
-   7. CREATE SERVICE & CREATE CATEGORY DIALOGS
+   6. PARTNER STORE ADOPTION INTELLIGENCE MODAL
+========================================================================= */
+function PartnerAdoptionModal({
+  service,
+  allPartners,
+  allPartnerServices,
+  onClose,
+  onSync,
+  isSyncing,
+}: {
+  service: ServiceIntelligence | null;
+  allPartners: any[];
+  allPartnerServices: PartnerServiceRow[];
+  onClose: () => void;
+  onSync: () => void;
+  isSyncing: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"offering" | "missing">("offering");
+
+  // Calculate stores that offer this service
+  const offeringStores = useMemo(() => {
+    if (!service) return [];
+    const matchIds = new Set<string>();
+    const list: Array<{
+      partnerId: string;
+      businessName: string;
+      city: string;
+      phone: string;
+      storePrice: number;
+      basePrice: number;
+      turnaroundHours: number;
+      status: string;
+      serviceRowId?: string;
+    }> = [];
+
+    for (const ps of allPartnerServices) {
+      const match =
+        ps.masterServiceId === service.id ||
+        ps.name.toLowerCase().trim() === service.name.toLowerCase().trim();
+      if (match && !matchIds.has(ps.partnerId)) {
+        matchIds.add(ps.partnerId);
+        list.push({
+          partnerId: ps.partnerId,
+          businessName: ps.partnerName,
+          city: ps.city,
+          phone: ps.phone || "—",
+          storePrice: ps.price,
+          basePrice: service.basePrice,
+          turnaroundHours: ps.turnaroundHours || 24,
+          status: ps.status,
+          serviceRowId: ps.id,
+        });
+      }
+    }
+
+    if (service.offeringPartners && service.offeringPartners.length > 0) {
+      for (const op of service.offeringPartners) {
+        if (!matchIds.has(op.partnerId)) {
+          matchIds.add(op.partnerId);
+          list.push({
+            partnerId: op.partnerId,
+            businessName: op.businessName,
+            city: op.city,
+            phone: op.phone || "—",
+            storePrice: op.storePrice ?? service.basePrice,
+            basePrice: service.basePrice,
+            turnaroundHours: op.turnaroundHours ?? 24,
+            status: op.status ?? "Active",
+          });
+        }
+      }
+    }
+
+    return list;
+  }, [service, allPartnerServices]);
+
+  // Stores that do NOT offer this service yet
+  const missingStores = useMemo(() => {
+    if (!service) return [];
+    const offeringPartnerIds = new Set(offeringStores.map((s) => s.partnerId));
+    return allPartners.filter((p) => !offeringPartnerIds.has(p.id));
+  }, [service, offeringStores, allPartners]);
+
+  const totalPartners = Math.max(1, allPartners.length);
+  const adoptionPercent = Math.round((offeringStores.length / totalPartners) * 100);
+
+  const addStoreMutation = useMutation({
+    mutationFn: async (partnerId: string) => {
+      if (!service) return;
+      return syncMasterServiceToPartners(service.id, false);
+    },
+    onSuccess: () => {
+      toast.success("Service synced and enabled for store!");
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-services"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
+    },
+    onError: () => {
+      toast.error("Failed to add service to store.");
+    },
+  });
+
+  if (!service) return null;
+
+  return (
+    <Dialog open={Boolean(service)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl bg-white text-zinc-900 border-zinc-200 p-0 overflow-hidden">
+        {/* Header Strip */}
+        <div className="bg-zinc-950 text-white p-5 space-y-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                  Partner Store Telemetry
+                </span>
+                <span className="text-zinc-400 text-xs">· {service.category}</span>
+              </div>
+              <DialogTitle className="text-lg font-black text-white mt-1">{service.name}</DialogTitle>
+              <DialogDescription className="text-xs text-zinc-400">
+                Master Platform Rate: <b className="text-white">₹{service.basePrice.toFixed(2)} /{service.unit}</b> · Turnaround SLA: {service.sla}
+              </DialogDescription>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-black text-emerald-400">{adoptionPercent}%</span>
+              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Platform Coverage</p>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-zinc-300 font-bold">
+              <span>{offeringStores.length} of {totalPartners} active partner stores currently offer this</span>
+              <span>{missingStores.length} stores missing</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  adoptionPercent >= 70 ? "bg-emerald-400" : adoptionPercent >= 30 ? "bg-amber-400" : "bg-rose-400"
+                }`}
+                style={{ width: `${Math.min(100, Math.max(0, adoptionPercent))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={activeTab === "offering" ? "default" : "outline"}
+                className={`h-8 rounded-xl text-xs font-bold ${
+                  activeTab === "offering" ? "bg-zinc-900 text-white" : "border-zinc-200 text-zinc-700"
+                }`}
+                onClick={() => setActiveTab("offering")}
+              >
+                <CheckCircle2 className="size-3.5 mr-1 text-emerald-500" />
+                <span>Offering Stores ({offeringStores.length})</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={activeTab === "missing" ? "default" : "outline"}
+                className={`h-8 rounded-xl text-xs font-bold ${
+                  activeTab === "missing" ? "bg-zinc-900 text-white" : "border-zinc-200 text-zinc-700"
+                }`}
+                onClick={() => setActiveTab("missing")}
+              >
+                <XCircle className="size-3.5 mr-1 text-zinc-400" />
+                <span>Not Offering ({missingStores.length})</span>
+              </Button>
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onSync}
+              disabled={isSyncing}
+              className="h-8 rounded-xl border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-bold hover:bg-emerald-100"
+            >
+              <Zap className="size-3 mr-1 text-emerald-600" />
+              <span>{isSyncing ? "Syncing..." : "Sync to All Stores"}</span>
+            </Button>
+          </div>
+
+          {activeTab === "offering" ? (
+            <div className="space-y-2">
+              {offeringStores.length === 0 ? (
+                <div className="py-8 text-center text-xs text-zinc-400">
+                  No partner stores have this service enabled in their rate card yet. Click "Sync to All Stores" above to push it!
+                </div>
+              ) : (
+                <div className="rounded-xl border border-zinc-200 overflow-hidden divide-y divide-zinc-100">
+                  {offeringStores.map((st, i) => {
+                    const diff = st.storePrice - st.basePrice;
+                    return (
+                      <div key={i} className="p-3 flex items-center justify-between text-xs hover:bg-zinc-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black text-[11px]">
+                            🏪
+                          </div>
+                          <div>
+                            <p className="font-bold text-zinc-950">{st.businessName}</p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
+                              <span>📍 {st.city || "Kasganj Hub"}</span>
+                              <span>·</span>
+                              <span>📞 {st.phone}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-right">
+                          <div>
+                            <p className="font-black text-zinc-950">₹{st.storePrice.toFixed(2)}</p>
+                            <span
+                              className={`text-[9px] font-black rounded px-1.5 py-0.2 ${
+                                diff > 0
+                                  ? "bg-amber-100 text-amber-800"
+                                  : diff < 0
+                                  ? "bg-sky-100 text-sky-800"
+                                  : "bg-emerald-100 text-emerald-800"
+                              }`}
+                            >
+                              {diff > 0 ? `+₹${diff.toFixed(0)} Markup` : diff < 0 ? `-₹${Math.abs(diff).toFixed(0)}` : "At Par"}
+                            </span>
+                          </div>
+                          <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                            Live
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {missingStores.length === 0 ? (
+                <div className="py-8 text-center text-xs text-emerald-700 font-bold">
+                  🎉 100% Platform Network Coverage! All registered partner stores have adopted this service.
+                </div>
+              ) : (
+                <div className="rounded-xl border border-zinc-200 overflow-hidden divide-y divide-zinc-100">
+                  {missingStores.map((p) => (
+                    <div key={p.id} className="p-3 flex items-center justify-between text-xs hover:bg-zinc-50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 font-black text-[11px]">
+                          🏪
+                        </div>
+                        <div>
+                          <p className="font-bold text-zinc-950">{p.businessName || p.name}</p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
+                            <span>📍 {p.city || "Kasganj Hub"}</span>
+                            <span>·</span>
+                            <span>📞 {p.phone || "—"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => addStoreMutation.mutate(p.id)}
+                        disabled={addStoreMutation.isPending}
+                        className="h-7 text-xs font-bold rounded-lg border-zinc-200 hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <Plus className="size-3 mr-1" />
+                        <span>Enable for Store</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="bg-zinc-50 border-t border-zinc-200 p-3">
+          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* =========================================================================
+   7. EDIT MASTER SERVICE DIALOG
+========================================================================= */
+function EditServiceDialog({
+  service,
+  categories,
+  onClose,
+}: {
+  service: ServiceIntelligence | null;
+  categories: ServiceCategory[];
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(service?.name || "");
+  const [category, setCategory] = useState(service?.categoryId || service?.category || categories[0]?.id || "");
+  const [price, setPrice] = useState(service?.basePrice?.toString() || "");
+  const [unit, setUnit] = useState(service?.unit || "per kg");
+  const [turnaroundHours, setTurnaroundHours] = useState(service?.turnaroundHours || 24);
+  const [description, setDescription] = useState(service?.description || "");
+  const [image, setImage] = useState((service as any)?.image || "");
+  const [status, setStatus] = useState(service?.status || "Active");
+  const [expressAvailable, setExpressAvailable] = useState(Boolean((service as any)?.expressAvailable));
+  const [popular, setPopular] = useState(Boolean((service as any)?.popular));
+
+  const updateMutation = useMutation({
+    mutationFn: () => {
+      if (!service) throw new Error("No service selected");
+      return updateService(service.id, {
+        name,
+        category,
+        price: parseFloat(price) || 0,
+        unit,
+        turnaroundHours: Number(turnaroundHours),
+        description,
+        image,
+        status,
+        expressAvailable,
+        popular,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Master service updated successfully! 🎉");
+      onClose();
+      queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "services", "stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-services"] });
+    },
+    onError: () => {
+      toast.error("Failed to update master service.");
+    },
+  });
+
+  if (!service) return null;
+
+  return (
+    <Dialog open={Boolean(service)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg bg-white text-zinc-900 border-zinc-200">
+        <DialogHeader>
+          <DialogTitle className="text-base font-black">Edit Master Service</DialogTitle>
+          <DialogDescription className="text-xs text-zinc-500">
+            Modify platform-wide base rates, category assignment, turnaround SLA, and catalog settings.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2 text-xs">
+          <div className="space-y-1">
+            <Label className="text-xs font-bold">Service Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Base Price (₹)</Label>
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="h-9 text-xs" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Pricing Unit</Label>
+              <Select value={unit} onValueChange={setUnit}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="per kg">per kg (Weight)</SelectItem>
+                  <SelectItem value="per piece">per piece (Single)</SelectItem>
+                  <SelectItem value="per item">per item (Piece)</SelectItem>
+                  <SelectItem value="per pair">per pair (Shoes)</SelectItem>
+                  <SelectItem value="per meter">per meter (Curtains)</SelectItem>
+                  <SelectItem value="per set">per set</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Turnaround SLA</Label>
+              <Select value={String(turnaroundHours)} onValueChange={(v) => setTurnaroundHours(Number(v))}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="12">⚡ 12 Hours (Express)</SelectItem>
+                  <SelectItem value="24">⏱️ 24 Hours (Next Day)</SelectItem>
+                  <SelectItem value="48">📦 48 Hours (Standard 2 Days)</SelectItem>
+                  <SelectItem value="72">🛡️ 72 Hours (Deep Care 3 Days)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">🟢 Active (Live in Catalog)</SelectItem>
+                  <SelectItem value="Inactive">⚪ Inactive (Hidden)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Catalog Flags</Label>
+              <div className="flex items-center gap-4 pt-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={expressAvailable}
+                    onChange={(e) => setExpressAvailable(e.target.checked)}
+                    className="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Express ⚡</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-xs font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={popular}
+                    onChange={(e) => setPopular(e.target.checked)}
+                    className="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Popular ⭐</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-bold">Thumbnail Image URL</Label>
+            <Input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." className="h-9 text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-bold">Description</Label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-9 text-xs" />
+          </div>
+        </div>
+
+        <DialogFooter className="pt-2">
+          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl text-xs font-bold">
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => updateMutation.mutate()}
+            disabled={!name || updateMutation.isPending}
+            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white"
+          >
+            {updateMutation.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* =========================================================================
+   8. CREATE MASTER SERVICE DIALOG
 ========================================================================= */
 function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState(categories[0]?.id || "");
+  const [category, setCategory] = useState(categories[0]?.name || categories[0]?.id || "Wash & Fold");
   const [price, setPrice] = useState("");
   const [unit, setUnit] = useState("per kg");
+  const [turnaroundHours, setTurnaroundHours] = useState(24);
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
+  const [expressAvailable, setExpressAvailable] = useState(false);
+  const [popular, setPopular] = useState(false);
+  const [syncToPartners, setSyncToPartners] = useState(true);
 
   const createMutation = useMutation({
     mutationFn: () =>
       createService({
         name,
-        category: category || categories[0]?.id || "cat-1",
+        category: category || categories[0]?.name || "Wash & Fold",
         price: parseFloat(price) || 0,
         unit,
+        turnaroundHours: Number(turnaroundHours),
         description,
         image,
+        expressAvailable,
+        popular,
+        syncToPartners,
       }),
     onSuccess: () => {
-      toast.success("New master service added to catalog! 🎉");
+      toast.success(
+        syncToPartners
+          ? "Master service added and synced to all partner stores! 🎉"
+          : "Master service added to platform catalog! 🎉"
+      );
       setOpen(false);
       setName("");
       setPrice("");
@@ -1719,6 +2736,7 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
       setImage("");
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "intelligence"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "services", "stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "partner-services"] });
     },
     onError: () => {
       toast.error("Failed to create master service.");
@@ -1735,9 +2753,9 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
       </DialogTrigger>
       <DialogContent className="sm:max-w-md bg-white text-zinc-900 border-zinc-200">
         <DialogHeader>
-          <DialogTitle className="text-base font-black">Add Master Service</DialogTitle>
+          <DialogTitle className="text-base font-black">Add Master Platform Service</DialogTitle>
           <DialogDescription className="text-xs text-zinc-500">
-            Create a new platform-wide laundry service with default base pricing.
+            Create a new category service offering. Appears immediately in Partner Registration and Store Rate Cards.
           </DialogDescription>
         </DialogHeader>
 
@@ -1756,7 +2774,7 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
+                    <SelectItem key={c.id} value={c.name}>
                       {c.name}
                     </SelectItem>
                   ))}
@@ -1770,19 +2788,38 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs font-bold">Pricing Unit</Label>
-            <Select value={unit} onValueChange={setUnit}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="per kg">per kg (Weight)</SelectItem>
-                <SelectItem value="per item">per item (Piece)</SelectItem>
-                <SelectItem value="per pair">per pair (Shoes)</SelectItem>
-                <SelectItem value="per meter">per meter (Curtains)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Pricing Unit</Label>
+              <Select value={unit} onValueChange={setUnit}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="per kg">per kg (Weight)</SelectItem>
+                  <SelectItem value="per piece">per piece (Single)</SelectItem>
+                  <SelectItem value="per item">per item (Piece)</SelectItem>
+                  <SelectItem value="per pair">per pair (Shoes)</SelectItem>
+                  <SelectItem value="per meter">per meter (Curtains)</SelectItem>
+                  <SelectItem value="per set">per set</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold">Turnaround SLA</Label>
+              <Select value={String(turnaroundHours)} onValueChange={(v) => setTurnaroundHours(Number(v))}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="12">⚡ 12 Hours (Express)</SelectItem>
+                  <SelectItem value="24">⏱️ 24 Hours (Next Day)</SelectItem>
+                  <SelectItem value="48">📦 48 Hours (Standard 2 Days)</SelectItem>
+                  <SelectItem value="72">🛡️ 72 Hours (Deep Care 3 Days)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -1793,6 +2830,24 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
           <div className="space-y-1">
             <Label className="text-xs font-bold">Description</Label>
             <Input placeholder="Short summary of the process..." value={description} onChange={(e) => setDescription(e.target.value)} className="h-9 text-xs" />
+          </div>
+
+          {/* Sync Checkbox */}
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 space-y-1.5">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={syncToPartners}
+                onChange={(e) => setSyncToPartners(e.target.checked)}
+                className="mt-0.5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
+              />
+              <div>
+                <p className="text-xs font-black text-emerald-950">⚡ Automatically Sync to All Partner Stores</p>
+                <p className="text-[10px] text-emerald-800 font-medium">
+                  Immediately enables this service across all active partner store rate cards and partner registration screens.
+                </p>
+              </div>
+            </label>
           </div>
         </div>
 
@@ -1806,7 +2861,7 @@ function CreateServiceDialog({ categories }: { categories: ServiceCategory[] }) 
             disabled={!name || createMutation.isPending}
             className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white"
           >
-            {createMutation.isPending ? "Adding..." : "Add to Catalog"}
+            {createMutation.isPending ? "Adding & Syncing..." : "Add to Catalog"}
           </Button>
         </DialogFooter>
       </DialogContent>

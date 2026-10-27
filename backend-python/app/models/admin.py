@@ -264,10 +264,18 @@ class CityPayload(BaseModel):
 class ServicePayload(BaseModel):
     name: Optional[str] = None
     categoryId: Optional[str] = None
+    category: Optional[str] = None
     unit: Optional[str] = None
     price: Optional[float] = None
     image: Optional[str] = None
+    icon: Optional[str] = None
     description: Optional[str] = None
+    turnaroundHours: Optional[int] = None
+    status: Optional[str] = None
+    popular: Optional[bool] = None
+    minQuantity: Optional[int] = None
+    expressAvailable: Optional[bool] = None
+    syncToPartners: Optional[bool] = None
 
 
 class CreateSupportTicketPayload(BaseModel):

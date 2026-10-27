@@ -729,24 +729,28 @@ export function BusinessRegistrationScreen() {
         const matchDefault = DEFAULT_SERVICES.find(
           (d) => d.id === s.id || d.name.toLowerCase() === s.name.toLowerCase()
         );
+        const rawCat = String((s as any).category || (s as any).categoryName || matchDefault?.category || "").toLowerCase();
+        let cat = "iron";
+        if (rawCat === "iron" || rawCat.includes("iron") || rawCat.includes("press")) cat = "iron";
+        else if (rawCat === "dry-clean" || rawCat.includes("dry")) cat = "dry-clean";
+        else if (rawCat === "wash" || rawCat.includes("wash") || rawCat.includes("fold") || rawCat.includes("laundry")) cat = "wash";
+        else if (rawCat === "premium" || rawCat.includes("saree") || rawCat.includes("silk") || rawCat.includes("lehenga") || rawCat.includes("bridal") || rawCat.includes("care")) cat = "premium";
+        else if (rawCat === "shoe-care" || rawCat.includes("shoe") || rawCat.includes("footwear")) cat = "shoe-care";
+        else if (rawCat === "home-care" || rawCat.includes("home") || rawCat.includes("blanket") || rawCat.includes("curtain") || rawCat.includes("carpet") || rawCat.includes("quilt") || rawCat.includes("rajai")) cat = "home-care";
+        else {
+          const lowerName = s.name.toLowerCase();
+          if (lowerName.includes("iron") || lowerName.includes("press")) cat = "iron";
+          else if (lowerName.includes("dry")) cat = "dry-clean";
+          else if (lowerName.includes("wash") || lowerName.includes("fold")) cat = "wash";
+          else if (lowerName.includes("saree") || lowerName.includes("silk") || lowerName.includes("lehenga")) cat = "premium";
+          else if (lowerName.includes("shoe")) cat = "shoe-care";
+          else if (lowerName.includes("blanket") || lowerName.includes("curtain") || lowerName.includes("quilt")) cat = "home-care";
+          else cat = "wash";
+        }
+
         return {
           ...s,
-          category:
-            (s as any).category ||
-            matchDefault?.category ||
-            (s.name.toLowerCase().includes("iron")
-              ? "iron"
-              : s.name.toLowerCase().includes("dry")
-              ? "dry-clean"
-              : s.name.toLowerCase().includes("wash")
-              ? "wash"
-              : s.name.toLowerCase().includes("saree")
-              ? "premium"
-              : s.name.toLowerCase().includes("shoe")
-              ? "shoe-care"
-              : s.name.toLowerCase().includes("blanket")
-              ? "home-care"
-              : "iron"),
+          category: cat,
           image: s.image || (s as any).imageUrl || matchDefault?.image || "",
         };
       });

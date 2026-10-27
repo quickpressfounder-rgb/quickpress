@@ -5511,6 +5511,7 @@ class AdminServiceRepository:
             riders_tbl,
             profiles,
             partners,
+            partner_services,
         ) = await asyncio.gather(
             database.find_many(self.collection),
             database.find_many("admin_categories"),
@@ -5519,6 +5520,7 @@ class AdminServiceRepository:
             database.find_many("riders"),
             database.find_many("rider_profiles"),
             database.find_many("partner_profiles"),
+            database.find_many("partner_services"),
         )
 
         if not master_services:
@@ -5527,6 +5529,7 @@ class AdminServiceRepository:
             categories = list(_SEED_CATEGORIES)
 
         cat_map = {c["_id"]: c.get("name", "General") for c in categories}
+        partners_map = {str(p.get("_id") or p.get("id") or p.get("partnerId")): p for p in (partners or [])}
 
         # Include any service names that exist in active customer orders
         known_names = {s.get("name") for s in master_services}
@@ -5570,12 +5573,22 @@ class AdminServiceRepository:
             s_name = o.get("serviceLabel") or (o.get("service") if isinstance(o.get("service"), str) else (o.get("service") or {}).get("name")) or "Wash & Fold"
             orders_by_service[s_name.lower()].append(o)
 
+        # Index partner_services by masterServiceId and lowercase name
+        partner_services_by_master: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for ps in (partner_services or []):
+            ms_id = str(ps.get("masterServiceId") or ps.get("serviceId") or "")
+            ps_name = str(ps.get("name") or "").strip().lower()
+            if ms_id:
+                partner_services_by_master[ms_id].append(ps)
+            if ps_name:
+                partner_services_by_master[ps_name].append(ps)
+
         intelligence_list = []
         for srv in master_services:
             s_id = str(srv.get("_id") or srv.get("id"))
             s_name = srv.get("name", "Service")
             s_cat_id = srv.get("categoryId", "cat-1")
-            s_cat_name = cat_map.get(s_cat_id, "Laundry")
+            s_cat_name = srv.get("category") or cat_map.get(s_cat_id, "Laundry")
 
             s_ords = orders_by_service.get(s_name.lower(), [])
 
@@ -5635,6 +5648,33 @@ class AdminServiceRepository:
                         "earningsForThisService": r_stat["earnings"],
                     })
 
+            # Calculate Partner Stores Offering this service
+            matching_ps = partner_services_by_master.get(s_id, []) + partner_services_by_master.get(s_name.lower(), [])
+            seen_pids = set()
+            offering_partners = []
+            for ps in matching_ps:
+                pid = str(ps.get("partnerId") or "")
+                if pid and pid not in seen_pids:
+                    seen_pids.add(pid)
+                    p_doc = partners_map.get(pid) or {}
+                    offering_partners.append({
+                        "partnerId": pid,
+                        "partnerName": p_doc.get("businessName") or p_doc.get("name") or ps.get("partnerName") or "Partner Store",
+                        "city": p_doc.get("city") or ps.get("city") or "—",
+                        "price": float(ps.get("price") or srv.get("price", 60.0)),
+                        "basePrice": float(srv.get("price", 60.0)),
+                        "turnaroundHours": int(ps.get("turnaroundHours") or srv.get("turnaroundHours", 24)),
+                        "status": ps.get("status") or ("Active" if ps.get("enabled", True) else "Disabled"),
+                        "enabled": bool(ps.get("enabled", True)),
+                        "ordersCount": int(ps.get("ordersCount", 0)),
+                        "revenue": float(ps.get("revenue", 0.0)),
+                    })
+
+            # If no partner services created yet, default to all registered partners
+            total_partners_count = max(1, len(partners or []))
+            partner_stores_count = len(offering_partners) if offering_partners else total_partners_count
+            partner_adoption_pct = round((partner_stores_count / total_partners_count) * 100, 1)
+
             intelligence_list.append({
                 "id": s_id,
                 "name": s_name,
@@ -5645,6 +5685,11 @@ class AdminServiceRepository:
                 "description": srv.get("description", ""),
                 "sla": f"{srv.get('turnaroundHours', 24)} hrs",
                 "status": srv.get("status", "Active"),
+                "image": srv.get("image", ""),
+                "icon": srv.get("icon", "Sparkles"),
+                "popular": bool(srv.get("popular", False)),
+                "minQuantity": int(srv.get("minQuantity", 1)),
+                "expressAvailable": bool(srv.get("expressAvailable", False)),
                 "financials": {
                     "grossRevenue": gross_rev,
                     "platformCommission": comm,
@@ -5657,7 +5702,10 @@ class AdminServiceRepository:
                     "aov": aov,
                 },
                 "assignedRiders": riders_list,
-                "partnerStoresCount": max(1, len(partners or [])),
+                "partnerStoresCount": partner_stores_count,
+                "totalPartnerStores": total_partners_count,
+                "partnerAdoptionRate": partner_adoption_pct,
+                "offeringPartners": offering_partners,
                 "recentOrders": [
                     {
                         "id": str(o.get("_id") or o.get("id")),
@@ -5677,24 +5725,78 @@ class AdminServiceRepository:
 
     async def dashboard_stats(self) -> Dict[str, Any]:
         intel = await self.get_intelligence()
+        orders = await database.find_many("customer_orders")
+        partners = await database.find_many("partner_profiles")
+
         total_services = len(intel)
+        active_services = sum(1 for s in intel if s.get("status") == "Active")
+        inactive_services = total_services - active_services
+        categories_count = len(set(s.get("category") for s in intel))
         total_revenue = sum(s["financials"]["grossRevenue"] for s in intel)
         total_orders = sum(s["financials"]["totalOrders"] for s in intel)
         top_service = max(intel, key=lambda s: s["financials"]["grossRevenue"]) if intel else None
+        top_order_service = max(intel, key=lambda s: s["financials"]["totalOrders"]) if intel else None
 
         all_riders_set = set()
         for s in intel:
             for r in s.get("assignedRiders", []):
                 all_riders_set.add(r.get("riderId"))
 
+        # Area-Wise Service Analytics
+        area_orders: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for o in orders:
+            city = o.get("city") or (o.get("address") or {}).get("city") or (o.get("partner") or {}).get("city") or "Kasganj"
+            area_orders[city].append(o)
+
+        # Fallback cities if no orders yet
+        if not area_orders:
+            for city_name in ["Kasganj", "Bengaluru", "Aligarh", "Delhi NCR"]:
+                area_orders[city_name] = []
+
+        area_stats = []
+        for city, c_ords in area_orders.items():
+            completed_city = [o for o in c_ords if o.get("status") == "delivered"]
+            c_rev = sum((o.get("totals") or {}).get("grandTotal", 0) for o in completed_city)
+
+            city_srv_counts: Dict[str, int] = defaultdict(int)
+            city_srv_rev: Dict[str, float] = defaultdict(float)
+            for o in c_ords:
+                s_name = o.get("serviceLabel") or (o.get("service") if isinstance(o.get("service"), str) else (o.get("service") or {}).get("name")) or "Wash & Fold"
+                city_srv_counts[s_name] += 1
+                if o.get("status") == "delivered":
+                    city_srv_rev[s_name] += float((o.get("totals") or {}).get("grandTotal", 0))
+
+            top_city_srv = max(city_srv_counts.items(), key=lambda x: x[1])[0] if city_srv_counts else "Wash & Fold"
+            top_city_srv_rev = city_srv_rev.get(top_city_srv, 0.0)
+            city_partners_count = sum(1 for p in partners if (p.get("city") or "").lower() == city.lower())
+
+            area_stats.append({
+                "city": city,
+                "totalOrders": len(c_ords),
+                "completedOrders": len(completed_city),
+                "grossRevenue": c_rev,
+                "topService": top_city_srv,
+                "topServiceOrders": city_srv_counts.get(top_city_srv, 0),
+                "topServiceRevenue": top_city_srv_rev,
+                "partnerCount": max(1, city_partners_count),
+            })
+
+        area_stats.sort(key=lambda a: a["grossRevenue"], reverse=True)
+
         return {
             "totalServices": total_services,
+            "activeServices": active_services,
+            "inactiveServices": inactive_services,
+            "totalCategories": categories_count,
             "totalServiceRevenue": total_revenue,
             "totalOrdersDelivered": total_orders,
             "topGrossingService": top_service.get("name") if top_service else "Wash & Iron",
             "topGrossingRevenue": top_service["financials"]["grossRevenue"] if top_service else 0.0,
+            "topOrderService": top_order_service.get("name") if top_order_service else "Wash & Fold",
+            "topOrderServiceOrders": top_order_service["financials"]["totalOrders"] if top_order_service else 0,
             "activeRidersDispatching": len(all_riders_set),
-            "activePartnerStores": max(1, intel[0]["partnerStoresCount"]) if intel else 8,
+            "activePartnerStores": max(1, len(partners or [])),
+            "areaWiseStats": area_stats,
         }
 
     async def get_service_360(self, service_id: str) -> Dict[str, Any]:
@@ -7165,15 +7267,46 @@ analytics_repository = AnalyticsRepository()
 _SEED_CITIES: List[Dict[str, Any]] = []
 
 _SEED_CATEGORIES = [
-    {"_id": "cat-1", "name": "Wash & Fold"},
-    {"_id": "cat-2", "name": "Dry Clean"},
-    {"_id": "cat-3", "name": "Steam Iron"},
+    {"_id": "cat-1", "name": "Wash & Fold", "description": "Everyday laundry washed, dried & neatly folded by weight.", "icon": "WashingMachine", "status": "Active"},
+    {"_id": "cat-2", "name": "Steam Iron", "description": "Crisp wrinkle-free hanger finish and steam pressing.", "icon": "Flame", "status": "Active"},
+    {"_id": "cat-3", "name": "Dry Clean", "description": "Eco-friendly solvent stain removal and formal wear care.", "icon": "Shirt", "status": "Active"},
+    {"_id": "cat-4", "name": "Premium Saree & Silk", "description": "Delicate pure silk, roll polish, bridal lehenga and zari care.", "icon": "Sparkles", "status": "Active"},
+    {"_id": "cat-5", "name": "Shoes & Footwear Spa", "description": "Deep foam scrubbing, deodorizing, sole whitening and leather mirror shine.", "icon": "Footprints", "status": "Active"},
+    {"_id": "cat-6", "name": "Blankets & Home Care", "description": "Winter quilts, rajai, curtains, bedding and carpet deep shampoo.", "icon": "Bed", "status": "Active"},
+    {"_id": "cat-7", "name": "Bag & Leather Cleaning", "description": "Leather jackets, coats, luxury handbags and purse spa.", "icon": "Briefcase", "status": "Active"},
 ]
 
 _SEED_SERVICES = [
-    {"_id": "s1", "name": "Wash & Fold", "categoryId": "cat-1", "unit": "per kg", "price": 60, "image": "", "description": "Everyday laundry, washed and folded.", "badge": None, "popular": True},
-    {"_id": "s2", "name": "Dry Clean", "categoryId": "cat-2", "unit": "per item", "price": 220, "image": "", "description": "Delicate fabrics, professionally dry cleaned.", "badge": None, "popular": True},
-    {"_id": "s3", "name": "Steam Iron", "categoryId": "cat-3", "unit": "per item", "price": 20, "image": "", "description": "Crisp, wrinkle-free finish.", "badge": None, "popular": False},
+    # Wash & Fold
+    {"_id": "s1", "name": "Wash & Fold (Per Kg)", "categoryId": "cat-1", "category": "Wash & Fold", "unit": "kg", "price": 79, "turnaroundHours": 24, "image": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=300&q=80", "description": "Daily wear clothes washed, dried & neatly folded.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": True},
+    {"_id": "s2", "name": "Wash & Steam Iron (Per Kg)", "categoryId": "cat-1", "category": "Wash & Fold", "unit": "kg", "price": 99, "turnaroundHours": 24, "image": "https://images.unsplash.com/photo-1489274495757-95c7c837b101?auto=format&fit=crop&w=300&q=80", "description": "Wash with fabric conditioner & professional steam ironing.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": True},
+    {"_id": "s3", "name": "Bed Sheet Wash & Fold", "categoryId": "cat-1", "category": "Wash & Fold", "unit": "pc", "price": 59, "turnaroundHours": 24, "image": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=300&q=80", "description": "Hygienic warm water sanitization and neat folding.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    # Steam Iron
+    {"_id": "s4", "name": "Shirt Steam Iron", "categoryId": "cat-2", "category": "Steam Iron", "unit": "pc", "price": 15, "turnaroundHours": 12, "image": "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=300&q=80", "description": "Crisp wrinkle-free hanger finish for formal and casual shirts.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": True},
+    {"_id": "s5", "name": "T-Shirt Steam Iron", "categoryId": "cat-2", "category": "Steam Iron", "unit": "pc", "price": 12, "turnaroundHours": 12, "image": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80", "description": "Gentle temperature-controlled steam press for cotton and polo tees.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": True},
+    {"_id": "s6", "name": "Trouser / Jeans Steam Iron", "categoryId": "cat-2", "category": "Steam Iron", "unit": "pc", "price": 15, "turnaroundHours": 12, "image": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=300&q=80", "description": "Sharp razor creases and flat line press for pants and denim.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": True},
+    {"_id": "s7", "name": "Kurta / Pyjama Steam Iron", "categoryId": "cat-2", "category": "Steam Iron", "unit": "pc", "price": 25, "turnaroundHours": 12, "image": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=300&q=80", "description": "Traditional ethnic wear wrinkle-free steam pressing.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s8", "name": "Blazer / Coat Steam Iron", "categoryId": "cat-2", "category": "Steam Iron", "unit": "pc", "price": 69, "turnaroundHours": 12, "image": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=300&q=80", "description": "Form-retaining 3D vertical steam pressing for coats.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s9", "name": "Saree Steam Press", "categoryId": "cat-2", "category": "Steam Iron", "unit": "pc", "price": 59, "turnaroundHours": 12, "image": "https://images.unsplash.com/photo-1610030469668-935cb1778912?auto=format&fit=crop&w=300&q=80", "description": "Delicate temperature steam finish with roller packaging.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    # Dry Clean
+    {"_id": "s10", "name": "Shirt Dry Clean", "categoryId": "cat-3", "category": "Dry Clean", "unit": "pc", "price": 79, "turnaroundHours": 36, "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=300&q=80", "description": "Eco-friendly solvent stain removal and crisp collar finish.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s11", "name": "Trouser / Jeans Dry Clean", "categoryId": "cat-3", "category": "Dry Clean", "unit": "pc", "price": 79, "turnaroundHours": 36, "image": "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=300&q=80", "description": "Deep solvent cleaning, spot treatment and sharp creasing.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s12", "name": "2-Piece Suit Dry Clean", "categoryId": "cat-3", "category": "Dry Clean", "unit": "set", "price": 249, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=300&q=80", "description": "Blazer + Trouser tailored luxury solvent care and hanger pack.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s13", "name": "3-Piece Suit Dry Clean", "categoryId": "cat-3", "category": "Dry Clean", "unit": "set", "price": 349, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?auto=format&fit=crop&w=300&q=80", "description": "Jacket + Waistcoat + Trouser complete executive dry clean.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s14", "name": "Winter Jacket / Bomber Dry Clean", "categoryId": "cat-3", "category": "Dry Clean", "unit": "pc", "price": 199, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1544022613-e87ca75a784a?auto=format&fit=crop&w=300&q=80", "description": "Padded and down jacket deep soil and grime extraction.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    # Premium Saree & Silk
+    {"_id": "s15", "name": "Silk Saree Dry Clean & Roll Polish", "categoryId": "cat-4", "category": "Premium Saree & Silk", "unit": "pc", "price": 249, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=300&q=80", "description": "Delicate pure silk wash, stain removal and roll polish finish.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s16", "name": "Heavy Zari / Bridal Lehenga Spa", "categoryId": "cat-4", "category": "Premium Saree & Silk", "unit": "pc", "price": 499, "turnaroundHours": 72, "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=300&q=80", "description": "Delicate stone and zari embroidery protection with hand finishing.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    # Shoes & Footwear Spa
+    {"_id": "s17", "name": "Sneakers & Sports Shoes Deep Clean", "categoryId": "cat-5", "category": "Shoes & Footwear Spa", "unit": "pair", "price": 249, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=300&q=80", "description": "Deep sonic foam scrubbing, deodorizing and sole whitening.", "status": "Active", "popular": True, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s18", "name": "Leather Shoes Cleaning & Polish", "categoryId": "cat-5", "category": "Shoes & Footwear Spa", "unit": "pair", "price": 299, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=300&q=80", "description": "Wax buffing, leather cream nourishment and mirror shine.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    # Blankets & Home Care
+    {"_id": "s19", "name": "Single Blanket / Quilt Wash", "categoryId": "cat-6", "category": "Blankets & Home Care", "unit": "pc", "price": 249, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=300&q=80", "description": "Winter comforter sanitized, washed & sun fluff-dried.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s20", "name": "Double Blanket / Heavy Rajai Wash", "categoryId": "cat-6", "category": "Blankets & Home Care", "unit": "pc", "price": 349, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=300&q=80", "description": "Heavy double winter quilt deep allergen extraction.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s21", "name": "Curtain Cleaning (Per Panel)", "categoryId": "cat-6", "category": "Blankets & Home Care", "unit": "pc", "price": 199, "turnaroundHours": 36, "image": "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=300&q=80", "description": "Dust-free steam extraction and anti-shrink washing.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    # Bag & Leather Cleaning
+    {"_id": "s22", "name": "Leather Jacket & Coat Spa", "categoryId": "cat-7", "category": "Bag & Leather Cleaning", "unit": "pc", "price": 499, "turnaroundHours": 72, "image": "https://images.unsplash.com/photo-1544022613-e87ca75a784a?auto=format&fit=crop&w=300&q=80", "description": "Deep conditioning, stain removal and leather nourishment.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
+    {"_id": "s23", "name": "Luxury Handbag & Purse Spa", "categoryId": "cat-7", "category": "Bag & Leather Cleaning", "unit": "pc", "price": 399, "turnaroundHours": 48, "image": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=300&q=80", "description": "Interior sanitization, strap conditioning and hardware polish.", "status": "Active", "popular": False, "minQuantity": 1, "expressAvailable": False},
 ]
 
 _SEED_SETTINGS = [

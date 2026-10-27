@@ -1457,10 +1457,61 @@ This single command will automatically:
 
 ---
 
-### 5. Build Verification & Test Status
-- `npm run build` in `admin-frontend`: **PASSED (0 errors, client and SSR bundles generated cleanly)**.
-- `python3 -m py_compile backend-python/app/db/admin_repositories.py`: **PASSED (0 syntax errors)**.
-- `pytest backend-python/tests/test_admin_crm_cache.py`: **6/6 PASSED (100% test pass rate)**.
+---
+
+### 33. Platform Services & Master Catalog Engine, Area-Wise Sales Telemetry, Partner Store Adoption, and Onboarding Sync
+- **User Requirement (Hindi):**
+  > `"ab iske ander servies add kari hai jisme har cetegr me servies hongi or uska kpi bhi jisme rocord or area wise rocoed sale revanue top saller etc etc or iske ander sabhi types ke filter bhi add kar karne or add karna hai iska jo servies me yaha sa add karu bo partner registiong ke time bahi sahow kare or ye bhi pata chal sake ki ye servies kitne partner ke pass hai etc etc same theam"`
+- **Architecture & Implementation:**
+  - **1. Multi-Category Master Services Catalog Taxonomy (`backend-python` & `admin-frontend`):**
+    - Expanded service categories to 7 industry standards: Wash & Fold, Steam Iron, Dry Clean, Premium Saree & Silk Care, Shoes & Footwear Spa, Blankets & Home Care, and Bag & Leather Cleaning.
+    - Added 23 master platform laundry services covering every garment type with realistic market base rates, units (`per kg`, `per piece`, `per pair`, `per meter`, `per set`), turnaround SLAs (12h, 24h, 48h, 72h), and garment thumbnails.
+    - Enhanced backend `ServicePayload` (`backend-python/app/models/admin.py`) and API endpoints (`backend-python/app/api/admin.py`) to support `category`, `turnaroundHours`, `icon`, `status`, `popular`, `minQuantity`, `expressAvailable`, and `syncToPartners`.
+  - **2. Dynamic Sync to Partner Onboarding & Registration:**
+    - Updated `GET /api/public/services` (`backend-python/app/api/public.py`) to dynamically query `admin_services` and resolve category details from `admin_categories`.
+    - In `partner-frontend/src/screens/BusinessRegistrationScreen.tsx`, updated catalog fetching and mapping to preserve exact category associations across all categories so services created in the Admin console immediately populate in Step 4 ("Services Specific") during partner store registration.
+    - Added an automatic sync switch (`⚡ Automatically Sync to All Partner Stores immediately`) in `CreateServiceDialog` so creating a master service can instantly populate and activate in all active partner store rate cards in the background.
+  - **3. Executive KPI Strip & Expandable Area-Wise Sales Intelligence:**
+    - **6-Tile Pure White Executive KPI Strip:** Total Platform Services (with active/inactive breakdown hint), Total Service GMV, Orders Handled, Top Grossing Service, Top Volume Service, and Partner Adoption Network Coverage (`% coverage across X active hubs`).
+    - **Expandable Area-Wise Sales & Service Records Section:** Shows geographic sales telemetry table broken down by city/hub (Kasganj, Bengaluru, Aligarh, Delhi NCR, etc.):
+      - Total Orders Fulfilled
+      - Gross GMV (INR)
+      - Top Selling Service in that City
+      - Top Service Revenue
+      - Operating Partner Stores in that City
+      - Dispatch Status (`Live Dispatch`)
+  - **4. Multi-Parameter Filtering, Sorting & View Mode Switcher:**
+    - Search input (service name, category, keywords).
+    - Category filter with dynamic service item counts.
+    - Status filter (All, Active, Inactive).
+    - Unit filter (`per kg`, `per piece`, `per pair`, `per meter`, `per sqft`, `fixed`).
+    - Partner Adoption filter (All, High Adoption ≥50%, Low Adoption <50%, Unassigned 0 stores).
+    - Sort By selector (Gross Revenue, Orders Volume, Highest Partner Adoption, Price High-to-Low, Price Low-to-High, Service Name A-Z).
+    - **View Mode Switcher:** Toggle between **Table View** and **Category Cards Grid View** (grouped with category headers, revenue totals, and 3-column service cards).
+  - **5. Partner Store Adoption Telemetry per Service:**
+    - Displays exact store adoption count and percentage in both Table View and Grid View (e.g. `🏪 8 / 10 Stores (80%)`).
+    - Interactive **Partner Store Adoption Modal (`PartnerAdoptionModal`)**:
+      - Network coverage progress bar and summary.
+      - **Offering Stores Tab:** Table of stores offering the service with store name, city, phone, custom store selling rate vs master base rate (with `+₹10 Markup`, `At Par`, or `-₹5 Discount` pill), and status.
+      - **Non-Offering Stores Tab:** Table of stores not offering with 1-click `+ Enable for Store` action.
+      - 1-click `⚡ Sync Service to All Stores` action.
+  - **6. Master Service Creation & Editing Dialogs:**
+    - Enhanced `CreateServiceDialog` supporting service name, category select, base price, unit, turnaround SLA, image URL, description, and automatic partner sync checkbox.
+    - Implemented `EditServiceDialog` to modify existing master services, change status (`Active`/`Inactive`), toggle `Express` or `Popular` flags, and adjust pricing.
+- **Modified Files:**
+  - `backend-python/app/models/admin.py`
+  - `backend-python/app/api/admin.py`
+  - `backend-python/app/api/public.py`
+  - `backend-python/app/db/admin_repositories.py`
+  - `partner-frontend/src/screens/BusinessRegistrationScreen.tsx`
+  - `admin-frontend/src/api/services.ts`
+  - `admin-frontend/src/routes/services.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build` in `admin-frontend`: **PASSED (0 errors)**.
+  - `npm run build` in `partner-frontend`: **PASSED (0 errors)**.
+  - `python3 -m py_compile backend-python/app/api/admin.py backend-python/app/api/public.py backend-python/app/db/admin_repositories.py backend-python/app/models/admin.py`: **PASSED (0 errors)**.
+
 
 
 

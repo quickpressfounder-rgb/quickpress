@@ -36,6 +36,19 @@ export type ServiceFinancials = {
   aov: number;
 };
 
+export type OfferingPartnerInfo = {
+  partnerId: string;
+  partnerName: string;
+  city: string;
+  price: number;
+  basePrice: number;
+  turnaroundHours: number;
+  status: string;
+  enabled: boolean;
+  ordersCount: number;
+  revenue: number;
+};
+
 export type ServiceIntelligence = {
   id: string;
   name: string;
@@ -46,9 +59,17 @@ export type ServiceIntelligence = {
   description: string;
   sla: string;
   status: "Active" | "Inactive" | "Archived";
+  image?: string;
+  icon?: string;
+  popular?: boolean;
+  minQuantity?: number;
+  expressAvailable?: boolean;
   financials: ServiceFinancials;
   assignedRiders: ServiceRider[];
   partnerStoresCount: number;
+  totalPartnerStores?: number;
+  partnerAdoptionRate?: number;
+  offeringPartners?: OfferingPartnerInfo[];
   recentOrders: Array<{
     id: string;
     code: string;
@@ -61,14 +82,31 @@ export type ServiceIntelligence = {
   }>;
 };
 
+export type AreaWiseServiceStat = {
+  city: string;
+  totalOrders: number;
+  completedOrders: number;
+  grossRevenue: number;
+  topService: string;
+  topServiceOrders: number;
+  topServiceRevenue: number;
+  partnerCount: number;
+};
+
 export type ServiceStats = {
   totalServices: number;
+  activeServices?: number;
+  inactiveServices?: number;
+  totalCategories?: number;
   totalServiceRevenue: number;
   totalOrdersDelivered: number;
   topGrossingService: string;
   topGrossingRevenue: number;
+  topOrderService?: string;
+  topOrderServiceOrders?: number;
   activeRidersDispatching: number;
   activePartnerStores: number;
+  areaWiseStats?: AreaWiseServiceStat[];
 };
 
 export type LaundryService = {
@@ -289,26 +327,56 @@ export async function syncMasterServiceToPartners(
 
 export async function createService(payload: {
   name: string;
-  category: string;
+  category?: string;
+  categoryId?: string;
   price?: number;
   unit?: string;
   description?: string;
   image?: string;
+  icon?: string;
+  turnaroundHours?: number;
+  status?: string;
+  popular?: boolean;
+  minQuantity?: number;
+  expressAvailable?: boolean;
+  syncToPartners?: boolean;
 }) {
   return await apiPostJson<BackendService>("/api/admin/services", {
     name: payload.name,
-    categoryId: payload.category,
+    categoryId: payload.categoryId || payload.category,
+    category: payload.category,
     price: payload.price || 0,
     unit: payload.unit || "kg",
     description: payload.description || "",
     image: payload.image || "",
-    status: "Active",
+    icon: payload.icon || "Sparkles",
+    turnaroundHours: payload.turnaroundHours || 24,
+    status: payload.status || "Active",
+    popular: Boolean(payload.popular),
+    minQuantity: payload.minQuantity || 1,
+    expressAvailable: Boolean(payload.expressAvailable),
+    syncToPartners: Boolean(payload.syncToPartners),
   });
 }
 
 export async function updateService(
   id: string,
-  payload: Partial<{ name: string; categoryId: string; price: number; unit: string; description: string; status: string; sla?: string; image?: string }>,
+  payload: Partial<{
+    name: string;
+    category?: string;
+    categoryId?: string;
+    price: number;
+    unit: string;
+    description: string;
+    status: string;
+    sla?: string;
+    turnaroundHours?: number;
+    image?: string;
+    icon?: string;
+    minQuantity?: number;
+    expressAvailable?: boolean;
+    popular?: boolean;
+  }>,
 ) {
   return await apiPutJson<BackendService>(`/api/admin/services/${encodeURIComponent(id)}`, payload);
 }

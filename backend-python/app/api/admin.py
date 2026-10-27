@@ -1346,25 +1346,62 @@ async def services_pricing(user: User = Depends(current_user)):
 @router.post("/services", status_code=status.HTTP_201_CREATED)
 async def create_service(payload: ServicePayload, user: User = Depends(current_user)):
     categories = await category_repository.list()
+    cat_id = payload.categoryId
+    cat_name = payload.category or "Laundry"
+    if cat_id:
+        for c in categories:
+            if str(c.get("_id")) == str(cat_id) or str(c.get("id")) == str(cat_id):
+                cat_name = c.get("name", cat_name)
+                break
+    elif payload.category:
+        for c in categories:
+            if c.get("name", "").strip().lower() == payload.category.strip().lower():
+                cat_id = str(c.get("_id") or c.get("id"))
+                cat_name = c.get("name")
+                break
+        if not cat_id and categories:
+            cat_id = str(categories[0].get("_id") or categories[0].get("id"))
+    elif categories:
+        cat_id = str(categories[0].get("_id") or categories[0].get("id"))
+        cat_name = categories[0].get("name", "Laundry")
+
     service = await service_repository.create(
         {
             "name": payload.name or "New Service",
-            "categoryId": payload.categoryId or (categories[0]["_id"] if categories else ""),
+            "categoryId": cat_id or "cat-1",
+            "category": cat_name,
             "unit": payload.unit or "per item",
-            "price": payload.price or 0,
+            "price": float(payload.price or 0),
+            "turnaroundHours": int(payload.turnaroundHours or 24),
             "image": payload.image or "",
+            "icon": payload.icon or "Sparkles",
             "description": payload.description or "",
+            "status": payload.status or "Active",
             "badge": None,
-            "popular": False,
+            "popular": bool(payload.popular),
+            "minQuantity": int(payload.minQuantity or 1),
+            "expressAvailable": bool(payload.expressAvailable),
         }
     )
+    if payload.syncToPartners and service.get("_id"):
+        try:
+            await admin_partner_service_repository.sync_master_to_partners(
+                master_service_id=str(service["_id"]),
+                override_price=False,
+            )
+        except Exception as exc:
+            logging.getLogger("quickpress.admin").warning("Auto-sync to partners failed: %s", exc)
+
     await audit_repository.log(await _actor(user), "service.create", service["_id"])
     return service
 
 
 @router.put("/services/{service_id}")
 async def update_service(service_id: str, payload: ServicePayload, user: User = Depends(current_user)):
-    service = await service_repository.update(service_id, payload.model_dump(exclude_unset=True))
+    update_data = payload.model_dump(exclude_unset=True)
+    if "syncToPartners" in update_data:
+        update_data.pop("syncToPartners", None)
+    service = await service_repository.update(service_id, update_data)
     if service is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
     await audit_repository.log(await _actor(user), "service.update", service_id)
