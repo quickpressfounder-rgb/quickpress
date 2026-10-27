@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
+  ArrowRight,
   ArrowUpRight,
   ArrowDownRight,
   Wallet,

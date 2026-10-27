@@ -1928,4 +1928,5 @@ This single command will automatically:
   - `Memory/WORK_HISTORY.md`
 - **Build & Verification Status:**
   - Local build `npm --prefix admin-frontend run build`: **PASSED (0 errors, built in 2.04s)**.
+  - Fixed missing `ArrowRight` icon import in `FinanceOverviewCommandCenter.tsx`.
   - Pushed to `main` and deployed live to EC2 (`65.0.127.43`).
