@@ -1837,3 +1837,19 @@ This single command will automatically:
 - **Build & Verification Status:**
   - `admin-frontend npm run build`: **PASSED (0 errors, Vite + Nitro built cleanly in 1.99s)**.
   - `backend-python/venv/bin/pytest backend-python/tests/test_staff_auth_rbac_engine.py`: **PASSED (7/7 tests passed, 100% success)**.
+
+### 30. Fix Missing `cn` Import in Admin Riders & Partners Routes
+- **Issue:**
+  - User encountered screen crash on `ops.withquickpress.com/riders`: `Rider Management Loaded: cn is not defined`.
+  - `cn` utility function from `@/shared/lib/utils` was referenced on lines 2831 and 3071 of `admin-frontend/src/routes/riders.tsx` and line 1083 of `admin-frontend/src/routes/partners.tsx`, but was missing from imports.
+- **Resolution:**
+  - Imported `cn` from `@/shared/lib/utils` in `admin-frontend/src/routes/riders.tsx`.
+  - Imported `cn` from `@/shared/lib/utils` in `admin-frontend/src/routes/partners.tsx`.
+  - Scanned entire repository across all routes to guarantee 0 missing `cn` references.
+- **Modified Files:**
+  - `admin-frontend/src/routes/riders.tsx`
+  - `admin-frontend/src/routes/partners.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build` in `admin-frontend`: **PASSED (0 errors, built in 2.16s)**.
+  - Deployed to EC2 (`65.0.127.43`), restarted PM2 process `quickpress-admin`, verified HTTP 200 OK.
