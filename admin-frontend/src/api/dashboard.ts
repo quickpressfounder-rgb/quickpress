@@ -83,6 +83,17 @@ export type TopRiderItem = {
   rating: number;
 };
 
+export type CategoryPerformanceItem = {
+  category: string;
+  icon?: string;
+  servicesCount: number;
+  orders: number;
+  revenue: number;
+  topService: string;
+  topServiceRevenue: number;
+  sharePct: number;
+};
+
 export type CityPerformanceItem = {
   city: string;
   orders: number;
@@ -90,6 +101,8 @@ export type CityPerformanceItem = {
   activeRiders: number;
   activePartners: number;
   delayedOrders: number;
+  topService?: string;
+  topServiceRevenue?: number;
 };
 
 export type BackendDashboardSummary = {
@@ -132,6 +145,15 @@ export type BackendDashboardSummary = {
   topPartners: TopPartnerItem[];
   topRiders: TopRiderItem[];
   cityBreakdown: CityPerformanceItem[];
+
+  categoryBreakdown?: CategoryPerformanceItem[];
+  topGrossingService?: string;
+  topGrossingRevenue?: number;
+  topOrderService?: string;
+  topOrderOrders?: number;
+  activeServicesCount?: number;
+  totalCategoriesCount?: number;
+  partnerAdoptionRate?: number;
 
   weeklyRevenue?: number;
   monthlyRevenue?: number;

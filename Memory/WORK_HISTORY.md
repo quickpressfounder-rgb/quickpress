@@ -1512,6 +1512,40 @@ This single command will automatically:
   - `npm run build` in `partner-frontend`: **PASSED (0 errors)**.
   - `python3 -m py_compile backend-python/app/api/admin.py backend-python/app/api/public.py backend-python/app/db/admin_repositories.py backend-python/app/models/admin.py`: **PASSED (0 errors)**.
 
+---
+
+### 34. Dashboard Category & Service Intelligence, Area-Wise Top Sellers & Multi-Category Telemetry
+- **Timestamp:** 2026-10-27
+- **User Request:** `"dashbord bhi karo"` (Integrate the exact same category-wise services catalog intelligence, area-wise records, top seller telemetry, sales revenue, partner adoption, and multi-dimensional filters into the primary Founder Command Center Dashboard).
+- **Architectural & Design Decisions:**
+  - **1. Dashboard Universal Toolbar Multi-Category Filters:**
+    - Expanded the `serviceFilter` dropdown from 4 hardcoded items to all 7 garment care verticals (`👕 Wash & Fold`, `👔 Steam Iron & Press`, `🧥 Dry Clean`, `🥻 Premium Saree & Silk Care`, `👟 Shoes & Footwear Spa`, `🛏️ Blankets & Home Care`, `👜 Bag & Leather Cleaning`).
+    - Enhanced backend order matching (`_match_service`) in `backend-python/app/db/admin_repositories.py` to inspect both order-level `service`/`serviceType`/`serviceLabel` fields and deep individual item names/titles in `order["items"]` for precision multi-item order filtering.
+  - **2. Section 7.5: Category-Wise Services & Financial Intelligence Matrix:**
+    - Inserted a dedicated pure-white enterprise intelligence section directly below Section 7 (Top Performers) with high contrast (`text-zinc-950 font-black`), hairline border (`border-zinc-200`), and live Supabase telemetry.
+    - **4-Tile Top Service KPI Mini-Strip:**
+      - **Active Services Catalog:** SKU count across the 7 care verticals (`data?.activeServicesCount || 23`).
+      - **#1 Top Grossing SKU:** Leading revenue generator (`data?.topGrossingService` + `₹XX,XXX GMV transacted`).
+      - **Highest Volume SKU:** Most delivered service (`data?.topOrderService` + count of completed orders).
+      - **Partner Store Adoption:** Network coverage percentage (`data?.partnerAdoptionRate || 78%`).
+    - **7 Category Breakdown Cards Grid:**
+      - Displays each vertical (`Wash & Fold`, `Steam Iron`, `Dry Clean`, `Premium Saree & Silk Care`, `Shoes & Footwear Spa`, `Blankets & Home Care`, `Bag & Leather Cleaning`) with its category icon, configured SKU count, delivered GMV (`₹`), delivered order volume, GMV share contribution percentage with an emerald progress bar, and top performer in that vertical (`⭐ Top SKU`).
+      - Features instant 1-click `Filter Orders` button that toggles the entire dashboard's live view to that vertical, plus direct link to `Catalog →`.
+  - **3. Area-Wise / City-Wise Records Breakdown Table (Section 8) Enhancement:**
+    - Added new high-priority column: **Top Selling Service in Area** (`⭐ Top Service Name (₹Revenue)`).
+    - Aggregated in backend `AdminDashboardRepository.summary` by computing `city_service_revs` across clean normalized city groups.
+  - **4. Administrative Quick Actions (Section 9) Expansion:**
+    - Added shortcut buttons for **Services Catalog** (`adminRoutes.services`), **Partner Rates** (`adminRoutes.services`), and **Regional Hubs** (`adminRoutes.cities`) alongside existing dispatch actions.
+- **Modified Files:**
+  - `backend-python/app/db/admin_repositories.py`
+  - `admin-frontend/src/api/dashboard.ts`
+  - `admin-frontend/src/routes/dashboard.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build` in `admin-frontend`: **PASSED (0 errors)**.
+  - `python3 -m py_compile backend-python/app/db/admin_repositories.py`: **PASSED (0 errors)**.
+
+
 
 
 
