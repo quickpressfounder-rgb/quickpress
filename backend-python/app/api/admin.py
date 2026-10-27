@@ -1922,11 +1922,26 @@ async def reply_support(ticket_id: str, payload: SupportReplyPayload, user: User
 
 @router.post("/support/{ticket_id}/status")
 async def update_support_status(ticket_id: str, payload: SupportStatusPayload, user: User = Depends(current_user)):
-    """POST /api/admin/support/{ticket_id}/status — Update ticket lifecycle status."""
-    result = await support_repository.update_status(ticket_id, payload.status, user)
+    """POST /api/admin/support/{ticket_id}/status — Update ticket lifecycle status with audit reason."""
+    result = await support_repository.update_status(
+        ticket_id=ticket_id,
+        new_status=payload.status,
+        admin_user=user,
+        resolution_reason=payload.resolutionReason,
+        resolution_notes=payload.resolutionNotes,
+    )
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
-    await audit_repository.log(await _actor(user), "support.update_status", ticket_id, {"status": payload.status})
+    await audit_repository.log(
+        await _actor(user),
+        "support.update_status",
+        ticket_id,
+        {
+            "status": payload.status,
+            "resolutionReason": payload.resolutionReason,
+            "resolutionNotes": payload.resolutionNotes,
+        },
+    )
     return result
 
 
@@ -1954,12 +1969,28 @@ async def compensate_support_ticket(ticket_id: str, payload: SupportCompensatePa
 
 
 @router.post("/support/{ticket_id}/close")
-async def close_support(ticket_id: str, user: User = Depends(current_user)):
-    """POST /api/admin/support/{ticket_id}/close — Mark ticket resolved and closed."""
-    ticket = await support_repository.close(ticket_id)
+async def close_support(
+    ticket_id: str,
+    payload: Optional[SupportStatusPayload] = None,
+    user: User = Depends(current_user),
+):
+    """POST /api/admin/support/{ticket_id}/close — Mark ticket resolved and closed with audit reason."""
+    reason = payload.resolutionReason if payload else None
+    notes = payload.resolutionNotes if payload else None
+    ticket = await support_repository.close(
+        ticket_id=ticket_id,
+        admin_user=user,
+        resolution_reason=reason,
+        resolution_notes=notes,
+    )
     if ticket is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
-    await audit_repository.log(await _actor(user), "support.close", ticket_id)
+    await audit_repository.log(
+        await _actor(user),
+        "support.close",
+        ticket_id,
+        {"status": "Closed", "resolutionReason": reason, "resolutionNotes": notes},
+    )
     return ticket
 
 

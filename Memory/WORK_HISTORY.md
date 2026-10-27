@@ -33,6 +33,68 @@
 
 ## Detailed Log of Work Done Today (27 October 2026)
 
+### 27. Omnichannel Support Command Center & Staff Resolution Audit Trail
+- **User Requirement:**
+  "ab support system banao jisme bhi hum har kisi ki suppoort kar sake customer partner rider solve kar sake or chat kar sake or solved ya resolve with resone status update kar sake or filter bahi sare types ke or support ye bhui pata chale kisne ki uska bhi ful datial etc etc"
+- **Architecture & Implementation:**
+  1. **Omnichannel Multi-Entity Support (`SupportRepository.list` & `SupportRepository.get`):**
+     - Ingests support tickets from all 4 primary sources: Customer Tickets (`support_tickets`), Laundromat Store Partner Tickets (`partner_support_tickets`), Fleet Captain/Rider Tickets (`rider_support_tickets`), and Admin-created Tickets (`admin_support_tickets`).
+     - Normalizes contact data (`raisedBy`, `phone`, `email`, `role`, `priority`, `status`, `category`, `refOrder`, `orderTotal`, `partnerName`, `riderName`, `vipBadge`, `compensationAmount`).
+     - Preserves and attributes proper user roles (`Customer`, `Partner`, `Rider`).
+  2. **Rider & Partner Helpdesk Integration:**
+     - Added `GET /api/rider/tickets`, `POST /api/rider/tickets`, and `POST /api/rider/tickets/{ticket_id}/reply` in `backend-python/app/api/rider.py`.
+     - Added `POST /api/partner/tickets/{ticket_id}/reply` in `backend-python/app/api/partner.py`.
+     - Two-way chat thread works across all entities with real-time multi-channel dispatch (In-App notifications, OneSignal, FCM push, and Socket.IO rooms).
+  3. **Resolution Workflow with Reason & Status Updates:**
+     - Supported statuses: `Open`, `In progress`, `Awaiting customer`, `Escalated`, `Resolved`, `Closed`.
+     - When marking as `Resolved` or `Closed`, opens the **Resolve Support Ticket Dialog** (`Dialog open={isResolveModalOpen}`):
+       - Dropdown for **Resolution Reason / Category**:
+         - `Customer Query Answered & Resolved`
+         - `Full Refund Credited to Wallet`
+         - `Garment Replaced / Re-cleaned`
+         - `Pickup / Delivery Route Rescheduled`
+         - `Cloth Count Rectified with Partner`
+         - `Store Partner Penalized / Warning Issued`
+         - `Captain Duty Dispatched & Cleared`
+         - `Address / Phone Updated & Delivered`
+         - `App / Technical Bug Fixed`
+         - `False Alarm / Invalid Claim Closed`
+         - `Other Custom Resolution`
+       - Detailed textarea for **Staff Settlement Notes & Explanation**.
+       - Backend updates store `resolvedBy`, `resolvedByEmail`, `resolvedByRole`, `resolvedAt`, `resolutionReason`, and `resolutionNotes`.
+       - Automatic system audit message posted to the conversation thread.
+  4. **Staff Attribution & Audit Trail ("support ye bhi pata chale kisne ki uska bhi full detail"):**
+     - Captures on-duty staff credentials: Name, Email, Role, and timestamp.
+     - Displays a prominent **Resolution & Staff Audit Details** card in `admin-frontend/src/routes/support.tsx` displaying:
+       - Verified status badge (`Resolved` or `Closed`) and resolution timestamp.
+       - Resolved By: Staff Name, Staff Role pill (e.g. `Superadmin`), and staff email.
+       - Resolution Reason: Highlighted pill with exact categorized reason.
+       - Staff Settlement Notes: Full detailed explanation.
+       - Customer Wallet Compensation: Disbursed credit amount if compensated.
+     - Ticket list card displays `✓ Solved by {t.resolvedBy}` pill for quick scannability.
+  5. **Rich Filtering & Search:**
+     - Channel filter: `All Channels`, `👤 Customer (N)`, `🏪 Partner Store (N)`, `🚴 Rider Fleet (N)`.
+     - Status filter: `All Statuses`, `Open`, `In progress`, `Awaiting customer`, `Escalated`, `Resolved`, `Closed`.
+     - Priority filter: `All Priorities`, `Urgent / P0`, `High`, `Medium`, `Low`.
+     - Category filter: `All Categories`, `Order & Delivery`, `Payment & Payout`, `Refund Related`, `Wash Quality`, `Missing / Wrong Garment`, `Pickup / Delivery Delay`, `Store Partner Operations`, `Rider Dispatch`, `App / Technical Bug`.
+     - Search across Ticket ID, Subject, Raised By, Phone, Email, Order Code, Assignee, and Description.
+  6. **Design Aesthetics:**
+     - Clean, minimalist corporate layout (`bg-white`, `border-zinc-200`, `text-zinc-950 font-black`), zero cartoon icons/emojis, high contrast typography.
+- **Modified Files:**
+  - `backend-python/app/models/admin.py`
+  - `backend-python/app/api/admin.py`
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/api/rider.py`
+  - `backend-python/app/db/admin_repositories.py`
+  - `admin-frontend/src/api/support.ts`
+  - `admin-frontend/src/routes/support.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Verification Status:**
+  - Python `py_compile`: PASSED on all 5 backend files (0 errors).
+  - Admin Frontend `npm run build`: PASSED (Nitro SSR bundle generated in 2.52s, 0 errors).
+
+---
+
 ### 26. Zomato-Themed Minimalist Email Templates & Unified Audience Directory Dispatcher
 - **Architecture & Implementation:**
   - **Zomato Email Design System (`_render_base_email`):** Redesigned the base email template in `backend-python/app/core/email_service.py` to match the exact Zomato corporate theme from user reference screenshots: bold lowercase `quickpress` wordmark, light neutral `#f2f4f7` wrapper, centered `#ffffff` card, clean sans-serif typography, order/status pills (`● Delivered`), security disclaimer against fraud, 5-star review card with App Store / Google Play links, and formal legal footer. Completely eliminated cartoon emojis and green/dark gradient blocks.

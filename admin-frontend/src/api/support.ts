@@ -44,6 +44,12 @@ export type Ticket = {
   lastMessage?: string | undefined;
   updated: string;
   createdAt: string;
+  resolvedBy?: string | undefined;
+  resolvedByEmail?: string | undefined;
+  resolvedByRole?: string | undefined;
+  resolvedAt?: string | undefined;
+  resolutionReason?: string | undefined;
+  resolutionNotes?: string | undefined;
 };
 
 export type ChatMessage = {
@@ -114,6 +120,12 @@ type BackendTicket = {
   lastMessage?: string | undefined;
   createdAt?: string | undefined;
   updatedAt?: string | undefined;
+  resolvedBy?: string | undefined;
+  resolvedByEmail?: string | undefined;
+  resolvedByRole?: string | undefined;
+  resolvedAt?: string | undefined;
+  resolutionReason?: string | undefined;
+  resolutionNotes?: string | undefined;
   replies?: Array<{
     _id?: string | undefined;
     id?: string | undefined;
@@ -182,6 +194,12 @@ function toTicket(row: BackendTicket): Ticket {
     lastMessage: row.lastMessage || undefined,
     updated: (row.updatedAt || row.createdAt || "").slice(0, 16).replace("T", " "),
     createdAt: (row.createdAt || "").slice(0, 10),
+    resolvedBy: row.resolvedBy || undefined,
+    resolvedByEmail: row.resolvedByEmail || undefined,
+    resolvedByRole: row.resolvedByRole || undefined,
+    resolvedAt: row.resolvedAt ? row.resolvedAt.slice(0, 16).replace("T", " ") : undefined,
+    resolutionReason: row.resolutionReason || undefined,
+    resolutionNotes: row.resolutionNotes || undefined,
   };
 }
 
@@ -262,8 +280,17 @@ export function replyToTicket(ticketId: string, body: string, isInternal: boolea
   });
 }
 
-export function updateTicketStatus(ticketId: string, status: string) {
-  return apiPostJson<{ ok: boolean; status: string }>(`/api/admin/support/${ticketId}/status`, { status });
+export function updateTicketStatus(
+  ticketId: string,
+  status: string,
+  resolutionReason?: string,
+  resolutionNotes?: string
+) {
+  return apiPostJson<{ ok: boolean; status: string }>(`/api/admin/support/${ticketId}/status`, {
+    status,
+    resolutionReason,
+    resolutionNotes,
+  });
 }
 
 export function assignTicket(ticketId: string, assignee: string) {
@@ -277,6 +304,15 @@ export function compensateTicket(ticketId: string, amount: number, reason?: stri
   );
 }
 
-export function closeTicket(ticketId: string) {
-  return apiPostJson<{ ok: boolean }>(`/api/admin/support/${ticketId}/close`, {});
+export function closeTicket(
+  ticketId: string,
+  resolutionReason?: string,
+  resolutionNotes?: string
+) {
+  return apiPostJson<{ ok: boolean }>(`/api/admin/support/${ticketId}/close`, {
+    status: "Closed",
+    resolutionReason,
+    resolutionNotes,
+  });
 }
+

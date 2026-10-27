@@ -2054,6 +2054,115 @@ async def get_rider_support() -> dict:
     }
 
 
+@public_router.get("/tickets")
+@router.get("/tickets")
+async def get_rider_tickets(
+    user: Optional[User] = Depends(optional_user),
+) -> list[dict]:
+    r_id = "rider_demo_1"
+    if user:
+        try:
+            r_id = await rider_profile_repository.resolve_rider_id(user)
+        except Exception:
+            r_id = user.id
+    docs = await database.find_sorted("rider_support_tickets", {"$or": [{"riderId": r_id}, {"userId": r_id}]}, sort=[("createdAt", -1)])
+    clean_docs = []
+    for d in (docs or []):
+        item = dict(d)
+        if "_id" in item:
+            item["_id"] = str(item["_id"])
+        clean_docs.append(item)
+    return clean_docs
+
+
+@public_router.post("/tickets")
+@router.post("/tickets")
+async def create_rider_ticket(
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    r_id = "rider_demo_1"
+    r_name = "Fleet Captain"
+    r_phone = "+91 98719 62596"
+    if user:
+        try:
+            r_id = await rider_profile_repository.resolve_rider_id(user)
+        except Exception:
+            r_id = user.id
+        r_name = user.display_name or user.name or "Fleet Captain"
+        r_phone = user.phone or r_phone
+
+    now = datetime.now(timezone.utc).isoformat()
+    ticket_id = body.get("id") or f"TKT-RDR-{int(datetime.now(timezone.utc).timestamp()) % 10000:04d}"
+    initial_msg = {
+        "_id": f"msg-{uuid.uuid4().hex[:8]}",
+        "author": r_name,
+        "role": "Rider",
+        "body": body.get("description", "").strip() or body.get("subject", "").strip(),
+        "at": now,
+    }
+    ticket_doc = {
+        "_id": ticket_id,
+        "id": ticket_id,
+        "riderId": r_id,
+        "userId": r_id,
+        "riderName": r_name,
+        "phone": r_phone,
+        "category": body.get("category", "delivery"),
+        "categoryLabel": body.get("categoryLabel", "Delivery / Dispatch"),
+        "orderCode": body.get("orderCode") or body.get("orderId"),
+        "refOrder": body.get("orderCode") or body.get("orderId") or "—",
+        "subject": body.get("subject", "").strip() or "Captain Support Request",
+        "description": body.get("description", "").strip(),
+        "priority": body.get("priority", "normal"),
+        "status": "open",
+        "role": "Rider",
+        "createdAt": now,
+        "updatedAt": now,
+        "supportReply": "Ticket received. Fleet Ops command center will reach out within 5 minutes.",
+        "supportRepliedAt": now,
+        "replies": [initial_msg],
+    }
+    await database.insert("rider_support_tickets", ticket_doc)
+    return {"ok": True, "ticket": ticket_doc}
+
+
+@public_router.post("/tickets/{ticket_id}/reply")
+@router.post("/tickets/{ticket_id}/reply")
+async def reply_rider_ticket(
+    ticket_id: str,
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    r_name = user.display_name or user.name if user else "Fleet Captain"
+    now = datetime.now(timezone.utc).isoformat()
+    msg_body = (body.get("body") or "").strip()
+    if not msg_body:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Message body is required")
+
+    new_msg = {
+        "_id": f"msg-{uuid.uuid4().hex[:8]}",
+        "author": r_name,
+        "role": "Rider",
+        "body": msg_body,
+        "at": now,
+    }
+
+    doc = await database.find_one("rider_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+
+    actual_id = doc["_id"]
+    replies = list(doc.get("replies") or [])
+    replies.append(new_msg)
+    await database.update(
+        "rider_support_tickets",
+        {"_id": actual_id},
+        {"replies": replies, "status": "open", "updatedAt": now},
+    )
+    return {"ok": True, "message": new_msg}
+
+
 @router.get("/verification-status")
 async def get_rider_verification_status(
     rider_id: Optional[str] = Query(None),

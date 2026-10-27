@@ -103,12 +103,27 @@ const CANNED_RESPONSES = [
   },
 ];
 
+const RESOLUTION_REASONS = [
+  "Customer Query Answered & Resolved",
+  "Full Refund Credited to Wallet",
+  "Garment Replaced / Re-cleaned",
+  "Pickup / Delivery Route Rescheduled",
+  "Cloth Count Rectified with Partner",
+  "Store Partner Penalized / Warning Issued",
+  "Captain Duty Dispatched & Cleared",
+  "Address / Phone Updated & Delivered",
+  "App / Technical Bug Fixed",
+  "False Alarm / Invalid Claim Closed",
+  "Other Custom Resolution",
+];
+
 export function SupportPage() {
   const queryClient = useQueryClient();
 
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -119,6 +134,12 @@ export function SupportPage() {
   const [isCompensateModalOpen, setIsCompensateModalOpen] = useState(false);
   const [compensationAmount, setCompensationAmount] = useState("50");
   const [compensationReason, setCompensationReason] = useState("Service delay goodwill gesture");
+
+  // Resolution Dialog State
+  const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
+  const [targetResolveStatus, setTargetResolveStatus] = useState<"Resolved" | "Closed">("Resolved");
+  const [resolutionReason, setResolutionReason] = useState("Customer Query Answered & Resolved");
+  const [resolutionNotes, setResolutionNotes] = useState("");
 
   // Create Ticket Form State
   const [newTicket, setNewTicket] = useState<CreateTicketPayload>({
@@ -136,12 +157,13 @@ export function SupportPage() {
 
   // Queries
   const ticketsQuery = useQuery({
-    queryKey: ["admin", "tickets", roleFilter, statusFilter, priorityFilter, searchQuery],
+    queryKey: ["admin", "tickets", roleFilter, statusFilter, priorityFilter, categoryFilter, searchQuery],
     queryFn: () =>
       fetchTickets({
         role: roleFilter,
         status: statusFilter,
         priority: priorityFilter,
+        category: categoryFilter,
         q: searchQuery,
       }),
   });
@@ -187,13 +209,27 @@ export function SupportPage() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ ticketId, status }: { ticketId: string; status: string }) =>
-      updateTicketStatus(ticketId, status),
-    onSuccess: () => {
-      toast.success("Ticket status updated! ✅");
+    mutationFn: ({
+      ticketId,
+      status,
+      reason,
+      notes,
+    }: {
+      ticketId: string;
+      status: string;
+      reason?: string;
+      notes?: string;
+    }) => updateTicketStatus(ticketId, status, reason, notes),
+    onSuccess: (_, vars) => {
+      toast.success(`Ticket marked as ${vars.status}! ✅`);
+      setIsResolveModalOpen(false);
+      setResolutionNotes("");
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", activeTicket?.id, "chat"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "support", "stats"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to update ticket status.");
     },
   });
 
@@ -237,9 +273,14 @@ export function SupportPage() {
     sendMutation.mutate({ body: replyText.trim(), isInternal: isInternalNote });
   };
 
+  const handleOpenResolveDialog = (status: "Resolved" | "Closed" = "Resolved") => {
+    setTargetResolveStatus(status);
+    setIsResolveModalOpen(true);
+  };
+
   const handleQuickResolve = () => {
     if (!activeTicket) return;
-    statusMutation.mutate({ ticketId: activeTicket.id, status: "Resolved" });
+    handleOpenResolveDialog("Resolved");
   };
 
   return (
@@ -376,6 +417,7 @@ export function SupportPage() {
                 <option value="Awaiting customer">● Awaiting Customer</option>
                 <option value="Escalated">● Escalated (P0)</option>
                 <option value="Resolved">● Resolved</option>
+                <option value="Closed">● Closed</option>
               </select>
 
               <select
@@ -389,6 +431,24 @@ export function SupportPage() {
                 <option value="High">⚡ High</option>
                 <option value="Medium">● Medium</option>
                 <option value="Low">● Low</option>
+              </select>
+
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                aria-label="Filter tickets by category"
+                className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-zinc-700 shadow-2xs focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                <option value="order">Order & Delivery</option>
+                <option value="payment">Payment & Payout</option>
+                <option value="refund">Refund Related</option>
+                <option value="wash">Wash & Quality Issue</option>
+                <option value="garment">Missing / Wrong Garment</option>
+                <option value="delay">Pickup / Delivery Delay</option>
+                <option value="store">Store Partner Operations</option>
+                <option value="rider">Rider / Fleet Dispatch</option>
+                <option value="app">App / Technical Bug</option>
               </select>
 
               <div className="relative">
@@ -491,10 +551,15 @@ export function SupportPage() {
                       </div>
 
                       <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-400">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-zinc-700">{t.raisedBy}</span>
                           {t.refOrder && t.refOrder !== "—" && (
                             <span className="text-zinc-400 font-mono">📦 {t.refOrder}</span>
+                          )}
+                          {t.resolvedBy && (
+                            <span className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 text-[9px] font-bold">
+                              ✓ Solved by {t.resolvedBy}
+                            </span>
                           )}
                         </div>
 
@@ -547,7 +612,7 @@ export function SupportPage() {
                         <span>Compensate Wallet</span>
                       </Button>
 
-                      {activeTicket.status !== "Resolved" && (
+                      {activeTicket.status !== "Resolved" && activeTicket.status !== "Closed" ? (
                         <Button
                           size="sm"
                           onClick={handleQuickResolve}
@@ -557,7 +622,17 @@ export function SupportPage() {
                           <CheckCircle2 className="size-3.5 mr-1" />
                           <span>Mark Resolved</span>
                         </Button>
-                      )}
+                      ) : activeTicket.status === "Resolved" ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenResolveDialog("Closed")}
+                          disabled={statusMutation.isPending}
+                          className="h-8 rounded-xl bg-zinc-900 px-3 text-xs font-bold text-white hover:bg-zinc-800 shadow-xs"
+                        >
+                          <Lock className="size-3.5 mr-1 text-zinc-300" />
+                          <span>Close Ticket</span>
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
 
@@ -577,9 +652,14 @@ export function SupportPage() {
                       {/* Status Selector */}
                       <select
                         value={activeTicket.status}
-                        onChange={(e) =>
-                          statusMutation.mutate({ ticketId: activeTicket.id, status: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "Resolved" || val === "Closed") {
+                            handleOpenResolveDialog(val as "Resolved" | "Closed");
+                          } else {
+                            statusMutation.mutate({ ticketId: activeTicket.id, status: val });
+                          }
+                        }}
                         aria-label="Update ticket status"
                         className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs font-bold text-zinc-800 focus:outline-none cursor-pointer"
                       >
@@ -631,6 +711,78 @@ export function SupportPage() {
                           {activeTicket.orderStatus || "In Transit"}
                         </span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Resolution & Staff Audit Details Card */}
+                  {(activeTicket.status === "Resolved" || activeTicket.status === "Closed" || activeTicket.resolvedBy || activeTicket.resolutionReason) && (
+                    <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 text-xs space-y-2.5 shadow-2xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/80 pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="size-4 text-emerald-700" />
+                          <span className="font-black text-emerald-950 uppercase tracking-wider text-[11px]">
+                            Resolution & Staff Audit Details
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-md bg-emerald-700 px-2 py-0.5 text-[10px] font-black text-white uppercase tracking-wider">
+                            {activeTicket.status}
+                          </span>
+                          {activeTicket.resolvedAt && (
+                            <span className="text-[10px] font-mono font-bold text-emerald-800">
+                              🕒 {activeTicket.resolvedAt}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
+                            Resolved By Staff:
+                          </p>
+                          <p className="font-black text-zinc-950 flex items-center gap-1.5">
+                            <span>{activeTicket.resolvedBy || "Lead Admin"}</span>
+                            {activeTicket.resolvedByRole && (
+                              <span className="rounded bg-zinc-900 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
+                                {activeTicket.resolvedByRole}
+                              </span>
+                            )}
+                          </p>
+                          {activeTicket.resolvedByEmail && (
+                            <p className="text-[10px] font-mono text-zinc-600">{activeTicket.resolvedByEmail}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
+                            Resolution Reason:
+                          </p>
+                          <span className="inline-block rounded-md bg-white border border-emerald-300 px-2.5 py-1 text-[11px] font-black text-emerald-900 shadow-2xs">
+                            {activeTicket.resolutionReason || "Customer Query Solved"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {activeTicket.resolutionNotes && (
+                        <div className="pt-2 border-t border-emerald-200/60 space-y-0.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
+                            Staff Resolution Notes / Settlement Explanation:
+                          </p>
+                          <p className="font-medium text-zinc-900 leading-relaxed bg-white rounded-lg p-2.5 border border-emerald-200 shadow-2xs">
+                            {activeTicket.resolutionNotes}
+                          </p>
+                        </div>
+                      )}
+
+                      {activeTicket.compensationAmount !== undefined && activeTicket.compensationAmount > 0 && (
+                        <div className="flex items-center justify-between pt-1 border-t border-emerald-200/60 text-[11px] font-bold text-emerald-950">
+                          <span>💰 Customer Wallet Compensation Disbursed:</span>
+                          <span className="font-mono text-xs font-black text-emerald-800">
+                            ₹{activeTicket.compensationAmount.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -992,6 +1144,134 @@ export function SupportPage() {
               className="rounded-xl bg-zinc-900 font-bold text-xs text-white hover:bg-zinc-800 shadow-xs"
             >
               {createMutation.isPending ? "Logging..." : "Create Support Ticket"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* =========================================================================
+          6. MODAL 3: RESOLVE / CLOSE SUPPORT TICKET DIALOG (WITH REASON & AUDIT)
+      ========================================================================= */}
+      <Dialog open={isResolveModalOpen} onOpenChange={setIsResolveModalOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-black text-zinc-900">
+              <CheckCircle2 className="size-5 text-emerald-600" />
+              <span>
+                {targetResolveStatus === "Closed" ? "Close Support Ticket" : "Resolve Support Ticket"} #{activeTicket?.ticketNumber}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500">
+              Record a mandatory resolution reason and investigation notes. This will be permanently recorded in the staff audit trail.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* Ticket Snapshot */}
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-zinc-700">Raised By: {activeTicket?.raisedBy} ({activeTicket?.role})</span>
+                <span className="font-mono text-zinc-500 font-bold">{activeTicket?.phone}</span>
+              </div>
+              <p className="font-extrabold text-zinc-900 line-clamp-1">{activeTicket?.subject}</p>
+            </div>
+
+            {/* Target Status */}
+            <div>
+              <label className="font-bold text-zinc-700 block mb-1">Target Lifecycle Status</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTargetResolveStatus("Resolved")}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    targetResolveStatus === "Resolved"
+                      ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
+                      : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                  }`}
+                >
+                  <CheckCircle2 className="size-3.5" />
+                  <span>Resolved</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetResolveStatus("Closed")}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    targetResolveStatus === "Closed"
+                      ? "bg-zinc-900 text-white border-zinc-950 shadow-xs"
+                      : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                  }`}
+                >
+                  <Lock className="size-3.5" />
+                  <span>Closed</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Resolution Reason */}
+            <div>
+              <label className="font-bold text-zinc-700 block mb-1">Resolution Reason / Category *</label>
+              <select
+                value={resolutionReason}
+                onChange={(e) => setResolutionReason(e.target.value)}
+                aria-label="Select resolution reason"
+                className="w-full rounded-xl border border-zinc-200 bg-white p-2 font-bold text-zinc-800 focus:outline-none cursor-pointer"
+              >
+                {RESOLUTION_REASONS.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Resolution Notes */}
+            <div>
+              <label className="font-bold text-zinc-700 block mb-1">
+                Staff Settlement Notes & Explanation
+              </label>
+              <Textarea
+                rows={3}
+                placeholder="Explain the solution or settlement actions taken (e.g. refunded customer wallet, re-assigned rider, clarified pickup time)..."
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                className="rounded-xl text-xs resize-none"
+              />
+              <p className="text-[10px] text-zinc-400 mt-1">
+                Your staff name, email, role, and exact timestamp will be recorded for full audit compliance.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsResolveModalOpen(false)}
+              className="rounded-xl text-xs font-bold"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!activeTicket) return;
+                statusMutation.mutate({
+                  ticketId: activeTicket.id,
+                  status: targetResolveStatus,
+                  reason: resolutionReason,
+                  notes: resolutionNotes.trim() || undefined,
+                });
+              }}
+              disabled={statusMutation.isPending}
+              className={`rounded-xl font-bold text-xs text-white shadow-xs ${
+                targetResolveStatus === "Closed"
+                  ? "bg-zinc-900 hover:bg-zinc-800"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
+            >
+              {statusMutation.isPending
+                ? "Updating..."
+                : targetResolveStatus === "Closed"
+                ? "Confirm & Close Ticket"
+                : "Confirm & Mark Resolved"}
             </Button>
           </DialogFooter>
         </DialogContent>

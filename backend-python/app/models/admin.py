@@ -302,6 +302,8 @@ class SupportReplyPayload(BaseModel):
 
 class SupportStatusPayload(BaseModel):
     status: str
+    resolutionReason: Optional[str] = None
+    resolutionNotes: Optional[str] = None
 
 
 class SupportAssignPayload(BaseModel):

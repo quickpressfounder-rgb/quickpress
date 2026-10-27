@@ -6309,18 +6309,28 @@ class SupportRepository:
         (
             help_tickets,
             admin_tickets,
+            partner_tickets,
+            rider_tickets,
             users,
+            partners,
+            riders,
             memberships,
             orders,
         ) = await asyncio.gather(
             database.find_sorted("support_tickets", sort=[("created_at", -1)]),
             database.find_sorted(self.collection, sort=[("createdAt", -1)]),
+            database.find_sorted("partner_support_tickets", sort=[("createdAt", -1)]),
+            database.find_sorted("rider_support_tickets", sort=[("createdAt", -1)]),
             database.find_many("users"),
+            database.find_many("partners"),
+            database.find_many("riders"),
             database.find_many("memberships"),
             database.find_many("customer_orders"),
         )
 
-        user_map = {str(u["_id"]): u for u in (users or [])}
+        user_map = {str(u.get("_id") or u.get("id")): u for u in (users or [])}
+        partner_map = {str(p.get("_id") or p.get("id") or p.get("partner_id")): p for p in (partners or [])}
+        rider_map = {str(r.get("_id") or r.get("id") or r.get("rider_id")): r for r in (riders or [])}
         mem_map = {str(m.get("user_id") or m.get("userId") or m.get("_id")): m for m in (memberships or [])}
         order_map = {str(o.get("_id") or o.get("id")): o for o in (orders or [])}
 
@@ -6328,7 +6338,7 @@ class SupportRepository:
 
         # 1. Ingest Admin Support Tickets
         for t in (admin_tickets or []):
-            tid = str(t["_id"])
+            tid = str(t.get("_id") or t.get("id"))
             uid = str(t.get("userId") or t.get("user_id") or "")
             udoc = user_map.get(uid, {})
             mdoc = mem_map.get(uid, {})
@@ -6337,7 +6347,7 @@ class SupportRepository:
             replies = t.get("replies") or []
             last_msg = replies[-1] if replies else None
             last_body = (last_msg.get("body") if last_msg else t.get("description") or t.get("subject") or "")[:80]
-            
+
             ref_oid = str(t.get("refOrder") or t.get("orderId") or t.get("order_id") or "")
             odoc = order_map.get(ref_oid, {})
 
@@ -6369,28 +6379,36 @@ class SupportRepository:
                 "createdAt": t.get("createdAt") or t.get("created_at") or now_iso(),
                 "updatedAt": t.get("updatedAt") or t.get("updated_at") or now_iso(),
                 "replies": replies,
+                "resolvedBy": t.get("resolvedBy"),
+                "resolvedByEmail": t.get("resolvedByEmail"),
+                "resolvedByRole": t.get("resolvedByRole"),
+                "resolvedAt": t.get("resolvedAt"),
+                "resolutionReason": t.get("resolutionReason"),
+                "resolutionNotes": t.get("resolutionNotes"),
             })
 
-        # 2. Ingest Customer Help Tickets
+        # 2. Ingest Customer & Helpdesk Tickets (from support_tickets)
         for t in (help_tickets or []):
-            tid = str(t["_id"])
+            tid = str(t.get("_id") or t.get("id"))
             if not any(r["id"] == tid for r in results):
                 uid = str(t.get("user_id") or "")
                 udoc = user_map.get(uid, {})
                 mdoc = mem_map.get(uid, {})
                 vip_badge = mdoc.get("plan_id") or mdoc.get("planId") if mdoc.get("active") else None
 
-                # Fetch support_messages
+                raw_u_role = str(udoc.get("role") or t.get("role") or "Customer").lower()
+                ticket_role = "Rider" if "rider" in raw_u_role else ("Partner" if "partner" in raw_u_role else "Customer")
+
                 msgs = await database.find_many("support_messages", {"ticket_id": tid})
                 msgs = msgs or []
                 msgs.sort(key=lambda m: str(m.get("created_at") or ""))
-                
+
                 replies_fmt = []
                 for m in msgs:
                     replies_fmt.append({
                         "_id": str(m.get("_id")),
                         "author": m.get("author_name") or m.get("author") or "User",
-                        "role": "Admin" if m.get("author") in ("admin", "support") else "Customer",
+                        "role": "Admin" if m.get("author") in ("admin", "support") else ticket_role,
                         "body": m.get("body") or "",
                         "isInternal": bool(m.get("is_internal", False)),
                         "at": m.get("created_at") or now_iso(),
@@ -6398,7 +6416,7 @@ class SupportRepository:
 
                 last_msg = replies_fmt[-1] if replies_fmt else None
                 last_body = (last_msg.get("body") if last_msg else t.get("description") or t.get("subject") or "")[:80]
-                
+
                 ref_oid = str(t.get("order_id") or t.get("orderId") or "")
                 odoc = order_map.get(ref_oid, {})
 
@@ -6411,8 +6429,8 @@ class SupportRepository:
                     "raisedBy": udoc.get("name") or udoc.get("display_name") or uid or "Customer",
                     "phone": udoc.get("phone") or "+91 98719 62596",
                     "email": udoc.get("email") or "",
-                    "role": "Customer",
-                    "source": "Customer",
+                    "role": ticket_role,
+                    "source": ticket_role,
                     "priority": (t.get("priority") or "Medium").capitalize(),
                     "status": (t.get("status") or "Open").capitalize(),
                     "category": t.get("category", "Order Inquiry"),
@@ -6430,13 +6448,157 @@ class SupportRepository:
                     "createdAt": t.get("created_at") or t.get("createdAt") or now_iso(),
                     "updatedAt": t.get("updated_at") or t.get("updatedAt") or now_iso(),
                     "replies": replies_fmt,
+                    "resolvedBy": t.get("resolvedBy"),
+                    "resolvedByEmail": t.get("resolvedByEmail"),
+                    "resolvedByRole": t.get("resolvedByRole"),
+                    "resolvedAt": t.get("resolvedAt"),
+                    "resolutionReason": t.get("resolutionReason"),
+                    "resolutionNotes": t.get("resolutionNotes"),
+                })
+
+        # 3. Ingest Partner Support Tickets (Laundromat Store Partners)
+        for t in (partner_tickets or []):
+            tid = str(t.get("_id") or t.get("id"))
+            if not any(r["id"] == tid for r in results):
+                pid = str(t.get("partnerId") or t.get("partner_id") or "")
+                pdoc = partner_map.get(pid, {})
+                partner_name = pdoc.get("name") or pdoc.get("businessName") or t.get("partnerName") or f"Store Partner #{pid[:6]}"
+                partner_phone = pdoc.get("phone") or t.get("phone") or "+91 98719 62596"
+                partner_email = pdoc.get("email") or t.get("email") or ""
+
+                replies = list(t.get("replies") or [])
+                if not replies and t.get("supportReply"):
+                    replies.append({
+                        "_id": f"msg-{tid[:6]}-rep",
+                        "author": "QuickPress Ops",
+                        "role": "Admin",
+                        "body": t.get("supportReply"),
+                        "isInternal": False,
+                        "at": t.get("supportRepliedAt") or t.get("updatedAt") or now_iso(),
+                    })
+
+                last_msg = replies[-1] if replies else None
+                last_body = (last_msg.get("body") if last_msg else t.get("description") or t.get("subject") or "")[:80]
+                ref_oid = str(t.get("orderCode") or t.get("refOrder") or t.get("orderId") or "")
+                odoc = order_map.get(ref_oid, {})
+
+                results.append({
+                    "_id": tid,
+                    "id": tid,
+                    "ticketNumber": t.get("ticketNumber") or t.get("id") or f"TCK-{tid[:4].upper()}",
+                    "subject": t.get("subject") or t.get("description") or "Store Partner Inquiry",
+                    "description": t.get("description") or "",
+                    "raisedBy": partner_name,
+                    "phone": partner_phone,
+                    "email": partner_email,
+                    "role": "Partner",
+                    "source": "Partner",
+                    "priority": (t.get("priority") or "Medium").capitalize(),
+                    "status": (t.get("status") or "Open").capitalize(),
+                    "category": t.get("categoryLabel") or t.get("category", "Store Operations"),
+                    "refOrder": ref_oid or "—",
+                    "orderStatus": odoc.get("status"),
+                    "orderTotal": (odoc.get("totals") or {}).get("grandTotal"),
+                    "partnerName": partner_name,
+                    "riderName": (odoc.get("rider") or {}).get("name"),
+                    "assignee": t.get("assignee") or "Lead Admin",
+                    "city": pdoc.get("city") or t.get("city") or "",
+                    "vipBadge": None,
+                    "compensationAmount": float(t.get("compensationAmount") or 0.0),
+                    "messagesCount": len(replies),
+                    "lastMessage": last_body,
+                    "createdAt": t.get("createdAt") or t.get("created_at") or now_iso(),
+                    "updatedAt": t.get("updatedAt") or t.get("updated_at") or now_iso(),
+                    "replies": replies,
+                    "resolvedBy": t.get("resolvedBy"),
+                    "resolvedByEmail": t.get("resolvedByEmail"),
+                    "resolvedByRole": t.get("resolvedByRole"),
+                    "resolvedAt": t.get("resolvedAt"),
+                    "resolutionReason": t.get("resolutionReason"),
+                    "resolutionNotes": t.get("resolutionNotes"),
+                })
+
+        # 4. Ingest Rider Fleet Support Tickets (Delivery Captains)
+        for t in (rider_tickets or []):
+            tid = str(t.get("_id") or t.get("id"))
+            if not any(r["id"] == tid for r in results):
+                rid = str(t.get("riderId") or t.get("rider_id") or "")
+                rdoc = rider_map.get(rid, {})
+                rider_name = rdoc.get("name") or rdoc.get("fullName") or t.get("riderName") or f"Captain #{rid[:6]}"
+                rider_phone = rdoc.get("phone") or t.get("phone") or "+91 98719 62596"
+                rider_email = rdoc.get("email") or t.get("email") or ""
+
+                replies = list(t.get("replies") or [])
+                if not replies and t.get("supportReply"):
+                    replies.append({
+                        "_id": f"msg-{tid[:6]}-rep",
+                        "author": "QuickPress Fleet Ops",
+                        "role": "Admin",
+                        "body": t.get("supportReply"),
+                        "isInternal": False,
+                        "at": t.get("supportRepliedAt") or t.get("updatedAt") or now_iso(),
+                    })
+
+                last_msg = replies[-1] if replies else None
+                last_body = (last_msg.get("body") if last_msg else t.get("description") or t.get("subject") or "")[:80]
+                ref_oid = str(t.get("orderCode") or t.get("refOrder") or t.get("orderId") or "")
+                odoc = order_map.get(ref_oid, {})
+
+                results.append({
+                    "_id": tid,
+                    "id": tid,
+                    "ticketNumber": t.get("ticketNumber") or t.get("id") or f"TCK-{tid[:4].upper()}",
+                    "subject": t.get("subject") or t.get("description") or "Rider Fleet Issue",
+                    "description": t.get("description") or "",
+                    "raisedBy": rider_name,
+                    "phone": rider_phone,
+                    "email": rider_email,
+                    "role": "Rider",
+                    "source": "Rider",
+                    "priority": (t.get("priority") or "Medium").capitalize(),
+                    "status": (t.get("status") or "Open").capitalize(),
+                    "category": t.get("categoryLabel") or t.get("category", "Delivery / Dispatch"),
+                    "refOrder": ref_oid or "—",
+                    "orderStatus": odoc.get("status"),
+                    "orderTotal": (odoc.get("totals") or {}).get("grandTotal"),
+                    "partnerName": (odoc.get("partner") or {}).get("name"),
+                    "riderName": rider_name,
+                    "assignee": t.get("assignee") or "Lead Admin",
+                    "city": rdoc.get("city") or t.get("city") or "",
+                    "vipBadge": None,
+                    "compensationAmount": float(t.get("compensationAmount") or 0.0),
+                    "messagesCount": len(replies),
+                    "lastMessage": last_body,
+                    "createdAt": t.get("createdAt") or t.get("created_at") or now_iso(),
+                    "updatedAt": t.get("updatedAt") or t.get("updated_at") or now_iso(),
+                    "replies": replies,
+                    "resolvedBy": t.get("resolvedBy"),
+                    "resolvedByEmail": t.get("resolvedByEmail"),
+                    "resolvedByRole": t.get("resolvedByRole"),
+                    "resolvedAt": t.get("resolvedAt"),
+                    "resolutionReason": t.get("resolutionReason"),
+                    "resolutionNotes": t.get("resolutionNotes"),
                 })
 
         # Apply Filters
         if role and role.lower() not in ("all", ""):
             results = [r for r in results if r["role"].lower() == role.lower()]
         if status and status.lower() not in ("all", ""):
-            results = [r for r in results if r["status"].lower() == status.lower()]
+            st_target = status.lower()
+            if st_target == "open":
+                results = [r for r in results if r["status"].lower() == "open"]
+            elif "progress" in st_target:
+                results = [r for r in results if "progress" in r["status"].lower()]
+            elif "await" in st_target:
+                results = [r for r in results if "await" in r["status"].lower()]
+            elif "escalat" in st_target:
+                results = [r for r in results if "escalat" in r["status"].lower()]
+            elif "resolve" in st_target:
+                results = [r for r in results if "resolve" in r["status"].lower()]
+            elif "close" in st_target:
+                results = [r for r in results if "close" in r["status"].lower()]
+            else:
+                results = [r for r in results if r["status"].lower() == st_target]
         if priority and priority.lower() not in ("all", ""):
             results = [r for r in results if r["priority"].lower() == priority.lower()]
         if category and category.lower() not in ("all", ""):
@@ -6448,8 +6610,11 @@ class SupportRepository:
                 if query_str in r["subject"].lower()
                 or query_str in r["ticketNumber"].lower()
                 or query_str in r["raisedBy"].lower()
-                or query_str in r["phone"].lower()
-                or query_str in r["refOrder"].lower()
+                or query_str in (r.get("phone") or "").lower()
+                or query_str in (r.get("email") or "").lower()
+                or query_str in (r.get("refOrder") or "").lower()
+                or query_str in (r.get("assignee") or "").lower()
+                or query_str in (r.get("description") or "").lower()
             ]
 
         results.sort(key=lambda r: str(r.get("updatedAt") or r.get("createdAt") or ""), reverse=True)
@@ -6457,34 +6622,58 @@ class SupportRepository:
 
     async def get(self, ticket_id: str) -> Optional[Dict[str, Any]]:
         doc = await database.find_one(self.collection, {"_id": ticket_id})
-        is_help_ticket = False
+        ticket_source = "admin"
+        if doc is None:
+            doc = await database.find_one(self.collection, {"id": ticket_id})
         if doc is None:
             doc = await database.find_one("support_tickets", {"_id": ticket_id})
-            is_help_ticket = True
+            if doc:
+                ticket_source = "support_tickets"
+        if doc is None:
+            doc = await database.find_one("support_tickets", {"id": ticket_id})
+            if doc:
+                ticket_source = "support_tickets"
+        if doc is None:
+            doc = await database.find_one("partner_support_tickets", {"_id": ticket_id})
+            if doc:
+                ticket_source = "partner"
+        if doc is None:
+            doc = await database.find_one("partner_support_tickets", {"id": ticket_id})
+            if doc:
+                ticket_source = "partner"
+        if doc is None:
+            doc = await database.find_one("rider_support_tickets", {"_id": ticket_id})
+            if doc:
+                ticket_source = "rider"
+        if doc is None:
+            doc = await database.find_one("rider_support_tickets", {"id": ticket_id})
+            if doc:
+                ticket_source = "rider"
         if doc is None:
             return None
 
         # Build full unified thread
         replies: List[Dict[str, Any]] = []
-        if is_help_ticket:
-            msgs = await database.find_many("support_messages", {"ticket_id": ticket_id})
+        if ticket_source == "support_tickets":
+            msgs = await database.find_many("support_messages", {"ticket_id": str(doc.get("_id") or ticket_id)})
             msgs = msgs or []
             msgs.sort(key=lambda m: str(m.get("created_at") or ""))
             for m in msgs:
+                author_val = m.get("author") or ""
                 replies.append({
                     "_id": str(m.get("_id")),
                     "id": str(m.get("_id")),
                     "author": m.get("author_name") or m.get("author") or "User",
-                    "role": "Admin" if m.get("author") in ("admin", "support") else "Customer",
+                    "role": "Admin" if author_val in ("admin", "support") else "Customer",
                     "body": m.get("body") or "",
                     "isInternal": bool(m.get("is_internal", False)),
                     "at": m.get("created_at") or now_iso(),
-                    "me": m.get("author") in ("admin", "support"),
+                    "me": author_val in ("admin", "support"),
                 })
         else:
             for r in (doc.get("replies") or []):
                 author = r.get("author") or "User"
-                role = r.get("role") or ("Admin" if "support" in author.lower() or "admin" in author.lower() else "Customer")
+                role = r.get("role") or ("Admin" if "support" in author.lower() or "admin" in author.lower() else "User")
                 replies.append({
                     "_id": str(r.get("_id") or f"msg-{uuid.uuid4().hex[:6]}"),
                     "id": str(r.get("_id") or f"msg-{uuid.uuid4().hex[:6]}"),
@@ -6498,24 +6687,26 @@ class SupportRepository:
 
         uid = str(doc.get("userId") or doc.get("user_id") or "")
         udoc = await database.find_one("users", {"_id": uid}) if uid else {}
-        ref_oid = str(doc.get("refOrder") or doc.get("orderId") or doc.get("order_id") or "")
+        ref_oid = str(doc.get("refOrder") or doc.get("orderId") or doc.get("order_id") or doc.get("orderCode") or "")
         odoc = await database.find_one("customer_orders", {"_id": ref_oid}) if ref_oid and ref_oid != "—" else {}
 
+        raw_role = (doc.get("role") or doc.get("source") or ("Partner" if ticket_source == "partner" else ("Rider" if ticket_source == "rider" else "Customer"))).capitalize()
+
         return {
-            "_id": str(doc["_id"]),
-            "id": str(doc["_id"]),
-            "ticketNumber": doc.get("ticketNumber") or doc.get("ticket_number") or f"TCK-{str(doc['_id'])[:4].upper()}",
+            "_id": str(doc.get("_id") or doc.get("id")),
+            "id": str(doc.get("_id") or doc.get("id")),
+            "ticketNumber": doc.get("ticketNumber") or doc.get("ticket_number") or doc.get("id") or f"TCK-{str(doc.get('_id') or '0000')[:4].upper()}",
             "subject": doc.get("subject") or doc.get("description") or "Support Request",
             "description": doc.get("description") or "",
             "raisedBy": doc.get("raisedBy") or (udoc or {}).get("name") or (udoc or {}).get("display_name") or "User",
             "phone": doc.get("phone") or (udoc or {}).get("phone") or "+91 98719 62596",
             "email": doc.get("email") or (udoc or {}).get("email") or "",
             "userId": uid,
-            "role": (doc.get("role") or doc.get("source") or "Customer").capitalize(),
-            "source": (doc.get("source") or doc.get("role") or "Customer").capitalize(),
+            "role": raw_role,
+            "source": raw_role,
             "priority": (doc.get("priority") or "Medium").capitalize(),
             "status": (doc.get("status") or "Open").capitalize(),
-            "category": doc.get("category", "General Issue"),
+            "category": doc.get("categoryLabel") or doc.get("category", "General Issue"),
             "refOrder": ref_oid or "—",
             "order": odoc,
             "user": udoc,
@@ -6524,6 +6715,12 @@ class SupportRepository:
             "createdAt": doc.get("createdAt") or doc.get("created_at") or now_iso(),
             "updatedAt": doc.get("updatedAt") or doc.get("updated_at") or now_iso(),
             "replies": replies,
+            "resolvedBy": doc.get("resolvedBy"),
+            "resolvedByEmail": doc.get("resolvedByEmail"),
+            "resolvedByRole": doc.get("resolvedByRole"),
+            "resolvedAt": doc.get("resolvedAt"),
+            "resolutionReason": doc.get("resolutionReason"),
+            "resolutionNotes": doc.get("resolutionNotes"),
         }
 
     async def create(self, payload: Any, admin_user: Optional[User] = None) -> Dict[str, Any]:
@@ -6584,10 +6781,14 @@ class SupportRepository:
             "at": now,
         }
 
-        doc = await database.find_one(self.collection, {"_id": ticket_id})
         target_uid = None
         target_ticket_num = None
+        target_role = "customer"
+
+        # 1. Check self.collection
+        doc = await database.find_one(self.collection, {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
         if doc is not None:
+            actual_id = doc["_id"]
             replies = list(doc.get("replies") or [])
             replies.append(new_msg)
             new_st = doc.get("status") or "In progress"
@@ -6595,17 +6796,20 @@ class SupportRepository:
                 new_st = "In progress"
             await database.update(
                 self.collection,
-                {"_id": ticket_id},
+                {"_id": actual_id},
                 {"replies": replies, "status": new_st, "updatedAt": now},
             )
             target_uid = str(doc.get("userId") or doc.get("user_id") or "")
-            target_ticket_num = str(doc.get("ticketNumber") or doc.get("ticket_number") or f"TCK-{ticket_id[:4].upper()}")
+            target_ticket_num = str(doc.get("ticketNumber") or doc.get("ticket_number") or f"TCK-{str(actual_id)[:4].upper()}")
+            target_role = str(doc.get("role") or "customer").lower()
         else:
-            doc = await database.find_one("support_tickets", {"_id": ticket_id})
+            # 2. Check support_tickets
+            doc = await database.find_one("support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
             if doc is not None:
+                actual_id = doc["_id"]
                 msg = {
                     "_id": f"msg-{uuid.uuid4().hex[:12]}",
-                    "ticket_id": ticket_id,
+                    "ticket_id": str(actual_id),
                     "user_id": admin_user.id if admin_user else "admin",
                     "author": "support",
                     "author_name": admin_name,
@@ -6616,17 +6820,60 @@ class SupportRepository:
                 await database.insert("support_messages", msg)
                 await database.update(
                     "support_tickets",
-                    {"_id": ticket_id},
+                    {"_id": actual_id},
                     {"status": "in-progress", "last_message_at": now, "updated_at": now},
                 )
                 target_uid = str(doc.get("user_id") or doc.get("userId") or "")
-                target_ticket_num = str(doc.get("ticket_number") or doc.get("ticketNumber") or f"TCK-{ticket_id[:4].upper()}")
+                target_ticket_num = str(doc.get("ticket_number") or doc.get("ticketNumber") or f"TCK-{str(actual_id)[:4].upper()}")
+                target_role = "customer"
             else:
-                return None
+                # 3. Check partner_support_tickets
+                doc = await database.find_one("partner_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+                if doc is not None:
+                    actual_id = doc["_id"]
+                    replies = list(doc.get("replies") or [])
+                    replies.append(new_msg)
+                    await database.update(
+                        "partner_support_tickets",
+                        {"_id": actual_id},
+                        {
+                            "replies": replies,
+                            "supportReply": body if not is_internal else doc.get("supportReply"),
+                            "supportRepliedAt": now if not is_internal else doc.get("supportRepliedAt"),
+                            "status": "in-progress",
+                            "updatedAt": now,
+                        },
+                    )
+                    target_uid = str(doc.get("partnerId") or doc.get("partner_id") or "")
+                    target_ticket_num = str(doc.get("ticketNumber") or doc.get("id") or f"TCK-{str(actual_id)[:4].upper()}")
+                    target_role = "partner"
+                else:
+                    # 4. Check rider_support_tickets
+                    doc = await database.find_one("rider_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+                    if doc is not None:
+                        actual_id = doc["_id"]
+                        replies = list(doc.get("replies") or [])
+                        replies.append(new_msg)
+                        await database.update(
+                            "rider_support_tickets",
+                            {"_id": actual_id},
+                            {
+                                "replies": replies,
+                                "supportReply": body if not is_internal else doc.get("supportReply"),
+                                "supportRepliedAt": now if not is_internal else doc.get("supportRepliedAt"),
+                                "status": "in-progress",
+                                "updatedAt": now,
+                            },
+                        )
+                        target_uid = str(doc.get("riderId") or doc.get("rider_id") or "")
+                        target_ticket_num = str(doc.get("ticketNumber") or doc.get("id") or f"TCK-{str(actual_id)[:4].upper()}")
+                        target_role = "rider"
+                    else:
+                        return None
 
-        # Real-time Multi-Channel Dispatch to Customer (Push Notification + In-App + Socket.IO)
+        # Real-time Multi-Channel Dispatch to User (Push Notification + In-App + Socket.IO)
         if not is_internal and target_uid:
-            deep_link = f"/help?ticketId={ticket_id}"
+            deep_link = f"/help?ticketId={ticket_id}" if target_role == "customer" else f"/support"
             clean_tnum = target_ticket_num or f"TCK-{ticket_id[:4].upper()}"
 
             # 1. In-App Notification Feed Entry
@@ -6634,7 +6881,7 @@ class SupportRepository:
                 await database.insert("notifications", {
                     "_id": new_id("ntf"),
                     "user_id": target_uid,
-                    "role": "customer",
+                    "role": target_role,
                     "kind": "support",
                     "category": "support",
                     "title": f"💬 Support Reply: #{clean_tnum}",
@@ -6649,7 +6896,7 @@ class SupportRepository:
             except Exception as e:
                 logger.warning("Could not insert support reply notification: %s", e)
 
-            # 2. OneSignal Mobile Push Notification (Locks Screen & Notification Bar)
+            # 2. OneSignal Mobile Push Notification
             try:
                 from app.core.onesignal import send_onesignal_notification
                 await send_onesignal_notification(
@@ -6662,7 +6909,7 @@ class SupportRepository:
             except Exception as e:
                 logger.warning("OneSignal support reply push failed: %s", e)
 
-            # 3. Firebase Cloud Messaging (FCM) Native Mobile Heads-Up Notification
+            # 3. Firebase Cloud Messaging (FCM)
             try:
                 from app.core.fcm import send_fcm_push
                 await send_fcm_push(
@@ -6674,7 +6921,7 @@ class SupportRepository:
             except Exception as e:
                 logger.warning("FCM support reply push failed: %s", e)
 
-            # 4. Socket.IO Real-Time Stream to Customer Screen
+            # 4. Socket.IO Real-Time Stream to User Screen
             try:
                 from app.services.socket_service import sio
                 chat_event = {
@@ -6696,44 +6943,113 @@ class SupportRepository:
 
         return {"ok": True, "ticketId": ticket_id, "body": body, "message": new_msg}
 
-    async def update_status(self, ticket_id: str, new_status: str, admin_user: Optional[User] = None) -> Optional[Dict[str, Any]]:
+    async def update_status(
+        self,
+        ticket_id: str,
+        new_status: str,
+        admin_user: Optional[User] = None,
+        resolution_reason: Optional[str] = None,
+        resolution_notes: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         now = now_iso()
         fmt_status = new_status.capitalize()
-        admin_name = admin_user.display_name if admin_user else "Admin"
+        if "progress" in new_status.lower():
+            fmt_status = "In progress"
+        elif "await" in new_status.lower():
+            fmt_status = "Awaiting customer"
 
+        admin_name = admin_user.display_name or admin_user.name if admin_user else "Lead Admin"
+        admin_email = getattr(admin_user, "email", "admin@quickpress.app") if admin_user else "admin@quickpress.app"
+        admin_role = getattr(admin_user, "role", "Superadmin") if admin_user else "Superadmin"
+        if hasattr(admin_role, "value"):
+            admin_role = admin_role.value
+
+        is_resolving = fmt_status.lower() in ("resolved", "closed")
+        reason_txt = f" · Reason: {resolution_reason}" if resolution_reason else ""
+        notes_txt = f" · Notes: {resolution_notes}" if resolution_notes else ""
+
+        sys_msg_body = f"Ticket status updated to '{fmt_status}' by {admin_name} ({admin_email} · {admin_role}){reason_txt}{notes_txt}"
         sys_msg = {
             "_id": f"msg-{uuid.uuid4().hex[:8]}",
             "author": "System",
             "role": "System",
-            "body": f"Ticket status changed to '{fmt_status}' by {admin_name}",
+            "body": sys_msg_body,
             "at": now,
         }
 
-        doc = await database.find_one(self.collection, {"_id": ticket_id})
+        update_fields: Dict[str, Any] = {
+            "status": fmt_status,
+            "updatedAt": now,
+            "updated_at": now,
+        }
+        if is_resolving:
+            update_fields["resolvedBy"] = admin_name
+            update_fields["resolvedByEmail"] = admin_email
+            update_fields["resolvedByRole"] = str(admin_role)
+            update_fields["resolvedAt"] = now
+            if resolution_reason:
+                update_fields["resolutionReason"] = resolution_reason
+            if resolution_notes:
+                update_fields["resolutionNotes"] = resolution_notes
+
+        # 1. Check self.collection
+        doc = await database.find_one(self.collection, {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
         if doc is not None:
+            actual_id = doc["_id"]
             replies = list(doc.get("replies") or [])
             replies.append(sys_msg)
-            await database.update(self.collection, {"_id": ticket_id}, {"status": fmt_status, "replies": replies, "updatedAt": now})
-            return {"ok": True, "status": fmt_status}
+            update_fields["replies"] = replies
+            await database.update(self.collection, {"_id": actual_id}, update_fields)
+            return {"ok": True, "status": fmt_status, **update_fields}
 
-        doc = await database.find_one("support_tickets", {"_id": ticket_id})
+        # 2. Check support_tickets
+        doc = await database.find_one("support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
         if doc is not None:
+            actual_id = doc["_id"]
             st_low = "resolved" if fmt_status.lower() == "resolved" else ("closed" if fmt_status.lower() == "closed" else "in-progress")
-            await database.update("support_tickets", {"_id": ticket_id}, {"status": st_low, "updated_at": now})
-            return {"ok": True, "status": fmt_status}
+            st_update = dict(update_fields)
+            st_update["status"] = st_low
+            await database.update("support_tickets", {"_id": actual_id}, st_update)
+            await database.insert("support_messages", {
+                "_id": f"msg-{uuid.uuid4().hex[:12]}",
+                "ticket_id": str(actual_id),
+                "user_id": "system",
+                "author": "system",
+                "author_name": "QuickPress Resolution Bot",
+                "body": sys_msg_body,
+                "created_at": now,
+            })
+            return {"ok": True, "status": fmt_status, **update_fields}
+
+        # 3. Check partner_support_tickets
+        doc = await database.find_one("partner_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+        if doc is not None:
+            actual_id = doc["_id"]
+            replies = list(doc.get("replies") or [])
+            replies.append(sys_msg)
+            update_fields["replies"] = replies
+            await database.update("partner_support_tickets", {"_id": actual_id}, update_fields)
+            return {"ok": True, "status": fmt_status, **update_fields}
+
+        # 4. Check rider_support_tickets
+        doc = await database.find_one("rider_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+        if doc is not None:
+            actual_id = doc["_id"]
+            replies = list(doc.get("replies") or [])
+            replies.append(sys_msg)
+            update_fields["replies"] = replies
+            await database.update("rider_support_tickets", {"_id": actual_id}, update_fields)
+            return {"ok": True, "status": fmt_status, **update_fields}
 
         return None
 
     async def assign(self, ticket_id: str, assignee: str, admin_user: Optional[User] = None) -> Optional[Dict[str, Any]]:
         now = now_iso()
-        doc = await database.find_one(self.collection, {"_id": ticket_id})
-        if doc is not None:
-            await database.update(self.collection, {"_id": ticket_id}, {"assignee": assignee, "updatedAt": now})
-            return {"ok": True, "assignee": assignee}
-        doc = await database.find_one("support_tickets", {"_id": ticket_id})
-        if doc is not None:
-            await database.update("support_tickets", {"_id": ticket_id}, {"assignee": assignee, "updated_at": now})
-            return {"ok": True, "assignee": assignee}
+        for coll in (self.collection, "support_tickets", "partner_support_tickets", "rider_support_tickets"):
+            doc = await database.find_one(coll, {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+            if doc is not None:
+                await database.update(coll, {"_id": doc["_id"]}, {"assignee": assignee, "updatedAt": now, "updated_at": now})
+                return {"ok": True, "assignee": assignee}
         return None
 
     async def compensate(
@@ -6749,7 +7065,6 @@ class SupportRepository:
 
         uid = ticket.get("userId") or ticket.get("user_id")
         if not uid:
-            # Look up by phone if userId was not directly attached
             phone = ticket.get("phone")
             udoc = await database.find_one("users", {"phone": phone})
             uid = str(udoc["_id"]) if udoc else None
@@ -6773,26 +7088,26 @@ class SupportRepository:
             "at": now,
         }
 
-        # Update ticket compensation amount & log message
         new_comp = float(ticket.get("compensationAmount") or 0.0) + amount
-        doc = await database.find_one(self.collection, {"_id": ticket_id})
-        if doc is not None:
-            replies = list(doc.get("replies") or [])
-            replies.append(comp_msg)
-            await database.update(self.collection, {"_id": ticket_id}, {"compensationAmount": new_comp, "replies": replies, "updatedAt": now})
-        else:
-            doc_st = await database.find_one("support_tickets", {"_id": ticket_id})
-            if doc_st is not None:
-                await database.update("support_tickets", {"_id": ticket_id}, {"compensationAmount": new_comp, "updated_at": now})
-                await database.insert("support_messages", {
-                    "_id": f"msg-{uuid.uuid4().hex[:12]}",
-                    "ticket_id": ticket_id,
-                    "user_id": "system",
-                    "author": "system",
-                    "author_name": "QuickPress Financial Bot",
-                    "body": comp_msg["body"],
-                    "created_at": now,
-                })
+        for coll in (self.collection, "support_tickets", "partner_support_tickets", "rider_support_tickets"):
+            doc = await database.find_one(coll, {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+            if doc is not None:
+                if coll == "support_tickets":
+                    await database.update("support_tickets", {"_id": doc["_id"]}, {"compensationAmount": new_comp, "updated_at": now})
+                    await database.insert("support_messages", {
+                        "_id": f"msg-{uuid.uuid4().hex[:12]}",
+                        "ticket_id": str(doc["_id"]),
+                        "user_id": "system",
+                        "author": "system",
+                        "author_name": "QuickPress Financial Bot",
+                        "body": comp_msg["body"],
+                        "created_at": now,
+                    })
+                else:
+                    replies = list(doc.get("replies") or [])
+                    replies.append(comp_msg)
+                    await database.update(coll, {"_id": doc["_id"]}, {"compensationAmount": new_comp, "replies": replies, "updatedAt": now})
+                break
 
         return {"ok": True, "amount": amount, "totalCompensated": new_comp, "reason": r_text}
 
@@ -6800,7 +7115,7 @@ class SupportRepository:
         tickets = await self.list()
         total = len(tickets)
         open_count = len([t for t in tickets if t["status"] in ("Open", "In progress", "In-progress")])
-        escalated = len([t for t in tickets if t["priority"] in ("Urgent", "High") and t["status"] != "Resolved"])
+        escalated = len([t for t in tickets if t["priority"] in ("Urgent", "High") and t["status"] not in ("Resolved", "Closed")])
         resolved = len([t for t in tickets if t["status"] in ("Resolved", "Closed")])
         total_comp = sum(float(t.get("compensationAmount") or 0.0) for t in tickets)
 
@@ -6824,8 +7139,20 @@ class SupportRepository:
             },
         }
 
-    async def close(self, ticket_id: str) -> Optional[Dict[str, Any]]:
-        return await self.update_status(ticket_id, "Resolved")
+    async def close(
+        self,
+        ticket_id: str,
+        admin_user: Optional[User] = None,
+        resolution_reason: Optional[str] = None,
+        resolution_notes: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        return await self.update_status(
+            ticket_id,
+            "Closed",
+            admin_user=admin_user,
+            resolution_reason=resolution_reason,
+            resolution_notes=resolution_notes,
+        )
 
 
 support_repository = SupportRepository()

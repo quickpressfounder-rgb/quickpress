@@ -1870,6 +1870,43 @@ async def create_support_ticket(
     return {"ok": True, "ticket": ticket_doc}
 
 
+@public_router.post("/tickets/{ticket_id}/reply")
+@router.post("/tickets/{ticket_id}/reply")
+async def reply_partner_ticket(
+    ticket_id: str,
+    body: dict,
+    user: Optional[User] = Depends(optional_user),
+) -> dict:
+    p_name = user.display_name or user.name if user else "Store Partner"
+    now = datetime.now(timezone.utc).isoformat()
+    msg_body = (body.get("body") or "").strip()
+    if not msg_body:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Message body is required")
+
+    new_msg = {
+        "_id": f"msg-{uuid.uuid4().hex[:8]}",
+        "author": p_name,
+        "role": "Partner",
+        "body": msg_body,
+        "at": now,
+    }
+
+    doc = await database.find_one("partner_support_tickets", {"$or": [{"_id": ticket_id}, {"id": ticket_id}]})
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+
+    actual_id = doc["_id"]
+    replies = list(doc.get("replies") or [])
+    replies.append(new_msg)
+    await database.update(
+        "partner_support_tickets",
+        {"_id": actual_id},
+        {"replies": replies, "status": "open", "updatedAt": now},
+    )
+    return {"ok": True, "message": new_msg}
+
+
+
 @router.post("/orders/{order_id}/review")
 async def submit_partner_order_review(
     order_id: str,
