@@ -179,6 +179,15 @@ export async function fetchCouponRedemptions(couponId: string): Promise<CouponRe
   }
 }
 
+export async function fetchAllCouponRedemptions(): Promise<CouponRedemption[]> {
+  try {
+    const res = await apiGetJson<CouponRedemption[]>("/api/admin/coupons/all/redemptions");
+    return Array.isArray(res) ? res : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function toggleCouponStatus(couponId: string, status: "Active" | "Paused" | "Expired") {
   return await apiPatchJson<any>(`/api/admin/coupons/${couponId}/status`, { status });
 }

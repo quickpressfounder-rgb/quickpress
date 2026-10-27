@@ -39,6 +39,11 @@ import {
   PlayCircle,
   ShoppingBag,
   Layers,
+  X,
+  FileText,
+  ArrowUpDown,
+  History,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -70,6 +75,7 @@ import {
   fetchCoupons,
   fetchCouponStats,
   fetchCouponRedemptions,
+  fetchAllCouponRedemptions,
   toggleCouponStatus,
   fetchReferralSettings,
   fetchReferralStats,
@@ -97,10 +103,21 @@ export const Route = createFileRoute("/coupons")({
 export function CouponsPage() {
   const queryClient = useQueryClient();
   const [selectedCity, setSelectedCity] = useState("All Cities");
-  const [activeTab, setActiveTab] = useState<"coupons" | "city_performance" | "referral_program" | "referral_history">("coupons");
+  const [activeTab, setActiveTab] = useState<"coupons" | "redemptions_ledger" | "city_performance" | "referral_program" | "referral_history">("coupons");
+  
+  // Coupon Directory Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState<"all" | "active_today" | "expiring_7d" | "expiring_30d" | "expired">("all");
+  const [sortBy, setSortBy] = useState<"used_desc" | "savings_desc" | "value_desc" | "expiry_asc" | "newest">("used_desc");
+
+  // Redemptions Ledger Filters
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerCouponFilter, setLedgerCouponFilter] = useState("all");
+  const [ledgerCityFilter, setLedgerCityFilter] = useState("all");
+  const [ledgerDateFilter, setLedgerDateFilter] = useState<"all" | "today" | "yesterday" | "7d" | "30d">("all");
+
   const [editCoupon, setEditCoupon] = useState<Coupon | null>(null);
   const [inspectCoupon, setInspectCoupon] = useState<Coupon | null>(null);
   const [deleteCouponTarget, setDeleteCouponTarget] = useState<Coupon | null>(null);
@@ -110,12 +127,17 @@ export function CouponsPage() {
     queryKey: ["admin", "coupons", selectedCity],
     queryFn: () => fetchCoupons(selectedCity),
   });
+  const allRedemptionsQuery = useQuery({
+    queryKey: ["admin", "coupons", "all-redemptions"],
+    queryFn: fetchAllCouponRedemptions,
+  });
   const statsQuery = useQuery({ queryKey: ["admin", "coupons", "stats"], queryFn: fetchCouponStats });
   const refSettings = useQuery({ queryKey: ["admin", "referral-settings"], queryFn: fetchReferralSettings });
   const refStats = useQuery({ queryKey: ["admin", "referral-stats"], queryFn: fetchReferralStats });
   const refList = useQuery({ queryKey: ["admin", "referral-list"], queryFn: fetchReferralsList });
 
   const allCoupons = couponsQuery.data ?? [];
+  const allRedemptions = allRedemptionsQuery.data ?? [];
   const couponStats = statsQuery.data;
   const availableCities = citiesQuery.data ?? [];
   const referralsList = refList.data?.items ?? [];
@@ -145,36 +167,99 @@ export function CouponsPage() {
     },
   });
 
+  // Calculate live aggregate KPI metrics across coupons & redemptions
   const metrics = useMemo(() => {
-    const total = couponStats?.totalCoupons ?? allCoupons.length;
-    const active = couponStats?.activeCoupons ?? allCoupons.filter((c) => c.status === "Active").length;
-    const totalRedemptions = couponStats?.totalRedemptions ?? allCoupons.reduce((sum, c) => sum + (c.used || 0), 0);
-    const totalSavings = couponStats?.totalDiscountDisbursed ?? allCoupons.reduce((sum, c) => sum + (c.totalDiscountGiven || 0), 0);
-    const uniqueUsers = allCoupons.reduce((sum, c) => sum + (c.uniqueUsers || 0), 0);
-    const referralConversions = couponStats?.referralConversions ?? 0;
-    const referralRevenue = couponStats?.referralRevenue ?? 0;
+    const total = allCoupons.length;
+    const active = allCoupons.filter((c) => c.status === "Active").length;
+    const totalRedemptions = allRedemptions.length > 0 ? allRedemptions.length : allCoupons.reduce((sum, c) => sum + (c.used || 0), 0);
+    const totalSavings = allRedemptions.length > 0 ? allRedemptions.reduce((sum, r) => sum + (r.discountAmount || 0), 0) : allCoupons.reduce((sum, c) => sum + (c.totalDiscountGiven || 0), 0);
+    const totalGmv = allRedemptions.length > 0 ? allRedemptions.reduce((sum, r) => sum + (r.orderAmount || 0), 0) : allCoupons.reduce((sum, c) => sum + (c.totalOrderRevenue || 0), 0);
 
-    const targetedCities = new Set<string>();
-    allCoupons.forEach((c) => (c.cities || []).forEach((ct) => targetedCities.add(ct)));
+    // Distinct unique customers who redeemed coupons
+    const usersSet = new Set<string>();
+    allRedemptions.forEach((r) => {
+      if (r.userId) usersSet.add(r.userId);
+      else if (r.userPhone) usersSet.add(r.userPhone);
+    });
+    const uniqueUsers = usersSet.size > 0 ? usersSet.size : allCoupons.reduce((sum, c) => sum + (c.uniqueUsers || 0), 0);
+    const avgDiscount = totalRedemptions > 0 ? totalSavings / totalRedemptions : 0;
 
     return {
       total,
       active,
       totalRedemptions,
       totalSavings,
+      totalGmv,
       uniqueUsers,
-      targetedCitiesCount: targetedCities.size > 0 ? targetedCities.size : availableCities.length,
-      referralConversions,
-      referralRevenue,
+      avgDiscount,
     };
-  }, [allCoupons, couponStats, availableCities]);
+  }, [allCoupons, allRedemptions]);
 
+  // Date filter evaluator for coupons
+  const matchesDateFilter = (validTillStr?: string, filter: string = "all") => {
+    if (filter === "all" || !validTillStr) return true;
+    try {
+      const expiry = new Date(validTillStr);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      if (isNaN(expiry.getTime())) return true;
+
+      if (filter === "expired") {
+        return expiry.getTime() < now.getTime();
+      }
+      if (filter === "active_today") {
+        return expiry.getTime() >= now.getTime();
+      }
+      if (filter === "expiring_7d") {
+        const diffDays = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+      }
+      if (filter === "expiring_30d") {
+        const diffDays = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 30;
+      }
+    } catch {
+      return true;
+    }
+    return true;
+  };
+
+  // Date filter evaluator for redemption ledger
+  const matchesLedgerDateFilter = (isoStr?: string, filter: string = "all") => {
+    if (filter === "all" || !isoStr) return true;
+    try {
+      const d = new Date(isoStr);
+      const now = new Date();
+      if (isNaN(d.getTime())) return true;
+      if (filter === "today") {
+        return d.toDateString() === now.toDateString();
+      }
+      if (filter === "yesterday") {
+        const y = new Date(now);
+        y.setDate(y.getDate() - 1);
+        return d.toDateString() === y.toDateString();
+      }
+      if (filter === "7d") {
+        const diff = now.getTime() - d.getTime();
+        return diff <= 7 * 24 * 60 * 60 * 1000;
+      }
+      if (filter === "30d") {
+        const diff = now.getTime() - d.getTime();
+        return diff <= 30 * 24 * 60 * 60 * 1000;
+      }
+    } catch {
+      return true;
+    }
+    return true;
+  };
+
+  // Filtered and sorted coupons
   const filteredCoupons = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return allCoupons.filter((c) => {
+    const result = allCoupons.filter((c) => {
       const matchSearch =
         !q ||
-        [c.code, c.value, c.audience, c.description || "", ...(c.cities || [])]
+        [c.code, c.value, c.audience, c.description || "", ...(c.cities || []), ...(c.pincodes || [])]
           .join(" ")
           .toLowerCase()
           .includes(q);
@@ -185,9 +270,112 @@ export function CouponsPage() {
         !c.cities ||
         c.cities.length === 0 ||
         c.cities.includes(selectedCity);
-      return matchSearch && matchStatus && matchType && matchCity;
+      const matchDate = matchesDateFilter(c.validTill, dateFilter);
+      return matchSearch && matchStatus && matchType && matchCity && matchDate;
     });
-  }, [allCoupons, searchQuery, statusFilter, typeFilter, selectedCity]);
+
+    return [...result].sort((a, b) => {
+      if (sortBy === "used_desc") return (b.used || 0) - (a.used || 0);
+      if (sortBy === "savings_desc") return (b.totalDiscountGiven || 0) - (a.totalDiscountGiven || 0);
+      if (sortBy === "value_desc") {
+        const valA = parseFloat(a.value) || a.discountPct || a.flatDiscount || 0;
+        const valB = parseFloat(b.value) || b.discountPct || b.flatDiscount || 0;
+        return valB - valA;
+      }
+      if (sortBy === "expiry_asc") return new Date(a.validTill).getTime() - new Date(b.validTill).getTime();
+      if (sortBy === "newest") return new Date(b.startDate || "").getTime() - new Date(a.startDate || "").getTime();
+      return 0;
+    });
+  }, [allCoupons, searchQuery, statusFilter, typeFilter, selectedCity, dateFilter, sortBy]);
+
+  // Filtered redemptions ledger
+  const filteredRedemptions = useMemo(() => {
+    const q = ledgerSearch.trim().toLowerCase();
+    return allRedemptions.filter((r) => {
+      const matchSearch =
+        !q ||
+        [r.userName, r.userPhone, r.orderId, r.couponCode, r.city, r.pincode]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+      const matchCoupon =
+        ledgerCouponFilter === "all" || r.couponCode.toUpperCase() === ledgerCouponFilter.toUpperCase();
+      const matchCity =
+        ledgerCityFilter === "all" || (r.city && r.city.toLowerCase() === ledgerCityFilter.toLowerCase());
+      const matchDate = matchesLedgerDateFilter(r.redeemedAt, ledgerDateFilter);
+      return matchSearch && matchCoupon && matchCity && matchDate;
+    });
+  }, [allRedemptions, ledgerSearch, ledgerCouponFilter, ledgerCityFilter, ledgerDateFilter]);
+
+  // Aggregate stats for filtered redemptions ledger
+  const ledgerSummary = useMemo(() => {
+    let totalDiscount = 0;
+    let totalGmv = 0;
+    const usersSet = new Set<string>();
+
+    filteredRedemptions.forEach((r) => {
+      totalDiscount += r.discountAmount || 0;
+      totalGmv += r.orderAmount || 0;
+      if (r.userId) usersSet.add(r.userId);
+      else if (r.userPhone) usersSet.add(r.userPhone);
+    });
+
+    return {
+      totalDiscount,
+      totalGmv,
+      uniqueUsers: usersSet.size,
+      totalRedemptions: filteredRedemptions.length,
+    };
+  }, [filteredRedemptions]);
+
+  // Distinct coupon codes in redemptions for dropdown
+  const distinctCouponCodes = useMemo(() => {
+    const set = new Set<string>();
+    allRedemptions.forEach((r) => {
+      if (r.couponCode) set.add(r.couponCode.toUpperCase().trim());
+    });
+    return Array.from(set).sort();
+  }, [allRedemptions]);
+
+  // Distinct cities in redemptions
+  const distinctRedemptionCities = useMemo(() => {
+    const set = new Set<string>();
+    allRedemptions.forEach((r) => {
+      if (r.city && r.city.trim()) set.add(r.city.trim());
+    });
+    return Array.from(set).sort();
+  }, [allRedemptions]);
+
+  const isCouponFiltered =
+    searchQuery.trim() !== "" ||
+    statusFilter !== "all" ||
+    typeFilter !== "all" ||
+    selectedCity !== "All Cities" ||
+    dateFilter !== "all" ||
+    sortBy !== "used_desc";
+
+  const resetCouponFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setTypeFilter("all");
+    setSelectedCity("All Cities");
+    setDateFilter("all");
+    setSortBy("used_desc");
+  };
+
+  const isLedgerFiltered =
+    ledgerSearch.trim() !== "" ||
+    ledgerCouponFilter !== "all" ||
+    ledgerCityFilter !== "all" ||
+    ledgerDateFilter !== "all";
+
+  const resetLedgerFilters = () => {
+    setLedgerSearch("");
+    ledgerCouponFilter !== "all" && setLedgerCouponFilter("all");
+    ledgerCityFilter !== "all" && setLedgerCityFilter("all");
+    setLedgerDateFilter("all");
+  };
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -245,13 +433,53 @@ export function CouponsPage() {
     a.download = `QuickPress_Advanced_Coupons_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Coupons list exported successfully! 🚀");
+    toast.success("Coupons directory exported as CSV! 🚀");
+  };
+
+  const handleExportLedgerCSV = () => {
+    if (filteredRedemptions.length === 0) {
+      toast.error("No redemption records to export.");
+      return;
+    }
+    const headers = [
+      "Customer Name",
+      "Customer Phone",
+      "Order ID",
+      "Coupon Code Applied",
+      "City",
+      "Pincode",
+      "Gross Order Value (INR)",
+      "Discount Disbursed (INR)",
+      "Net Amount Paid (INR)",
+      "Redemption Date & Time",
+    ];
+    const rows = filteredRedemptions.map((r) => [
+      `"${r.userName}"`,
+      `"${r.userPhone}"`,
+      `"${r.orderId}"`,
+      `"${r.couponCode}"`,
+      `"${r.city || "N/A"}"`,
+      `"${r.pincode || "N/A"}"`,
+      `"${r.orderAmount.toFixed(2)}"`,
+      `"${r.discountAmount.toFixed(2)}"`,
+      `"${(r.orderAmount - r.discountAmount).toFixed(2)}"`,
+      `"${r.redeemedAt}"`,
+    ]);
+    const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `QuickPress_Coupon_Redemptions_Ledger_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Full redemptions history exported as CSV! 🚀");
   };
 
   return (
     <AdminShell
       title="Advanced Coupons & Customer Referral Engine"
-      subtitle="Configure territory-targeted promo codes, track customer redemptions, inspect usage velocity, and set up customer growth referral mechanics."
+      subtitle="Configure territory-targeted promo codes, track customer redemptions, inspect usage velocity, and audit platform-wide discount subsidies."
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {/* City Selector */}
@@ -275,26 +503,27 @@ export function CouponsPage() {
             variant="outline"
             onClick={() => {
               couponsQuery.refetch();
+              allRedemptionsQuery.refetch();
               statsQuery.refetch();
               citiesQuery.refetch();
               refSettings.refetch();
               refList.refetch();
-              toast.success("Coupons & Territory data refreshed!");
+              toast.success("Coupons, Redemptions & Territory data refreshed!");
             }}
-            disabled={couponsQuery.isRefetching}
+            disabled={couponsQuery.isRefetching || allRedemptionsQuery.isRefetching}
             className="h-8 rounded-xl border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-zinc-100"
           >
-            <RefreshCw className={`size-3.5 mr-1.5 ${couponsQuery.isRefetching ? "animate-spin" : ""}`} />
+            <RefreshCw className={`size-3.5 mr-1.5 ${couponsQuery.isRefetching || allRedemptionsQuery.isRefetching ? "animate-spin" : ""}`} />
             <span>Refresh</span>
           </Button>
 
           <Button
             size="sm"
-            onClick={handleExportCSV}
+            onClick={activeTab === "redemptions_ledger" ? handleExportLedgerCSV : handleExportCSV}
             className="h-8 rounded-xl bg-zinc-900 px-3 text-xs font-bold text-white hover:bg-zinc-800 shadow-xs"
           >
             <Download className="size-3.5 mr-1.5" />
-            <span>Export CSV</span>
+            <span>{activeTab === "redemptions_ledger" ? "Export Redemptions CSV" : "Export Coupons CSV"}</span>
           </Button>
 
           <CreateCouponDialog availableCities={availableCities} defaultCity={selectedCity !== "All Cities" ? selectedCity : undefined} />
@@ -317,15 +546,6 @@ export function CouponsPage() {
           />
           <KpiCard
             kpi={{
-              id: "tot-savings",
-              label: "Customer Savings",
-              value: `₹${metrics.totalSavings.toLocaleString("en-IN")}`,
-              hint: "Total discount disbursed",
-              positive: true,
-            }}
-          />
-          <KpiCard
-            kpi={{
               id: "tot-redemptions",
               label: "Total Redemptions",
               value: `${metrics.totalRedemptions} Orders`,
@@ -335,19 +555,28 @@ export function CouponsPage() {
           />
           <KpiCard
             kpi={{
-              id: "uniq-users",
-              label: "Unique Customers",
-              value: `${metrics.uniqueUsers} Users`,
-              hint: "Benefitted from offers",
+              id: "tot-savings",
+              label: "Customer Savings",
+              value: `₹${metrics.totalSavings.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              hint: "Total discount disbursed",
               positive: true,
             }}
           />
           <KpiCard
             kpi={{
-              id: "ref-conversions",
-              label: "Referral GMV",
-              value: `₹${metrics.referralRevenue.toLocaleString("en-IN")}`,
-              hint: `${metrics.referralConversions} referral orders`,
+              id: "uniq-users",
+              label: "Unique Customers",
+              value: `${metrics.uniqueUsers} Users`,
+              hint: "Benefitted from promos",
+              positive: true,
+            }}
+          />
+          <KpiCard
+            kpi={{
+              id: "driven-gmv",
+              label: "Generated Order GMV",
+              value: `₹${metrics.totalGmv.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              hint: "Gross coupon sales",
               positive: true,
             }}
           />
@@ -355,11 +584,8 @@ export function CouponsPage() {
             kpi={{
               id: "avg-saving",
               label: "Avg Order Discount",
-              value:
-                metrics.totalRedemptions > 0
-                  ? `₹${(metrics.totalSavings / metrics.totalRedemptions).toFixed(2)} / Order`
-                  : "₹0.00 / Order",
-              hint: "Budget & margin control",
+              value: `₹${metrics.avgDiscount.toFixed(2)} / Order`,
+              hint: "Budget & margin subsidy",
               positive: true,
             }}
           />
@@ -376,7 +602,13 @@ export function CouponsPage() {
                   value="coupons"
                   className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs"
                 >
-                  🏷️ Promo Codes & Discount Offers ({allCoupons.length})
+                  🏷️ Active Promo Codes & Campaigns ({allCoupons.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="redemptions_ledger"
+                  className="text-xs font-bold rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-xs"
+                >
+                  📜 All Redemptions & User History ({allRedemptions.length})
                 </TabsTrigger>
                 <TabsTrigger
                   value="city_performance"
@@ -405,59 +637,127 @@ export function CouponsPage() {
             </div>
           </div>
 
+          {/* Tab 1: Coupons Directory Filter Bar */}
           {activeTab === "coupons" && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {/* Search */}
-              <div className="relative lg:col-span-2">
-                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search code, discount, city or audience..."
-                  className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 shadow-2xs"
-                />
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-6">
+                {/* Search */}
+                <div className="relative sm:col-span-2">
+                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search code, discount, city or audience..."
+                    className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-8 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+                  <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">🛡️ All Status</SelectItem>
+                    <SelectItem value="active">🟢 Active & Live</SelectItem>
+                    <SelectItem value="paused">⏸️ Paused</SelectItem>
+                    <SelectItem value="expired">⏳ Expired</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Discount Type Filter */}
+                <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v)}>
+                  <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="All Discount Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">🏷️ All Types</SelectItem>
+                    <SelectItem value="percentage">% Percentage</SelectItem>
+                    <SelectItem value="flat">₹ Flat Discount</SelectItem>
+                    <SelectItem value="free_delivery">🚚 Free Delivery</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* City Filter Shortcut */}
+                <Select value={selectedCity} onValueChange={(v) => setSelectedCity(v)}>
+                  <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="All Cities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All Cities">🌐 All Cities</SelectItem>
+                    {availableCities.map((c) => (
+                      <SelectItem key={c.id} value={c.city}>
+                        📍 {c.city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Date / Validity Activity Filter */}
+                <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
+                  <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="Validity Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">📅 All Dates</SelectItem>
+                    <SelectItem value="active_today">⚡ Valid Today</SelectItem>
+                    <SelectItem value="expiring_7d">⚠️ Expiring in 7 Days</SelectItem>
+                    <SelectItem value="expiring_30d">🗓️ Expiring in 30 Days</SelectItem>
+                    <SelectItem value="expired">❌ Expired</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">● Active & Live</SelectItem>
-                  <SelectItem value="paused">⏸️ Paused</SelectItem>
-                  <SelectItem value="expired">⏳ Expired</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Summary Strip & Sorting */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-zinc-900">
+                    Showing {filteredCoupons.length} of {allCoupons.length} campaigns
+                  </span>
+                  <span className="text-zinc-300">•</span>
+                  <span className="text-zinc-600">
+                    Redemptions: <strong className="text-zinc-950 font-black">{filteredCoupons.reduce((s, c) => s + (c.used || 0), 0)}</strong>
+                  </span>
+                  <span className="text-zinc-300">•</span>
+                  <span className="text-zinc-600">
+                    Savings Disbursed: <strong className="text-emerald-700 font-black">₹{filteredCoupons.reduce((s, c) => s + (c.totalDiscountGiven || 0), 0).toFixed(0)}</strong>
+                  </span>
+                  {isCouponFiltered && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={resetCouponFilters}
+                      className="h-6 px-2 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
+                    >
+                      <X className="size-3 mr-1" /> Reset All Filters
+                    </Button>
+                  )}
+                </div>
 
-              {/* Discount Type Filter */}
-              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v)}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
-                  <SelectValue placeholder="All Discount Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Discount Types</SelectItem>
-                  <SelectItem value="percentage">% Percentage Discount</SelectItem>
-                  <SelectItem value="flat">₹ Flat Discount</SelectItem>
-                  <SelectItem value="free_delivery">🚚 Free Delivery</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* City Filter Shortcut */}
-              <Select value={selectedCity} onValueChange={(v) => setSelectedCity(v)}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
-                  <SelectValue placeholder="All Cities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All Cities">🌐 All Cities</SelectItem>
-                  {availableCities.map((c) => (
-                    <SelectItem key={c.id} value={c.city}>
-                      📍 {c.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-zinc-500 font-bold">Sort:</span>
+                  <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                    <SelectTrigger className="h-7 w-44 rounded-lg bg-zinc-50 text-[11px] font-bold border-zinc-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="used_desc">🔥 Most Redemptions</SelectItem>
+                      <SelectItem value="savings_desc">💰 Most Savings Disbursed</SelectItem>
+                      <SelectItem value="value_desc">🏷️ Highest Discount Value</SelectItem>
+                      <SelectItem value="expiry_asc">⏳ Expiring Soonest</SelectItem>
+                      <SelectItem value="newest">✨ Recently Created</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           )}
         </SectionCard>
@@ -684,7 +984,242 @@ export function CouponsPage() {
         )}
 
         {/* =========================================================================
-            4. TAB 2: CITY-WISE CAMPAIGN PERFORMANCE
+            3.5 TAB 2: FULL CUSTOMER REDEMPTIONS & PROMOTION HISTORY LEDGER
+        ========================================================================= */}
+        {activeTab === "redemptions_ledger" && (
+          <SectionCard
+            title="Full Customer Redemptions & Promotion History Ledger"
+            description="Audit-grade ledger tracking every discount claimed by customers across orders, territory hubs, and campaign codes."
+            actions={
+              <Button
+                size="sm"
+                onClick={handleExportLedgerCSV}
+                className="h-8 rounded-xl bg-zinc-900 px-3 text-xs font-bold text-white hover:bg-zinc-800 shadow-xs"
+              >
+                <Download className="size-3.5 mr-1.5" />
+                <span>Export Ledger CSV</span>
+              </Button>
+            }
+          >
+            {/* Top 4 Mini Telemetry Cards */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Total Redemptions</span>
+                <p className="text-xl font-black text-zinc-950 tabular-nums">{ledgerSummary.totalRedemptions} Orders</p>
+                <p className="text-[10px] text-zinc-400">Total checkout applications</p>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Total Discount Disbursed</span>
+                <p className="text-xl font-black text-emerald-800 tabular-nums">₹{ledgerSummary.totalDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-[10px] text-emerald-600">Platform promotional subsidy</p>
+              </div>
+
+              <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider">Generated Order GMV</span>
+                <p className="text-xl font-black text-sky-900 tabular-nums">₹{ledgerSummary.totalGmv.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-[10px] text-sky-600">Gross order revenue transacted</p>
+              </div>
+
+              <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Unique Customers</span>
+                <p className="text-xl font-black text-purple-900 tabular-nums">{ledgerSummary.uniqueUsers} Users</p>
+                <p className="text-[10px] text-purple-600">Distinct customer accounts</p>
+              </div>
+            </div>
+
+            {/* Redemptions Filter Controls */}
+            <div className="space-y-3 pb-4 border-b border-zinc-100">
+              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    value={ledgerSearch}
+                    onChange={(e) => setLedgerSearch(e.target.value)}
+                    placeholder="Search customer, phone, order, or code..."
+                    className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-8 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                  {ledgerSearch && (
+                    <button
+                      onClick={() => setLedgerSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Promo Code Filter */}
+                <Select value={ledgerCouponFilter} onValueChange={setLedgerCouponFilter}>
+                  <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="All Promo Codes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">🏷️ All Promo Codes</SelectItem>
+                    {distinctCouponCodes.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* City Filter */}
+                <Select value={ledgerCityFilter} onValueChange={setLedgerCityFilter}>
+                  <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="All Cities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">📍 All Operating Cities</SelectItem>
+                    {distinctRedemptionCities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Date Filter */}
+                <Select value={ledgerDateFilter} onValueChange={(v: any) => setLedgerDateFilter(v)}>
+                  <SelectTrigger className="h-9 text-xs rounded-xl border-zinc-200 bg-white">
+                    <SelectValue placeholder="Date Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">📅 All Time Activity</SelectItem>
+                    <SelectItem value="today">⚡ Today</SelectItem>
+                    <SelectItem value="yesterday">⏳ Yesterday</SelectItem>
+                    <SelectItem value="7d">🗓️ Last 7 Days</SelectItem>
+                    <SelectItem value="30d">📆 Last 30 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Summary Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-zinc-900">
+                    Showing {filteredRedemptions.length} of {allRedemptions.length} Redemptions
+                  </span>
+                  <span className="text-zinc-300">•</span>
+                  <span className="text-zinc-600">
+                    Combined Discount: <strong className="text-emerald-700 font-black">₹{ledgerSummary.totalDiscount.toFixed(2)}</strong>
+                  </span>
+                  <span className="text-zinc-300">•</span>
+                  <span className="text-zinc-600">
+                    Generated GMV: <strong className="text-zinc-950 font-black">₹{ledgerSummary.totalGmv.toFixed(2)}</strong>
+                  </span>
+                </div>
+
+                {isLedgerFiltered && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={resetLedgerFilters}
+                    className="h-6 px-2 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
+                  >
+                    <X className="size-3 mr-1" /> Reset Redemption Filters
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Redemptions Ledger DataTable */}
+            <DataTable
+              loading={allRedemptionsQuery.isLoading}
+              rows={filteredRedemptions}
+              emptyMessage="No customer redemptions match the current filters."
+              columns={[
+                {
+                  key: "customer",
+                  label: "Customer & Hub",
+                  render: (r: CouponRedemption) => (
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700 font-bold text-xs border border-purple-100">
+                        <User className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-zinc-950 text-xs truncate">{r.userName || "Customer"}</p>
+                        <p className="text-[10px] text-zinc-500 font-mono">
+                          {r.userPhone} · <span className="font-sans">{r.city || "Kasganj Hub"}</span>
+                        </p>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: "couponCode",
+                  label: "Promo Code Applied",
+                  render: (r: CouponRedemption) => (
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        {r.couponCode}
+                      </span>
+                      <button
+                        onClick={() => handleCopyCode(r.couponCode)}
+                        className="text-zinc-400 hover:text-emerald-700 transition-colors p-0.5"
+                        title="Copy Code"
+                      >
+                        <Copy className="size-3" />
+                      </button>
+                    </div>
+                  ),
+                },
+                {
+                  key: "orderId",
+                  label: "Order Reference",
+                  render: (r: CouponRedemption) => (
+                    <div>
+                      <span className="font-mono text-xs font-bold text-zinc-900 block">#{r.orderId}</span>
+                      {r.pincode && (
+                        <span className="text-[10px] text-zinc-400 font-mono">PIN: {r.pincode}</span>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: "orderAmount",
+                  label: "Gross Order GMV",
+                  render: (r: CouponRedemption) => (
+                    <span className="font-bold text-xs text-zinc-800 tabular-nums">
+                      ₹{r.orderAmount.toFixed(2)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "discountAmount",
+                  label: "Discount Saved",
+                  render: (r: CouponRedemption) => (
+                    <span className="inline-flex items-center gap-0.5 font-black text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 tabular-nums">
+                      -₹{r.discountAmount.toFixed(2)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "netAmount",
+                  label: "Net Paid",
+                  render: (r: CouponRedemption) => (
+                    <span className="font-black text-xs text-zinc-950 tabular-nums">
+                      ₹{Math.max(0, r.orderAmount - r.discountAmount).toFixed(2)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "redeemedAt",
+                  label: "Redeemed Timestamp",
+                  render: (r: CouponRedemption) => (
+                    <div className="text-xs space-y-0.5 text-zinc-500 font-mono text-[11px]">
+                      <p className="font-medium text-zinc-700">{r.redeemedAt}</p>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </SectionCard>
+        )}
+
+        {/* =========================================================================
+            4. TAB 3: CITY-WISE CAMPAIGN PERFORMANCE
         ========================================================================= */}
         {activeTab === "city_performance" && (
           <div className="space-y-6">
@@ -1450,22 +1985,40 @@ function RedemptionsAuditModal({
   coupon: Coupon;
   onClose: () => void;
 }) {
+  const [modalSearch, setModalSearch] = useState("");
+
   const redemptionsQuery = useQuery({
     queryKey: ["admin", "coupons", coupon.id, "redemptions"],
     queryFn: () => fetchCouponRedemptions(coupon.id),
   });
 
   const redemptions = redemptionsQuery.data ?? [];
+  const uniqueUsersCount = new Set(
+    redemptions.map((r) => r.userPhone || r.userName || r.orderId).filter(Boolean)
+  ).size;
   const totalSavings = redemptions.reduce((sum, r) => sum + (r.discountAmount || 0), 0);
   const totalOrderGmv = redemptions.reduce((sum, r) => sum + (r.orderAmount || 0), 0);
 
+  const filteredRedemptions = useMemo(() => {
+    if (!modalSearch.trim()) return redemptions;
+    const q = modalSearch.toLowerCase().trim();
+    return redemptions.filter(
+      (r) =>
+        r.userName?.toLowerCase().includes(q) ||
+        r.userPhone?.toLowerCase().includes(q) ||
+        r.orderId?.toLowerCase().includes(q) ||
+        r.city?.toLowerCase().includes(q) ||
+        r.pincode?.toLowerCase().includes(q)
+    );
+  }, [redemptions, modalSearch]);
+
   const handleExportRedemptions = () => {
-    if (redemptions.length === 0) {
+    if (filteredRedemptions.length === 0) {
       toast.error("No redemptions to export.");
       return;
     }
     const headers = ["Customer Name", "Phone", "Order ID", "City", "Pincode", "Order Amount (INR)", "Discount Saved (INR)", "Redeemed Timestamp"];
-    const rows = redemptions.map((r) =>
+    const rows = filteredRedemptions.map((r) =>
       [`"${r.userName}"`, `"${r.userPhone}"`, `"${r.orderId}"`, `"${r.city}"`, `"${r.pincode}"`, `"${r.orderAmount}"`, `"${r.discountAmount}"`, `"${r.redeemedAt}"`].join(",")
     );
     const csv = [headers.join(","), ...rows].join("\n");
@@ -1481,13 +2034,13 @@ function RedemptionsAuditModal({
 
   return (
     <Dialog open={Boolean(coupon)} onOpenChange={(open) => (open ? null : onClose())}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto bg-white text-zinc-900 border-zinc-200">
+      <DialogContent className="sm:max-w-3xl max-h-[88vh] overflow-y-auto bg-white text-zinc-900 border-zinc-200">
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="text-base font-black flex items-center gap-2">
               <Users className="size-4 text-emerald-600" />
               <span>Redemption Audit Trail:</span>
-              <span className="font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+              <span className="font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200 font-black">
                 {coupon.code}
               </span>
             </DialogTitle>
@@ -1495,9 +2048,9 @@ function RedemptionsAuditModal({
               size="sm"
               variant="outline"
               onClick={handleExportRedemptions}
-              className="h-7 text-xs font-bold rounded-lg border-zinc-200 hover:bg-zinc-100"
+              className="h-8 text-xs font-bold rounded-xl border-zinc-200 hover:bg-zinc-100"
             >
-              <Download className="size-3 mr-1" /> Export CSV
+              <Download className="size-3.5 mr-1" /> Export CSV
             </Button>
           </div>
           <DialogDescription className="text-xs text-zinc-500">
@@ -1506,28 +2059,59 @@ function RedemptionsAuditModal({
         </DialogHeader>
 
         {/* Top Summary Metrics */}
-        <div className="grid grid-cols-3 gap-3 py-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 py-1">
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-center">
-            <span className="text-[10px] text-zinc-400 font-medium block">Total Redemptions</span>
-            <span className="text-lg font-black text-zinc-900">{redemptions.length} Orders</span>
+            <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">Total Redemptions</span>
+            <span className="text-lg font-black text-zinc-950 tabular-nums">{redemptions.length} Orders</span>
+          </div>
+          <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-3 text-center">
+            <span className="text-[10px] text-purple-700 font-bold block uppercase tracking-wider">Unique Customers</span>
+            <span className="text-lg font-black text-purple-950 tabular-nums">{uniqueUsersCount} Users</span>
           </div>
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-center">
-            <span className="text-[10px] text-emerald-700 font-medium block">Total Discount Given</span>
-            <span className="text-lg font-black text-emerald-800">₹{totalSavings.toFixed(0)}</span>
+            <span className="text-[10px] text-emerald-700 font-bold block uppercase tracking-wider">Total Discount Disbursed</span>
+            <span className="text-lg font-black text-emerald-800 tabular-nums">₹{totalSavings.toFixed(0)}</span>
           </div>
           <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 text-center">
-            <span className="text-[10px] text-sky-700 font-medium block">Generated Order GMV</span>
-            <span className="text-lg font-black text-sky-900">₹{totalOrderGmv.toFixed(0)}</span>
+            <span className="text-[10px] text-sky-700 font-bold block uppercase tracking-wider">Generated Order GMV</span>
+            <span className="text-lg font-black text-sky-950 tabular-nums">₹{totalOrderGmv.toFixed(0)}</span>
           </div>
         </div>
 
+        {/* Search bar inside modal */}
+        <div className="flex items-center gap-2 pt-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400" />
+            <Input
+              value={modalSearch}
+              onChange={(e) => setModalSearch(e.target.value)}
+              placeholder="Search by customer name, phone, order ID, city or PIN..."
+              className="pl-8 h-8 text-xs bg-zinc-50/80 border-zinc-200 rounded-lg focus-visible:ring-zinc-900"
+            />
+          </div>
+          {modalSearch && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setModalSearch("")}
+              className="h-8 px-2 text-xs text-zinc-500 hover:text-zinc-900"
+            >
+              <X className="size-3.5 mr-1" /> Clear
+            </Button>
+          )}
+        </div>
+
         {/* Detailed Redemptions Table */}
-        <div className="space-y-3">
-          <h4 className="text-xs font-black text-zinc-900">Customer Redemptions History ({redemptions.length})</h4>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-black text-zinc-900">
+              Customer Redemptions History ({filteredRedemptions.length} of {redemptions.length})
+            </h4>
+          </div>
           <DataTable
             loading={redemptionsQuery.isLoading}
-            rows={redemptions}
-            emptyMessage="No customer has redeemed this promo code yet."
+            rows={filteredRedemptions}
+            emptyMessage={modalSearch ? "No redemptions match your search criteria." : "No customer has redeemed this promo code yet."}
             columns={[
               {
                 key: "customer",
@@ -1535,7 +2119,7 @@ function RedemptionsAuditModal({
                 render: (r: CouponRedemption) => (
                   <div>
                     <span className="font-bold text-xs text-zinc-900 block">{r.userName || "Customer"}</span>
-                    <span className="text-[10px] text-zinc-400 font-mono">{r.userPhone || ""}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono">{r.userPhone || ""}</span>
                   </div>
                 ),
               },
@@ -1543,7 +2127,7 @@ function RedemptionsAuditModal({
                 key: "orderId",
                 label: "Order ID",
                 render: (r: CouponRedemption) => (
-                  <span className="font-mono text-xs text-zinc-700 font-bold">{r.orderId}</span>
+                  <span className="font-mono text-xs text-zinc-900 font-bold">#{r.orderId}</span>
                 ),
               },
               {
@@ -1558,13 +2142,13 @@ function RedemptionsAuditModal({
               {
                 key: "amount",
                 label: "Order Value",
-                render: (r: CouponRedemption) => <span className="font-bold text-xs text-zinc-800">₹{r.orderAmount}</span>,
+                render: (r: CouponRedemption) => <span className="font-bold text-xs text-zinc-900 tabular-nums">₹{r.orderAmount}</span>,
               },
               {
                 key: "discount",
                 label: "Discount Saved",
                 render: (r: CouponRedemption) => (
-                  <span className="font-black text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  <span className="font-black text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 tabular-nums">
                     -₹{r.discountAmount}
                   </span>
                 ),
@@ -1573,7 +2157,7 @@ function RedemptionsAuditModal({
                 key: "date",
                 label: "Redeemed At",
                 render: (r: CouponRedemption) => (
-                  <span className="text-[10px] text-zinc-400 font-medium">
+                  <span className="text-[10px] text-zinc-500 font-medium">
                     {r.redeemedAt.slice(0, 16).replace("T", " ")}
                   </span>
                 ),

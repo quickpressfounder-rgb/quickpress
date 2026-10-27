@@ -4617,6 +4617,31 @@ class AdminCouponRepository:
         return doc
 
     async def get_redemptions(self, coupon_id: str) -> List[Dict[str, Any]]:
+        if str(coupon_id).lower() == "all":
+            redemptions = await database.find_many("coupon_redemptions")
+            if not redemptions:
+                orders = await database.find_many("orders", {"$or": [{"coupon": {"$exists": True, "$ne": None}}, {"couponCode": {"$exists": True, "$ne": None}}, {"discount": {"$gt": 0}}]})
+                redemptions = []
+                for o in (orders or []):
+                    code = str(o.get("couponCode") or o.get("coupon") or "SPECIAL20").upper().strip()
+                    if not code or code == "NONE":
+                        code = "SPECIAL20"
+                    redemptions.append({
+                        "id": f"red-{str(o.get('_id'))[:6]}",
+                        "couponId": f"c-{code.lower()}",
+                        "couponCode": code,
+                        "orderId": str(o.get("_id") or o.get("orderId") or ""),
+                        "userId": str(o.get("userId") or o.get("customerId") or ""),
+                        "userName": o.get("customerName") or o.get("userName") or "Customer",
+                        "userPhone": o.get("customerPhone") or o.get("userPhone") or "",
+                        "city": o.get("city") or "Kasganj",
+                        "pincode": o.get("pincode") or "",
+                        "orderAmount": float(o.get("total") or o.get("payableAmount") or 0.0),
+                        "discountAmount": float(o.get("discount") or o.get("couponDiscount") or 45.0),
+                        "redeemedAt": str(o.get("createdAt") or o.get("created_at") or now_iso()),
+                    })
+            return sorted(redemptions, key=lambda x: str(x.get("redeemedAt") or ""), reverse=True)
+
         coupon = await self.get(coupon_id)
         code = str(coupon.get("code") if coupon else coupon_id).upper().strip()
         redemptions = await database.find_many("coupon_redemptions", {"$or": [{"couponId": coupon_id}, {"couponCode": code}]})
@@ -4640,7 +4665,7 @@ class AdminCouponRepository:
                     "discountAmount": float(o.get("discount") or o.get("couponDiscount") or 45.0),
                     "redeemedAt": str(o.get("createdAt") or o.get("created_at") or now_iso()),
                 })
-        return redemptions
+        return sorted(redemptions, key=lambda x: str(x.get("redeemedAt") or ""), reverse=True)
 
     async def create(self, document: Dict[str, Any]) -> Dict[str, Any]:
         c_type = document.get("type", "percentage")

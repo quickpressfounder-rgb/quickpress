@@ -1519,6 +1519,11 @@ async def list_coupons(city: Optional[str] = Query(None), user: User = Depends(c
     return await coupon_repository.list(city=city)
 
 
+@router.get("/coupons/all/redemptions")
+async def get_all_coupon_redemptions(user: User = Depends(current_user)):
+    return await coupon_repository.get_redemptions("all")
+
+
 @router.get("/coupons/{coupon_id}/redemptions")
 async def get_coupon_redemptions(coupon_id: str, user: User = Depends(current_user)):
     return await coupon_repository.get_redemptions(coupon_id)

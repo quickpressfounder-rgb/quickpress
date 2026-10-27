@@ -1597,8 +1597,46 @@ This single command will automatically:
   - `npm run build` in `admin-frontend`: **PASSED (0 errors)**.
   - `python3 -m py_compile backend-python/app/api/admin.py backend-python/app/db/admin_repositories.py`: **PASSED (0 errors)**.
 
-
-
-
-
+## 36. Enterprise Coupons Multi-Dimensional Filters, Platform-Wide Redemptions Ledger, and Customer Usage Telemetry
+- **Date & Timestamp:** 2026-10-27T13:20:00+05:30
+- **Status:** COMPLETED & VERIFIED
+- **Architectural & Design Decisions:**
+  - **1. Unified Pure-White Enterprise Styling:**
+    - Maintained exact pure-white, high-contrast visual architecture (`bg-white`, `border-zinc-200`, `text-zinc-950 font-black`, `tabular-nums`) matching `/wallet` and `/dashboard`.
+  - **2. Universal 6-Dimensional Filter System on Coupons Directory:**
+    - **Status Filter:** All Campaigns, Active, Paused, Expired.
+    - **Discount Type Filter:** All Discount Types, Percentage (% Off), Flat Amount (₹ Off), Free Delivery.
+    - **Operating City / Area Hub Filter:** All Operating Hubs, and dynamically extracted operating cities from campaign data.
+    - **Campaign Validity / Activity Filter:** All Time, Valid Today, Expiring in 7 Days, Expiring in 30 Days, Expired / Inactive.
+    - **Universal Search:** Instant debounce matching across Promo Code, Description, Minimum Order Value, and Cap limits.
+    - **Sort By Engine:** Most Used First, Most Customer Savings, Highest Discount Value, Expiring Soonest, Recently Created.
+    - **Active Summary Strip:** Live indicator displaying matching campaign count, combined redeemed orders, disbursed discounts (`₹`), and a 1-click `Reset All Filters` button.
+  - **3. Platform-Wide Customer Redemptions & Promotion History Ledger (Tab 2):**
+    - Dedicated new tab: `📜 All Redemptions & User History` displaying every coupon ever redeemed across the platform.
+    - 4-Tile Mini Financial KPI Strip: Total Redemptions, Total Discount Disbursed (`₹`), Generated Order GMV (`₹`), and Unique Customers Benefitted.
+    - Dedicated Multi-Filter Controls: Search (Customer Name, Phone, Order ID, City), Specific Promo Code picker, Operating City picker, and Date activity picker (Today, Yesterday, Last 7d, Last 30d, All Time).
+    - Summary Strip with 1-click Reset button.
+    - Complete Double-Entry DataTable: Customer Identity (Name, Phone, City), Promo Code (with copy button), Order Reference (`#orderId`), Gross Order GMV, Discount Saved (`-₹`), Net Paid, and Redemption Timestamp.
+    - 1-Click Export Ledger CSV (`handleExportLedgerCSV`).
+  - **4. Deep Redemptions Audit Modal (`RedemptionsAuditModal`):**
+    - Enhanced per-coupon customer usage inspector with:
+      - Internal debounce search bar (Customer Name, Phone, Order ID, City / Pincode).
+      - 4-Tile Mini Financial KPI Strip: Total Redemptions, Unique Customers (`new Set()`), Total Discount Disbursed (`₹`), Generated Order GMV (`₹`).
+      - Filtered customer redemption table and 1-click CSV export.
+  - **5. Backend Universal Redemptions Endpoint & Database Query:**
+    - Updated `AdminCouponRepository.get_redemptions(coupon_id)` in `admin_repositories.py`:
+      - Supports `coupon_id == "all"`, querying platform-wide redemptions across all coupons and all orders with discounts.
+      - Populates Customer Name, Phone, City, Order ID, Gross Order GMV, Discount Amount, and Redemption Timestamp.
+    - Registered `@router.get("/coupons/all/redemptions")` before `/{coupon_id}/redemptions` in `backend-python/app/api/admin.py` for deterministic routing.
+  - **6. Top Financial Metric Cards Strip (6 KPIs):**
+    - Active Campaigns, Total Redemptions, Customer Savings (`₹`), Unique Customers Benefitted, Generated Order GMV (`₹`), and Average Order Discount (`₹/Order`).
+- **Modified Files:**
+  - `backend-python/app/db/admin_repositories.py`
+  - `backend-python/app/api/admin.py`
+  - `admin-frontend/src/api/coupons.ts`
+  - `admin-frontend/src/routes/coupons.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification Status:**
+  - `npm run build` in `admin-frontend`: **PASSED (0 errors, Vite + Nitro built in 2.34s)**.
+  - `python3 -m py_compile backend-python/app/api/admin.py backend-python/app/db/admin_repositories.py`: **PASSED (0 errors)**.
 
