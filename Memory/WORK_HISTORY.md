@@ -53,6 +53,7 @@
     - `test_zero_or_negative_price_blocked`: PASSED (0 and -50 prices rejected with 422).
     - `test_wallet_auto_refund_on_failure`: PASSED (simulated DB crash triggered instant automatic refund back to wallet).
   - Full Regression Suite (`test_live_order_e2e_full_lifecycle.py`, `test_order_lifecycle_e2e.py`, `test_partner_real_settlements.py`, `test_unified_finance_engine.py`, `test_cross_project_finance_sync.py`, `test_step1_financial_security_patches.py`): **15 PASSED in 21.97s (100% SUCCESS)**.
+- **Commit:** [`eef3f42`](https://github.com/quickpressfounder-rgb/quickpress/commit/eef3f42)
 - **Files Modified:**
   - `backend-python/app/db/order_repositories.py`
   - `backend-python/app/db/cart_repositories.py`
