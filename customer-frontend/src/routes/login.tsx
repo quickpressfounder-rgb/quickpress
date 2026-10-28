@@ -158,8 +158,8 @@ function AuthScreen() {
       setStep("name");
     } else {
       void navigate({
-        to: "/location-search",
-        search: (redirectTarget ? { redirect: redirectTarget, from: "login" } : { from: "login" }) as any,
+        to: "/location",
+        search: (redirectTarget ? { redirect: redirectTarget } : undefined) as any,
       });
     }
   };
@@ -880,10 +880,10 @@ function NameStep({
       window.dispatchEvent(new CustomEvent("qp:profile-updated", { detail: { name: cleanName } }));
       window.dispatchEvent(new Event("qp:login-success"));
 
-      // 5. Navigate to location selection
+      // 5. Navigate to location detection
       void navigate({
-        to: "/location-search",
-        search: (redirectTarget ? { redirect: redirectTarget, from: "login" } : { from: "login" }) as any,
+        to: "/location",
+        search: (redirectTarget ? { redirect: redirectTarget } : undefined) as any,
       });
     } catch (cause: any) {
       console.error("Failed to save name:", cause);
@@ -898,8 +898,8 @@ function NameStep({
     window.dispatchEvent(new Event("qp:request-post-login-permissions"));
     window.dispatchEvent(new Event("qp:login-success"));
     void navigate({
-      to: "/location-search",
-      search: (redirectTarget ? { redirect: redirectTarget, from: "login" } : { from: "login" }) as any,
+      to: "/location",
+      search: (redirectTarget ? { redirect: redirectTarget } : undefined) as any,
     });
   };
 

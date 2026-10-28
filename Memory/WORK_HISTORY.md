@@ -33,6 +33,50 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 42. Customer Post-OTP Seamless Location Radar Animation & Direct Home Navigation
+- **User Requirements:**
+  - Remove `/location-search` from post-OTP and post-login navigation in the Customer app.
+  - Automatically display the animated concentric radar location detection animation (`<LocationDetecting />`) after OTP verification.
+  - As soon as the device GPS location is locked and saved, seamlessly navigate directly to `/home` (or the redirect destination) without manual intervention.
+- **Architecture & Implementation:**
+  1. **Login Flow Redirection (`customer-frontend/src/routes/login.tsx`):**
+     - Updated `handleAuthSuccess`, `NameStep` submit, and `NameStep` skip to route directly to `/location` instead of `/location-search`.
+  2. **Enhanced Location Detection Screen (`customer-frontend/src/routes/location.tsx`):**
+     - Accepts route search parameter `redirect?: string`.
+     - Calls `detectDeviceLocation({ timeoutMs: 3200, allowFallback: true })` with IP geolocation fallback.
+     - Saves verified coordinates via `saveLocation(location)`.
+     - Enforces a minimum smooth display duration of 800ms so the user experiences the sleek radar animation.
+     - Directly navigates to `/home` (or `redirect` destination) upon location lock.
+     - Offers 1-tap "Detect Current Location" retry and "Continue to Home" fallback if GPS is denied or offline.
+  3. **Visual Aesthetics Upgrade (`customer-frontend/src/components/LocationDetecting.tsx`):**
+     - Styled with concentric animated ripple rings (`locate-ring`), glowing emerald backdrop target, bobbing MapPin (`locate-bob`), QuickPress brand watermark header, and live "Satellite GPS Lock Active" status pill.
+- **Files Modified:**
+  - `customer-frontend/src/routes/login.tsx`
+  - `customer-frontend/src/routes/location.tsx`
+  - `customer-frontend/src/components/LocationDetecting.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Deployment Verification:**
+  - `npm run build:customer`: Exit code 0 (Nitro SSR client/server bundle compiled cleanly).
+  - Recompiled native binaries: `QuickPress-Customer.apk` (21MB) and `QuickPress-Customer.aab` (16MB).
+  - Deployed `QuickPress-Customer.apk` to EC2 (`ubuntu@65.0.127.43`) at `/var/www/quickpress/website/apks/QuickPress-Customer.apk` (verified live).
+
+### 41. Partner Portal Google OAuth & Temporary `000000` Testing OTP Bypass
+- **Commit Hash:** `c69bd10`
+- **User Requirements:**
+  - Enable Google One-Tap & OAuth Login on the Partner Portal (`quickpress.online`) and Partner APK with store email matching.
+  - Add temporary `000000` testing OTP bypass to allow continuous testing while Twilio SMS account is awaiting trial recharge.
+- **Architecture & Implementation:**
+  1. **Twilio Fallback & `000000` Bypass (`backend-python/app/core/twilio_sms.py` & `auth.py`):**
+     - When Twilio returns trial restriction errors (e.g. Error 572002 unverified recipient) or balance exhaustion, the backend stores `000000` in the cache and returns `200 OK` (`SendOtpResponse`).
+     - Allowed `000000` during phone OTP verification across Customer, Partner, and Captain accounts.
+  2. **Partner Google Auth & Account Linking:**
+     - Added `google-services.json` with SHA-1 `94:91:ce:49:84:a1:78:cf:ce:0d:60:1c:36:3d:91:7b:15:f0:57:09` across all frontends.
+     - Added email profile matching engine in `backend-python/app/api/auth.py` (`_enrich_account`) to link partner store profiles by Google email.
+     - Added `prompt: "select_account"` in `GoogleAuthProvider` to allow seamless multi-account switching.
+- **Build & Verification:**
+  - Verified live on EC2 with `POST /api/auth/phone/verify` returning active profile on `000000`.
+  - Rebuilt PM2 `quickpress-partner` and Docker container `quickpress-backend` on EC2.
+
 ### 40. Customer & Rider Native Android APK Decoupling & White Screen Fix (Local Asset Bundling & No Vercel)
 - **Commit Hash:** `d572716`
 - **User Requirements:**

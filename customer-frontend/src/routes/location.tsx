@@ -1,17 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Compass, MapPin, Search } from "lucide-react";
+import { Compass, MapPin } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { LocationDetecting } from "@/components/LocationDetecting";
 import {
   detectDeviceLocation,
   GeoError,
-  readLocation,
   saveLocation,
 } from "@/api/customer/location";
-import { checkLocationAvailability } from "@/api/customer/services/partner-service";
+
+type LocationSearchParams = {
+  redirect?: string;
+};
 
 export const Route = createFileRoute("/location")({
+  validateSearch: (search: Record<string, unknown>): LocationSearchParams => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Detecting Your Location — QuickPress" },
@@ -33,15 +38,15 @@ export const Route = createFileRoute("/location")({
 });
 
 /**
- * Fast Location Screen:
- *
- *   1. Parallel dual-tier GPS lock (<500ms cached/cell fix).
- *   2. Checks real-time laundry service availability.
- *   3. If available -> /home; if unavailable -> /services-unavailable.
- *   4. If GPS is off or denied, allows 1-tap manual search.
+ * Fast Location Detection Screen:
+ *   1. Displays the animated radar concentric pulsing rings and bobbing pin.
+ *   2. Dual-tier GPS lock (<500ms cached/cell fix) with IP fallback.
+ *   3. As soon as location is detected and saved, navigates immediately to /home.
+ *   4. If GPS is off or denied, allows 1-tap retry or continuing to home.
  */
 function LocationScreen() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [attempt, setAttempt] = useState(0);
@@ -49,6 +54,7 @@ function LocationScreen() {
   const detect = useCallback(async () => {
     setError(null);
     setIsLocating(true);
+    const startTimestamp = Date.now();
 
     try {
       // 1. Request native notification permission in background without blocking GPS
@@ -71,28 +77,18 @@ function LocationScreen() {
       // 2. Fetch real device GPS coordinates & reverse geocode (<500ms fast lock)
       const location = await detectDeviceLocation({ timeoutMs: 3200, allowFallback: true });
       saveLocation(location);
+
+      // 3. Smooth animation display duration (at least 800ms for smooth visual feel)
+      const elapsed = Date.now() - startTimestamp;
+      if (elapsed < 800) {
+        await new Promise((resolve) => setTimeout(resolve, 800 - elapsed));
+      }
+
       setIsLocating(false);
 
-      // 3. Verify service availability
-      try {
-        const avail = await checkLocationAvailability(location);
-        if (avail && avail.available) {
-          void navigate({ to: "/home" });
-        } else {
-          void navigate({
-            to: "/services-unavailable" as any,
-            search: {
-              area: location.area || "",
-              city: location.city || "",
-              state: location.state || "",
-              lat: location.latitude ? String(location.latitude) : undefined,
-              lng: location.longitude ? String(location.longitude) : undefined,
-            } as any,
-          });
-        }
-      } catch {
-        void navigate({ to: "/home" });
-      }
+      // 4. Immediately transition to home (or redirected destination)
+      const target = (search?.redirect as any) || "/home";
+      void navigate({ to: target, replace: true });
     } catch (cause) {
       setIsLocating(false);
       const msg =
@@ -101,7 +97,7 @@ function LocationScreen() {
           : "Unable to detect your exact GPS location. Please ensure location services are turned on.";
       setError(msg);
     }
-  }, [navigate]);
+  }, [navigate, search?.redirect]);
 
   useEffect(() => {
     void detect();
@@ -139,16 +135,16 @@ function LocationScreen() {
           <span>Detect Current Location</span>
         </button>
 
-        {/* Secondary CTA: Search or select location manually */}
+        {/* Secondary CTA: Continue to Home */}
         <button
           type="button"
-          onClick={() => void navigate({ to: "/location-search" })}
+          onClick={() => void navigate({ to: (search?.redirect as any) || "/home", replace: true })}
           className="mt-3 flex h-13 min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card text-[15px] font-bold text-foreground active:scale-[0.985] hover:bg-muted"
         >
-          <Search className="size-[18px]" aria-hidden />
-          <span>Choose location manually</span>
+          <span>Continue to Home</span>
         </button>
       </div>
     </main>
   );
 }
+
