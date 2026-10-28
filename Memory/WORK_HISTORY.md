@@ -33,6 +33,55 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 40. Customer & Rider Native Android APK Decoupling & White Screen Fix (Local Asset Bundling & No Vercel)
+- **Commit Hash:** Pending
+- **User Requirements:**
+  - Fix Customer APK showing blank white screen upon opening.
+  - Fix Captain (Rider) APK loading the Partner app (`quickpress.online`) instead of the Rider interface.
+  - Comply with strict platform requirements:
+    - Customer: Android APK & iOS
+    - Partner: Android APK, Web (`quickpress.online`), iOS
+    - Rider (Captain): Android APK & iOS only
+  - Zero reliance on Vercel (`api.withquickpress.com` direct backend connectivity only, no remote webview wrapper).
+- **Root Cause Analysis:**
+  1. **Customer APK White Screen:** `customer-frontend/capacitor.config.ts` had `server: { url: "https://withquickpress.com" }`. `withquickpress.com` is the landing marketing website (`website/` directory) and has `X-Frame-Options: DENY`, blocking WebView embedding and resulting in a blank white screen. Furthermore, it lacked customer React application routes.
+  2. **Captain APK Loading Partner:** `rider-frontend/capacitor.config.ts` had `server: { url: "https://quickpress.online" }`, mistakenly copied from `partner-frontend`. `quickpress.online` is the live Laundromat Partner Portal (Node port 8082), causing the Rider APK to display the Partner app.
+  3. **Missing Static HTML in SSR Apps:** Because `customer-frontend` and `rider-frontend` use `@tanstack/react-start` (SSR framework with Nitro), `vite build` does not emit an `index.html` file into `.output/public`. Without `index.html`, Capacitor cannot run in local asset mode without failing.
+- **Architectural Solution & Implementation:**
+  1. **Capacitor Configuration Decoupling:**
+     - Removed `server.url` from `customer-frontend/capacitor.config.ts` and `customer-frontend/android/app/src/main/assets/capacitor.config.json`.
+     - Removed `server.url` from `rider-frontend/capacitor.config.ts` and `rider-frontend/android/app/src/main/assets/capacitor.config.json`.
+     - Both apps now operate as 100% native offline-first hybrid applications served via Capacitor's internal `WebViewAssetLoader` from device storage.
+  2. **Automated Static HTML Extraction (`build_all_apks.py`):**
+     - Updated `build_customer` and `build_rider` to build using `NITRO_PRESET=node-server`.
+     - Added `generate_index_html(app_dir, port)` helper that temporarily boots the built server on an isolated port, queries `http://127.0.0.1:{port}/`, captures the fully-rendered HTML shell (complete with splash screen, router hydration manifests, and entry scripts), injects `<base href="/" />`, and saves `index.html` into `.output/public/`.
+     - `sync_assets` then mirrors `.output/public/` into `android/app/src/main/assets/public/`.
+     - Stripped any lingering `server` blocks from the Android asset `capacitor.config.json`.
+  3. **Backend Direct Connection:**
+     - Both apps communicate directly with `https://api.withquickpress.com` through `MainActivity.java` JavaScript injection (`window.__QUICKPRESS_CONFIG__.API_BASE_URL`).
+- **Files Modified:**
+  - `build_all_apks.py`
+  - `customer-frontend/capacitor.config.ts`
+  - `customer-frontend/android/app/src/main/assets/capacitor.config.json`
+  - `rider-frontend/capacitor.config.ts`
+  - `rider-frontend/android/app/src/main/assets/capacitor.config.json`
+- **Build Verification:**
+  - `python3 build_all_apks.py customer` -> `QuickPress-Customer.apk` (20MB) and `QuickPress-Customer.aab` (16MB) generated cleanly.
+  - `python3 build_all_apks.py rider` -> `QuickPress-Captain.apk` (17MB) and `QuickPress-Captain.aab` (16MB) generated cleanly.
+  - Both APKs mirrored to `website/public/apks/` for public download.
+
+### 39. Firebase Phone & FCM Token Real Integration Across All Consoles
+- **Commit Hash:** `4787e6d`
+- **User Requirements:** Real phone OTP auth using Firebase Admin SDK with backend SMS fallback across Customer, Partner, Rider, and Admin frontends.
+- **Files Modified:**
+  - `backend-python/app/core/firebase.py`
+  - `backend-python/app/api/auth.py`
+  - `customer-frontend/src/api/core/auth-service.ts`
+  - `partner-frontend/src/api/core/auth-service.ts`
+  - `rider-frontend/src/api/core/auth-service.ts`
+  - `admin-frontend/src/api/core/auth-service.ts`
+- **Verification:** Unit tests passed 5/5 (`test_partner_authentication.py`) and 5/5 (`test_fcm_notifications.py`).
+
 ### 38. Production Security Hardening & Vulnerability Remediation (Points 14–20)
 - **Commit Hash:** `2a9b762`
 - **User Requirements:**

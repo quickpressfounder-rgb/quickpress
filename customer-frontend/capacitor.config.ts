@@ -7,10 +7,6 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
   },
-  server: {
-    url: "https://withquickpress.com",
-    cleartext: true,
-  },
 };
 
 export default config;

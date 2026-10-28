@@ -6,8 +6,9 @@ import sys
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
-ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/2be060e2-3255-4260-8969-7501366a1753"
+ARTIFACT_DIR = "/Users/himanshupal/.gemini/antigravity-ide/brain/a52b7436-8efd-4bee-8065-5cb031bc4852"
 OLD_ARTIFACT_DIRS = [
+    "/Users/himanshupal/.gemini/antigravity-ide/brain/2be060e2-3255-4260-8969-7501366a1753",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/77318238-9621-42dc-99c7-efff7401c879",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/bf9cca5c-94b7-4a2d-9ac5-b3a72ec05c29",
     "/Users/himanshupal/.gemini/antigravity-ide/brain/4d042ff9-b5fb-466e-9fd8-619baf1d44e8",
@@ -34,6 +35,43 @@ def run_cmd(cmd, cwd=ROOT_DIR):
     res = subprocess.run(cmd, shell=True, cwd=cwd, env=env)
     if res.returncode != 0:
         raise RuntimeError(f"Command failed with code {res.returncode}: {cmd}")
+
+def generate_index_html(app_dir, port):
+    print(f"Generating static index.html via SSR server on port {port}...")
+    server_script = os.path.join(app_dir, ".output", "server", "index.mjs")
+    if not os.path.exists(server_script):
+        raise RuntimeError(f"Server script not found: {server_script}")
+
+    env = os.environ.copy()
+    env["PORT"] = str(port)
+    proc = subprocess.Popen(["node", server_script], cwd=app_dir, env=env)
+    
+    html = None
+    try:
+        import time
+        for _ in range(30):
+            time.sleep(0.4)
+            res = subprocess.run(f"curl -s http://127.0.0.1:{port}/", shell=True, capture_output=True, text=True)
+            if res.returncode == 0 and "<html" in res.stdout:
+                html = res.stdout
+                break
+    finally:
+        try:
+            proc.terminate()
+            proc.wait(timeout=3)
+        except Exception:
+            proc.kill()
+
+    if not html:
+        raise RuntimeError(f"Failed to fetch rendered HTML from http://127.0.0.1:{port}/")
+
+    if "<base " not in html and "<head>" in html:
+        html = html.replace("<head>", '<head><base href="/" />', 1)
+
+    target_index = os.path.join(app_dir, ".output", "public", "index.html")
+    with open(target_index, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"✓ Generated index.html ({len(html)} chars) at {target_index}")
 
 def sync_assets(src_dir, dst_dir):
     print(f"Syncing web assets from {src_dir} -> {dst_dir}")
@@ -66,10 +104,23 @@ def copy_to_artifacts(src_apk, apk_name, apks_dir):
 
 def build_customer(apks_dir):
     print("\n--- [Customer App] Building Customer App ---")
-    run_cmd("VITE_API_BASE_URL=https://api.withquickpress.com npm run build:customer", ROOT_DIR)
-    cust_web_dist = os.path.join(ROOT_DIR, "customer-frontend", ".output", "public")
-    cust_android_assets = os.path.join(ROOT_DIR, "customer-frontend", "android", "app", "src", "main", "assets", "public")
+    run_cmd("NITRO_PRESET=node-server VITE_API_BASE_URL=https://api.withquickpress.com npm run build:customer", ROOT_DIR)
+    cust_frontend_dir = os.path.join(ROOT_DIR, "customer-frontend")
+    generate_index_html(cust_frontend_dir, 8091)
+
+    cust_web_dist = os.path.join(cust_frontend_dir, ".output", "public")
+    cust_android_assets = os.path.join(cust_frontend_dir, "android", "app", "src", "main", "assets", "public")
     sync_assets(cust_web_dist, cust_android_assets)
+
+    # Ensure Capacitor config in Android assets does not load an external URL (pure native offline-ready assets)
+    cust_cap_json = os.path.join(cust_frontend_dir, "android", "app", "src", "main", "assets", "capacitor.config.json")
+    if os.path.exists(cust_cap_json):
+        import json
+        with open(cust_cap_json, "r") as f:
+            cfg = json.load(f)
+        cfg.pop("server", None)
+        with open(cust_cap_json, "w") as f:
+            json.dump(cfg, f, indent=2)
 
     cust_android_dir = os.path.join(ROOT_DIR, "customer-frontend", "android")
     run_cmd("./gradlew assembleDebug", cust_android_dir)
@@ -120,10 +171,23 @@ def build_partner(apks_dir):
 
 def build_rider(apks_dir):
     print("\n--- [Rider App] Building Rider / Captain App (APK + Play Store AAB) ---")
-    run_cmd("VITE_API_BASE_URL=https://api.withquickpress.com npm run build:rider", ROOT_DIR)
-    rdr_web_dist = os.path.join(ROOT_DIR, "rider-frontend", ".output", "public")
-    rdr_android_assets = os.path.join(ROOT_DIR, "rider-frontend", "android", "app", "src", "main", "assets", "public")
+    run_cmd("NITRO_PRESET=node-server VITE_API_BASE_URL=https://api.withquickpress.com npm run build:rider", ROOT_DIR)
+    rdr_frontend_dir = os.path.join(ROOT_DIR, "rider-frontend")
+    generate_index_html(rdr_frontend_dir, 8092)
+
+    rdr_web_dist = os.path.join(rdr_frontend_dir, ".output", "public")
+    rdr_android_assets = os.path.join(rdr_frontend_dir, "android", "app", "src", "main", "assets", "public")
     sync_assets(rdr_web_dist, rdr_android_assets)
+
+    # Ensure Capacitor config in Android assets does not load Partner Portal or external URL
+    rdr_cap_json = os.path.join(rdr_frontend_dir, "android", "app", "src", "main", "assets", "capacitor.config.json")
+    if os.path.exists(rdr_cap_json):
+        import json
+        with open(rdr_cap_json, "r") as f:
+            cfg = json.load(f)
+        cfg.pop("server", None)
+        with open(rdr_cap_json, "w") as f:
+            json.dump(cfg, f, indent=2)
 
     rdr_android_dir = os.path.join(ROOT_DIR, "rider-frontend", "android")
     # 1. Build APK (for direct device installation)

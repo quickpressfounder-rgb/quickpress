@@ -7,10 +7,6 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
   },
-  server: {
-    url: "https://quickpress.online",
-    cleartext: true,
-  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 400,
