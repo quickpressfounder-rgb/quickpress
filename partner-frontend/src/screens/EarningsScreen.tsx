@@ -432,8 +432,8 @@ export function EarningsScreen() {
                   : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
               }`}
             >
-              <BookOpen className="size-3.5" />
-              <span>सेटलमेंट पासबुक</span>
+              <Wallet className="size-3.5" />
+              <span>Payouts</span>
             </button>
             <button
               type="button"
@@ -445,7 +445,7 @@ export function EarningsScreen() {
               }`}
             >
               <BarChart2 className="size-3.5" />
-              <span>साप्ताहिक चार्ट</span>
+              <span>Weekly Trends</span>
             </button>
             <button
               type="button"
@@ -457,7 +457,7 @@ export function EarningsScreen() {
               }`}
             >
               <FileText className="size-3.5" />
-              <span>टैक्स इनवॉइस</span>
+              <span>Invoices & taxes</span>
             </button>
           </div>
         </header>

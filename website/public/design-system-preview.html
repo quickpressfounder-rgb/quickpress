@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickPress — 3-App Master Design System & Typography Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0B0F17;
+      color: #E2E8F0;
+      font-family: 'Inter', sans-serif;
+      padding: 40px 20px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(2, 132, 199, 0.15);
+      border: 1px solid rgba(2, 132, 199, 0.3);
+      color: #38BDF8;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 34px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: #94A3B8;
+      font-size: 15px;
+      margin-top: 8px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    @media (max-width: 1024px) {
+      .grid-3 { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
+    }
+    .app-card {
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+    }
+    .app-banner {
+      padding: 22px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .app-tag {
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .app-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+    .app-preview-screen {
+      padding: 24px;
+      min-height: 580px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* APP 1: CUSTOMER */
+    .app-customer {
+      background: #FFFFFF;
+      color: #0F172A;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .customer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #F1F5F9;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #0F172A;
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .cat-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 18px;
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cat-card:hover {
+      border-color: #0284C7;
+      transform: translateY(-2px);
+    }
+    .cat-icon {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+    .cat-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0F172A;
+    }
+    .live-tracker-card {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      color: #FFFFFF;
+      padding: 18px;
+      border-radius: 22px;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.3);
+      margin-bottom: 20px;
+    }
+    .stepper-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 14px;
+      position: relative;
+    }
+    .step-node {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .step-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      color: #0284C7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      margin: 0 auto 4px auto;
+    }
+    .btn-customer {
+      width: 100%;
+      background: #0F172A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 16px;
+      padding: 15px;
+      font-size: 14px;
+      font-weight: 800;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
+    }
+
+    /* APP 2: PARTNER */
+    .app-partner {
+      background: #FFFFFF;
+      color: #09090B;
+      font-family: 'Inter', sans-serif;
+    }
+    .partner-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #E4E4E7;
+      margin-bottom: 16px;
+    }
+    .partner-online-chip {
+      background: #DCFCE7;
+      border: 1px solid #86EFAC;
+      color: #15803D;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .partner-pulse {
+      width: 6px;
+      height: 6px;
+      background: #16A34A;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+    .partner-metric-box {
+      border: 1px solid #E4E4E7;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: #FAFAFA;
+    }
+    .partner-metric-title {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #71717A;
+      letter-spacing: 0.5px;
+    }
+    .partner-metric-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: #09090B;
+      margin: 4px 0;
+    }
+    .partner-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid #E4E4E7;
+      background: #FFFFFF;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .grid-cell {
+      padding: 10px 4px;
+      text-align: center;
+      border-right: 1px solid #E4E4E7;
+    }
+    .grid-cell:last-child { border-right: none; }
+    .cell-label { font-size: 9px; font-weight: 900; color: #71717A; }
+    .cell-val { font-size: 16px; font-weight: 900; color: #09090B; margin-top: 2px; }
+    .partner-order-card {
+      border: 1px solid #E4E4E7;
+      border-radius: 16px;
+      padding: 14px;
+      background: #FFFFFF;
+      margin-bottom: 12px;
+    }
+    .token-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .order-token {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 800;
+      color: #09090B;
+    }
+    .btn-partner {
+      width: 100%;
+      background: #09090B;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      padding: 13px;
+      font-size: 13px;
+      font-weight: 800;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+    }
+
+    /* APP 3: CAPTAIN */
+    .app-captain {
+      background: #0F172A;
+      color: #F8FAFC;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .captain-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .duty-badge {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #F59E0B;
+      color: #FBBF24;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+    .map-preview {
+      height: 180px;
+      background: #1E293B;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .map-grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .route-line {
+      position: absolute;
+      width: 120px;
+      height: 4px;
+      background: #F59E0B;
+      box-shadow: 0 0 12px #F59E0B;
+      transform: rotate(25deg);
+    }
+    .otp-card {
+      background: #1E293B;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .otp-digits {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 900;
+      color: #F59E0B;
+      letter-spacing: 6px;
+    }
+    .swipe-container {
+      background: #1E293B;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 999px;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      height: 56px;
+    }
+    .swipe-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #F59E0B;
+      color: #0F172A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+    }
+    .swipe-label {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #CBD5E1;
+      letter-spacing: 0.5px;
+    }
+
+    /* FOOTER SPEC SHEETS */
+    .spec-box {
+      margin-top: 40px;
+      background: #131926;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 28px;
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      color: #94A3B8;
+    }
+    .spec-table th {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      color: #FFFFFF;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+    .spec-table td {
+      padding: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .font-tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .color-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">Official Brand & Design Architecture</div>
+      <h1>QuickPress 3-App Design System</h1>
+      <p class="subtitle">Complete visual showcase of themes, typography, color palettes, and interaction components finalized for Consumer, Partner, and Captain apps.</p>
+    </div>
+
+    <!-- 3 APP LIVE PREVIEWS -->
+    <div class="grid-3">
+
+      <!-- APP 1: CUSTOMER -->
+      <div class="app-card">
+        <div class="app-banner" style="background: #0284C7;">
+          <div class="app-tag" style="color: rgba(255,255,255,0.8);">App 1 • Consumer Experience</div>
+          <div class="app-name">QuickPress Customer</div>
+        </div>
+        <div class="app-preview-screen app-customer">
+          <div>
+            <div class="customer-header">
+              <div>
+                <p style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase;">Location</p>
+                <p style="font-size: 14px; font-weight: 800; color: #0F172A;">Home • Kasganj Hub 📍</p>
+              </div>
+              <div class="user-pill">
+                <span>🧺 3 in cart</span>
+              </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="category-grid">
+              <div class="cat-card">
+                <div class="cat-icon">👕</div>
+                <div class="cat-title">Wash &amp; Fold</div>
+              </div>
+              <div class="cat-card">
+                <div class="cat-icon">👔</div>
+                <div class="cat-title">Steam Iron</div>
+              </div>
+              <div class="cat-card">
+                <div class="cat-icon">🧥</div>
+                <div class="cat-title">Dry Clean</div>
+              </div>
+            </div>
+
+            <!-- Live Order Stepper -->
+            <div class="live-tracker-card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <p style="font-size: 11px; font-weight: 800; opacity: 0.9; text-transform: uppercase;">Active Booking</p>
+                  <p style="font-size: 15px; font-weight: 800;">Order #QP-9241</p>
+                </div>
+                <span style="background:rgba(255,255,255,0.25); padding:3px 8px; border-radius:999px; font-size:10px; font-weight:800;">IN PROCESSING</span>
+              </div>
+              <div class="stepper-row">
+                <div class="step-node">
+                  <div class="step-dot">✓</div>
+                  <span>Picked</span>
+                </div>
+                <div class="step-node">
+                  <div class="step-dot" style="background:#FFFFFF; color:#0284C7; font-weight:900;">•</div>
+                  <span>Washing</span>
+                </div>
+                <div class="step-node">
+                  <div class="step-dot" style="background:rgba(255,255,255,0.4); color:#FFFFFF;">3</div>
+                  <span>Ironing</span>
+                </div>
+                <div class="step-node">
+                  <div class="step-dot" style="background:rgba(255,255,255,0.4); color:#FFFFFF;">4</div>
+                  <span>Delivered</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">
+              <span style="font-size:12px; color:#64748B; font-weight:600;">Estimated Delivery</span>
+              <span style="font-size:13px; font-weight:800; color:#059669;">Today by 7:30 PM (Express)</span>
+            </div>
+            <button class="btn-customer">Schedule Fresh Pickup →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- APP 2: PARTNER -->
+      <div class="app-card">
+        <div class="app-banner" style="background: #09090B;">
+          <div class="app-tag" style="color: #A1A1AA;">App 2 • Merchant Station</div>
+          <div class="app-name">QuickPress Partner</div>
+        </div>
+        <div class="app-preview-screen app-partner">
+          <div>
+            <div class="partner-topbar">
+              <div>
+                <p style="font-size: 14px; font-weight: 900; color: #09090B;">Ram Laundromat</p>
+                <p style="font-size: 11px; font-weight: 600; color: #71717A;">Outlet #PRT-186660</p>
+              </div>
+              <div class="partner-online-chip">
+                <span class="partner-pulse"></span>
+                <span>ONLINE</span>
+              </div>
+            </div>
+
+            <!-- Overview Card -->
+            <div class="partner-metric-box">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="partner-metric-title">Today's Overview</span>
+                <span style="font-size: 10px; font-weight: 800; background:#E4E4E7; padding:2px 8px; border-radius:6px;">LIVE IST</span>
+              </div>
+              <div class="partner-metric-value">₹2,450</div>
+              <p style="font-size: 11px; color: #71717A; font-weight: 600;">Orders during selected period: <strong style="color:#09090B;">8 Total Orders</strong></p>
+            </div>
+
+            <!-- 4-Box Grid -->
+            <div class="partner-grid-4">
+              <div class="grid-cell">
+                <div class="cell-label">NEW</div>
+                <div class="cell-val">2</div>
+              </div>
+              <div class="grid-cell">
+                <div class="cell-label">ACCEPTED</div>
+                <div class="cell-val">3</div>
+              </div>
+              <div class="grid-cell">
+                <div class="cell-label">IN WASH</div>
+                <div class="cell-val">2</div>
+              </div>
+              <div class="grid-cell">
+                <div class="cell-label">READY</div>
+                <div class="cell-val">1</div>
+              </div>
+            </div>
+
+            <!-- Order Row -->
+            <div class="partner-order-card">
+              <div class="token-row">
+                <span class="order-token">#ORD-1082</span>
+                <span style="font-size:11px; font-weight:900; color:#09090B;">₹320.00</span>
+              </div>
+              <p style="font-size: 12px; font-weight:600; color:#52525B;">Shirt x4, Trouser x2 (Steam Iron)</p>
+              <p style="font-size: 10px; color:#A1A1AA; margin-top:2px;">Customer: Amit Sharma • Kasganj</p>
+            </div>
+          </div>
+
+          <div>
+            <button class="btn-partner">Open Settlement Passbook 📜</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- APP 3: CAPTAIN -->
+      <div class="app-card">
+        <div class="app-banner" style="background: #F59E0B; color: #0F172A;">
+          <div class="app-tag" style="color: #78350F;">App 3 • Fleet On-Road</div>
+          <div class="app-name" style="color: #0F172A;">QuickPress Captain</div>
+        </div>
+        <div class="app-preview-screen app-captain">
+          <div>
+            <div class="captain-topbar">
+              <div>
+                <p style="font-size: 15px; font-weight: 700; color: #FFFFFF;">Captain Rahul</p>
+                <p style="font-size: 11px; color: #94A3B8;">Zone: North Sector • Bike #9012</p>
+              </div>
+              <div class="duty-badge">ON DUTY</div>
+            </div>
+
+            <!-- GPS Route Preview -->
+            <div class="map-preview">
+              <div class="map-grid-lines"></div>
+              <div class="route-line"></div>
+              <div style="position:relative; z-index:2; text-align:center;">
+                <span style="font-size:20px;">🛵</span>
+                <p style="font-size:11px; font-weight:700; color:#FFFFFF; margin-top:4px;">1.4 km • 4 mins ETA</p>
+              </div>
+            </div>
+
+            <!-- Customer Destination -->
+            <div style="background:#1E293B; border-radius:16px; padding:12px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.08);">
+              <p style="font-size:10px; font-weight:700; color:#F59E0B; text-transform:uppercase;">Drop-off Destination</p>
+              <p style="font-size:13px; font-weight:700; color:#FFFFFF; margin-top:2px;">Flat 302, Royal Palms, Kasganj</p>
+              <p style="font-size:11px; color:#94A3B8;">Customer: Rahul V. • 📞 Call Button Ready</p>
+            </div>
+
+            <!-- Delivery OTP Input Box -->
+            <div class="otp-card">
+              <div>
+                <p style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase;">Customer OTP</p>
+                <p style="font-size:11px; color:#CBD5E1;">Verify on bag handover</p>
+              </div>
+              <div class="otp-digits">7 8 4 5</div>
+            </div>
+          </div>
+
+          <!-- Swipe Slider -->
+          <div>
+            <div class="swipe-container">
+              <div class="swipe-thumb">»</div>
+              <div class="swipe-label">Swipe to Complete Delivery</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SPECIFICATION TABLE -->
+    <div class="spec-box">
+      <h2 style="font-size: 18px; font-weight: 800; color: #FFFFFF; margin-bottom: 16px;">System Token Architecture</h2>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Application</th>
+            <th>Primary Font</th>
+            <th>Secondary / Code Font</th>
+            <th>Theme Palette</th>
+            <th>Target Audience &amp; Context</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color: #FFFFFF; font-weight: 800;">1. Customer App</td>
+            <td><span class="font-tag">Plus Jakarta Sans</span></td>
+            <td>Plus Jakarta Sans Tabular</td>
+            <td>
+              <div class="color-chip">
+                <span class="color-dot" style="background: #0284C7;"></span>
+                <span>Ocean Cyan (#0284C7)</span>
+              </div>
+            </td>
+            <td>Consumers booking wash, steam press &amp; dry clean from home</td>
+          </tr>
+          <tr>
+            <td style="color: #FFFFFF; font-weight: 800;">2. Partner App</td>
+            <td><span class="font-tag">Inter</span></td>
+            <td><span class="font-tag">JetBrains Mono</span></td>
+            <td>
+              <div class="color-chip">
+                <span class="color-dot" style="background: #09090B; border: 1px solid #52525B;"></span>
+                <span>Pitch Black (#09090B) + Emerald (#16A34A)</span>
+              </div>
+            </td>
+            <td>Laundromat owners managing high-speed kitchen/wash order queue</td>
+          </tr>
+          <tr>
+            <td style="color: #FFFFFF; font-weight: 800;">3. Captain (Rider) App</td>
+            <td><span class="font-tag">Space Grotesk</span></td>
+            <td><span class="font-tag">Inter Black (900)</span></td>
+            <td>
+              <div class="color-chip">
+                <span class="color-dot" style="background: #F59E0B;"></span>
+                <span>Electric Amber (#F59E0B) + Midnight (#0F172A)</span>
+              </div>
+            </td>
+            <td>Delivery riders on 2-wheelers reading maps under harsh sunlight</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

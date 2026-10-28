@@ -5,10 +5,19 @@ import { toast } from "sonner";
 
 import { PartnerSidebar } from "./PartnerSidebar";
 import { PartnerDesktopTopBar } from "./PartnerDesktopTopBar";
-import { PartnerBottomNav } from "../PartnerBottomNav";
+import { ZomatoBottomNav } from "./ZomatoBottomNav";
 import { partnerRoutes, type PartnerTabId } from "../../navigation/partner-routes";
 import { fetchPartnerProfile, getCachedPartnerProfile, getCleanPartnerName, toggleStoreStatus } from "../../api/partner/partner-profile-api";
 import { usePartnerContext } from "../../context/PartnerContext";
+
+const TAB_TO_ZOMATO: Record<string, "hub" | "orders" | "growth" | "menu" | "finance" | "more"> = {
+  dashboard: "hub",
+  orders: "orders",
+  analytics: "growth",
+  earnings: "finance",
+  services: "menu",
+  profile: "more",
+};
 
 export function PartnerLayout({
   children,
@@ -174,11 +183,13 @@ export function PartnerLayout({
           {children}
         </main>
       </div>
-
-      {/* Customer-Panel Style Glass Pill Bottom Navigation Bar (< md) */}
+      {/* Zomato Floating Pill Bottom Navigation Bar (< md) */}
       {activeTab && !hideBottomNav ? (
         <div className="md:hidden">
-          <PartnerBottomNav active={activeTab} />
+          <ZomatoBottomNav
+            activeTab={TAB_TO_ZOMATO[activeTab] || "hub"}
+            mode={activeTab === "orders" ? "orders" : "hub"}
+          />
         </div>
       ) : null}
     </div>
