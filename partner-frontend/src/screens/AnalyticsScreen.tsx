@@ -111,34 +111,48 @@ export function AnalyticsScreen() {
   // Compute 100% Real Aggregated Metrics with Instant 0ms Paint
   const clientAggregated = useMemo(() => {
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
+    const getLocalDateStr = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    const todayStr = getLocalDateStr(now);
 
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const yesterdayStr = getLocalDateStr(yesterday);
+
+    const parseOrderDateStr = (order: any): string => {
+      const raw = order.placedAt || order.createdAt || order.placedAtRaw;
+      if (!raw) return "";
+      try {
+        const d = new Date(raw);
+        if (!isNaN(d.getTime())) {
+          return getLocalDateStr(d);
+        }
+      } catch {}
+      return String(raw).slice(0, 10);
+    };
 
     // Filter orders by period & advanced criteria
     const filteredOrders = liveContextOrders.filter((o) => {
-      const placed = (o.placedAt || (o as any).createdAt || "").slice(0, 10);
+      const placed = parseOrderDateStr(o);
 
       // 1. Period filter
       if (period === "today") {
-        if (placed && placed !== todayStr) return false;
+        if (!placed || placed !== todayStr) return false;
       } else if (period === "yesterday") {
-        if (placed && placed !== yesterdayStr) return false;
+        if (!placed || placed !== yesterdayStr) return false;
       } else if (period === "7d") {
-        if (placed) {
-          const diffDays = (now.getTime() - new Date(placed).getTime()) / (1000 * 3600 * 24);
-          if (diffDays > 7) return false;
-        }
+        const orderTime = new Date(o.placedAt || (o as any).createdAt || "").getTime();
+        if (isNaN(orderTime) || (now.getTime() - orderTime) > 7 * 86400000) return false;
       } else if (period === "30d") {
-        if (placed) {
-          const diffDays = (now.getTime() - new Date(placed).getTime()) / (1000 * 3600 * 24);
-          if (diffDays > 30) return false;
-        }
+        const orderTime = new Date(o.placedAt || (o as any).createdAt || "").getTime();
+        if (isNaN(orderTime) || (now.getTime() - orderTime) > 30 * 86400000) return false;
       } else if (period === "custom") {
-        if (customStartDate && placed && placed < customStartDate) return false;
-        if (customEndDate && placed && placed > customEndDate) return false;
+        if (customStartDate && (!placed || placed < customStartDate)) return false;
+        if (customEndDate && (!placed || placed > customEndDate)) return false;
       }
 
       // 2. Speed filter
@@ -227,37 +241,50 @@ export function AnalyticsScreen() {
     };
   }, [liveContextOrders, period, customStartDate, customEndDate, speedFilter, categoryFilter, paymentFilter, statusFilter]);
 
-  // Merge values (instantly show clientAggregated numbers without any "..." stall)
-  const totalRevenue = (backendData?.totalRevenue && backendData.totalRevenue > 0 && activeFilterCount === 0)
+  // Merge values: strictly prioritize backend data when fetched, else client-aggregated
+  const totalRevenue = (backendData?.totalRevenue !== undefined && backendData?.totalRevenue !== null && activeFilterCount === 0)
     ? backendData.totalRevenue
     : clientAggregated.totalRevenue;
 
-  const completedOrders = (backendData?.completedOrders && backendData.completedOrders > 0 && activeFilterCount === 0)
+  const completedOrders = (backendData?.completedOrders !== undefined && backendData?.completedOrders !== null && activeFilterCount === 0)
     ? backendData.completedOrders
     : clientAggregated.completedOrders;
 
-  const totalEarnings = (backendData?.totalEarnings && backendData.totalEarnings > 0 && activeFilterCount === 0)
+  const totalEarnings = (backendData?.totalEarnings !== undefined && backendData?.totalEarnings !== null && activeFilterCount === 0)
     ? backendData.totalEarnings
     : clientAggregated.totalEarnings;
 
-  const avgOrderValue = (backendData?.avgOrderValue && backendData.avgOrderValue > 0 && activeFilterCount === 0)
+  const avgOrderValue = (backendData?.avgOrderValue !== undefined && backendData?.avgOrderValue !== null && activeFilterCount === 0)
     ? backendData.avgOrderValue
     : clientAggregated.avgOrderValue;
 
-  const totalGarments = (backendData?.totalGarments && backendData.totalGarments > 0 && activeFilterCount === 0)
+  const totalGarments = (backendData?.totalGarments !== undefined && backendData?.totalGarments !== null && activeFilterCount === 0)
     ? backendData.totalGarments
     : clientAggregated.totalGarments;
 
-  const totalCustomers = (backendData?.totalCustomers && backendData.totalCustomers > 0 && activeFilterCount === 0)
+  const totalCustomers = (backendData?.totalCustomers !== undefined && backendData?.totalCustomers !== null && activeFilterCount === 0)
     ? backendData.totalCustomers
     : clientAggregated.totalCustomers;
 
-  const repeatRate = (backendData?.repeatRate && backendData.repeatRate > 0 && activeFilterCount === 0)
+  const repeatRate = (backendData?.repeatRate !== undefined && backendData?.repeatRate !== null && activeFilterCount === 0)
     ? backendData.repeatRate
     : clientAggregated.repeatRate;
 
-  const expressOrders = clientAggregated.expressOrders;
-  const standardOrders = clientAggregated.standardOrders;
+  const expressOrders = (backendData?.expressOrders !== undefined && backendData?.expressOrders !== null && activeFilterCount === 0)
+    ? backendData.expressOrders
+    : clientAggregated.expressOrders;
+
+  const standardOrders = (backendData?.standardOrders !== undefined && backendData?.standardOrders !== null && activeFilterCount === 0)
+    ? backendData.standardOrders
+    : clientAggregated.standardOrders;
+
+  const onlineCount = (backendData?.paymentOnline !== undefined && backendData?.paymentOnline !== null && activeFilterCount === 0)
+    ? backendData.paymentOnline
+    : clientAggregated.onlineCount;
+
+  const codCount = (backendData?.paymentCod !== undefined && backendData?.paymentCod !== null && activeFilterCount === 0)
+    ? backendData.paymentCod
+    : clientAggregated.codCount;
 
   // Smooth number easing
   const animatedCompleted = useCountUp(completedOrders, 500);
@@ -275,14 +302,13 @@ export function AnalyticsScreen() {
 
   const ordersTrend = useMemo(() => {
     if (backendData?.ordersTrend && backendData.ordersTrend.length > 0) return backendData.ordersTrend;
-    // Build real day-by-day distribution from live context
-    return [0, 0, 0, 0, 0, 0, completedOrders];
-  }, [backendData?.ordersTrend, completedOrders]);
+    return trendLabels.map(() => 0);
+  }, [backendData?.ordersTrend, trendLabels]);
 
   const revenueTrend = useMemo(() => {
     if (backendData?.revenueTrend && backendData.revenueTrend.length > 0) return backendData.revenueTrend;
-    return [0, 0, 0, 0, 0, 0, totalRevenue];
-  }, [backendData?.revenueTrend, totalRevenue]);
+    return trendLabels.map(() => 0);
+  }, [backendData?.revenueTrend, trendLabels]);
 
   const maxVal = useMemo(() => {
     const arr = chartMode === "revenue" ? revenueTrend : ordersTrend;
@@ -292,8 +318,8 @@ export function AnalyticsScreen() {
   // Identify Peak Day
   const peakDayIndex = useMemo(() => {
     const arr = chartMode === "revenue" ? revenueTrend : ordersTrend;
-    let maxIdx = 0;
-    let max = arr[0] || 0;
+    let maxIdx = -1;
+    let max = 0;
     arr.forEach((v, i) => {
       if (v > max) {
         max = v;
@@ -807,7 +833,7 @@ export function AnalyticsScreen() {
             </div>
             <div className="rounded-xl bg-amber-50/70 border border-amber-100 p-2.5">
               <span className="text-[10px] font-bold text-amber-700">Peak Demand Day</span>
-              <p className="text-sm font-black text-amber-700">{trendLabels[peakDayIndex] || "Sunday"}</p>
+              <p className="text-sm font-black text-amber-700">{peakDayIndex >= 0 ? trendLabels[peakDayIndex] : "No activity"}</p>
             </div>
           </div>
 
@@ -1084,7 +1110,7 @@ export function AnalyticsScreen() {
                   <p className="mt-2.5 text-2xl font-black text-[#2563EB]">{expressOrders}</p>
                   <p className="text-xs font-bold text-blue-900">Priority Express</p>
                   <p className="mt-1 text-[10px] font-bold text-blue-700">
-                    +{inr(clientAggregated.expressBonusTotal)} Partner Bonus
+                    +{inr(expressOrders * 25)} Partner Bonus
                   </p>
                 </div>
               </div>
@@ -1101,13 +1127,13 @@ export function AnalyticsScreen() {
                   <span className="flex items-center gap-1.5 font-bold text-zinc-800">
                     <CreditCard className="size-3.5 text-[#2563EB]" /> Prepaid / UPI
                   </span>
-                  <span className="font-black text-zinc-900">{clientAggregated.onlineCount}</span>
+                  <span className="font-black text-zinc-900">{onlineCount}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-zinc-50 p-2.5 border border-zinc-200">
                   <span className="flex items-center gap-1.5 font-bold text-zinc-700">
                     <IndianRupee className="size-3.5 text-zinc-500" /> Cash / POD
                   </span>
-                  <span className="font-black text-zinc-900">{clientAggregated.codCount}</span>
+                  <span className="font-black text-zinc-900">{codCount}</span>
                 </div>
               </div>
             </div>

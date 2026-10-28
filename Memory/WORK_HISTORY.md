@@ -31,6 +31,52 @@
 
 ---
 
+## Detailed Log of Work Done Today (28 October 2026)
+
+### 32. Partner Console Today's Sales Fix, Real-Time Timeframe Date Filters & Clean Settlement UI
+- **User Requirement:**
+  - "229 today me kyu show kar raha hai jabki aaj to koi sale nahi hai" (Fix phantom sales on dashboard when there are 0 sales today)
+  - "or yaha bhi filter work nahi kar raha or nahi hi rea data aa raha hai" (Fix Analytics Hub date filters not filtering or falling back to fake/all-time data)
+  - "or ye commision 15 or auto badge hata do" (Remove 15% Commission card and Auto 7-Day Bank Credit badge from Earnings screen)
+  - "or pahle 123 image me filter date aaye bo bhi real data aana chaiye" (Add date filter pills to Dashboard Overview card and ensure Dashboard & Analytics strictly display real, verified date-filtered data)
+- **Architecture & Implementation:**
+  1. **Root Cause Analysis & Backend Dashboard Fix (`backend-python/app/db/partner_repositories.py`):**
+     - In `partner_order_repository.dashboard()`, `delivered` was calculating `[o for o in orders if o["status"] == "delivered"]` and summing `earningsToday` over all lifetime orders without ANY date check!
+     - Added `_extract_ist_date()` converting UTC timestamps to Indian Standard Time (`UTC+5:30` / `Asia/Kolkata`).
+     - Restricted `delivered_today` and `earningsToday` strictly to orders completed/delivered on today's date in IST. If 0 sales today, it returns `delivered: 0` and `earningsToday: 0`.
+  2. **Partner Order Canonical Projections (`backend-python/app/services/order_lifecycle.py`):**
+     - In `to_partner_order()`, included `deliveredAt`, `completedAt`, `updatedAt`, and `createdAt` so partner clients have exact execution timestamps for financial and SLA attribution.
+  3. **Backend Analytics Hub Filter Engine (`backend-python/app/db/partner_repositories.py`):**
+     - In `PartnerAnalyticsRepository.get()`, eliminated the bug `if not period_orders and all_orders and period != "today": period_orders = all_orders`, which previously dumped all lifetime orders into any period with 0 orders.
+     - Added full native support for `period == "yesterday"` alongside `today`, `7d`, `30d`, and `all`.
+     - Timezone conversions for daily trends, 7d/30d chronologies, and hourly slots now strictly calculate in Indian Standard Time (`UTC+5:30`).
+  4. **Frontend Analytics Screen (`partner-frontend/src/screens/AnalyticsScreen.tsx`):**
+     - Replaced UTC date slicing with strict local/IST date matching (`parseOrderDateStr` & `getLocalDateStr`).
+     - Fixed `backendData` merging: replaced `backendData?.totalRevenue > 0` with `backendData?.totalRevenue !== undefined && backendData?.totalRevenue !== null`, honoring authentic ₹0 and 0 order counts.
+     - Fixed "Peak Demand Day" to show "No activity" when order volume is 0.
+     - Bound Speed & Delivery Modes and Payment Preference counts directly to merged period totals with real zero-states.
+  5. **Partner Dashboard Overview Card (`partner-frontend/src/components/dashboard/ZomatoHubView.tsx`):**
+     - Added interactive Date Filter selector pills (`Today`, `Yesterday`, `7 Days`, `All Time`) directly inside the Overview Card.
+     - Added `overviewMetrics` memoized engine calculating real-time sales and order counts from live orders in context.
+     - Accurately displays ₹0 Total Sales and 0 Total Orders when there are 0 sales today.
+  6. **Clean Settlement UI (`partner-frontend/src/screens/EarningsScreen.tsx`):**
+     - Removed `<span ...>Auto 7-Day Bank Credit ✓</span>` badge.
+     - Removed `<div ...>Commission 15% Admin Tier</div>` card.
+     - Styled clean 2-column KPI grid: `Weekly Cycle` and `Bank Verified Settled`.
+- **Files Modified:**
+  - `backend-python/app/db/partner_repositories.py`
+  - `backend-python/app/services/order_lifecycle.py`
+  - `partner-frontend/src/screens/AnalyticsScreen.tsx`
+  - `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`
+  - `partner-frontend/src/screens/EarningsScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Verification:**
+  - Python compile syntax check: `py_compile` exit code 0.
+  - Pytest test suites: 9 passed in 2.12s (`test_partner_real_settlements.py`, `test_phase2_security_rules.py`).
+  - Partner frontend production build: `npm run build` completed in 1.36s with 0 errors.
+
+---
+
 ## Detailed Log of Work Done Today (27 October 2026)
 
 ### 31. Complete Platform-Wide Real Data Integration & Zero Mock/Hardcode Purge

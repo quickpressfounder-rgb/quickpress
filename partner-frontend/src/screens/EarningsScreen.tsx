@@ -405,7 +405,7 @@ export function EarningsScreen() {
                 </p>
               </div>
 
-              {/* Action Strip: No Instant Button, Clean Weekly Pill */}
+              {/* Action Strip: Itemized breakdown link */}
               <div className="mt-4 border-t border-zinc-100 pt-3 flex items-center justify-between gap-2">
                 <button
                   type="button"
@@ -415,18 +415,14 @@ export function EarningsScreen() {
                   <span>View itemized breakdown</span>
                   <span>→</span>
                 </button>
-
-                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[10px] font-black text-emerald-700">
-                  Auto 7-Day Bank Credit ✓
-                </span>
               </div>
             </div>
 
-            {/* 3 Clean KPI Chips */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* 2 Clean KPI Chips */}
+            <div className="grid grid-cols-2 gap-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-3 text-center">
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Cycle</span>
-                <p className="mt-1 text-xs font-black text-black">7-Day Auto</p>
+                <p className="mt-1 text-xs font-black text-black">Weekly Cycle</p>
                 <p className="text-[9px] font-bold text-emerald-600">Every Monday</p>
               </div>
 
@@ -434,12 +430,6 @@ export function EarningsScreen() {
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Settled</span>
                 <p className="mt-1 text-xs font-black text-black">₹{allTimeSettled.toFixed(2)}</p>
                 <p className="text-[9px] font-bold text-zinc-500">Bank Verified</p>
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 text-center">
-                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Commission</span>
-                <p className="mt-1 text-xs font-black text-black">{adminCommRate}%</p>
-                <p className="text-[9px] font-bold text-purple-700">Admin Tier</p>
               </div>
             </div>
 

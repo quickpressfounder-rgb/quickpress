@@ -978,7 +978,32 @@ class PartnerOrderRepository:
 
     async def dashboard(self, partner_id: str) -> Dict[str, Any]:
         orders = [lifecycle.to_partner_order(d) for d in await self._orders_for(partner_id)]
-        delivered = [o for o in orders if o["status"] == "delivered"]
+        
+        now_utc = datetime.now(timezone.utc)
+        ist_now = now_utc + timedelta(hours=5, minutes=30)
+        today_ist = ist_now.strftime("%Y-%m-%d")
+
+        def _extract_ist_date(ts_val: Any) -> str:
+            if not ts_val:
+                return ""
+            s = str(ts_val).strip()
+            if not s:
+                return ""
+            try:
+                cleaned = s.replace("Z", "+00:00")
+                dt = datetime.fromisoformat(cleaned)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                ist_tz = timezone(timedelta(hours=5, minutes=30))
+                return dt.astimezone(ist_tz).strftime("%Y-%m-%d")
+            except Exception:
+                return s[:10]
+
+        delivered_today = [
+            o for o in orders
+            if str(o.get("status", "")).lower() in ("delivered", "completed")
+            and _extract_ist_date(o.get("deliveredAt") or o.get("completedAt") or o.get("updatedAt") or o.get("placedAt")) == today_ist
+        ]
 
         from app.services.financial_engine import financial_engine
         monthly_orders = len(orders)
@@ -991,8 +1016,8 @@ class PartnerOrderRepository:
                 1 for o in orders if o["status"] in ("accepted", "picked", "processing", "washing", "ironing")
             ),
             "readyForDelivery": sum(1 for o in orders if o["status"] == "ready"),
-            "delivered": len(delivered),
-            "earningsToday": sum(round(o.get("amount", 0) * net_rate) for o in delivered),
+            "delivered": len(delivered_today),
+            "earningsToday": sum(round(o.get("amount", 0) * net_rate) for o in delivered_today),
             "commissionRate": round(comm_rate * 100, 1),
         }
 
@@ -1098,34 +1123,55 @@ class PartnerAnalyticsRepository:
         all_raw_orders = await partner_order_repository._orders_for(partner_id)
         all_orders = [lifecycle.to_partner_order(d) for d in all_raw_orders]
 
-        now = datetime.now(timezone.utc)
-        today_str = now.strftime("%Y-%m-%d")
+        now_utc = datetime.now(timezone.utc)
+        ist_now = now_utc + timedelta(hours=5, minutes=30)
+        today_str = ist_now.strftime("%Y-%m-%d")
+        yesterday_str = (ist_now - timedelta(days=1)).strftime("%Y-%m-%d")
+        cutoff_7d = (ist_now - timedelta(days=7)).strftime("%Y-%m-%d")
+        cutoff_30d = (ist_now - timedelta(days=30)).strftime("%Y-%m-%d")
 
-        # Filter by selected period
+        def _extract_ist_date(ts_val: Any) -> str:
+            if not ts_val:
+                return ""
+            s = str(ts_val).strip()
+            if not s:
+                return ""
+            try:
+                cleaned = s.replace("Z", "+00:00")
+                dt = datetime.fromisoformat(cleaned)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                ist_tz = timezone(timedelta(hours=5, minutes=30))
+                return dt.astimezone(ist_tz).strftime("%Y-%m-%d")
+            except Exception:
+                return s[:10]
+
+        # Filter by selected period strictly in IST
         period_orders = []
         if period == "today":
             for o in all_orders:
-                p_dt = str(o.get("placedAt") or o.get("placedAtRaw") or "")[:10]
+                p_dt = _extract_ist_date(o.get("placedAt") or o.get("placedAtRaw") or o.get("createdAt"))
                 if p_dt == today_str:
                     period_orders.append(o)
-        elif period == "7d":
-            cutoff = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+        elif period == "yesterday":
             for o in all_orders:
-                p_dt = str(o.get("placedAt") or o.get("placedAtRaw") or "")[:10]
-                if not p_dt or p_dt >= cutoff:
+                p_dt = _extract_ist_date(o.get("placedAt") or o.get("placedAtRaw") or o.get("createdAt"))
+                if p_dt == yesterday_str:
+                    period_orders.append(o)
+        elif period == "7d":
+            for o in all_orders:
+                p_dt = _extract_ist_date(o.get("placedAt") or o.get("placedAtRaw") or o.get("createdAt"))
+                if p_dt and p_dt >= cutoff_7d:
                     period_orders.append(o)
         elif period == "30d":
-            cutoff = (now - timedelta(days=30)).strftime("%Y-%m-%d")
             for o in all_orders:
-                p_dt = str(o.get("placedAt") or o.get("placedAtRaw") or "")[:10]
-                if not p_dt or p_dt >= cutoff:
+                p_dt = _extract_ist_date(o.get("placedAt") or o.get("placedAtRaw") or o.get("createdAt"))
+                if p_dt and p_dt >= cutoff_30d:
                     period_orders.append(o)
         else:  # "all"
             period_orders = all_orders
 
-        # If period_orders is empty but all_orders has data and period != today, fall back gracefully
-        if not period_orders and all_orders and period != "today":
-            period_orders = all_orders
+        # STRICT RULE: Zero fake fallback. If period has 0 orders, period_orders is empty.
 
         # STRICT RULE: Only completed/delivered orders count towards revenue, earnings and avg order value
         completed_orders = [
@@ -1153,7 +1199,7 @@ class PartnerAnalyticsRepository:
         completed_count = len(completed_orders)
         total_orders_count = len(period_orders)
         avg_order_value = round(total_revenue / completed_count) if completed_count > 0 else 0
-        fulfillment_rate = round((completed_count / total_orders_count * 100), 1) if total_orders_count > 0 else 100.0
+        fulfillment_rate = round((completed_count / total_orders_count * 100), 1) if total_orders_count > 0 else (100.0 if not period_orders else 0.0)
 
         # Unique customers & Repeat Rate
         from collections import defaultdict
@@ -1178,13 +1224,18 @@ class PartnerAnalyticsRepository:
         payment_online = sum(1 for o in completed_orders if str(o.get("paymentMode", "")).lower() in ("online", "upi", "prepaid", "card"))
         payment_cod = sum(1 for o in completed_orders if str(o.get("paymentMode", "")).lower() in ("cod", "cash"))
 
-        # Hourly Booking Slots Distribution
+        # Hourly Booking Slots Distribution in IST
         slot_counts = {"Morning (07-11)": 0, "Afternoon (12-16)": 0, "Evening (17-21)": 0, "Night (21-23)": 0}
         for o in period_orders:
-            dt_raw = str(o.get("placedAt") or o.get("placedAtRaw") or "")
-            if len(dt_raw) >= 13 and "T" in dt_raw:
+            dt_raw = str(o.get("placedAt") or o.get("placedAtRaw") or o.get("createdAt") or "")
+            if dt_raw:
                 try:
-                    hr = int(dt_raw.split("T")[1][:2])
+                    cleaned = dt_raw.replace("Z", "+00:00")
+                    dt = datetime.fromisoformat(cleaned)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    ist_tz = timezone(timedelta(hours=5, minutes=30))
+                    hr = dt.astimezone(ist_tz).hour
                     if 7 <= hr < 12:
                         slot_counts["Morning (07-11)"] += 1
                     elif 12 <= hr < 17:
@@ -1198,9 +1249,9 @@ class PartnerAnalyticsRepository:
             else:
                 slot_counts["Morning (07-11)"] += 1
 
-        total_slots_sum = max(sum(slot_counts.values()), 1)
+        total_slots_sum = sum(slot_counts.values())
         hourly_slots = [
-            {"slot": k, "count": v, "percentage": round((v / total_slots_sum) * 100, 1)}
+            {"slot": k, "count": v, "percentage": round((v / total_slots_sum) * 100, 1) if total_slots_sum > 0 else 0.0}
             for k, v in slot_counts.items()
         ]
 
@@ -1219,7 +1270,7 @@ class PartnerAnalyticsRepository:
         daily_earnings = defaultdict(int)
 
         for o in completed_orders:
-            date_str = (o.get("placedAt") or "")[:10] or today_str
+            date_str = _extract_ist_date(o.get("placedAt") or o.get("createdAt")) or today_str
             daily_orders[date_str] += 1
             amt = int(o.get("amount") or 0)
             daily_revenue[date_str] += amt
@@ -1278,30 +1329,43 @@ class PartnerAnalyticsRepository:
                 "color": cat_data["color"],
             })
 
-        # Trend date labels
-        if period == "today":
+        # Trend date labels and data
+        if period in ("today", "yesterday"):
             trend_labels = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"]
             trend_orders = [0] * len(trend_labels)
             trend_revenue = [0] * len(trend_labels)
             trend_earnings = [0] * len(trend_labels)
             for o in completed_orders:
-                dt_raw = str(o.get("placedAt") or o.get("placedAtRaw") or "")
-                if len(dt_raw) >= 13 and "T" in dt_raw:
+                dt_raw = str(o.get("placedAt") or o.get("placedAtRaw") or o.get("createdAt") or "")
+                if dt_raw:
                     try:
-                        hr = int(dt_raw.split("T")[1][:2])
+                        cleaned = dt_raw.replace("Z", "+00:00")
+                        dt = datetime.fromisoformat(cleaned)
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        ist_tz = timezone(timedelta(hours=5, minutes=30))
+                        hr = dt.astimezone(ist_tz).hour
                         idx = min(len(trend_labels) - 1, max(0, (hr - 8) // 2))
                         trend_orders[idx] += 1
                         trend_revenue[idx] += int(o.get("amount") or 0)
                         trend_earnings[idx] += round(int(o.get("amount") or 0) * 0.84)
                     except Exception:
                         pass
-        else:
-            days_count = 30 if period == "30d" else 7
+        elif period == "7d":
+            trend_labels = [(ist_now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
+            trend_orders = [daily_orders.get(k, 0) for k in trend_labels]
+            trend_revenue = [daily_revenue.get(k, 0) for k in trend_labels]
+            trend_earnings = [daily_earnings.get(k, 0) for k in trend_labels]
+        elif period == "30d":
+            trend_labels = [(ist_now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(29, -1, -1)]
+            trend_orders = [daily_orders.get(k, 0) for k in trend_labels]
+            trend_revenue = [daily_revenue.get(k, 0) for k in trend_labels]
+            trend_earnings = [daily_earnings.get(k, 0) for k in trend_labels]
+        else:  # "all"
             if daily_orders:
-                trend_labels = sorted(daily_orders.keys())[-days_count:]
+                trend_labels = sorted(daily_orders.keys())
             else:
-                trend_labels = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days_count - 1, -1, -1)]
-
+                trend_labels = [(ist_now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
             trend_orders = [daily_orders.get(k, 0) for k in trend_labels]
             trend_revenue = [daily_revenue.get(k, 0) for k in trend_labels]
             trend_earnings = [daily_earnings.get(k, 0) for k in trend_labels]

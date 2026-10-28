@@ -182,6 +182,79 @@ export function ZomatoHubView() {
   const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
   const [claimableReferralBalance, setClaimableReferralBalance] = useState(0);
   const [isClaimingReferral, setIsClaimingReferral] = useState(false);
+  const [overviewTimeframe, setOverviewTimeframe] = useState<"today" | "yesterday" | "7d" | "all">("today");
+
+  // Compute 100% Real Interactive Overview Metrics based on selected timeframe
+  const overviewMetrics = useMemo(() => {
+    const now = new Date();
+    const getLocalDateStr = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    const todayStr = getLocalDateStr(now);
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateStr(yesterday);
+
+    const parseOrderDate = (o: any): string => {
+      const raw = o.placedAt || o.createdAt || (o as any).placedAtRaw || "";
+      if (!raw) return "";
+      try {
+        const d = new Date(raw);
+        if (!isNaN(d.getTime())) return getLocalDateStr(d);
+      } catch {}
+      return String(raw).slice(0, 10);
+    };
+
+    const timeframeOrders = orders.filter((o) => {
+      const dateStr = parseOrderDate(o);
+      if (overviewTimeframe === "today") {
+        return Boolean(dateStr && dateStr === todayStr);
+      }
+      if (overviewTimeframe === "yesterday") {
+        return Boolean(dateStr && dateStr === yesterdayStr);
+      }
+      if (overviewTimeframe === "7d") {
+        const t = new Date(o.placedAt || (o as any).createdAt || "").getTime();
+        return !isNaN(t) && (now.getTime() - t) <= 7 * 86400000;
+      }
+      return true; // "all"
+    });
+
+    const deliveredOrders = timeframeOrders.filter(
+      (o) => o.status === "delivered" || (o as any).stage === "completed"
+    );
+
+    const sales = deliveredOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+
+    const newOrders = timeframeOrders.filter((o) => o.status === "new" || (o as any).stage === "new").length;
+    const accepted = timeframeOrders.filter(
+      (o) => o.status === "accepted" || (o as any).stage === "accepted" || (o as any).stage === "pickup_pending"
+    ).length;
+    const inWash = timeframeOrders.filter((o) =>
+      ["washing", "dry_cleaning", "ironing", "processing"].includes(o.status as string) ||
+      ["washing", "dry_cleaning", "ironing"].includes((o as any).stage as string)
+    ).length;
+    const ready = timeframeOrders.filter((o) => o.status === "ready" || (o as any).stage === "ready").length;
+
+    let title = "Today's Overview";
+    if (overviewTimeframe === "yesterday") title = "Yesterday's Overview";
+    if (overviewTimeframe === "7d") title = "Last 7 Days Overview";
+    if (overviewTimeframe === "all") title = "All-Time Overview";
+
+    return {
+      title,
+      sales: overviewTimeframe === "today" && todayEarnings !== undefined && orders.length === 0 ? todayEarnings : sales,
+      totalOrders: timeframeOrders.length,
+      newOrders,
+      accepted,
+      inWash,
+      ready,
+    };
+  }, [orders, overviewTimeframe, todayEarnings]);
 
   useEffect(() => {
     let mounted = true;
@@ -599,49 +672,72 @@ export function ZomatoHubView() {
           </div>
         )}
 
-        {/* Today's Overview Card: Flat Crisp Pure White Card with Pure Black Text */}
+        {/* Today's Overview Card: Flat Crisp Pure White Card with Date Filter Pills & Real Metrics */}
         <div>
           <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
-            <div className="flex items-start justify-between pb-4 border-b border-zinc-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wider text-black">
-                  Today's Overview
+                  {overviewMetrics.title}
                 </p>
                 <div className="mt-1 flex items-baseline gap-2">
                   <h3 className="text-3xl font-black tracking-tight text-black">
-                    ₹{todayEarnings.toLocaleString("en-IN")}
+                    ₹{overviewMetrics.sales.toLocaleString("en-IN")}
                   </h3>
                   <span className="text-xs font-bold text-black">Total Sales</span>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-black border border-zinc-200 shadow-xs">
-                  {todayOrdersCount} Total Orders
-                </span>
+
+              {/* Date Filter Pills */}
+              <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 self-start sm:self-auto">
+                {(["today", "yesterday", "7d", "all"] as const).map((tf) => (
+                  <button
+                    key={tf}
+                    type="button"
+                    onClick={() => setOverviewTimeframe(tf)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-black transition-all cursor-pointer ${
+                      overviewTimeframe === tf
+                        ? "bg-black text-white shadow-xs"
+                        : "text-zinc-600 hover:text-black"
+                    }`}
+                  >
+                    {tf === "today" ? "Today" : tf === "yesterday" ? "Yesterday" : tf === "7d" ? "7 Days" : "All Time"}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* Total Orders Strip */}
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-xs font-medium text-zinc-500">
+                Orders during selected period
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-black border border-zinc-200 shadow-xs">
+                {overviewMetrics.totalOrders} Total Orders
+              </span>
+            </div>
+
             {/* Order Flow Progress: Flat 4-Column Divided Grid with Pure Black Text */}
-            <div className="mt-4 grid grid-cols-4 rounded-xl border border-zinc-200 bg-zinc-50/60 divide-x divide-zinc-200 overflow-hidden text-center">
+            <div className="mt-3 grid grid-cols-4 rounded-xl border border-zinc-200 bg-zinc-50/60 divide-x divide-zinc-200 overflow-hidden text-center">
               <div className="py-2.5 px-1">
                 <p className="text-[10px] font-black uppercase text-black tracking-wider">New</p>
-                <p className="mt-0.5 text-lg font-black text-black">{counts.new || 0}</p>
+                <p className="mt-0.5 text-lg font-black text-black">{overviewMetrics.newOrders}</p>
               </div>
               <div className="py-2.5 px-1">
                 <p className="text-[10px] font-black uppercase text-black tracking-wider">Accepted</p>
                 <p className="mt-0.5 text-lg font-black text-black">
-                  {(counts.accepted || 0) + (counts.pickup_pending || 0)}
+                  {overviewMetrics.accepted}
                 </p>
               </div>
               <div className="py-2.5 px-1">
                 <p className="text-[10px] font-black uppercase text-black tracking-wider">In Wash</p>
                 <p className="mt-0.5 text-lg font-black text-black">
-                  {(counts.washing || 0) + (counts.dry_cleaning || 0) + (counts.ironing || 0)}
+                  {overviewMetrics.inWash}
                 </p>
               </div>
               <div className="py-2.5 px-1">
                 <p className="text-[10px] font-black uppercase text-black tracking-wider">Ready</p>
-                <p className="mt-0.5 text-lg font-black text-black">{counts.ready || 0}</p>
+                <p className="mt-0.5 text-lg font-black text-black">{overviewMetrics.ready}</p>
               </div>
             </div>
           </div>
