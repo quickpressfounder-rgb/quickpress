@@ -101,10 +101,12 @@ async def test_staff_registration_and_email_otp_flow():
         reg_data = good_reg.json()
         assert reg_data["ok"] is True
 
-        # 3. Verify Business Email with OTP (using master fallback / stored OTP)
+        # 3. Verify Business Email with real generated OTP from database
+        otp_doc = await database.find_one("admin_email_otps", {"_id": f"email_otp:{corp_email}:staff_verification"})
+        real_otp = otp_doc["otp"] if otp_doc else "123456"
         verify_res = await client.post(
             "/api/auth/staff/verify-email",
-            json={"email": corp_email, "otp": "123456"},
+            json={"email": corp_email, "otp": real_otp},
         )
         assert verify_res.status_code == 200
         assert verify_res.json()["verified"] is True
@@ -132,12 +134,14 @@ async def test_super_admin_email_password_and_2fa_login():
         assert login_data["twoFactorRequired"] is True
         challenge_id = login_data["challengeId"]
 
-        # 2. Step 2: Verify 2FA OTP Challenge
+        # 2. Step 2: Verify 2FA OTP Challenge using real generated OTP from database
+        ch_doc = await database.find_one("admin_2fa_challenges", {"_id": challenge_id})
+        real_otp = ch_doc["otp"] if ch_doc else "123456"
         two_fa_res = await client.post(
             "/api/auth/admin/2fa",
             json={
                 "challengeId": challenge_id,
-                "otp": "123456",
+                "otp": real_otp,
             },
         )
         assert two_fa_res.status_code == 200
@@ -190,9 +194,11 @@ async def test_staff_member_login_receives_assigned_permissions_and_profile():
             json={"email": "admin@quickpress.online", "password": "Admin@QuickPress2026!"},
         )
         ch_id = admin_login.json()["challengeId"]
+        ch_doc = await database.find_one("admin_2fa_challenges", {"_id": ch_id})
+        real_admin_otp = ch_doc["otp"] if ch_doc else "123456"
         admin_session = await client.post(
             "/api/auth/admin/2fa",
-            json={"challengeId": ch_id, "otp": "123456"},
+            json={"challengeId": ch_id, "otp": real_admin_otp},
         )
         admin_token = admin_session.json()["token"]
         headers = {"Authorization": f"Bearer {admin_token}"}
@@ -223,10 +229,12 @@ async def test_staff_member_login_receives_assigned_permissions_and_profile():
         assert staff_login.status_code == 200
         staff_ch_id = staff_login.json()["challengeId"]
 
-        # 4. Staff completes 2FA verification
+        # 4. Staff completes 2FA verification using real generated OTP
+        staff_ch_doc = await database.find_one("admin_2fa_challenges", {"_id": staff_ch_id})
+        real_staff_otp = staff_ch_doc["otp"] if staff_ch_doc else "123456"
         staff_2fa = await client.post(
             "/api/auth/admin/2fa",
-            json={"challengeId": staff_ch_id, "otp": "123456"},
+            json={"challengeId": staff_ch_id, "otp": real_staff_otp},
         )
         assert staff_2fa.status_code == 200
         staff_session = staff_2fa.json()

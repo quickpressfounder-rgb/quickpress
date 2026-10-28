@@ -86,16 +86,19 @@ async def partner_test_users():
 @pytest.mark.asyncio
 async def test_partner_send_otp_endpoint(partner_test_users):
     """Verify send-otp for role='partner'."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post(
-            "/api/auth/phone/send-otp",
-            json={"phone": "+919876599999", "role": "partner"},
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["ok"] is True
-        assert "expiresInSeconds" in data
+    from unittest.mock import AsyncMock, patch
+    with patch("app.core.twilio_sms.send_twilio_sms_otp", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = (True, "fast2sms", None)
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/api/auth/phone/send-otp",
+                json={"phone": "+919876599999", "role": "partner"},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["ok"] is True
+            assert "expiresInSeconds" in data
 
 
 @pytest.mark.asyncio

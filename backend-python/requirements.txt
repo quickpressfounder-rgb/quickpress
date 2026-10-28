@@ -22,3 +22,4 @@ razorpay==2.0.1
 pymupdf==1.28.2
 pywebpush>=2.5.0
 redis>=5.0.0
+twilio>=9.0.0

@@ -11,10 +11,6 @@ import { activeSessionRole, clearSession, readSession, writeSession } from "./se
 import { apiGetJson, apiPostJson } from "./transport";
 import { onesignalLogin, onesignalLogout } from "./onesignal";
 import {
-  clearPendingOtp,
-  confirmFirebaseOtp,
-  hasPendingOtp,
-  sendFirebaseOtp,
   signInWithGoogleIdToken,
 } from "./firebase-auth";
 import { isFirebaseConfigured } from "./firebase-config";
@@ -49,28 +45,11 @@ function persist(session: AuthSession): AuthSession {
 
 /* ------------------------------------------------------------------ phone */
 
-/** POST /api/auth/phone/send-otp — Sends OTP via real Firebase Phone Auth (no DLT required) with backend fallback. */
+/** POST /api/auth/phone/send-otp — Sends OTP via Twilio SMS Gateway. */
 export async function sendPhoneOtp(
   phone: string,
   explicitRole?: AccountRole,
 ): Promise<RequestOtpResult> {
-  // 1. Try real Firebase Phone OTP first
-  if (isFirebaseConfigured() && typeof window !== "undefined") {
-    try {
-      await sendFirebaseOtp(phone);
-      return {
-        ok: true,
-        devOtp: "",
-        expiresInSeconds: 300,
-        isNewAccount: false,
-      };
-    } catch (fbErr: any) {
-      console.warn("[Auth] Firebase Phone OTP error, falling back to backend SMS:", fbErr);
-      clearPendingOtp();
-    }
-  }
-
-  // 2. Fallback: Backend Twilio/Fast2sms SMS dispatch
   const audit = await apiPostJson<{ ok: true; expiresInSeconds: number; isNewAccount: boolean }>(
     AUTH_ENDPOINTS.sendOtp,
     { phone, role: role(explicitRole) },
@@ -84,30 +63,25 @@ export async function sendPhoneOtp(
   };
 }
 
-/** POST /api/auth/phone/verify — verifies Firebase ID token or SMS OTP and returns Admin JWT AuthSession. */
+/** POST /api/auth/phone/verify — verifies Twilio SMS OTP and returns Admin JWT AuthSession. */
 export async function verifyPhoneOtp(
   phone: string,
   code: string,
   explicitRole?: AccountRole,
   referralCode?: string,
 ): Promise<AuthSession> {
-  let idToken: string | undefined = undefined;
-
-  if (hasPendingOtp()) {
-    try {
-      idToken = await confirmFirebaseOtp(code);
-    } catch (fbErr: any) {
-      console.warn("[Auth] Firebase confirmation failed, checking code directly with backend:", fbErr);
-    }
-  }
-
   const session = await apiPostJson<AuthSession>(
     AUTH_ENDPOINTS.verifyOtp,
     {
       phone,
       code,
-      id_token: idToken,
       role: role(explicitRole),
+      referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
+    },
+    { anonymous: true },
+  );
+  return persist(session);
+}
       referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
     },
     { anonymous: true },

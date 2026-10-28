@@ -555,14 +555,13 @@ async def verify_cashfree_aadhaar_otp(ref_id: str, otp: str, candidate_name: str
         except Exception as exc:
             logger.warning(f"Cashfree live verify OTP attempt: {exc}")
 
-    # 3. Cache verification or fallback check
     cached = _AADHAAR_OTP_CACHE.get(ref_id)
-    if cached and cached.get("otp") and clean_otp != cached["otp"] and clean_otp != "123456" and clean_otp != "592810":
+    if cached and cached.get("otp") and clean_otp != cached["otp"]:
         return {
             "ok": False,
             "valid": False,
             "verificationStatus": "failed",
-            "message": "Incorrect Aadhaar OTP. Please enter the valid OTP or test code.",
+            "message": "Incorrect Aadhaar OTP. Please enter the valid OTP sent to your Aadhaar-linked mobile.",
         }
 
     return {

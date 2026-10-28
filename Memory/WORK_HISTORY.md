@@ -2728,3 +2728,66 @@ This single command will automatically:
     - `npm run build:rider`: Passed in 1.33s.
     - `npm run build:admin`: Passed in 6.34s.
 
+### 40. Eradication of Firebase Phone Auth, Complete Purge of Demo OTP Codes (123456), and Production Twilio SMS Gateway Integration (October 2026)
+- **Objective:**
+  - Remove Firebase Phone Auth entirely due to Google Cloud Identity Platform `BILLING_NOT_ENABLED` (400) constraint.
+  - Purge all hardcoded / simulation bypass OTP codes (`123456`, `000000`, `592810`) across the entire repository so that only genuine cryptographic verification succeeds.
+  - Install and wire official Twilio SMS Gateway (`twilio>=9.0.0`) as the primary SMS delivery engine supporting both Programmable SMS and Twilio Verify Service.
+  - Provide a standalone diagnostic test script and exact `.env` guide for rapid production onboarding.
+- **Architectural & Security Implementations:**
+  1. **Purge of Demo & Master OTP Codes:**
+     - `backend-python/app/api/auth.py`: Removed `allowed_dev_codes = ("123456", "000000")` bypass in `verify_phone`. Only real cryptographic codes verified through `verify_phone_otp_code(phone, payload.code)` are accepted.
+     - `backend-python/app/core/twilio_sms.py`: Removed `code_clean in ("123456", "000000")` bypass from `verify_stored_otp`.
+     - `backend-python/app/api/partner.py`: Removed hardcoded `otp != "123456"` checks from partner email verification and partner agreement OTP endpoints.
+     - `backend-python/app/api/rider.py`: Removed hardcoded `otp != "123456"` checks from rider email verification and agreement OTP endpoints.
+     - `backend-python/app/core/admin_security.py`: Removed `otp_clean in ("123456", "000000")` bypass from admin email OTP and 2FA challenge verification.
+     - `backend-python/app/db/omni_channel_repositories.py`: Purged master developer key bypass `clean_code in ("1234", "123456")`.
+     - `backend-python/app/services/cashfree_verification.py`: Removed fake bypass codes (`123456`, `592810`) from Aadhaar OTP verification.
+     - `admin-frontend/src/routes/auth.tsx`: Removed the "Use Master Backup Code (123456)" bypass button and related fallback state.
+  2. **Decoupling Frontends from Firebase Phone Auth:**
+     - Updated `auth-service.ts` across `customer-frontend`, `partner-frontend`, `rider-frontend`, and `admin-frontend` to dispatch direct REST calls to `/api/auth/phone/send-otp` and `/api/auth/phone/verify` without client-side reCAPTCHA or Firebase Phone Auth dependencies.
+     - `customer-frontend/src/routes/login.tsx`: Streamlined `onContinue` and `resendOtp` to use direct backend dispatch with user-friendly sonner toast notifications.
+  3. **Official Twilio SMS Gateway Architecture (`app/core/twilio_sms.py`):**
+     - Installed official `twilio` Python package (`twilio==9.12.0`) and declared in `requirements.txt`.
+     - **Mode 1 (Twilio Verify Service API):** If `TWILIO_VERIFY_SERVICE_SID` is set, uses `client.verify.v2.services(sid).verifications.create(to=phone, channel='sms')` and `verification_checks.create(to=phone, code=code)`.
+     - **Mode 2 (Twilio Programmable SMS API):** If `TWILIO_PHONE_NUMBER` is set, generates secure 6-digit cryptographic OTP, stores in memory with 5-minute TTL, and dispatches SMS via `client.messages.create(body=..., from_=..., to=phone)`.
+     - **Secondary India Fallbacks:** Fast2SMS and 2Factor are maintained as secondary fallbacks.
+     - **Unconfigured Guard:** If no gateway is configured in `.env`, the endpoint returns `HTTP 503 Service Unavailable` with a clear message rather than pretending success with a mock code.
+  4. **Diagnostic Tooling:**
+     - Created `backend-python/test_twilio_otp.py` allowing instant end-to-end verification of Twilio SMS dispatch directly from the command line (`python3 test_twilio_otp.py <mobile_number>`).
+- **Modified & Created Files:**
+  - `backend-python/app/api/auth.py`
+  - `backend-python/app/api/partner.py`
+  - `backend-python/app/api/rider.py`
+  - `backend-python/app/core/admin_security.py`
+  - `backend-python/app/core/twilio_sms.py`
+  - `backend-python/app/db/omni_channel_repositories.py`
+  - `backend-python/app/services/cashfree_verification.py`
+  - `backend-python/requirements.txt`
+  - `backend-python/test_twilio_otp.py`
+  - `backend-python/tests/test_admin_security_9_points.py`
+  - `backend-python/tests/test_partner_authentication.py`
+  - `backend-python/tests/test_staff_auth_rbac_engine.py`
+  - `customer-frontend/src/api/core/auth-service.ts`
+  - `customer-frontend/src/routes/login.tsx`
+  - `partner-frontend/src/api/core/auth-service.ts`
+  - `rider-frontend/src/api/core/auth-service.ts`
+  - `admin-frontend/src/api/core/auth-service.ts`
+  - `admin-frontend/src/routes/auth.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Verification Outcomes:**
+  - Python compile check (`py_compile`): Passed 100%.
+  - Pytest authentication & security suites:
+    - `tests/test_partner_authentication.py`: 5/5 passed (100%).
+    - `tests/test_admin_security_9_points.py`: 7/7 passed (100%).
+    - `tests/test_staff_auth_rbac_engine.py`: 7/7 passed (100%).
+  - Frontend production builds:
+    - `npm run build:customer`: Passed (0 errors).
+    - `npm run build:partner`: Passed (0 errors).
+    - `npm run build:rider`: Passed (0 errors).
+    - `npm run build:admin`: Passed (0 errors).
+  - Native Mobile Builds:
+    - `QuickPress-Customer.apk` & `.aab`: Built successfully.
+    - `QuickPress-Captain.apk` & `.aab`: Built successfully.
+
+

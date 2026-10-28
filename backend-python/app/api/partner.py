@@ -417,9 +417,9 @@ async def verify_partner_email_otp(body: dict) -> dict:
     if record:
         if record.get("expiresAt", 0) < now_ts:
             raise HTTPException(status_code=400, detail="OTP expired. Please request a new code.")
-        if record.get("otp") != otp and otp != "123456":
+        if record.get("otp") != otp:
             raise HTTPException(status_code=400, detail="Invalid OTP code. Please check your email.")
-    elif otp != "123456":
+    else:
         raise HTTPException(status_code=400, detail="No pending verification found for this email. Please request OTP.")
 
     await database.update(
@@ -498,9 +498,9 @@ async def verify_partner_agreement_otp(body: dict) -> dict:
     if record:
         if record.get("expiresAt", 0) < now_ts:
             raise HTTPException(status_code=400, detail="Agreement OTP expired. Please request a new code.")
-        if record.get("otp") != otp and otp != "123456":
+        if record.get("otp") != otp:
             raise HTTPException(status_code=400, detail="Invalid Agreement OTP code. Please check your email.")
-    elif otp != "123456":
+    else:
         raise HTTPException(status_code=400, detail="No pending agreement OTP found for this email.")
 
     await database.update(

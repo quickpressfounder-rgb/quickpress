@@ -277,8 +277,14 @@ async def send_otp(payload: SendOtpRequest) -> SendOtpResponse:
     except Exception:
         existing = None
 
-    # Dispatch SMS in background so client receives instant response without timing out
-    asyncio.create_task(send_twilio_sms_otp(phone, payload.role.value))
+    # Dispatch SMS synchronously via real SMS provider (Fast2SMS / 2Factor / Twilio)
+    ok, provider, err = await send_twilio_sms_otp(phone, payload.role.value)
+    if not ok:
+        _log.error("Failed to send real SMS OTP to %s via %s: %s", phone, provider, err)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"SMS Dispatch Failed: {err or 'SMS gateway unavailable.'}",
+        )
 
     return SendOtpResponse(
         expiresInSeconds=settings.otp_ttl_seconds,
@@ -289,7 +295,7 @@ async def send_otp(payload: SendOtpRequest) -> SendOtpResponse:
 @router.post("/phone/verify", response_model=AuthSessionResponse)
 async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSessionResponse:
     """Verifies Twilio OTP code or Firebase ID token and returns session."""
-    from app.core.twilio_sms import verify_stored_otp
+    from app.core.twilio_sms import verify_phone_otp_code
 
     settings = get_settings()
     device_id = extract_device_id(request)
@@ -328,17 +334,15 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
             detail=f"Security Lockout: Too many failed attempts. Please try again in {remaining // 60 + 1} minutes.",
         )
 
-    # 2. Twilio OTP Code Verification (Mandatory if Firebase token was not verified)
+    # 2. Real OTP Code Verification (Mandatory if Firebase token was not verified)
     if not payload.code or not payload.code.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Verification code (OTP) or valid Firebase authentication token is required.",
         )
 
-    is_valid = verify_stored_otp(phone, payload.code)
-    is_dev = settings.app_env in ("development", "test", "local")
-    allowed_dev_codes = ("123456", "000000") if is_dev else ()
-    if not is_valid and payload.code not in allowed_dev_codes:
+    is_valid = await verify_phone_otp_code(phone, payload.code)
+    if not is_valid:
         failures, lock_time = rate_limiter.record_failed_attempt(f"otp:{phone}", max_failures=5, lock_duration=900)
         if lock_time:
             raise HTTPException(

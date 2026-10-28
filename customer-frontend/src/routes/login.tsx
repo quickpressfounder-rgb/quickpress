@@ -27,7 +27,6 @@ import {
   restoreCustomerSession,
   type Country,
 } from "@/api/customer/auth-api";
-import { clearPendingOtp } from "@/api/core/firebase-auth";
 import { verifyCustomerOtp } from "@/lib/customer-auth";
 import { updateProfile } from "@/api/customer/profile-api";
 import { readSession, writeSession } from "@/api/core/session-store";
@@ -197,15 +196,17 @@ function AuthScreen() {
                 sending={sending}
                 redirectTarget={redirectTarget}
                 onSuccessSession={handleAuthSuccess}
-                onContinue={() => {
+                onContinue={async () => {
                   setSending(true);
-                  // POST /api/auth/request-otp
-                  void requestOtp(`${country.code}${phone}`)
-                    .catch(() => undefined)
-                    .finally(() => {
-                      setSending(false);
-                      setStep("otp");
-                    });
+                  try {
+                    await requestOtp(`${country.code}${phone}`);
+                    setStep("otp");
+                  } catch (err: any) {
+                    const message = err?.message || "Failed to send verification OTP. Please try again.";
+                    toast.error(message);
+                  } finally {
+                    setSending(false);
+                  }
                 }}
               />
             ) : step === "otp" ? (
@@ -751,9 +752,14 @@ function OtpStep({
           ) : (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setSeconds(30);
-                void requestOtp(phone).catch(() => undefined);
+                try {
+                  await requestOtp(phone);
+                  toast.success("New OTP sent successfully!");
+                } catch (err: any) {
+                  toast.error(err?.message || "Failed to resend OTP.");
+                }
               }}
               className="min-h-11 px-3 font-black text-brand-green"
             >
@@ -765,10 +771,7 @@ function OtpStep({
 
       <button
         type="button"
-        onClick={() => {
-          clearPendingOtp();
-          onEdit();
-        }}
+        onClick={onEdit}
         className="mt-2 min-h-11 w-full text-center text-[12.5px] font-bold text-foreground underline underline-offset-4"
       >
         Change mobile number

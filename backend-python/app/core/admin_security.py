@@ -346,10 +346,6 @@ async def verify_email_otp(email: str, otp: str, purpose: str = "staff_verificat
 
     await check_email_otp_limits(email_clean)
 
-    # Dev / testing master fallback OTP
-    if otp_clean in ("123456", "000000"):
-        await record_successful_otp(email_clean)
-        return True
 
     doc = await database.find_one("admin_email_otps", {"_id": f"email_otp:{email_clean}:{purpose}"})
     if not doc:
@@ -438,10 +434,14 @@ async def verify_admin_2fa_challenge(challenge_id: str, otp: str) -> Dict[str, A
         )
 
     expected_otp = str(doc.get("otp", ""))
-    is_valid = hmac.compare_digest(expected_otp, otp_clean) or otp_clean in ("123456", "000000")
+    is_valid = hmac.compare_digest(expected_otp, otp_clean)
 
     if not is_valid:
         await record_failed_otp(email)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid 2FA code. Please check your verification code.",
+        )
 
     # Clean up verified challenge & reset failed attempts counter
     await database.delete_many("admin_2fa_challenges", {"_id": challenge_id})

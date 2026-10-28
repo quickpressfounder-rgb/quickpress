@@ -80,8 +80,10 @@ async def test_point2_2fa_challenge_and_verification():
     assert challenge["challengeId"].startswith("chg_")
     assert "@quickpress.online" in challenge["emailMasked"]
 
-    # Verify with valid code (or dev master OTP)
-    verified = await verify_admin_2fa_challenge(challenge["challengeId"], "123456")
+    # Verify with real generated OTP code from database
+    ch_doc = await database.find_one("admin_2fa_challenges", {"_id": challenge["challengeId"]})
+    real_otp = ch_doc["otp"]
+    verified = await verify_admin_2fa_challenge(challenge["challengeId"], real_otp)
     assert verified is not None
     assert verified["email"] == email
 

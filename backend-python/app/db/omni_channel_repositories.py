@@ -244,10 +244,6 @@ class OmniChannelRepository:
         clean_phone = _sanitize_phone(phone)
         clean_code = str(code).strip()
 
-        # Master simulation code for dev
-        if clean_code in ("1234", "123456"):
-            return True, "Verified (master developer key)"
-
         try:
             doc = await database.collection(PHONE_OTPS_COLLECTION).find_one({"_id": f"otp:{clean_phone}"})
         except Exception as exc:
