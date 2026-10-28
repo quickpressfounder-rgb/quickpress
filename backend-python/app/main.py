@@ -130,7 +130,20 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="QuickPress API", version="1.0.0", lifespan=lifespan)
+    is_prod = (settings.app_env or "development").strip().lower() == "production"
+
+    # Production Hardening: Turn off debug mode, and disable Swagger UI (/docs),
+    # ReDoc (/redoc), and OpenAPI schema (/openapi.json) in production to stop
+    # technical system architecture, internal models and parameters from being exposed.
+    app = FastAPI(
+        title="QuickPress API",
+        version="1.0.0",
+        lifespan=lifespan,
+        debug=False if is_prod else True,
+        docs_url=None if is_prod else "/docs",
+        redoc_url=None if is_prod else "/redoc",
+        openapi_url=None if is_prod else "/openapi.json",
+    )
     from fastapi.middleware.gzip import GZipMiddleware
     from app.core.security_headers import SecurityHeadersMiddleware
     from app.core.request_size_limiter import RequestSizeLimitMiddleware
@@ -146,7 +159,6 @@ def create_app() -> FastAPI:
     app.add_middleware(PaginationGuardMiddleware)
     app.add_middleware(ServerTimingMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=500)
-    is_prod = (settings.app_env or "development").strip().lower() == "production"
 
     # Optional Sentry Threat & Error Monitoring
     if settings.sentry_dsn.strip():
@@ -175,11 +187,20 @@ def create_app() -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=prod_origins,
-            allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:[0-9]+)?|capacitor://localhost|ionic://localhost|https://([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app))$",
+            allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:[0-9]+)?|capacitor://localhost|ionic://localhost|https://([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in))$",
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             allow_headers=["*"],
-            expose_headers=["*"],
+            expose_headers=[
+                "Content-Type",
+                "Authorization",
+                "X-Total-Count",
+                "Server-Timing",
+                "X-Response-Time",
+                "X-RateLimit-Limit",
+                "X-RateLimit-Remaining",
+                "X-RateLimit-Reset",
+            ],
         )
     else:
         # Development: Allow verified origins and local development hosts + mobile Capacitor apps
@@ -202,7 +223,7 @@ def create_app() -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=allowed_origins,
-            allow_origin_regex=r"^(capacitor://localhost|ionic://localhost|https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app))(:[0-9]+)?)$",
+            allow_origin_regex=r"^(capacitor://localhost|ionic://localhost|https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in))(:[0-9]+)?)$",
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -316,7 +337,7 @@ def create_app() -> FastAPI:
     from fastapi.exceptions import RequestValidationError
 
     ALLOWED_ORIGIN_REGEX = re.compile(
-        r"^(capacitor://localhost|ionic://localhost|https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in|vercel\.app))(:[0-9]+)?)$"
+        r"^(capacitor://localhost|ionic://localhost|https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|([a-zA-Z0-9-]+\.)?(quickpress\.com|withquickpress\.com|quickpress\.online|quickpress\.in))(:[0-9]+)?)$"
     )
 
     def _resolve_safe_origin(origin_header: str | None) -> str | None:

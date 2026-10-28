@@ -10,8 +10,32 @@ credentials/
 secrets/
 *.pem
 *.key
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
 google-services.json
 **/google-services.json
+
+# ==================================================
+# DATABASE BACKUPS & SENSITIVE DUMPS — NEVER COMMIT
+# ==================================================
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.backup
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.sql
+!supabase/migrations/*.sql
+!supabase/security_rules.sql
+!scripts/apply_database_indexes.sql
+
 
 # ==================================================
 # Python virtual environments

@@ -25,6 +25,11 @@ PATH_TRAVERSAL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+SENSITIVE_FILE_PATTERN = re.compile(
+    r"(\.env|\.git|\.aws|\.ssh|\.sql|\.dump|\.bak|web\.config|id_rsa|server\.key)",
+    re.IGNORECASE,
+)
+
 NOSQL_OPERATORS = ("$where", "$gt", "$gte", "$lt", "$lte", "$ne", "$in", "$nin", "$regex", "$or")
 
 
@@ -49,7 +54,7 @@ def sanitize_input(value: Any) -> Any:
 
 
 def is_malicious_payload(text: str) -> bool:
-    """Detects SQL Injection, XSS, or Path Traversal signatures."""
+    """Detects SQL Injection, XSS, Path Traversal, or Sensitive File Access signatures."""
     if not text:
         return False
     if SQL_INJECTION_PATTERN.search(text):
@@ -57,6 +62,8 @@ def is_malicious_payload(text: str) -> bool:
     if XSS_PATTERN.search(text):
         return True
     if PATH_TRAVERSAL_PATTERN.search(text):
+        return True
+    if SENSITIVE_FILE_PATTERN.search(text):
         return True
     return False
 

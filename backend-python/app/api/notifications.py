@@ -21,7 +21,7 @@ from app.models.notification import (
     NotificationListResponse,
     UnreadCountResponse,
 )
-from app.models.user import User
+from app.models.user import Role, User
 
 router = APIRouter(tags=["notifications"])
 
@@ -130,12 +130,24 @@ async def save_onesignal_player(
     return {"ok": success, "registered": success, "playerId": player_id}
 
 
+def _assert_test_allowed(user: User) -> None:
+    from app.config import get_settings
+    settings = get_settings()
+    is_prod = (settings.app_env or "development").strip().lower() == "production"
+    if is_prod and getattr(user, "role", None) not in (Role.admin, Role.super_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Test notification endpoints are disabled in production for non-administrative roles.",
+        )
+
+
 @router.post("/notifications/onesignal/test")
 async def send_test_onesignal(
     payload: Optional[dict] = None,
     user: User = Depends(current_user),
 ) -> dict:
     """Send a test high-priority push notification via OneSignal."""
+    _assert_test_allowed(user)
     from app.core.onesignal import send_onesignal_notification
     body_data = payload or {}
     title = str(body_data.get("title") or "🔔 QuickPress OneSignal Push")
@@ -163,6 +175,7 @@ async def send_test_push(
     user: User = Depends(current_user),
 ) -> dict:
     """Send a test push notification to the calling user via OneSignal and WebPush."""
+    _assert_test_allowed(user)
     from app.core.onesignal import send_onesignal_notification
     from app.core.webpush import send_native_webpush
 
@@ -236,6 +249,7 @@ async def send_test_webpush(
     user: User = Depends(current_user),
 ) -> dict:
     """Send an instant native WebPush notification directly to the user's browser."""
+    _assert_test_allowed(user)
     from app.core.webpush import send_native_webpush
     body_data = payload or {}
     title = str(body_data.get("title") or "🔔 QuickPress Native WebPush")

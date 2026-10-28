@@ -513,14 +513,16 @@ async def admin_login(payload: dict, request: Request) -> dict:
 
     # 5. Issue 2FA Challenge
     challenge = await create_admin_2fa_challenge(user.id, user.email or email, user.role.value if hasattr(user.role, "value") else str(user.role))
-    return {
+    res_data = {
         "twoFactorRequired": True,
         "challengeId": challenge["challengeId"],
         "emailMasked": challenge["emailMasked"],
         "expiresInSeconds": challenge["expiresInSeconds"],
         "message": f"2FA OTP code has been dispatched to {challenge['emailMasked']}.",
-        "debugOtp": challenge.get("debugOtp"),
     }
+    if os.getenv("APP_ENV") != "production" and challenge.get("debugOtp"):
+        res_data["debugOtp"] = challenge["debugOtp"]
+    return res_data
 
 
 @router.post("/admin/2fa", response_model=AuthSessionResponse)
@@ -792,12 +794,14 @@ async def staff_register(payload: dict, request: Request) -> dict:
         },
     )
 
-    return {
+    res_staff = {
         "ok": True,
         "email": email,
         "message": f"Verification OTP has been sent to your business email ({email}).",
-        "debugOtp": otp if os.getenv("APP_ENV") != "production" else None,
     }
+    if os.getenv("APP_ENV") != "production" and otp:
+        res_staff["debugOtp"] = otp
+    return res_staff
 
 
 @router.post("/staff/verify-email")

@@ -50,6 +50,32 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+
+        # Content-Security-Policy: restrict framing and object execution
+        # Allow Swagger/ReDoc assets when running in development mode
+        is_swagger_route = path.startswith("/docs") or path.startswith("/redoc") or path.startswith("/openapi")
+        if not is_swagger_route or is_prod:
+            response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'; object-src 'none'"
+
+        # Cache Protection for sensitive customer, partner, and financial endpoints
+        sensitive_prefixes = (
+            "/api/auth",
+            "/api/profile",
+            "/api/wallet",
+            "/api/payments",
+            "/api/admin",
+            "/api/finance-engine",
+            "/api/finance",
+            "/api/orders",
+            "/api/invoices",
+        )
+        if any(path.startswith(prefix) for prefix in sensitive_prefixes):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+            response.headers["Pragma"] = "no-cache"
+
         if proto == "https" or is_prod:
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         return response

@@ -406,12 +406,14 @@ async def create_admin_2fa_challenge(user_id: str, email: str, role: str) -> Dic
         )
     )
 
-    return {
+    challenge_res = {
         "challengeId": challenge_id,
         "emailMasked": mask_email(email_clean),
         "expiresInSeconds": CHALLENGE_EXPIRY_SECONDS,
-        "debugOtp": otp if os.getenv("APP_ENV") != "production" else None,
     }
+    if os.getenv("APP_ENV") != "production" and otp:
+        challenge_res["debugOtp"] = otp
+    return challenge_res
 
 
 async def verify_admin_2fa_challenge(challenge_id: str, otp: str) -> Dict[str, Any]:

@@ -33,6 +33,51 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 38. Production Security Hardening & Vulnerability Remediation (Points 14–20)
+- **Commit Hash:** `18f454b`
+- **User Requirements:**
+  - 14. Check CORS Settings (Strict domain matching, eliminate unsafe wildcards)
+  - 15. Add Security Headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COOP, CORP, cache protection)
+  - 16. Enforce HTTPS (Port 80 redirect, HSTS preload, Secure communication)
+  - 17. Disable Debug Mode (Disable docs/redoc/openapi in production, suppress debugOtp, hide sourcemaps)
+  - 18. Update Dependencies (Fix vulnerabilities in Capacitor & Vite safely)
+  - 19. Remove Unnecessary Code (Guard test notification routes in production)
+  - 20. Check for Exposed Files (.gitignore protection for .env, backups, certificates, dumps, sensitive extensions blocked in Nginx & sanitizer)
+- **Architecture & Implementation Details:**
+  1. **CORS Settings Hardening (`main.py`):**
+     - Purged third-party wildcard `vercel.app` from both production and development `allow_origin_regex`.
+     - Whitelisted verified production domains (`quickpress.com`, `withquickpress.com`, `quickpress.online`, `quickpress.in`) and local/Capacitor apps.
+     - Replaced wildcard `expose_headers=["*"]` with explicit safe whitelist (`Content-Type`, `Authorization`, `X-Total-Count`, `Server-Timing`, `X-Response-Time`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`).
+     - Error handlers (`global_exception_handler`, `validation_exception_handler`) verify origin against `ALLOWED_ORIGIN_REGEX` before reflecting credentials.
+  2. **HTTP Security Headers (`security_headers.py`, `vercel.json`, `quickpress_nginx.conf`):**
+     - Backend API middleware injects: `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=(self)`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: cross-origin`, `X-Permitted-Cross-Domain-Policies: none`, `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; object-src 'none'`.
+     - Sensitive endpoints (`/api/auth`, `/api/profile`, `/api/wallet`, `/api/payments`, `/api/admin`, `/api/finance-engine`, `/api/orders`, `/api/invoices`) protected with `Cache-Control: no-store, no-cache, must-revalidate, private` and `Pragma: no-cache`.
+     - All frontend `vercel.json` configurations (`root`, `partner-frontend`, `customer-frontend`, `rider-frontend`, `admin-frontend`, `website`) updated with full security header sets; removed obsolete `DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS`.
+  3. **HTTPS Enforcement (`quickpress_nginx.conf`, `security_headers.py`):**
+     - Created dedicated port 80 server block in Nginx issuing permanent HTTP 301 redirects to `https://$host$request_uri` with Let's Encrypt ACME exception for certbot renewals.
+     - Updated all virtual hosts to listen exclusively on `443 ssl http2`.
+     - Injected HSTS preload headers across all Nginx blocks and backend middleware.
+  4. **Disable Debug Mode (`main.py`, `auth.py`, `admin_security.py`, `vite.config.ts`):**
+     - In production (`APP_ENV == "production"`): FastAPI `debug=False`, `docs_url=None`, `redoc_url=None`, `openapi_url=None`.
+     - Uncaught exceptions caught by `global_exception_handler` returning sanitized `{"detail": "Internal Server Error"}` with zero stack trace disclosure.
+     - Completely omitted `debugOtp` keys from API responses in production (`admin_login`, `staff_register`, `create_admin_2fa_challenge`).
+     - Frontend builds (`admin-frontend`, `customer-frontend`, `partner-frontend`, `rider-frontend`, `root`) explicitly configured with `build: { sourcemap: false }` to prevent source code reconstruction.
+  5. **Dependency Vulnerability Remediation (`package.json`, `package-lock.json`):**
+     - Upgraded `@capacitor/android` to `8.5.1`, mitigating critical vulnerability GHSA-rvm3-566m-v7fv.
+     - Upgraded `vite` to `8.3.5`, mitigating high-severity path traversal and memory leak advisories.
+  6. **Unnecessary Code & Attack Surface Reduction (`notifications.py`, `rider.py`):**
+     - Guarded test notification routes (`/notifications/onesignal/test`, `/notifications/test-push`, `/notifications/webpush/test`, and rider `/notifications/test`) with strict `Role.admin` requirement in production (`HTTP 403 Forbidden` for non-staff).
+  7. **Exposed Files Defense (`.gitignore`, `quickpress_nginx.conf`, `sanitizer.py`):**
+     - Updated `.gitignore` with comprehensive blocklist for database files (`*.dump`, `*.sqlite`, `*.sqlite3`, `*.db`, `*.bak`, `*.backup`), private certificates (`*.p12`, `*.pfx`, `*.cer`, `*.crt`, `*.der`), archive formats (`*.tar.gz`, `*.tgz`, `*.rar`, `*.7z`), and `.sql` safety exceptions for migrations.
+     - Nginx server blocks deny dotfiles (`location ~ /\.(?!well-known) { deny all; return 404; }`) and sensitive extensions (`.env`, `.git`, `.sql`, `.bak`, `.dump`, `.key`, `.pem`, `.log`, `.sh`, `.py`, `.md`, `.yml`, `.yaml`, `.ini`, `.sqlite`).
+     - Backend `InputSanitizerMiddleware` intercepts sensitive file probing via `SENSITIVE_FILE_PATTERN`.
+     - Verified all `public/` directories across the workspace contain only public assets (images, favicons, manifests, APK downloads) and no private credentials or backups.
+- **Verification:**
+  - Python compile check: 100% pass across all modified backend files.
+  - Pytest CORS lockdown suite (`test_cors_lockdown.py`): 2/2 passed (100%).
+  - Pytest 11-points bank-grade security suite (`test_api_network_security_11_points.py`): 11/11 passed (100%).
+  - Production build verifications: `npm run build:partner` passed (1.02s), `npm run build:website` passed (1.31s).
+
 ### 37. Comprehensive Platform Security Audit & Access Hardening (6-Point Verification & Patching)
 - **Commit Hash:** `649221b`
 - **User Requirements:**

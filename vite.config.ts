@@ -73,6 +73,7 @@ export default defineConfig({
     },
     build: {
       target: "es2022",
+      sourcemap: false,
       cssCodeSplit: true,
       assetsInlineLimit: 4096,
       chunkSizeWarningLimit: 800,

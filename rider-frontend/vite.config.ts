@@ -26,5 +26,8 @@ export default defineConfig({
     // Environment files live at the repository root so one .env can configure
     // every app during local development.
     envDir: resolvePath("../"),
+    build: {
+      sourcemap: false,
+    },
   },
 });

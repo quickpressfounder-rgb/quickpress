@@ -4848,6 +4848,14 @@ async def notifications_unread_count(user: User = Depends(current_user)) -> dict
 async def send_test_rider_notification(
     payload: Optional[dict] = None, user: User = Depends(current_user)
 ) -> dict:
+    from app.config import get_settings
+    from app.models.user import Role
+    settings = get_settings()
+    if (settings.app_env or "development").strip().lower() == "production" and getattr(user, "role", None) not in (Role.admin, Role.super_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Test notification endpoints are disabled in production for non-administrative roles.",
+        )
     rider_id = await _rider_id(user)
     body_data = payload or {}
     title = str(body_data.get("title") or "🔔 QuickPress Captain Dispatch")
