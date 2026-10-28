@@ -71,7 +71,6 @@ async function ensureRecaptcha(auth: Auth): Promise<RecaptchaVerifier> {
 
   const host = document.createElement("div");
   host.id = RECAPTCHA_CONTAINER_ID;
-  host.style.display = "none";
   document.body.appendChild(host);
 
   recaptcha = new RecaptchaVerifier(auth, host, {
@@ -101,6 +100,15 @@ export function resetRecaptcha(): void {
       /* ignore */
     }
   }
+}
+
+export function hasPendingOtp(): boolean {
+  return pendingConfirmation !== null;
+}
+
+export function clearPendingOtp(): void {
+  pendingConfirmation = null;
+  resetRecaptcha();
 }
 
 function mapFirebaseError(error: unknown): ApiError {

@@ -2638,3 +2638,44 @@ This single command will automatically:
   - Git Commit: `8847378`
   - EC2 Container: Rebuilt and running live on AWS EC2 (`quickpress-backend`).
   - Live cURL checks: Unauthorized requests to `/api/finance-ledger`, `/api/cod/metrics`, and `/api/unit-economics/summary` return `HTTP 401 Unauthorized` with `{"detail":"Not authenticated"}`.
+
+### 39. Real Firebase Phone Authentication (DLT-Free OTP) & Admin Token Integration (October 2026)
+- **Objective:**
+  - Connect real Firebase Phone Auth (no DLT registration required, 10,000 free monthly SMS globally) across Customer, Partner, Rider, and Admin frontends with live backend token verification.
+- **Architectural & Security Implementations:**
+  1. **Dual-Mode OTP Pipeline (Firebase First + Backend SMS Fallback):**
+     - Frontends (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`) trigger `sendFirebaseOtp(phone)` via modular `@firebase/auth` SDK and invisible reCAPTCHA.
+     - If client network or environment blocks reCAPTCHA, client seamlessly falls back to backend `/api/auth/phone/send-otp` (Twilio / SMS gateway).
+  2. **Client-Side OTP Confirmation:**
+     - `confirmFirebaseOtp(code)` verifies the 6-digit SMS OTP against Firebase servers and returns a cryptographically signed Firebase `id_token`.
+     - The `id_token` is transmitted in `POST /api/auth/phone/verify` (`VerifyPhoneRequest`).
+  3. **Backend Firebase Admin Token Verification & Role Provisioning:**
+     - Backend `verify_id_token` in `backend-python/app/core/firebase.py` decodes claims via `firebase_admin.auth.verify_id_token(id_token)` using the initialized `FIREBASE_CREDENTIALS_JSON` service account (`quickpress-b1e19`).
+     - Detects `sign_in_provider` accurately with `"phone"` fallback for phone number claims.
+     - `_login_with_firebase` in `backend-python/app/api/auth.py` accepts phone sign-in identity, provisions/retrieves user profile, enriches with real partner / customer metadata, and issues QuickPress JWT session pair.
+     - **Admin Self-Provisioning Guard:** Added strict enforcement in `_login_with_firebase` requiring administrative roles (`admin`, `super_admin`, `operations`, `support`, `finance`) to exist in the `admin_staff` ground-truth collection, blocking unauthorized privilege self-escalation.
+  4. **DOM & reCAPTCHA Container Safety:**
+     - Removed `display: none` from invisible reCAPTCHA container elements to prevent Google challenge modal suppression, and added container cleanup in `ensureRecaptcha` and `clearPendingOtp` to avoid "reCAPTCHA already rendered" conflicts.
+- **Modified Files:**
+  - `backend-python/app/core/firebase.py`
+  - `backend-python/app/api/auth.py`
+  - `partner-frontend/src/api/core/firebase-auth.ts`
+  - `partner-frontend/src/api/core/auth-service.ts`
+  - `customer-frontend/src/api/core/firebase-auth.ts`
+  - `customer-frontend/src/api/core/auth-service.ts`
+  - `customer-frontend/src/routes/login.tsx`
+  - `rider-frontend/src/api/core/firebase-auth.ts`
+  - `rider-frontend/src/api/core/auth-service.ts`
+  - `admin-frontend/src/api/core/firebase-auth.ts`
+  - `admin-frontend/src/api/core/auth-service.ts`
+  - `Memory/WORK_HISTORY.md`
+- **Verification Outcomes:**
+  - Python compile check (`py_compile`): Passed 100%.
+  - Pytest authentication tests (`tests/test_partner_authentication.py`): 5/5 passed (100%).
+  - Pytest FCM notification tests (`tests/test_fcm_notifications.py`): 5/5 passed (100%).
+  - Frontend production builds:
+    - `npm run build:partner`: Passed in 2.25s.
+    - `npm run build:customer`: Passed in 1.70s.
+    - `npm run build:rider`: Passed in 1.33s.
+    - `npm run build:admin`: Passed in 6.34s.
+

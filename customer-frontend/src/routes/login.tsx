@@ -27,6 +27,7 @@ import {
   restoreCustomerSession,
   type Country,
 } from "@/api/customer/auth-api";
+import { clearPendingOtp } from "@/api/core/firebase-auth";
 import { verifyCustomerOtp } from "@/lib/customer-auth";
 import { updateProfile } from "@/api/customer/profile-api";
 import { readSession, writeSession } from "@/api/core/session-store";
@@ -750,7 +751,10 @@ function OtpStep({
           ) : (
             <button
               type="button"
-              onClick={() => setSeconds(30)}
+              onClick={() => {
+                setSeconds(30);
+                void requestOtp(phone).catch(() => undefined);
+              }}
               className="min-h-11 px-3 font-black text-brand-green"
             >
               Resend OTP
@@ -761,7 +765,10 @@ function OtpStep({
 
       <button
         type="button"
-        onClick={onEdit}
+        onClick={() => {
+          clearPendingOtp();
+          onEdit();
+        }}
         className="mt-2 min-h-11 w-full text-center text-[12.5px] font-bold text-foreground underline underline-offset-4"
       >
         Change mobile number

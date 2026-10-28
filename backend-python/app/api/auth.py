@@ -177,8 +177,37 @@ async def _login_with_firebase(
     id_token: str, role: Role, provider: str | None = None, referral_code: str | None = None, device_id: str | None = None
 ) -> AuthSessionResponse:
     identity = verify_id_token(id_token)
-    if provider and identity.get("provider") and provider not in str(identity["provider"]):
-        raise HTTPException(status_code=400, detail=f"Expected a {provider} sign-in")
+    if provider:
+        id_prov = str(identity.get("provider") or "").lower()
+        if provider == "phone":
+            if not ("phone" in id_prov or identity.get("phone")):
+                raise HTTPException(status_code=400, detail="Expected a phone sign-in")
+        elif provider not in id_prov:
+            raise HTTPException(status_code=400, detail=f"Expected a {provider} sign-in")
+
+    # Guard: Public Firebase authentication must never self-provision unvetted admin accounts
+    if role in (Role.admin, Role.super_admin, Role.operations, Role.support, Role.finance):
+        phone_val = identity.get("phone") or ""
+        email_val = identity.get("email") or ""
+        existing_admin = None
+        if phone_val:
+            existing_admin = await users.by_phone(phone_val, role)
+        if not existing_admin and email_val:
+            existing_admin = await users.by_email(email_val, role)
+        if not existing_admin and identity.get("uid"):
+            existing_admin = await users.by_firebase_uid(identity["uid"], role)
+
+        if not existing_admin:
+            staff_doc = None
+            if email_val:
+                staff_doc = await database.find_one("admin_staff", {"email": email_val.lower()})
+            if not staff_doc and phone_val:
+                staff_doc = await database.find_one("admin_staff", {"phone": phone_val})
+            if not staff_doc:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Admin account not found for this identity. Contact Super Admin for staff authorization.",
+                )
 
     is_new = False
     try:

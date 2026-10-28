@@ -97,13 +97,18 @@ def verify_id_token(id_token: str) -> Dict[str, Any]:
     if not uid:
         raise HTTPException(status_code=401, detail="Missing user identifier in token")
 
+    fb_claims = claims.get("firebase") or {}
+    detected_provider = fb_claims.get("sign_in_provider")
+    if not detected_provider:
+        detected_provider = "phone" if claims.get("phone_number") else "google.com"
+
     return {
         "uid": str(uid),
         "phone": claims.get("phone_number"),
         "email": claims.get("email"),
         "display_name": claims.get("name") or (claims.get("email", "").split("@")[0] if claims.get("email") else "QuickPress User"),
         "photo_url": claims.get("picture"),
-        "provider": (claims.get("firebase") or {}).get("sign_in_provider", "google.com"),
+        "provider": detected_provider,
     }
 
 

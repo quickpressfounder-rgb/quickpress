@@ -59,18 +59,24 @@ async function ensureRecaptcha(auth: Auth): Promise<RecaptchaVerifier> {
   if (recaptcha) return recaptcha;
   const { RecaptchaVerifier } = await import("firebase/auth");
   
-  let host = document.getElementById(RECAPTCHA_CONTAINER_ID);
-  if (!host) {
-    host = document.createElement("div");
-    host.id = RECAPTCHA_CONTAINER_ID;
-    host.style.display = "none";
-    document.body.appendChild(host);
-  } else {
-    host.innerHTML = "";
+  const existing = document.getElementById(RECAPTCHA_CONTAINER_ID);
+  if (existing) {
+    try {
+      existing.remove();
+    } catch {
+      /* ignore */
+    }
   }
 
-  recaptcha = new RecaptchaVerifier(auth, RECAPTCHA_CONTAINER_ID, {
+  const host = document.createElement("div");
+  host.id = RECAPTCHA_CONTAINER_ID;
+  document.body.appendChild(host);
+
+  recaptcha = new RecaptchaVerifier(auth, host, {
     size: "invisible",
+    "expired-callback": () => {
+      resetRecaptcha();
+    },
   });
   await recaptcha.render();
   return recaptcha;
@@ -86,12 +92,21 @@ export function resetRecaptcha(): void {
   recaptcha = null;
   const host = document.getElementById(RECAPTCHA_CONTAINER_ID);
   if (host) {
-    host.innerHTML = "";
+    try {
+      host.remove();
+    } catch {
+      host.innerHTML = "";
+    }
   }
 }
 
 export function hasPendingOtp(): boolean {
   return pendingConfirmation !== null;
+}
+
+export function clearPendingOtp(): void {
+  pendingConfirmation = null;
+  resetRecaptcha();
 }
 
 function mapFirebaseError(error: unknown): ApiError {
