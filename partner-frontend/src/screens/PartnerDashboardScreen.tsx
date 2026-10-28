@@ -793,7 +793,6 @@ export function PartnerDashboardScreen() {
   return (
     <PartnerLayout
       activeTab="dashboard"
-      hideBottomNav={true}
       title={t("nav.dashboard", "Dashboard")}
       subtitle={shop ? `${t("dashboard.welcome", "Welcome back")}, ${shop.partnerName} · ${shop.shopName}` : t("dashboard.storeConsole", "Store Console")}
     >

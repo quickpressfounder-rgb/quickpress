@@ -73,7 +73,6 @@ import {
 } from "../orders/OrderQuickTools";
 import { StoreStatusConfirmModal } from "./StoreStatusConfirmModal";
 import { DailyAnalyticsSection } from "./DashboardInsights";
-import { ZomatoBottomNav } from "../layout/ZomatoBottomNav";
 
 function getStageTimelineIndex(stage: string): number {
   switch (stage) {
@@ -478,7 +477,7 @@ export function ZomatoHubView() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-32 text-black select-none">
+    <div className="min-h-screen bg-white pb-24 text-black select-none">
       {/* ========================================================================= */}
       {/* 1. TOP HEADER: Exact Pure Minimalist Zomato Header                        */}
       {/* ========================================================================= */}
@@ -620,9 +619,35 @@ export function ZomatoHubView() {
           </div>
         )}
 
+        {/* Top Mode Segment Switcher: Orders Station vs Business Hub */}
+        <div className="mt-2.5 flex items-center p-1 rounded-xl bg-zinc-100 border border-zinc-200">
+          <button
+            type="button"
+            onClick={() => handleSwitchMode("orders")}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer text-center ${
+              activeMode === "orders"
+                ? "bg-black text-white shadow-xs"
+                : "text-zinc-600 hover:text-black"
+            }`}
+          >
+            Orders Station ({activeOrdersCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSwitchMode("hub")}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer text-center ${
+              activeMode === "hub"
+                ? "bg-black text-white shadow-xs"
+                : "text-zinc-600 hover:text-black"
+            }`}
+          >
+            Business Hub
+          </button>
+        </div>
+
         {/* Canonical Zomato Stage Pills (Only in Orders Mode) */}
         {activeMode === "orders" && (
-          <div className="no-scrollbar mt-3 flex items-center gap-2 overflow-x-auto pb-0.5">
+          <div className="no-scrollbar mt-2.5 flex items-center gap-2 overflow-x-auto pb-0.5">
             {[
               { id: "preparing" as const, label: "Preparing", count: stageCounts.preparing },
               { id: "ready" as const, label: "Ready", count: stageCounts.ready },
@@ -1722,15 +1747,7 @@ export function ZomatoHubView() {
         isLoading={isUpdatingStatus}
       />
 
-      {/* ========================================================================= */}
-      {/* 6. ZOMATO FLOATING BOTTOM PILL NAVIGATION                                  */}
-      {/* ========================================================================= */}
-      <ZomatoBottomNav
-        mode={activeMode}
-        activeTab={activeMode === "orders" ? "orders" : "hub"}
-        ordersCount={activeOrdersCount}
-        onSwitchMode={handleSwitchMode}
-      />
+
 
       {/* Action Sheets and Overlays */}
       {sheetNode}

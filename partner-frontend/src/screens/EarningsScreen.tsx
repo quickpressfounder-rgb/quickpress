@@ -470,60 +470,66 @@ export function EarningsScreen() {
         ) : activeSubTab === "passbook" ? (
           /* Mobile Settlement Passbook Tab */
           <div className="space-y-4 p-4">
-            {/* Bank Passbook Summary Header Card */}
-            <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-600" />
-
+            {/* 1. CURRENT CYCLE HERO CARD (Zomato Style) */}
+            <div className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-xs">
               <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                    <CheckCircle2 className="size-4" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                      Total Bank Settled (कुल सेटलमेंट)
-                    </p>
-                    <p className="text-2xl font-black text-emerald-700 tracking-tight">
-                      ₹{totalBankSettled.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
-                  Bank Verified ✓
-                </span>
-              </div>
-
-              {/* Accruing Current Cycle Info */}
-              <div className="mt-3 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                    Accruing Current Cycle
-                  </p>
-                  <p className="text-sm font-black text-black">
-                    ₹{currentAccruingBalance.toFixed(2)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-zinc-400">Next Disbursal</p>
-                  <p className="text-xs font-black text-zinc-800">Every Monday</p>
-                </div>
-              </div>
-
-              {/* Linked Bank Badge */}
-              <div className="mt-3 rounded-xl bg-zinc-50 border border-zinc-200 p-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Building2 className="size-4 text-zinc-700" />
-                  <div>
-                    <p className="text-xs font-black text-black">
-                      {bankDetails.bankName} • {bankDetails.accountNumberMasked}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 font-medium">IFSC: {bankDetails.ifsc}</p>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                    Current Cycle
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <h3 className="text-3xl font-black tracking-tight text-black">
+                      ₹{currentAccruingBalance.toFixed(2)}
+                    </h3>
+                    <span className="text-xs font-semibold text-zinc-500">Est. payout</span>
                   </div>
                 </div>
-                <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-[9px] font-black text-zinc-800">
-                  IMPS Auto
+                <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[10px] font-black text-amber-800">
+                  In Progress ⏳
                 </span>
               </div>
+
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <div className="text-zinc-600 font-medium">
+                  <span className="font-bold text-black">{currentCycle?.period || "Current Week"}</span>
+                  <span className="text-zinc-400 mx-1.5">•</span>
+                  <span>{currentCycle?.orders?.length || 0} orders</span>
+                </div>
+                <p className="text-[11px] font-bold text-zinc-500">Bank credit on Monday</p>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCycleForModal("current")}
+                  className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>View details</span>
+                  <span>→</span>
+                </button>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-medium text-zinc-500">Total Settled:</span>
+                  <span className="text-xs font-black text-emerald-700">₹{totalBankSettled.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. LINKED BANK ACCOUNT DISBURSAL CARD */}
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="size-8 rounded-xl bg-white border border-zinc-200 flex items-center justify-center text-black shrink-0">
+                  <Building2 className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-black truncate">
+                    {bankDetails.bankName} • {bankDetails.accountNumberMasked}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 font-semibold">IFSC: {bankDetails.ifsc}</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[9px] font-black text-emerald-800 shrink-0">
+                IMPS Disbursal ✓
+              </span>
             </div>
 
             {/* Mode Switcher: By Cycle vs By Orders */}
@@ -532,24 +538,24 @@ export function EarningsScreen() {
                 <button
                   type="button"
                   onClick={() => setPassbookViewMode("cycles")}
-                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition ${
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition cursor-pointer ${
                     passbookViewMode === "cycles"
                       ? "bg-white text-black shadow-2xs"
                       : "text-zinc-500 hover:text-black"
                   }`}
                 >
-                  साप्ताहिक चक्र ({filteredCycles.length})
+                  Weekly Cycles ({filteredCycles.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setPassbookViewMode("orders")}
-                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition ${
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition cursor-pointer ${
                     passbookViewMode === "orders"
                       ? "bg-white text-black shadow-2xs"
                       : "text-zinc-500 hover:text-black"
                   }`}
                 >
-                  ऑर्डर अनुसार ({filteredPassbookOrders.length})
+                  Itemized Orders ({filteredPassbookOrders.length})
                 </button>
               </div>
             </div>
@@ -571,35 +577,35 @@ export function EarningsScreen() {
                 <button
                   type="button"
                   onClick={() => setStatusFilter("all")}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition cursor-pointer ${
                     statusFilter === "all"
                       ? "bg-black text-white"
                       : "border border-zinc-200 bg-white text-zinc-600"
                   }`}
                 >
-                  All Entries
+                  All
                 </button>
                 <button
                   type="button"
                   onClick={() => setStatusFilter("settled")}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition cursor-pointer ${
                     statusFilter === "settled"
                       ? "bg-black text-white"
                       : "border border-zinc-200 bg-white text-zinc-600"
                   }`}
                 >
-                  Settled (बैंक क्रेडिट)
+                  Settled
                 </button>
                 <button
                   type="button"
                   onClick={() => setStatusFilter("processing")}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition cursor-pointer ${
                     statusFilter === "processing"
                       ? "bg-black text-white"
                       : "border border-zinc-200 bg-white text-zinc-600"
                   }`}
                 >
-                  Accruing (चल रहा है)
+                  Processing
                 </button>
               </div>
             </div>
