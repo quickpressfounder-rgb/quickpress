@@ -89,6 +89,24 @@ async def _enrich_account(account: AccountResponse, user: User) -> AccountRespon
                     await database.find_one("partner_profiles", {"userId": user.id})
                     or await database.find_one("admin_partners", {"userId": user.id})
                 )
+            if not prof and user.email:
+                clean_email = user.email.strip().lower()
+                prof = (
+                    await database.find_one("partner_profiles", {
+                        "$or": [
+                            {"email": clean_email},
+                            {"ownerEmail": clean_email},
+                            {"businessEmail": clean_email},
+                        ]
+                    })
+                    or await database.find_one("admin_partners", {
+                        "$or": [
+                            {"email": clean_email},
+                            {"ownerEmail": clean_email},
+                            {"businessEmail": clean_email},
+                        ]
+                    })
+                )
 
             if prof:
                 resolved_pid = str(prof.get("_id") or prof.get("partnerId") or "")

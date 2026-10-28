@@ -2792,7 +2792,9 @@ This single command will automatically:
     - `QuickPress-Captain.apk` (18 MB) & `QuickPress-Captain.aab` (17 MB): Built successfully.
   - Google OAuth Services Integration:
     - Integrated updated `google-services.json` containing SHA-1 `94:91:ce:49:84:a1:78:cf:ce:0d:60:1c:36:3d:91:7b:15:f0:57:09` across `customer-frontend`, `partner-frontend`, and `rider-frontend`.
-    - Recompiled all 3 Android APKs with Google Sign-In support and deployed to `https://withquickpress.com/apks/`.
-  - Git Commits: `5abb969` (main implementation), `90d0f5b` (fixed duplicate closing block in admin-frontend auth-service.ts line 86), `8087632` (history logging), `6001649` (APK build history).
+    - Enhanced `backend-python/app/api/auth.py` `_enrich_account` to link partner profiles directly by Google email (`email`, `ownerEmail`, `businessEmail`).
+    - Configured `select_account` prompt on GoogleAuthProvider in `partner-frontend` and `customer-frontend` for reliable multi-account selection.
+    - Recompiled Partner APK (`QuickPress-Partner.apk`) and AAB (`QuickPress-Partner.aab`) with live Google Sign-In support.
+  - Git Commits: `5abb969`, `90d0f5b`, `8087632`, `6001649`, `c78ac9e`.
 
 

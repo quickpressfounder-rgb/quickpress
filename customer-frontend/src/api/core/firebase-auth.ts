@@ -170,7 +170,11 @@ async function signInWithProvider(kind: "google" | "apple"): Promise<UserCredent
   const { GoogleAuthProvider, OAuthProvider, signInWithPopup } = await import("firebase/auth");
   const provider =
     kind === "google"
-      ? new GoogleAuthProvider()
+      ? (() => {
+          const google = new GoogleAuthProvider();
+          google.setCustomParameters({ prompt: "select_account" });
+          return google;
+        })()
       : (() => {
           const apple = new OAuthProvider("apple.com");
           apple.addScope("email");
