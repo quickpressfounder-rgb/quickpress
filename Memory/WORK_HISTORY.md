@@ -33,6 +33,30 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 37. Comprehensive Platform Security Audit & Access Hardening (6-Point Verification & Patching)
+- **Commit Hash:** `649221b`
+- **User Requirements:**
+  - Complete security audit covering: (1) Hide API Keys and Secrets, (2) Environment Variables, (3) Git History for Leaks, (4) Protect Admin Pages, (5) Add Secure Authentication, (6) Check User Permissions (IDOR / Multi-Tenant Isolation).
+- **Audit Findings & Hardening Implementation:**
+  1. **API Keys & Secrets:** Verified zero server secrets in frontend code. Only public client identifiers (`VITE_FIREBASE_API_KEY`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_RAZORPAY_KEY_ID`, `VITE_SUPABASE_ANON_KEY`) are client-side. All private keys (`SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_SECRET`, `JWT_SECRET`, `DATABASE_URL`) live exclusively in server-side `backend-python/.env`.
+  2. **Environment Variables:** All `.env`, `.env.local`, `.env.production` files verified excluded via `.gitignore` (`git check-ignore`). `.env.example` templates contain only empty placeholders.
+  3. **Git History Leak Check:** Git history scanned with `git log -S` for secrets and private keys. Confirmed no real secrets or passwords were ever committed.
+  4. **Admin Protection Hardened (`finance_engine.py` & `AdminShell.tsx`):**
+     - Frontend: Every admin route guarded with `beforeLoad: requireAdminSession`. Unauthorized staff denied module access.
+     - Backend: Patched `/api/finance-engine/*` mutating endpoints (`PUT /rules`, `/settlements/*`, `/expenses/*`, `/approvals/*`, `/periods/*`, `/payouts/*`) from `optional_user` to strict `user: User = Depends(require_roles(Role.admin))`. Unauthenticated requests now return `401 Unauthorized`.
+  5. **Secure Authentication Hardened (`auth.py`):**
+     - Patched critical authentication bypass in `/api/auth/phone/verify` where omitting `code` allowed unauthenticated login. Mandated verified Firebase token or verified OTP.
+     - Added guard blocking public phone verification from self-provisioning `Role.admin` or `Role.super_admin` accounts without verified staff directory records (returns `403 Forbidden`).
+  6. **User Permissions & IDOR Hardened (`order_repositories.py`, `orders.py`, `invoice_repositories.py`):**
+     - Patched `order_repository.by_id()`: Replaced permissive fallback with strict ownership verification (only order owner, assigned partner, assigned rider, or admin can read order details; others receive `None` / `404`).
+     - Patched `orders.py`: Made `get_order` and `track_order` require `current_user`.
+     - Patched `invoice_repositories.py`: Denied anonymous access (`user is None: return False`) to Tax Invoice PDFs.
+- **Verification & Deployment:**
+  - Python compile verification passed with 0 errors.
+  - Pushed to GitHub `main` (`649221b`).
+  - EC2 Docker container `quickpress-backend` rebuilt with no-cache and restarted.
+  - Live API testing confirmed: Missing OTP code returns `400 Bad Request`, unauthorized admin login returns `403 Forbidden`, unauthenticated rule changes return `401 Unauthorized`, and unauthenticated invoice access returns `404 Not Found`.
+
 ### 36. Restoration of Classic Bottom Navbar & Zomato Partner Finance Screen Alignment
 - **Commit Hash:** `d08f478`
 - **User Requirements:**
