@@ -2788,6 +2788,6 @@ This single command will automatically:
     - `npm run build:admin`: Passed (0 errors).
   - Native Mobile Builds:
     - `QuickPress-Customer.apk` & `.aab`: Built successfully.
-    - `QuickPress-Captain.apk` & `.aab`: Built successfully.
+  - Git Commits: `5abb969` (main implementation), `90d0f5b` (fixed duplicate closing block in admin-frontend auth-service.ts line 86).
 
 
