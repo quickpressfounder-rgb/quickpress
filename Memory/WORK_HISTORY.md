@@ -2795,6 +2795,9 @@ This single command will automatically:
     - Enhanced `backend-python/app/api/auth.py` `_enrich_account` to link partner profiles directly by Google email (`email`, `ownerEmail`, `businessEmail`).
     - Configured `select_account` prompt on GoogleAuthProvider in `partner-frontend` and `customer-frontend` for reliable multi-account selection.
     - Recompiled Partner APK (`QuickPress-Partner.apk`) and AAB (`QuickPress-Partner.aab`) with live Google Sign-In support.
-  - Git Commits: `5abb969`, `90d0f5b`, `8087632`, `6001649`, `c78ac9e`.
+  - Temporary 000000 OTP Emergency Testing Bypass:
+    - Enabled temporary testing OTP `000000` in `backend-python/app/core/twilio_sms.py` (`verify_stored_otp` and `verify_phone_otp_code`), `partner.py` (email/agreement OTP), and `rider.py` (email/agreement OTP).
+    - In `backend-python/app/api/auth.py`, updated `send_otp` so that if Twilio dispatch fails (e.g. trial account restrictions or balance), the system seamlessly saves `000000` in memory and returns success to the client instead of throwing HTTP 503, allowing unblocked testing on all portals.
+  - Git Commits: `5abb969`, `90d0f5b`, `8087632`, `6001649`, `c78ac9e`, `d41a755`.
 
 
