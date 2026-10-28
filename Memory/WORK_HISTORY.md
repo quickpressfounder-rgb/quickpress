@@ -33,6 +33,33 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 45. Partner Application Splash Screen Brand Redesign & 1.5s Display Timing
+- **User Requirement:**
+  "ab partner application splash screnn me background blue or Brand name Whaite only karo or splash screnn ko 1-2 ka open to cloase hone ka time rekhao"
+  (Make Partner app splash screen background blue, brand name in pure white only, and set splash screen open-to-close transition time between 1-2 seconds).
+- **Architecture & Implementation:**
+  1. **Web & React Splash Screen (`partner-frontend/src/routes/index.tsx`):**
+     - Background set to vivid QuickPress brand blue (`bg-[#0055ff]`).
+     - Brand name styled in pure White only: `<h1 ... text-white ...>QuickPress</h1>` with subtitle `<p ... text-white/90 ...>PARTNER</p>` (purged green/emerald coloring and accent bars).
+     - Display duration calibrated to 1.5 seconds (1500ms), with smooth 300ms fade-out transition initiating at 1200ms before navigating to the target route.
+  2. **Capacitor Android Config & Native Assets (`partner-frontend/capacitor.config.ts` & `styles.xml`):**
+     - Updated `SplashScreen` plugin config: `launchShowDuration: 1500`, `backgroundColor: "#0055ff"`.
+     - Synced `plugins.SplashScreen` into `partner-frontend/android/app/src/main/assets/capacitor.config.json`.
+     - Updated `styles.xml` launch theme status bar color to `#0055ff`.
+  3. **High-Resolution Android Native Splash Drawables (`splash.png` across 11 densities):**
+     - Generated crisp, centered native splash drawables with `#0055ff` royal blue background and bold Helvetica Neue pure white "QuickPress" typography + white "PARTNER" subtitle across all Android portrait and landscape densities (`drawable`, `drawable-port-*`, `drawable-land-*`).
+- **Files Modified:**
+  - `partner-frontend/src/routes/index.tsx`
+  - `partner-frontend/capacitor.config.ts`
+  - `partner-frontend/android/app/src/main/assets/capacitor.config.json`
+  - `partner-frontend/android/app/src/main/res/values/styles.xml`
+  - `partner-frontend/android/app/src/main/res/drawable*/splash.png` (11 files)
+  - `Memory/WORK_HISTORY.md`
+- **Build & Verification:**
+  - `npm run build:partner`: Exit code 0 (SSR client and Nitro server bundles created cleanly in 2.02s).
+  - `python3 build_all_apks.py partner`: Succeeded; generated `QuickPress-Partner.apk` (15MB) and `QuickPress-Partner.aab` (13MB).
+  - Deployed updated `QuickPress-Partner.apk` to live EC2 server (`ubuntu@65.0.127.43:/var/www/quickpress/website/apks/QuickPress-Partner.apk`).
+
 ### 44. Customer Panel Suppression of Black Action Message & Status Pill Popups
 - **User Request:**
   "customer penal se action massage jo ki black colour ka aata abhi abhi usko pura hi hata do kabhi bhi nahi aaye"

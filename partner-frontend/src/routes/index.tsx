@@ -53,6 +53,7 @@ function PartnerSplashScreen() {
   const navigate = useNavigate();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -78,10 +79,14 @@ function PartnerSplashScreen() {
       router.preloadRoute({ to: initialTarget as any });
     } catch {}
 
-    // Ultra-snappy Zomato-style splash display (300ms) with background session restore
+    // Splash screen open to close display duration (1.5 seconds)
+    const fadeTimer = setTimeout(() => {
+      if (!cancelled) setClosing(true);
+    }, 1200);
+
     Promise.all([
       restorePartnerSession().catch(() => sess),
-      new Promise((res) => setTimeout(res, 300)),
+      new Promise((res) => setTimeout(res, 1500)),
     ]).then(([restored]) => {
       if (cancelled) return;
       const finalTarget = computeTargetRoute(restored || sess);
@@ -90,36 +95,33 @@ function PartnerSplashScreen() {
 
     return () => {
       cancelled = true;
+      clearTimeout(fadeTimer);
     };
   }, [navigate, router]);
 
   return (
-    <main className="fixed inset-0 flex flex-col items-center justify-center bg-[#0055ff] select-none overflow-hidden z-50">
+    <main
+      className="fixed inset-0 flex flex-col items-center justify-center bg-[#0055ff] select-none overflow-hidden z-50 transition-opacity duration-300 ease-out"
+      style={{
+        opacity: closing ? 0 : 1,
+      }}
+    >
       <div
-        className="flex flex-col items-center justify-center transition-all duration-300 ease-out px-4 text-center"
+        className="flex flex-col items-center justify-center transition-all duration-500 ease-out px-4 text-center"
         style={{
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? "scale(1)" : "scale(0.96)",
+          opacity: mounted && !closing ? 1 : 0,
+          transform: mounted && !closing ? "scale(1)" : "scale(0.96)",
         }}
       >
-        {/* QuickPress Wordmark in White and Emerald */}
-        <div className="flex items-baseline tracking-tight select-none">
-          <span className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-white drop-shadow-sm font-sans">
-            Quick
-          </span>
-          <span className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-emerald-400 drop-shadow-sm font-sans">
-            Press
-          </span>
-        </div>
+        {/* QuickPress Brand Name in Pure White Only */}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-white drop-shadow-md font-sans select-none">
+          QuickPress
+        </h1>
 
-        {/* Partner Onboarding Subtitle matching official logo */}
-        <div className="mt-3 sm:mt-4 flex items-center justify-center gap-2.5 sm:gap-3.5 select-none">
-          <span className="h-[2px] w-6 sm:w-10 bg-emerald-400 rounded-full" />
-          <span className="text-xs sm:text-sm font-black uppercase tracking-[0.25em] text-white">
-            PARTNER ONBOARDING
-          </span>
-          <span className="h-[2px] w-6 sm:w-10 bg-emerald-400 rounded-full" />
-        </div>
+        {/* Clean Partner Subtitle in Pure White Only */}
+        <p className="mt-3 sm:mt-4 text-xs sm:text-sm font-black uppercase tracking-[0.28em] text-white/90 select-none">
+          PARTNER
+        </p>
       </div>
     </main>
   );
