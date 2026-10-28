@@ -2205,6 +2205,21 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
     resub_count = (int(existing_profile.get("resubmissionCount", 0)) + 1) if (is_resubmission and existing_profile) else 0
     now_iso_str = datetime.now(timezone.utc).isoformat()
 
+    logo_val = payload.logo
+    banner_val = payload.banner
+    if logo_val and isinstance(logo_val, str) and (logo_val.startswith("data:image/") or len(logo_val) > 1000):
+        try:
+            from app.core.cloudinary import upload_image
+            logo_val = await upload_image(logo_val, kind="partner_logo", public_id=f"{store_id_str}_logo")
+        except Exception:
+            pass
+    if banner_val and isinstance(banner_val, str) and (banner_val.startswith("data:image/") or len(banner_val) > 1000):
+        try:
+            from app.core.cloudinary import upload_image
+            banner_val = await upload_image(banner_val, kind="partner_banner", public_id=f"{store_id_str}_banner")
+        except Exception:
+            pass
+
     changes = {
         "_id": store_id_str,
         "partnerId": store_id_str,
@@ -2217,7 +2232,7 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "gstin": payload.gstin,
         "pan": clean_pan,
         "aadhaar": clean_aadhaar,
-        "ownerPhoto": payload.ownerPhoto or payload.logo,
+        "ownerPhoto": payload.ownerPhoto or logo_val,
         "aadhaarFront": payload.aadhaarFront,
         "aadhaarBack": payload.aadhaarBack,
         "panCard": payload.panCard,
@@ -2241,8 +2256,8 @@ async def onboarding(payload: OnboardingPayload, user: User = Depends(current_us
         "bankName": payload.bankName,
         "accountNumber": payload.accountNumber,
         "ifsc": payload.ifsc,
-        "logo": payload.logo,
-        "banner": payload.banner,
+        "logo": logo_val,
+        "banner": banner_val,
         "gallery": payload.gallery,
         "latitude": payload.latitude,
         "longitude": payload.longitude,

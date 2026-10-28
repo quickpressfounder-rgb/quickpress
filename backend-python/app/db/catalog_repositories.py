@@ -319,6 +319,16 @@ class CatalogRepository:
     # Sprint 2.2 — Partner Listing & Partner Details (Live MongoDB Atlas)
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _clean_card_media(val: Any, fallback: str = "store-1") -> str:
+        if not val or not isinstance(val, str):
+            return fallback
+        s = val.strip()
+        # Strictly sanitize: Never serialize multi-megabyte base64 strings into list responses
+        if s.startswith("data:image/") or len(s) > 1000:
+            return fallback
+        return s
+
     async def _approved_partner_profiles(self) -> List[Dict[str, Any]]:
         """Fetch all approved, verified, non-suspended real partner stores from MongoDB Atlas."""
         profiles = await database.find_many("partner_profiles")
@@ -417,9 +427,13 @@ class CatalogRepository:
             is_open = True if is_online_flag is None and is_store_open_flag is None else bool(
                 (is_online_flag is not False) and (is_store_open_flag is not False)
             )
-            banner = p.get("banner") or p.get("bannerUrl") or p.get("banner_url") or p.get("cover") or p.get("coverImage")
-            logo = p.get("logo") or p.get("logoUrl") or p.get("logo_url") or p.get("photo_url") or p.get("image")
+            raw_banner = p.get("banner") or p.get("bannerUrl") or p.get("banner_url") or p.get("cover") or p.get("coverImage")
+            raw_logo = p.get("logo") or p.get("logoUrl") or p.get("logo_url") or p.get("photo_url") or p.get("image")
+            banner = self._clean_card_media(raw_banner, "")
+            logo = self._clean_card_media(raw_logo, "")
             image = banner or logo or "store-1"
+            card_logo = logo or image
+            card_cover = banner or image
             service_names = [s.get("name") for s in active_services if s.get("name")]
             if not service_names:
                 service_names = ["Wash & Fold", "Steam Ironing", "Dry Cleaning"]
@@ -435,7 +449,7 @@ class CatalogRepository:
             card = PartnerCardResponse(
                 id=pid,
                 name=p.get("businessName") or p.get("name") or "QuickPress Partner",
-                logo=logo or image,
+                logo=card_logo,
                 image=image,
                 rating=float(p.get("rating") or 5.0),
                 reviews=reviews,
@@ -452,7 +466,7 @@ class CatalogRepository:
                 status="open" if is_open else "closed",
                 city=str(p.get("city") or "").strip(),
                 area=str(p.get("area") or p.get("address") or p.get("city") or "").strip(),
-                cover=p.get("bannerUrl") or p.get("cover") or image,
+                cover=card_cover,
                 verified=bool(p.get("isVerified", True)),
                 offerLabel=p.get("offerLabel"),
                 popularity=int(p.get("totalOrders") or 0),
@@ -636,8 +650,10 @@ class CatalogRepository:
         reviews_count = int(doc.get("totalOrders") or doc.get("reviewsCount") or len(reviews))
         reviews_str = f"{reviews_count / 1000:.1f}k" if reviews_count >= 1000 else str(reviews_count)
         is_open = bool(doc.get("isOnline", True) and settings.get("isStoreOpen", True))
-        banner = doc.get("banner") or doc.get("bannerUrl") or doc.get("banner_url") or doc.get("cover") or doc.get("coverImage")
-        logo = doc.get("logo") or doc.get("logoUrl") or doc.get("logo_url") or doc.get("photo_url") or doc.get("image")
+        raw_banner = doc.get("banner") or doc.get("bannerUrl") or doc.get("banner_url") or doc.get("cover") or doc.get("coverImage")
+        raw_logo = doc.get("logo") or doc.get("logoUrl") or doc.get("logo_url") or doc.get("photo_url") or doc.get("image")
+        banner = self._clean_card_media(raw_banner, "")
+        logo = self._clean_card_media(raw_logo, "")
         image = banner or logo or "store-1"
         radius = int(settings.get("pickupRadiusKm") or 8)
 
