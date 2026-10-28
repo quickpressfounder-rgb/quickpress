@@ -82,12 +82,6 @@ export async function verifyPhoneOtp(
   );
   return persist(session);
 }
-      referral_code: referralCode ? referralCode.trim().toUpperCase() : undefined,
-    },
-    { anonymous: true },
-  );
-  return persist(session);
-}
 
 /* --------------------------------------------------------------- social */
 
