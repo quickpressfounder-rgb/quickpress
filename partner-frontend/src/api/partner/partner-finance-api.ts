@@ -27,6 +27,25 @@ export type FinanceDailyTrend = {
   isToday: boolean;
 };
 
+export type PassbookEntry = {
+  id: string;
+  type: "cycle_settlement" | "current_cycle";
+  title: string;
+  period: string;
+  date: string;
+  utr?: string | null;
+  status: "SETTLED" | "PAID" | "ACCRUING" | "PROCESSING" | "ON HOLD" | string;
+  orderCount: number;
+  grossAmount: number;
+  commissionAmount: number;
+  tcsAmount: number;
+  taxTotal: number;
+  netCredit: number;
+  bankName?: string;
+  accountNumberMasked?: string;
+  cycleId: string;
+};
+
 export type FinanceOverviewResponse = {
   currentCycle: {
     cycleId: string;
@@ -35,6 +54,9 @@ export type FinanceOverviewResponse = {
     estPayout: number;
     orderCount: number;
     status: string;
+    grossAmount?: number;
+    commissionAmount?: number;
+    tcsAmount?: number;
   };
   pastCycles: {
     cycleId: string;
@@ -43,6 +65,16 @@ export type FinanceOverviewResponse = {
     status: string;
     netPayout: number;
     orderCount: number;
+    startDate?: string;
+    endDate?: string;
+    grossAmount?: number;
+    commissionAmount?: number;
+    tcsAmount?: number;
+    taxTotal?: number;
+    utr?: string | null;
+    bankName?: string;
+    accountNumberMasked?: string;
+    orders?: SettlementOrder[];
   }[];
   filterOptions: string[];
   months?: {
@@ -52,6 +84,17 @@ export type FinanceOverviewResponse = {
   }[];
   dailyTrend?: FinanceDailyTrend[];
   currentOrders?: SettlementOrder[];
+  allSettledOrders?: SettlementOrder[];
+  passbook?: PassbookEntry[];
+  bankDetails?: {
+    accountHolder: string;
+    bankName: string;
+    accountNumberMasked: string;
+    ifsc: string;
+    utr?: string | null;
+    creditedAt?: string | null;
+    transferMode: string;
+  };
   commissionRatePct?: number;
   storeName?: string;
   gstin?: string;
@@ -73,6 +116,9 @@ export type SettlementOrder = {
   utr?: string | null;
   payoutDate?: string;
   isSettled?: boolean;
+  cycleId?: string;
+  cyclePeriod?: string;
+  settlementStatus?: string;
 };
 
 export type SettlementExpense = {

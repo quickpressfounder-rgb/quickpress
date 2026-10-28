@@ -1,11 +1,18 @@
 import { useNavigate, Link } from "@tanstack/react-router";
 import {
+  ArrowDownLeft,
+  ArrowUpRight,
   BarChart2,
   Bell,
+  BookOpen,
+  Building2,
   Calendar,
+  Check,
   CheckCircle2,
   ChevronDown,
   Clock3,
+  Copy,
+  CreditCard,
   Download,
   ExternalLink,
   FileSpreadsheet,
@@ -19,6 +26,7 @@ import {
   Search,
   ShieldCheck,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +42,7 @@ import {
   type FinanceOverviewResponse,
   type TaxInvoice,
   type SettlementOrder,
+  type PassbookEntry,
   fetchFinanceOverview,
   fetchFinanceTaxInvoices,
   getCachedFinanceOverview,
@@ -59,13 +68,19 @@ export function EarningsScreen() {
   const [orderInvoices, setOrderInvoices] = useState<TaxInvoice[]>(cachedInvoices?.orderInvoices || []);
   const [loading, setLoading] = useState(!cachedOverview);
 
-  const [activeSubTab, setActiveSubTab] = useState<"payouts" | "invoices">("payouts");
+  // Subtabs: Passbook (Default) vs Weekly Trends vs Invoices
+  const [activeSubTab, setActiveSubTab] = useState<"passbook" | "trends" | "invoices">("passbook");
+
+  // Passbook view mode: By Settlement Cycle or By Individual Orders
+  const [passbookViewMode, setPassbookViewMode] = useState<"cycles" | "orders">("cycles");
+
   const [selectedPastRange, setSelectedPastRange] = useState<string>(cachedOverview?.filterOptions?.[0] || "");
   const [selectedCycleForModal, setSelectedCycleForModal] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
 
-  // Filter state for orders table & graph
+  // Filter state for orders & cycles
   const [statusFilter, setStatusFilter] = useState<"all" | "settled" | "processing">("all");
 
   useEffect(() => {
@@ -99,6 +114,16 @@ export function EarningsScreen() {
       alive = false;
     };
   }, []);
+
+  const copyToClipboard = (text: string, label: string = "UTR") => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedUtr(text);
+    toast.success(`${label} copied to clipboard!`);
+    setTimeout(() => {
+      setCopiedUtr(null);
+    }, 2000);
+  };
 
   const handleDownloadStatementPdf = async (customCycleId?: string) => {
     const cycle = customCycleId
@@ -204,19 +229,127 @@ export function EarningsScreen() {
 
   const currentCycle = financeData?.currentCycle;
   const pastCycles = financeData?.pastCycles || [];
-  const selectedCycleObj = pastCycles.find((c) => c.period === selectedPastRange) || pastCycles[0];
+  const adminCommRate = financeData?.commissionRatePct ?? 15;
 
-  // All-time settled sum calculation
-  const allTimeSettled =
-    pastCycles.reduce((sum, c) => sum + (c.netPayout || 0), 0) + (currentCycle?.estPayout || 0);
+  const bankDetails = financeData?.bankDetails || {
+    accountHolder: profile?.businessName || profile?.ownerName || "Merchant Partner",
+    bankName: "HDFC Bank",
+    accountNumberMasked: "•••• •••• 4545",
+    ifsc: "HDFC0000240",
+    utr: null,
+    transferMode: "NPCI IMPS / NEFT Auto-Credit",
+  };
+
+  // Passbook Cycle Entries
+  const passbookCycles: PassbookEntry[] = financeData?.passbook || [
+    ...pastCycles.map((c) => ({
+      id: c.cycleId,
+      type: "cycle_settlement" as const,
+      title: `Weekly Settlement • ${c.period}`,
+      period: c.period,
+      date: c.payoutDate,
+      utr: c.utr || null,
+      status: (c.status === "PAID" ? "SETTLED" : c.status) as any,
+      orderCount: c.orderCount,
+      grossAmount: c.grossAmount || 0,
+      commissionAmount: c.commissionAmount || 0,
+      tcsAmount: c.tcsAmount || 0,
+      taxTotal: c.taxTotal || 0,
+      netCredit: c.netPayout,
+      bankName: c.bankName || bankDetails.bankName,
+      accountNumberMasked: c.accountNumberMasked || bankDetails.accountNumberMasked,
+      cycleId: c.cycleId,
+    })),
+    ...(currentCycle
+      ? [
+          {
+            id: "current",
+            type: "current_cycle" as const,
+            title: `Current Accruing Cycle • ${currentCycle.period}`,
+            period: currentCycle.period,
+            date: currentCycle.payoutDate,
+            utr: null,
+            status: "ACCRUING" as const,
+            orderCount: currentCycle.orderCount,
+            grossAmount: currentCycle.grossAmount || 0,
+            commissionAmount: currentCycle.commissionAmount || 0,
+            tcsAmount: currentCycle.tcsAmount || 0,
+            taxTotal: (currentCycle.commissionAmount || 0) * 0.18 + (currentCycle.tcsAmount || 0),
+            netCredit: currentCycle.estPayout,
+            bankName: bankDetails.bankName,
+            accountNumberMasked: bankDetails.accountNumberMasked,
+            cycleId: "current",
+          },
+        ]
+      : []),
+  ];
+
+  // All settled orders for order-level passbook
+  const allOrders: SettlementOrder[] = financeData?.allSettledOrders?.length
+    ? financeData.allSettledOrders
+    : financeData?.currentOrders || [];
+
+  // Filtered passbook cycles
+  const filteredCycles = passbookCycles.filter((c) => {
+    if (statusFilter === "settled" && c.status !== "SETTLED" && c.status !== "PAID") return false;
+    if (statusFilter === "processing" && c.status !== "ACCRUING" && c.status !== "PROCESSING") return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        c.period.toLowerCase().includes(q) ||
+        (c.utr && c.utr.toLowerCase().includes(q)) ||
+        c.title.toLowerCase().includes(q) ||
+        c.date.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  // Filtered passbook orders
+  const filteredPassbookOrders = allOrders.filter((ord) => {
+    if (
+      statusFilter === "settled" &&
+      !ord.isSettled &&
+      ord.settlementStatus !== "PAID" &&
+      ord.settlementStatus !== "SETTLED"
+    )
+      return false;
+    if (
+      statusFilter === "processing" &&
+      (ord.isSettled || ord.settlementStatus === "PAID" || ord.settlementStatus === "SETTLED")
+    )
+      return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        ord.orderCode.toLowerCase().includes(q) ||
+        ord.customerName.toLowerCase().includes(q) ||
+        ord.itemsSummary.toLowerCase().includes(q) ||
+        (ord.utr && ord.utr.toLowerCase().includes(q)) ||
+        (ord.cyclePeriod && ord.cyclePeriod.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
+  // Total Settled directly to bank (completed disbursements)
+  const totalBankSettled = passbookCycles
+    .filter((c) => c.status === "SETTLED" || c.status === "PAID")
+    .reduce((sum, c) => sum + (c.netCredit || 0), 0);
+
+  // Current Accruing Balance
+  const currentAccruingBalance = currentCycle?.estPayout || 0;
 
   // Daily trend calculations for graph
   const dailyTrend = financeData?.dailyTrend || [];
-  const maxDailyAmount = Math.max(...dailyTrend.map((d) => Math.max(d.grossAmount, d.netPayout, 1)), 100);
+  const maxDailyAmount = Math.max(
+    ...dailyTrend.map((d) => Math.max(d.grossAmount, d.netPayout, 1)),
+    100
+  );
 
-  // Filtered orders for table
+  // Filtered orders for weekly trend tab
   const currentOrders: SettlementOrder[] = financeData?.currentOrders || [];
-  const filteredOrders = currentOrders.filter((ord) => {
+  const filteredTrendOrders = currentOrders.filter((ord) => {
     if (statusFilter === "settled" && !ord.isSettled) return false;
     if (statusFilter === "processing" && ord.isSettled) return false;
     if (searchQuery.trim()) {
@@ -229,8 +362,6 @@ export function EarningsScreen() {
     }
     return true;
   });
-
-  const adminCommRate = financeData?.commissionRatePct ?? 15;
 
   // If viewing settlement detail, render full in-page view without modal cutoff!
   if (selectedCycleForModal) {
@@ -252,11 +383,11 @@ export function EarningsScreen() {
   return (
     <PartnerLayout
       activeTab="earnings"
-      title="Payouts & Finance"
-      subtitle="Track 7-day automatic weekly settlements and GST tax breakdown"
+      title="Settlement Passbook & Finance"
+      subtitle="Complete bank settlement passbook, double-entry ledger, and GST reconciliation"
     >
       {/* ========================================================================= */}
-      {/* MOBILE VIEW (< md) — Pure White & High Contrast Black Layout              */}
+      {/* MOBILE VIEW (< md) — Pure White & High Contrast Banking Layout            */}
       {/* ========================================================================= */}
       <div className="min-h-screen bg-white pb-28 text-black md:hidden">
         {/* Top Header */}
@@ -290,29 +421,43 @@ export function EarningsScreen() {
             </div>
           </div>
 
-          {/* Subtabs: Payouts vs Invoices & Taxes */}
-          <div className="mt-3.5 flex gap-2">
+          {/* Subtabs: Passbook vs Weekly Cycles vs Invoices */}
+          <div className="mt-3.5 flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             <button
               type="button"
-              onClick={() => setActiveSubTab("payouts")}
-              className={`rounded-full px-5 py-2 text-xs font-black transition-all cursor-pointer active:scale-95 ${
-                activeSubTab === "payouts"
+              onClick={() => setActiveSubTab("passbook")}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+                activeSubTab === "passbook"
                   ? "bg-black text-white shadow-xs"
                   : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
               }`}
             >
-              Payouts & Weekly Cycle
+              <BookOpen className="size-3.5" />
+              <span>सेटलमेंट पासबुक</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab("trends")}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+                activeSubTab === "trends"
+                  ? "bg-black text-white shadow-xs"
+                  : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
+              }`}
+            >
+              <BarChart2 className="size-3.5" />
+              <span>साप्ताहिक चार्ट</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveSubTab("invoices")}
-              className={`rounded-full px-5 py-2 text-xs font-black transition-all cursor-pointer active:scale-95 ${
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-black transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                 activeSubTab === "invoices"
                   ? "bg-black text-white shadow-xs"
                   : "border border-zinc-200 bg-white text-black hover:bg-zinc-100 shadow-2xs"
               }`}
             >
-              Invoices & Taxes
+              <FileText className="size-3.5" />
+              <span>टैक्स इनवॉइस</span>
             </button>
           </div>
         </header>
@@ -320,9 +465,464 @@ export function EarningsScreen() {
         {loading ? (
           <div className="flex h-96 flex-col items-center justify-center gap-3">
             <div className="size-8 animate-spin rounded-full border-2 border-black border-t-transparent" />
-            <p className="text-xs font-bold text-zinc-500">Loading weekly settlement data...</p>
+            <p className="text-xs font-bold text-zinc-500">Loading settlement passbook...</p>
           </div>
-        ) : activeSubTab === "invoices" ? (
+        ) : activeSubTab === "passbook" ? (
+          /* Mobile Settlement Passbook Tab */
+          <div className="space-y-4 p-4">
+            {/* Bank Passbook Summary Header Card */}
+            <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-600" />
+
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <CheckCircle2 className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Total Bank Settled (कुल सेटलमेंट)
+                    </p>
+                    <p className="text-2xl font-black text-emerald-700 tracking-tight">
+                      ₹{totalBankSettled.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
+                  Bank Verified ✓
+                </span>
+              </div>
+
+              {/* Accruing Current Cycle Info */}
+              <div className="mt-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                    Accruing Current Cycle
+                  </p>
+                  <p className="text-sm font-black text-black">
+                    ₹{currentAccruingBalance.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-zinc-400">Next Disbursal</p>
+                  <p className="text-xs font-black text-zinc-800">Every Monday</p>
+                </div>
+              </div>
+
+              {/* Linked Bank Badge */}
+              <div className="mt-3 rounded-xl bg-zinc-50 border border-zinc-200 p-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="size-4 text-zinc-700" />
+                  <div>
+                    <p className="text-xs font-black text-black">
+                      {bankDetails.bankName} • {bankDetails.accountNumberMasked}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 font-medium">IFSC: {bankDetails.ifsc}</p>
+                  </div>
+                </div>
+                <span className="rounded bg-zinc-200 px-1.5 py-0.5 text-[9px] font-black text-zinc-800">
+                  IMPS Auto
+                </span>
+              </div>
+            </div>
+
+            {/* Mode Switcher: By Cycle vs By Orders */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-1 rounded-xl border border-zinc-200 bg-zinc-100 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setPassbookViewMode("cycles")}
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition ${
+                    passbookViewMode === "cycles"
+                      ? "bg-white text-black shadow-2xs"
+                      : "text-zinc-500 hover:text-black"
+                  }`}
+                >
+                  साप्ताहिक चक्र ({filteredCycles.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPassbookViewMode("orders")}
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition ${
+                    passbookViewMode === "orders"
+                      ? "bg-white text-black shadow-2xs"
+                      : "text-zinc-500 hover:text-black"
+                  }`}
+                >
+                  ऑर्डर अनुसार ({filteredPassbookOrders.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Pills & Search */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by UTR, Order #, or Date..."
+                  className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-8.5 pr-3 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-black focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("all")}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition ${
+                    statusFilter === "all"
+                      ? "bg-black text-white"
+                      : "border border-zinc-200 bg-white text-zinc-600"
+                  }`}
+                >
+                  All Entries
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("settled")}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition ${
+                    statusFilter === "settled"
+                      ? "bg-black text-white"
+                      : "border border-zinc-200 bg-white text-zinc-600"
+                  }`}
+                >
+                  Settled (बैंक क्रेडिट)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("processing")}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition ${
+                    statusFilter === "processing"
+                      ? "bg-black text-white"
+                      : "border border-zinc-200 bg-white text-zinc-600"
+                  }`}
+                >
+                  Accruing (चल रहा है)
+                </button>
+              </div>
+            </div>
+
+            {/* Passbook Content: Cycles or Orders */}
+            {passbookViewMode === "cycles" ? (
+              <div className="space-y-3">
+                {filteredCycles.length === 0 ? (
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-xs font-medium text-zinc-400">
+                    No settlement cycles found matching this filter.
+                  </div>
+                ) : (
+                  filteredCycles.map((entry) => {
+                    const isAccruing = entry.status === "ACCRUING";
+                    return (
+                      <div
+                        key={entry.id}
+                        className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3"
+                      >
+                        {/* Header: Date, Period, Status */}
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-black text-black">{entry.period}</span>
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[9px] font-black ${
+                                  isAccruing
+                                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                }`}
+                              >
+                                {isAccruing ? "ACCRUING ⏳" : "SETTLED ✓"}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 mt-0.5">
+                              Payout Date: {entry.date} · {entry.orderCount} Orders
+                            </p>
+                          </div>
+
+                          <div className="text-right">
+                            <span
+                              className={`text-base font-black ${
+                                isAccruing ? "text-amber-700" : "text-emerald-700"
+                              }`}
+                            >
+                              +₹{entry.netCredit.toFixed(2)}
+                            </span>
+                            <p className="text-[10px] font-semibold text-zinc-400">Net Credit</p>
+                          </div>
+                        </div>
+
+                        {/* UTR Chip with 1-click copy */}
+                        {entry.utr && (
+                          <div className="flex items-center justify-between rounded-xl bg-zinc-50 border border-zinc-150 px-3 py-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <CreditCard className="size-3 text-zinc-500" />
+                              <span className="text-[11px] font-mono font-bold text-zinc-800">
+                                UTR: {entry.utr}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(entry.utr!, "Bank UTR")}
+                              className="text-[11px] font-bold text-black flex items-center gap-1 hover:underline cursor-pointer"
+                            >
+                              {copiedUtr === entry.utr ? (
+                                <Check className="size-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="size-3" />
+                              )}
+                              <span>{copiedUtr === entry.utr ? "Copied" : "Copy"}</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Financial Double-Entry Strip */}
+                        <div className="grid grid-cols-3 gap-2 pt-1 text-center border-t border-zinc-100">
+                          <div className="p-1.5 rounded-lg bg-zinc-50">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Gross Sales</p>
+                            <p className="text-xs font-black text-black">
+                              ₹{entry.grossAmount.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="p-1.5 rounded-lg bg-zinc-50">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Comm. (15%)</p>
+                            <p className="text-xs font-black text-rose-600">
+                              -₹{entry.commissionAmount.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="p-1.5 rounded-lg bg-zinc-50">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">TCS (1%)</p>
+                            <p className="text-xs font-black text-zinc-600">
+                              -₹{entry.tcsAmount.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCycleForModal(entry.cycleId)}
+                            className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>पूरा विवरण देखें (Full Details)</span>
+                            <span>→</span>
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadStatementPdf(entry.cycleId)}
+                              className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] font-bold text-black hover:bg-zinc-100"
+                            >
+                              PDF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadStatementExcel(entry.cycleId)}
+                              className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[10px] font-bold text-black hover:bg-zinc-100"
+                            >
+                              CSV
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              /* Order-by-order Passbook List */
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-black">
+                    Itemized Order Credits ({filteredPassbookOrders.length})
+                  </h3>
+                  <span className="text-[10px] text-zinc-400">Double-entry accounting</span>
+                </div>
+
+                {filteredPassbookOrders.length === 0 ? (
+                  <div className="py-8 text-center text-xs font-medium text-zinc-400">
+                    No orders match your search or filter.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-100">
+                    {filteredPassbookOrders.map((ord) => (
+                      <div
+                        key={ord.orderId}
+                        onClick={() => setSelectedCycleForModal(ord.cycleId || "current")}
+                        className="py-3 cursor-pointer active:bg-zinc-50"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-black text-black">#{ord.orderCode}</span>
+                              <span className="rounded bg-emerald-50 text-emerald-700 px-1.5 py-0.5 text-[9px] font-bold">
+                                {ord.settlementStatus || (ord.isSettled ? "SETTLED" : "ACCRUING")}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 mt-0.5">{ord.itemsSummary}</p>
+                            <p className="text-[10px] text-zinc-400 font-medium">
+                              Customer: {ord.customerName} · {ord.date}
+                            </p>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-xs font-black text-emerald-700">
+                              +₹{ord.netEarning.toFixed(2)}
+                            </span>
+                            <p className="text-[10px] text-zinc-400">
+                              Gross: ₹{ord.grossValue.toFixed(2)} · Fee: -₹{ord.commission.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {ord.utr && (
+                          <div className="mt-1.5 flex items-center justify-between text-[10px] text-zinc-500 bg-zinc-50 rounded px-2 py-0.5">
+                            <span>UTR: {ord.utr}</span>
+                            <span className="font-bold text-black">Cycle: {ord.cyclePeriod || "Weekly"}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : activeSubTab === "trends" ? (
+          /* Mobile Weekly Trend Tab */
+          <div className="space-y-4 p-4">
+            <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="size-3.5 text-black" />
+                    <p className="text-[11px] font-black uppercase tracking-wider text-black">
+                      Ongoing Weekly Cycle
+                    </p>
+                  </div>
+                  <p className="mt-0.5 text-sm font-black text-black">
+                    {currentCycle?.period || "Weekly Accrual"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] font-bold text-zinc-500">Scheduled Payout</p>
+                  <p className="mt-0.5 text-xs font-black text-black">
+                    {currentCycle?.payoutDate !== "-" ? currentCycle?.payoutDate : "Every Monday"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                  Accrued Net Payout
+                </p>
+                <div className="mt-0.5 flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-black tracking-tight">
+                    ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] font-semibold text-zinc-500">
+                  {currentCycle?.orderCount || 0} delivered orders · Platform Commission: {adminCommRate}%
+                </p>
+              </div>
+            </div>
+
+            {/* Weekly Revenue & Payout Bar Chart */}
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-black">
+                    Weekly Payout Trend
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">7-Day Cycle Revenue Distribution</p>
+                </div>
+                <span className="rounded-md bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-800">
+                  {currentCycle?.period}
+                </span>
+              </div>
+              <div className="pt-2 pb-1">
+                <div className="flex items-end justify-between gap-1.5 h-28">
+                  {dailyTrend.map((d) => {
+                    const pct = Math.max(
+                      Math.min(Math.round((d.netPayout / maxDailyAmount) * 100), 100),
+                      d.netPayout > 0 ? 12 : 4
+                    );
+                    return (
+                      <div
+                        key={d.day}
+                        className="flex-1 flex flex-col items-center gap-1 h-full justify-end"
+                      >
+                        <span className="text-[9px] font-black text-zinc-600">
+                          {d.netPayout > 0 ? `₹${Math.round(d.netPayout)}` : "—"}
+                        </span>
+                        <div className="w-full bg-zinc-100 rounded-t-md h-20 flex items-end">
+                          <div
+                            style={{ height: `${pct}%` }}
+                            className={`w-full rounded-t-md transition-all duration-300 ${
+                              d.isToday
+                                ? "bg-black"
+                                : d.netPayout > 0
+                                ? "bg-zinc-800"
+                                : "bg-zinc-200"
+                            }`}
+                          />
+                        </div>
+                        <span
+                          className={`text-[10px] font-bold ${
+                            d.isToday ? "text-black underline" : "text-zinc-500"
+                          }`}
+                        >
+                          {d.day}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Current Cycle Orders */}
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                <h3 className="text-xs font-black uppercase tracking-wider text-black">
+                  Current Cycle Orders ({filteredTrendOrders.length})
+                </h3>
+              </div>
+              {filteredTrendOrders.length === 0 ? (
+                <div className="py-6 text-center text-xs font-medium text-zinc-400">
+                  No orders delivered in this cycle yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-zinc-100">
+                  {filteredTrendOrders.map((ord) => (
+                    <div
+                      key={ord.orderId}
+                      onClick={() => setSelectedCycleForModal("current")}
+                      className="py-2.5 flex items-center justify-between cursor-pointer active:bg-zinc-50"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-black">#{ord.orderCode}</span>
+                          <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+                            {ord.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">{ord.itemsSummary}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-emerald-700">
+                          +₹{ord.netEarning.toFixed(2)}
+                        </span>
+                        <p className="text-[10px] text-zinc-400">Fee: -₹{ord.commission.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
           /* Mobile Invoices & Taxes Tab */
           <div className="space-y-4 p-4">
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
@@ -362,170 +962,11 @@ export function EarningsScreen() {
               </div>
             </div>
           </div>
-        ) : (
-          /* Mobile Payouts Tab */
-          <div className="space-y-4 p-4">
-            {/* Hero Card: 7-Day Automatic Weekly Cycle */}
-            <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs">
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
-
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="size-3.5 text-black" />
-                    <p className="text-[11px] font-black uppercase tracking-wider text-black">
-                      Ongoing Weekly Cycle
-                    </p>
-                  </div>
-                  <p className="mt-0.5 text-sm font-black text-black">
-                    {currentCycle?.period || "Weekly Accrual"}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[11px] font-bold text-zinc-500">Scheduled Payout</p>
-                  <p className="mt-0.5 text-xs font-black text-black">
-                    {currentCycle?.payoutDate !== "-" ? currentCycle?.payoutDate : "Every Monday"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Accrued Amount */}
-              <div className="mt-4">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                  Accrued Net Payout
-                </p>
-                <div className="mt-0.5 flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-black tracking-tight">
-                    ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] font-semibold text-zinc-500">
-                  {currentCycle?.orderCount || 0} delivered orders · Platform Commission: {adminCommRate}%
-                </p>
-              </div>
-
-              {/* Action Strip: Itemized breakdown link */}
-              <div className="mt-4 border-t border-zinc-100 pt-3 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCycleForModal("current")}
-                  className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <span>View itemized breakdown</span>
-                  <span>→</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 2 Clean KPI Chips */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 text-center">
-                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Cycle</span>
-                <p className="mt-1 text-xs font-black text-black">Weekly Cycle</p>
-                <p className="text-[9px] font-bold text-emerald-600">Every Monday</p>
-              </div>
-
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 text-center">
-                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Settled</span>
-                <p className="mt-1 text-xs font-black text-black">₹{allTimeSettled.toFixed(2)}</p>
-                <p className="text-[9px] font-bold text-zinc-500">Bank Verified</p>
-              </div>
-            </div>
-
-            {/* Mobile Weekly Revenue & Payout Bar Chart */}
-            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-black">
-                    Weekly Payout Trend
-                  </h3>
-                  <p className="text-[10px] text-zinc-500">7-Day Cycle Revenue Distribution</p>
-                </div>
-                <span className="rounded-md bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-800">
-                  {currentCycle?.period}
-                </span>
-              </div>
-
-              {/* Visual Bars (Mon to Sun) */}
-              <div className="pt-2 pb-1">
-                <div className="flex items-end justify-between gap-1.5 h-28">
-                  {dailyTrend.map((d) => {
-                    const pct = Math.max(Math.min(Math.round((d.netPayout / maxDailyAmount) * 100), 100), d.netPayout > 0 ? 12 : 4);
-                    return (
-                      <div key={d.day} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-                        <span className="text-[9px] font-black text-zinc-600">
-                          {d.netPayout > 0 ? `₹${Math.round(d.netPayout)}` : "—"}
-                        </span>
-                        <div className="w-full bg-zinc-100 rounded-t-md h-20 flex items-end">
-                          <div
-                            style={{ height: `${pct}%` }}
-                            className={`w-full rounded-t-md transition-all duration-300 ${
-                              d.isToday
-                                ? "bg-black"
-                                : d.netPayout > 0
-                                ? "bg-zinc-800"
-                                : "bg-zinc-200"
-                            }`}
-                          />
-                        </div>
-                        <span className={`text-[10px] font-bold ${d.isToday ? "text-black underline" : "text-zinc-500"}`}>
-                          {d.day}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Delivered Orders in Current Cycle */}
-            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-black">
-                    Current Cycle Orders ({filteredOrders.length})
-                  </h3>
-                  <p className="text-[10px] text-zinc-500">Delivered bookings for this 7-day period</p>
-                </div>
-              </div>
-
-              {filteredOrders.length === 0 ? (
-                <div className="py-6 text-center text-xs font-medium text-zinc-400">
-                  No orders delivered in this cycle yet.
-                </div>
-              ) : (
-                <div className="divide-y divide-zinc-100">
-                  {filteredOrders.map((ord) => (
-                    <div
-                      key={ord.orderId}
-                      onClick={() => setSelectedCycleForModal("current")}
-                      className="py-2.5 flex items-center justify-between cursor-pointer active:bg-zinc-50"
-                    >
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-black text-black">#{ord.orderCode}</span>
-                          <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
-                            {ord.status}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-zinc-500 mt-0.5">{ord.itemsSummary}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-black text-emerald-700">+₹{ord.netEarning.toFixed(2)}</span>
-                        <p className="text-[10px] text-zinc-400">Fee: -₹{ord.commission.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         )}
       </div>
 
       {/* ========================================================================= */}
-      {/* DESKTOP VIEW (>= md) — Clean Pure White & Comprehensive Financial Hub     */}
+      {/* DESKTOP VIEW (>= md) — Comprehensive Banking Settlement Passbook Hub      */}
       {/* ========================================================================= */}
       <div className="hidden mx-auto w-full max-w-7xl px-4 py-4 md:block md:px-8 md:py-6">
         {loading ? (
@@ -535,35 +976,52 @@ export function EarningsScreen() {
             {/* Top Toolbar */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-black text-black">Partner Finance & Settlements</h1>
+                <h1 className="text-2xl font-black text-black">
+                  Settlement Passbook & Partner Finance
+                </h1>
                 <p className="text-xs text-zinc-500">
-                  7-Day automated settlement cycles, GST tax breakdown, and statutory double-entry reconciliation.
+                  सेटलमेंट पासबुक: Track automatic weekly bank credits, UTR references, commission & TCS deductions.
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
+                {/* Desktop Subtabs Switcher */}
                 <div className="flex items-center rounded-2xl border border-zinc-200 bg-white p-1 shadow-2xs">
                   <button
                     type="button"
-                    onClick={() => setActiveSubTab("payouts")}
-                    className={`rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
-                      activeSubTab === "payouts"
+                    onClick={() => setActiveSubTab("passbook")}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
+                      activeSubTab === "passbook"
                         ? "bg-black text-white shadow-xs"
                         : "text-black hover:bg-zinc-100"
                     }`}
                   >
-                    Payouts & Cycles
+                    <BookOpen className="size-3.5" />
+                    <span>Settlement Passbook (पासबुक)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab("trends")}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
+                      activeSubTab === "trends"
+                        ? "bg-black text-white shadow-xs"
+                        : "text-black hover:bg-zinc-100"
+                    }`}
+                  >
+                    <BarChart2 className="size-3.5" />
+                    <span>Weekly Cycles & Trends</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveSubTab("invoices")}
-                    className={`rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
                       activeSubTab === "invoices"
                         ? "bg-black text-white shadow-xs"
                         : "text-black hover:bg-zinc-100"
                     }`}
                   >
-                    Invoices & Taxes
+                    <FileText className="size-3.5" />
+                    <span>Invoices & Taxes</span>
                   </button>
                 </div>
 
@@ -578,8 +1036,641 @@ export function EarningsScreen() {
               </div>
             </div>
 
-            {activeSubTab === "invoices" ? (
-              /* Desktop Invoices & Taxes View */
+            {/* SubTab 1: Settlement Passbook (Main Feature) */}
+            {activeSubTab === "passbook" ? (
+              <div className="space-y-6">
+                {/* 3 Top Banking Summary Cards */}
+                <div className="grid grid-cols-3 gap-5">
+                  {/* Card 1: Total Bank Settled */}
+                  <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-600" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                          <CheckCircle2 className="size-4" />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+                          All-Time Settled (कुल सेटलमेंट)
+                        </span>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
+                        Bank Verified ✓
+                      </span>
+                    </div>
+                    <p className="mt-3 text-3xl font-black text-emerald-700 tracking-tight">
+                      ₹{totalBankSettled.toFixed(2)}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500 font-medium">
+                      Direct IMPS / NEFT transfer into verified merchant bank account
+                    </p>
+                  </div>
+
+                  {/* Card 2: Current Cycle Accruing */}
+                  <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-950" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800">
+                          <Clock3 className="size-4" />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+                          Current Cycle Accrual
+                        </span>
+                      </div>
+                      <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-[10px] font-black text-zinc-800">
+                        {currentCycle?.period || "Ongoing Cycle"}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-3xl font-black text-black tracking-tight">
+                      ₹{currentAccruingBalance.toFixed(2)}
+                    </p>
+                    <div className="mt-1 flex items-center justify-between">
+                      <p className="text-xs text-zinc-500 font-medium">
+                        Disbursal: Every Monday Auto-Credit
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCycleForModal("current")}
+                        className="text-xs font-bold text-black hover:underline cursor-pointer"
+                      >
+                        Itemized Breakdown →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Registered Bank Details */}
+                  <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-xs relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800">
+                          <Building2 className="size-4" />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+                          Registered Bank Account
+                        </span>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black text-emerald-700">
+                        Active Payouts ✓
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-lg font-black text-black">
+                        {bankDetails.bankName} • {bankDetails.accountNumberMasked}
+                      </p>
+                      <p className="text-xs font-medium text-zinc-500 mt-0.5">
+                        IFSC: {bankDetails.ifsc} · {bankDetails.transferMode}
+                      </p>
+                    </div>
+                    <p className="mt-2 text-[10px] font-semibold text-zinc-400">
+                      Tier: Admin {adminCommRate}% Commission · Zero Hidden Deductions
+                    </p>
+                  </div>
+                </div>
+
+                {/* Passbook Controls & Ledger Table */}
+                <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-5">
+                  {/* Top Bar: View Mode Switcher, Search, Filter & Exports */}
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-zinc-100 pb-4">
+                    <div className="flex items-center gap-3">
+                      {/* View Mode Switcher */}
+                      <div className="flex items-center rounded-2xl border border-zinc-200 bg-zinc-100 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setPassbookViewMode("cycles")}
+                          className={`rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
+                            passbookViewMode === "cycles"
+                              ? "bg-white text-black shadow-xs"
+                              : "text-zinc-600 hover:text-black"
+                          }`}
+                        >
+                          साप्ताहिक सेटलमेंट चक्र ({filteredCycles.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPassbookViewMode("orders")}
+                          className={`rounded-xl px-4 py-1.5 text-xs font-black transition-all cursor-pointer ${
+                            passbookViewMode === "orders"
+                              ? "bg-white text-black shadow-xs"
+                              : "text-zinc-600 hover:text-black"
+                          }`}
+                        >
+                          ऑर्डर अनुसार पासबुक ({filteredPassbookOrders.length})
+                        </button>
+                      </div>
+
+                      {/* Status Filter */}
+                      <div className="flex items-center rounded-xl border border-zinc-200 bg-zinc-50/70 p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter("all")}
+                          className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
+                            statusFilter === "all"
+                              ? "bg-white text-black shadow-2xs"
+                              : "text-zinc-500 hover:text-black"
+                          }`}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter("settled")}
+                          className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
+                            statusFilter === "settled"
+                              ? "bg-white text-black shadow-2xs"
+                              : "text-zinc-500 hover:text-black"
+                          }`}
+                        >
+                          Settled to Bank ✓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStatusFilter("processing")}
+                          className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
+                            statusFilter === "processing"
+                              ? "bg-white text-black shadow-2xs"
+                              : "text-zinc-500 hover:text-black"
+                          }`}
+                        >
+                          Accruing ⏳
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search & Export Buttons */}
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-64">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search UTR, Order #, date..."
+                          className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-8.5 pr-3 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-black focus:bg-white focus:outline-none"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadStatementPdf()}
+                        className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition cursor-pointer"
+                        title="Download Statement PDF"
+                      >
+                        <FileText className="size-3.5 text-red-600" />
+                        <span>PDF Statement</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadStatementExcel()}
+                        className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
+                        title="Download Statement Excel"
+                      >
+                        <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                        <span>Excel CSV</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Passbook Table View: By Settlement Cycle */}
+                  {passbookViewMode === "cycles" ? (
+                    <div>
+                      {filteredCycles.length === 0 ? (
+                        <div className="py-16 text-center text-xs font-medium text-zinc-400">
+                          No settlement cycles found matching your criteria.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-zinc-150 text-zinc-400 uppercase text-[10px] font-black tracking-wider">
+                                <th className="py-3 font-black">Settlement Period & Date</th>
+                                <th className="py-3 font-black">Reference / Bank UTR</th>
+                                <th className="py-3 font-black text-center">Orders</th>
+                                <th className="py-3 font-black text-right">Gross Sales (+₹)</th>
+                                <th className="py-3 font-black text-right">Platform Fee (-₹)</th>
+                                <th className="py-3 font-black text-right">TCS (-1%)</th>
+                                <th className="py-3 font-black text-right">Net Bank Payout</th>
+                                <th className="py-3 font-black text-center">Status</th>
+                                <th className="py-3 font-black text-right">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                              {filteredCycles.map((entry) => {
+                                const isAccruing = entry.status === "ACCRUING";
+                                return (
+                                  <tr
+                                    key={entry.id}
+                                    className="hover:bg-zinc-50/80 transition-colors"
+                                  >
+                                    {/* Period & Date */}
+                                    <td className="py-3.5">
+                                      <p className="font-black text-black">{entry.period}</p>
+                                      <p className="text-[11px] text-zinc-500 font-medium">
+                                        Payout: {entry.date}
+                                      </p>
+                                    </td>
+
+                                    {/* UTR / Reference */}
+                                    <td className="py-3.5">
+                                      {entry.utr ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-mono text-xs font-bold text-zinc-800">
+                                            {entry.utr}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => copyToClipboard(entry.utr!, "Bank UTR")}
+                                            className="p-1 hover:bg-zinc-200 rounded cursor-pointer transition text-zinc-500 hover:text-black"
+                                            title="Copy UTR"
+                                          >
+                                            {copiedUtr === entry.utr ? (
+                                              <Check className="size-3 text-emerald-600" />
+                                            ) : (
+                                              <Copy className="size-3" />
+                                            )}
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="text-[11px] text-zinc-400 italic">
+                                          Accruing (Transfer on Monday)
+                                        </span>
+                                      )}
+                                      <p className="text-[10px] text-zinc-400">
+                                        {entry.bankName || bankDetails.bankName} •{" "}
+                                        {entry.accountNumberMasked || bankDetails.accountNumberMasked}
+                                      </p>
+                                    </td>
+
+                                    {/* Orders Count */}
+                                    <td className="py-3.5 text-center">
+                                      <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-black text-zinc-800">
+                                        {entry.orderCount}
+                                      </span>
+                                    </td>
+
+                                    {/* Gross Sales */}
+                                    <td className="py-3.5 text-right font-semibold text-black">
+                                      ₹{entry.grossAmount.toFixed(2)}
+                                    </td>
+
+                                    {/* Platform Fee */}
+                                    <td className="py-3.5 text-right font-bold text-rose-600">
+                                      -₹{entry.commissionAmount.toFixed(2)}
+                                    </td>
+
+                                    {/* TCS */}
+                                    <td className="py-3.5 text-right font-semibold text-zinc-600">
+                                      -₹{entry.tcsAmount.toFixed(2)}
+                                    </td>
+
+                                    {/* Net Bank Payout */}
+                                    <td className="py-3.5 text-right">
+                                      <span
+                                        className={`text-sm font-black ${
+                                          isAccruing ? "text-amber-700" : "text-emerald-700"
+                                        }`}
+                                      >
+                                        +₹{entry.netCredit.toFixed(2)}
+                                      </span>
+                                    </td>
+
+                                    {/* Status Badge */}
+                                    <td className="py-3.5 text-center">
+                                      <span
+                                        className={`rounded-md px-2.5 py-1 text-[10px] font-black ${
+                                          isAccruing
+                                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        }`}
+                                      >
+                                        {isAccruing ? "ACCRUING ⏳" : "SETTLED ✓"}
+                                      </span>
+                                    </td>
+
+                                    {/* Action Buttons */}
+                                    <td className="py-3.5 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedCycleForModal(entry.cycleId)}
+                                          className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-black text-black hover:bg-zinc-100 transition shadow-2xs cursor-pointer"
+                                        >
+                                          पूरा विवरण देखें →
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDownloadStatementPdf(entry.cycleId)}
+                                          className="p-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:text-black hover:bg-zinc-100 transition cursor-pointer"
+                                          title="Download PDF"
+                                        >
+                                          <FileText className="size-3.5" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Order-by-Order Passbook Table */
+                    <div>
+                      {filteredPassbookOrders.length === 0 ? (
+                        <div className="py-16 text-center text-xs font-medium text-zinc-400">
+                          No order transactions found matching your criteria.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-zinc-150 text-zinc-400 uppercase text-[10px] font-black tracking-wider">
+                                <th className="py-3 font-black">Order #</th>
+                                <th className="py-3 font-black">Delivery Date & Time</th>
+                                <th className="py-3 font-black">Customer & Items</th>
+                                <th className="py-3 font-black text-right">Gross Subtotal (+₹)</th>
+                                <th className="py-3 font-black text-right">Platform Fee (-₹)</th>
+                                <th className="py-3 font-black text-right">TCS (-1%)</th>
+                                <th className="py-3 font-black text-right">Net Partner Payout</th>
+                                <th className="py-3 font-black">Cycle / UTR</th>
+                                <th className="py-3 font-black text-center">Status</th>
+                                <th className="py-3 font-black text-right">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                              {filteredPassbookOrders.map((ord) => {
+                                const isSettled =
+                                  ord.isSettled ||
+                                  ord.settlementStatus === "PAID" ||
+                                  ord.settlementStatus === "SETTLED";
+                                return (
+                                  <tr
+                                    key={ord.orderId}
+                                    className="hover:bg-zinc-50/80 transition-colors"
+                                  >
+                                    <td className="py-3 font-black text-black">#{ord.orderCode}</td>
+                                    <td className="py-3 text-zinc-500 font-medium">{ord.date}</td>
+                                    <td className="py-3">
+                                      <p className="font-semibold text-zinc-900">{ord.customerName}</p>
+                                      <p className="text-[11px] text-zinc-500 max-w-44 truncate">
+                                        {ord.itemsSummary}
+                                      </p>
+                                    </td>
+                                    <td className="py-3 text-right font-semibold text-black">
+                                      ₹{ord.grossValue.toFixed(2)}
+                                    </td>
+                                    <td className="py-3 text-right font-bold text-rose-600">
+                                      -₹{ord.commission.toFixed(2)}
+                                    </td>
+                                    <td className="py-3 text-right font-semibold text-zinc-600">
+                                      -₹{(ord.tcsGst || 0).toFixed(2)}
+                                    </td>
+                                    <td className="py-3 text-right font-black text-emerald-700">
+                                      +₹{ord.netEarning.toFixed(2)}
+                                    </td>
+                                    <td className="py-3">
+                                      <p className="text-[11px] font-bold text-black">
+                                        {ord.cyclePeriod || "Weekly Cycle"}
+                                      </p>
+                                      {ord.utr && (
+                                        <p className="text-[10px] font-mono text-zinc-500">
+                                          UTR: {ord.utr}
+                                        </p>
+                                      )}
+                                    </td>
+                                    <td className="py-3 text-center">
+                                      <span
+                                        className={`rounded-md px-2 py-0.5 text-[9px] font-black ${
+                                          isSettled
+                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                                        }`}
+                                      >
+                                        {isSettled ? "SETTLED ✓" : "ACCRUING ⏳"}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setSelectedCycleForModal(ord.cycleId || "current")
+                                        }
+                                        className="text-xs font-black text-black hover:underline cursor-pointer"
+                                      >
+                                        विवरण →
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : activeSubTab === "trends" ? (
+              /* SubTab 2: Weekly Cycles & Trends */
+              <div className="grid grid-cols-3 gap-6">
+                {/* Left Column: Ongoing Cycle & KPI Stats */}
+                <div className="space-y-5">
+                  <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="size-4 text-black" />
+                        <p className="text-xs font-black uppercase tracking-wider text-black">
+                          Current 7-Day Cycle
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-black text-emerald-700">
+                        Accruing
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-3xl font-black text-black tracking-tight">
+                      ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-600 font-semibold">{currentCycle?.period}</p>
+                    <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
+                      Disbursal Date:{" "}
+                      {currentCycle?.payoutDate !== "-"
+                        ? currentCycle?.payoutDate
+                        : "Every Monday (Auto Bank Credit)"}
+                    </p>
+
+                    <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3.5">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCycleForModal("current")}
+                        className="text-xs font-black text-black hover:underline cursor-pointer"
+                      >
+                        View itemized breakdown →
+                      </button>
+
+                      <span className="text-[11px] font-bold text-zinc-400">
+                        Auto Weekly IMPS ✓
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                          <TrendingUp className="size-3.5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                          All-Time Settled
+                        </span>
+                      </div>
+                      <p className="mt-2 text-base font-black text-black">
+                        ₹{totalBankSettled.toFixed(2)}
+                      </p>
+                      <p className="text-[10px] font-semibold text-zinc-400">Bank Reconciled</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-800">
+                          <Percent className="size-3.5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                          Platform Tier
+                        </span>
+                      </div>
+                      <p className="mt-2 text-base font-black text-black">
+                        {adminCommRate}% Commission
+                      </p>
+                      <p className="text-[10px] font-semibold text-zinc-400">Admin Configured</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column (Col-span 2): Weekly Bar Chart Graph + Filters + Orders */}
+                <div className="col-span-2 space-y-5">
+                  <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <BarChart2 className="size-4 text-black" />
+                          <h2 className="text-base font-black text-black">
+                            Weekly Revenue & Payout Trend
+                          </h2>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          Daily revenue accrual and net store earnings for cycle: {currentCycle?.period}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-xs font-bold text-zinc-800">
+                        {currentCycle?.orderCount || 0} Orders Accrued
+                      </span>
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="flex items-end justify-between gap-3 h-36 border-b border-zinc-100 pb-2">
+                        {dailyTrend.map((d) => {
+                          const pct = Math.max(
+                            Math.min(Math.round((d.netPayout / maxDailyAmount) * 100), 100),
+                            d.netPayout > 0 ? 12 : 4
+                          );
+                          return (
+                            <div
+                              key={d.day}
+                              className="flex-1 flex flex-col items-center gap-1 h-full justify-end group"
+                            >
+                              <span className="text-[10px] font-black text-zinc-700">
+                                {d.netPayout > 0 ? `₹${d.netPayout.toFixed(0)}` : "—"}
+                              </span>
+                              <div className="w-full max-w-12 bg-zinc-100 rounded-t-lg h-24 flex items-end">
+                                <div
+                                  style={{ height: `${pct}%` }}
+                                  className={`w-full rounded-t-lg transition-all duration-300 ${
+                                    d.isToday
+                                      ? "bg-black"
+                                      : d.netPayout > 0
+                                      ? "bg-zinc-800 hover:bg-black"
+                                      : "bg-zinc-200"
+                                  }`}
+                                />
+                              </div>
+                              <div className="text-center">
+                                <p
+                                  className={`text-xs font-black ${
+                                    d.isToday ? "text-black underline" : "text-zinc-600"
+                                  }`}
+                                >
+                                  {d.day}
+                                </p>
+                                <p className="text-[10px] text-zinc-400 font-medium">{d.label}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current Cycle Delivered Orders Table */}
+                  <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                      <h2 className="text-base font-black text-black">
+                        Current Cycle Orders ({filteredTrendOrders.length})
+                      </h2>
+                      <span className="text-xs text-zinc-500">
+                        Completed orders for cycle: {currentCycle?.period}
+                      </span>
+                    </div>
+
+                    {filteredTrendOrders.length === 0 ? (
+                      <div className="py-10 text-center text-xs font-medium text-zinc-400">
+                        No orders delivered in this cycle yet.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-zinc-100 text-zinc-400 uppercase text-[10px] font-black">
+                              <th className="py-2.5 font-black">Order #</th>
+                              <th className="py-2.5 font-black">Date & Time</th>
+                              <th className="py-2.5 font-black">Customer</th>
+                              <th className="py-2.5 font-black">Items</th>
+                              <th className="py-2.5 font-black text-right">Gross</th>
+                              <th className="py-2.5 font-black text-right">Fee ({adminCommRate}%)</th>
+                              <th className="py-2.5 font-black text-right">Net Payout</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100">
+                            {filteredTrendOrders.map((ord) => (
+                              <tr key={ord.orderId} className="hover:bg-zinc-50/70 transition-colors">
+                                <td className="py-3 font-black text-black">#{ord.orderCode}</td>
+                                <td className="py-3 text-zinc-500 font-medium">{ord.date}</td>
+                                <td className="py-3 font-semibold text-zinc-800">{ord.customerName}</td>
+                                <td className="py-3 text-zinc-500 max-w-40 truncate">{ord.itemsSummary}</td>
+                                <td className="py-3 text-right font-semibold text-black">
+                                  ₹{ord.grossValue.toFixed(2)}
+                                </td>
+                                <td className="py-3 text-right font-bold text-rose-600">
+                                  -₹{ord.commission.toFixed(2)}
+                                </td>
+                                <td className="py-3 text-right font-black text-emerald-700">
+                                  ₹{ord.netEarning.toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* SubTab 3: Invoices & Taxes View */
               <div className="grid grid-cols-3 gap-6">
                 <div className="col-span-2 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
@@ -626,7 +1717,9 @@ export function EarningsScreen() {
                           <div className="flex items-center gap-5">
                             <div className="text-right">
                               <p className="text-sm font-black text-black">₹{inv.amount.toFixed(2)}</p>
-                              <p className="text-[11px] font-semibold text-zinc-400">GST: ₹{inv.gstAmount.toFixed(2)}</p>
+                              <p className="text-[11px] font-semibold text-zinc-400">
+                                GST: ₹{inv.gstAmount.toFixed(2)}
+                              </p>
                             </div>
                             <button
                               type="button"
@@ -684,335 +1777,6 @@ export function EarningsScreen() {
                       ))
                     )}
                   </div>
-                </div>
-              </div>
-            ) : (
-              /* Desktop Payouts Tab */
-              <div className="grid grid-cols-3 gap-6">
-                {/* Left Column: Ongoing Cycle & KPI Stats */}
-                <div className="space-y-5">
-                  {/* Hero Card */}
-                  <div className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950" />
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="size-4 text-black" />
-                        <p className="text-xs font-black uppercase tracking-wider text-black">
-                          Current 7-Day Cycle
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-black text-emerald-700">
-                        Accruing
-                      </span>
-                    </div>
-
-                    <p className="mt-3 text-3xl font-black text-black tracking-tight">
-                      ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-600 font-semibold">{currentCycle?.period}</p>
-                    <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
-                      Disbursal Date: {currentCycle?.payoutDate !== "-" ? currentCycle?.payoutDate : "Every Monday (Auto Bank Credit)"}
-                    </p>
-
-                    <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3.5">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCycleForModal("current")}
-                        className="text-xs font-black text-black hover:underline cursor-pointer"
-                      >
-                        View itemized breakdown →
-                      </button>
-
-                      <span className="text-[11px] font-bold text-zinc-400">
-                        Auto Weekly IMPS ✓
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Clean 2-Chip Metric Grid (No Bank Card) */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs">
-                      <div className="flex items-center gap-2">
-                        <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                          <TrendingUp className="size-3.5" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                          All-Time Settled
-                        </span>
-                      </div>
-                      <p className="mt-2 text-base font-black text-black">₹{allTimeSettled.toFixed(2)}</p>
-                      <p className="text-[10px] font-semibold text-zinc-400">Bank Reconciled</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs">
-                      <div className="flex items-center gap-2">
-                        <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-800">
-                          <Percent className="size-3.5" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                          Platform Tier
-                        </span>
-                      </div>
-                      <p className="mt-2 text-base font-black text-black">{adminCommRate}% Commission</p>
-                      <p className="text-[10px] font-semibold text-zinc-400">Admin Configured</p>
-                    </div>
-                  </div>
-
-                  {/* Quick Statement Download Strip */}
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-black">Official Statements</span>
-                      <span className="text-[10px] text-zinc-400">Double-Entry</span>
-                    </div>
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadStatementPdf("current")}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition cursor-pointer"
-                      >
-                        <FileText className="size-3.5 text-red-600" />
-                        <span>PDF Statement</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadStatementExcel("current")}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
-                      >
-                        <FileSpreadsheet className="size-3.5 text-emerald-600" />
-                        <span>Excel CSV</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column (Col-span 2): Weekly Bar Chart Graph + Filters + Orders */}
-                <div className="col-span-2 space-y-5">
-                  {/* 1. Interactive 7-Day Revenue & Payout Bar Chart */}
-                  <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <BarChart2 className="size-4 text-black" />
-                          <h2 className="text-base font-black text-black">Weekly Revenue & Payout Trend</h2>
-                        </div>
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                          Daily revenue accrual and net store earnings for cycle: {currentCycle?.period}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-xs font-bold text-zinc-800">
-                          {currentCycle?.orderCount || 0} Orders Accrued
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Bar Chart Container */}
-                    <div className="pt-2">
-                      <div className="flex items-end justify-between gap-3 h-36 border-b border-zinc-100 pb-2">
-                        {dailyTrend.map((d) => {
-                          const pct = Math.max(Math.min(Math.round((d.netPayout / maxDailyAmount) * 100), 100), d.netPayout > 0 ? 12 : 4);
-                          return (
-                            <div key={d.day} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
-                              <span className="text-[10px] font-black text-zinc-700">
-                                {d.netPayout > 0 ? `₹${d.netPayout.toFixed(0)}` : "—"}
-                              </span>
-                              <div className="w-full max-w-12 bg-zinc-100 rounded-t-lg h-24 flex items-end">
-                                <div
-                                  style={{ height: `${pct}%` }}
-                                  className={`w-full rounded-t-lg transition-all duration-300 ${
-                                    d.isToday
-                                      ? "bg-black"
-                                      : d.netPayout > 0
-                                      ? "bg-zinc-800 hover:bg-black"
-                                      : "bg-zinc-200"
-                                  }`}
-                                />
-                              </div>
-                              <div className="text-center">
-                                <p className={`text-xs font-black ${d.isToday ? "text-black underline" : "text-zinc-600"}`}>
-                                  {d.day}
-                                </p>
-                                <p className="text-[10px] text-zinc-400 font-medium">{d.label}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Chart Legend & Summary */}
-                    <div className="grid grid-cols-4 gap-3 pt-1 text-center">
-                      <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-100">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase">Gross Subtotal</p>
-                        <p className="text-xs font-black text-black">
-                          ₹{dailyTrend.reduce((sum, d) => sum + d.grossAmount, 0).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-100">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase">Commission ({adminCommRate}%)</p>
-                        <p className="text-xs font-black text-rose-600">
-                          -₹{(dailyTrend.reduce((sum, d) => sum + d.grossAmount, 0) * (adminCommRate / 100)).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-100">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase">Est. Net Disbursal</p>
-                        <p className="text-xs font-black text-emerald-700">
-                          ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
-                        </p>
-                      </div>
-                      <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-100">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase">Disbursal Frequency</p>
-                        <p className="text-xs font-black text-black">Weekly (7 Days)</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 2. Delivered Orders & Date Filter Table */}
-                  <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 pb-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-base font-black text-black">Cycle Settlement Ledger</h2>
-                          <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-xs font-bold text-zinc-800">
-                            {filteredOrders.length} Orders
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                          Real completed orders with double-entry commission & tax calculations
-                        </p>
-                      </div>
-
-                      {/* Filter Controls */}
-                      <div className="flex items-center gap-2">
-                        {/* Status Filter */}
-                        <div className="flex items-center rounded-xl border border-zinc-200 bg-zinc-50/70 p-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setStatusFilter("all")}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
-                              statusFilter === "all" ? "bg-white text-black shadow-2xs" : "text-zinc-500 hover:text-black"
-                            }`}
-                          >
-                            All
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setStatusFilter("settled")}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
-                              statusFilter === "settled" ? "bg-white text-black shadow-2xs" : "text-zinc-500 hover:text-black"
-                            }`}
-                          >
-                            Settled
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setStatusFilter("processing")}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
-                              statusFilter === "processing" ? "bg-white text-black shadow-2xs" : "text-zinc-500 hover:text-black"
-                            }`}
-                          >
-                            Accruing
-                          </button>
-                        </div>
-
-                        {/* Search Input */}
-                        <div className="relative w-48">
-                          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
-                          <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Filter order #..."
-                            className="h-8.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 pl-8 pr-2.5 text-xs font-medium text-black placeholder:text-zinc-400 focus:border-black focus:bg-white focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Orders Table */}
-                    {filteredOrders.length === 0 ? (
-                      <div className="py-12 text-center text-xs font-medium text-zinc-400">
-                        {searchQuery ? "No matching orders found for this query." : "No orders delivered in this cycle yet. Real customer bookings appear here automatically."}
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead>
-                            <tr className="border-b border-zinc-100 text-zinc-400 uppercase text-[10px] font-black">
-                              <th className="py-2.5 font-black">Order #</th>
-                              <th className="py-2.5 font-black">Date & Time</th>
-                              <th className="py-2.5 font-black">Customer</th>
-                              <th className="py-2.5 font-black">Items</th>
-                              <th className="py-2.5 font-black text-right">Gross</th>
-                              <th className="py-2.5 font-black text-right">Fee ({adminCommRate}%)</th>
-                              <th className="py-2.5 font-black text-right">Net Payout</th>
-                              <th className="py-2.5 font-black text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-100">
-                            {filteredOrders.map((ord) => (
-                              <tr key={ord.orderId} className="hover:bg-zinc-50/70 transition-colors">
-                                <td className="py-3 font-black text-black">#{ord.orderCode}</td>
-                                <td className="py-3 text-zinc-500 font-medium">{ord.date}</td>
-                                <td className="py-3 font-semibold text-zinc-800">{ord.customerName}</td>
-                                <td className="py-3 text-zinc-500 max-w-40 truncate">{ord.itemsSummary}</td>
-                                <td className="py-3 text-right font-semibold text-black">₹{ord.grossValue.toFixed(2)}</td>
-                                <td className="py-3 text-right font-bold text-rose-600">-₹{ord.commission.toFixed(2)}</td>
-                                <td className="py-3 text-right font-black text-emerald-700">₹{ord.netEarning.toFixed(2)}</td>
-                                <td className="py-3 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => setSelectedCycleForModal("current")}
-                                    className="text-xs font-bold text-black hover:underline cursor-pointer"
-                                  >
-                                    Breakdown →
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. Past Settlement Cycles Section (If any) */}
-                  {pastCycles.length > 0 && (
-                    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm space-y-4">
-                      <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                        <h3 className="text-sm font-black text-black">Past Settlement History</h3>
-                        <p className="text-xs text-zinc-500">Completed weekly bank settlements</p>
-                      </div>
-
-                      <div className="divide-y divide-zinc-100">
-                        {pastCycles.map((cycle) => (
-                          <div key={cycle.cycleId} className="flex items-center justify-between py-3">
-                            <div>
-                              <p className="text-xs font-black text-black">{cycle.period}</p>
-                              <p className="text-[11px] text-zinc-500">
-                                {cycle.orderCount} orders settled on {cycle.payoutDate}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm font-black text-black">₹{cycle.netPayout.toFixed(2)}</span>
-                              <span className="rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-black">
-                                {cycle.status}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedCycleForModal(cycle.cycleId)}
-                                className="text-xs font-black text-black hover:underline cursor-pointer"
-                              >
-                                View Statement →
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}

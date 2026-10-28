@@ -33,6 +33,53 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 33. Partner Settlement Passbook (सेटलमेंट पासबुक) & Universal Mobile APK / AAB Releases
+- **User Requirements:**
+  - *"partner penal me settelment passbokk bhi banoao jisme kitna kitna satelmet hua or or settelment ki full deatil"* (Create a Settlement Passbook in the Partner Panel showing how much was settled [credits, debits, gross, commission, TCS, net bank payout] and full settlement details with itemized double-entry breakdown, UTR numbers, dates, bank info, and order-by-order lists).
+  - *"apk relised karo sare"* (Release all APKs: Customer, Partner, and Captain/Rider Android APKs and Play Store AAB bundles).
+- **Architecture & Implementation:**
+  1. **Backend Settlement Engine Enhancement (`backend-python/app/services/settlement_engine.py`):**
+     - Enriched `past_summaries` in `get_overview()` with `startDate`, `endDate`, `grossAmount`, `commissionAmount`, `tcsAmount`, `taxTotal`, `utr`, `bankName`, `accountNumberMasked`, and itemized `orders`.
+     - Built consolidated `all_settled_orders` list across past cycles and ongoing cycle with cycle attribution.
+     - Built consolidated `passbook` array combining completed weekly settlement cycles (`SETTLED`) and current ongoing accruals (`ACCRUING`).
+     - Exposed `bankDetails` directly in `overview_data` for instant rendering.
+  2. **Frontend API & Type Definitions (`partner-frontend/src/api/partner/partner-finance-api.ts`):**
+     - Added `PassbookEntry` type for both cycle-level and order-level passbook ledger tracking.
+     - Extended `FinanceOverviewResponse` with `passbook`, `allSettledOrders`, and `bankDetails`.
+     - Extended `SettlementOrder` with `cycleId`, `cyclePeriod`, and `settlementStatus`.
+  3. **Partner Console Settlement Passbook UI (`partner-frontend/src/screens/EarningsScreen.tsx`):**
+     - Configured 3 top subtabs: `📜 Settlement Passbook (सेटलमेंट पासबुक)` (Default), `📊 Weekly Cycles & Trends`, `🧾 Invoices & Taxes`.
+     - Built 3 Banking Summary Cards:
+       - **All-Time Settled (कुल सेटलमेंट):** Grand total sum of bank payouts with green `Bank Verified ✓` badge.
+       - **Current Cycle Accrual:** Ongoing period net earnings awaiting next Monday disbursal.
+       - **Registered Bank Account:** Bank name, masked account number, IFSC, and `Active Payouts ✓` seal.
+     - Built Passbook View Mode Switcher:
+       - `साप्ताहिक सेटलमेंट चक्र` (Weekly cycle batches)
+       - `ऑर्डर अनुसार पासबुक` (Itemized order credits)
+     - Added filter controls (`All`, `Settled to Bank ✓`, `Accruing ⏳`) and search input (by UTR, Order code, customer, date).
+     - Implemented 1-click UTR copy button with clipboard copy and toast notification.
+     - Rendered full double-entry ledger columns: Gross Sales (+₹), Platform Commission (-₹), 1% TCS (-₹), Net Bank Payout (+₹ bold emerald).
+     - Added "पूरा विवरण देखें (Full Details)" button that opens `SettlementSummaryModal` with sections A to F and order list.
+     - Provided direct PDF Statement and Excel CSV export triggers.
+  4. **Universal Mobile APK & AAB Compilation & Release (`build_all_apks.py`):**
+     - Built `QuickPress-Partner.apk` (15 MB) & `QuickPress-Partner.aab` (13 MB) from `partner-frontend/android`.
+     - Built `QuickPress-Customer.apk` (20 MB) & `QuickPress-Customer.aab` (16 MB) from `customer-frontend/android`.
+     - Built `QuickPress-Captain.apk` (17 MB) & `QuickPress-Captain.aab` (16 MB) from `rider-frontend/android`.
+     - Mirrored all 3 fresh APK binaries to `website/public/apks/` and `website/dist/apks/` for live download on `withquickpress.com` / `quickpress.online`.
+- **Files Modified:**
+  - `backend-python/app/services/settlement_engine.py`
+  - `partner-frontend/src/api/partner/partner-finance-api.ts`
+  - `partner-frontend/src/screens/EarningsScreen.tsx`
+  - `build_all_apks.py`
+  - `website/public/apks/` & `website/dist/apks/`
+- **Verification:**
+  - `npm run build` in `partner-frontend`: Passed (1.28s).
+  - `python3 -m py_compile backend-python/app/services/settlement_engine.py`: Passed.
+  - `pytest backend-python/tests/test_partner_real_settlements.py`: Passed (3/3 passed).
+  - All 3 APKs and AAB bundles compiled and verified in `apks/` and `website/public/apks/`.
+
+---
+
 ### 32. Partner Console Today's Sales Fix, Real-Time Timeframe Date Filters & Clean Settlement UI
 - **User Requirement:**
   - "229 today me kyu show kar raha hai jabki aaj to koi sale nahi hai" (Fix phantom sales on dashboard when there are 0 sales today)

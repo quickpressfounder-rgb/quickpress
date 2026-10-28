@@ -560,7 +560,91 @@ class SettlementEngine:
                     "status": c["status"],
                     "netPayout": past_calc["estNetPayout"],
                     "orderCount": past_calc["totalOrders"],
+                    "startDate": c["startDate"],
+                    "endDate": c["endDate"],
+                    "grossAmount": past_calc["netOrderValueA"]["itemSubtotal"],
+                    "commissionAmount": past_calc["orderLevelDeductionsC"]["platformCommission"],
+                    "tcsAmount": past_calc["taxDeductionsD"]["tcsGst"],
+                    "taxTotal": past_calc["taxDeductionsD"]["total"],
+                    "utr": past_calc["bankDetails"].get("utr"),
+                    "bankName": past_calc["bankDetails"].get("bankName"),
+                    "accountNumberMasked": past_calc["bankDetails"].get("accountNumberMasked"),
+                    "orders": past_calc.get("orders") or [],
                 })
+
+        # Consolidate all orders across past cycles + current cycle
+        all_settled_orders = []
+        seen_order_ids = set()
+
+        # 1. Orders from past cycles
+        for ps in past_summaries:
+            for ord_item in ps.get("orders") or []:
+                oid = ord_item.get("orderId")
+                if oid and oid not in seen_order_ids:
+                    seen_order_ids.add(oid)
+                    all_settled_orders.append({
+                        **ord_item,
+                        "cycleId": ps["cycleId"],
+                        "cyclePeriod": ps["period"],
+                        "payoutDate": ps["payoutDate"],
+                        "settlementStatus": ps["status"],
+                    })
+
+        # 2. Orders from current cycle
+        cycle_orders_all = current_data.get("orders") or []
+        for ord_item in cycle_orders_all:
+            oid = ord_item.get("orderId")
+            if oid and oid not in seen_order_ids:
+                seen_order_ids.add(oid)
+                all_settled_orders.append({
+                    **ord_item,
+                    "cycleId": "current",
+                    "cyclePeriod": current_data["cycle"]["period"],
+                    "payoutDate": current_data["cycle"]["payoutDate"],
+                    "settlementStatus": "ACCRUING",
+                })
+
+        # Build Passbook Entries (Cycle batches + Current accrual)
+        passbook_entries = []
+        for ps in past_summaries:
+            passbook_entries.append({
+                "id": ps["cycleId"],
+                "type": "cycle_settlement",
+                "title": f"Weekly Settlement • {ps['period']}",
+                "period": ps["period"],
+                "date": ps["payoutDate"],
+                "utr": ps.get("utr"),
+                "status": "SETTLED" if ps["status"] == "PAID" else ps["status"],
+                "orderCount": ps["orderCount"],
+                "grossAmount": ps.get("grossAmount", 0.0),
+                "commissionAmount": ps.get("commissionAmount", 0.0),
+                "tcsAmount": ps.get("tcsAmount", 0.0),
+                "taxTotal": ps.get("taxTotal", 0.0),
+                "netCredit": ps["netPayout"],
+                "bankName": ps.get("bankName"),
+                "accountNumberMasked": ps.get("accountNumberMasked"),
+                "cycleId": ps["cycleId"],
+            })
+
+        # Add current accrual entry
+        passbook_entries.append({
+            "id": "current",
+            "type": "current_cycle",
+            "title": f"Accruing Cycle • {current_data['cycle']['period']}",
+            "period": current_data["cycle"]["period"],
+            "date": current_data["cycle"]["payoutDate"],
+            "utr": current_data["bankDetails"].get("utr") or "Accruing (Transfer on Monday)",
+            "status": "ACCRUING",
+            "orderCount": current_data["totalOrders"],
+            "grossAmount": current_data["netOrderValueA"]["itemSubtotal"],
+            "commissionAmount": current_data["orderLevelDeductionsC"]["platformCommission"],
+            "tcsAmount": current_data["taxDeductionsD"]["tcsGst"],
+            "taxTotal": current_data["taxDeductionsD"]["total"],
+            "netCredit": current_data["estNetPayout"],
+            "bankName": current_data["bankDetails"].get("bankName"),
+            "accountNumberMasked": current_data["bankDetails"].get("accountNumberMasked"),
+            "cycleId": "current",
+        })
 
         # Generate available months from partner join date up to current month
         months_list = []
@@ -593,7 +677,6 @@ class SettlementEngine:
         start_of_week = (now_utc - timedelta(days=now_utc.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         daily_trend = []
         days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        cycle_orders_all = current_data.get("orders") or []
 
         partner_comm = profile.get("commissionRate") or profile.get("commission_rate")
         if partner_comm is not None:
@@ -634,12 +717,18 @@ class SettlementEngine:
                 "estPayout": current_data["estNetPayout"],
                 "orderCount": current_data["totalOrders"],
                 "status": current_data["cycle"]["status"],
+                "grossAmount": current_data["netOrderValueA"]["itemSubtotal"],
+                "commissionAmount": current_data["orderLevelDeductionsC"]["platformCommission"],
+                "tcsAmount": current_data["taxDeductionsD"]["tcsGst"],
             },
             "pastCycles": past_summaries,
             "filterOptions": [c["period"] for c in past_summaries],
             "months": months_list,
             "dailyTrend": daily_trend,
             "currentOrders": cycle_orders_all,
+            "allSettledOrders": all_settled_orders,
+            "passbook": passbook_entries,
+            "bankDetails": current_data["bankDetails"],
             "commissionRatePct": round(comm_rate * 100, 1),
             "storeName": profile.get("businessName") or profile.get("storeName") or "QuickPress Partner Store",
             "gstin": profile.get("gstin") or "—",
