@@ -271,12 +271,25 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
             return await _login_with_firebase(
                 payload.id_token, payload.role, provider="phone", referral_code=payload.referral_code, device_id=device_id
             )
-        except Exception:
-            pass
+        except HTTPException:
+            raise
+        except Exception as exc:
+            _log.warning("Firebase token verification failed, falling back to OTP code if provided: %s", exc)
 
     phone = _normalize_phone(payload.phone or "")
     if not phone:
         raise HTTPException(status_code=400, detail="Phone number is required")
+
+    # Guard: Public phone verification must never self-provision unvetted admin accounts
+    if payload.role in (Role.admin, Role.super_admin):
+        existing_admin = await users.by_phone(phone, payload.role)
+        if not existing_admin:
+            staff_doc = await database.find_one("admin_staff", {"phone": phone})
+            if not staff_doc:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Admin account not found for this phone number. Contact Super Admin for staff authorization.",
+                )
 
     from app.core.rate_limiter import rate_limiter
     locked, remaining = rate_limiter.is_locked(f"otp:{phone}")
@@ -286,24 +299,29 @@ async def verify_phone(payload: VerifyPhoneRequest, request: Request) -> AuthSes
             detail=f"Security Lockout: Too many failed attempts. Please try again in {remaining // 60 + 1} minutes.",
         )
 
-    # 2. Twilio OTP Code Verification
-    if payload.code:
-        is_valid = verify_stored_otp(phone, payload.code)
-        is_dev = settings.app_env in ("development", "test", "local")
-        allowed_dev_codes = ("123456", "000000") if is_dev else ()
-        if not is_valid and payload.code not in allowed_dev_codes:
-            failures, lock_time = rate_limiter.record_failed_attempt(f"otp:{phone}", max_failures=5, lock_duration=900)
-            if lock_time:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Account locked for 15 minutes due to 5 consecutive failed OTP attempts.",
-                )
-            remaining_attempts = max(0, 5 - failures)
+    # 2. Twilio OTP Code Verification (Mandatory if Firebase token was not verified)
+    if not payload.code or not payload.code.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code (OTP) or valid Firebase authentication token is required.",
+        )
+
+    is_valid = verify_stored_otp(phone, payload.code)
+    is_dev = settings.app_env in ("development", "test", "local")
+    allowed_dev_codes = ("123456", "000000") if is_dev else ()
+    if not is_valid and payload.code not in allowed_dev_codes:
+        failures, lock_time = rate_limiter.record_failed_attempt(f"otp:{phone}", max_failures=5, lock_duration=900)
+        if lock_time:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid verification code. {remaining_attempts} attempt(s) remaining.",
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Account locked for 15 minutes due to 5 consecutive failed OTP attempts.",
             )
-        rate_limiter.reset_failed_attempts(f"otp:{phone}")
+        remaining_attempts = max(0, 5 - failures)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid verification code. {remaining_attempts} attempt(s) remaining.",
+        )
+    rate_limiter.reset_failed_attempts(f"otp:{phone}")
 
     # 3. Retrieve or provision user for THIS role (1 Customer, 1 Partner, 1 Rider per mobile number)
     user = None

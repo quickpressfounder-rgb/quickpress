@@ -19,9 +19,9 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.deps import current_user, optional_user
+from app.core.deps import current_user, optional_user, require_roles
 from app.db.client import database
-from app.models.user import User
+from app.models.user import Role, User
 from app.services.unified_finance_service import unified_finance_service
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ async def get_active_rules() -> Dict[str, Any]:
 @router.put("/rules", summary="Update Financial Rules (Admin)")
 async def update_financial_rules(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Updates financial rules in Supabase and records an immutable audit log."""
     new_rules = body.get("rules") or body
@@ -276,7 +276,7 @@ async def get_settlement_statement(batch_id: str) -> Dict[str, Any]:
 @router.post("/settlements/generate", summary="Generate Settlement Batch")
 async def generate_settlements(
     body: Optional[Dict[str, Any]] = None,
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Generates dual settlement batches for Laundry Partners and Delivery Captains."""
     b = body or {}
@@ -299,7 +299,7 @@ async def generate_settlements(
 @router.post("/settlements/{batch_id}/approve", summary="Approve Settlement Batch")
 async def approve_settlement_batch(
     batch_id: str,
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Approves a settlement batch for disbursement."""
     admin_id = getattr(user, "id", None) or "super_admin"
@@ -324,7 +324,7 @@ async def approve_settlement_batch(
 async def payout_settlement_batch(
     batch_id: str,
     body: Optional[Dict[str, Any]] = None,
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Marks an approved settlement batch as PAID, posts double-entry GL transactions, and records bank reference."""
     b = body or {}
@@ -353,7 +353,7 @@ async def list_partner_commissions() -> Dict[str, Any]:
 async def update_partner_commission_override(
     partner_id: str,
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Sets or updates custom commission percentage for a specific partner."""
     rate_pct = float(body.get("ratePct") or body.get("rate") or 18.0)
@@ -372,7 +372,7 @@ async def update_partner_commission_override(
 @router.delete("/partner-commissions/{partner_id}", summary="Remove Partner Custom Commission Override")
 async def remove_partner_commission_override(
     partner_id: str,
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Removes custom commission override for a partner, reverting to volume tier."""
     admin_id = getattr(user, "id", None) or getattr(user, "email", None) or "super_admin"
@@ -419,7 +419,7 @@ async def get_expenses(
 @router.post("/expenses", summary="Log New Operating Expense")
 async def add_expense(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Creates a new business operating expense record."""
     admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("addedBy") or "super_admin"
@@ -428,7 +428,10 @@ async def add_expense(
 
 @router.delete("/expenses/{expense_id}", summary="Delete Operating Expense")
 @router.post("/expenses/{expense_id}/delete", summary="Delete Operating Expense (POST fallback)")
-async def delete_expense(expense_id: str) -> Dict[str, Any]:
+async def delete_expense(
+    expense_id: str,
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
     """Deletes an operating expense."""
     return await unified_finance_service.delete_expense(expense_id=expense_id)
 
@@ -498,7 +501,7 @@ async def get_tax_challans() -> Dict[str, Any]:
 @router.post("/tax-challans", summary="Record Statutory GST Challan Payment")
 async def record_tax_challan(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Records a verified GST Challan payment directly deducting from outward liability."""
     admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("paidBy") or "super_admin"
@@ -507,7 +510,10 @@ async def record_tax_challan(
 
 @router.delete("/tax-challans/{challan_id}", summary="Delete GST Challan Payment")
 @router.post("/tax-challans/{challan_id}/delete", summary="Delete GST Challan Payment (POST fallback)")
-async def delete_tax_challan(challan_id: str) -> Dict[str, Any]:
+async def delete_tax_challan(
+    challan_id: str,
+    user: User = Depends(require_roles(Role.admin)),
+) -> Dict[str, Any]:
     """Reverses a GST Challan entry."""
     return await unified_finance_service.delete_tax_challan(challan_id=challan_id)
 
@@ -565,7 +571,7 @@ async def get_approvals_center(status: Optional[str] = Query(default=None)) -> D
 @router.post("/approvals/request", summary="Submit Maker-Checker Approval Request")
 async def submit_approval_request(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Submits a sensitive financial action for mandatory checker review."""
     admin_id = getattr(user, "id", None) or getattr(user, "email", None) or body.get("requestedBy") or "super_admin"
@@ -576,7 +582,7 @@ async def submit_approval_request(
 async def process_approval_action(
     request_id: str,
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Approves or rejects a financial request. Enforces Segregation of Duties (Creator != Approver)."""
     action = str(body.get("action", "APPROVE")).upper()
@@ -607,7 +613,7 @@ async def get_financial_periods() -> Dict[str, Any]:
 async def close_financial_period(
     period_id: str,
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Permanently locks an accounting period to prevent historical journal alterations."""
     notes = str(body.get("notes", "Month-end financial close completed."))
@@ -626,7 +632,7 @@ async def close_financial_period(
 @router.post("/ai-assistant", summary="Query AI Finance Assistant")
 async def ai_finance_assistant(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Natural language financial query engine running deterministic calculations on live Supabase data."""
     query = str(body.get("query", ""))
@@ -882,7 +888,7 @@ async def get_payouts_overview() -> Dict[str, Any]:
 @router.post("/payouts/disburse", summary="Disburse Single Payout with Bank UTR")
 async def disburse_payout(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     """Records real payout disbursal with mandatory Bank UTR, updates entity status,
     and creates double-entry general ledger voucher.
@@ -945,7 +951,7 @@ async def disburse_payout(
 @router.post("/payouts/bulk-disburse", summary="Bulk Disburse Payouts with Common/Batch UTR")
 async def bulk_disburse_payouts(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     from datetime import datetime, timezone
     items = body.get("items") or []
@@ -992,7 +998,7 @@ async def bulk_disburse_payouts(
 @router.post("/payouts/bonus-incentive", summary="Award Bonus / Incentive to Partner or Rider")
 async def add_bonus_incentive(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     from datetime import datetime, timezone
     target_type = str(body.get("targetType") or "rider")
@@ -1024,7 +1030,7 @@ async def add_bonus_incentive(
 @router.post("/payouts/customer-compensation", summary="Issue Customer Compensation")
 async def issue_customer_compensation(
     body: Dict[str, Any],
-    user: Optional[User] = Depends(optional_user),
+    user: User = Depends(require_roles(Role.admin)),
 ) -> Dict[str, Any]:
     from datetime import datetime, timezone
     customer_id = str(body.get("customerId") or "")

@@ -223,26 +223,53 @@ class OrderRepository:
         if document is None:
             return None
 
-        # Verify access: allow if owner, phone matches, admin, or tracking with valid order code
+        # Verify access authorization: allow if owner, phone matches, assigned partner/rider, or admin
         order_user_id = str(
             document.get("userId")
             or document.get("user_id")
             or (document.get("customer") or {}).get("id")
             or ""
         )
-        if order_user_id and str(user_id) != order_user_id:
+        partner_obj = document.get("partner")
+        partner_id = str((partner_obj.get("id") if isinstance(partner_obj, dict) else None) or document.get("partnerId") or document.get("storeId") or "")
+        rider_obj = document.get("rider")
+        rider_id = str((rider_obj.get("id") if isinstance(rider_obj, dict) else None) or document.get("riderId") or "")
+
+        has_access = False
+        if not user_id:
+            # Unauthenticated callers cannot read private order details
+            has_access = False
+        elif order_user_id and str(user_id) == order_user_id:
+            has_access = True
+        else:
             user_doc = await database.find_one("users", {"_id": user_id}) or {}
-            role = str(user_doc.get("role") or "")
-            if role != "admin":
-                cust_phone = (
+            role = str(user_doc.get("role") or "").lower()
+            if role in ("admin", "super_admin", "operations", "support", "finance"):
+                has_access = True
+            else:
+                user_phone = str(user_doc.get("phone") or "")
+                cust_phone = str(
                     (document.get("customer") or {}).get("phone")
                     or (document.get("address") or {}).get("phone")
                     or ""
                 )
-                user_phone = user_doc.get("phone") or ""
-                # If neither ID nor phone matches, but user has explicit order ID or code from direct link, allow read
-                if not (cust_phone and user_phone and cust_phone[-10:] == user_phone[-10:]):
-                    pass
+                if cust_phone and user_phone and cust_phone[-10:] == user_phone[-10:]:
+                    has_access = True
+                elif role in ("partner", "store") and partner_id:
+                    user_linked_id = str(user_doc.get("linked_id") or "")
+                    if user_linked_id == partner_id or str(user_id) == partner_id:
+                        has_access = True
+                    else:
+                        p_prof = await database.find_one("partner_profiles", {"userId": user_id})
+                        if p_prof and str(p_prof.get("_id") or p_prof.get("partnerId")) == partner_id:
+                            has_access = True
+                elif role in ("rider", "captain") and rider_id:
+                    user_linked_id = str(user_doc.get("linked_id") or "")
+                    if user_linked_id == rider_id or str(user_id) == rider_id:
+                        has_access = True
+
+        if not has_access:
+            return None
 
         # Enrich latest live partner image if available
         partner_obj = document.get("partner")

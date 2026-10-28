@@ -122,7 +122,7 @@ class InvoiceRepository:
     async def _can_access_order(self, user: Optional[User], order: Dict[str, Any]) -> bool:
         """Verify if the user (customer, partner, rider, or admin) has rights to this order's invoice."""
         if user is None:
-            return True  # Token or pre-authorized context
+            return False  # Strict tenancy guard: require authenticated user
 
         role = getattr(user, "role", None)
         role_str = str(getattr(role, "value", role) or "").lower()

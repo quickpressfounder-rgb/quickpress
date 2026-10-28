@@ -139,9 +139,8 @@ async def order_history(
 
 
 @router.get("/orders/{order_id}", response_model=OrderResponse)
-async def get_order(order_id: str, user: Optional[User] = Depends(optional_user)) -> OrderResponse:
-    uid = user.id if user else ""
-    order = await order_repository.by_id(uid, order_id)
+async def get_order(order_id: str, user: User = Depends(current_user)) -> OrderResponse:
+    order = await order_repository.by_id(user.id, order_id)
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
@@ -172,7 +171,7 @@ async def cancel_order(
 
 
 @router.get("/orders/{order_id}/tracking", response_model=OrderResponse)
-async def track_order(order_id: str, user: Optional[User] = Depends(optional_user)) -> OrderResponse:
+async def track_order(order_id: str, user: User = Depends(current_user)) -> OrderResponse:
     return await get_order(order_id, user)
 
 
