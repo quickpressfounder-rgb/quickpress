@@ -50,7 +50,7 @@
      - `app/services/rider_agreement_pdf_generator.py` & `partner_agreement_pdf_generator.py`: Connected to live database corporate legal profile, dynamic CIN `U74999UP2024PTC198141`, and signatory `Himanshu Pal`.
      - `app/api/admin_emails.py`: Dynamic authorized signatory loaded via `get_company_legal_profile()`.
      - `app/api/partner.py`: Signatory and fallback GSTIN updated to `Himanshu Pal` and `09AADCB1234K1Z8`.
-     - `app/db/invoice_repositories.py`: Updated `COMPANY_GSTIN` to `09AADCB1234K1Z8`. Removed hardcoded city fallbacks.
+     - `app/db/invoice_repositories.py`: Added `import os` and updated `COMPANY_GSTIN` to `09AADCB1234K1Z8`. Removed hardcoded city fallbacks.
      - `app/db/cms_repositories.py`: Seed documents (Terms, Privacy, Refund, Grievance) synchronized to canonical CIN and address.
   3. **Shared Framework (`shared/src/constants/index.ts`):**
      - Updated canonical BRAND config with canonical contact email, phone helpline, and URLs.
