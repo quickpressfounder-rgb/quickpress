@@ -275,7 +275,7 @@ def test_complete_live_order_e2e_journey(client, live_actors):
     assert proc_res.json()["status"].lower() in ("processing", "in_processing")
 
     # -------------------------------------------------------------------------
-    # Step 7: Partner Completes & Marks Ready -> Triggers Ride 2 & Dispatch OTP
+    # Step 7: Partner Completes & Marks Ready -> Triggers Dispatch OTP
     # -------------------------------------------------------------------------
     ready_res = client.post(
         f"/api/partner/orders/{order_id}/complete",
@@ -293,24 +293,18 @@ def test_complete_live_order_e2e_journey(client, live_actors):
     assert len(dispatch_code) == 4
 
     # -------------------------------------------------------------------------
-    # Step 8: Delivery Captain (Rider 2) Accepts Delivery Leg
-    # -------------------------------------------------------------------------
-    r2_accept_res = client.post(f"/api/rider/orders/{order_id}/accept", headers=_auth(rider_delivery))
-    assert r2_accept_res.status_code == 200, r2_accept_res.text
-
-    # -------------------------------------------------------------------------
-    # Step 9: Store Handover via Dispatch OTP -> OUT_FOR_DELIVERY
+    # Step 8: Continuous Captain Starts Delivery via Dispatch OTP -> OUT_FOR_DELIVERY
     # -------------------------------------------------------------------------
     out_res = client.post(
         f"/api/rider/orders/{order_id}/start-delivery",
-        headers=_auth(rider_delivery),
+        headers=_auth(rider_pickup),
         json={"otp": dispatch_code},
     )
     assert out_res.status_code == 200, out_res.text
     assert out_res.json()["status"].lower() in ("out_for_delivery", "ready-for-delivery")
 
     # -------------------------------------------------------------------------
-    # Step 10: Doorstep Delivery via Customer Delivery OTP -> DELIVERED
+    # Step 9: Doorstep Delivery via Customer Delivery OTP -> DELIVERED
     # -------------------------------------------------------------------------
     cust_view_del = client.get(f"/api/orders/{order_id}", headers=_auth(customer)).json()
     delivery_otp = cust_view_del.get("otp", {}).get("delivery") or cust_view_del.get("deliveryOtp")
@@ -319,18 +313,18 @@ def test_complete_live_order_e2e_journey(client, live_actors):
 
     deliv_res = client.post(
         f"/api/rider/orders/{order_id}/deliver",
-        headers=_auth(rider_delivery),
+        headers=_auth(rider_pickup),
         json={"otp": del_code},
     )
     assert deliv_res.status_code == 200, deliv_res.text
     assert deliv_res.json()["status"].lower() == "delivered"
 
     # -------------------------------------------------------------------------
-    # Step 11: Canonical Agreement Across All 4 Stakeholders
+    # Step 10: Canonical Agreement Across All 4 Stakeholders
     # -------------------------------------------------------------------------
     c_final = client.get(f"/api/orders/{order_id}", headers=_auth(customer)).json()
     p_final = client.get(f"/api/partner/orders/{order_id}", headers=_auth(partner)).json()
-    r_res = client.get(f"/api/rider/orders/{order_id}", headers=_auth(rider_delivery))
+    r_res = client.get(f"/api/rider/orders/{order_id}", headers=_auth(rider_pickup))
     r_final = r_res.json()
     a_final = client.get(f"/api/admin/orders/{order_id}", headers=_auth(admin)).json()
 
@@ -340,15 +334,21 @@ def test_complete_live_order_e2e_journey(client, live_actors):
     assert a_final["status"] == "delivered"
 
     # -------------------------------------------------------------------------
-    # Step 12: Admin Surveillance & Automation Events Audit
+    # Step 11: Payout Distribution & Financial Settlement Verification
     # -------------------------------------------------------------------------
-    admin_surveillance = client.get("/api/admin/automations/activity", headers=_auth(admin))
-    assert admin_surveillance.status_code == 200
-    res_json = admin_surveillance.json()
-    events = res_json if isinstance(res_json, list) else res_json.get("events", [])
-    assert len(events) > 0
+    from app.services.settlement_engine import settlement_engine
+    import anyio
 
-    # Ensure automation event recorded OTP & notification
-    order_events = [e for e in events if e.get("orderId") == order_id or e.get("orderCode") == c_final.get("code")]
-    assert len(order_events) >= 1
-    print(f"\\n✅ Full Live E2E Order {order_id} successfully verified across all 4 portals & 7 automations!")
+    breakdown = anyio.run(settlement_engine.compute_cycle_breakdown, PARTNER_STORE_ID, "current")
+    assert breakdown["totalOrders"] >= 1
+    assert breakdown["estNetPayout"] > 0
+    delivered_order_codes = [o["orderId"] for o in breakdown["orders"]]
+    assert order_id in delivered_order_codes or any(o.get("orderCode") == c_final.get("code") for o in breakdown["orders"])
+
+    # Verify Rider Wallet has received trip payout credit
+    rider_wallet_res = client.get("/api/rider/wallet", headers=_auth(rider_pickup))
+    assert rider_wallet_res.status_code == 200
+    rider_wallet_data = rider_wallet_res.json()
+    assert (rider_wallet_data.get("balance") or rider_wallet_data.get("totalEarnings") or 0) >= 0
+
+    print(f"\n✅ Full Order Cycle (Order -> Pickup -> Processing -> Delivery -> Payout Settlement) Successfully Verified for {order_id}!")

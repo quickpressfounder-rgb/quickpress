@@ -215,18 +215,19 @@ class SettlementEngine:
         platform_gst_rate = float(fin_rules.get("gst", {}).get("platformGstRate", 0.18))
         tcs_rate = float(fin_rules.get("gst", {}).get("tcsRate", 0.01))
 
-        # Standard QuickPress laundry partner commission is 15.0% (partner retains 85%)
+        # Standard QuickPress laundry partner commission from fin_rules (default 15.0%)
+        standard_rate = float(fin_rules.get("commission", {}).get("standardRate", 0.15))
         partner_comm = profile.get("commissionRate") or profile.get("commission_rate")
         if partner_comm is not None:
             try:
                 p_rate = float(partner_comm)
                 comm_rate = (p_rate / 100.0) if p_rate > 1.0 else p_rate
-                if comm_rate > 0.20 or comm_rate <= 0:
-                    comm_rate = 0.15
+                if comm_rate > 0.50 or comm_rate <= 0:
+                    comm_rate = standard_rate
             except Exception:
-                comm_rate = 0.15
+                comm_rate = standard_rate
         else:
-            comm_rate = 0.15
+            comm_rate = standard_rate
 
         # Query custom additions like referral bonuses claimed to cycle
         referral_additions = await database.find_many(

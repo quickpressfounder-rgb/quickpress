@@ -2532,7 +2532,7 @@ class Smart2RideEngine:
                     "isReassigned": True,
                     "isReassignedBonus": True,
                     "extraBonusPercent": 20,
-                    "extraBonusAmount": bonus_20,
+                    "extraBonusAmount": reassignment_pool,
                     "originalRiderId": rider_id,
                     "attemptedRiderIds": [rider_id],
                     "dispatchOtp": dispatch_otp,
@@ -2590,7 +2590,7 @@ class Smart2RideEngine:
             "pickupPenaltyDeduction": penalty_deduction,
             "deliveryLegPayout": new_rider_delivery_payout,
             "extraBonusPercent": 20,
-            "extraBonusAmount": bonus_20,
+            "extraBonusAmount": reassignment_pool,
             "message": "Delivery opt-out confirmed. 75% net pickup pay credited to your wallet (25% fee deducted). Package remains in Partner store custody.",
         }
 

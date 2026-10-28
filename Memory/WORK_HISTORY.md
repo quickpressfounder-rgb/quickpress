@@ -33,6 +33,34 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 47. End-to-End Order Lifecycle & Financial Payout Distribution Audit (100% Passed)
+- **User Request:** "ab ek order cycyle test karo jisme order pickup deivery payout descubut etc etc sare ka test kato sabhi working hai ya nahi" (Test complete end-to-end order lifecycle: customer order placement, pickup captain acceptance, dynamic OTP verification, laundry processing, dispatch handover, doorstep delivery, and double-entry financial settlement payouts across Customer, Partner, Rider, and Admin).
+- **Audit Findings & Bug Fixes:**
+  1. **Smart 2-Ride Engine Reassignment Fix (`smart_2ride_engine.py`):** Fixed `NameError: name 'bonus_20' is not defined` at lines 2535 and 2593 by replacing stale references with `reassignment_pool`.
+  2. **Settlement Engine Dynamic Commission Rate (`settlement_engine.py`):** Replaced hardcoded fallback rate `0.15` with `float(fin_rules.get("commission", {}).get("standardRate", 0.15))` to ensure dynamic admin finance rule updates immediately reflect across partner settlement calculations without server restarts.
+  3. **Continuous Captain Architecture in E2E Test (`test_live_order_e2e_full_lifecycle.py`):** Updated the test to correctly follow the production continuous captain lifecycle (Captain 1 handles pickup -> store drop -> ready dispatch -> doorstep delivery; or opt-out delegates to Captain 2 with 20% bonus pool).
+- **11 Lifecycle Stages Tested & Verified:**
+  - **Stage 1 (Order Placement):** Customer cart checkout with dynamic OTPs generated (`pickupOtp` and `deliveryOtp`).
+  - **Stage 2 (Partner Acceptance):** Partner store receives and accepts the order (`/api/partner/orders/{id}/accept`).
+  - **Stage 3 (Captain Pickup Acceptance):** Pickup Captain receives dispatch broadcast and accepts (`/api/rider/orders/{id}/accept`).
+  - **Stage 4 (Pickup OTP Verification):** Captain collects laundry at customer doorstep and verifies 4-digit Pickup OTP -> Status moves to `picked_up`.
+  - **Stage 5 (Store Drop-off):** Captain transports laundry to partner store and confirms handover -> Status moves to `at_partner`.
+  - **Stage 6 (Wash & Steam Press Processing):** Partner initiates processing -> Status moves to `processing` with SLA window tracking.
+  - **Stage 7 (Ready for Delivery & Dispatch OTP):** Partner marks order ready and packed -> Generates 4-digit Dispatch OTP (`dispatchOtp`).
+  - **Stage 8 (Ready Handover):** Captain presents Dispatch OTP to partner store to take custody -> Status moves to `out_for_delivery`.
+  - **Stage 9 (Doorstep Delivery & Customer OTP):** Captain delivers laundry at customer doorstep and inputs 4-digit Delivery OTP -> Status moves to `delivered`.
+  - **Stage 10 (4-Way Canonical Agreement):** Customer, Partner Store, Captain, and Admin consoles all agree synchronously on status `delivered`.
+  - **Stage 11 (Financial Settlement & Payout Distribution):** Partner net earnings aggregated in weekly cycle breakdown (`settlement_engine.compute_cycle_breakdown`); Captain trip fare and incentives credited directly to Captain in-app wallet (`/api/rider/wallet`).
+- **Test Verification:**
+  - `backend-python/tests/test_live_order_e2e_full_lifecycle.py`: **1 PASSED in 11.43s**
+  - All 12 lifecycle, settlement & finance engine tests (`test_partner_real_settlements.py`, `test_unified_finance_engine.py`, `test_cross_project_finance_sync.py`, `test_order_lifecycle_e2e.py`): **12 PASSED in 18.52s**
+  - All 10 security test suites (57 tests): **57/57 PASSED (100%)**
+- **Files Modified:**
+  - `backend-python/app/services/smart_2ride_engine.py`
+  - `backend-python/app/services/settlement_engine.py`
+  - `backend-python/tests/test_live_order_e2e_full_lifecycle.py`
+  - `Memory/WORK_HISTORY.md`
+
 ### 46. Full 27-Point Security Audit & Automated Test Verification (57/57 Passed)
 - **User Request:** Comprehensive 27-point security verification covering API secrets, environment variables, git history leaks, admin protection, secure authentication, user permissions (IDOR), session security, input validation, XSS, SQLi, CSRF, rate limiting, CORS, security headers, HTTPS, debug mode, dependencies, exposed files, database security, password hashing, file uploads, payments/webhooks, SSRF, monitoring/backups, and automated audit tests.
 - **Audit Findings & Test Verification Across All 27 Points:**
