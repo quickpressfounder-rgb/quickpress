@@ -182,7 +182,7 @@ export function ZomatoHubView() {
   const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
   const [claimableReferralBalance, setClaimableReferralBalance] = useState(0);
   const [isClaimingReferral, setIsClaimingReferral] = useState(false);
-  const [overviewTimeframe, setOverviewTimeframe] = useState<"today" | "yesterday" | "7d" | "all">("today");
+  const [overviewTimeframe, setOverviewTimeframe] = useState<"today" | "yesterday" | "week" | "month" | "all">("today");
 
   // Compute 100% Real Interactive Overview Metrics based on selected timeframe
   const overviewMetrics = useMemo(() => {
@@ -217,9 +217,13 @@ export function ZomatoHubView() {
       if (overviewTimeframe === "yesterday") {
         return Boolean(dateStr && dateStr === yesterdayStr);
       }
-      if (overviewTimeframe === "7d") {
+      if (overviewTimeframe === "week") {
         const t = new Date(o.placedAt || (o as any).createdAt || "").getTime();
         return !isNaN(t) && (now.getTime() - t) <= 7 * 86400000;
+      }
+      if (overviewTimeframe === "month") {
+        const currentMonthStr = todayStr.slice(0, 7);
+        return Boolean(dateStr && dateStr.startsWith(currentMonthStr));
       }
       return true; // "all"
     });
@@ -228,22 +232,23 @@ export function ZomatoHubView() {
       (o) => o.status === "delivered" || (o as any).stage === "completed"
     );
 
-    const sales = deliveredOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
+    const sales = deliveredOrders.reduce((sum, o) => sum + (o.amount || (o as any).totalPrice || (o as any).totalAmount || 0), 0);
 
-    const newOrders = timeframeOrders.filter((o) => o.status === "new" || (o as any).stage === "new").length;
+    const newOrders = timeframeOrders.filter((o) => o.status === "new" || (o as any).stage === "new" || o.status === "placed" || o.status === "pending").length;
     const accepted = timeframeOrders.filter(
-      (o) => o.status === "accepted" || (o as any).stage === "accepted" || (o as any).stage === "pickup_pending"
+      (o) => o.status === "accepted" || (o as any).stage === "accepted" || (o as any).stage === "pickup_pending" || o.status === "at_partner"
     ).length;
     const inWash = timeframeOrders.filter((o) =>
       ["washing", "dry_cleaning", "ironing", "processing"].includes(o.status as string) ||
       ["washing", "dry_cleaning", "ironing"].includes((o as any).stage as string)
     ).length;
-    const ready = timeframeOrders.filter((o) => o.status === "ready" || (o as any).stage === "ready").length;
+    const ready = timeframeOrders.filter((o) => o.status === "ready" || (o as any).stage === "ready" || o.status === "ready_for_delivery").length;
 
-    let title = "Today's Overview";
-    if (overviewTimeframe === "yesterday") title = "Yesterday's Overview";
-    if (overviewTimeframe === "7d") title = "Last 7 Days Overview";
-    if (overviewTimeframe === "all") title = "All-Time Overview";
+    let title = "TODAY'S OVERVIEW";
+    if (overviewTimeframe === "yesterday") title = "YESTERDAY'S OVERVIEW";
+    if (overviewTimeframe === "week") title = "THIS WEEK'S OVERVIEW";
+    if (overviewTimeframe === "month") title = "THIS MONTH'S OVERVIEW";
+    if (overviewTimeframe === "all") title = "ALL-TIME OVERVIEW";
 
     return {
       title,
@@ -689,19 +694,27 @@ export function ZomatoHubView() {
               </div>
 
               {/* Date Filter Pills */}
-              <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 self-start sm:self-auto">
-                {(["today", "yesterday", "7d", "all"] as const).map((tf) => (
+              <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200 self-start sm:self-auto overflow-x-auto max-w-full">
+                {(["today", "yesterday", "week", "month", "all"] as const).map((tf) => (
                   <button
                     key={tf}
                     type="button"
                     onClick={() => setOverviewTimeframe(tf)}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-black transition-all cursor-pointer ${
+                    className={`rounded-lg px-2.5 py-1 text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                       overviewTimeframe === tf
                         ? "bg-black text-white shadow-xs"
                         : "text-zinc-600 hover:text-black"
                     }`}
                   >
-                    {tf === "today" ? "Today" : tf === "yesterday" ? "Yesterday" : tf === "7d" ? "7 Days" : "All Time"}
+                    {tf === "today"
+                      ? "Today"
+                      : tf === "yesterday"
+                      ? "Yesterday"
+                      : tf === "week"
+                      ? "Week"
+                      : tf === "month"
+                      ? "Month"
+                      : "All Time"}
                   </button>
                 ))}
               </div>
@@ -717,26 +730,22 @@ export function ZomatoHubView() {
               </span>
             </div>
 
-            {/* Order Flow Progress: Flat 4-Column Divided Grid with Pure Black Text */}
+            {/* Order Flow Progress: Flat 4-Column Divided Grid with Pure Black Text matching Image 2 */}
             <div className="mt-3 grid grid-cols-4 rounded-xl border border-zinc-200 bg-zinc-50/60 divide-x divide-zinc-200 overflow-hidden text-center">
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-black tracking-wider">New</p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">NEW</p>
                 <p className="mt-0.5 text-lg font-black text-black">{overviewMetrics.newOrders}</p>
               </div>
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-black tracking-wider">Accepted</p>
-                <p className="mt-0.5 text-lg font-black text-black">
-                  {overviewMetrics.accepted}
-                </p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">ACCEPTED</p>
+                <p className="mt-0.5 text-lg font-black text-black">{overviewMetrics.accepted}</p>
               </div>
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-black tracking-wider">In Wash</p>
-                <p className="mt-0.5 text-lg font-black text-black">
-                  {overviewMetrics.inWash}
-                </p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">IN WASH</p>
+                <p className="mt-0.5 text-lg font-black text-black">{overviewMetrics.inWash}</p>
               </div>
               <div className="py-2.5 px-1">
-                <p className="text-[10px] font-black uppercase text-black tracking-wider">Ready</p>
+                <p className="text-[10px] font-black uppercase text-black tracking-wider">READY</p>
                 <p className="mt-0.5 text-lg font-black text-black">{overviewMetrics.ready}</p>
               </div>
             </div>

@@ -33,6 +33,58 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 34. Partner Console Overview Card (5 Timeframe Filters) & Complete Order Price Isolation
+- **User Requirements:**
+  - *"yaha bh filter lagaao today yesterday week month all time oe iske jAISA OVER VIEW BANAO"* (Add the Period Overview Card matching the reference image to the desktop dashboard with 5 timeframe filters: `Today`, `Yesterday`, `Week`, `Month`, `All Time`, displaying `{PERIOD}'S OVERVIEW`, total sales, total orders strip, and 4-column divided status grid: `NEW`, `ACCEPTED`, `IN WASH`, `READY`).
+  - *"OR MERI BAAT SUNO KI PARTNER PENAL MKE ORDER KI PRICE SHOW KARE NA KI KITNE MILA KITNE KATEGA YE PUREA PARTNER PENAL KAHI NAHI ONLY SETTEL MENT BRACKDOWN KE ANDER YE SHOW KAREO"* (Strict design mandate: Across the ENTIRE Partner Panel, only show the customer order's price [`Order Price` / gross bill value]. NEVER show how much was received, platform commission cuts, or net partner earnings on order cards, lists, queues, or tables anywhere in the panel. All double-entry deductions must be strictly isolated inside the `Settlement Breakdown` modal).
+- **Architecture & Implementation:**
+  1. **Desktop Dashboard Period Overview Card (`partner-frontend/src/screens/PartnerDashboardScreen.tsx`):**
+     - Implemented `overviewTimeframe` state supporting 5 timeframe pills: `"today" | "yesterday" | "week" | "month" | "all"`.
+     - Memoized `overviewMetrics` filtering live real orders by IST date/time boundaries:
+       - `today`: Matches current IST calendar date (`YYYY-MM-DD`).
+       - `yesterday`: Matches current IST calendar date minus 1 day.
+       - `week`: Orders within the last 7 days (`now - 7 * 86400000`).
+       - `month`: Current calendar month (`YYYY-MM`).
+       - `all`: All lifetime orders.
+     - Formatted and styled matching user's Image 2:
+       - Header: `{overviewMetrics.title}` (`TODAY'S OVERVIEW`, `YESTERDAY'S OVERVIEW`, etc.).
+       - Sales: `₹{overviewMetrics.sales.toLocaleString("en-IN")} Total Sales`.
+       - Active filter pills in pill container: `Today`, `Yesterday`, `Week`, `Month`, `All Time`.
+       - Selected period strip: `Orders during selected period` with `{totalOrders} Total Orders` badge.
+       - 4-column divided progress grid: `NEW`, `ACCEPTED`, `IN WASH`, `READY` with real live counts.
+  2. **Mobile Overview Card Update (`partner-frontend/src/components/dashboard/ZomatoHubView.tsx`):**
+     - Upgraded timeframe switcher to include all 5 options (`Today`, `Yesterday`, `Week`, `Month`, `All Time`).
+     - Aligned labels and uppercase status cards (`NEW`, `ACCEPTED`, `IN WASH`, `READY`).
+  3. **Universal Order Price Enforcement Across Entire Partner Panel:**
+     - **Earnings Screen Passbook Tables (`partner-frontend/src/screens/EarningsScreen.tsx`):**
+       - Removed `Platform Fee (-₹)`, `TCS (-1%)`, and `Net Partner Payout` columns from Desktop Order Passbook Table and Desktop Current Cycle Orders Table.
+       - Replaced with clean `Order Price (₹)` displaying `₹{ord.grossValue.toFixed(2)}` and an Action button `"सेटलमेंट विवरण (Breakdown) →"`.
+       - Desktop Settlement Cycles Table: Replaced fee deduction columns with `Total Order Value (₹)` and `"सेटलमेंट विवरण (Breakdown) →"`.
+       - Mobile Settlement Cycles Card: Removed 3-column deduction badges (`Comm. 15%`, `TCS 1%`), showing `Total Order Value` and `"सेटलमेंट विवरण (Breakdown) →"`.
+       - Bank details note: Replaced `Admin 15% Commission` text with `Verified Direct IMPS Settlement · Automated Weekly Transfers`.
+       - Trends KPI tile: Replaced `Platform Tier 15% Commission` with `Settlement Cycle · Weekly Disbursal · Every Monday Direct IMPS`.
+       - Weekly Trends Bar Chart: Plotted daily order sales gross volume instead of net payout cuts.
+     - **Dashboard Cards & Insights (`DashboardCards.tsx`, `DashboardInsights.tsx`):**
+       - Removed commission percentage deduction badges and net payout text from Today's Sale cards, replacing with clean `Disbursal: Weekly Direct`.
+     - **Analytics Hub (`AnalyticsScreen.tsx`):**
+       - Removed `Store Net Payout (Net 84%)` and `Bank credit after 15% fee & 1% TCS` cards.
+       - Replaced with `Total Sales Volume` and `Total Bookings`.
+       - Updated 1-click WhatsApp statement share to show pure total order sales without net deductions.
+     - **Strict Isolation in Settlement Breakdown Modal (`SettlementSummaryModal.tsx`):**
+       - All fee deductions, 15% platform commission, 18% GST on commission, 1% statutory TCS/TDS, and net store payout remain strictly confined inside the double-entry settlement breakdown modal when the merchant explicitly opens detailed breakdown.
+- **Files Modified:**
+  - `partner-frontend/src/screens/PartnerDashboardScreen.tsx`
+  - `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`
+  - `partner-frontend/src/screens/EarningsScreen.tsx`
+  - `partner-frontend/src/components/dashboard/DashboardCards.tsx`
+  - `partner-frontend/src/components/dashboard/DashboardInsights.tsx`
+  - `partner-frontend/src/screens/AnalyticsScreen.tsx`
+- **Verification:**
+  - `partner-frontend` production build (`npm run build`): Passed cleanly with 0 errors (exited 0).
+  - Backend settlement tests (`pytest tests/test_partner_real_settlements.py`): 3/3 passed (100%).
+
+---
+
 ### 33. Partner Settlement Passbook (सेटलमेंट पासबुक) & Universal Mobile APK / AAB Releases
 - **User Requirements:**
   - *"partner penal me settelment passbokk bhi banoao jisme kitna kitna satelmet hua or or settelment ki full deatil"* (Create a Settlement Passbook in the Partner Panel showing how much was settled [credits, debits, gross, commission, TCS, net bank payout] and full settlement details with itemized double-entry breakdown, UTR numbers, dates, bank info, and order-by-order lists).

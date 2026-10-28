@@ -150,7 +150,6 @@ export function DailyAnalyticsSection({
   }, [dailyMetrics, completedOrders, earnings]);
 
   const avgOrderValue = totalOrdersCount > 0 ? Math.round(totalRevenue / totalOrdersCount) : 0;
-  const netEarnings = Math.round(totalRevenue * 0.85); // 85% net partner share
 
   // Graph scales
   const maxRevenue = Math.max(...dailyMetrics.map((d) => d.revenue), 100);
@@ -186,15 +185,15 @@ export function DailyAnalyticsSection({
               <IndianRupee className="size-4" strokeWidth={2.5} />
             </span>
             <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
-              Net 85%
+              Order Sales
             </span>
           </div>
           <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Daily Revenue
           </p>
           <p className="mt-0.5 text-xl font-black text-foreground sm:text-2xl">{inr(totalRevenue)}</p>
-          <p className="mt-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-            {inr(netEarnings)} Net Payout
+          <p className="mt-1 text-[11px] font-semibold text-zinc-500">
+            {totalOrdersCount} Completed Orders
           </p>
         </div>
 

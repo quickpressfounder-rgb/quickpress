@@ -395,9 +395,9 @@ export function RevenueCard({
             </p>
           </div>
           <div className="rounded-xl bg-zinc-50 p-2.5 border border-zinc-200/80">
-            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Commission</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Disbursal</p>
             <p className="mt-0.5 text-sm font-black text-zinc-900">
-              Net {netPayoutRate}% Pay
+              Weekly Direct
             </p>
           </div>
         </div>

@@ -396,8 +396,7 @@ export function AnalyticsScreen() {
     const reportText = `📊 *QuickPress Partner Analytics Report*
 🗓️ *Period:* ${periodLabel}
 ━━━━━━━━━━━━━━━━━━
-💰 *Store Net Payout (84%):* ${inr(totalEarnings)}
-💵 *Gross Sales:* ${inr(totalRevenue)}
+💰 *Total Sales:* ${inr(totalRevenue)}
 📦 *Fulfilled Orders:* ${completedOrders}
 🧺 *Garments Processed:* ${totalGarments} pcs
 ⚡ *Express Orders:* ${expressOrders} (Bonus: ${inr(clientAggregated.expressBonusTotal)})
@@ -604,45 +603,45 @@ export function AnalyticsScreen() {
         {/* ========================================================================= */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
 
-          {/* Card 1: Store Net Payout (Pure White Card) */}
+          {/* Card 1: Total Gross Sales */}
           <div className="col-span-2 sm:col-span-1 xl:col-span-1 rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 text-zinc-950 shadow-2xs relative overflow-hidden transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between relative z-10">
               <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
-                <Wallet className="size-4.5" />
-              </span>
-              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2.5 py-0.5 rounded-full border border-zinc-200">
-                Net 84%
-              </span>
-            </div>
-            <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
-              Store Net Payout
-            </p>
-            <p className="mt-0.5 text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-              {inr(animatedEarnings)}
-            </p>
-            <p className="mt-1 text-[10px] font-medium text-zinc-500 leading-tight">
-              Bank credit after 15% fee & 1% TCS
-            </p>
-          </div>
-
-          {/* Card 2: Total Gross Sales */}
-          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
-            <div className="flex items-center justify-between">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
                 <IndianRupee className="size-4.5" />
               </span>
-              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
+              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2.5 py-0.5 rounded-full border border-zinc-200">
                 Gross Sales
               </span>
             </div>
             <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
-              Total Revenue
+              Total Sales Volume
             </p>
-            <p className="mt-0.5 text-2xl font-black text-zinc-950 tracking-tight">
+            <p className="mt-0.5 text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
               {inr(animatedRevenue)}
             </p>
+            <p className="mt-1 text-[10px] font-medium text-zinc-500 leading-tight">
+              Customer billed order value
+            </p>
+          </div>
+
+          {/* Card 2: Total Bookings */}
+          <div className="rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white p-4 sm:p-4.5 shadow-2xs transition-transform hover:-translate-y-0.5">
+            <div className="flex items-center justify-between">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 border border-zinc-200">
+                <ShoppingBag className="size-4.5" />
+              </span>
+              <span className="text-[10px] font-black text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">
+                Total Orders
+              </span>
+            </div>
+            <p className="mt-3 text-[10.5px] font-bold uppercase tracking-wider text-zinc-500">
+              Total Bookings
+            </p>
+            <p className="mt-0.5 text-2xl font-black text-zinc-950 tracking-tight">
+              {clientAggregated.totalOrders}
+            </p>
             <p className="mt-1 text-[10px] font-medium text-zinc-500">
-              Customer billed amount
+              All bookings placed in period
             </p>
           </div>
 

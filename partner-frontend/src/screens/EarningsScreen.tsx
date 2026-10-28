@@ -640,14 +640,10 @@ export function EarningsScreen() {
                           </div>
 
                           <div className="text-right">
-                            <span
-                              className={`text-base font-black ${
-                                isAccruing ? "text-amber-700" : "text-emerald-700"
-                              }`}
-                            >
-                              +₹{entry.netCredit.toFixed(2)}
+                            <span className="text-base font-black text-black">
+                              ₹{entry.grossAmount.toFixed(2)}
                             </span>
-                            <p className="text-[10px] font-semibold text-zinc-400">Net Credit</p>
+                            <p className="text-[10px] font-semibold text-zinc-400">Total Order Value</p>
                           </div>
                         </div>
 
@@ -675,24 +671,18 @@ export function EarningsScreen() {
                           </div>
                         )}
 
-                        {/* Financial Double-Entry Strip */}
-                        <div className="grid grid-cols-3 gap-2 pt-1 text-center border-t border-zinc-100">
-                          <div className="p-1.5 rounded-lg bg-zinc-50">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Gross Sales</p>
+                        {/* Order Summary Strip */}
+                        <div className="grid grid-cols-2 gap-2 pt-1 text-center border-t border-zinc-100">
+                          <div className="p-2 rounded-xl bg-zinc-50">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Cycle Orders</p>
+                            <p className="text-xs font-black text-black">
+                              {entry.orderCount} Orders
+                            </p>
+                          </div>
+                          <div className="p-2 rounded-xl bg-zinc-50">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Total Order Price</p>
                             <p className="text-xs font-black text-black">
                               ₹{entry.grossAmount.toFixed(2)}
-                            </p>
-                          </div>
-                          <div className="p-1.5 rounded-lg bg-zinc-50">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Comm. (15%)</p>
-                            <p className="text-xs font-black text-rose-600">
-                              -₹{entry.commissionAmount.toFixed(2)}
-                            </p>
-                          </div>
-                          <div className="p-1.5 rounded-lg bg-zinc-50">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase">TCS (1%)</p>
-                            <p className="text-xs font-black text-zinc-600">
-                              -₹{entry.tcsAmount.toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -704,7 +694,7 @@ export function EarningsScreen() {
                             onClick={() => setSelectedCycleForModal(entry.cycleId)}
                             className="text-xs font-black text-black hover:underline flex items-center gap-1 cursor-pointer"
                           >
-                            <span>पूरा विवरण देखें (Full Details)</span>
+                            <span>सेटलमेंट विवरण (Breakdown)</span>
                             <span>→</span>
                           </button>
 
@@ -767,12 +757,10 @@ export function EarningsScreen() {
                           </div>
 
                           <div className="text-right">
-                            <span className="text-xs font-black text-emerald-700">
-                              +₹{ord.netEarning.toFixed(2)}
+                            <span className="text-xs font-black text-black">
+                              ₹{ord.grossValue.toFixed(2)}
                             </span>
-                            <p className="text-[10px] text-zinc-400">
-                              Gross: ₹{ord.grossValue.toFixed(2)} · Fee: -₹{ord.commission.toFixed(2)}
-                            </p>
+                            <p className="text-[10px] text-zinc-500 font-semibold">Order Price</p>
                           </div>
                         </div>
 
@@ -815,27 +803,27 @@ export function EarningsScreen() {
               </div>
               <div className="mt-4">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                  Accrued Net Payout
+                  Current Cycle Orders Total
                 </p>
                 <div className="mt-0.5 flex items-baseline gap-1">
                   <span className="text-3xl font-black text-black tracking-tight">
-                    ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
+                    ₹{(currentCycle?.grossSales ?? currentCycle?.estPayout ?? 0).toFixed(2)}
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] font-semibold text-zinc-500">
-                  {currentCycle?.orderCount || 0} delivered orders · Platform Commission: {adminCommRate}%
+                  {currentCycle?.orderCount || 0} delivered orders · Automated Weekly Settlement
                 </p>
               </div>
             </div>
 
-            {/* Weekly Revenue & Payout Bar Chart */}
+            {/* Weekly Revenue & Orders Bar Chart */}
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-wider text-black">
-                    Weekly Payout Trend
+                    Weekly Orders Trend
                   </h3>
-                  <p className="text-[10px] text-zinc-500">7-Day Cycle Revenue Distribution</p>
+                  <p className="text-[10px] text-zinc-500">7-Day Daily Orders Distribution</p>
                 </div>
                 <span className="rounded-md bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-black text-zinc-800">
                   {currentCycle?.period}
@@ -844,9 +832,10 @@ export function EarningsScreen() {
               <div className="pt-2 pb-1">
                 <div className="flex items-end justify-between gap-1.5 h-28">
                   {dailyTrend.map((d) => {
+                    const displayAmt = d.grossAmount || d.netPayout || 0;
                     const pct = Math.max(
-                      Math.min(Math.round((d.netPayout / maxDailyAmount) * 100), 100),
-                      d.netPayout > 0 ? 12 : 4
+                      Math.min(Math.round((displayAmt / maxDailyAmount) * 100), 100),
+                      displayAmt > 0 ? 12 : 4
                     );
                     return (
                       <div
@@ -854,7 +843,7 @@ export function EarningsScreen() {
                         className="flex-1 flex flex-col items-center gap-1 h-full justify-end"
                       >
                         <span className="text-[9px] font-black text-zinc-600">
-                          {d.netPayout > 0 ? `₹${Math.round(d.netPayout)}` : "—"}
+                          {displayAmt > 0 ? `₹${Math.round(displayAmt)}` : "—"}
                         </span>
                         <div className="w-full bg-zinc-100 rounded-t-md h-20 flex items-end">
                           <div
@@ -862,7 +851,7 @@ export function EarningsScreen() {
                             className={`w-full rounded-t-md transition-all duration-300 ${
                               d.isToday
                                 ? "bg-black"
-                                : d.netPayout > 0
+                                : displayAmt > 0
                                 ? "bg-zinc-800"
                                 : "bg-zinc-200"
                             }`}
@@ -911,10 +900,10 @@ export function EarningsScreen() {
                         <p className="text-[11px] text-zinc-500 mt-0.5">{ord.itemsSummary}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-black text-emerald-700">
-                          +₹{ord.netEarning.toFixed(2)}
+                        <span className="text-xs font-black text-black">
+                          ₹{ord.grossValue.toFixed(2)}
                         </span>
-                        <p className="text-[10px] text-zinc-400">Fee: -₹{ord.commission.toFixed(2)}</p>
+                        <p className="text-[10px] text-zinc-500 font-semibold">Order Price</p>
                       </div>
                     </div>
                   ))}
@@ -1122,7 +1111,7 @@ export function EarningsScreen() {
                       </p>
                     </div>
                     <p className="mt-2 text-[10px] font-semibold text-zinc-400">
-                      Tier: Admin {adminCommRate}% Commission · Zero Hidden Deductions
+                      Verified Direct IMPS Settlement · Automated Weekly Transfers
                     </p>
                   </div>
                 </div>
@@ -1246,12 +1235,9 @@ export function EarningsScreen() {
                                 <th className="py-3 font-black">Settlement Period & Date</th>
                                 <th className="py-3 font-black">Reference / Bank UTR</th>
                                 <th className="py-3 font-black text-center">Orders</th>
-                                <th className="py-3 font-black text-right">Gross Sales (+₹)</th>
-                                <th className="py-3 font-black text-right">Platform Fee (-₹)</th>
-                                <th className="py-3 font-black text-right">TCS (-1%)</th>
-                                <th className="py-3 font-black text-right">Net Bank Payout</th>
+                                <th className="py-3 font-black text-right">Total Order Value (₹)</th>
                                 <th className="py-3 font-black text-center">Status</th>
-                                <th className="py-3 font-black text-right">Action</th>
+                                <th className="py-3 font-black text-right">Settlement Breakdown</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-100">
@@ -1308,30 +1294,9 @@ export function EarningsScreen() {
                                       </span>
                                     </td>
 
-                                    {/* Gross Sales */}
-                                    <td className="py-3.5 text-right font-semibold text-black">
+                                    {/* Total Order Value */}
+                                    <td className="py-3.5 text-right font-black text-black">
                                       ₹{entry.grossAmount.toFixed(2)}
-                                    </td>
-
-                                    {/* Platform Fee */}
-                                    <td className="py-3.5 text-right font-bold text-rose-600">
-                                      -₹{entry.commissionAmount.toFixed(2)}
-                                    </td>
-
-                                    {/* TCS */}
-                                    <td className="py-3.5 text-right font-semibold text-zinc-600">
-                                      -₹{entry.tcsAmount.toFixed(2)}
-                                    </td>
-
-                                    {/* Net Bank Payout */}
-                                    <td className="py-3.5 text-right">
-                                      <span
-                                        className={`text-sm font-black ${
-                                          isAccruing ? "text-amber-700" : "text-emerald-700"
-                                        }`}
-                                      >
-                                        +₹{entry.netCredit.toFixed(2)}
-                                      </span>
                                     </td>
 
                                     {/* Status Badge */}
@@ -1355,7 +1320,7 @@ export function EarningsScreen() {
                                           onClick={() => setSelectedCycleForModal(entry.cycleId)}
                                           className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-black text-black hover:bg-zinc-100 transition shadow-2xs cursor-pointer"
                                         >
-                                          पूरा विवरण देखें →
+                                          सेटलमेंट विवरण (Breakdown) →
                                         </button>
                                         <button
                                           type="button"
@@ -1390,13 +1355,10 @@ export function EarningsScreen() {
                                 <th className="py-3 font-black">Order #</th>
                                 <th className="py-3 font-black">Delivery Date & Time</th>
                                 <th className="py-3 font-black">Customer & Items</th>
-                                <th className="py-3 font-black text-right">Gross Subtotal (+₹)</th>
-                                <th className="py-3 font-black text-right">Platform Fee (-₹)</th>
-                                <th className="py-3 font-black text-right">TCS (-1%)</th>
-                                <th className="py-3 font-black text-right">Net Partner Payout</th>
+                                <th className="py-3 font-black text-right">Order Price (₹)</th>
                                 <th className="py-3 font-black">Cycle / UTR</th>
                                 <th className="py-3 font-black text-center">Status</th>
-                                <th className="py-3 font-black text-right">Action</th>
+                                <th className="py-3 font-black text-right">Settlement Breakdown</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-100">
@@ -1418,17 +1380,8 @@ export function EarningsScreen() {
                                         {ord.itemsSummary}
                                       </p>
                                     </td>
-                                    <td className="py-3 text-right font-semibold text-black">
+                                    <td className="py-3 text-right font-black text-black">
                                       ₹{ord.grossValue.toFixed(2)}
-                                    </td>
-                                    <td className="py-3 text-right font-bold text-rose-600">
-                                      -₹{ord.commission.toFixed(2)}
-                                    </td>
-                                    <td className="py-3 text-right font-semibold text-zinc-600">
-                                      -₹{(ord.tcsGst || 0).toFixed(2)}
-                                    </td>
-                                    <td className="py-3 text-right font-black text-emerald-700">
-                                      +₹{ord.netEarning.toFixed(2)}
                                     </td>
                                     <td className="py-3">
                                       <p className="text-[11px] font-bold text-black">
@@ -1459,7 +1412,7 @@ export function EarningsScreen() {
                                         }
                                         className="text-xs font-black text-black hover:underline cursor-pointer"
                                       >
-                                        विवरण →
+                                        सेटलमेंट विवरण (Breakdown) →
                                       </button>
                                     </td>
                                   </tr>
@@ -1493,7 +1446,7 @@ export function EarningsScreen() {
                     </div>
 
                     <p className="mt-3 text-3xl font-black text-black tracking-tight">
-                      ₹{currentCycle?.estPayout ? currentCycle.estPayout.toFixed(2) : "0.00"}
+                      ₹{(currentCycle?.grossSales ?? currentCycle?.estPayout ?? 0).toFixed(2)}
                     </p>
                     <p className="mt-1 text-xs text-zinc-600 font-semibold">{currentCycle?.period}</p>
                     <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
@@ -1509,7 +1462,7 @@ export function EarningsScreen() {
                         onClick={() => setSelectedCycleForModal("current")}
                         className="text-xs font-black text-black hover:underline cursor-pointer"
                       >
-                        View itemized breakdown →
+                        सेटलमेंट विवरण (Breakdown) →
                       </button>
 
                       <span className="text-[11px] font-bold text-zinc-400">
@@ -1537,16 +1490,16 @@ export function EarningsScreen() {
                     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs">
                       <div className="flex items-center gap-2">
                         <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-800">
-                          <Percent className="size-3.5" />
+                          <Clock className="size-3.5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                          Platform Tier
+                          Settlement Cycle
                         </span>
                       </div>
                       <p className="mt-2 text-base font-black text-black">
-                        {adminCommRate}% Commission
+                        Weekly Disbursal
                       </p>
-                      <p className="text-[10px] font-semibold text-zinc-400">Admin Configured</p>
+                      <p className="text-[10px] font-semibold text-zinc-400">Every Monday Direct IMPS</p>
                     </div>
                   </div>
                 </div>
@@ -1559,11 +1512,11 @@ export function EarningsScreen() {
                         <div className="flex items-center gap-2">
                           <BarChart2 className="size-4 text-black" />
                           <h2 className="text-base font-black text-black">
-                            Weekly Revenue & Payout Trend
+                            Weekly Sales & Orders Trend
                           </h2>
                         </div>
                         <p className="text-xs text-zinc-500 mt-0.5">
-                          Daily revenue accrual and net store earnings for cycle: {currentCycle?.period}
+                          Daily order volume and gross sales for cycle: {currentCycle?.period}
                         </p>
                       </div>
                       <span className="rounded-full bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 text-xs font-bold text-zinc-800">
@@ -1574,9 +1527,10 @@ export function EarningsScreen() {
                     <div className="pt-2">
                       <div className="flex items-end justify-between gap-3 h-36 border-b border-zinc-100 pb-2">
                         {dailyTrend.map((d) => {
+                          const displayAmt = d.grossAmount || d.netPayout || 0;
                           const pct = Math.max(
-                            Math.min(Math.round((d.netPayout / maxDailyAmount) * 100), 100),
-                            d.netPayout > 0 ? 12 : 4
+                            Math.min(Math.round((displayAmt / maxDailyAmount) * 100), 100),
+                            displayAmt > 0 ? 12 : 4
                           );
                           return (
                             <div
@@ -1584,7 +1538,7 @@ export function EarningsScreen() {
                               className="flex-1 flex flex-col items-center gap-1 h-full justify-end group"
                             >
                               <span className="text-[10px] font-black text-zinc-700">
-                                {d.netPayout > 0 ? `₹${d.netPayout.toFixed(0)}` : "—"}
+                                {displayAmt > 0 ? `₹${displayAmt.toFixed(0)}` : "—"}
                               </span>
                               <div className="w-full max-w-12 bg-zinc-100 rounded-t-lg h-24 flex items-end">
                                 <div
@@ -1592,7 +1546,7 @@ export function EarningsScreen() {
                                   className={`w-full rounded-t-lg transition-all duration-300 ${
                                     d.isToday
                                       ? "bg-black"
-                                      : d.netPayout > 0
+                                      : displayAmt > 0
                                       ? "bg-zinc-800 hover:bg-black"
                                       : "bg-zinc-200"
                                   }`}
@@ -1639,9 +1593,8 @@ export function EarningsScreen() {
                               <th className="py-2.5 font-black">Date & Time</th>
                               <th className="py-2.5 font-black">Customer</th>
                               <th className="py-2.5 font-black">Items</th>
-                              <th className="py-2.5 font-black text-right">Gross</th>
-                              <th className="py-2.5 font-black text-right">Fee ({adminCommRate}%)</th>
-                              <th className="py-2.5 font-black text-right">Net Payout</th>
+                              <th className="py-2.5 font-black text-right">Order Price (₹)</th>
+                              <th className="py-2.5 font-black text-right">Settlement Breakdown</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zinc-100">
@@ -1651,14 +1604,17 @@ export function EarningsScreen() {
                                 <td className="py-3 text-zinc-500 font-medium">{ord.date}</td>
                                 <td className="py-3 font-semibold text-zinc-800">{ord.customerName}</td>
                                 <td className="py-3 text-zinc-500 max-w-40 truncate">{ord.itemsSummary}</td>
-                                <td className="py-3 text-right font-semibold text-black">
+                                <td className="py-3 text-right font-black text-black">
                                   ₹{ord.grossValue.toFixed(2)}
                                 </td>
-                                <td className="py-3 text-right font-bold text-rose-600">
-                                  -₹{ord.commission.toFixed(2)}
-                                </td>
-                                <td className="py-3 text-right font-black text-emerald-700">
-                                  ₹{ord.netEarning.toFixed(2)}
+                                <td className="py-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedCycleForModal(ord.cycleId || "current")}
+                                    className="text-xs font-black text-black hover:underline cursor-pointer"
+                                  >
+                                    सेटलमेंट विवरण (Breakdown) →
+                                  </button>
                                 </td>
                               </tr>
                             ))}
