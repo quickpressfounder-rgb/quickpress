@@ -1359,7 +1359,7 @@ export function DashboardPage() {
                 <span className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-black text-sky-950">Catalog</span>
               </div>
               <p className="text-2xl font-black text-zinc-950 mt-1.5 tabular-nums">
-                {data?.activeServicesCount ?? (servicesList?.length || 0)}
+                {data?.activeServicesCount ?? categoriesList.reduce((acc, c) => acc + (c.servicesCount || 0), 0)}
               </p>
               <p className="text-[11px] font-bold text-zinc-600 mt-0.5">
                 Across {data?.totalCategoriesCount ?? (categoriesList?.length || 0)} care verticals
