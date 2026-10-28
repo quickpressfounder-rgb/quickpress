@@ -33,6 +33,29 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 36. Restoration of Classic Bottom Navbar & Zomato Partner Finance Screen Alignment
+- **Commit Hash:** `d08f478`
+- **User Requirements:**
+  - *"NAVBAR PAHLE JASAI BAINAI BUR FIANACE OR PAGE SAME USKE JAISA BANAN HAI"*
+  - **Bottom Navbar:** Restore original classic 5-tab full-width navigation bar (`PartnerBottomNav.tsx`) fixed at the bottom (`Dashboard`, `Orders`, `Analytics`, `Wallet`/`Finance`, `Profile`). Remove floating black pill capsule (`ZomatoBottomNav.tsx`) that obscured screen content.
+  - **Finance / Payouts Page (`EarningsScreen.tsx`):** Align mobile view to match the exact minimalist structure from the reference Zomato Partner video:
+    - Hero "Current Cycle" card with large bold accrued amount, `In Progress ⏳` status pill, order count, and `Estimated bank credit on Monday`.
+    - Linked IMPS Bank Account Disbursal card with masked account number and bank icon.
+    - Clean Segmented switcher: `Weekly Cycles` vs `Itemized Orders`.
+    - Filter pills: `All`, `Settled`, `Processing`.
+    - Pure order price across all listings with zero commission cuts shown; detailed breakdowns remain cleanly inside `SettlementSummaryModal`.
+  - **Operational Kitchen / Business Hub Switcher (`ZomatoHubView.tsx`):**
+    - Replaced the bottom floating pill with an intuitive top segmented toggle right below the header: `[ Orders Station ({count}) ] [ Business Hub ]`.
+- **Files Modified:**
+  - `partner-frontend/src/components/layout/PartnerLayout.tsx`
+  - `partner-frontend/src/screens/PartnerDashboardScreen.tsx`
+  - `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`
+  - `partner-frontend/src/screens/EarningsScreen.tsx`
+- **Verification & Deployment:**
+  - `npm run build` executed locally and on EC2 (`65.0.127.43`) with 0 errors.
+  - PM2 cluster process `quickpress-partner` restarted and verified `online` (PID 440179).
+  - Public live verification: `https://quickpress.online/earnings` returned `HTTP/1.1 200 OK`.
+
 ### 35. Complete Zomato-Style Minimal Partner Console Redesign (Dual-Mode & Pure Order Value)
 - **Commit Hash:** `453b88e`
 - **User Requirements:**
