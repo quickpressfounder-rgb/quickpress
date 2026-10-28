@@ -33,6 +33,58 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 35. Complete Zomato-Style Minimal Partner Console Redesign (Dual-Mode & Pure Order Value)
+- **Commit Hash:** `453b88e`
+- **User Requirements:**
+  - *"exact layout, spacing, colors aur typography. YE SAB ALNELAY KARO OR MERE PARTNER PENAL KE LIYE KIYA KIYA PAGE BANA SAKTE HO USKE JAISA BATAO"* (Deep analysis of the provided real screen recording of Zomato Restaurant Partner App in `./video/VIDEO-2026-10-28-15-40-31.mp4`).
+  - *"OR EK BAAT THEAM AASE BANAN HA JO HAR MOBILE KE FIT BAITHE OR EXTRA BADGE LIVE BADGE ETC EXTAR ONDNEARY BUTTIN MASSGAGE YE NAHI LAYAYE ONLU CLEAN THEAM BANANN HAI"* (Theme must fit all mobile viewports cleanly without overflow; zero blinking badges, zero battery alert notices, zero extraneous buttons or popup clutter; pure, clean, minimalist high-speed utility).
+  - *"OR MERI BAAT SUNO KI PARTNER PENAL MKE ORDER KI PRICE SHOW KARE NA KI KITNE MILA KITNE KATEGA YE PUREA PARTNER PENAL KAHI NAHI ONLY SETTEL MENT BRACKDOWN KE ANDER YE SHOW KAREO"* (Strict Order Price isolation: Display only the pure order price `₹...` across all order cards and lists without commission or deduction cuts; double-entry deductions remain strictly inside `SettlementSummaryModal`).
+  - User confirmation: *"HAAN KARO"* (Proceed with full end-to-end execution).
+- **Architecture & Technical Decisions:**
+  1. **Dual-Mode Architecture (`partner-frontend/src/components/dashboard/ZomatoHubView.tsx`):**
+     - Implemented `activeMode` state (`"orders"` vs `"hub"`) with persistent `localStorage` (`qp_partner_mode`) and query param sync.
+     - **Mode 1 (Operational Kitchen / Order Queue Mode):**
+       - Stage tabs matching Zomato: `Preparing` (active black pill with count), `Ready`, `Out for delivery`, `Scheduled`, `Completed`.
+       - Clean Order Queue cards: Order code `#{order.code}`, Customer name & rating, 1-tap direct call, visual garment summary chips, pure `Order Price: ₹{order.amount}` (zero deductions shown), and single primary action button (`Accept`, `Start Cleaning 🧺`, `Mark Ready ✓`, `Handover (OTP)`).
+       - Zero-state illustration: clean storefront SVG with "Waiting for new orders" or "Offline as directed by you", single clean action button.
+     - **Mode 2 (Business Hub & Finance Mode):**
+       - "TODAY'S OVERVIEW" card with 5 timeframe filter pills: `Today`, `Yesterday`, `Week`, `Month`, `All Time`.
+       - Total Sales `₹{sales}`, Total Orders `{totalOrders}`, and 4-column flow: `NEW` | `ACCEPTED` | `IN WASH` | `READY`.
+       - 6 clean square rounded quick-link tiles: `Weekly Payouts` (`/earnings`), `Services & Menu` (`/services`), `Reviews & Ratings` (`/reviews`), `Insights & Growth` (`/analytics`), `Store Timings` (`/settings`), `Help & Support` (`/help`).
+       - Embedded `DailyAnalyticsSection` for performance insights.
+  2. **Explore More / Settings Drawer (`ZomatoHubView.tsx`):**
+     - Triggered by top-right Hamburger ☰ menu button, matching video timestamp 01:09.
+     - Profile Header: Avatar, Store Name, Owner Name, Role ("OWNER"), Phone number, and online status indicator.
+     - 5 Organized 4-Column Category Grids:
+       - **Manage outlet:** Outlet info (`/shop`), Timings (`/settings`), Phones (`/settings`), Staff (`/settings`).
+       - **Settings:** General settings (`/settings`), Alerts (`/settings`), Delivery radius (`/settings`), Rush hour toggle (ON/OFF), Schedule off.
+       - **Orders:** Order history (`/orders`), Complaints (`/help`), Reviews (`/reviews`), Rate Card (`/services`).
+       - **Help & Support:** Helpline (`tel:18008890123`), Help Centre (`/help`), Learning (`/help`), Policies (`/help`).
+       - **Accounting & Payouts:** Passbook (`/earnings`), Invoices (`/earnings`), KYC Docs (`/profile`), Bank Details (`/earnings`).
+     - Red `Log out` button calling `signOut()`.
+  3. **Universal Zomato Floating Bottom Navigation Capsule (`ZomatoBottomNav.tsx`):**
+     - Left Mode Switcher Pill: `To Hub ⇄` (in orders mode) / `To Orders ⇄` (in hub mode) with smooth micro transition toast.
+     - Floating Main Capsule:
+       - In Orders Mode: `Orders` (with active orders badge), `Services`, `Feedback` (Reviews), `Growth` (Analytics).
+       - In Hub Mode: `Hub`, `Growth`, `Menu` (Services), `Finance` (Payouts).
+     - Standardized safe-area padding (`pb-[max(0.75rem,env(safe-area-inset-bottom))]`) and max-width centering to fit any mobile screen (360px SE, 393px standard, 430px Pro Max).
+  4. **Finance & Payouts Screen Alignment (`EarningsScreen.tsx`):**
+     - Aligned subtab buttons to `Payouts` | `Weekly Trends` | `Invoices & taxes` matching Video 02:03.
+     - Confirmed pure order values across passbooks; all commission and GST calculations strictly isolated within `SettlementSummaryModal`.
+- **Files Modified:**
+  - `partner-frontend/src/components/dashboard/ZomatoHubView.tsx`
+  - `partner-frontend/src/components/layout/PartnerLayout.tsx`
+  - `partner-frontend/src/components/layout/ZomatoBottomNav.tsx`
+  - `partner-frontend/src/screens/PartnerDashboardScreen.tsx`
+  - `partner-frontend/src/screens/EarningsScreen.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Verification & Deployment:**
+  - `npm run build` in `partner-frontend`: PASSED cleanly (exited 0).
+  - Git Commit & Push: Committed to `origin/main` (commit `453b88e`).
+  - Production Deployment on AWS EC2 (`65.0.127.43`): `quickpress-partner` PM2 cluster process restarted cleanly, verified returning `HTTP/1.1 200 OK` on `127.0.0.1:8082` and `https://quickpress.online`.
+
+---
+
 ### 34. Partner Console Overview Card (5 Timeframe Filters) & Complete Order Price Isolation
 - **User Requirements:**
   - *"yaha bh filter lagaao today yesterday week month all time oe iske jAISA OVER VIEW BANAO"* (Add the Period Overview Card matching the reference image to the desktop dashboard with 5 timeframe filters: `Today`, `Yesterday`, `Week`, `Month`, `All Time`, displaying `{PERIOD}'S OVERVIEW`, total sales, total orders strip, and 4-column divided status grid: `NEW`, `ACCEPTED`, `IN WASH`, `READY`).
