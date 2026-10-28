@@ -34,7 +34,7 @@
 ## Detailed Log of Work Done Today (28 October 2026)
 
 ### 40. Customer & Rider Native Android APK Decoupling & White Screen Fix (Local Asset Bundling & No Vercel)
-- **Commit Hash:** Pending
+- **Commit Hash:** `d572716`
 - **User Requirements:**
   - Fix Customer APK showing blank white screen upon opening.
   - Fix Captain (Rider) APK loading the Partner app (`quickpress.online`) instead of the Rider interface.
