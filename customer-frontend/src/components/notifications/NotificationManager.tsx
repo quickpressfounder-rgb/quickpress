@@ -207,22 +207,7 @@ export function NotificationManager() {
       }
       clearCache(CACHE_KEYS.recentOrders);
 
-      // 3. Display compact in-app toast with action link
-      toast(title, {
-        description: message,
-        icon: <Bell className="size-4 text-emerald-500 fill-emerald-400" />,
-        duration: 5000,
-        action: {
-          label: "View",
-          onClick: () => {
-            if (typeof window !== "undefined") {
-              window.location.href = targetUrl;
-            }
-          },
-        },
-      });
-
-      // 4. Trigger real mobile phone system tray / status bar notification
+      // Trigger real mobile phone system tray / status bar notification
       void triggerMobileOsNotification({
         title,
         body: message,

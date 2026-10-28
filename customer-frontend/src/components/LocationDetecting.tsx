@@ -44,15 +44,6 @@ export function LocationDetecting({
       <p className="mt-2 text-center text-xs font-semibold text-muted-foreground sm:text-sm">
         {sublabel}
       </p>
-
-      {/* Sleek bottom status pill */}
-      <div className="absolute bottom-10 flex items-center gap-2 rounded-full border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80 px-4 py-2 text-[11px] font-bold text-muted-foreground shadow-xs">
-        <span className="relative flex size-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex size-2 rounded-full bg-emerald-600" />
-        </span>
-        <span>Satellite GPS Lock Active</span>
-      </div>
     </div>
   );
 }

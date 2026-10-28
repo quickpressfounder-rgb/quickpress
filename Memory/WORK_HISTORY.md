@@ -33,6 +33,30 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 44. Customer Panel Suppression of Black Action Message & Status Pill Popups
+- **User Request:**
+  "customer penal se action massage jo ki black colour ka aata abhi abhi usko pura hi hata do kabhi bhi nahi aaye"
+  (Completely eliminate the black action message/capsule popup from the customer panel so that it never appears).
+- **Root Cause & Components Addressed:**
+  1. **In-App Action Toast in NotificationManager (`customer-frontend/src/components/notifications/NotificationManager.tsx`):**
+     - Triggered a floating black capsule toast with an action button `action: { label: "View" }` whenever order status notifications arrived.
+     - Removed the in-app `toast()` call completely, retaining real native mobile system tray status bar notifications (`triggerMobileOsNotification`).
+  2. **Global Floating Black Sonner Toast Capsule (`customer-frontend/src/shared/ui/sonner.tsx`):**
+     - Sonner was styled with floating dark capsule styling: `background: rgba(18, 18, 20, 0.94) !important`, `border-radius: 9999px !important`.
+     - Completely suppressed `Toaster` by rendering `null`.
+     - Replaced `toast` singleton methods (`success`, `error`, `info`, `warning`, `message`, `dismiss`, `loading`, `custom`, `promise`) with clean no-op functions so that any calls across the customer panel are suppressed without runtime exceptions.
+  3. **Location Screen Status Pill (`customer-frontend/src/components/LocationDetecting.tsx`):**
+     - Removed `<div className="absolute bottom-10 ... bg-zinc-900/80 ...">Satellite GPS Lock Active</div>` pill.
+- **Files Modified:**
+  - `customer-frontend/src/components/notifications/NotificationManager.tsx`
+  - `customer-frontend/src/shared/ui/sonner.tsx`
+  - `customer-frontend/src/components/LocationDetecting.tsx`
+  - `Memory/WORK_HISTORY.md`
+- **Build & Deployment Verification:**
+  - `npm run build:customer`: Exit code 0 (Nitro SSR client & server builds succeeded cleanly).
+  - `python3 build_all_apks.py customer`: Succeeded cleanly; built `QuickPress-Customer.apk` (20MB) and `QuickPress-Customer.aab` (16MB).
+  - Deployed updated `QuickPress-Customer.apk` to live EC2 server (`ubuntu@65.0.127.43:/var/www/quickpress/website/apks/QuickPress-Customer.apk`).
+
 ### 43. Nearby Partners Performance Optimization (5.6MB Payload Reduced to 2.4KB & 38.5s to 0.05s)
 - **User Query:** "suno aager home page open karte hai to servies ect sabkuch sahi se open hoti but jo nearby partners hai unko load hone me time kyu lagta hai ? batao"
 - **Root Cause Analysis:**
