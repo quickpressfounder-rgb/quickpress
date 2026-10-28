@@ -2511,3 +2511,85 @@ This single command will automatically:
     - `/api/health`: `{"status":"ok","service":"quickpress-backend","env":"production","database":"supabase-postgresql","firebase":true}`
     - `/api/public/company-profile`: Successfully returns full legal identity (Legal Name, CIN, PAN, GSTIN, Registered Address, etc.).
     - Admin Console (`http://127.0.0.1:8084`): Active with HTTP 307 redirect to auth.
+
+---
+
+### 38. Comprehensive Security Audit & Hardening (Points 7 to 13: Sessions, Inputs, SQLi, XSS, CSRF, Rate Limiting & API Endpoints)
+- **User Request:**
+  - Complete security audit and hardening covering points 7 to 13:
+    - 7. Secure Login Sessions and Tokens (protect cookies/tokens, reliable logout and expiry).
+    - 8. Validate All Form Inputs (reject invalid/malicious data before reaching server).
+    - 9. Protect Against XSS Attacks (stop script injection via forms/comments).
+    - 10. Prevent SQL Injection (prevent database injection attacks).
+    - 11. Add CSRF Protection (stop cross-site request forgery).
+    - 12. Add Rate Limiting (stop bots, spam, brute force, and API abuse).
+    - 13. Secure All API Endpoints (close missing login checks, weak permissions, unauthorized access).
+- **Architectural Analysis & Hardening Actions:**
+  1. **Point 7: Secure Login Sessions & Immediate Invalidation on Logout:**
+     - Added `logged_out_at: Optional[datetime] = None` to the `User` schema (`backend-python/app/models/user.py`).
+     - Enhanced `POST /api/auth/logout` (`backend-python/app/api/auth.py`):
+       - Revokes the refresh token document in database.
+       - Revokes all active refresh tokens for the user ID.
+       - Revokes Firebase token sessions via `auth.revoke_refresh_tokens(uid)`.
+       - Sets `logged_out_at: datetime.now(timezone.utc)` on the user document in Supabase.
+     - Hardened `get_current_user` in `backend-python/app/core/deps.py`:
+       - Compares the JWT's `iat` (issued at) claim against `user.logged_out_at`.
+       - If `iat < user.logged_out_at`, instantly returns `HTTP 401 Unauthorized: Session has been terminated. Please log in again.` even if the access token hasn't reached its natural 30-minute expiry window.
+  2. **Point 8: Input Validation & Payload Size Guards:**
+     - Strict Pydantic schema validation across all request endpoints with automatic type casting, required field constraints, and range checks.
+     - `RequestSizeLimitMiddleware` configured with 10MB maximum request body ceiling to eliminate denial-of-service / memory exhaustion via gigantic payloads.
+     - Frontend React forms enforce typed constraints and pattern validations prior to transmission.
+  3. **Point 9: XSS (Cross-Site Scripting) Defense:**
+     - Audited all frontend repositories (`customer-frontend`, `partner-frontend`, `rider-frontend`, `admin-frontend`).
+     - Verified all 3 occurrences of `dangerouslySetInnerHTML` in `__root.tsx` across the client portals are strictly static bootstrap script configurations; zero user inputs or comments are injected into HTML dangerously.
+     - React's JSX virtual DOM auto-escapes all dynamic content (strings, names, descriptions, comments).
+     - `SecurityHeadersMiddleware` sets defensive response headers:
+       - `X-Frame-Options: DENY` (anti-clickjacking)
+       - `X-Content-Type-Options: nosniff` (MIME sniffing prevention)
+       - `X-XSS-Protection: 1; mode=block`
+       - `Referrer-Policy: strict-origin-when-cross-origin`
+       - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+  4. **Point 10: SQL Injection & NoSQL Operator Defense:**
+     - Supabase PostgreSQL layer (`backend-python/app/db/supabase_client.py`) uses strictly parameterized queries (`$1, $2, ...` via `asyncpg`), separating query structure from user input.
+     - Hardened `_compile_clause` in `supabase_client.py`: JSON field extraction paths now strictly validate every path key against regex `^[a-zA-Z0-9_]+$`. Any key containing quotes, spaces, semicolons or SQL injection symbols is immediately rejected and dropped.
+     - `InputSanitizerMiddleware` (`backend-python/app/core/sanitizer.py`) performs pre-flight inspection on all incoming query parameters and path elements, instantly blocking requests with SQL injection keywords (`UNION SELECT`, `OR 1=1`, `--`, `/*`), MongoDB/NoSQL operators (`$where`, `$gt`, `$ne`, etc.), or directory traversal sequences (`../`).
+  5. **Point 11: CSRF (Cross-Site Request Forgery) Protection:**
+     - Architectural Protection: The platform utilizes Bearer JWT authentication tokens transmitted strictly inside the HTTP `Authorization: Bearer <token>` header, NOT ambient session cookies (`Cookie: session=...`).
+     - Modern browsers do not attach custom `Authorization` headers on cross-site requests (`<img>`, `<form>`, `<iframe>`, etc.), which fundamentally neutralizes standard CSRF attack vectors.
+     - `CORSMiddleware` in `main.py` enforces an explicit whitelist of QuickPress production and staging domains (`quickpress.online`, `withquickpress.com`, etc.), rejecting cross-origin API calls from unauthorized third-party origins.
+  6. **Point 12: Rate Limiting & Anti-Brute-Force Shields:**
+     - `GlobalRateLimiterMiddleware` (`backend-python/app/core/rate_limiter.py`) enforces tiered sliding-window rate limits backed by Redis with in-memory fallback:
+       - Sudo Admin Actions: 40 requests/min
+       - Auth Mutations (Login, OTP Send/Verify, Signup): 120 requests/min
+       - Payment & Wallet Mutations: 60 requests/min
+       - Global / Read Requests: 600 requests/min
+     - Anti-Brute-Force OTP Lockout: 5 consecutive failed OTP verification attempts trigger an automatic 15-minute lock on that phone number, blocking automated brute-force attacks.
+  7. **Point 13: Securing All API Endpoints (Auth, RBAC & Parameter Sanitization):**
+     - Audited all FastAPI routers in `backend-python/app/api/`.
+     - Discovered 6 internal finance sub-routers that lacked router-level authorization dependencies:
+       - `backend-python/app/api/finance_ledger_api.py` (`/api/finance-ledger`)
+       - `backend-python/app/api/cod_api.py` (`/api/cod`)
+       - `backend-python/app/api/reconciliation_api.py` (`/api/reconciliation`)
+       - `backend-python/app/api/membership_finance_api.py` (`/api/membership-finance`)
+       - `backend-python/app/api/anomaly_api.py` (`/api/finance-anomalies`)
+       - `backend-python/app/api/unit_economics_api.py` (`/api/unit-economics`)
+       - `backend-python/app/api/financial.py` (`/admin/config` endpoints)
+     - Added `dependencies=[Depends(require_roles(Role.admin))]` to all 6 routers, locking all endpoints behind strict Administrator RBAC.
+     - Added `require_roles(Role.admin)` to `/admin/config` routes in `financial.py`.
+- **Modified Files:**
+  - `backend-python/app/models/user.py`
+  - `backend-python/app/api/auth.py`
+  - `backend-python/app/core/deps.py`
+  - `backend-python/app/db/supabase_client.py`
+  - `backend-python/app/api/finance_ledger_api.py`
+  - `backend-python/app/api/cod_api.py`
+  - `backend-python/app/api/reconciliation_api.py`
+  - `backend-python/app/api/membership_finance_api.py`
+  - `backend-python/app/api/anomaly_api.py`
+  - `backend-python/app/api/unit_economics_api.py`
+  - `backend-python/app/api/financial.py`
+  - `Memory/WORK_HISTORY.md`
+- **Verification & Deployment:**
+  - Git Commit: `8847378`
+  - EC2 Container: Rebuilt and running live on AWS EC2 (`quickpress-backend`).
+  - Live cURL checks: Unauthorized requests to `/api/finance-ledger`, `/api/cod/metrics`, and `/api/unit-economics/summary` return `HTTP 401 Unauthorized` with `{"detail":"Not authenticated"}`.
