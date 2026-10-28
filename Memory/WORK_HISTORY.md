@@ -2790,7 +2790,9 @@ This single command will automatically:
     - `QuickPress-Customer.apk` (21 MB) & `QuickPress-Customer.aab` (16 MB): Built successfully.
     - `QuickPress-Partner.apk` (15 MB) & `QuickPress-Partner.aab` (13 MB): Built successfully.
     - `QuickPress-Captain.apk` (18 MB) & `QuickPress-Captain.aab` (17 MB): Built successfully.
-    - Mirrored all 3 production APKs to `https://withquickpress.com/apks/` on AWS EC2 (`/var/www/quickpress/website/apks`).
-  - Git Commits: `5abb969` (main implementation), `90d0f5b` (fixed duplicate closing block in admin-frontend auth-service.ts line 86), `8087632` (history logging).
+  - Google OAuth Services Integration:
+    - Integrated updated `google-services.json` containing SHA-1 `94:91:ce:49:84:a1:78:cf:ce:0d:60:1c:36:3d:91:7b:15:f0:57:09` across `customer-frontend`, `partner-frontend`, and `rider-frontend`.
+    - Recompiled all 3 Android APKs with Google Sign-In support and deployed to `https://withquickpress.com/apks/`.
+  - Git Commits: `5abb969` (main implementation), `90d0f5b` (fixed duplicate closing block in admin-frontend auth-service.ts line 86), `8087632` (history logging), `6001649` (APK build history).
 
 
