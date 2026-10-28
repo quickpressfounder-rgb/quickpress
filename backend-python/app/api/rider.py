@@ -5211,7 +5211,7 @@ async def update_work_settings(body: dict, user: User = Depends(current_user)) -
 
 @router.get("/leaderboard")
 async def get_city_leaderboard(
-    period: str = Query(default="today", regex="^(today|weekly|all_time)$"),
+    period: str = Query(default="today", pattern="^(today|weekly|all_time)$"),
     city: Optional[str] = None,
     user: Optional[User] = Depends(optional_user),
 ) -> dict:

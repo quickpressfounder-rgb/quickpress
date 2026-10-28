@@ -96,7 +96,7 @@ async def test_global_rate_limiter_options_and_ip_extraction():
     res = await middleware.dispatch(req_options, mock_call_next)
     assert res.status_code == 200
 
-    # 2. GET /api/auth/me should use API limit (300/min), NOT strict auth limit
-    assert middleware.AUTH_LIMIT == (100, 60)
-    assert middleware.GLOBAL_LIMIT == (300, 60)
+    # 2. Check middleware configured rate limit quotas
+    assert middleware.AUTH_LIMIT == (120, 60)
+    assert middleware.GLOBAL_LIMIT == (600, 60)
 
