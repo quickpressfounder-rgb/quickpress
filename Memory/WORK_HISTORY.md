@@ -2787,7 +2787,10 @@ This single command will automatically:
     - `npm run build:rider`: Passed (0 errors).
     - `npm run build:admin`: Passed (0 errors).
   - Native Mobile Builds:
-    - `QuickPress-Customer.apk` & `.aab`: Built successfully.
-  - Git Commits: `5abb969` (main implementation), `90d0f5b` (fixed duplicate closing block in admin-frontend auth-service.ts line 86).
+    - `QuickPress-Customer.apk` (21 MB) & `QuickPress-Customer.aab` (16 MB): Built successfully.
+    - `QuickPress-Partner.apk` (15 MB) & `QuickPress-Partner.aab` (13 MB): Built successfully.
+    - `QuickPress-Captain.apk` (18 MB) & `QuickPress-Captain.aab` (17 MB): Built successfully.
+    - Mirrored all 3 production APKs to `https://withquickpress.com/apks/` on AWS EC2 (`/var/www/quickpress/website/apks`).
+  - Git Commits: `5abb969` (main implementation), `90d0f5b` (fixed duplicate closing block in admin-frontend auth-service.ts line 86), `8087632` (history logging).
 
 
