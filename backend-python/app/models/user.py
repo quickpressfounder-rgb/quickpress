@@ -1,3 +1,71 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """Shared user model + role-specific profile documents (MongoDB collections)."""
 
 from __future__ import annotations
@@ -67,6 +135,7 @@ class User(BaseModel):
     is_onboarded: bool = False
     is_verified: bool = False
     linked_id: Optional[str] = None  # customers/partners/riders/admins document id
+    logged_out_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 

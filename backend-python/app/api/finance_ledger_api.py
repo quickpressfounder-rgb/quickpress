@@ -17,14 +17,18 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.deps import current_user, optional_user
+from app.core.deps import current_user, optional_user, require_roles
 from app.db.accounting_period_repository import accounting_period_repository
 from app.db.general_ledger_repository import general_ledger_repository
-from app.models.user import User
+from app.models.user import Role, User
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/finance-ledger", tags=["finance-ledger"])
+router = APIRouter(
+    prefix="/finance-ledger",
+    tags=["finance-ledger"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 # -----------------------------------------------------------------------------

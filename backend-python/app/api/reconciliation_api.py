@@ -15,13 +15,17 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.deps import current_user, optional_user
+from app.core.deps import current_user, optional_user, require_roles
 from app.db.reconciliation_repository import reconciliation_repository
-from app.models.user import User
+from app.models.user import Role, User
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/reconciliation", tags=["reconciliation"])
+router = APIRouter(
+    prefix="/reconciliation",
+    tags=["reconciliation"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 @router.get("/summary", summary="Get 3-Way Reconciliation Summary KPIs")

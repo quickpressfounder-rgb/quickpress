@@ -9,9 +9,9 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.deps import current_user
+from app.core.deps import current_user, require_roles
 from app.db.client import database
-from app.models.user import User
+from app.models.user import Role, User
 from app.services.financial_engine import (
     DEFAULT_FINANCIAL_CONFIG,
     financial_engine,
@@ -120,7 +120,7 @@ async def get_rider_incentives(rider_id: str) -> Dict[str, Any]:
 
 
 @router.get("/admin/config")
-async def get_admin_financial_config(user: User = Depends(current_user)) -> Dict[str, Any]:
+async def get_admin_financial_config(user: User = Depends(require_roles(Role.admin))) -> Dict[str, Any]:
     """Returns live platform financial settings, commission rates, and tax parameters."""
     admin_doc = await database.collection("admin_settings").find_one({"_id": "platform"})
     cfg = {**DEFAULT_FINANCIAL_CONFIG, **(admin_doc.get("financialConfig") if admin_doc else {})}
@@ -128,7 +128,7 @@ async def get_admin_financial_config(user: User = Depends(current_user)) -> Dict
 
 
 @router.put("/admin/config")
-async def update_admin_financial_config(body: Dict[str, Any], user: User = Depends(current_user)) -> Dict[str, Any]:
+async def update_admin_financial_config(body: Dict[str, Any], user: User = Depends(require_roles(Role.admin))) -> Dict[str, Any]:
     """Updates live platform financial settings without requiring code redeployment."""
     current_doc = await database.collection("admin_settings").find_one({"_id": "platform"}) or {"_id": "platform"}
     existing_cfg = current_doc.get("financialConfig") or {}

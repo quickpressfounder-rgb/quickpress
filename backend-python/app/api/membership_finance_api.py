@@ -15,13 +15,17 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.deps import current_user, optional_user
-from app.models.user import User
+from app.core.deps import current_user, optional_user, require_roles
+from app.models.user import Role, User
 from app.services.membership_finance_service import membership_finance_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/membership-finance", tags=["membership-finance"])
+router = APIRouter(
+    prefix="/membership-finance",
+    tags=["membership-finance"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 @router.get("/metrics", summary="Get Membership Financial KPIs (MRR, ARR, Churn)")

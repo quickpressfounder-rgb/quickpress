@@ -13,13 +13,19 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.deps import require_roles
 from app.db.unit_economics_repository import unit_economics_repository
+from app.models.user import Role
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/unit-economics", tags=["unit-economics"])
+router = APIRouter(
+    prefix="/unit-economics",
+    tags=["unit-economics"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 @router.get("/summary", summary="Get Portfolio Contribution Margins (CM1 & CM2)")

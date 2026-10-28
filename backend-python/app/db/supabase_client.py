@@ -265,6 +265,8 @@ def _compile_filter(
 
         # JSON path extraction: nested keys like "address.city" -> data->'address'->>'city'
         path_parts = key.split(".")
+        if not all(re.match(r"^[a-zA-Z0-9_]+$", p) for p in path_parts):
+            return None
         if len(path_parts) == 1:
             json_field = f"data->>'{path_parts[0]}'"
         else:

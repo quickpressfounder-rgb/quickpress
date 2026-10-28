@@ -9,13 +9,19 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.core.deps import require_roles
+from app.models.user import Role
 from app.services.financial_anomaly_service import financial_anomaly_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/finance-anomalies", tags=["finance-anomalies"])
+router = APIRouter(
+    prefix="/finance-anomalies",
+    tags=["finance-anomalies"],
+    dependencies=[Depends(require_roles(Role.admin))],
+)
 
 
 @router.get("/attention-required", summary="Get Live Financial Exceptions for Attention Required Bar")

@@ -866,6 +866,11 @@ async def logout(payload: LogoutRequest, user: User = Depends(current_user)) -> 
             pass
     await refresh_tokens.revoke_all_for_user(user.id)
     revoke_refresh_tokens(user.firebase_uid)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        await database.update("users", {"_id": user.id}, {"$set": {"logged_out_at": now_iso}})
+    except Exception as exc:
+        _log.warning("User logged_out_at update: %s", exc)
     return {"ok": True}
 
 
