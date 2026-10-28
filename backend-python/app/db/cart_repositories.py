@@ -211,7 +211,13 @@ class CartRepository:
 
         catalog = await self._catalog_defaults(item_id, payload)
         # Server-side pricing is strictly derived from the database catalog (partner_services or services)
-        verified_price = int(catalog.get("price") if catalog.get("price") is not None else (payload.price or 0))
+        if catalog.get("price") is not None:
+            verified_price = int(catalog["price"])
+        else:
+            raw_price = int(payload.price or 0)
+            if raw_price <= 0:
+                raise ValueError("Item price must be greater than zero")
+            verified_price = raw_price
         verified_unit = str(catalog.get("unit") or payload.unit or "kg")
         verified_name = str(catalog.get("name") or payload.name or "Laundry Service")
 

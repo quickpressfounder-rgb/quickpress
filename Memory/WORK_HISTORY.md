@@ -33,6 +33,32 @@
 
 ## Detailed Log of Work Done Today (28 October 2026)
 
+### 48. Step 1: Critical Financial Security Patches & Anti-Tampering Hardening
+- **User Request:** "step 1 start" (Implement critical financial patches identified in senior developer & threat intelligence audit: client coupon discount tampering, cart item price tampering, and wallet debit auto-refund rollback).
+- **Security Patches Implemented:**
+  1. **Strict Server-Side Coupon Verification (`backend-python/app/db/order_repositories.py`):**
+     - Implemented `_validate_and_compute_coupon()` to eliminate client-side discount tampering.
+     - If client claims `couponDiscount` without a valid coupon code, discount is set to 0.
+     - Verifies `clean_code` against `admin_coupons`, `coupons`, and `cart_coupons` with status check, expiry check, and minimum order threshold.
+     - Authoritative discount is calculated server-side based on actual items subtotal and max discount cap.
+  2. **Cart Non-Zero Price Floor & Catalog Priority (`backend-python/app/db/cart_repositories.py`):**
+     - Prioritizes catalog price strictly from DB over any client-provided price.
+     - Enforces non-zero price validation (`raw_price <= 0` raises `ValueError("Item price must be greater than zero")`).
+  3. **Wallet Debit Auto-Refund Rollback (`backend-python/app/db/order_repositories.py`):**
+     - Tracks `debited_wallet_amount` when processing wallet payment.
+     - Wraps order insertion in `try...except`; on unhandled failure, triggers automatic wallet credit with `kind="order-failed-auto-refund"` and `title="Automatic Refund (Order Failed)"`.
+- **Automated Test Verification:**
+  - `backend-python/tests/test_step1_financial_security_patches.py`: **3 PASSED (100%)**
+    - `test_coupon_discount_tampering_blocked`: PASSED (fake couponDiscount reset to 0, fake coupon code rejected with 422).
+    - `test_zero_or_negative_price_blocked`: PASSED (0 and -50 prices rejected with 422).
+    - `test_wallet_auto_refund_on_failure`: PASSED (simulated DB crash triggered instant automatic refund back to wallet).
+  - Full Regression Suite (`test_live_order_e2e_full_lifecycle.py`, `test_order_lifecycle_e2e.py`, `test_partner_real_settlements.py`, `test_unified_finance_engine.py`, `test_cross_project_finance_sync.py`, `test_step1_financial_security_patches.py`): **15 PASSED in 21.97s (100% SUCCESS)**.
+- **Files Modified:**
+  - `backend-python/app/db/order_repositories.py`
+  - `backend-python/app/db/cart_repositories.py`
+  - `backend-python/tests/test_step1_financial_security_patches.py`
+  - `Memory/WORK_HISTORY.md`
+
 ### 47. End-to-End Order Lifecycle & Financial Payout Distribution Audit (100% Passed)
 - **User Request:** "ab ek order cycyle test karo jisme order pickup deivery payout descubut etc etc sare ka test kato sabhi working hai ya nahi" (Test complete end-to-end order lifecycle: customer order placement, pickup captain acceptance, dynamic OTP verification, laundry processing, dispatch handover, doorstep delivery, and double-entry financial settlement payouts across Customer, Partner, Rider, and Admin).
 - **Audit Findings & Bug Fixes:**

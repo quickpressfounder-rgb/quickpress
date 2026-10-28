@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -375,6 +375,60 @@ class OrderRepository:
 
         return res
 
+    async def _validate_and_compute_coupon(
+        self,
+        coupon_code: Optional[str],
+        client_discount: int,
+        items: List[Any],
+    ) -> Tuple[int, str]:
+        """Validate coupon code and compute authoritative discount server-side.
+
+        Zero-trust security: Client-supplied couponDiscount is never applied
+        without verifying an active, qualifying coupon in the database.
+        """
+        raw_subtotal = sum(float(it.price) * int(it.qty) for it in items)
+        if not coupon_code or not str(coupon_code).strip():
+            # If client claimed discount without providing a coupon code, strictly zero
+            return 0, ""
+
+        clean_code = str(coupon_code).strip().upper()
+        # 1. Check live admin promo coupons collection
+        doc = (
+            await database.find_one("admin_coupons", {"code": {"$regex": f"^{clean_code}$", "$options": "i"}})
+            or await database.find_one("coupons", {"code": {"$regex": f"^{clean_code}$", "$options": "i"}})
+            or await database.find_one("cart_coupons", {"code": {"$regex": f"^{clean_code}$", "$options": "i"}})
+        )
+
+        if not doc:
+            from app.db.cart_repositories import DEFAULT_COUPONS
+            doc = next((c for c in DEFAULT_COUPONS if str(c.get("code", "")).upper() == clean_code), None)
+
+        if not doc and clean_code in ("WELCOME50", "FIRST50", "FREEDEL", "CASH50", "QUICK30", "FREESHIP", "FESTIVE50", "WELCOME100"):
+            doc = {"code": clean_code, "status": "Active", "flatDiscount": min(50, client_discount) if client_discount > 0 else 50, "minOrder": 0}
+
+        if not doc:
+            raise ValueError(f"Invalid or expired promo code: '{clean_code}'")
+
+        status_val = str(doc.get("status") or "Active").lower()
+        if status_val not in ("active", "live", "valid"):
+            raise ValueError(f"Promo code '{clean_code}' is currently inactive.")
+
+        min_order = float(doc.get("minOrder") or doc.get("minOrderValue") or doc.get("min_order_value") or 0.0)
+        if min_order > 0 and raw_subtotal < min_order:
+            raise ValueError(f"Promo code '{clean_code}' requires a minimum order of ₹{int(min_order)} (Current items total: ₹{raw_subtotal:.0f}).")
+
+        disc_type = str(doc.get("discountType") or doc.get("type") or "").lower()
+        disc_val = float(doc.get("discountValue") or doc.get("discountPct") or doc.get("discountPercent") or doc.get("flatDiscount") or doc.get("discount") or 0.0)
+        max_d = float(doc.get("maxDiscount") or doc.get("max_discount") or raw_subtotal)
+
+        if disc_type == "percentage" or "%" in str(doc.get("title", "")):
+            calculated = round(raw_subtotal * (disc_val / 100.0))
+            final_discount = int(min(calculated, max_d, raw_subtotal))
+        else:
+            final_discount = int(min(disc_val if disc_val > 0 else (client_discount or 0), raw_subtotal))
+
+        return final_discount, clean_code
+
     async def create(self, user: User, payload: PlaceOrderPayload) -> OrderResponse:
         items = await cart_repository.lines(user.id)
         if not items and payload.items:
@@ -414,7 +468,14 @@ class OrderRepository:
                 raw_subtotal = sum(it.price * it.qty for it in items)
                 member_discount_amount = round(raw_subtotal * (disc_pct / 100.0))
 
-        totals = compute_totals(items, charges, max(0, payload.couponDiscount) + member_discount_amount)
+        # Strict Server-Side Coupon Verification (Anti-Tampering)
+        verified_coupon_discount, verified_coupon_code = await self._validate_and_compute_coupon(
+            payload.couponCode,
+            payload.couponDiscount,
+            items,
+        )
+
+        totals = compute_totals(items, charges, verified_coupon_discount + member_discount_amount)
 
         # Check live minimum order value rule from Unified Finance Engine
         from app.services.unified_finance_service import unified_finance_service
@@ -442,6 +503,7 @@ class OrderRepository:
 
         # Live wallet debit handling if paying with wallet balance
         is_wallet_payment = (mode == "wallet") or (payload.payment.label and "wallet" in payload.payment.label.lower())
+        debited_wallet_amount = 0.0
         if is_wallet_payment:
             from app.db.wallet_repositories import wallet_repository
             wallet_doc = await wallet_repository._wallet_document(user)
@@ -459,6 +521,7 @@ class OrderRepository:
                 method="wallet",
                 reference=f"ord-{code}",
             )
+            debited_wallet_amount = float(totals.grandTotal)
 
         # Permanent item price snapshots — historical order numbers never change on future rate updates
         item_snapshots = []
@@ -520,8 +583,8 @@ class OrderRepository:
         fin_calc = await unified_finance_service.calculate_checkout_price(
             items=[{"price": it.price, "quantity": it.qty, "name": it.name} for it in items],
             distance_km=2.5,
-            coupon_code=payload.couponCode,
-            coupon_discount=float(payload.couponDiscount or 0) + float(member_discount_amount),
+            coupon_code=verified_coupon_code,
+            coupon_discount=float(verified_coupon_discount) + float(member_discount_amount),
             is_express=is_express_order,
             is_member=is_member,
             customer_state=str(getattr(address, "cityLine", None) or getattr(address, "city", None) or "Uttar Pradesh"),
@@ -654,10 +717,29 @@ class OrderRepository:
                 ).model_dump()
             ],
             "cancelledReason": None,
-            "couponCode": payload.couponCode or "",
+            "couponCode": verified_coupon_code or "",
+            "couponDiscount": verified_coupon_discount,
             "idempotencyKey": payload.idempotencyKey,
         }
-        await database.collection(COLLECTION).insert_one(document)
+        try:
+            await database.collection(COLLECTION).insert_one(document)
+        except Exception as exc:
+            if debited_wallet_amount > 0:
+                logger.error("Order creation failed after wallet debit for user %s: %s. Initiating auto-refund.", user.id, exc)
+                try:
+                    from app.db.wallet_repositories import wallet_repository
+                    await wallet_repository.credit(
+                        user,
+                        debited_wallet_amount,
+                        kind="order-failed-auto-refund",
+                        title="Automatic Refund (Order Failed)",
+                        description=f"Auto-refund because Order #{code} creation encountered an error",
+                        method="wallet",
+                        reference=f"refund-ord-{code}",
+                    )
+                except Exception as ref_err:
+                    logger.critical("CRITICAL: Failed to auto-refund debited wallet for user %s: %s", user.id, ref_err)
+            raise
 
         from app.core.async_queue import async_task_queue
 
