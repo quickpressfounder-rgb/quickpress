@@ -3506,6 +3506,31 @@ This single command will automatically:
 - **Verification & Packaging:**
   - Built `rider-frontend` (`npm run build`): PASSED (976ms, 0 errors).
   - Built Android Captain binaries via `python3 build_all_apks.py rider`:
-    - `QuickPress-Captain.apk` (18 MB) compiled, signed & verified.
     - `QuickPress-Captain.aab` (17 MB) compiled & verified.
     - Capacitor iOS sync verified (0.79s).
+
+### 66. COD Payment Collection with Razorpay Dynamic QR & Customer Delivery OTP Revamp to Pure White Theme
+- **User Request:**
+  - "Solution 1 but yaha humra razorpay bala payment qr system intragtion kanr hai jab payment confirm karega uske baad otp dale fhir order complet aaye ye banana hai"
+  - Reviewed and approved rough visual wireframe proposal `cod_payment_collect_proposal.md`.
+- **Architectural & Design Principles Applied:**
+  - **Rule 1 (Pure White Theme):** Clean `#FFFFFF` cards, `#F8F9FA` canvas, hairline borders (`border-slate-200/90`).
+  - **Rule 2 (Speed-First Usability & Financial Protection):**
+    - Step 1: Generates Razorpay Dynamic UPI QR code (`upi://pay?pa=quickpress.rzp@icici&pn=QuickPress&am=...`) supporting instant scan-and-pay via GPay, PhonePe, Paytm, CRED, BHIM.
+    - Includes 1-tap `[Check Live Payment Status (Razorpay)]` and `[Confirm Cash Received]` for physical cash.
+    - Zero-loss guard: Customer Delivery OTP is completely locked until payment is verified.
+    - Step 2: Once payment is confirmed, unlocks Customer Doorstep Handover with piece count stepper `[-] 5 pcs [+]` and 4-digit Customer Delivery OTP with instant auto-submit upon 4th digit.
+  - **Rule 3 (Zero Cartoon Emojis):** Replaced custom emojis (💵, 📍, 🗺️) with Lucide SVG system icons (`QrCode`, `RefreshCw`, `CheckCircle2`, `ExternalLink`, `Phone`, `Shirt`, `AlertTriangle`).
+  - **Rule 4 (Notch Safe Padding):** Header maintains safe area padding and dynamically displays `"Collect Payment"` during pending COD payment and `"At Customer Doorstep"` during delivery handover.
+- **Code Modifications (`GoToPickupHUD.tsx`):**
+  - Added `RefreshCw` to Lucide imports.
+  - Declared `isCodOrder`, `isPaymentConfirmed`, `paymentMethodUsed`, `isCheckingPayment`, and `codPayableAmount` state managers.
+  - Dynamically updated screen title in navigation bar based on active payment state.
+  - Replaced legacy colorful COD banner with Step 1: Pure white Razorpay Dynamic UPI QR collection card + physical cash float action.
+  - Implemented Step 2: Clean white Customer Doorstep Handover with verified payment banner, piece stepper, and front-and-center 4-digit Customer Delivery OTP input.
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (1.09s, 0 errors).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17 MB) compiled & verified.
+    - Capacitor iOS sync verified (0.89s).

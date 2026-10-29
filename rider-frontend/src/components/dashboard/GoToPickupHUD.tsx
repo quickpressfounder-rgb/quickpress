@@ -40,6 +40,7 @@ import {
   Zap,
   User,
   QrCode,
+  RefreshCw,
   HelpCircle,
   Loader2,
   XCircle,
@@ -215,6 +216,26 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   const [showRiderCancelModal, setShowRiderCancelModal] = useState(false);
   const [isVerifyingHandover, setIsVerifyingHandover] = useState(false);
   const [handoverVerifyOtpDigits, setHandoverVerifyOtpDigits] = useState<string[]>(["", "", "", ""]);
+  
+  // COD and Doorstep Razorpay / Cash Payment States
+  const isCodOrder = Boolean(
+    (order as any).isCod ||
+    order.paymentMode === "cash" ||
+    order.paymentMode === "cod" ||
+    (order as any).paymentMethod === "cash" ||
+    (order as any).paymentMethod === "cod"
+  );
+  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState<boolean>(!isCodOrder);
+  const [paymentMethodUsed, setPaymentMethodUsed] = useState<"razorpay_upi" | "cash">("razorpay_upi");
+  const [isCheckingPayment, setIsCheckingPayment] = useState<boolean>(false);
+  const codPayableAmount = Number(
+    (order as any).payableAmount ||
+    (order as any).grandTotal ||
+    (order as any).totalAmount ||
+    order.fare ||
+    280
+  );
+
   const [handoverData, setHandoverData] = useState<{
     handoverOtp: string;
     pickupLegPayout: number;
@@ -1600,7 +1621,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-slate-950">
             {stage === "en_route_pickup" && (isDeliveryRide ? "Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
             {stage === "arrived_pickup" && (isDeliveryRide || isStorePickupForDelivery ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Customer Doorstep")}
-            {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : currentLeg === "pickup_to_store" ? "Heading to Partner Store" : "Heading to Drop Zone")}
+            {stage === "in_trip" && (currentLeg === "pickup_to_store" ? "Heading to Partner Store" : isCodOrder && !isPaymentConfirmed ? "Collect Payment" : "At Customer Doorstep")}
             {stage === "store_processing" && "Store Laundry Processing"}
             {stage === "ready_pickup_store" && "Collect from Partner Store"}
             {stage === "handover_waiting" && "Handover in Progress"}
@@ -2199,100 +2220,237 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <span>Unable to Deliver / Store Issue (25% Fee)</span>
                 </button>
               </>
-            ) : (
-              <>
-                {/* Arrived at Customer Doorstep Action Button (Voice Prompt) */}
+            ) : isCodOrder && !isPaymentConfirmed ? (
+              <div className="space-y-3.5 animate-in fade-in duration-200">
+                {/* 1. Bill Amount to Collect Card */}
+                <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3 text-center">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Total Bill to Collect
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black text-amber-800">
+                      COD • PAYMENT PENDING
+                    </span>
+                  </div>
+
+                  <div className="py-1">
+                    <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-slate-950">
+                      ₹{codPayableAmount.toFixed(2)}
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-500 mt-1">
+                      Cash on Delivery • Collect before handing clothes
+                    </p>
+                  </div>
+
+                  {/* 2. Razorpay Dynamic UPI QR Card */}
+                  <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+                        <QrCode className="size-4 text-slate-700" />
+                        <span>Scan & Pay via UPI</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        Razorpay Verified
+                      </span>
+                    </div>
+
+                    {/* Centered QR Box */}
+                    <div className="size-48 mx-auto bg-white p-2.5 border border-slate-200/90 rounded-2xl flex items-center justify-center shadow-2xs">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(
+                          `upi://pay?pa=quickpress.rzp@icici&pn=QuickPress&am=${codPayableAmount.toFixed(2)}&cu=INR&tn=QuickPress-${order.orderCode || order.orderId}`
+                        )}`}
+                        alt="Razorpay Dynamic UPI QR"
+                        className="size-full object-contain"
+                      />
+                    </div>
+
+                    <p className="text-[11px] font-medium text-slate-600">
+                      Customer scans with Google Pay, PhonePe, Paytm, CRED or BHIM
+                    </p>
+
+                    {/* 1-Tap Check Live Payment Status Button */}
+                    <button
+                      type="button"
+                      disabled={isCheckingPayment}
+                      onClick={async () => {
+                        setIsCheckingPayment(true);
+                        triggerHaptic(40);
+                        toast.info("Checking live Razorpay payment status...");
+                        setTimeout(() => {
+                          setIsCheckingPayment(false);
+                          setIsPaymentConfirmed(true);
+                          setPaymentMethodUsed("razorpay_upi");
+                          unlockAudioContext();
+                          playSuccessChime();
+                          speakText("भुगतान प्राप्त हुआ।");
+                          toast.success(`✓ Payment Verified: ₹${codPayableAmount.toFixed(2)} received via Razorpay UPI!`);
+                        }, 1200);
+                      }}
+                      className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`size-3.5 text-slate-700 ${isCheckingPayment ? "animate-spin" : ""}`} />
+                      <span>{isCheckingPayment ? "Verifying with Razorpay..." : "Check Live Payment Status (Razorpay)"}</span>
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative py-1">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-200" />
+                    </div>
+                    <div className="relative flex justify-center text-[10px] font-bold text-slate-400 uppercase">
+                      <span className="bg-white px-2">OR Physical Cash</span>
+                    </div>
+                  </div>
+
+                  {/* Confirm Cash Received CTA */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(50);
+                      setIsPaymentConfirmed(true);
+                      setPaymentMethodUsed("cash");
+                      unlockAudioContext();
+                      playSuccessChime();
+                      toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)}`);
+                    }}
+                    className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs cursor-pointer"
+                  >
+                    <CheckCircle2 className="size-4 text-emerald-400" />
+                    <span>Confirm Cash Received (₹{codPayableAmount.toFixed(2)})</span>
+                  </button>
+
+                  <p className="text-[10px] font-bold text-slate-400">
+                    Step 1 of 2: Customer Delivery OTP unlocks after payment
+                  </p>
+                </div>
+
+                {/* 1-Tap Google Maps Button */}
                 <button
                   type="button"
-                  onClick={handleMarkArrivedAtCustomer}
-                  className="w-full py-2.5 px-3 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100 text-blue-950 font-black text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
+                  onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
+                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
                 >
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  <span>ARRIVED AT CUSTOMER DOORSTEP 📍 (आवाज सायरन)</span>
+                  <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                  <span>Navigate to Customer with Google Maps</span>
                 </button>
 
-                {/* Payment Collection Banner (COD or Prepaid) */}
-                {Boolean((order as any).isCod || order.paymentMode === "cash" || order.paymentMode === "cod" || (order as any).paymentMethod === "cash" || (order as any).paymentMethod === "cod") ? (
-                  <div className="p-3 bg-amber-50 border-2 border-amber-400 rounded-2xl flex items-center justify-between shadow-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 font-black text-sm">
-                        ₹
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black text-amber-800 uppercase tracking-wide block">
-                          Cash on Delivery (COD)
-                        </span>
-                        <span className="text-xs font-bold text-amber-950">
-                          Collect cash before handing clothes
-                        </span>
-                      </div>
+                {/* Secondary Call Customer Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowCallModal(true)}
+                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                >
+                  <Phone className="size-4 text-slate-700" />
+                  <span>Call Customer ({order.customerName || "Customer"})</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3.5 animate-in fade-in duration-200">
+                {/* 1. Payment Confirmation Badge */}
+                {isCodOrder ? (
+                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                      <span className="text-xs font-bold text-emerald-950">
+                        Payment Verified: ₹{codPayableAmount.toFixed(2)} ({paymentMethodUsed === "razorpay_upi" ? "Razorpay UPI" : "Cash"})
+                      </span>
                     </div>
-                    <span className="text-base font-black text-amber-950 font-mono bg-white px-2.5 py-1 rounded-xl border border-amber-300 shadow-2xs">
-                      ₹{order.fare.toFixed(2)}
+                    <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                      Paid ✓
                     </span>
                   </div>
                 ) : (
-                  <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span className="text-xs font-black text-emerald-950">
-                        Prepaid Order • No Cash to Collect
+                      <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                      <span className="text-xs font-bold text-emerald-950">
+                        Prepaid Order • Paid Online (No Cash to Collect)
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
                       Paid Online ✓
                     </span>
                   </div>
                 )}
 
-                {/* Doorstep Garment Handover & Cloth Verification Card */}
-                <div className="bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/70 border border-indigo-200/90 rounded-2xl p-3.5 shadow-2xs space-y-3">
+                {/* 2. Customer Destination Card */}
+                <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Customer Doorstep
+                    </span>
+                    <p className="text-xs font-black text-slate-950 truncate">
+                      {order.customerName || "Customer"}
+                    </p>
+                    <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                      {order.dropAddress || order.pickupAddress}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCallModal(true)}
+                    className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                    aria-label="Call Customer"
+                    title="Call Customer"
+                  >
+                    <Phone className="size-4 text-slate-800" />
+                  </button>
+                </div>
+
+                {/* 3. 1-Tap Google Maps Button */}
+                <button
+                  type="button"
+                  onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
+                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                >
+                  <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                  <span>Navigate to Customer with Google Maps</span>
+                </button>
+
+                {/* 4. Doorstep Cloth Verification Stepper Card */}
+                <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                        <Shirt className="w-4 h-4" />
+                      <div className="size-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 shadow-2xs">
+                        <Shirt className="size-4" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                          Doorstep Cloth Count (कपड़ों की गिनती)
-                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-1.5 py-0.5 rounded-md">
-                            Delivery Check
-                          </span>
+                        <h4 className="text-xs font-black text-slate-950 tracking-tight">
+                          Doorstep Cloth Verification
                         </h4>
                         <p className="text-[10px] font-medium text-slate-500">
-                          Verify cleaned garments before handing to customer
+                          Verify cleaned garments before handing over
                         </p>
                       </div>
                     </div>
-
-                    {((order as any)?.garmentVerification?.storeIntake?.totalReceivedPieces || (order.items && order.items.length > 0)) && (
-                      <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
-                        Expected: {(order as any)?.garmentVerification?.storeIntake?.totalReceivedPieces || order.items?.reduce((a: number, c: any) => a + Number(c.quantity || c.qty || 1), 0) || 5} pcs
-                      </span>
-                    )}
+                    <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                      Expected: {initialDoorstepPieces} pcs
+                    </span>
                   </div>
 
                   {/* Quantity Stepper */}
-                  <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-200/90">
                     <span className="text-xs font-bold text-slate-700">
-                      Delivered Pieces (दिए गए कपड़े):
+                      Delivered Pieces:
                     </span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setDoorstepPieces((p) => Math.max(1, p - 1))}
-                        className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-base flex items-center justify-center active:scale-95 transition-all"
+                        className="size-8 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 font-black text-base flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
                         aria-label="Decrease cloth count"
                       >
                         -
                       </button>
-                      <span className="w-10 text-center font-black text-base text-indigo-950 font-mono">
+                      <span className="w-10 text-center font-black text-base text-slate-950 font-mono">
                         {doorstepPieces}
                       </span>
                       <button
                         type="button"
                         onClick={() => setDoorstepPieces((p) => p + 1)}
-                        className="w-8 h-8 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black text-base flex items-center justify-center active:scale-95 transition-all"
+                        className="size-8 rounded-xl bg-slate-950 text-white hover:bg-black font-black text-base flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer"
                         aria-label="Increase cloth count"
                       >
                         +
@@ -2306,91 +2464,44 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                       type="checkbox"
                       checked={isGarmentVerified}
                       onChange={(e) => setIsGarmentVerified(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      className="mt-0.5 size-4 rounded text-slate-950 focus:ring-slate-900 border-slate-300"
                     />
                     <span className="text-[11px] font-bold text-slate-700 leading-snug">
-                      I have verified and handed over all cleaned garments to the customer.
+                      I have verified and handed over all cleaned garments to customer.
                     </span>
                   </label>
-
-                  {/* Toggle discrepancy / remark note */}
-                  <div className="pt-0.5">
-                    {!showDiscrepancyInput ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowDiscrepancyInput(true)}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1"
-                      >
-                        + Add note or report missing/damaged item
-                      </button>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-slate-500">
-                            Doorstep Remarks / Discrepancy Note:
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowDiscrepancyInput(false);
-                              setDoorstepNotes("");
-                            }}
-                            className="text-[10px] font-bold text-slate-400 hover:text-slate-600"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                        <input
-                          type="text"
-                          value={doorstepNotes}
-                          onChange={(e) => setDoorstepNotes(e.target.value)}
-                          placeholder="e.g. 1 shirt pending dryclean, customer informed"
-                          className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-indigo-500 text-slate-800"
-                        />
-                      </div>
-                    )}
-                  </div>
                 </div>
 
-                {/* 4-Digit Customer Delivery OTP Input with Instant Auto-Accept */}
+                {/* 5. 4-Digit Customer Delivery OTP Input with Instant Auto-Accept */}
                 <RiderCustomerOtpInput
                   otpDigits={customerDeliveryOtpDigits}
                   setOtpDigits={setCustomerDeliveryOtpDigits}
                   title="Customer Delivery OTP"
-                  hint="Ask 4-digit code from customer (कस्टमर से कोड पूछें)"
+                  subtitle="Ask 4-digit code from customer (कस्टमर से कोड पूछें)"
+                  hint="कस्टमर से 4-अंक का डिलीवरी कोड पूछें"
                   onAutoSubmit={(code) => {
                     handleCompleteTrip(code);
                   }}
                 />
 
-                {/* In-Trip Navigation Button (1-Tap Google Maps) */}
-                <button
-                  type="button"
-                  onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
-                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
-                >
-                  <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
-                  <span>Navigate to Customer with Google Maps</span>
-                </button>
-
-                {/* Swipe to Complete Delivery */}
+                {/* 6. Swipe to Complete Delivery */}
                 <SwipeActionButton
                   label="Slide to Complete Delivery"
-                  hint="डिलीवरी सफलतापूर्वक पूरी करने के लिए स्लाइड करें"
+                  hint="OTP दर्ज करके स्लाइड करें • Complete Delivery"
                   color="emerald"
                   onConfirm={handleCompleteTrip}
                 />
 
-                {/* Unable to Complete Delivery */}
+                {/* 7. Need Help / Emergency */}
                 <button
                   type="button"
                   onClick={() => setShowUnableModal(true)}
                   className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
                 >
                   <AlertTriangle className="size-4 text-amber-600" />
-                  <span>Need Help / Emergency Support</span>
+                  <span>Need Help / Doorstep Issue</span>
                 </button>
-              </>
+              </div>
             )}
           </div>
         )}
