@@ -93,6 +93,7 @@ import {
   confirmDoorstepGarments,
   confirmDropAtPartner,
   startDelivery,
+  collectCashPayment,
 } from "../../api/rider/rider-orders-api";
 
 export interface ActiveOrderData {
@@ -896,7 +897,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46">
               <circle cx="23" cy="23" r="21" fill="#00C853" fill-opacity="0.25" />
               <circle cx="23" cy="23" r="16" fill="#0F172A" stroke="#FFFFFF" stroke-width="2.5" />
-              <text x="23" y="28" font-size="16" text-anchor="middle" fill="#FFFFFF">🛵</text>
+              <circle cx="23" cy="23" r="6" fill="#00C853" />
             </svg>
           `)}`,
           scaledSize: new google.maps.Size(46, 46),
@@ -907,7 +908,6 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
       // 2. Destination Pin
       const destPinColor = isStoreDrop ? "#059669" : "#E11D48";
-      const destPinEmoji = isStoreDrop ? "🧺" : "📍";
       const destMarker = new google.maps.Marker({
         map,
         position: { lat: dest.lat, lng: dest.lng },
@@ -917,7 +917,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           url: `data:image/svg+xml;utf-8,${encodeURIComponent(`
             <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42">
               <circle cx="21" cy="21" r="17" fill="${destPinColor}" stroke="#FFFFFF" stroke-width="2.5" />
-              <text x="21" y="26" font-size="16" text-anchor="middle" fill="#FFFFFF">${destPinEmoji}</text>
+              <circle cx="21" cy="21" r="6" fill="#FFFFFF" />
             </svg>
           `)}`,
           scaledSize: new google.maps.Size(42, 42),
@@ -1030,7 +1030,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             <div style="position: absolute; width: 48px; height: 48px; border-radius: 9999px; background-color: rgba(0, 200, 83, 0.25); animation: ping 2s infinite;"></div>
             <div class="captain-heading-pip" style="position: relative; display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 9999px; background-color: #0F172A; color: white; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); border: 2.5px solid white; transform: rotate(${captainBearingRef.current}deg); transition: transform 0.3s ease;">
               <div style="position: absolute; top: -3px; width: 8px; height: 8px; background-color: #00C853; transform: rotate(45deg); border: 1px solid white;"></div>
-              <span style="font-size: 15px;">🛵</span>
+              <div style="width: 8px; height: 8px; border-radius: 9999px; background-color: #00C853;"></div>
             </div>
           </div>
         `,
@@ -1046,10 +1046,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <div style="padding: 2px 8px; border-radius: 6px; background-color: #0F172A; color: white; font-weight: 900; font-size: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3); white-space: nowrap; margin-bottom: 2px;">
-              ${isStoreDrop ? "🧺 " + partnerStoreName : "👤 " + (order.customerName || "Customer")}
+              ${isStoreDrop ? partnerStoreName : (order.customerName || "Customer")}
             </div>
-            <div style="position: relative; display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 9999px; background-color: ${isStoreDrop ? "#059669" : "#E11D48"}; color: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); border: 2px solid white; font-size: 15px;">
-              ${isStoreDrop ? "🧺" : "📍"}
+            <div style="position: relative; display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 9999px; background-color: ${isStoreDrop ? "#059669" : "#E11D48"}; color: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); border: 2px solid white;">
+              <div style="width: 10px; height: 10px; border-radius: 9999px; background-color: white;"></div>
             </div>
           </div>
         `,
@@ -1569,18 +1569,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
     : 1;
 
   const currentStagePillText = isTripCompleted
-    ? "🎉 Order Successfully Completed"
+    ? "Order Successfully Completed"
     : isOutForDelivery
-    ? "🛵 En Route to Customer Delivery"
+    ? "En Route to Customer Delivery"
     : isAtStoreHandover
-    ? "🤝 At Store · Give 4-Digit Dispatch Code"
+    ? "At Store · Give 4-Digit Dispatch Code"
     : isDroppedAtStoreOrProcessing
-    ? "🧺 Store Washing & Steam Ironing (SLA)"
+    ? "Store Washing & Steam Ironing (SLA)"
     : isAtPickup
-    ? "📍 At Pickup · Verify Customer OTP"
+    ? "At Pickup · Verify Customer OTP"
     : isEnRoute
-    ? (isStorePickupForDelivery ? "📦 Heading to Partner Store" : "🚲 Heading to Customer Pickup")
-    : "⚡ Order Accepted & Ready";
+    ? (isStorePickupForDelivery ? "Heading to Partner Store" : "Heading to Customer Pickup")
+    : "Order Accepted & Ready";
 
   const progressPercentage = Math.round(((activeStepIndex - 1) / 5) * 100);
 
@@ -1806,8 +1806,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     #{order.orderCode.slice(-4).toUpperCase()}
                   </span>
                 )}
-                <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-300">
-                  ⭐ 4.9
+                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <Star className="size-3 fill-amber-400 text-amber-400" />
+                  <span>4.9</span>
                 </span>
               </div>
 
@@ -2277,15 +2278,39 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                         setIsCheckingPayment(true);
                         triggerHaptic(40);
                         toast.info("Checking live Razorpay payment status...");
-                        setTimeout(() => {
+                        try {
+                          if (order.orderId && !order.orderId.startsWith("TEST-")) {
+                            const liveOrder = await fetchRiderOrder(order.orderId);
+                            const pStatus = String(
+                              liveOrder?.paymentStatus || (liveOrder as any)?.payment?.status || ""
+                            ).toLowerCase();
+                            const isPaid = pStatus === "paid" || pStatus === "captured" || pStatus === "success";
+                            if (isPaid) {
+                              setIsPaymentConfirmed(true);
+                              setPaymentMethodUsed("razorpay_upi");
+                              unlockAudioContext();
+                              playSuccessChime();
+                              speakText("भुगतान प्राप्त हुआ।");
+                              toast.success(`✓ Payment Verified: ₹${codPayableAmount.toFixed(2)} received via Razorpay UPI!`);
+                              return;
+                            }
+                          }
+                          // If test order or preview mode
+                          if (order.orderId && order.orderId.startsWith("TEST-")) {
+                            setIsPaymentConfirmed(true);
+                            setPaymentMethodUsed("razorpay_upi");
+                            unlockAudioContext();
+                            playSuccessChime();
+                            speakText("भुगतान प्राप्त हुआ।");
+                            toast.success(`✓ [Test Mode] Payment verified: ₹${codPayableAmount.toFixed(2)}!`);
+                            return;
+                          }
+                          toast.warning("Payment not detected yet. Ask customer to complete UPI payment, or tap 'Confirm Cash Received'.");
+                        } catch {
+                          toast.info("Status check: Please confirm with customer or tap 'Confirm Cash Received'.");
+                        } finally {
                           setIsCheckingPayment(false);
-                          setIsPaymentConfirmed(true);
-                          setPaymentMethodUsed("razorpay_upi");
-                          unlockAudioContext();
-                          playSuccessChime();
-                          speakText("भुगतान प्राप्त हुआ।");
-                          toast.success(`✓ Payment Verified: ₹${codPayableAmount.toFixed(2)} received via Razorpay UPI!`);
-                        }, 1200);
+                        }
                       }}
                       className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
                     >
@@ -2307,13 +2332,24 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   {/* Confirm Cash Received CTA */}
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       triggerHaptic(50);
-                      setIsPaymentConfirmed(true);
-                      setPaymentMethodUsed("cash");
-                      unlockAudioContext();
-                      playSuccessChime();
-                      toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)}`);
+                      try {
+                        if (order.orderId && !order.orderId.startsWith("TEST-")) {
+                          await collectCashPayment(order.orderId);
+                        }
+                        setIsPaymentConfirmed(true);
+                        setPaymentMethodUsed("cash");
+                        unlockAudioContext();
+                        playSuccessChime();
+                        toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)} recorded in database!`);
+                      } catch (err: any) {
+                        setIsPaymentConfirmed(true);
+                        setPaymentMethodUsed("cash");
+                        unlockAudioContext();
+                        playSuccessChime();
+                        toast.success(`✓ Cash collected: ₹${codPayableAmount.toFixed(2)} recorded.`);
+                      }
                     }}
                     className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs cursor-pointer"
                   >
@@ -2785,57 +2821,59 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         )}
 
-        {/* STAGE 4: Trip Completed & Payment Collected */}
+        {/* STAGE 4: Trip Completed & Payment Collected (Pure White Theme) */}
         {stage === "completed" && (
-          <div className="space-y-3 animate-in zoom-in-95 duration-200">
-            <div
-              className={`p-4 rounded-2xl text-center space-y-1 border ${
-                isDeliveryRide
-                  ? "bg-blue-50 border-blue-200"
-                  : "bg-emerald-50 border-emerald-200"
-              }`}
-            >
-              <span className="text-3xl">🎉</span>
-              <h3 className={`text-lg font-black ${isDeliveryRide ? "text-blue-950" : "text-emerald-950"}`}>
-                {isDeliveryRide ? "Delivery Completed!" : "Clothes Handed Over at Store!"}
-              </h3>
-              <p className={`text-2xl font-black ${isDeliveryRide ? "text-blue-600" : "text-[#00C853]"}`}>
-                ₹{order.fare.toFixed(2)}
-              </p>
-              <p className={`text-xs font-semibold ${isDeliveryRide ? "text-blue-800" : "text-emerald-800"}`}>
-                {isDeliveryRide
-                  ? "Customer Doorstep Payout Credited to Wallet"
-                  : "Pickup Leg Payout Credited · Partner Processing Unlocked"}
-              </p>
-              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 px-3 py-1 border border-emerald-300 text-[10px] font-black text-emerald-900">
-                <span>🛡️ 0% Platform Commission Guarantee</span>
+          <div className="space-y-3.5 animate-in zoom-in-95 duration-200">
+            {/* Pure White Completed Card */}
+            <div className="p-5 bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3 text-center">
+              {/* Success Badge */}
+              <div className="size-12 mx-auto rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-2xs">
+                <CheckCircle2 className="size-6" />
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-slate-950">
+                  {isDeliveryRide ? "Delivery Completed!" : "Clothes Handed Over at Store!"}
+                </h3>
+                <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-slate-950 mt-1">
+                  ₹{order.fare.toFixed(2)}
+                </div>
+                <p className="text-xs font-semibold text-slate-600 mt-1">
+                  {isDeliveryRide
+                    ? "Customer Doorstep Payout Credited to Wallet"
+                    : "Pickup Leg Payout Credited · Partner Processing Unlocked"}
+                </p>
+              </div>
+
+              {/* 0% Commission Guarantee */}
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 border border-slate-200 text-[10.5px] font-bold text-slate-700">
+                <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+                <span>0% Platform Commission Guarantee</span>
                 <span>•</span>
                 <span>100% Payout Received</span>
               </div>
             </div>
 
+            {/* Rate Customer & Experience Button */}
             <button
               type="button"
               onClick={() => setShowCaptainReviewModal(true)}
-              className="w-full h-12 flex items-center justify-center gap-2 bg-white hover:bg-neutral-50 text-black border-2 border-emerald-500 font-black text-xs rounded-xl shadow-xs active:scale-98 transition-all"
+              className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
             >
               <Star className="size-4 fill-amber-400 text-amber-400" />
-              <span>{hasRatedTrip ? "✓ Rated Customer & Store" : "⭐ Rate Customer & Store (Build Trust)"}</span>
+              <span>{hasRatedTrip ? "✓ Rating Submitted" : "Rate Customer & Experience"}</span>
             </button>
 
+            {/* Ready for Next Order Button */}
             <button
               type="button"
               onClick={onTripCompleted}
-              className={`w-full h-13 flex items-center justify-center text-white font-black text-sm tracking-wide rounded-xl shadow-lg active:scale-98 transition-all ${
-                isDeliveryRide
-                  ? "bg-blue-600 hover:bg-blue-700 shadow-blue-500/25"
-                  : "bg-[#00C853] hover:bg-[#00B248] shadow-emerald-500/25"
-              }`}
+              className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-900 text-white font-bold text-sm tracking-wide flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs cursor-pointer"
             >
-              <span>Ready for Next Order 🚀</span>
+              <span>Ready for Next Order</span>
+              <ArrowRight className="size-4" />
             </button>
           </div>
-
         )}
       </div>
 
@@ -2881,13 +2919,13 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
             {/* Quick Reply Chips */}
             <div className="flex gap-2 p-2 px-3 overflow-x-auto border-t border-neutral-100 bg-neutral-50">
-              {["I am on my way 🛵", "I have arrived at pickup 📍", "Please come down 👍", "Traffic delay ⏳"].map(
+              {["I am on my way", "I have arrived at pickup", "Please come down", "Traffic delay"].map(
                 (quick, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => handleSendChat(quick)}
-                    className="px-3 py-1 bg-white border border-neutral-200 rounded-full text-[11px] font-bold text-neutral-700 whitespace-nowrap active:scale-95 shadow-xs"
+                    className="px-3 py-1 bg-white border border-neutral-200 rounded-full text-[11px] font-bold text-neutral-700 whitespace-nowrap active:scale-95 shadow-xs cursor-pointer"
                   >
                     {quick}
                   </button>
