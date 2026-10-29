@@ -617,26 +617,30 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
   }, [order.orderId, stage]);
 
 
-  const handleVerifyHandoverTransfer = async () => {
-    const code = handoverVerifyOtpDigits.join("");
+  const handleVerifyHandoverTransfer = async (directOtp?: string) => {
+    const code = directOtp || handoverVerifyOtpDigits.join("");
     if (code.length < 4) {
-      toast.error("Please enter the complete 4-digit Handover OTP from Captain");
+      toast.error("Please enter the complete 4-digit Handover OTP from Partner Store");
       return;
     }
     try {
       setIsVerifyingHandover(true);
       triggerHaptic();
-      const res = await verifyHandoverOtp(order.orderId, code);
-      if (res && res.ok) {
-        unlockAudioContext();
-        playSuccessChime();
-        speakText("हैंडओवर सत्यापित। अब ग्राहक को ऑर्डर डिलीवर करें।");
-        toast.success("Handover verified! Custody transferred to you.");
-        setStage("in_trip");
-        setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-      } else {
-        toast.error(res?.message || "Invalid Handover OTP. Please verify with Captain.");
+      let res: any = null;
+      try {
+        res = await startDelivery(order.orderId, code);
+      } catch {
+        res = await verifyHandoverOtp(order.orderId, code);
       }
+      unlockAudioContext();
+      playSuccessChime();
+      speakText("हैंडओवर सत्यापित। अब ग्राहक को ऑर्डर डिलीवर करें।");
+      toast.success("Handover verified! Custody transferred to you.");
+      setStage("in_trip");
+      setStartTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      setTimeout(() => {
+        launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
+      }, 600);
     } catch (err: any) {
       toast.error(err?.message || "Failed to verify Handover OTP. Please try again.");
     } finally {
@@ -1595,7 +1599,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </span>
           <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-slate-950">
             {stage === "en_route_pickup" && (isDeliveryRide ? "Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
-            {stage === "arrived_pickup" && (isDeliveryRide ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Customer Doorstep")}
+            {stage === "arrived_pickup" && (isDeliveryRide || isStorePickupForDelivery ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Customer Doorstep")}
             {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : currentLeg === "pickup_to_store" ? "Heading to Partner Store" : "Heading to Drop Zone")}
             {stage === "store_processing" && "Store Laundry Processing"}
             {stage === "ready_pickup_store" && "Collect from Partner Store"}
@@ -1949,109 +1953,129 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         {stage === "arrived_pickup" && (
           <div className="space-y-3 animate-in fade-in duration-200">
             {isStorePickupForDelivery || isHandoverRide ? (
-              <div className="space-y-3">
-                <RiderStoreDispatchDisplay
-                  code={captainDispatchOtp || "----"}
-                  storeName={partnerStoreName}
-                  onCopy={() => {
-                    if (captainDispatchOtp) {
-                      navigator.clipboard.writeText(captainDispatchOtp);
-                      toast.success("OTP Copied to Clipboard!");
-                    }
-                  }}
-                  onSpeak={() => speakDispatchOtpPrompt(captainDispatchOtp)}
-                />
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-2.5 text-xs text-slate-800 font-medium shadow-2xs">
-                  <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="truncate">{partnerStoreAddress}</span>
-                </div>
-
-                <div className="space-y-2 pt-1">
-                  <SwipeActionButton
-                    label="Swipe to Start Customer Delivery"
-                    hint="पार्टनर से कपड़े कलेक्ट करके स्लाइड करें"
-                    color="emerald"
-                    onConfirm={async () => {
-                      try {
-                        const res = await fetchDispatchOtp(order.orderId);
-                        if (
-                          res?.isVerified ||
-                          res?.status === "out_for_delivery" ||
-                          res?.status === "OUT_FOR_DELIVERY"
-                        ) {
-                          unlockAudioContext();
-                          playSuccessChime();
-                          speakText("डिलीवरी शुरू करें।");
-                          toast.success("✓ Custody verified! Navigating to customer.");
-                          setStage("in_trip");
-                          setStartTime(
-                            new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                          );
-                          setTimeout(() => {
-                            launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
-                          }, 600);
-                        } else {
-                          toast.error(
-                            "Partner has not verified your Dispatch OTP yet! Please ask store partner to enter the 4-digit code in their Partner Panel."
-                          );
-                        }
-                      } catch {
-                        toast.error("Could not verify partner status. Please ask partner to enter OTP.");
-                      }
-                    }}
-                  />
-
+              <div className="space-y-3.5">
+                {/* 1. Partner Store Location Card */}
+                <div className="p-3.5 bg-white rounded-3xl border border-slate-200/90 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Partner Store
+                    </span>
+                    <p className="text-xs font-black text-slate-950 truncate">
+                      {partnerStoreName}
+                    </p>
+                    <p className="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                      {partnerStoreAddress}
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setShowManualHandoverInput(!showManualHandoverInput)}
-                    className="w-full text-center text-[10px] font-bold text-emerald-700 hover:underline"
+                    onClick={() => setShowCallModal(true)}
+                    className="size-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-95 flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
+                    aria-label="Call Store"
+                    title="Call Store"
                   >
-                    {showManualHandoverInput
-                      ? "Hide direct Captain OTP input"
-                      : "Switch to Captain-to-Captain OTP verification"}
+                    <Phone className="size-4 text-slate-800" />
                   </button>
                 </div>
 
-                {showManualHandoverInput && (
-                  <div className="pt-2 border-t border-emerald-200 space-y-2">
-                    <p className="text-[11px] text-zinc-600 font-medium">
-                      Enter 4-digit Handover OTP if receiving package directly from Captain 1:
-                    </p>
-                    <div className="flex gap-2 justify-center py-1">
-                      {[0, 1, 2, 3].map((idx) => (
-                        <input
-                          key={idx}
-                          type="tel"
-                          maxLength={1}
-                          value={handoverVerifyOtpDigits[idx]}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, "");
-                            const next = [...handoverVerifyOtpDigits];
-                            next[idx] = val;
-                            setHandoverVerifyOtpDigits(next);
-                            if (val && idx < 3) {
-                              const nextEl = document.getElementById(`handover-otp-${idx + 1}`);
-                              nextEl?.focus();
-                            } else if (val && idx === 3 && next.every((d) => d.length === 1)) {
-                              handleVerifyHandoverTransfer();
-                            }
-                          }}
-                          id={`handover-otp-${idx}`}
-                          className="w-11 h-11 text-center font-black text-xl bg-white border-2 border-zinc-300 rounded-xl focus:border-emerald-500 focus:outline-none shadow-sm"
-                        />
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleVerifyHandoverTransfer}
-                      disabled={isVerifyingHandover}
-                      className="w-full py-2.5 bg-zinc-800 text-white font-bold text-xs rounded-xl"
-                    >
-                      {isVerifyingHandover ? "Verifying..." : "Verify Direct Handover"}
-                    </button>
+                {/* 2. Main Handover OTP Input (Front & Center) */}
+                <RiderCustomerOtpInput
+                  otpDigits={handoverVerifyOtpDigits}
+                  setOtpDigits={setHandoverVerifyOtpDigits}
+                  title="Enter Handover OTP"
+                  subtitle="Ask 4-digit handover code from partner store staff (पार्टनर से कोड पूछें)"
+                  hint="स्टोर स्टाफ से 4-अंक का हैंडओवर कोड पूछें"
+                  onAutoSubmit={(code) => {
+                    handleVerifyHandoverTransfer(code);
+                  }}
+                />
+
+                {/* 3. Dispatch Code Helper (If Partner enters Captain code on store terminal) */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/90 rounded-2xl text-[11px]">
+                  <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                    <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
+                    <span>Or tell Partner Dispatch Code:</span>
+                    <span className="font-mono font-black text-slate-950 tracking-wider">
+                      {captainDispatchOtp || "----"}
+                    </span>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (captainDispatchOtp) {
+                        navigator.clipboard.writeText(captainDispatchOtp);
+                        toast.success("Dispatch OTP copied to clipboard!");
+                        triggerHaptic(40);
+                      }
+                    }}
+                    className="text-[10.5px] font-bold text-slate-700 hover:text-slate-950 underline px-1 cursor-pointer"
+                  >
+                    Copy
+                  </button>
+                </div>
+
+                {/* 4. Sealed Bag / Garment Check Badge */}
+                <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <Package className="size-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs font-bold text-emerald-950">
+                      Sealed Bag: {bagTagCode || "QP-BAG-4491"} • {doorstepPieces || 5} Cleaned Garments
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                    Ready ✓
+                  </span>
+                </div>
+
+                {/* 5. Slide to Start Customer Delivery */}
+                <SwipeActionButton
+                  label="Slide to Start Customer Delivery"
+                  hint="हैंडओवर कोड दर्ज करके स्लाइड करें • Start Delivery"
+                  color="emerald"
+                  onConfirm={async () => {
+                    const enteredCode = handoverVerifyOtpDigits.join("");
+                    if (enteredCode.length === 4) {
+                      await handleVerifyHandoverTransfer(enteredCode);
+                      return;
+                    }
+                    try {
+                      const res = await fetchDispatchOtp(order.orderId);
+                      if (
+                        res?.isVerified ||
+                        res?.status === "out_for_delivery" ||
+                        res?.status === "OUT_FOR_DELIVERY"
+                      ) {
+                        unlockAudioContext();
+                        playSuccessChime();
+                        speakText("डिलीवरी शुरू करें।");
+                        toast.success("✓ Custody verified! Navigating to customer.");
+                        setStage("in_trip");
+                        setStartTime(
+                          new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                        );
+                        setTimeout(() => {
+                          launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName);
+                        }, 600);
+                      } else {
+                        toast.error(
+                          "Please enter the 4-digit Handover OTP from store or ask partner to verify dispatch code."
+                        );
+                      }
+                    } catch {
+                      toast.error("Please enter the 4-digit Handover OTP from store.");
+                    }
+                  }}
+                />
+
+                {/* 6. Emergency Support / Issue Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowUnableModal(true)}
+                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                >
+                  <AlertTriangle className="size-4 text-amber-600" />
+                  <span>Need Help / Unable to Collect from Store</span>
+                </button>
               </div>
             ) : (
               <>

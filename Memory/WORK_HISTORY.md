@@ -3486,3 +3486,26 @@ This single command will automatically:
     - `QuickPress-Captain.apk` (18 MB) compiled, signed & verified.
     - `QuickPress-Captain.aab` (17 MB) compiled & verified.
     - Capacitor iOS sync verified (0.68s).
+
+### 65. Arrival at Partner Store Screen Revamp (`stage === arrived_pickup`, Store Handover) to Pure White Theme
+- **User Request:**
+  - "NEXT SCREEN ME ARRIVAL TO STORE HOGA JISME RIDER KA HANDOVER OTP DALNE BALA HOGA"
+  - Reviewed and approved rough visual wireframe proposal `arrival_store_otp_proposal.md`.
+- **Architectural & Design Principles Applied:**
+  - **Rule 1 (Pure White Theme):** Clean `#FFFFFF` cards, `#F8F9FA` canvas, hairline borders (`border-slate-200/90`).
+  - **Rule 2 (Speed-First Usability):** Front-and-center Handover OTP input with 4 large square digit boxes, auto-focus next, and instant auto-submit upon entering the 4th digit.
+  - **Rule 3 (Zero Cartoon Emojis):** Removed emojis (🏪, 🧭, 📍, 🤝) and replaced with pure Lucide SVG system icons (`Package`, `Phone`, `ShieldCheck`, `AlertTriangle`).
+  - **Rule 4 (Notch Safe Padding):** Sticky header maintains safe area padding with updated title `"At Partner Store"`.
+  - **Dual-Verification Support:** Direct 4-digit Handover OTP entry for partner-to-captain custody transfer + secondary dispatch code helper with 1-tap copy if the store partner enters code on their terminal.
+- **Code Modifications (`GoToPickupHUD.tsx`):**
+  - Updated screen header title to `"At Partner Store"` when `stage === "arrived_pickup" && (isDeliveryRide || isStorePickupForDelivery)`.
+  - Rebuilt store arrival section into pure white cards with hairline borders.
+  - Placed `RiderCustomerOtpInput` front and center for immediate 4-digit Handover OTP entry.
+  - Upgraded `handleVerifyHandoverTransfer` to accept `directOtp?: string` and automatically invoke `startDelivery` / `verifyHandoverOtp`, followed by auto-launching turn-by-turn Google Maps navigation to the customer.
+  - Added clean sealed bag badge (`Sealed Bag: QP-BAG-XXXX • 5 Cleaned Garments`) and secondary issue reporting button.
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (976ms, 0 errors).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17 MB) compiled & verified.
+    - Capacitor iOS sync verified (0.79s).
