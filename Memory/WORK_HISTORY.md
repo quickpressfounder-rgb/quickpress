@@ -47,6 +47,7 @@
      - **QuickPress-Partner.apk** (13MB) & **QuickPress-Partner.aab** (13MB)
      - **QuickPress-Captain.apk** (17MB) & **QuickPress-Captain.aab** (16MB)
      - Copied to root `apks/`, mirrored to `website/public/apks/` for web direct downloads at `https://withquickpress.com`, and copied to IDE artifact directory for immediate download.
+- **Commit:** [`db63677`](https://github.com/quickpressfounder-rgb/quickpress/commit/db63677)
 - **Files Modified:**
   - `build_all_apks.py`
   - `customer-frontend/src/api/core/auth-service.ts`
