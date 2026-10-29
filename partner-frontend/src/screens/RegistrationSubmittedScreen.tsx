@@ -77,10 +77,7 @@ export function RegistrationSubmittedScreen() {
             isVerified: true,
             isOnboarded: true,
           });
-          toast.success("Congratulations! Your partner store is approved! Redirecting to Dashboard... 🎉");
-          setTimeout(() => {
-            navigate({ to: partnerRoutes.dashboard });
-          }, 600);
+          navigate({ to: partnerRoutes.dashboard, replace: true });
         } else {
           setIsApproved(false);
           if (manual) {
@@ -104,6 +101,16 @@ export function RegistrationSubmittedScreen() {
 
   useEffect(() => {
     let mounted = true;
+    const isCurrentlyApproved = Boolean(
+      session?.isVerified ||
+      session?.account?.isVerified ||
+      session?.account?.status === "active" ||
+      session?.status === "active"
+    );
+    if (isCurrentlyApproved) {
+      navigate({ to: partnerRoutes.dashboard, replace: true });
+      return;
+    }
     void checkStatus(false);
 
     // Continuous auto-polling every 2.5s: as soon as Admin approves, partner screen automatically transitions!

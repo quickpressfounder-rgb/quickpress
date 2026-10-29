@@ -390,19 +390,33 @@ class RiderDeliveryRepository:
 
     async def history(self, rider_id: str) -> List[Dict[str, Any]]:
         rows = []
+        seen_order_ids = set()
+
         for document in await self._orders_for(rider_id):
-            status = lifecycle.order_status(document)
-            if status not in (lifecycle.DELIVERED, lifecycle.CANCELLED, "completed"):
-                continue
+            status = str(lifecycle.order_status(document)).lower()
             task = lifecycle.to_rider_delivery(document)
             order_id = str(task["id"])
+            seen_order_ids.add(order_id)
+
+            if status in (lifecycle.DELIVERED, "completed"):
+                outcome = "completed"
+                payout = float(task.get("estimatedEarning") or 45)
+            elif status in (lifecycle.CANCELLED, "cancelled"):
+                outcome = "cancelled"
+                payout = 0.0
+            elif status in ("missed", "rejected", "declined", "expired"):
+                outcome = "missed"
+                payout = 0.0
+            else:
+                # Active in-transit or processing orders assigned to this rider
+                outcome = "processing"
+                payout = float(task.get("estimatedEarning") or 45)
 
             # Check if captain submitted review
             existing_rev = await database.find_one("order_reviews", {"orderId": order_id, "sourceRole": "rider"})
 
             dist = float(task.get("distanceKm") or 2.5)
             dur = int(task.get("durationMinutes") or max(15, round(dist * 5) + 8))
-            payout = float(task.get("estimatedEarning") or 45) if status in (lifecycle.DELIVERED, "completed") else 0.0
 
             # Compute timeline sub-durations
             p_transit = max(4, round(dist * 1.5))
@@ -451,7 +465,8 @@ class RiderDeliveryRepository:
                     "pickupTransitMinutes": p_transit,
                     "storeProcessingMinutes": s_proc,
                     "deliveryTransitMinutes": d_transit,
-                    "outcome": "completed" if status in (lifecycle.DELIVERED, "completed") else "cancelled",
+                    "outcome": outcome,
+                    "status": status,
                     "paymentType": task.get("paymentMode") or document.get("paymentMethod") or "Prepaid UPI",
                     "paymentStatus": "PAID" if task.get("paymentMode") != "cod" else "COD COLLECTED",
                     "rideType": task.get("rideType") or document.get("type") or "delivery",

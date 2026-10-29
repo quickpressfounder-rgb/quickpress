@@ -35,7 +35,7 @@ export function RiderHistoryScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().split("T")[0];
   });
-  const [statusFilter, setStatusFilter] = useState<"completed" | "cancelled" | "missed">("completed");
+  const [statusFilter, setStatusFilter] = useState<"completed" | "processing" | "cancelled" | "missed">("completed");
 
   const loadHistory = async (isRefresh = false) => {
     try {
@@ -80,6 +80,7 @@ export function RiderHistoryScreen() {
     return orders.filter((o) => {
       // 1. Status matching
       if (statusFilter === "completed" && o.outcome !== "completed") return false;
+      if (statusFilter === "processing" && o.outcome !== "processing") return false;
       if (statusFilter === "cancelled" && o.outcome !== "cancelled") return false;
       if (statusFilter === "missed" && o.outcome !== "missed" && o.outcome !== "rejected") return false;
 
@@ -293,9 +294,10 @@ export function RiderHistoryScreen() {
           </div>
 
           {/* 2.3 Status Filter Chips (Screenshot 4: Completed, Cancelled, Missed) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             {[
               { id: "completed", label: "Completed" },
+              { id: "processing", label: "In Process" },
               { id: "cancelled", label: "Cancelled" },
               { id: "missed", label: "Missed" },
             ].map((chip) => {
@@ -357,15 +359,29 @@ export function RiderHistoryScreen() {
                         </span>
                         <span
                           className={`text-[10px] font-black px-2 py-0.5 rounded-md border flex items-center gap-1 ${
-                            isCompleted
+                            order.outcome === "completed"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : order.outcome === "processing"
+                              ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse"
+                              : order.outcome === "missed"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
                               : "bg-rose-50 text-rose-700 border-rose-200"
                           }`}
                         >
-                          {isCompleted ? (
+                          {order.outcome === "completed" ? (
                             <>
                               <CheckCircle2 className="size-3 text-emerald-600" />
                               <span>Completed</span>
+                            </>
+                          ) : order.outcome === "processing" ? (
+                            <>
+                              <RotateCw className="size-3 text-blue-600 animate-spin" />
+                              <span>In Process</span>
+                            </>
+                          ) : order.outcome === "missed" ? (
+                            <>
+                              <Clock className="size-3 text-amber-600" />
+                              <span>Missed</span>
                             </>
                           ) : (
                             <>

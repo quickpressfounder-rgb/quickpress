@@ -27,6 +27,12 @@ function computeTargetRoute(sess: any): string {
     sess.status === "suspended" || sess.isSuspended === true;
   if (isSuspended) return partnerRoutes.suspended;
 
+  const hasLinkedStore = Boolean(sess.account?.linkedId || sess.partnerId);
+  const explicitPending =
+    sess.status === "pending_verification" ||
+    sess.account?.status === "pending_verification" ||
+    (sess as any).kycStatus === "pending";
+
   const isVerified = Boolean(
     (sess.isVerified ?? sess.account?.isVerified) ||
       sess.status === "active" ||
@@ -34,10 +40,10 @@ function computeTargetRoute(sess: any): string {
       sess.account?.status === "active" ||
       sess.account?.status === "approved" ||
       sess.kycStatus === "verified" ||
-      sess.account?.kycStatus === "verified"
+      sess.account?.kycStatus === "verified" ||
+      (hasLinkedStore && !explicitPending)
   );
 
-  const hasLinkedStore = Boolean(sess.account?.linkedId || sess.partnerId);
   const isOnboarded = Boolean(
     (sess.isOnboarded ?? sess.account?.isOnboarded) ||
     isVerified ||

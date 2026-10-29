@@ -175,7 +175,7 @@ export type RiderHistoryEntry = {
   pickupTransitMinutes?: number;
   storeProcessingMinutes?: number;
   deliveryTransitMinutes?: number;
-  outcome: "completed" | "cancelled" | "failed";
+  outcome: "completed" | "processing" | "cancelled" | "missed" | "failed";
   paymentType?: string;
   paymentStatus?: string;
   rideType?: string;

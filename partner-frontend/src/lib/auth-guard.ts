@@ -19,7 +19,15 @@ export function requirePartnerAuth() {
     throw redirect({ to: partnerRoutes.suspended });
   }
 
-  // A partner is verified if marked verified, status is approved/active, or kycStatus is verified
+  // A partner who possesses a linked store ID or verified status
+  const hasLinkedStore = Boolean(sess.account?.linkedId || (sess as any).partnerId);
+  const explicitPending =
+    sess.status === "pending_verification" ||
+    sess.account?.status === "pending_verification" ||
+    (sess as any).kycStatus === "pending";
+
+  // A partner is verified if marked verified, status is approved/active, kycStatus is verified,
+  // or has a linked store and is not explicitly in pending_verification
   const isVerified = Boolean(
     sess.isVerified === true ||
     sess.account?.isVerified === true ||
@@ -28,11 +36,10 @@ export function requirePartnerAuth() {
     sess.status === "active" ||
     sess.account?.status === "active" ||
     (sess as any).kycStatus === "verified" ||
-    (sess.account as any)?.kycStatus === "verified"
+    (sess.account as any)?.kycStatus === "verified" ||
+    (hasLinkedStore && !explicitPending)
   );
 
-  // A partner who is verified or possesses a linked store ID is by definition onboarded
-  const hasLinkedStore = Boolean(sess.account?.linkedId || (sess as any).partnerId);
   const isOnboarded = Boolean(
     sess.isOnboarded === true ||
     sess.account?.isOnboarded === true ||
@@ -54,6 +61,44 @@ export function requirePartnerSession() {
   const sess = readSession("partner");
   if (!sess || !sess.token) {
     throw redirect({ to: partnerRoutes.auth });
+  }
+}
+
+/**
+ * Route Guard for /registration-submitted.
+ * If partner is ALREADY verified or possesses an active linked store,
+ * immediately redirects to /dashboard so they NEVER see the approval flash screen.
+ */
+export function requirePendingVerification() {
+  if (typeof window === "undefined") return;
+  const sess = readSession("partner");
+  if (!sess || !sess.token) {
+    throw redirect({ to: partnerRoutes.auth });
+  }
+  if (sess.status === "suspended" || (sess as any).isSuspended) {
+    throw redirect({ to: partnerRoutes.suspended });
+  }
+
+  const hasLinkedStore = Boolean(sess.account?.linkedId || (sess as any).partnerId);
+  const explicitPending =
+    sess.status === "pending_verification" ||
+    sess.account?.status === "pending_verification" ||
+    (sess as any).kycStatus === "pending";
+
+  const isVerified = Boolean(
+    sess.isVerified === true ||
+    sess.account?.isVerified === true ||
+    sess.status === "approved" ||
+    sess.account?.status === "approved" ||
+    sess.status === "active" ||
+    sess.account?.status === "active" ||
+    (sess as any).kycStatus === "verified" ||
+    (sess.account as any)?.kycStatus === "verified" ||
+    (hasLinkedStore && !explicitPending)
+  );
+
+  if (isVerified) {
+    throw redirect({ to: partnerRoutes.dashboard });
   }
 }
 

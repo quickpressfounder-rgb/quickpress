@@ -73,6 +73,7 @@ import { usePartnerOrders } from "../context/PartnerOrdersContext";
 import { useOrderActionHandler } from "../hooks/use-order-action-handler";
 import { usePartnerContext } from "../context/PartnerContext";
 import { useLanguage } from "../lib/i18n";
+import { isOrderMatchingTab } from "../data/partner-orders-mock";
 import { hasActiveSessionToken } from "@/api/core/session-store";
 
 const STATUS_TO_LIVE: Record<string, LiveOrder["status"]> = {
@@ -269,7 +270,7 @@ export function PartnerDashboardScreen() {
   const [error, setError] = useState<string | null>(null);
   const [trackingOrder, setTrackingOrder] = useState<LiveOrder | null>(null);
   const [orderViewMode, setOrderViewMode] = useState<"cards" | "table">("cards");
-  const [selectedTab, setSelectedTab] = useState<"new" | "processing" | "ready" | "dispatched" | "completed" | "all">("new");
+  const [selectedTab, setSelectedTab] = useState<"new" | "processing" | "ready" | "dispatched" | "completed" | "cancelled" | "all">("new");
   const [searchQuery, setSearchQuery] = useState("");
   const [overviewTimeframe, setOverviewTimeframe] = useState<"today" | "yesterday" | "week" | "month" | "all">("today");
 
@@ -618,6 +619,7 @@ export function PartnerDashboardScreen() {
     let ready = 0;
     let dispatched = 0;
     let completed = 0;
+    let cancelled = 0;
 
     for (const o of orders) {
       const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
@@ -650,6 +652,8 @@ export function PartnerDashboardScreen() {
         dispatched++;
       } else if (s === "delivered" || s === "completed") {
         completed++;
+      } else if (s === "cancelled" || isOrderMatchingTab(o, "cancelled")) {
+        cancelled++;
       }
     }
 
@@ -660,6 +664,7 @@ export function PartnerDashboardScreen() {
       ready,
       dispatched,
       completed,
+      cancelled,
     };
   }, [orders]);
 
@@ -709,6 +714,8 @@ export function PartnerDashboardScreen() {
         const s = ((o.stage || (o as any).status || "") as string).toLowerCase();
         return s === "delivered" || s === "completed";
       });
+    } else if (selectedTab === "cancelled") {
+      list = orders.filter((o) => isOrderMatchingTab(o, "cancelled"));
     }
 
     if (searchQuery.trim()) {
@@ -962,6 +969,7 @@ export function PartnerDashboardScreen() {
                     { id: "ready", label: "Ready for Delivery", count: zomatoStageCounts.ready },
                     { id: "dispatched", label: "Dispatched", count: zomatoStageCounts.dispatched },
                     { id: "completed", label: "Completed", count: zomatoStageCounts.completed },
+                    { id: "cancelled", label: "Cancelled", count: zomatoStageCounts.cancelled },
                     { id: "all", label: "All Orders", count: zomatoStageCounts.all },
                   ].map((tab) => {
                     const isActive = selectedTab === tab.id;

@@ -2,31 +2,44 @@ package com.quickpress.rider;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.provider.Settings;
 import android.view.Display;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
-import android.content.Intent;
-import android.os.PowerManager;
-import android.provider.Settings;
-import android.webkit.JavascriptInterface;
+import androidx.core.app.NotificationCompat;
 import com.getcapacitor.BridgeActivity;
+import com.google.firebase.messaging.FirebaseMessaging;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends BridgeActivity {
     private long lastBackPressTime = 0;
     public static boolean isCaptainOnline = false;
+
+    private static final int NOTIFICATION_ID_URGENT_ORDER = 9001;
+    private static MediaPlayer backgroundAlarmPlayer = null;
+    private static PowerManager.WakeLock orderAlarmWakeLock = null;
+    private static boolean isAlarmRinging = false;
 
     public void startFloatingBubbleInternal() {
         try {
@@ -184,6 +197,161 @@ public class MainActivity extends BridgeActivity {
         super.onUserLeaveHint();
         if (isCaptainOnline) {
             startFloatingBubbleInternal();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        stopBackgroundOrderRingDirectly(this);
+        super.onDestroy();
+    }
+
+    public static synchronized void stopBackgroundOrderRingDirectly(final Context context) {
+        try {
+            isAlarmRinging = false;
+            if (backgroundAlarmPlayer != null) {
+                try {
+                    if (backgroundAlarmPlayer.isPlaying()) {
+                        backgroundAlarmPlayer.stop();
+                    }
+                    backgroundAlarmPlayer.release();
+                } catch (Exception ignored) {}
+                backgroundAlarmPlayer = null;
+            }
+
+            try {
+                Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                if (v != null) {
+                    v.cancel();
+                }
+            } catch (Exception ignored) {}
+
+            if (orderAlarmWakeLock != null && orderAlarmWakeLock.isHeld()) {
+                try {
+                    orderAlarmWakeLock.release();
+                } catch (Exception ignored) {}
+                orderAlarmWakeLock = null;
+            }
+
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.cancel(NOTIFICATION_ID_URGENT_ORDER);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public static synchronized void startOrderAlarmDirectly(final Context context, final String orderCode, final String amount, final String customerName, final String pickupAddress) {
+        try {
+            if (isAlarmRinging) return;
+            isAlarmRinging = true;
+
+            // 1. Wake screen up and keep active for 25 seconds
+            try {
+                PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                if (pm != null) {
+                    if (orderAlarmWakeLock == null) {
+                        orderAlarmWakeLock = pm.newWakeLock(
+                            PowerManager.SCREEN_BRIGHT_WAKE_LOCK |
+                            PowerManager.ACQUIRE_CAUSES_WAKEUP |
+                            PowerManager.ON_AFTER_RELEASE,
+                            "quickpress:captain_order_wakeup"
+                        );
+                    }
+                    if (!orderAlarmWakeLock.isHeld()) {
+                        orderAlarmWakeLock.acquire(25000);
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            // 2. Play continuous loud looping alarm via MediaPlayer on STREAM_ALARM
+            try {
+                Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                if (alarmUri == null) {
+                    alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+                }
+                if (alarmUri == null) {
+                    alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                }
+
+                if (backgroundAlarmPlayer != null) {
+                    try {
+                        if (backgroundAlarmPlayer.isPlaying()) {
+                            backgroundAlarmPlayer.stop();
+                        }
+                        backgroundAlarmPlayer.release();
+                    } catch (Exception ignored) {}
+                    backgroundAlarmPlayer = null;
+                }
+
+                backgroundAlarmPlayer = new MediaPlayer();
+                backgroundAlarmPlayer.setDataSource(context, alarmUri);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    backgroundAlarmPlayer.setAudioAttributes(
+                        new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    );
+                } else {
+                    backgroundAlarmPlayer.setAudioStreamType(AudioManager.STREAM_ALARM);
+                }
+                backgroundAlarmPlayer.setLooping(true);
+                backgroundAlarmPlayer.prepare();
+                backgroundAlarmPlayer.start();
+            } catch (Exception audioErr) {
+                audioErr.printStackTrace();
+            }
+
+            // 3. Continuous repeating vibration
+            try {
+                Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                if (v != null) {
+                    long[] pattern = new long[]{0, 800, 400, 800, 400};
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        v.vibrate(VibrationEffect.createWaveform(pattern, 0));
+                    } else {
+                        v.vibrate(pattern, 0);
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            // 4. Post Urgent Heads-Up Order Notification over Lockscreen with FullScreenIntent
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    flags |= PendingIntent.FLAG_IMMUTABLE;
+                }
+
+                Intent viewIntent = new Intent(context, MainActivity.class);
+                viewIntent.setAction("com.quickpress.rider.ACTION_VIEW_OFFER");
+                viewIntent.putExtra("route", "/orders");
+                viewIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                PendingIntent viewPendingIntent = PendingIntent.getActivity(
+                    context, 201, viewIntent, flags
+                );
+
+                String displayCode = (orderCode != null && !orderCode.trim().isEmpty()) ? orderCode.trim() : "NEW";
+                String priceText = (amount != null && !amount.trim().isEmpty()) ? ("₹" + amount.trim() + " · ") : "";
+                String descText = priceText + (pickupAddress != null ? pickupAddress : "Kasganj Hub") + " • Tap to accept";
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "quickpress_urgent_dispatch")
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle("🚨 NEW TRIP OFFER #" + displayCode)
+                    .setContentText(descText)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setFullScreenIntent(viewPendingIntent, true)
+                    .setContentIntent(viewPendingIntent)
+                    .setOngoing(true)
+                    .setAutoCancel(false)
+                    .addAction(R.mipmap.ic_launcher, "OPEN OFFER", viewPendingIntent);
+
+                manager.notify(NOTIFICATION_ID_URGENT_ORDER, builder.build());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -573,6 +741,34 @@ public class MainActivity extends BridgeActivity {
                     }
                 } catch (Exception ignored) {}
             });
+        }
+
+        @JavascriptInterface
+        public void stopBackgroundOrderRing() {
+            stopBackgroundOrderRingDirectly(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public String getNativeFcmToken() {
+            try {
+                SharedPreferences prefs = getSharedPreferences(QuickPressFirebaseService.PREF_NAME, Context.MODE_PRIVATE);
+                String token = prefs.getString(QuickPressFirebaseService.KEY_FCM_TOKEN, null);
+                if (token != null && !token.isEmpty()) {
+                    return token;
+                }
+            } catch (Exception ignored) {}
+
+            try {
+                FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        try {
+                            SharedPreferences prefs = getSharedPreferences(QuickPressFirebaseService.PREF_NAME, Context.MODE_PRIVATE);
+                            prefs.edit().putString(QuickPressFirebaseService.KEY_FCM_TOKEN, task.getResult()).apply();
+                        } catch (Exception ignored) {}
+                    }
+                });
+            } catch (Exception ignored) {}
+            return "";
         }
     }
 }

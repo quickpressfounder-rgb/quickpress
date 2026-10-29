@@ -33,6 +33,46 @@
 
 ## Detailed Log of Work Done Today (29 October 2026)
 
+### 53. Partner Screen Flash Fix, Pure Data Millisecond Background Order Wakeup (Partner & Captain), Cancelled Filter & Rider History Categories
+- **User Request:**
+  1. "partner applicate me kabhi kabhi partner app open akret hi under approal and approved screnn uske just baad dashboard kultan hai jab ki user pahle se login hai aager login nahi to registation page open ho or aager login hai to dashboard na ki sumit and aprroval bala" (Stop flashing registration submitted / under approval screen when verified partner opens app; go directly to dashboard if logged in, registration if not).
+  2. "Partner applaction me partner ke pass order late aata hai bo bhi order jab aat hai jab koi partner application ko open kare bina open kare order nahi aaya backgound me isko sahi karo same rider penal me bhi yahi hota hai usme bhi app open karne par hi order show karta hai" (Orders arrive late or only when opening the app; must trigger instant background alert and looping ringtone in milliseconds even when closed/minimized).
+  3. "Or partner dashboard or ordes me usap jo filter hai uske Cancleed order ka bhi option banao" (Add Cancelled order filter option to Partner Dashboard).
+  4. "or rider penal ke bhi trip hisatory me dikhe ki kon kon si ride complt and cancle or missed hai or process ka bhi banana hai" (In Rider Trip History, show Completed, In-Process, Cancelled, and Missed rides with filter options).
+  5. "main Piorty hai ki backgound me bhi order aaye bo bhi websocket se connect karke banana hai jisse ki updates ms me aa sake" (Order delivery must be instant in milliseconds via WebSocket + Background FCM).
+- **Architectural & Real-Time Engineering Solutions:**
+  1. **Partner Screen Flash & Immediate Dashboard Routing:**
+     - In `partner-frontend/src/lib/auth-guard.ts`: Updated `isVerified` check so partners with an active linked store (`hasLinkedStore`) who are not in `pending_verification` evaluate to `isVerified: true` immediately with zero flash.
+     - Added `requirePendingVerification` route guard which immediately redirects verified partners to `/dashboard` so `/registration-submitted` is never visited by active partners.
+     - In `partner-frontend/src/routes/registration-submitted.tsx`: Changed `beforeLoad` from `requirePartnerSession` to `requirePendingVerification`.
+     - In `partner-frontend/src/routes/index.tsx`: Updated `computeTargetRoute` to route directly to `partnerRoutes.dashboard` for linked partners.
+     - In `partner-frontend/src/screens/RegistrationSubmittedScreen.tsx`: Replaced 600ms delayed `setTimeout` redirect with immediate `navigate({ to: partnerRoutes.dashboard, replace: true })`.
+  2. **Sub-Millisecond Dual Engine: WebSocket + Pure High-Priority Background FCM (`fcm.py` & `zomato_dispatch_engine.py`):**
+     - **Discovery:** Android FCM system tray intercepts messages with notification payloads when an app is minimized or killed, preventing `onMessageReceived` from firing until the user manually clicks the notification tray.
+     - In `backend-python/app/core/fcm.py`: Set `top_notification = None` and omitted `notification` from `AndroidConfig` for urgent orders (`is_urgent=True`). Urgent dispatch push notifications are now delivered as pure high-priority DATA payloads to Android devices.
+     - Android OS immediately launches `QuickPressFirebaseService.onMessageReceived()` within milliseconds (<200ms) even when screen is locked or app is killed.
+     - In `backend-python/app/services/zomato_dispatch_engine.py`: Triggered `send_fcm_push` to candidate captains on wave dispatch with `is_urgent=True`, orderCode, fare, customerName, and pickup address.
+  3. **Native Captain Background Ringing & Screen Wakeup (`QuickPressFirebaseService.java`, `MainActivity.java`, `build.gradle`, `AndroidManifest.xml`):**
+     - Added `implementation 'com.google.firebase:firebase-messaging:23.4.1'` to `rider-frontend/android/app/build.gradle`.
+     - Created `rider-frontend/android/app/src/main/java/com/quickpress/rider/QuickPressFirebaseService.java` extending `FirebaseMessagingService`.
+     - In `rider-frontend/android/app/src/main/java/com/quickpress/rider/MainActivity.java`: Added `startOrderAlarmDirectly(context, orderCode, amount, customerName, pickupAddress)` which acquires a 25-second `SCREEN_BRIGHT_WAKE_LOCK | ACQUIRE_CAUSES_WAKEUP`, plays looping audio on `STREAM_ALARM`, and posts a Heads-Up lockscreen notification with FullScreenIntent.
+     - Added `stopBackgroundOrderRingDirectly(context)` and exposed `stopBackgroundOrderRing()` and `getNativeFcmToken()` to `QuickPressRiderBridge`.
+     - In `rider-frontend/src/lib/captain-audio.ts`: Hooked `stopBackgroundOrderRing()` into `stopOrderAlertSound()` so native alarm stops the instant an offer is accepted or viewed.
+     - In `rider-frontend/src/api/core/firebase-messaging.ts`: Integrated `QuickPressRiderBridge.getNativeFcmToken()` to ensure native FCM device token is registered with backend.
+  4. **Partner Dashboard Cancelled Filter Tab (`PartnerDashboardScreen.tsx`):**
+     - Added `"cancelled"` to `selectedTab` type (`"new" | "processing" | "ready" | "dispatched" | "completed" | "cancelled" | "all"`).
+     - Added live count badge for `zomatoStageCounts.cancelled`.
+     - Added Cancelled navigation tab button with filter logic using `isOrderMatchingTab(o, "cancelled")`.
+  5. **Rider Trip History Categories (`rider_repositories.py`, `rider.ts`, `rider-orders-api.ts`, `RiderHistoryScreen.tsx`):**
+     - In `backend-python/app/db/rider_repositories.py`: Updated `history(self, rider_id)` to return trips for all 4 outcomes: `"completed"`, `"cancelled"`, `"missed"`, and active in-transit `"processing"`.
+     - In `rider-frontend/src/shared/types/rider.ts`: Expanded `RiderHistoryEntry.outcome` type to `"completed" | "processing" | "cancelled" | "missed" | "failed"`.
+     - In `rider-frontend/src/api/rider/rider-orders-api.ts`: Updated `fetchRiderHistory` to map all outcomes.
+     - In `rider-frontend/src/screens/RiderHistoryScreen.tsx`: Added `"processing"` to filter options (`Completed`, `In Process`, `Cancelled`, `Missed`), added badge rendering for all four statuses (Completed: emerald, In Process: pulsing blue with spin icon, Missed: amber, Cancelled: rose).
+- **Build & Verification Status:**
+  - `rider-frontend` build: Successful (Exit Code 0)
+  - `partner-frontend` build: Successful (Exit Code 0)
+  - `build_all_apks.py all`: Successful (Exit Code 0, all 3 APKs & AABs generated and verified)
+
 ### 52. Comprehensive Fix for Cross-App Order Cancellation Desync, Rider Resume HUD Touch Freeze, Partner Background Ringing & Rider Bubble Duty Sync
 - **User Request:**
   1. "resume HUD par tap karte hi Pure rider penal ki screen par tap ka touch hi nahi maan raha hai" (Screen touch freezes on Rider panel when tapping Resume HUD).

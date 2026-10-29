@@ -74,6 +74,25 @@ export async function requestPushNotificationPermission(): Promise<string | null
   }
 
   try {
+    // 0. Check for Native Android FCM Token from QuickPressRiderBridge
+    try {
+      const nativeToken = (window as any).QuickPressRiderBridge?.getNativeFcmToken?.();
+      if (nativeToken && typeof nativeToken === "string" && nativeToken.length > 10) {
+        currentToken = nativeToken;
+        try {
+          await apiPostJson("/api/notifications/fcm-token", {
+            token: nativeToken,
+            device: "android",
+            deviceType: "android",
+            role: "rider",
+          });
+        } catch (apiErr) {
+          console.debug("[Rider-FCM] Native token sync notice:", apiErr);
+        }
+        return nativeToken;
+      }
+    } catch {}
+
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       return null;

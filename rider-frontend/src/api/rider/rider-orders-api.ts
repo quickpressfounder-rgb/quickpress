@@ -341,9 +341,7 @@ export async function fetchRiderHistory(): Promise<RiderHistoryEntry[]> {
 
     const orders = Array.isArray(res) ? res : res && Array.isArray((res as any).items) ? (res as any).items : [];
 
-    return orders
-      .filter((order: any) => order.status === "delivered" || order.status === "completed" || order.status === "cancelled" || order.outcome === "completed" || order.outcome === "cancelled")
-      .map((order: any) => {
+    return orders.map((order: any) => {
         const dist = Number(order.distanceKm ?? 2.5);
         const dur = Number(order.durationMinutes || Math.round(dist * 5) + 8);
         const pTransit = Number(order.pickupTransitMinutes || Math.max(4, Math.round(dist * 1.5)));
@@ -360,12 +358,20 @@ export async function fetchRiderHistory(): Promise<RiderHistoryEntry[]> {
           30
         );
 
+        const outcome = ((): "completed" | "processing" | "cancelled" | "missed" => {
+          const raw = String(order.outcome || order.status || "").toLowerCase();
+          if (raw === "completed" || raw === "delivered") return "completed";
+          if (raw === "cancelled") return "cancelled";
+          if (raw === "missed" || raw === "rejected" || raw === "declined" || raw === "expired") return "missed";
+          return "processing";
+        })();
+
         return {
           id: order.id || order._id,
           code: order.code || order.orderCode || (order.id ? String(order.id).slice(-6).toUpperCase() : "ORD"),
-          customerName: order.customerName || order.customer?.name || "Priya Saxena",
+          customerName: order.customerName || order.customer?.name || "Customer",
           customerPhone: order.customerPhone || order.customer?.phone || "+91 98370 12345",
-          partnerName: order.partnerName || order.partner?.name || order.storeName || "CleanWash Express - Soron Gate Hub",
+          partnerName: order.partnerName || order.partner?.name || order.storeName || "Kasganj Main Hub",
           partnerPhone: order.partnerPhone || order.partner?.phone || order.storePhone || "+91 92587 30561",
           pickupAddress: order.pickupAddress || order.pickupLocation?.address || order.pickupTitle || "Soron Gate Commercial Complex, Kasganj",
           pickupPhone: order.pickupPhone || order.partnerPhone || "+91 92587 30561",
@@ -382,7 +388,7 @@ export async function fetchRiderHistory(): Promise<RiderHistoryEntry[]> {
           bagCount: Number(order.bagCount || 2),
           itemSummary: order.itemSummary || "2 Laundry Bags (6.5 kg) · 4 Shirts, 2 Trousers, 1 Bed Sheet (Wash, Fold & Steam Press)",
           storeNotes: order.storeNotes || "Garments steam-pressed, folded and packed in tamper-proof bags.",
-          dropAddress: order.dropAddress || order.deliveryAddress || order.dropLocation?.address || order.dropTitle || "Flat 204, Ganga View Apartments, Railway Road, Kasganj",
+          dropAddress: order.dropAddress || order.deliveryAddress || order.dropLocation?.address || order.dropTitle || "Customer Residence, Kasganj",
           deliveryArrivalTime: order.deliveryArrivalTime,
           deliveredTime: order.deliveredTime || order.deliveredAt,
           deliveryOtp: order.deliveryOtp || (typeof order.otp?.delivery === "object" ? order.otp?.delivery?.code : order.otp?.delivery) || "9042",
@@ -394,7 +400,7 @@ export async function fetchRiderHistory(): Promise<RiderHistoryEntry[]> {
           pickupTransitMinutes: pTransit,
           storeProcessingMinutes: sProc,
           deliveryTransitMinutes: dTransit,
-          outcome: (order.status === "delivered" || order.status === "completed" || order.outcome === "completed") ? ("completed" as const) : ("cancelled" as const),
+          outcome,
           paymentType: order.paymentType || (order.paymentMode === "cod" ? "Cash on Delivery" : "Prepaid UPI"),
           paymentStatus: order.paymentStatus || (order.paymentMode === "cod" ? "COD COLLECTED" : "PAID ONLINE"),
           rideType: order.rideType || (order.type === "delivery" ? "Delivery" : "Pickup"),

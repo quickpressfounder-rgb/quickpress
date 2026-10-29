@@ -431,6 +431,36 @@ class ZomatoDispatchEngine:
                 return_exceptions=True,
             )
 
+            # Trigger real-time background FCM push notification to wake captain device in milliseconds
+            target_uids = [uid for uid in [r_uid, r_id] if uid]
+            if target_uids:
+                try:
+                    from app.core.fcm import send_fcm_push
+                    fcm_data = {
+                        "type": "new_order_offer",
+                        "offerId": offer_id,
+                        "orderId": order_id,
+                        "orderCode": str(ride.get("orderCode") or ""),
+                        "amount": str(base_fare),
+                        "customerName": str(target_loc.get("contactName") or "Customer"),
+                        "role": "rider",
+                        "url": "/orders",
+                        "channel_id": "quickpress_urgent_dispatch",
+                        "wake_screen": "true",
+                        "ring_bell": "true",
+                    }
+                    asyncio.create_task(
+                        send_fcm_push(
+                            target_uids,
+                            title=f"⚡ New Order Offer: ₹{base_fare} ({round(dist_km, 1)} km)",
+                            body=f"Pickup: {target_loc.get('address', 'Kasganj')} • Tap to accept",
+                            data=fcm_data,
+                            role="rider",
+                        )
+                    )
+                except Exception as fcm_err:
+                    logger.debug("Failed triggering captain offer push: %s", fcm_err)
+
         if riders:
             await asyncio.gather(
                 *[_notify_captain(c, d) for c, d in riders],

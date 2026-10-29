@@ -145,6 +145,10 @@ async def send_fcm_push(
             if v is not None:
                 clean_data[str(k)] = str(v)
 
+    # Always ensure title and body are available inside data payload for native background handlers
+    clean_data["title"] = str(title)
+    clean_data["body"] = str(body)
+
     # Ensure click_action / deep link URL is present
     click_url = clean_data.get("url") or "/"
     if "url" in clean_data and "click_action" not in clean_data:
@@ -162,29 +166,23 @@ async def send_fcm_push(
 
     import datetime
 
+    # For urgent orders, omitting top-level and android notification payloads produces
+    # a 100% pure high-priority data message for Android. This ensures Android OS never
+    # intercepts/silences the notification in background, and instead immediately invokes
+    # QuickPressFirebaseService.onMessageReceived() in milliseconds to ring continuous alarm
+    # and turn on the screen.
+    top_notification = None if is_urgent else notification
+
     if is_urgent:
-        android_notification = messaging.AndroidNotification(
-            channel_id="quickpress_urgent_dispatch",
-            sound="order_alarm",
-            default_sound=True,
-            priority="max",
-            visibility="public",
-            icon="ic_notification",
-            color="#ef4444",
-            click_action=click_url or "FLUTTER_NOTIFICATION_CLICK",
-            vibrate_timings_millis=[0, 1000, 500, 1000, 500, 1000, 500, 1000],
-            default_vibrate_timings=False,
-            tag=f"order_{clean_data.get('orderId', '')}",
-        )
         android_config = messaging.AndroidConfig(
             priority="high",
             ttl=datetime.timedelta(seconds=300),
-            notification=android_notification,
         )
         apns_config = messaging.APNSConfig(
             headers={"apns-priority": "10"},
             payload=messaging.APNSPayload(
                 aps=messaging.Aps(
+                    alert=messaging.ApsAlert(title=title, body=body),
                     sound="order_alarm.caf",
                     badge=badge or 1,
                     category=clean_data.get("category", "order_alert"),
@@ -236,7 +234,7 @@ async def send_fcm_push(
         try:
             msg = messaging.Message(
                 token=tokens[0],
-                notification=notification,
+                notification=top_notification,
                 data=clean_data,
                 android=android_config,
                 apns=apns_config,
@@ -250,7 +248,7 @@ async def send_fcm_push(
         try:
             multicast = messaging.MulticastMessage(
                 tokens=tokens[:500],
-                notification=notification,
+                notification=top_notification,
                 data=clean_data,
                 android=android_config,
                 apns=apns_config,

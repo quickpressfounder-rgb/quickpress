@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { RegistrationSubmittedScreen } from "../screens/RegistrationSubmittedScreen";
-import { requirePartnerSession } from "../lib/auth-guard";
+import { requirePendingVerification } from "../lib/auth-guard";
 
 export const Route = createFileRoute("/registration-submitted")({
-  beforeLoad: requirePartnerSession,
+  beforeLoad: requirePendingVerification,
   head: () => ({
     meta: [
       { title: "Registration Submitted · QuickPress Partner" },

@@ -453,6 +453,11 @@ export function stopOrderAlertSound() {
       navigator.vibrate(0);
     } catch {}
   }
+
+  // 7. Stop Native Android background order ring
+  try {
+    (window as any).QuickPressRiderBridge?.stopBackgroundOrderRing?.();
+  } catch {}
 }
 
 /**
