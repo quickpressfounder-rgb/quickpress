@@ -1596,7 +1596,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-slate-950">
             {stage === "en_route_pickup" && (isDeliveryRide ? "Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
             {stage === "arrived_pickup" && (isDeliveryRide ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Customer Doorstep")}
-            {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : order.rideType === "pickup" ? "Heading to Store" : "Heading to Drop Zone")}
+            {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : currentLeg === "pickup_to_store" ? "Heading to Partner Store" : "Heading to Drop Zone")}
             {stage === "store_processing" && "Store Laundry Processing"}
             {stage === "ready_pickup_store" && "Collect from Store"}
             {stage === "handover_waiting" && "Handover in Progress"}
@@ -1819,15 +1819,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     <span>{distanceRemainingKm.toFixed(1)} km</span>
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setShowTimelineModal(true)}
-                  className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 active:scale-95 transition-all"
-                >
-                  <Clock className="w-3 h-3 text-emerald-600" />
-                  <span>Timeline</span>
-                  <ChevronRight className="w-2.5 h-2.5" />
-                </button>
+                {stage === "in_trip" && currentLeg === "pickup_to_store" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                    <Check className="size-3 text-emerald-600" />
+                    <span>Sealed Bag: {bagTagCode || "QP-BAG"} • {doorstepPieces} pcs</span>
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowRouteBatchModal(true)}
@@ -2124,25 +2121,28 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           <div className="space-y-2.5 animate-in fade-in duration-200">
             {currentLeg === "pickup_to_store" ? (
               <>
-                {/* Destination Store Banner */}
-                <div className="p-3 bg-emerald-50/90 border border-emerald-300 rounded-2xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <Package className="w-5 h-5" />
+                {/* Destination Store Banner (Clean White Theme) */}
+                <div className="p-3.5 bg-white border border-slate-200/90 rounded-3xl flex items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-10 rounded-2xl bg-slate-100 border border-slate-200 text-slate-900 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Package className="size-5" />
                     </div>
-                    <div>
-                      <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wide block">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
                         Drop Clothes at Partner Store
                       </span>
-                      <p className="text-xs font-black text-zinc-950 truncate max-w-[200px]">
+                      <p className="text-sm font-black text-slate-950 truncate">
                         {partnerStoreName}
                       </p>
-                      <p className="text-[10px] font-mono text-zinc-600 mt-0.5">
-                        🏷️ Seal: <span className="font-bold text-zinc-900">{bagTagCode}</span> • {doorstepPieces} pcs
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          <Check className="size-3 text-emerald-600" />
+                          <span>Sealed Bag: {bagTagCode || "QP-BAG"} • {doorstepPieces} pcs</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <span className="text-[11px] font-black text-emerald-700 bg-white px-2 py-1 rounded-lg border border-emerald-200">
+                  <span className="text-[10px] font-black text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200 shrink-0">
                     Leg 1 Active
                   </span>
                 </div>
@@ -2151,7 +2151,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <button
                   type="button"
                   onClick={() => launchTurnByTurnGoogleMaps(storeCoords, captainCoords, partnerStoreName)}
-                  className="w-full py-2.5 px-4 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
+                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
                 >
                   <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
                   <span>Navigate to Store with Google Maps</span>
@@ -2159,7 +2159,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
                 {/* Swipe to Handover at Store */}
                 <SwipeActionButton
-                  label="Swipe to Drop at Store"
+                  label="Slide to Drop Clothes at Store"
                   hint="स्टोर पहुंचकर कपड़े जमा करने हेतु स्लाइड करें"
                   color="emerald"
                   onConfirm={handleCompleteTrip}
@@ -2169,10 +2169,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowUnableModal(true)}
-                  className="w-full py-2.5 px-3 rounded-xl border border-amber-300 bg-amber-50/90 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
+                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
                 >
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  <span>Unable to Deliver / Leave Trip at Store (25% Fee)</span>
+                  <AlertTriangle className="size-4 text-amber-600" />
+                  <span>Unable to Deliver / Store Issue (25% Fee)</span>
                 </button>
               </>
             ) : (
@@ -2339,41 +2339,21 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   }}
                 />
 
-                {/* In-Trip Navigation Action Buttons */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={handleStartInAppNavigation}
-                    className="py-2.5 px-2 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
-                  >
-                    <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>In-App Voice GPS</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
-                    className="py-2.5 px-2 rounded-xl border border-blue-300 bg-blue-100 hover:bg-blue-200 text-blue-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs"
-                  >
-                    <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
-                    <span>Google Maps</span>
-                  </button>
-                </div>
-
-                {/* Video Frame 01:15 Complete Ride Button */}
+                {/* In-Trip Navigation Button (1-Tap Google Maps) */}
                 <button
                   type="button"
-                  onClick={() => setShowCompleteRideConfirmation(true)}
-                  className="w-full h-13 rounded-2xl bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer"
+                  onClick={() => launchTurnByTurnGoogleMaps(customerCoords, captainCoords, order.customerName)}
+                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
                 >
-                  <CheckCircle2 className="w-5 h-5 text-slate-950" />
-                  <span>➔ Complete Ride</span>
+                  <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
+                  <span>Navigate to Customer with Google Maps</span>
                 </button>
 
                 {/* Swipe to Complete Delivery */}
                 <SwipeActionButton
-                  label="Swipe to Complete Customer Delivery 📦"
+                  label="Slide to Complete Delivery"
                   hint="डिलीवरी सफलतापूर्वक पूरी करने के लिए स्लाइड करें"
-                  color="blue"
+                  color="emerald"
                   onConfirm={handleCompleteTrip}
                 />
 
@@ -2381,10 +2361,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowUnableModal(true)}
-                  className="w-full py-2 px-3 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-700 font-bold text-[11px] flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xs"
+                  className="w-full py-2.5 px-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-2xs cursor-pointer"
                 >
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                  <span>Need Help / Emergency Transfer</span>
+                  <AlertTriangle className="size-4 text-amber-600" />
+                  <span>Need Help / Emergency Support</span>
                 </button>
               </>
             )}

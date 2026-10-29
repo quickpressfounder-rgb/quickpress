@@ -3419,3 +3419,27 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17 MB) compiled & verified.
     - Capacitor iOS sync verified (0.6s).
 
+### 62. In-Trip Heading to Partner Store Screen Revamp (`stage === in_trip`, Leg 1) to Pure White Theme
+- **User Request:**
+  - "ab next screen ka roughfy uske baad approval dunga"
+  - "isko bhi final Desing me banao"
+- **Architectural & Design Principles Applied:**
+  - **Rule 1 (Pure White Theme):** Replaced green container cards with pure white card (`bg-white border border-slate-200/90 rounded-3xl p-3.5 shadow-xs`).
+  - **Rule 2 (Speed-First Usability):** 1-tap `[Navigate to Store with Google Maps]` button, verified cargo seal tag badge (`QP-BAG-XXXX • 5 pcs`), and smooth swipe slider.
+  - **Rule 3 (No Cartoon Emojis):** Replaced custom emojis with Lucide SVG system icons (`Package`, `Check`, `ExternalLink`, `AlertTriangle`, `MapPin`).
+  - **Rule 4 (Notch Safe Padding):** Sticky header maintains top safe area padding with updated title `"Heading to Partner Store"`.
+  - **Cleanup of Residual Elements:** Removed residual timeline button from the destination card and removed dual Voice GPS button in favor of single 1-tap Google Maps.
+- **Code Modifications (`GoToPickupHUD.tsx`):**
+  - Updated screen title to `"Heading to Partner Store"` during `stage === "in_trip"` for `pickup_to_store` leg.
+  - Rebuilt Partner Store destination banner in clean white card with bag seal code pill (`Sealed Bag: QP-BAG-XXXX • 5 pcs`).
+  - Added full-width Google Maps navigation pill button (`w-full h-11 rounded-full border border-slate-200 bg-white`).
+  - Upgraded swipe slider to `"Slide to Drop Clothes at Store"` and issue button to clean outline style (`Unable to Deliver / Store Issue`).
+  - Streamlined delivery leg in-trip section to single Google Maps button and clean `"Slide to Complete Delivery"` slider.
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (941ms, 0 errors).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17 MB) compiled & verified.
+    - Capacitor iOS sync verified (0.69s).
+
+
