@@ -3564,3 +3564,30 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17.6 MB) compiled & verified.
     - Capacitor iOS sync verified (0.82s).
 
+### 68. Automated End-to-End Live Simulation of Captain Active Order HUD Lifecycle
+- **User Request:**
+  - "abhi ke liye choda partner ko caption ko test karte hai" -> Option 3 selected: Run automated end-to-end test simulation script verifying the complete Captain Active Order HUD workflow against live database and backend API.
+- **Simulation Script Developed (`backend-python/test_captain_hud_end_to_end.py`):**
+  - Built automated, 13-stage test verifying the complete lifecycle of a real COD customer order with partner and captain interaction on live Supabase PostgreSQL:
+    1. **Actor Provisioning:** Verified Partner Store (`QuickPress Care Hub`, Kasganj), Captain Profile (`Captain Mohd Imran`, Kasganj), and Customer User.
+    2. **Step 1 (Order Placement):** Customer places COD order for ₹399 (3 items @ ₹89/kg + fees). Initial status: `pending_partner_acceptance`.
+    3. **Step 2 (Partner Acceptance):** Partner accepts order via `partner_order_repository.accept`. Transitions to `partner_accepted`.
+    4. **Step 3 (Trip Broadcast & Claim):** Captain receives broadcast and claims pickup leg via `smart_2ride_engine.handle_rider_accept`. Transitions to `pickup_rider_accepted`.
+    5. **Step 4 (Arrival at Pickup):** Captain slides to arrive (`confirmArrivalAtPickup`). Status recorded in `customer_orders.riderArrivedAt` and ride marked `ARRIVED`.
+    6. **Step 5 (Doorstep Intake):** Captain verifies 5 garment pieces and generates security bag tag `QP-BAG-XXXX`.
+    7. **Step 6 (Customer Pickup OTP):** Customer shares 4-digit pickup OTP. Captain verifies via `rider_dispatch_engine.verify_pickup_otp`. Transitions to `picked_up`.
+    8. **Step 7 (In Trip Leg 1 & Drop at Store):** Captain reaches partner store and completes drop via `rider_dispatch_engine.rider_drop_at_partner`. Transitions to `at_store`.
+    9. **Step 8 (Store Processing & Turnaround SLA):** Partner starts processing via `rider_dispatch_engine.partner_start_processing`. Settles Captain 1 pickup leg payout to wallet. Transitions to `processing_started`.
+    10. **Step 9 (Ready for Delivery):** Partner finishes cleaning and steam pressing, marking ready via `rider_dispatch_engine.partner_mark_ready`. Transitions to `ready_for_delivery`. Dispatches delivery Ride 2 (`smart_2ride_engine.create_ride_2_delivery`).
+    11. **Step 10 (Store Handover Leg 2):** Captain reaches store, enters 4-digit handover OTP via `rider_dispatch_engine.verify_dispatch_otp`. Transitions to `out_for_delivery`.
+    12. **Step 11 (COD Payment Flow):**
+        - Generates dynamic Razorpay UPI QR (`upi://pay?pa=quickpress.rzp@icici...`).
+        - Verifies cash collection via `POST /api/rider/orders/{id}/collect-cash` -> `paymentStatus='paid'`.
+        - Unlocks Customer Delivery OTP.
+    13. **Step 12 (Customer Delivery OTP):** Customer shares 4-digit delivery OTP at doorstep. Verified via `rider_dispatch_engine.verify_delivery_otp`. Transitions to `delivered`.
+    14. **Step 13 (Trip Completed & Ratings):** Captain rates Customer (5★) & Store (5★) via `review_repository.submit_rider_review`. 100% fare payout verified in Captain wallet with 0% platform commission deduction.
+- **Verification Result:**
+  - Automated simulation executed cleanly with `./venv/bin/python test_captain_hud_end_to_end.py`.
+  - Exit code: `0` (100% passed across all 13 stages against live database).
+
+
