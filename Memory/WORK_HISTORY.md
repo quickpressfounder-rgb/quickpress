@@ -3329,3 +3329,44 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17 MB) - compiled and verified.
 - **Git Commit:**
   - Commit `9773b8a`: `feat(captain): revamp rate card modal, permissions screen, and referral modal to clean white theme` pushed to GitHub `main`.
+
+### 59. Clean White Minimalist Revamp: Active Order HUD & Go To Pickup Screen (Post-Acceptance)
+- **User Request:**
+  - "ab banao order acepted karke ke baad bali screen" (Now create / make the screen that appears after accepting an order).
+  - Strictly adhere to the 4 Golden Rules:
+    1. Zero black backgrounds (black used strictly for text and primary action pill buttons).
+    2. Speed-first, purpose-driven layout for on-the-road Captains.
+    3. Zero cartoon icons / zero emojis.
+    4. Safe area notch padding directly on sticky headers to prevent scroll clipping.
+- **Architectural & UI Overhaul (`GoToPickupHUD.tsx` & `SwipeActionButton.tsx`):**
+  - **1. Sticky Notch-Safe Header:**
+    - Transferred safe-area padding directly to `<header>` (`paddingTop: max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)`).
+    - Converted legacy dark background (`bg-slate-900/95`) to clean white frosted glass (`bg-white/95 backdrop-blur-md border-b border-slate-200/80 text-slate-950 shadow-2xs`).
+    - Added clean rounded button actions for `[← Back]`, `[☰ Menu]`, live pulsing status dot, trip fare summary modal, and 1-tap call customer.
+  - **2. Leg 1 vs Leg 2 Banner:**
+    - Converted dark gradient bars (`bg-gradient-to-r from-blue-700...` / `from-emerald-800...`) to clean white cards (`bg-white border-b border-slate-200/80 shadow-2xs`) with subtle blue/emerald badge indicators.
+  - **3. Order Milestone Lifecycle Stepper:**
+    - Active stage pill styled in clean off-white card (`bg-slate-50 border border-slate-200/90`).
+    - Track progress fill bar styled in solid black (`bg-slate-950`).
+    - Step nodes styled with active black ring (`bg-slate-950 text-white`) and completed emerald check (`bg-emerald-600 text-white`).
+  - **4. Map Container & Floating Turn-by-Turn GPS Maneuver Pill:**
+    - Converted dark floating maneuver pill (`bg-slate-950/95`) into clean white pill (`bg-white/95 backdrop-blur-md border border-slate-200 text-slate-950 shadow-md`).
+    - Speedometer badge styled as clean white circle with dark ring (`bg-white text-slate-950 border-2 border-slate-950`).
+    - Floating distance badge styled in clean white with emerald pulse.
+    - Added black pill CTA for `[Voice GPS]`.
+  - **5. Stage Action Controls (En-Route, Arrived, In-Trip, Delivery Complete):**
+    - Quick Message bar converted to rounded off-white pill (`bg-[#F8F9FA] rounded-full border border-slate-200`).
+    - Message Customer button styled as white pill (`bg-white border border-slate-200 text-slate-800 rounded-full`).
+    - Primary CTA `[Arrived at Pickup]` styled as solid black pill (`bg-slate-950 hover:bg-slate-800 text-white rounded-full font-black text-sm`).
+    - Dedicated Fullscreen OTP trigger styled as solid black pill (`bg-slate-950 rounded-full font-black text-sm`).
+    - Payment proceed and Rating finish buttons styled as solid black pills.
+  - **6. Swipe Action Button (`SwipeActionButton.tsx`):**
+    - Eliminated dark container tracks (`bg-slate-950/95`).
+    - Replaced with clean off-white tracks (`bg-slate-100 border border-slate-200 shadow-2xs`), dark typography (`text-slate-900 font-black`), and solid black thumb pill (`bg-slate-950 text-white`).
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (1.78s, 0 errors).
+  - Built and verified Android binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) - compiled, signed, and mirrored.
+    - `QuickPress-Captain.aab` (17 MB) - compiled and verified.
+- **Git Commit:**
+  - Commit `9ded4ac`: `feat(captain): revamp order accepted GoToPickup HUD and swipe action button to clean white theme` pushed to GitHub `main`.
