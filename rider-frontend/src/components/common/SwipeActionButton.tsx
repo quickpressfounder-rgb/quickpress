@@ -27,44 +27,44 @@ export function SwipeActionButton({
 
   const colorStyles = {
     emerald: {
-      trackBg: "bg-slate-950/95 border-emerald-500/50 shadow-emerald-950/30",
-      fillBg: "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-400",
-      thumbBg: "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-emerald-500/40 border border-emerald-300/40",
-      text: "text-emerald-50",
-      subtext: "text-emerald-300/80",
-      glow: "shadow-[0_0_20px_rgba(16,185,129,0.35)]",
+      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
+      fillBg: "bg-emerald-600",
+      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
+      text: "text-slate-900",
+      subtext: "text-slate-500",
+      glow: "shadow-md ring-2 ring-emerald-500/20",
     },
     blue: {
-      trackBg: "bg-slate-950/95 border-blue-500/50 shadow-blue-950/30",
-      fillBg: "bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400",
-      thumbBg: "bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-blue-500/40 border border-blue-300/40",
-      text: "text-blue-50",
-      subtext: "text-blue-300/80",
-      glow: "shadow-[0_0_20px_rgba(59,130,246,0.35)]",
+      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
+      fillBg: "bg-slate-900",
+      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
+      text: "text-slate-900",
+      subtext: "text-slate-500",
+      glow: "shadow-md ring-2 ring-slate-900/20",
     },
     zinc: {
-      trackBg: "bg-slate-950/95 border-zinc-700/60 shadow-black/40",
-      fillBg: "bg-gradient-to-r from-zinc-700 via-zinc-600 to-zinc-500",
-      thumbBg: "bg-gradient-to-br from-zinc-600 to-zinc-800 text-white shadow-black/50 border border-zinc-500/30",
-      text: "text-zinc-100",
-      subtext: "text-zinc-400",
-      glow: "shadow-[0_0_20px_rgba(113,113,122,0.25)]",
+      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
+      fillBg: "bg-slate-900",
+      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
+      text: "text-slate-900",
+      subtext: "text-slate-500",
+      glow: "shadow-md ring-2 ring-slate-900/20",
     },
     amber: {
-      trackBg: "bg-slate-950/95 border-amber-500/50 shadow-amber-950/30",
-      fillBg: "bg-gradient-to-r from-amber-600 via-orange-500 to-amber-400",
-      thumbBg: "bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-amber-500/40 border border-amber-300/40",
-      text: "text-amber-50",
-      subtext: "text-amber-300/80",
-      glow: "shadow-[0_0_20px_rgba(245,158,11,0.35)]",
+      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
+      fillBg: "bg-amber-500",
+      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
+      text: "text-slate-900",
+      subtext: "text-slate-500",
+      glow: "shadow-md ring-2 ring-amber-500/20",
     },
     purple: {
-      trackBg: "bg-slate-950/95 border-purple-500/50 shadow-purple-950/30",
-      fillBg: "bg-gradient-to-r from-purple-600 via-fuchsia-500 to-indigo-400",
-      thumbBg: "bg-gradient-to-br from-purple-400 to-purple-600 text-white shadow-purple-500/40 border border-purple-300/40",
-      text: "text-purple-50",
-      subtext: "text-purple-300/80",
-      glow: "shadow-[0_0_20px_rgba(168,85,247,0.35)]",
+      trackBg: "bg-slate-100 border-slate-200 shadow-2xs",
+      fillBg: "bg-indigo-600",
+      thumbBg: "bg-slate-950 text-white shadow-md border border-slate-900",
+      text: "text-slate-900",
+      subtext: "text-slate-500",
+      glow: "shadow-md ring-2 ring-indigo-500/20",
     },
   }[color];
 
@@ -166,7 +166,7 @@ export function SwipeActionButton({
           ) : null}
           <span className="truncate">{loading ? "Processing..." : confirmed ? "Confirmed!" : label}</span>
           {!loading && !confirmed && (
-            <span className="inline-flex items-center text-white/90 animate-pulse font-mono tracking-tighter">
+            <span className="inline-flex items-center text-slate-400 animate-pulse font-mono tracking-tighter">
               »»
             </span>
           )}

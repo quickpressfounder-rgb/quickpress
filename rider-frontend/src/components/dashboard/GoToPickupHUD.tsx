@@ -1561,39 +1561,39 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
   return (
     <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-white shadow-2xl overflow-y-auto text-neutral-900 select-none pb-24 overscroll-contain">
-      {/* 1. Top Navigation Bar (Back Button + Menu + Title + Call) */}
+      {/* 1. Top Navigation Bar (Back Button + Menu + Title + Call) - Notch Safe */}
       <header
-        className="sticky top-0 z-30 flex items-center justify-between px-3.5 pb-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shadow-lg"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px) + 8px, 12px)" }}
+        className="sticky top-0 z-30 flex items-center justify-between px-3.5 pb-2.5 bg-white/95 backdrop-blur-md border-b border-slate-200/80 text-slate-950 shadow-2xs"
+        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
       >
         {/* Back Button (Returns to Trips List while keeping trip active) & Drawer */}
         <div className="flex items-center gap-1 -ml-1">
           <button
             type="button"
             onClick={handleBack}
-            className="flex items-center justify-center w-9 h-9 text-slate-200 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 transition-all cursor-pointer border border-slate-700/60"
+            className="flex items-center justify-center size-9 text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
             aria-label="Back to Trips"
             title="Back to Trips (Trip Active Rahegi)"
           >
-            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+            <ArrowLeft className="size-5 stroke-[2.2]" />
           </button>
           <button
             type="button"
             onClick={onOpenDrawer}
-            className="flex items-center justify-center w-9 h-9 text-slate-200 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 transition-all cursor-pointer border border-slate-700/60"
+            className="flex items-center justify-center size-9 text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
             aria-label="Open Navigation Drawer"
           >
-            <Menu className="w-5 h-5 stroke-[2.4]" />
+            <Menu className="size-5 stroke-[2.2]" />
           </button>
         </div>
 
         {/* Screen Title & Live Pulse */}
         <div className="flex items-center gap-1.5 min-w-0 px-1 text-center">
           <span className="relative flex size-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+            <span className="relative inline-flex rounded-full size-2 bg-emerald-600" />
           </span>
-          <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-white">
+          <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-slate-950">
             {stage === "en_route_pickup" && (isDeliveryRide ? "Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
             {stage === "arrived_pickup" && (isDeliveryRide ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Pickup Location")}
             {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : order.rideType === "pickup" ? "Heading to Store" : "Heading to Drop Zone")}
@@ -1612,22 +1612,22 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               triggerHaptic(20);
               setShowTripDetailModal(true);
             }}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 shadow-xs active:scale-95 transition-all cursor-pointer"
+            className="flex items-center justify-center size-9 rounded-xl bg-slate-100 text-slate-800 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
             aria-label="Trip Breakdown"
             title="View Route & Fare Breakdown"
           >
-            <Sparkles className="w-4.5 h-4.5" />
+            <Sparkles className="size-4.5" />
           </button>
 
           {/* Support / Call Customer Button */}
           <button
             type="button"
             onClick={() => setShowCallModal(true)}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-md shadow-amber-400/20 active:scale-95 transition-all cursor-pointer font-black"
+            className="flex items-center justify-center size-9 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer font-black shadow-xs"
             aria-label="Call Customer"
             title="Call Contact"
           >
-            <Phone className="w-4.5 h-4.5 fill-slate-950 stroke-none" />
+            <Phone className="size-4.5 fill-white" />
           </button>
 
           {/* Trip Cancellation / Unassign Button before pickup */}
@@ -1638,38 +1638,38 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 triggerHaptic(20);
                 setShowRiderCancelModal(true);
               }}
-              className="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/35 hover:bg-rose-500/30 shadow-xs active:scale-95 transition-all cursor-pointer"
+              className="flex items-center justify-center size-9 rounded-xl bg-slate-100 text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
               aria-label="Cancel Trip"
               title="Cancel / Unassign Pickup Trip"
             >
-              <XCircle className="w-4.5 h-4.5 text-rose-400" />
+              <XCircle className="size-4.5 text-rose-600" />
             </button>
           )}
         </div>
       </header>
 
-      {/* TWO-LEG TRIP BANNER (Emerald Leg 1 vs Blue Leg 2) */}
+      {/* TWO-LEG TRIP BANNER (Clean White Style) */}
       {isDeliveryRide ? (
-        <div className="z-25 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white px-3.5 py-2 flex items-center justify-between text-xs font-black shadow-sm animate-in fade-in duration-200">
+        <div className="z-20 bg-white border-b border-slate-200/80 px-3.5 py-2 flex items-center justify-between text-xs font-bold shadow-2xs">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center">
-              <Package className="w-3.5 h-3.5 text-white" />
+            <div className="size-6 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
+              <Package className="size-3.5" />
             </div>
-            <span>DELIVERY ORDER · स्टोर से ग्राहक डिलीवरी (Drop Leg)</span>
+            <span className="text-slate-800 font-bold">Delivery Leg: Store to Customer</span>
           </div>
-          <span className="bg-blue-950/60 border border-blue-400/40 text-blue-200 px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider">
+          <span className="bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-mono font-black">
             LEG 2
           </span>
         </div>
       ) : (
-        <div className="z-25 bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white px-3.5 py-2 flex items-center justify-between text-xs font-black shadow-sm animate-in fade-in duration-200">
+        <div className="z-20 bg-white border-b border-slate-200/80 px-3.5 py-2 flex items-center justify-between text-xs font-bold shadow-2xs">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center">
-              <Shirt className="w-3.5 h-3.5 text-white" />
+            <div className="size-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <Shirt className="size-3.5" />
             </div>
-            <span>PICKUP ORDER · ग्राहक से कपड़े उठाएं (Pickup Leg)</span>
+            <span className="text-slate-800 font-bold">Pickup Leg: Customer to Store</span>
           </div>
-          <span className="bg-emerald-950/60 border border-emerald-400/40 text-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider">
+          <span className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-mono font-black">
             LEG 1
           </span>
         </div>
@@ -1728,18 +1728,18 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </div>
         </div>
 
-        {/* Live Active Milestone Pill Banner */}
-        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-neutral-50 border border-emerald-200/90 text-[11px] shadow-2xs">
+        {/* Live Active Milestone Pill Banner (Clean White Theme) */}
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/90 text-[11px] shadow-2xs">
           <div className="flex items-center gap-2 min-w-0">
             <span className="relative flex size-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
               <span className="relative inline-flex rounded-full size-2 bg-emerald-600" />
             </span>
-            <span className="font-black text-emerald-950 truncate">
+            <span className="font-bold text-slate-900 truncate">
               {currentStagePillText}
             </span>
           </div>
-          <span className="text-[10px] font-black text-emerald-900 shrink-0 ml-1.5 bg-white px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-700 shrink-0 ml-1.5 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
             Step {activeStepIndex} of 6
           </span>
         </div>
@@ -1747,10 +1747,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         {/* 6 Step Progress Track Stepper */}
         <div className="relative pt-1.5 pb-0.5">
           {/* Background Track Line */}
-          <div className="absolute top-4 left-4 right-4 h-1.5 bg-neutral-200 rounded-full z-0 -translate-y-1/2">
-            {/* Animated Active Fill Line */}
+          <div className="absolute top-4 left-4 right-4 h-1 bg-slate-100 rounded-full z-0 -translate-y-1/2">
+            {/* Active Fill Line */}
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full transition-all duration-500 shadow-xs"
+              className="h-full bg-slate-950 rounded-full transition-all duration-500"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
@@ -1770,27 +1770,27 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   <div
                     className={`size-6 rounded-full flex items-center justify-center transition-all ${
                       step.isDone
-                        ? "bg-[#00C853] text-white shadow-xs"
+                        ? "bg-emerald-600 text-white shadow-2xs"
                         : step.isActive
-                        ? "bg-blue-600 text-white ring-3 ring-blue-200 shadow-md scale-110 animate-pulse"
-                        : "bg-white text-neutral-400 border-2 border-neutral-300"
+                        ? "bg-slate-950 text-white ring-2 ring-slate-200 shadow-xs scale-105"
+                        : "bg-white text-slate-400 border border-slate-200"
                     }`}
                   >
                     {step.isDone ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
+                      <CheckCircle2 className="size-3.5 stroke-[3]" />
                     ) : (
-                      <Icon className="w-3 h-3 stroke-[2.5]" />
+                      <Icon className="size-3 stroke-[2.2]" />
                     )}
                   </div>
 
                   {/* Step Label */}
                   <span
-                    className={`text-[9.5px] font-black leading-tight mt-1 truncate max-w-full ${
+                    className={`text-[9.5px] font-bold leading-tight mt-1 truncate max-w-full ${
                       step.isActive
-                        ? "text-blue-700"
+                        ? "text-slate-950 font-black"
                         : step.isDone
-                        ? "text-emerald-800"
-                        : "text-neutral-500"
+                        ? "text-emerald-700"
+                        : "text-slate-400"
                     }`}
                   >
                     {step.label}
@@ -1798,12 +1798,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
 
                   {/* Hindi Sub-label */}
                   <span
-                    className={`text-[8px] font-semibold leading-none truncate max-w-full mt-0.5 ${
+                    className={`text-[8px] font-medium leading-none truncate max-w-full mt-0.5 ${
                       step.isActive
-                        ? "text-blue-600 font-bold"
+                        ? "text-slate-700 font-bold"
                         : step.isDone
                         ? "text-emerald-600"
-                        : "text-neutral-400"
+                        : "text-slate-400"
                     }`}
                   >
                     {step.hindi}
@@ -1815,41 +1815,41 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         </div>
       </div>
 
-      {/* 2. Map Box Card (Rapido Navigation Box Container) */}
-      <div className="relative w-full px-3 py-2 flex flex-col h-[310px] sm:h-[330px] shrink-0 overflow-hidden bg-neutral-100/90">
-        <div className="relative w-full h-full rounded-3xl overflow-hidden border border-slate-300/80 shadow-lg bg-slate-950">
+      {/* 2. Map Box Card */}
+      <div className="relative w-full px-3 py-2 flex flex-col h-[310px] sm:h-[330px] shrink-0 overflow-hidden bg-slate-50">
+        <div className="relative w-full h-full rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-white">
           <div ref={mapContainerRef} className="w-full h-full" />
 
-          {/* Video Frame 00:56 Top Floating Turn-by-Turn Maneuver Pill with Speedometer */}
+          {/* Top Floating Turn-by-Turn Maneuver Pill with Speedometer */}
           {(stage === "en_route_pickup" || stage === "in_trip") && (
             <div className="absolute top-2.5 left-2.5 right-2.5 z-20 pointer-events-auto flex items-center gap-2">
-              {/* Speedometer Badge (Video Frame 00:56) */}
-              <div className="w-12 h-12 rounded-full bg-[#facc15] text-black font-black border-2 border-black/80 shadow-2xl flex flex-col items-center justify-center shrink-0">
+              {/* Speedometer Badge */}
+              <div className="size-11 rounded-full bg-white text-slate-950 font-black border-2 border-slate-950 shadow-md flex flex-col items-center justify-center shrink-0">
                 <span className="text-xs leading-none font-mono">0</span>
-                <span className="text-[7.5px] uppercase tracking-tighter -mt-0.5 font-bold">km/h</span>
+                <span className="text-[7.5px] uppercase tracking-tighter -mt-0.5 font-bold text-slate-500">km/h</span>
               </div>
 
-              <div className="flex-1 flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-slate-700/90 text-white shadow-2xl min-w-0">
+              <div className="flex-1 flex items-center justify-between gap-2 p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 text-slate-950 shadow-md min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 shadow-inner">
+                  <div className="size-8.5 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                     {nextTurnManeuver === "turn-right" || nextTurnManeuver === "slight-right" ? (
-                      <CornerUpRight className="w-4.5 h-4.5 text-[#00E676] stroke-[2.5]" />
+                      <CornerUpRight className="size-4.5 text-emerald-600 stroke-[2.2]" />
                     ) : nextTurnManeuver === "turn-left" || nextTurnManeuver === "slight-left" ? (
-                      <CornerUpLeft className="w-4.5 h-4.5 text-[#00E676] stroke-[2.5]" />
+                      <CornerUpLeft className="size-4.5 text-emerald-600 stroke-[2.2]" />
                     ) : (
-                      <Navigation className="w-4.5 h-4.5 text-[#00E676] -rotate-45 stroke-[2.5]" />
+                      <Navigation className="size-4.5 text-emerald-600 -rotate-45 stroke-[2.2]" />
                     )}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-sm font-black font-mono tracking-tight text-white">
+                      <span className="text-sm font-black font-mono tracking-tight text-slate-950">
                         {nextTurnDistanceM > 1000 ? `${(nextTurnDistanceM / 1000).toFixed(1)} km` : `${nextTurnDistanceM} m`}
                       </span>
-                      <span className="text-[8.5px] font-black text-[#00E676] uppercase tracking-wider bg-emerald-950/80 px-1 py-0.2 rounded border border-emerald-700/60">
+                      <span className="text-[8.5px] font-bold text-slate-700 uppercase tracking-wider bg-slate-100 px-1 py-0.2 rounded">
                         {stage === "en_route_pickup" ? "To Pickup" : "In-Trip"}
                       </span>
                     </div>
-                    <p className="text-[10.5px] font-bold text-slate-200 truncate mt-0.5">
+                    <p className="text-[10.5px] font-medium text-slate-500 truncate mt-0.5">
                       {nextTurnInstruction || `Proceed towards ${activeDestTitle}`}
                     </p>
                   </div>
@@ -1859,10 +1859,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                 <button
                   type="button"
                   onClick={handleStartInAppNavigation}
-                  className="px-2.5 py-1.5 rounded-xl bg-[#00C853] hover:bg-[#00E676] text-slate-950 font-black text-xs shadow-lg flex items-center gap-1 active:scale-95 transition-all shrink-0 border border-emerald-300 cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs shadow-xs flex items-center gap-1 active:scale-95 transition-all shrink-0 cursor-pointer"
                   title="Open In-App Voice Turn-by-Turn Navigation"
                 >
-                  <Navigation className="w-3 h-3 fill-slate-950 stroke-none" />
+                  <Navigation className="size-3 fill-current stroke-none" />
                   <span className="hidden sm:inline">Voice GPS</span>
                 </button>
               </div>
@@ -1872,8 +1872,8 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           {/* Floating Distance Pill (Over destination pin) */}
           {stage === "en_route_pickup" && (
             <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-12 z-20 pointer-events-none animate-bounce duration-1000">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-950/95 text-white font-black text-[11px] rounded-full shadow-2xl border border-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-[#00E676] animate-ping" />
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-white text-slate-950 font-black text-[11px] rounded-full shadow-lg border border-slate-200">
+                <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
                 <span>{distanceMeters} m away</span>
               </div>
             </div>
@@ -2043,14 +2043,14 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
         {/* STAGE 1: Heading to Pickup */}
         {stage === "en_route_pickup" && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
-            {/* Video Frame 00:14 Quick Message Bar */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-neutral-100 rounded-2xl border border-neutral-200">
-              <span className="text-[11px] text-neutral-500 font-medium shrink-0">Send message:</span>
+            {/* Quick Message Bar */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#F8F9FA] rounded-full border border-slate-200">
+              <span className="text-[11px] text-slate-500 font-medium shrink-0">Send message:</span>
               <input
                 type="text"
                 value={quickMessageText}
                 onChange={(e) => setQuickMessageText(e.target.value)}
-                className="flex-1 bg-transparent text-xs font-bold text-neutral-900 focus:outline-none min-w-0"
+                className="flex-1 bg-transparent text-xs font-bold text-slate-900 focus:outline-none min-w-0"
               />
               <button
                 type="button"
@@ -2058,29 +2058,29 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   handleSendChat(quickMessageText);
                   toast.success("Message sent to customer!");
                 }}
-                className="w-7 h-7 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 flex items-center justify-center font-black active:scale-90 transition-transform shrink-0 cursor-pointer"
+                className="size-7 rounded-full bg-slate-950 hover:bg-slate-800 text-white flex items-center justify-center font-black active:scale-90 transition-transform shrink-0 cursor-pointer shadow-xs"
                 title="Send quick message"
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="size-3.5" />
               </button>
             </div>
 
-            {/* Video Action Buttons (Frame 00:14: Message customer + Arrived) */}
+            {/* Action Buttons: Message customer + Arrived (Clean White Style) */}
             <div className="grid grid-cols-2 gap-2 pt-0.5">
               <button
                 type="button"
                 onClick={() => setShowChatModal(true)}
-                className="h-12 rounded-2xl border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-800 font-black text-xs flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
+                className="h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
               >
-                <MessageSquare className="w-4 h-4 text-neutral-700" />
-                <span>Message customer</span>
+                <MessageSquare className="size-4 text-slate-700" />
+                <span>Message</span>
               </button>
               <button
                 type="button"
                 onClick={handleArrivalCheck}
-                className="h-12 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                className="h-11 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
               >
-                <span>Arrived</span>
+                <span>Arrived at Pickup</span>
               </button>
             </div>
 
@@ -2089,17 +2089,17 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
               <button
                 type="button"
                 onClick={handleStartInAppNavigation}
-                className="py-2 px-2 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-950 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs cursor-pointer"
+                className="py-2.5 px-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-2xs cursor-pointer"
               >
-                <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
+                <Navigation className="size-4 text-emerald-600 shrink-0" />
                 <span>In-App Voice GPS</span>
               </button>
               <button
                 type="button"
                 onClick={() => launchTurnByTurnGoogleMaps(activeDestCoords, captainCoords, activeDestTitle)}
-                className="py-2 px-2 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-900 font-black text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-xs cursor-pointer"
+                className="py-2.5 px-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all shadow-2xs cursor-pointer"
               >
-                <ExternalLink className="w-4 h-4 text-[#4285F4] shrink-0" />
+                <ExternalLink className="size-4 text-[#4285F4] shrink-0" />
                 <span>Google Maps</span>
               </button>
             </div>
@@ -2272,7 +2272,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   }}
                 />
 
-                {/* Video Frame 00:54 Dedicated 4-Digit OTP Screen Trigger Button */}
+                {/* Dedicated 4-Digit OTP Screen Trigger Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -2280,9 +2280,9 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     setDedicatedOtpDigits(["", "", "", ""]);
                     setShowDedicatedOtpScreen(true);
                   }}
-                  className="w-full h-12 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                  className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
                 >
-                  <KeyRound className="w-4 h-4" />
+                  <KeyRound className="size-4" />
                   <span>Enter 4-Digit Code (Fullscreen OTP)</span>
                 </button>
 
@@ -3332,7 +3332,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                           prevInput?.focus();
                         }
                       }}
-                      className="w-14 h-16 text-center font-black text-2xl font-mono bg-neutral-100 rounded-2xl border-2 border-neutral-300 focus:border-[#facc15] focus:bg-white focus:outline-none shadow-sm transition-all"
+                      className="w-14 h-16 text-center font-black text-2xl font-mono bg-[#F8F9FA] rounded-2xl border-2 border-slate-200 focus:border-slate-950 focus:bg-white focus:outline-none shadow-2xs transition-all"
                       autoFocus={idx === 0}
                     />
                   ))}
@@ -3352,10 +3352,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     }
                   }}
                   disabled={dedicatedOtpDigits.some((d) => !d)}
-                  className="w-full h-13 rounded-2xl bg-[#facc15] hover:bg-[#eab308] disabled:bg-neutral-200 disabled:text-neutral-400 text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                  className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
                 >
                   <span>Submit OTP</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="size-4" />
                 </button>
               </div>
             </div>
@@ -3539,10 +3539,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   setShowOrderCompleteRatingScreen(true);
                   speakTripComplete(order.fare);
                 }}
-                className="w-full h-13 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
+                className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
               >
                 <span>Proceed to Rating & Finish</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="size-4" />
               </button>
             </div>
           </div>
@@ -3654,10 +3654,10 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     navigate({ to: "/orders" });
                   }
                 }}
-                className="w-full h-13 rounded-2xl bg-[#facc15] hover:bg-[#eab308] text-neutral-950 font-black text-base flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
+                className="w-full h-13 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-black text-base flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
               >
                 <span>Done</span>
-                <Check className="w-5 h-5 stroke-[2.5]" />
+                <Check className="size-5 stroke-[2.5]" />
               </button>
             </div>
           </div>
