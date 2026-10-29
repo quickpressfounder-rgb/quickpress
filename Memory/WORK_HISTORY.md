@@ -3259,3 +3259,25 @@ This single command will automatically:
   - Rebuilt Android Captain binaries via `python3 build_all_apks.py rider`:
     - `QuickPress-Captain.apk` (18 MB) - compiled, signed, and mirrored.
     - `QuickPress-Captain.aab` (17 MB) - compiled and verified.
+
+### 56. Clean White Minimalist Revamp of Incentives & Performance Analytics Screens
+- **Feature Overview & Motivation:**
+  - Revamped both Option 2 (`/incentives` - `RiderIncentivesScreen.tsx`) and Option 3 (`/analytics` - `RiderAnalyticsScreen.tsx`) to strictly follow the **Clean White Minimalist Theme** from the user reference screenshots.
+  - Replaced legacy dark/heavy card containers with clean `#F8F9FA` background, pure white rounded cards (`border border-slate-200/80 rounded-2xl`), notch-safe headers with `[🎧 Help]` pill and `[🔄]` refresh button.
+- **Components & Screens Updated:**
+  - **1. RiderIncentivesScreen (`rider-frontend/src/screens/RiderIncentivesScreen.tsx`):**
+    - Sub-tabs: `Level Map`, `Quests`, `Streak`, `Calculator` with Warm Golden Yellow underline indicator line (`#FFC700`).
+    - 2-Column summary metrics card: `Completed Orders` & `Bonus Unlocked`.
+    - Soft lavender `#F6F4FF` explainer video card with red play button.
+    - Pure white milestone cards with clean borders, progress steppers, and 1-tap claim CTA.
+  - **2. RiderAnalyticsScreen (`rider-frontend/src/screens/RiderAnalyticsScreen.tsx`):**
+    - Sub-tabs: `Day`, `Week`, `Month`, `All` with warm yellow underline (`#FFC700`).
+    - 2-Column summary metrics card: `Completed Orders` & `Order Earnings` with 0% commission badge.
+    - 6-grid performance metric cards: Deliveries Done, Distance Travelled (KM), Avg Trip Time, Customer Rating (5-star), Acceptance Rate, On-Time SLA.
+    - Clean bar chart for volume trend and divided card for gross fare revenue breakdown.
+    - Integrated with clean 2-tab bottom navigation `<RiderBottomNav active="dashboard" />`.
+- **Verification & Build:**
+  - `npm run build` in `rider-frontend`: PASSED (0 errors, 1.03s).
+  - Recompiled Captain Android binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB)
+    - `QuickPress-Captain.aab` (17 MB)

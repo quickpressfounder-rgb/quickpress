@@ -6,17 +6,11 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  Coins,
   Compass,
-  Flame,
   Gift,
   Headphones,
-  HelpCircle,
-  Info,
-  Layers,
-  MapPin,
   Minus,
-  PlayCircle,
+  Play,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -98,129 +92,39 @@ const DEFAULT_CANDY_CRUSH_LEVELS: CandyCrushLevel[] = [
   },
   {
     level: 4,
-    title: "Rush Hour Hero",
-    target: 7,
-    reward: 180.0,
+    title: "Kasganj Express",
+    target: 8,
+    reward: 200.0,
     badge: "⚡",
-    flavor: "Mint Sparkle",
-    description: "7 deliveries during busy pickup & drop peak hours",
-    color: "#10B981",
-    gradient: "from-emerald-400 via-teal-500 to-cyan-600",
+    flavor: "Blueberry Blast",
+    description: "8 deliveries completed with 100% on-time guarantee",
+    color: "#3B82F6",
+    gradient: "from-blue-500 via-indigo-500 to-cyan-500",
     status: "locked",
     isClaimed: false,
     isClaimable: false,
     progress: 0,
     progressPercent: 0,
-    ridesRemaining: 7,
-    extraPerRide: 25.7,
+    ridesRemaining: 8,
+    extraPerRide: 25,
   },
   {
     level: 5,
-    title: "Super Captain",
-    target: 10,
-    reward: 280.0,
-    badge: "🚀",
-    flavor: "Blueberry Blast",
-    description: "Double digit 10 deliveries! Halfway to max jackpot",
-    color: "#06B6D4",
-    gradient: "from-cyan-400 via-blue-500 to-indigo-600",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 10,
-    extraPerRide: 28,
-  },
-  {
-    level: 6,
-    title: "Thunder Rider",
+    title: "Master Delivery Champion",
     target: 12,
-    reward: 360.0,
-    badge: "🔥",
-    flavor: "Grape Punch",
-    description: "12 deliveries with high customer ratings & zero cancel",
-    color: "#6366F1",
-    gradient: "from-indigo-500 via-purple-500 to-pink-500",
+    reward: 350.0,
+    badge: "👑",
+    flavor: "Royal Caramel",
+    description: "12 deliveries! Elite captain jackpot & weekly bonus multiplier",
+    color: "#8B5CF6",
+    gradient: "from-purple-500 via-violet-600 to-pink-500",
     status: "locked",
     isClaimed: false,
     isClaimable: false,
     progress: 0,
     progressPercent: 0,
     ridesRemaining: 12,
-    extraPerRide: 30,
-  },
-  {
-    level: 7,
-    title: "Fleet Master",
-    target: 15,
-    reward: 480.0,
-    badge: "💎",
-    flavor: "Cotton Candy",
-    description: "15 deliveries! Elite volume captain badge unlocked",
-    color: "#A855F7",
-    gradient: "from-purple-500 via-fuchsia-500 to-pink-600",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 15,
-    extraPerRide: 32,
-  },
-  {
-    level: 8,
-    title: "Grand Champion",
-    target: 18,
-    reward: 620.0,
-    badge: "🏆",
-    flavor: "Cherry Pop",
-    description: "18 deliveries! Top 5% performance rank in Kasganj",
-    color: "#E11D48",
-    gradient: "from-rose-500 via-red-600 to-amber-600",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 18,
-    extraPerRide: 34.4,
-  },
-  {
-    level: 9,
-    title: "Legendary Streak",
-    target: 22,
-    reward: 820.0,
-    badge: "👑",
-    flavor: "Royal Velvet",
-    description: "22 deliveries! Ultra streak and priority high-fare orders",
-    color: "#7C3AED",
-    gradient: "from-violet-600 via-purple-600 to-indigo-800",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 22,
-    extraPerRide: 37.3,
-  },
-  {
-    level: 10,
-    title: "Kasganj Supreme King",
-    target: 25,
-    reward: 1100.0,
-    badge: "✨",
-    flavor: "Golden Jackpot",
-    description: "Max Level 10 Achieved! ₹1,100 Grand Daily Prize unlocked!",
-    color: "#F59E0B",
-    gradient: "from-amber-300 via-yellow-400 to-orange-500",
-    status: "locked",
-    isClaimed: false,
-    isClaimable: false,
-    progress: 0,
-    progressPercent: 0,
-    ridesRemaining: 25,
-    extraPerRide: 44,
+    extraPerRide: 29,
   },
 ];
 
@@ -228,75 +132,75 @@ export function RiderIncentivesScreen() {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
+  const [activeTab, setActiveTab] = useState<TabKey>("candy");
   const [data, setData] = useState<RiderIncentivesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("candy");
   const [claimingLevel, setClaimingLevel] = useState<number | null>(null);
 
-  // Calculator state
-  const [calcTrips, setCalcTrips] = useState<number>(10);
-
-  // Time to midnight countdown
+  // Earnings Simulator State
+  const [calcTrips, setCalcTrips] = useState<number>(8);
   const [timeLeft, setTimeLeft] = useState<string>("");
 
+  // Countdown timer until 11:59:59 PM reset
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
-      const midnight = new Date();
-      midnight.setHours(24, 0, 0, 0);
-      const diffMs = midnight.getTime() - now.getTime();
-      if (diffMs <= 0) {
-        setTimeLeft("00h 00m");
-        return;
-      }
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      const diffMs = Math.max(0, endOfDay.getTime() - now.getTime());
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      setTimeLeft(`${hours.toString().padStart(2, "0")}h ${minutes.toString().padStart(2, "0")}m`);
+      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+      setTimeLeft(
+        `${String(hours).padStart(2, "0")}h ${String(mins).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`
+      );
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 60000);
+    const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
   }, []);
 
   const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
     try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
       const res = await fetchRiderIncentives();
-      setData(res);
-      if (isRefresh) {
-        triggerHaptic();
-        toast.success(t("incentives.synced") || "Incentives & Targets Updated 🎯");
+      if (res) {
+        setData(res);
+        try {
+          localStorage.setItem("qp_cached_incentives", JSON.stringify(res));
+        } catch {}
       }
     } catch {
-      toast.error("Unable to load latest incentives");
+      try {
+        const raw = localStorage.getItem("qp_cached_incentives");
+        if (raw) setData(JSON.parse(raw));
+      } catch {}
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Handle Candy Crush level claim
-  const handleClaimMilestone = async (levelNumber: number) => {
+  const handleClaimMilestone = async (level: number) => {
     try {
-      setClaimingLevel(levelNumber);
-      const res = await claimRiderIncentive(levelNumber);
-      if (res.ok) {
+      setClaimingLevel(level);
+      triggerHaptic([40, 60, 100]);
+      const res = await claimRiderIncentive(level);
+      if (res && res.success) {
         playSuccessChime();
-        speakText(`बधाई हो! आपका ₹${Number(res.reward).toFixed(0)} इन्सेंटिव वॉलेट में क्रेडिट हो गया है!`);
-        toast.success(
-          `🎉 Level ${levelNumber} (${res.title}) Claimed! ₹${Number(res.reward).toFixed(0)} credited to Wallet! 💰`
-        );
-        await loadData(false);
+        speakText(`Congratulations Captain! ₹${res.claimedAmount || 50} bonus added to wallet!`);
+        toast.success(`🎉 Milestone Claimed! ₹${res.claimedAmount || 50} credited to wallet!`);
+        await loadData(true);
       } else {
-        toast.error(res.message || "Failed to claim incentive reward");
+        toast.error(res?.message || "Milestone not yet completed");
       }
     } catch (err: any) {
       toast.error(err?.message || "Could not claim milestone incentive");
@@ -305,7 +209,6 @@ export function RiderIncentivesScreen() {
     }
   };
 
-  // Dynamic calculation for simulator
   const calculatedEarnings = useMemo(() => {
     const trips = Math.max(0, calcTrips);
     const avgFarePerTrip = 42;
@@ -333,38 +236,37 @@ export function RiderIncentivesScreen() {
     };
   }, [calcTrips]);
 
-  // Real Figures — Zero hardcoded mock defaults!
   const completedToday = Number(data?.completedToday ?? 0);
   const totalIncentives = Number(data?.totalIncentivesEarnedToday ?? 0);
-  const milestones = data?.milestones ?? [];
   const quests = data?.specialQuests ?? [];
   const surgeZones = data?.surgeZones ?? [];
   const weeklyStreak = data?.weeklyStreak;
-  const nextMilestone = data?.nextMilestone;
 
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] max-w-md mx-auto bg-[#F4F5F7] shadow-xl overflow-hidden text-zinc-800 select-none font-sans">
-      {/* 1. Header Bar matching Rapido / QuickPress Wallet Screen */}
-      <header
-        className="sticky top-0 z-30 bg-white border-b border-zinc-200/70 shadow-2xs shrink-0 select-none"
-        style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 48px)" }}
-      >
-        <div className="flex items-center justify-between px-4 pb-2.5">
+    <div
+      className="min-h-screen bg-[#F8F9FA] text-slate-900 select-none font-sans pb-32"
+      style={{ paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 8px), 44px)" }}
+    >
+      {/* 1. TOP HEADER (Exact Screenshot Style: Arrow, Title, Help Pill, Refresh) */}
+      <header className="sticky top-0 z-30 bg-[#F8F9FA]/95 backdrop-blur-md px-4 pb-0">
+        <div className="mx-auto max-w-lg flex items-center justify-between pb-2.5">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate({ to: "/dashboard" })}
-              className="p-1.5 -ml-1 text-zinc-900 hover:bg-zinc-100 rounded-full active:scale-95 transition-all cursor-pointer"
-              aria-label="Back"
+              onClick={() => {
+                triggerHaptic(20);
+                navigate({ to: "/dashboard" });
+              }}
+              className="flex size-9 items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+              aria-label="Back to Dashboard"
             >
-              <ArrowLeft className="size-6 text-zinc-950 stroke-[2.2]" />
+              <ArrowLeft className="size-5 stroke-[2.2]" />
             </button>
             <div>
-              <h1 className="text-xl font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
-                <span>{t("nav.incentives") || "Incentives & Targets"}</span>
-                <span className="flex size-2 rounded-full bg-amber-500" />
+              <h1 className="text-lg font-black tracking-tight text-slate-950">
+                Incentives & Targets
               </h1>
-              <p className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1">
+              <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
                 <Clock className="size-3 text-amber-500" />
                 <span>Resets in: {timeLeft || "01h 45m"}</span>
               </p>
@@ -378,9 +280,9 @@ export function RiderIncentivesScreen() {
                 triggerHaptic(20);
                 navigate({ to: "/help" });
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all text-xs font-bold text-zinc-900 shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-50 active:scale-95 transition shadow-2xs cursor-pointer"
             >
-              <Headphones className="size-3.5 text-zinc-700" />
+              <Headphones className="size-3.5 stroke-[2.2] text-slate-700" />
               <span>Help</span>
             </button>
 
@@ -388,24 +290,25 @@ export function RiderIncentivesScreen() {
               type="button"
               onClick={() => loadData(true)}
               disabled={loading || refreshing}
-              className="p-2 text-black hover:bg-zinc-100 rounded-xl active:scale-95 transition-all"
+              className={`flex size-9 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 active:scale-95 transition shadow-2xs cursor-pointer ${
+                refreshing ? "animate-spin text-amber-600" : ""
+              }`}
               title="Refresh Incentives"
             >
-              <RefreshCw className={`size-4 text-black ${refreshing ? "animate-spin text-amber-600" : ""}`} />
+              <RefreshCw className="size-4 stroke-[2.2]" />
             </button>
           </div>
         </div>
 
-        {/* 4 Integrated Sub-Tabs with Solid Yellow Underline */}
-        <div className="grid grid-cols-4 text-center text-xs font-bold border-t border-zinc-100">
+        {/* 4 SUB-TABS WITH WARM GOLDEN YELLOW UNDERLINE (Screenshot 2 & 3 Match) */}
+        <div className="mx-auto max-w-lg grid grid-cols-4 text-center text-xs font-bold border-b border-slate-200/80">
           {[
             { id: "candy", label: "Level Map" },
             { id: "quests", label: "Quests" },
             { id: "streak", label: "Streak" },
-            { id: "calculator", label: "Calc" },
+            { id: "calculator", label: "Calculator" },
           ].map((tab) => {
             const active = activeTab === tab.id;
-            const hasBadge = tab.id === "candy" && (data?.totalClaimableIncentives ?? 0) > 0;
             return (
               <button
                 key={tab.id}
@@ -415,13 +318,10 @@ export function RiderIncentivesScreen() {
                   setActiveTab(tab.id as TabKey);
                 }}
                 className={`py-3 relative cursor-pointer transition-colors ${
-                  active ? "text-zinc-950 font-black" : "text-zinc-500 hover:text-zinc-800 font-bold"
+                  active ? "text-slate-950 font-black" : "text-slate-500 hover:text-slate-800 font-bold"
                 }`}
               >
-                <span className="flex items-center justify-center gap-1">
-                  <span>{tab.label}</span>
-                  {hasBadge && <span className="size-1.5 rounded-full bg-amber-500 animate-ping" />}
-                </span>
+                <span>{tab.label}</span>
                 {active && (
                   <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFC700] rounded-full" />
                 )}
@@ -431,231 +331,198 @@ export function RiderIncentivesScreen() {
         </div>
       </header>
 
-      {/* 2. Scrollable Body */}
-      <main
-        className="flex-1 overflow-y-auto space-y-4 p-4 bg-[#F8F9FA]"
-        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px) + 84px, 100px)" }}
-      >
-        {/* HERO CARD: Daily Target Overview */}
-        <section className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden">
-          <div className="p-4 flex items-start justify-between">
-            <div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <Sparkles className="size-3 text-emerald-600" />
-                <span>Today's Bonus Unlocked</span>
+      {/* 2. MAIN SCROLLABLE CONTENT */}
+      <main className="mx-auto max-w-lg px-4 pt-3 space-y-3.5">
+        {/* SUMMARY 2-COLUMN METRICS CARD (Exact match to Screenshot 2 & 3) */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs">
+          <div className="grid grid-cols-2 divide-x divide-slate-100 text-center">
+            <div className="pr-2">
+              <span className="text-2xl font-black text-slate-950 tracking-tight">
+                {completedToday}
               </span>
-              <div className="mt-1.5 flex items-baseline gap-2">
-                <span className="text-3xl font-black text-zinc-950 tracking-tight">
-                  ₹{totalIncentives.toFixed(2)}
-                </span>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  Active ✓
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">
-                {completedToday} deliveries completed today
+              <p className="text-xs font-semibold text-slate-500 mt-1">
+                Completed Orders
               </p>
             </div>
-
-            <div className="size-11 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center shadow-2xs">
-              <Target className="size-5 text-amber-600" />
+            <div className="pl-2">
+              <span className="text-2xl font-black text-slate-950 tracking-tight">
+                ₹{totalIncentives.toFixed(0)}
+              </span>
+              <p className="text-xs font-semibold text-slate-500 mt-1">
+                Bonus Unlocked
+              </p>
             </div>
           </div>
 
-          {/* Stepper Progress Line with Hairline Top Border */}
-          <div className="p-4 pt-3 border-t border-zinc-100 bg-zinc-50/40">
-            <div className="flex items-center justify-between text-[11px] font-bold text-zinc-600 mb-1.5">
+          {/* Stepper Progress Bar */}
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1.5">
               <span>0 Rides</span>
               <span className={completedToday >= 5 ? "text-emerald-700 font-black" : ""}>5 (₹100)</span>
               <span className={completedToday >= 10 ? "text-emerald-700 font-black" : "text-amber-700"}>10 (₹250)</span>
               <span className={completedToday >= 15 ? "text-emerald-700 font-black" : ""}>15 (₹450)</span>
             </div>
 
-            {/* Multi-step progress bar */}
-            <div className="relative w-full h-2.5 bg-zinc-200 rounded-full overflow-hidden">
+            <div className="relative w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-amber-500 rounded-full transition-all duration-700"
+                className="h-full bg-slate-950 rounded-full transition-all duration-700"
                 style={{ width: `${Math.min(100, Math.round((completedToday / 15) * 100))}%` }}
               />
             </div>
 
-            <div className="flex justify-between items-center mt-2 text-[10px] font-semibold text-zinc-500">
-              <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                {completedToday >= 5 ? (
-                  <>
-                    <CheckCircle2 className="size-3 text-emerald-600" />
-                    <span>Tier 1 Unlocked (₹100)</span>
-                  </>
-                ) : (
-                  <span>{5 - completedToday} more rides for Tier 1 (₹100)</span>
-                )}
+            <div className="flex justify-between items-center mt-2 text-[10px] font-semibold text-slate-500">
+              <span className="text-emerald-700 font-bold">
+                {completedToday >= 5
+                  ? "✓ Tier 1 Unlocked (₹100 credited)"
+                  : `${5 - completedToday} more deliveries for Tier 1 bonus`}
               </span>
-              <span>{Math.max(0, 10 - completedToday)} trips for next tier</span>
+              <span>{Math.max(0, 10 - completedToday)} trips for next slab</span>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Claimable Bounty Banner if any unlocked */}
+        {/* READY TO CLAIM NOTIFICATION BANNER */}
         {(data?.totalClaimableIncentives ?? 0) > 0 && (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-zinc-950 font-bold border border-yellow-300 shadow-2xs flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="size-9 rounded-xl bg-white/90 text-amber-700 flex items-center justify-center shrink-0">
-                <Gift className="size-5 text-amber-700 shrink-0" />
+          <div className="p-4 rounded-2xl bg-white border border-amber-300 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-800 font-black shrink-0">
+                🎁
               </div>
               <div>
-                <h4 className="text-xs font-black leading-tight">
+                <h4 className="text-sm font-black text-slate-950">
                   ₹{Number(data?.totalClaimableIncentives).toFixed(0)} Ready to Claim!
                 </h4>
-                <p className="text-[10px] text-zinc-800 font-medium">
-                  Tap the glowing level on the map below to credit to wallet.
+                <p className="text-xs text-slate-500">
+                  Tap your completed level to instantly credit wallet
                 </p>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => {
-                triggerHaptic(20);
-                setActiveTab("candy");
-              }}
-              className="px-3 py-1.5 rounded-xl bg-zinc-950 text-white text-[11px] font-black shadow-xs shrink-0 cursor-pointer"
+              onClick={() => setActiveTab("candy")}
+              className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-xs font-bold active:scale-95 transition cursor-pointer"
             >
-              View Map ➔
+              Claim ➔
             </button>
           </div>
         )}
 
-        {/* Lilac / Purple Explainer Banner matching Wallet Screen */}
+        {/* VIDEO TUTORIAL CARD (Exact Screenshot 1 Style) */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             triggerHaptic(20);
             window.open("https://youtube.com/@QuickPressApp", "_blank");
           }}
-          className="p-4 rounded-2xl bg-gradient-to-r from-[#EDE9FE] to-[#F5F3FF] border border-[#DDD6FE] text-zinc-900 shadow-2xs flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+          className="flex items-center justify-between p-4 bg-[#F6F4FF] rounded-2xl border border-purple-100 hover:border-purple-200 active:scale-99 transition cursor-pointer text-left"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="size-11 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <PlayCircle className="size-6 fill-white text-red-600" />
+            <div className="flex size-11 items-center justify-center rounded-full bg-red-600 text-white shadow-2xs shrink-0">
+              <div className="size-4 rounded-full border-2 border-white flex items-center justify-center">
+                <Play className="size-2 fill-white ml-0.5" />
+              </div>
             </div>
-            <div className="min-w-0">
-              <h4 className="text-sm font-black text-zinc-950 leading-snug">
-                How Daily Incentives & Jackpots Work
-              </h4>
-              <p className="text-[11px] text-zinc-600 mt-0.5 leading-snug">
-                Watch 1-min video on level unlock rewards, streak bonuses & instant wallet credit
+
+            <div className="min-w-0 pr-2">
+              <h3 className="text-sm font-black text-slate-950 leading-snug">
+                How Daily Incentives & Slabs Work
+              </h3>
+              <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5">
+                Watch 1-min quick guide on milestone payouts & streak jackpots
               </p>
             </div>
           </div>
-          <ChevronRight className="size-4 text-zinc-500 shrink-0 ml-2" />
+
+          <ChevronRight className="size-5 text-slate-400 shrink-0" />
         </div>
 
-        {/* TAB 1: CANDY CRUSH 10-LEVEL JOURNEY */}
+        {/* TAB 1: LEVEL MAP */}
         {activeTab === "candy" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Sparkles className="size-3.5 text-pink-500" />
-                  <span>Candy Crush Level Journey</span>
-                </h3>
-                <p className="text-[10px] text-zinc-400 font-medium">
-                  Tap any level island to view rewards or claim cash bonuses
-                </p>
-              </div>
-              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                100% Commission-Free
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+                Level Map Journey
+              </h3>
+              <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                0% Commission Guarantee
               </span>
             </div>
 
-            <CandyCrushMilestoneMap
-              levels={
-                data?.candyCrushLevels && data.candyCrushLevels.length > 0
-                  ? data.candyCrushLevels
-                  : DEFAULT_CANDY_CRUSH_LEVELS
-              }
-              completedToday={completedToday}
-              onClaimLevel={handleClaimMilestone}
-              claimingLevel={claimingLevel}
-            />
-
-            {/* Quality Rating Bonus Note */}
-            <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 flex items-start gap-3">
-              <Star className="size-5 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-xs font-bold text-zinc-900">
-                  Rating Protection & Fuel Cashback
-                </h4>
-                <p className="text-[11px] text-zinc-600 mt-0.5">
-                  Captains with 4.8+ star rating earn 10% extra on peak surge rides and priority order matching in Kasganj!
-                </p>
-              </div>
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-2 shadow-2xs overflow-hidden">
+              <CandyCrushMilestoneMap
+                levels={
+                  data?.candyCrushLevels && data.candyCrushLevels.length > 0
+                    ? data.candyCrushLevels
+                    : DEFAULT_CANDY_CRUSH_LEVELS
+                }
+                completedToday={completedToday}
+                onClaimLevel={handleClaimMilestone}
+                claimingLevel={claimingLevel}
+              />
             </div>
           </div>
         )}
 
-        {/* TAB 2: SURGE & QUESTS */}
+        {/* TAB 2: SPECIAL FLASH QUESTS */}
         {activeTab === "quests" && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
                 Special Flash Quests
               </h3>
-              <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                ⚡ Time-Limited
+              <span className="text-[10px] font-black text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                ⚡ Active Today
               </span>
             </div>
 
-            {/* Special Quests List */}
             <div className="space-y-2.5">
               {quests.map((q) => (
                 <div
                   key={q.id}
-                  className={`p-3.5 rounded-2xl border ${
-                    q.completed
-                      ? "bg-emerald-50/40 border-emerald-200"
-                      : "bg-white border-zinc-200/80"
-                  }`}
+                  className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-2.5">
-                      <div className="size-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-                        <Zap className="size-4 text-amber-600" />
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700 shrink-0 mt-0.5">
+                        <Zap className="size-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="text-xs font-bold text-zinc-900 leading-tight">
+                          <h4 className="text-xs font-black text-slate-950">
                             {q.title}
                           </h4>
                           {q.tag && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
                               {q.tag}
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-zinc-500 mt-1">{q.desc}</p>
+                        <p className="text-[11px] text-slate-500 mt-1">{q.desc}</p>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span className="text-sm font-bold text-emerald-700">
+                      <span className="text-sm font-black text-emerald-700">
                         +₹{Number(q.reward || 0).toFixed(0)}
                       </span>
-                      <p className="text-[10px] font-bold text-zinc-500 mt-0.5">
+                      <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
                         {q.expiresIn}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-2.5 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-600 font-medium">
-                      Status: <strong className="text-zinc-800">{q.progress}/{q.target}</strong> trips
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                    <span className="text-slate-600 font-medium">
+                      Status: <strong className="text-slate-900">{q.progress}/{q.target}</strong> trips
                     </span>
                     {q.completed ? (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                         <CheckCircle2 className="size-3 text-emerald-600" /> Completed
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                        Active Quest
+                      <span className="text-[10px] font-black text-slate-800 bg-slate-100 px-2 py-0.5 rounded-full">
+                        In Progress
                       </span>
                     )}
                   </div>
@@ -663,13 +530,12 @@ export function RiderIncentivesScreen() {
               ))}
             </div>
 
-            {/* Live Kasganj High Demand Surge Zones (Hidden when surge is disabled) */}
+            {/* Live Surge Zones */}
             {Boolean(surgeZones && surgeZones.length > 0) && (
               <div className="mt-4 pt-2">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                    <MapPin className="size-3.5 text-amber-500" />
-                    <span>Kasganj High Surge Zones</span>
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    Kasganj Surge Zones
                   </h3>
                   <span className="text-[10px] font-bold text-emerald-600">LIVE DEMAND</span>
                 </div>
@@ -678,11 +544,11 @@ export function RiderIncentivesScreen() {
                   {surgeZones.map((z) => (
                     <div
                       key={z.id}
-                      className="p-3 bg-white rounded-2xl border border-zinc-200 flex items-center justify-between"
+                      className="p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between"
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-zinc-900 leading-tight">
+                          <h4 className="text-xs font-black text-slate-950">
                             {z.name}
                           </h4>
                           {z.isActive && (
@@ -691,16 +557,14 @@ export function RiderIncentivesScreen() {
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">
+                        <p className="text-[10px] text-slate-500 mt-0.5">
                           {z.activeTiming} · {z.demandLevel}
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
-                          +₹{Number(z.bonusPerTrip || 0).toFixed(0)}/trip
-                        </span>
-                      </div>
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
+                        +₹{Number(z.bonusPerTrip || 0).toFixed(0)}/trip
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -712,57 +576,56 @@ export function RiderIncentivesScreen() {
         {/* TAB 3: WEEKLY 6-DAY DUTY STREAK */}
         {activeTab === "streak" && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
                 Weekly 6-Day Duty Streak
               </h3>
-              <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                Mega ₹500 Reward
+              <span className="text-[10px] font-black text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                ₹500 Mega Reward
               </span>
             </div>
 
-            {/* Streak Hero Card */}
-            <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-50/80 via-white to-amber-100/50 border border-amber-200/90 shadow-2xs">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
-                    Streak Bonus
+                  <span className="text-[10px] font-black text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    Active Streak
                   </span>
-                  <div className="mt-1 flex items-baseline gap-1.5">
-                    <span className="text-2xl font-black text-zinc-900">
+                  <div className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-slate-950">
                       {weeklyStreak?.completedDays ?? 0} / {weeklyStreak?.targetDays ?? 6} Days
                     </span>
-                    <span className="text-xs font-bold text-amber-700">Completed</span>
+                    <span className="text-xs font-bold text-slate-500">Completed</span>
                   </div>
-                  <p className="text-[11px] text-zinc-600 mt-0.5">
+                  <p className="text-[11px] text-slate-500 mt-0.5">
                     Complete 6 duty days this week to unlock ₹500 Mega Reward!
                   </p>
                 </div>
 
-                <div className="size-12 rounded-2xl bg-white shadow-xs border border-amber-200 flex items-center justify-center">
-                  <Trophy className="size-6 text-amber-500" />
+                <div className="size-11 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+                  <Trophy className="size-5 text-amber-600" />
                 </div>
               </div>
 
-              {/* 7 Days Visual Stepper */}
+              {/* 7 Days Stepper */}
               <div className="grid grid-cols-7 gap-1.5 mt-4">
                 {(weeklyStreak?.days ?? []).map((d, i) => (
                   <div
                     key={i}
                     className={`flex flex-col items-center justify-center p-2 rounded-xl text-center border transition-all ${
                       d.met
-                        ? "bg-emerald-500 text-white border-emerald-600 shadow-2xs"
+                        ? "bg-slate-950 text-white border-slate-950 shadow-2xs"
                         : d.isToday
-                        ? "bg-amber-100 text-amber-900 border-amber-300 ring-2 ring-amber-400/40 font-bold"
-                        : "bg-zinc-50 text-zinc-400 border-zinc-200"
+                        ? "bg-amber-50 text-amber-900 border-amber-300 font-bold"
+                        : "bg-slate-50 text-slate-400 border-slate-200"
                     }`}
                   >
-                    <span className="text-[10px] font-bold uppercase">{d.day}</span>
+                    <span className="text-[10px] font-black uppercase">{d.day}</span>
                     <div className="mt-1">
                       {d.met ? (
                         <CheckCircle2 className="size-3.5 text-white mx-auto" />
                       ) : (
-                        <span className="text-[11px] font-semibold text-zinc-700">{d.trips || "-"}</span>
+                        <span className="text-[11px] font-bold text-slate-700">{d.trips || "-"}</span>
                       )}
                     </div>
                   </div>
@@ -771,15 +634,15 @@ export function RiderIncentivesScreen() {
             </div>
 
             {/* Streak Guidelines */}
-            <div className="p-3.5 bg-white rounded-2xl border border-zinc-200 space-y-2">
-              <h4 className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+            <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
+              <h4 className="text-xs font-black text-slate-950 flex items-center gap-1.5">
                 <ShieldCheck className="size-4 text-emerald-600" />
                 <span>Streak Rules & Eligibility</span>
               </h4>
-              <ul className="text-[11px] text-zinc-600 space-y-1.5 list-disc pl-4 font-medium">
-                <li>Complete a minimum of 5 successful deliveries on any 6 days in a week.</li>
+              <ul className="text-[11px] text-slate-600 space-y-1.5 list-disc pl-4 font-medium">
+                <li>Complete minimum 5 deliveries on any 6 days in a week.</li>
                 <li>Streak week runs from Monday 00:00 AM to Sunday 11:59 PM.</li>
-                <li>₹500 bonus is auto-credited directly in your 72-Hour settlement cycle.</li>
+                <li>₹500 bonus is auto-credited to your settlement wallet.</li>
               </ul>
             </div>
           </div>
@@ -788,20 +651,20 @@ export function RiderIncentivesScreen() {
         {/* TAB 4: CALCULATOR */}
         {activeTab === "calculator" && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
                 Daily Earnings Simulator
               </h3>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                Live Calculator
+              <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Instant Calculation
               </span>
             </div>
 
-            <div className="p-4 rounded-3xl bg-white border border-zinc-200 shadow-sm space-y-4">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
               <div>
-                <label className="text-xs font-bold text-zinc-700 flex justify-between items-center">
+                <label className="text-xs font-bold text-slate-700 flex justify-between items-center">
                   <span>Deliveries Planned Today:</span>
-                  <span className="text-base font-bold text-zinc-950">
+                  <span className="text-base font-black text-slate-950">
                     {calcTrips} Rides
                   </span>
                 </label>
@@ -810,26 +673,26 @@ export function RiderIncentivesScreen() {
                   <button
                     type="button"
                     onClick={() => {
-                      triggerHaptic();
+                      triggerHaptic(20);
                       setCalcTrips((prev) => Math.max(1, prev - 1));
                     }}
-                    className="size-10 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center active:scale-95 transition-all"
+                    className="size-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center active:scale-95 transition cursor-pointer"
                   >
                     <Minus className="size-4" />
                   </button>
 
                   <div className="w-24 text-center">
-                    <span className="text-2xl font-black text-zinc-900">{calcTrips}</span>
-                    <p className="text-[10px] text-zinc-500">trips</p>
+                    <span className="text-3xl font-black text-slate-950">{calcTrips}</span>
+                    <p className="text-[10px] text-slate-500 font-semibold">trips</p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => {
-                      triggerHaptic();
+                      triggerHaptic(20);
                       setCalcTrips((prev) => Math.min(30, prev + 1));
                     }}
-                    className="size-10 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center active:scale-95 transition-all"
+                    className="size-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center active:scale-95 transition cursor-pointer"
                   >
                     <Plus className="size-4" />
                   </button>
@@ -841,13 +704,13 @@ export function RiderIncentivesScreen() {
                       key={num}
                       type="button"
                       onClick={() => {
-                        triggerHaptic();
+                        triggerHaptic(20);
                         setCalcTrips(num);
                       }}
-                      className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition cursor-pointer ${
                         calcTrips === num
-                          ? "bg-zinc-900 text-white border-zinc-900"
-                          : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+                          ? "bg-slate-950 text-white border-slate-950"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                       }`}
                     >
                       {num} Rides
@@ -856,41 +719,41 @@ export function RiderIncentivesScreen() {
                 </div>
               </div>
 
-              <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100 space-y-2 text-xs">
-                <div className="flex justify-between text-zinc-600">
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                <div className="flex justify-between text-slate-600">
                   <span>Base Trip Fares (~₹42/ride)</span>
-                  <span className="font-bold text-zinc-900">₹{calculatedEarnings.baseFare.toFixed(2)}</span>
+                  <span className="font-bold text-slate-900">₹{calculatedEarnings.baseFare.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-zinc-600">
+                <div className="flex justify-between text-slate-600">
                   <span>Daily Milestone Target Bonus</span>
                   <span className="font-bold text-emerald-600">+₹{calculatedEarnings.milestoneBonus.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-zinc-600">
+                <div className="flex justify-between text-slate-600">
                   <span>Peak Rush & Surge Quests</span>
                   <span className="font-bold text-amber-600">+₹{calculatedEarnings.surgeAndQuests.toFixed(2)}</span>
                 </div>
-                <div className="pt-2 border-t border-zinc-200 flex justify-between items-center text-sm font-black text-zinc-900">
+                <div className="pt-2.5 border-t border-slate-200 flex justify-between items-center text-sm font-black text-slate-950">
                   <span>Total Take-Home Pay</span>
-                  <span className="text-lg text-emerald-700">₹{calculatedEarnings.total.toFixed(2)}</span>
+                  <span className="text-xl text-emerald-700">₹{calculatedEarnings.total.toFixed(2)}</span>
                 </div>
               </div>
 
-              <p className="text-[10px] text-center text-zinc-500 font-medium">
+              <p className="text-[10px] text-center text-slate-500 font-medium">
                 Effective Captain Earning: ~₹{calculatedEarnings.effectivePerTrip} per completed delivery
               </p>
             </div>
           </div>
         )}
 
-        {/* 4. Bottom CTA */}
+        {/* BOTTOM CTA: GO ONLINE & START TARGET */}
         <div className="pt-2">
           <button
             type="button"
             onClick={() => {
-              triggerHaptic();
+              triggerHaptic(30);
               navigate({ to: "/dashboard" });
             }}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-sm shadow-md transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-950 hover:bg-slate-900 active:scale-98 text-white font-black text-sm shadow-xs transition cursor-pointer"
           >
             <Compass className="size-4" />
             <span>Go Online & Complete Today's Target 🚀</span>
@@ -898,7 +761,7 @@ export function RiderIncentivesScreen() {
         </div>
       </main>
 
-      {/* 5. Bottom Navigation Dock */}
+      {/* 3. BOTTOM NAVIGATION */}
       <RiderBottomNav active="dashboard" />
     </div>
   );
