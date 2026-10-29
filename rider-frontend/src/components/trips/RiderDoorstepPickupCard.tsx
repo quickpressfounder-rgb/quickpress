@@ -106,35 +106,35 @@ export function RiderDoorstepPickupCard({
   };
 
   return (
-    <div className="bg-white border border-zinc-200/90 rounded-2xl shadow-2xs p-3.5 space-y-3 transition-all">
+    <div className="bg-white border border-slate-200/90 rounded-3xl shadow-xs p-4 space-y-3.5 transition-all">
       {/* 1. Header with Status Pill */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 text-white shrink-0">
-            <Tag className="size-3.5" />
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-slate-100 border border-slate-200 text-slate-900 shrink-0 shadow-2xs">
+            <Tag className="size-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-zinc-900 leading-tight">
-              Doorstep Bag Seal & Pieces Check
+            <h4 className="text-xs font-black text-slate-900 leading-tight">
+              Doorstep Garment Intake & Bag Seal
             </h4>
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-[10.5px] font-medium text-slate-500">
               कस्टमर के सामने कपड़े गिनकर बैग सील करें
             </p>
           </div>
         </div>
 
         {isVerified ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
+          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
             <CheckCircle2 className="size-3" />
             Verified
           </span>
         ) : hasDiscrepancy ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+          <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
             <AlertTriangle className="size-3" />
             Count Differs
           </span>
         ) : (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 shrink-0">
+          <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
             Step 1 of 2
           </span>
         )}
@@ -142,11 +142,11 @@ export function RiderDoorstepPickupCard({
 
       {/* 2. Discrepancy Alert Banner */}
       {hasDiscrepancy && (
-        <div className="p-2 bg-amber-50/80 border border-amber-200 rounded-xl flex items-start gap-1.5 text-amber-900">
-          <Info className="size-3.5 shrink-0 mt-0.5 text-amber-700" />
-          <p className="text-[10px] font-medium leading-tight">
-            Customer booked <span className="font-bold">{expectedPieces} pcs</span>, but you are counting{" "}
-            <span className="font-bold">{doorstepPieces} pcs</span>. Please confirm with customer before sealing.
+        <div className="p-2.5 bg-amber-50/90 border border-amber-200 rounded-2xl flex items-start gap-2 text-amber-950">
+          <Info className="size-4 shrink-0 mt-0.5 text-amber-700" />
+          <p className="text-[11px] font-medium leading-snug">
+            Customer booked <span className="font-black">{expectedPieces} pcs</span>, but counted is{" "}
+            <span className="font-black">{doorstepPieces} pcs</span>. Please confirm with customer before sealing.
           </p>
         </div>
       )}
@@ -154,27 +154,27 @@ export function RiderDoorstepPickupCard({
       {/* 3. Pieces Stepper & Bag Tag ID Inputs */}
       <div className="grid grid-cols-2 gap-2.5">
         {/* Pieces Counter */}
-        <div className="p-2.5 bg-zinc-50 rounded-xl border border-zinc-200/90">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-semibold text-zinc-700">Garment Count</span>
-            <span className="text-[10px] font-bold text-zinc-400">Exp: {expectedPieces}</span>
+        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-slate-700">Garment Count</span>
+            <span className="text-[10px] font-black text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">Exp: {expectedPieces}</span>
           </div>
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => setDoorstepPieces((p) => Math.max(1, p - 1))}
-              className="size-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center font-bold text-zinc-800 active:scale-95 transition-all text-sm cursor-pointer shadow-2xs hover:bg-zinc-100"
+              className="size-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-black text-slate-900 active:scale-95 transition-all text-base cursor-pointer shadow-2xs hover:bg-slate-100"
               title="Decrease pieces"
             >
               -
             </button>
-            <span className="font-mono text-sm font-bold text-zinc-900">
+            <span className="font-mono text-base font-black text-slate-950">
               {doorstepPieces} pcs
             </span>
             <button
               type="button"
               onClick={() => setDoorstepPieces((p) => p + 1)}
-              className="size-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center font-bold text-zinc-800 active:scale-95 transition-all text-sm cursor-pointer shadow-2xs hover:bg-zinc-100"
+              className="size-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-black text-slate-900 active:scale-95 transition-all text-base cursor-pointer shadow-2xs hover:bg-slate-100"
               title="Increase pieces"
             >
               +
@@ -183,13 +183,13 @@ export function RiderDoorstepPickupCard({
         </div>
 
         {/* Bag Seal Tag ID */}
-        <div className="p-2.5 bg-zinc-50 rounded-xl border border-zinc-200/90">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-semibold text-zinc-700">Bag Seal Tag</span>
+        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-slate-700">Bag Seal Tag</span>
             <button
               type="button"
               onClick={handleGenerateAutoTag}
-              className="inline-flex items-center gap-0.5 text-[10px] font-bold text-zinc-900 hover:text-zinc-700 cursor-pointer"
+              className="inline-flex items-center gap-1 text-[10px] font-black text-slate-900 bg-slate-200 hover:bg-slate-300 px-2 py-0.5 rounded-lg active:scale-95 transition-all cursor-pointer"
               title="Generate Random Tag Code"
             >
               <Sparkles className="size-2.5" />
@@ -202,7 +202,7 @@ export function RiderDoorstepPickupCard({
             onChange={(e) => setBagTagCode(e.target.value.toUpperCase())}
             placeholder="QP-BAG-1082"
             maxLength={18}
-            className="w-full text-center font-mono font-bold text-xs uppercase bg-white border border-zinc-200 rounded-lg py-1 text-zinc-900 focus:outline-none focus:border-zinc-500 shadow-2xs"
+            className="w-full text-center font-mono font-black text-xs uppercase bg-white border border-slate-200 rounded-xl py-1.5 text-slate-900 focus:outline-none focus:border-slate-900 shadow-2xs"
           />
         </div>
       </div>
@@ -213,33 +213,33 @@ export function RiderDoorstepPickupCard({
           <button
             type="button"
             onClick={() => setShowItemsList((prev) => !prev)}
-            className="w-full flex items-center justify-between py-1 px-1.5 text-[11px] font-semibold text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between py-1 px-2 text-[11px] font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
           >
             <span>Booked Item Manifest ({items.length} items)</span>
             {showItemsList ? (
-              <ChevronUp className="size-3.5 text-zinc-500" />
+              <ChevronUp className="size-3.5 text-slate-500" />
             ) : (
-              <ChevronDown className="size-3.5 text-zinc-500" />
+              <ChevronDown className="size-3.5 text-slate-500" />
             )}
           </button>
 
           {showItemsList && (
-            <div className="mt-1.5 p-2 bg-zinc-50 rounded-xl border border-zinc-200/80 space-y-1 max-h-36 overflow-y-auto">
+            <div className="mt-1.5 p-2.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5 max-h-36 overflow-y-auto">
               {items.map((item, idx) => {
                 const count = Number(item.quantity || item.qty || 1);
                 const title = item.title || item.name || `Garment #${idx + 1}`;
                 return (
                   <div
                     key={idx}
-                    className="flex items-center justify-between text-[11px] py-0.5 border-b border-zinc-100 last:border-0"
+                    className="flex items-center justify-between text-[11px] py-1 border-b border-slate-200/60 last:border-0"
                   >
-                    <span className="text-zinc-700 truncate max-w-[200px]">
+                    <span className="text-slate-700 truncate max-w-[200px] font-medium">
                       {title}
                       {item.service && (
-                        <span className="text-[9px] text-zinc-400 ml-1">({item.service})</span>
+                        <span className="text-[9.5px] text-slate-400 ml-1">({item.service})</span>
                       )}
                     </span>
-                    <span className="font-mono font-bold text-zinc-900 shrink-0">
+                    <span className="font-mono font-black text-slate-900 shrink-0">
                       x{count}
                     </span>
                   </div>
@@ -262,18 +262,18 @@ export function RiderDoorstepPickupCard({
         />
 
         {bagPhotoUrl ? (
-          <div className="flex items-center justify-between p-2 bg-zinc-50 border border-zinc-200 rounded-xl">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+            <div className="flex items-center gap-2.5">
               <img
                 src={bagPhotoUrl}
                 alt="Sealed bag proof"
-                className="size-10 rounded-lg object-cover border border-zinc-200 shadow-2xs"
+                className="size-11 rounded-xl object-cover border border-slate-200 shadow-2xs"
               />
               <div>
-                <span className="text-[11px] font-bold text-zinc-900 block leading-tight">
+                <span className="text-[11px] font-black text-slate-900 block leading-tight">
                   Sealed Bag Photo Saved
                 </span>
-                <span className="text-[10px] text-zinc-500">
+                <span className="text-[10px] font-medium text-slate-500">
                   Tag: {bagTagCode || "Pending"} • {doorstepPieces} pcs
                 </span>
               </div>
@@ -281,7 +281,7 @@ export function RiderDoorstepPickupCard({
             <button
               type="button"
               onClick={() => setBagPhotoUrl && setBagPhotoUrl("")}
-              className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
               title="Remove photo"
             >
               <X className="size-4" />
@@ -292,9 +292,9 @@ export function RiderDoorstepPickupCard({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isCompressingPhoto}
-            className="w-full py-1.5 px-2.5 rounded-xl border border-dashed border-zinc-300 hover:border-zinc-400 bg-zinc-50/60 hover:bg-zinc-50 text-zinc-700 font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            className="w-full py-2 px-3 rounded-2xl border border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/70 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
           >
-            <Camera className="size-3.5 text-zinc-600" />
+            <Camera className="size-4 text-slate-600" />
             <span>
               {isCompressingPhoto ? "Compressing Photo..." : "Take Bag Seal Photo (Optional)"}
             </span>
@@ -308,7 +308,7 @@ export function RiderDoorstepPickupCard({
         value={doorstepNotes}
         onChange={(e) => setDoorstepNotes(e.target.value)}
         placeholder="Notes (optional): e.g. white shirt collar stain, torn pocket..."
-        className="w-full text-[11px] bg-zinc-50 border border-zinc-200 rounded-xl px-2.5 py-1.5 text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-500 transition-all shadow-2xs"
+        className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-900 transition-all shadow-2xs font-medium"
       />
     </div>
   );

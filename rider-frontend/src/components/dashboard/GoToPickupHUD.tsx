@@ -1595,7 +1595,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
           </span>
           <h1 className="text-sm font-black tracking-tight truncate max-w-[190px] sm:max-w-xs text-slate-950">
             {stage === "en_route_pickup" && (isDeliveryRide ? "Go to Partner Store" : isHandoverRide ? "Go to Handover Point" : "Go to Pickup Zone")}
-            {stage === "arrived_pickup" && (isDeliveryRide ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Pickup Location")}
+            {stage === "arrived_pickup" && (isDeliveryRide ? "At Partner Store" : isHandoverRide ? "At Handover Point" : "At Customer Doorstep")}
             {stage === "in_trip" && (isDeliveryRide ? "En Route to Delivery" : order.rideType === "pickup" ? "Heading to Store" : "Heading to Drop Zone")}
             {stage === "store_processing" && "Store Laundry Processing"}
             {stage === "ready_pickup_store" && "Collect from Store"}
@@ -1965,7 +1965,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   onSpeak={() => speakDispatchOtpPrompt(captainDispatchOtp)}
                 />
 
-                <div className="bg-white border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2 text-[11px] text-emerald-900 font-semibold shadow-2xs">
+                <div className="bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-2.5 text-xs text-slate-800 font-medium shadow-2xs">
                   <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span className="truncate">{partnerStoreAddress}</span>
                 </div>
@@ -2059,12 +2059,12 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
             ) : (
               <>
                 {/* Waiting Timer Card */}
-                <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-2xl">
-                  <div className="flex items-center gap-2 text-xs font-black text-amber-900">
-                    <Timer className="w-4 h-4 text-amber-600 animate-spin duration-3000" />
+                <div className="flex items-center justify-between p-3.5 bg-amber-50/70 border border-amber-200/90 rounded-2xl shadow-2xs">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-950">
+                    <Timer className="w-4 h-4 text-amber-600 animate-spin duration-3000 shrink-0" />
                     <span>Free Waiting Time (निःशुल्क प्रतीक्षा समय)</span>
                   </div>
-                  <span className="text-sm font-black text-amber-950 font-mono bg-white px-2.5 py-0.5 rounded-lg border border-amber-300 shadow-2xs">
+                  <span className="text-sm font-black text-amber-950 font-mono bg-white px-3 py-1 rounded-xl border border-amber-300 shadow-2xs">
                     {formatTimer(waitingSeconds)}
                   </span>
                 </div>
@@ -2093,7 +2093,7 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                   }}
                 />
 
-                {/* Dedicated 4-Digit OTP Screen Trigger Button */}
+                {/* Optional Keypad Trigger Button (Clean Outline Style) */}
                 <button
                   type="button"
                   onClick={() => {
@@ -2101,15 +2101,15 @@ export const GoToPickupHUD: React.FC<GoToPickupHUDProps> = ({
                     setDedicatedOtpDigits(["", "", "", ""]);
                     setShowDedicatedOtpScreen(true);
                   }}
-                  className="w-full h-12 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
+                  className="w-full h-11 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs active:scale-95 transition-all cursor-pointer"
                 >
-                  <KeyRound className="size-4" />
-                  <span>Enter 4-Digit Code (Fullscreen OTP)</span>
+                  <KeyRound className="size-4 text-slate-700" />
+                  <span>Open Fullscreen Keypad</span>
                 </button>
 
                 {/* Swipe to Start Trip */}
                 <SwipeActionButton
-                  label="Swipe to Start Trip"
+                  label="Slide to Start Trip to Store"
                   hint="OTP दर्ज करके स्लाइड करें • Start Trip"
                   color="emerald"
                   onConfirm={handleStartTrip}

@@ -3388,3 +3388,34 @@ This single command will automatically:
   - Built Android Captain binaries via `python3 build_all_apks.py rider`: PASSED (5s).
 - **Git Commit:**
   - Commit `a803040`: `feat(captain): simplify active order HUD - remove timeline, whatsapp, and voice gps; rename to Customer to Store` pushed to GitHub `main`.
+
+### 61. Arrival Location Screen Revamp (`stage === arrived_pickup`) to Pure White Theme
+- **User Request:**
+  - "ab arrival loction ka roughfy pahle mughe dikhao kaisa hai uske baad jab me approved karu tab banana hai new desing me"
+  - "layour sahi hai isko final ki hui theam me banao yahi layout ko"
+- **Architectural & Design Principles Applied:**
+  - **Rule 1 (Pure White Theme):** Zero dark container cards. Full `#FFFFFF` cards, `#F8F9FA` canvas, hairline `border-slate-200`, and solid black `#000000` reserved for text and primary CTA buttons.
+  - **Rule 2 (1-Tap Speed Usability):** Quick `[-]` and `[+]` garment counter, 1-tap `[Auto]` bag seal code generation, and instant auto-acceptance on the 4th digit of customer pickup OTP.
+  - **Rule 3 (Zero Cartoon Emojis):** Strictly pure SVG system icons (`lucide-react`: `Clock`, `Tag`, `Camera`, `KeyRound`, `ShieldCheck`, `Volume2`, `MapPin`, `Sparkles`).
+  - **Rule 4 (Safe Notch Padding):** Sticky header container maintains `paddingTop: max(env(safe-area-inset-top), 48px)`.
+- **Code Modifications:**
+  - **1. Garment Intake Card (`RiderDoorstepPickupCard.tsx`):**
+    - Redesigned into `bg-white border border-slate-200/90 rounded-3xl p-4 shadow-xs`.
+    - Counter stepper styled with large touch target `[-]` and `[+]` white buttons and bold `font-mono text-base font-black text-slate-950`.
+    - Bag seal code input with `[Auto]` random tag generator button.
+    - Camera photo proof trigger styled as clean outline button with instant compression and photo removal option.
+    - Clean collapsible booked item manifest.
+  - **2. Customer & Store OTP Cards (`RiderOtpCard.tsx`):**
+    - Refactored `RiderCustomerOtpInput` into pure white card with 4 square digit boxes (`w-14 h-16 rounded-2xl border-2 font-mono text-3xl font-black`), auto-focus next, and instant auto-verify.
+    - Converted `RiderStoreDispatchDisplay` from dark container (`bg-slate-950`) to clean white theme (`bg-white border border-slate-200 rounded-3xl`), with solid black `[Speak Code]` button and outline `[Copy]` button.
+  - **3. Active Order HUD (`GoToPickupHUD.tsx`):**
+    - Updated header title for `stage === "arrived_pickup"` to show `"At Customer Doorstep"` (or `"At Partner Store"` for delivery pickup).
+    - Refactored Free Waiting Timer into soft amber card (`bg-amber-50/70 border border-amber-200/90 rounded-2xl`).
+    - Styled fullscreen keypad trigger as clean outline button and swipe button as `"Slide to Start Trip to Store"`.
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (1.54s, 0 errors).
+  - Built Android binaries (`python3 build_all_apks.py rider`):
+    - `QuickPress-Captain.apk` (18 MB) compiled & verified.
+    - `QuickPress-Captain.aab` (17 MB) compiled & verified.
+    - Capacitor iOS sync verified (0.6s).
+

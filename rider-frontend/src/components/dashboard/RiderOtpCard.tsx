@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Copy, KeyRound, ShieldCheck, Volume2, CheckCircle2, Zap, ClipboardCheck, Sparkles } from "lucide-react";
+import { Copy, KeyRound, ShieldCheck, Volume2, CheckCircle2, Zap, ClipboardCheck, Sparkles, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { speakText, triggerHaptic } from "../../lib/captain-audio";
 
@@ -129,32 +129,32 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
 
   return (
     <div
-      className={`rounded-3xl border-2 p-4.5 shadow-xl space-y-3.5 transition-all duration-300 ${
+      className={`rounded-3xl border p-4.5 shadow-xs space-y-3.5 transition-all duration-300 ${
         isAutoSubmitting || isComplete
-          ? "border-emerald-500 bg-gradient-to-br from-emerald-950/20 via-emerald-50/90 to-teal-50/90 ring-4 ring-emerald-500/20 shadow-emerald-500/10"
-          : "border-slate-200/90 bg-white/95 backdrop-blur-md shadow-slate-200/50"
+          ? "border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20"
+          : "border-slate-200/90 bg-white"
       }`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span
-            className={`flex size-9 items-center justify-center rounded-2xl text-white shadow-md transition-all ${
-              isAutoSubmitting ? "bg-emerald-600 animate-bounce scale-110" : "bg-gradient-to-br from-emerald-500 to-teal-600"
+            className={`flex size-9 items-center justify-center rounded-2xl text-white shadow-2xs transition-all ${
+              isAutoSubmitting || isComplete ? "bg-emerald-600 scale-105" : "bg-slate-950"
             }`}
           >
-            <KeyRound className="size-5" />
+            <KeyRound className="size-4.5" />
           </span>
           <div>
             <h4 className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-slate-900 block leading-tight">
               {title}
             </h4>
-            <p className="text-[11px] font-bold text-emerald-700 leading-tight mt-0.5">
+            <p className="text-[11px] font-bold text-slate-600 leading-tight mt-0.5">
               {displaySubtitle}
             </p>
           </div>
         </div>
 
-        <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-800 border border-emerald-500/30 flex items-center gap-1">
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-700 border border-slate-200 flex items-center gap-1">
           <span className="size-1.5 rounded-full bg-emerald-600 animate-pulse" />
           <span>Security OTP</span>
         </span>
@@ -174,10 +174,10 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
             onChange={(e) => handleDigitChange(idx, e.target.value)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
             onPaste={handlePaste}
-            className={`w-14 h-16 sm:w-16 sm:h-18 text-center font-mono text-3xl font-black rounded-2xl border-2 transition-all duration-200 shadow-sm ${
+            className={`w-14 h-16 sm:w-16 sm:h-18 text-center font-mono text-3xl font-black rounded-2xl border-2 transition-all duration-200 shadow-2xs ${
               digit
-                ? "border-emerald-500 bg-emerald-50/80 text-emerald-950 ring-4 ring-emerald-500/20 scale-105 shadow-emerald-500/10"
-                : "border-slate-200 bg-slate-50 text-slate-900 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/20"
+                ? "border-slate-950 bg-slate-50 text-slate-950 scale-105 shadow-xs"
+                : "border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-950 focus:bg-white focus:outline-none"
             }`}
             placeholder="—"
           />
@@ -186,14 +186,14 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
 
       {/* Auto-Submitting Visual Notification */}
       {isAutoSubmitting ? (
-        <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-black animate-pulse shadow-md">
-          <CheckCircle2 className="size-4.5" />
+        <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-emerald-600 text-white text-xs font-black animate-pulse shadow-xs">
+          <CheckCircle2 className="size-4" />
           <span>✓ OTP Verified! Completing Trip...</span>
         </div>
       ) : (
         <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] font-semibold text-slate-600">
           <span className="flex items-center gap-1.5">
-            <Sparkles className="size-3.5 text-emerald-600" />
+            <Sparkles className="size-3.5 text-slate-700" />
             <span>4 अंक दर्ज करते ही ऑटो-वेरीफाई होगा</span>
           </span>
           {currentDigits.some((d) => d) && (
@@ -203,7 +203,7 @@ export const RiderCustomerOtpInput: React.FC<RiderCustomerOtpInputProps> = ({
                 updateDigits(["", "", "", ""]);
                 inputRefs[0].current?.focus();
               }}
-              className="font-bold text-rose-600 hover:text-rose-700 hover:underline px-2 py-0.5"
+              className="font-bold text-rose-600 hover:text-rose-700 hover:underline px-2 py-0.5 cursor-pointer"
             >
               Clear
             </button>
@@ -263,41 +263,38 @@ export const RiderStoreDispatchDisplay: React.FC<RiderStoreDispatchDisplayProps>
   };
 
   return (
-    <div className="rounded-3xl border-2 border-slate-900 bg-slate-950 text-white p-4.5 shadow-2xl space-y-3.5 relative overflow-hidden">
-      {/* Background glow accent */}
-      <div className="absolute top-0 right-0 -mr-10 -mt-10 size-32 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
-
+    <div className="rounded-3xl border border-slate-200/90 bg-white text-slate-900 p-4.5 shadow-xs space-y-3.5 relative overflow-hidden">
       {/* Header Row */}
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950 font-black shadow-lg shrink-0">
-            <ShieldCheck className="size-5" />
+          <span className="flex size-9 items-center justify-center rounded-2xl bg-emerald-600 text-white font-black shadow-xs shrink-0">
+            <ShieldCheck className="size-4.5" />
           </span>
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block leading-tight">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block leading-tight">
               Store Handshake Verification
             </span>
-            <h4 className="text-xs sm:text-[13px] font-black text-white leading-tight mt-0.5">
+            <h4 className="text-xs sm:text-[13px] font-black text-slate-900 leading-tight mt-0.5">
               Tell this 4-Digit Code to Store Partner
             </h4>
           </div>
         </div>
-        <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-1 text-[10px] font-black text-emerald-300">
+        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[10px] font-black text-emerald-800">
           HANDSHAKE
         </span>
       </div>
 
-      <p className="text-[11.5px] text-slate-300 font-medium leading-relaxed relative z-10">
-        You are at <b className="text-white font-black underline decoration-emerald-400 decoration-2">{storeName}</b>.
+      <p className="text-[11.5px] text-slate-600 font-medium leading-relaxed relative z-10">
+        You are at <b className="text-slate-950 font-black">{storeName}</b>.
         Speak this code aloud to store staff to release the packed laundry:
       </p>
 
-      {/* 4 Digit Display Pills in high-contrast neon */}
+      {/* 4 Digit Display Pills in clean white theme */}
       <div className="flex justify-center items-center gap-3 py-1 relative z-10">
         {cleanCode.split("").map((digit, idx) => (
           <div
             key={idx}
-            className="w-13 h-15 sm:w-15 sm:h-17 flex items-center justify-center rounded-2xl bg-slate-900 text-emerald-400 font-mono text-3xl font-black shadow-xl border-2 border-emerald-500/40 shadow-emerald-500/10"
+            className="w-13 h-15 sm:w-15 sm:h-17 flex items-center justify-center rounded-2xl bg-slate-50 text-slate-950 font-mono text-3xl font-black shadow-2xs border-2 border-slate-200"
           >
             {digit}
           </div>
@@ -309,24 +306,24 @@ export const RiderStoreDispatchDisplay: React.FC<RiderStoreDispatchDisplayProps>
         <button
           type="button"
           onClick={handleSpeak}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 text-xs font-black active:scale-95 transition-all shadow-lg hover:brightness-105 cursor-pointer"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs font-bold active:scale-95 transition-all shadow-xs cursor-pointer"
         >
-          <Volume2 className="size-4 text-slate-950" />
+          <Volume2 className="size-4 text-white" />
           <span>Speak Code (बोलकर बताएं)</span>
         </button>
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 active:scale-95 transition-all cursor-pointer"
+          className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 active:scale-95 transition-all cursor-pointer shadow-2xs"
         >
-          <Copy className="size-4 text-slate-300" />
+          <Copy className="size-4 text-slate-600" />
           <span>Copy</span>
         </button>
       </div>
 
       {storeAddress && (
-        <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-[10.5px] font-medium text-slate-400 flex items-center gap-1.5 relative z-10">
-          <span className="text-emerald-400 shrink-0">📍</span>
+        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-medium text-slate-600 flex items-center gap-2 relative z-10">
+          <MapPin className="size-3.5 text-emerald-600 shrink-0" />
           <span className="truncate">{storeAddress}</span>
         </div>
       )}
