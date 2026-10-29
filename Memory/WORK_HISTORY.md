@@ -3442,4 +3442,27 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17 MB) compiled & verified.
     - Capacitor iOS sync verified (0.69s).
 
+### 63. Store Laundry Processing & Turnaround Screen Revamp (`stage === store_processing`) to Pure White Theme
+- **User Request:**
+  - "YAHA SE PYOUT SPILT HATAO AND FINAL BANAO"
+- **Architectural & Design Principles Applied:**
+  - **Rule 1 (Pure White Theme):** Replaced complex gradient container with pure white card (`bg-white border border-slate-200/90 rounded-3xl p-4 shadow-xs`).
+  - **Rule 2 (Speed-First 1-Tap Usability):** Solid black primary CTA `[Go to Dashboard (Trip Active in Background)]` allows rider to take next ride while laundry washes; outline `[Check If Clothes Are Ready Early]` refreshes partner readiness status.
+  - **Rule 3 (Zero Cartoon Emojis):** Removed emojis (🏠, 🔄, 🛵) and replaced with pure Lucide SVG system icons (`Home`, `Clock`, `Timer`, `CheckCircle2`, `Phone`, `AlertTriangle`).
+  - **User Constraint (Payout Split Removal):** Completely eliminated the 3-box `Real Earnings Settlement Badge` / `Payout Split` block as directly instructed.
+  - **Simple Payout Confirmation:** Single clean soft emerald pill banner confirming `Pickup Payout Credited: ₹XX.XX to Wallet`.
+- **Code Modifications (`GoToPickupHUD.tsx`):**
+  - Revamped `stage === "store_processing"` container to pure white card.
+  - Retained clean SLA Turnaround timer with minimalist progress bar.
+  - Updated store information card with direct 1-tap phone call button.
+  - Styled primary action as solid black pill button (`bg-slate-950 text-white rounded-full h-12`).
+  - Styled secondary action as clean white outline button (`border border-slate-200 bg-white rounded-full h-11`).
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED (1.00s, 0 errors).
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`:
+    - `QuickPress-Captain.apk` (18 MB) compiled, signed & verified.
+    - `QuickPress-Captain.aab` (17 MB) compiled & verified.
+    - Capacitor iOS sync verified (0.72s).
+
+
 
