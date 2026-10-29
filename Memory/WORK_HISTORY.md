@@ -3370,3 +3370,21 @@ This single command will automatically:
     - `QuickPress-Captain.aab` (17 MB) - compiled and verified.
 - **Git Commit:**
   - Commit `9ded4ac`: `feat(captain): revamp order accepted GoToPickup HUD and swipe action button to clean white theme` pushed to GitHub `main`.
+
+### 60. Streamlined Active Order Screen (GoToPickupHUD): Timeline, WhatsApp & Voice GPS Removal
+- **User Request:**
+  - "is desing me se pickup leg likha hai usko hata kar only customer to store karo"
+  - "order timeline full hi hatado"
+  - "whatapp button hata do"
+  - "voice gps hatao"
+  - "iska hatane ke baad roughfy banana"
+- **Code Modifications (`GoToPickupHUD.tsx`):**
+  - **1. Route Banner:** Replaced `Pickup Leg: Customer to Store [LEG 1]` with pure `Customer to Store` (and `Store to Customer` for delivery leg) with `#QP-XXXX` order code and fare.
+  - **2. Full Timeline Removal:** Completely eliminated the 6-step timeline stepper, milestone pill, and track nodes, giving full screen real estate to the map and destination.
+  - **3. WhatsApp Button Removal:** Removed WhatsApp button from the customer contact row, leaving `[Call]` and `[In-App Chat]`.
+  - **4. Voice GPS Removal:** Removed `[Voice GPS]` from the floating maneuver pill and replaced dual navigation buttons with a single clean `[Navigate with Google Maps]` pill.
+- **Verification & Packaging:**
+  - Built `rider-frontend` (`npm run build`): PASSED in 1.68s.
+  - Built Android Captain binaries via `python3 build_all_apks.py rider`: PASSED (5s).
+- **Git Commit:**
+  - Commit `a803040`: `feat(captain): simplify active order HUD - remove timeline, whatsapp, and voice gps; rename to Customer to Store` pushed to GitHub `main`.
